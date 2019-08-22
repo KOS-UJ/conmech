@@ -23,5 +23,4 @@ class Setup:
 
 if __name__ == '__main__':
     setup = Setup()
-    runner = SimulationRunner()
-    runner.run(setup)
+    SimulationRunner.run(setup)

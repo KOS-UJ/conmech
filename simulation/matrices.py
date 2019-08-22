@@ -10,51 +10,45 @@ import numpy as np
 
 class Matrices:
 
-    def __init__(self, setting, mi, la):
-        self.s = setting
-        self.AX = np.zeros([self.s.indNumber(), 8])  # area with dx
-        self.AY = np.zeros([self.s.indNumber(), 8])  # area with dy
-        self.W11 = np.zeros([self.s.indNumber(), self.s.indNumber()])
-        self.W12 = np.zeros([self.s.indNumber(), self.s.indNumber()])
-        self.W21 = np.zeros([self.s.indNumber(), self.s.indNumber()])
-        self.W22 = np.zeros([self.s.indNumber(), self.s.indNumber()])
+    def __init__(self, grid, mi, la):
+        self.grid = grid
+        self.AX = np.zeros([self.grid.indNumber(), 8])  # area with dx
+        self.AY = np.zeros([self.grid.indNumber(), 8])  # area with dy
+        self.W11 = np.zeros([self.grid.indNumber(), self.grid.indNumber()])
+        self.W12 = np.zeros([self.grid.indNumber(), self.grid.indNumber()])
+        self.W21 = np.zeros([self.grid.indNumber(), self.grid.indNumber()])
+        self.W22 = np.zeros([self.grid.indNumber(), self.grid.indNumber()])
 
-        nDX = np.array([1., 1., -1., -1., -1., -1., 1., 1.]) * 0.5  # normal dx
-        nDY = np.array([-1., -1., -1., -1., 1., 1., 1., 1.]) * 0.5
+        n_dx = np.array([1., 1., -1., -1., -1., -1., 1., 1.]) * 0.5  # normal dx
+        n_dy = np.array([-1., -1., -1., -1., 1., 1., 1., 1.]) * 0.5
 
-        cDX = np.array([1., 0., -1., 0., 0., 0., 0., 0.])  # cross dx
-        cDY = np.array([0., -1., 0., 1., 0., 0., 0., 0.])
+        c_dx = np.array([1., 0., -1., 0., 0., 0., 0., 0.])  # cross dx
+        c_dy = np.array([0., -1., 0., 1., 0., 0., 0., 0.])
 
-        for i in range(0, self.s.indNumber()):
-            p = self.s.Points[i]
-            if p[2] == self.s.TOP:
+        for i in range(0, self.grid.indNumber()):
+            p = self.grid.Points[i]
+            dx = n_dx
+            dy = n_dy
+            if p[2] == self.grid.TOP:
                 f = np.array([0, 0, 0, 0, 1, 1, 1, 1])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.RIGHT_TOP_CORNER:
+            elif p[2] == self.grid.RIGHT_TOP_CORNER:
                 f = np.array([0, 0, 0, 0, 0, 0, 1, 1])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.RIGHT_SIDE:
+            elif p[2] == self.grid.RIGHT_SIDE:
                 f = np.array([1, 1, 0, 0, 0, 0, 1, 1])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.RIGHT_BOTTOM_CORNER:
+            elif p[2] == self.grid.RIGHT_BOTTOM_CORNER:
                 f = np.array([1, 1, 0, 0, 0, 0, 0, 0])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.BOTTOM:
+            elif p[2] == self.grid.BOTTOM:
                 f = np.array([1, 1, 1, 1, 0, 0, 0, 0])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.NORMAL_MIDDLE:
+            elif p[2] == self.grid.NORMAL_MIDDLE:
                 f = np.array([1, 1, 1, 1, 1, 1, 1, 1])
-                self.AX[i] = f * nDX
-                self.AY[i] = f * nDY
-            elif p[2] == self.s.CROSS:
+            elif p[2] == self.grid.CROSS:
                 f = np.array([1, 1, 1, 1, 0, 0, 0, 0])  # only 4 used
-                self.AX[i] = f * cDX
-                self.AY[i] = f * cDY
+                dx = c_dx
+                dy = c_dy
+            else:
+                raise ValueError
+            self.AX[i] = f * dx
+            self.AY[i] = f * dy
 
         self.multiply(self.W11, self.AX, self.AX)
         self.multiply(self.W12, self.AX, self.AY)
@@ -67,47 +61,42 @@ class Matrices:
         self.B22 = mi * self.W11 + (2 * mi + la) * self.W22
 
     def multiply(self, W, AK, AL):
-        for i in range(0, self.s.indNumber()):
+        for i in range(0, self.grid.indNumber()):
             W[i][i] = np.sum(AK[i] * AL[i])
 
             # c - contacting triangles numbers
-            for j in range(0, self.s.indNumber()):
+            for j in range(0, self.grid.indNumber()):
                 c1i = -1
                 c1j = -1
                 c2i = -1
                 c2j = -1
 
-                if (self.s.getEdgeType(i, j) == 1):  # 1 - from normal go right to normal
+                if (self.grid.getEdgeType(i, j) == 1):  # 1 - from normal go right to normal
                     c1i = 3
                     c1j = 0
                     c2i = 4
                     c2j = 7
-
-                elif (self.s.getEdgeType(i, j) == 2):  # 2 - from normal go up to normal
+                elif (self.grid.getEdgeType(i, j) == 2):  # 2 - from normal go up to normal
                     c1i = 1
                     c1j = 6
                     c2i = 2
                     c2j = 5
-
-                elif (self.s.getEdgeType(i, j) == 3):  # 3 - from normal go right and up to cross
+                elif (self.grid.getEdgeType(i, j) == 3):  # 3 - from normal go right and up to cross
                     c1i = 2
                     c1j = 0
                     c2i = 3
                     c2j = 3
-
-                elif (self.s.getEdgeType(i, j) == 4):  # 4 - from cross go right and up to normal
+                elif (self.grid.getEdgeType(i, j) == 4):  # 4 - from cross go right and up to normal
                     c1i = 1
                     c1j = 7
                     c2i = 2
                     c2j = 6
-
-                elif (self.s.getEdgeType(i, j) == 5):  # 5 - from normal go right and down to cross
+                elif (self.grid.getEdgeType(i, j) == 5):  # 5 - from normal go right and down to cross
                     c1i = 4
                     c1j = 1
                     c2i = 5
                     c2j = 0
-
-                elif (self.s.getEdgeType(i, j) == 6):  # 6 - from cross go right and down to normal
+                elif (self.grid.getEdgeType(i, j) == 6):  # 6 - from cross go right and down to normal
                     c1i = 2
                     c1j = 1
                     c2i = 3

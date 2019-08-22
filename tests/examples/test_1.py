@@ -10,5 +10,4 @@ from examples.example_1 import Setup
 
 def test():
     setup = Setup()
-    runner = SimulationRunner()
-    runner.run(setup)
+    SimulationRunner.run(setup)

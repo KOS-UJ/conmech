@@ -24,12 +24,12 @@ class Grid:
     def __init__(self):
         self.Points = np.zeros([0, 3])
         self.Edges = np.zeros([0, 3])
-        #
-        # i, j, type: (always i<j on plane)
-        # 0 - no edge
-        # 1 - from normal go right to normal, 2 - from normal go up to normal,
-        # 3 - from normal go right and up to cross, 4 - from cross go right and up to normal,
-        # 5 - from normal go right and down to cross, 6 - from cross go right and down to normal
+        # TODO: bad practice
+        #  i, j, type: (always i<j on plane)
+        #  0 - no edge
+        #  1 - from normal go right to normal, 2 - from normal go up to normal,
+        #  3 - from normal go right and up to cross, 4 - from cross go right and up to normal,
+        #  5 - from normal go right and down to cross, 6 - from cross go right and down to normal
         #
         self.BorderEdgesD = 0
         self.BorderEdgesN = 0
@@ -56,6 +56,8 @@ class Grid:
                 i += 1
         return -1
 
+    # TODO static class Edge
+    # TODO explain args order
     def getEdgeType(self, i, j):  # kolejność argumentów ma znaczenie
         for e in self.Edges:
             if e[0] == i and e[1] == j:
