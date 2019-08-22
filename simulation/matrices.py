@@ -27,31 +27,31 @@ class Matrices:
 
         for i in range(0, self.s.indNumber()):
             p = self.s.Points[i]
-            if (p[2] == 3):  # top
+            if p[2] == self.s.TOP:
                 f = np.array([0, 0, 0, 0, 1, 1, 1, 1])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 4):  # right top corner
+            elif p[2] == self.s.RIGHT_TOP_CORNER:
                 f = np.array([0, 0, 0, 0, 0, 0, 1, 1])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 5):  # right
+            elif p[2] == self.s.RIGHT_SIDE:
                 f = np.array([1, 1, 0, 0, 0, 0, 1, 1])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 6):  # right bottom corner
+            elif p[2] == self.s.RIGHT_BOTTOM_CORNER:
                 f = np.array([1, 1, 0, 0, 0, 0, 0, 0])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 7):  # bottom
+            elif p[2] == self.s.BOTTOM:
                 f = np.array([1, 1, 1, 1, 0, 0, 0, 0])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 8):  # normal middle
+            elif p[2] == self.s.NORMAL_MIDDLE:
                 f = np.array([1, 1, 1, 1, 1, 1, 1, 1])
                 self.AX[i] = f * nDX
                 self.AY[i] = f * nDY
-            elif (p[2] == 9):  # cross
+            elif p[2] == self.s.CROSS:
                 f = np.array([1, 1, 1, 1, 0, 0, 0, 0])  # only 4 used
                 self.AX[i] = f * cDX
                 self.AY[i] = f * cDY

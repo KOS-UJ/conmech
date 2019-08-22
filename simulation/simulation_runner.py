@@ -1,7 +1,14 @@
+"""
+Created at 21.08.2019
+
+@author: Michał Jureczka
+@author: Piotr Bartman
+"""
+
 from pylab import *
 from scipy.optimize import fsolve
 
-from simulation.setting import Setting
+from simulation.grid_factory import GridFactory
 from utils.drawer import Drawer
 from simulation.solver import Solver
 
@@ -9,8 +16,7 @@ from simulation.solver import Solver
 class SimulationRunner:
 
     def run(self, setup):
-        s1 = Setting()
-        s1.construct(setup.gridSizeH, setup.gridSizeL, setup.gridHeight)
+        s1 = GridFactory.construct(setup.gridSizeH, setup.gridSizeL, setup.gridHeight)
         solver = Solver(s1, setup.timeStep, setup.F0, setup.FN, setup.mi, setup.la)
         d = Drawer(solver)
 

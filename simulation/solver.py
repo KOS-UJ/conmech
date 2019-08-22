@@ -46,7 +46,7 @@ class Solver:
         dy = self.s.Points[e2][1] - self.s.Points[e1][1]
         norm = pylab.sqrt(dx * dx + dy * dy)
         n = np.array([float(dy) / norm, float(-dx) / norm])
-        if (n[1] > 0):
+        if n[1] > 0:
             n = -n
         return n
 
