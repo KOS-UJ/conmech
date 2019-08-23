@@ -18,8 +18,8 @@ class Solver:
         self.la = la
 
         self.grid = grid
-        self.time_step = time_step
-        self.currentTime = 0
+        # self.time_step = time_step
+        # self.currentTime = 0
 
         self.M = Matrices(grid, mi, la)
         self.F = F(grid, F0, FN)
@@ -46,22 +46,6 @@ class Solver:
         if n[1] > 0:
             n = -n
         return n
-
-    def nDownAtContactBoundary(self):
-        N = np.zeros([self.grid.indNumber(), 2])
-
-        for i in range(0, self.grid.indNumber()):
-            for e in range(-self.grid.BorderEdgesD - self.grid.BorderEdgesN - self.grid.BorderEdgesC,
-                           -self.grid.BorderEdgesD - self.grid.BorderEdgesN):
-                e1 = int(self.grid.Edges[e][0])
-                e2 = int(self.grid.Edges[e][1])
-                if i == e1 or i == e2:
-                    n = self.n_down(e)
-                    if N[i][0] == 0 and N[i][1] == 0:
-                        N[i] = n
-                    else:
-                        N[i] = 0.5 * N[i] + 0.5 * n
-        return N
 
     def JZu(self):
         JZu = np.zeros([self.grid.indNumber(), 2])
@@ -147,8 +131,7 @@ class Solver:
         # return 8.*uN
 
     @staticmethod
-    def jtZ(uT, vT):  # uT, vT - vectors; REGULARYZACJA Coulomba
-        rho = 0.0000001
-        M = 1 / pylab.math.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho * rho))
-        return M * float(uT[0]) * float(vT[0]) + M * float(uT[1]) * float(vT[1])
-
+    def jtZ(uT, vT, rho=0.0000001):  # uT, vT - vectors; REGULARYZACJA Coulomba
+        M = 1 / pylab.math.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho**2))
+        result = M * float(uT[0]) * float(vT[0]) + M * float(uT[1]) * float(vT[1])
+        return result

@@ -22,7 +22,7 @@ class SimulationRunner:
 
         u_vector = np.zeros([2 * grid.indNumber()])
 
-        solver.currentTime = 1
+        # solver.currentTime = 1
         solver.F.setF()
 
         while True:

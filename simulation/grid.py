@@ -56,10 +56,12 @@ class Grid:
                 i += 1
         return -1
 
-    # TODO static class Edge
-    # TODO explain args order
-    def getEdgeType(self, i, j):  # kolejność argumentów ma znaczenie
-        for e in self.Edges:
-            if e[0] == i and e[1] == j:
-                return e[2]
-        return 0
+    # TODO: order of args still matters
+    def get_edge(self, i, j):
+        result = (-1, -1, -1)
+
+        for edge in self.Edges:
+            if edge[0] == i and edge[1] == j:
+                result = edge
+
+        return result
