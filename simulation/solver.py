@@ -8,7 +8,6 @@ Created at 21.08.2019
 import numpy as np
 from simulation.matrices import Matrices
 from simulation.f import F
-import pylab
 
 
 class Solver:
@@ -33,7 +32,7 @@ class Solver:
 
     @staticmethod
     def length(p1, p2):
-        return float(pylab.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
+        return float(np.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
 
     def n_down(self, e):
         # [0,-1]
@@ -41,7 +40,7 @@ class Solver:
         e2 = int(self.grid.Edges[e][1])
         dx = self.grid.Points[e2][0] - self.grid.Points[e1][0]
         dy = self.grid.Points[e2][1] - self.grid.Points[e1][1]
-        norm = pylab.sqrt(dx * dx + dy * dy)
+        norm = np.sqrt(dx * dx + dy * dy)
         n = np.array([float(dy) / norm, float(-dx) / norm])
         if n[1] > 0:
             n = -n
@@ -118,20 +117,16 @@ class Solver:
     delta = 0.1
 
     def jnZ(self, uN, vN):  # un, vN - scalars
-        # return 0
-        if (uN <= 0):
+        if uN <= 0:
             return 0 * vN
         return (self.knu * uN) * vN
 
     @staticmethod
     def h(uN):
         return 0
-        # if(uN<=0):
-        #    return 0
-        # return 8.*uN
 
     @staticmethod
     def jtZ(uT, vT, rho=0.0000001):  # uT, vT - vectors; REGULARYZACJA Coulomba
-        M = 1 / pylab.math.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho**2))
+        M = 1 / np.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho**2))
         result = M * float(uT[0]) * float(vT[0]) + M * float(uT[1]) * float(vT[1])
         return result

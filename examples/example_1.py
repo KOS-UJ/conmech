@@ -10,13 +10,12 @@ from simulation.simulation_runner import SimulationRunner
 
 
 class Setup:
-    timeStep = 1
+    time_step = 1
     gridHeight = 1
 
-    gridSizeH = 2
-    gridSizeL = 5
-    F0 = np.array([-0.2, -0.2])
-    FN = np.array([0, 0])
+    cells_number = (2, 5)  # number of triangles per aside
+    F0 = np.array([-0.2, -0.2])  # inner forces
+    FN = np.array([0, 0])  # outer forces
     mi = 4
     la = 4
 
