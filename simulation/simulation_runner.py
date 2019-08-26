@@ -6,7 +6,7 @@ Created at 21.08.2019
 """
 
 import numpy as np
-from scipy.optimize import fsolve
+import scipy.optimize
 
 from simulation.grid_factory import GridFactory
 from utils.drawer import Drawer
@@ -19,21 +19,21 @@ class SimulationRunner:
         grid = GridFactory.construct(setup.cells_number[0],
                                      setup.cells_number[1],
                                      setup.gridHeight)
-        solver = Solver(grid, setup.time_step, setup.F0, setup.FN, setup.mi, setup.la)
-        d = Drawer(solver)
+        solver = Solver(grid, setup.F0, setup.FN, setup.mi, setup.la)
 
-        u_vector = np.zeros([2 * grid.indNumber()])
+        u_vector = np.zeros(2 * grid.indNumber())
 
-        # solver.currentTime = 1
         solver.F.setF()
 
         while True:
-            u_vector = fsolve(solver.f, u_vector)
+            u_vector = scipy.optimize.fsolve(solver.f, u_vector)
             quality_inv = np.linalg.norm(solver.f(u_vector))
             if quality_inv < 1:
                 break
             else:
                 print(f"Quality = {quality_inv**-1} is too low, trying again...")
 
-        solver.iterate(u_vector)
-        d.draw()
+        solver.set_u_and_displaced_points(u_vector)
+
+        # TODO: separate drawing
+        Drawer(solver).draw()

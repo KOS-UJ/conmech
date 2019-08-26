@@ -12,7 +12,7 @@ from simulation.f import F
 
 class Solver:
 
-    def __init__(self, grid, time_step, F0, FN, mi, la):
+    def __init__(self, grid, F0, FN, mi, la):
         self.mi = mi
         self.la = la
 
@@ -80,13 +80,10 @@ class Solver:
 
         return JZu
 
-    def iterate(self, u_vector):
-        self.u[:, 0] = u_vector[0:self.grid.indNumber()]
-        self.u[:, 1] = u_vector[self.grid.indNumber():2 * self.grid.indNumber()]
+    def set_u_and_displaced_points(self, u_vector):
+        self.u = u_vector.reshape((2, -1)).T
 
-        for i in range(0, self.grid.indNumber()):
-            self.DisplacedPoints[i][0] = self.grid.Points[i][0] + self.u[i][0]
-            self.DisplacedPoints[i][1] = self.grid.Points[i][1] + self.u[i][1]
+        self.DisplacedPoints[:self.grid.indNumber(), :2] = self.grid.Points[:self.grid.indNumber(), :2] + self.u[:, :2]
 
     def Bu1(self):
         result = np.dot(self.M.B11, self.u[:, 0]) + np.dot(self.M.B12, self.u[:, 1])
@@ -127,6 +124,6 @@ class Solver:
 
     @staticmethod
     def jtZ(uT, vT, rho=0.0000001):  # uT, vT - vectors; REGULARYZACJA Coulomba
-        M = 1 / np.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho**2))
+        M = 1 / np.sqrt(float(uT[0] * uT[0] + uT[1] * uT[1]) + float(rho ** 2))
         result = M * float(uT[0]) * float(vT[0]) + M * float(uT[1]) * float(vT[1])
         return result
