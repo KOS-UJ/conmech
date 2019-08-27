@@ -20,7 +20,7 @@ class Solver:
         # self.time_step = time_step
         # self.currentTime = 0
 
-        self.M = Matrices(grid, mi, la)
+        self.B = Matrices.construct_B(grid, mi, la)
         self.F = F(grid, F0, FN)
 
         self.u = np.zeros([self.grid.indNumber(), 2])
@@ -86,11 +86,11 @@ class Solver:
         self.DisplacedPoints[:self.grid.indNumber(), :2] = self.grid.Points[:self.grid.indNumber(), :2] + self.u[:, :2]
 
     def Bu1(self):
-        result = np.dot(self.M.B11, self.u[:, 0]) + np.dot(self.M.B12, self.u[:, 1])
+        result = np.dot(self.B[0][0], self.u[:, 0]) + np.dot(self.B[0][1], self.u[:, 1])
         return result
 
     def Bu2(self):
-        result = np.dot(self.M.B21, self.u[:, 0]) + np.dot(self.M.B22, self.u[:, 1])
+        result = np.dot(self.B[1][0], self.u[:, 0]) + np.dot(self.B[1][1], self.u[:, 1])
         return result
 
     def f(self, u_vector):
