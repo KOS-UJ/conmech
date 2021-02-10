@@ -5,7 +5,7 @@ Created at 21.08.2019
 """
 
 from simulation.simulation_runner import SimulationRunner
-from examples.example_1 import Setup
+from examples.example_basic import Setup
 
 
 def test():

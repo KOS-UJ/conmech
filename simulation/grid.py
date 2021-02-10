@@ -6,6 +6,7 @@ Created at 22.08.2019
 """
 
 import numpy as np
+import numba
 
 
 class Grid:
@@ -23,7 +24,9 @@ class Grid:
 
     def __init__(self):
         self.Points = np.zeros([0, 3])
-        self.Edges = np.zeros([0, 3])
+        self.Edges = np.zeros([0, 3], dtype=np.int32)
+        self.edges_idx = None
+        self.edges_start = None
         # TODO: bad practice
         #  i, j, type: (always i<j on plane)
         #  0 - no edge
@@ -58,10 +61,15 @@ class Grid:
 
     # TODO: order of args still matters
     def get_edge(self, i, j):
-        result = (-1, -1, -1)
+        return get_edge(self.Edges, self.edges_idx, self.edges_start, i, j)
 
-        for edge in self.Edges:
-            if edge[0] == i and edge[1] == j:
-                result = edge
 
-        return result
+@numba.njit()
+def get_edge(edges, edges_idx, edges_start, i, j):
+    result = np.full(3, -1, dtype=np.int32)
+
+    for edge_i in range(edges_start[i], edges_start[i+1]):
+        if edges[edges_idx[edge_i], 1] == j:
+            result = edges[edges_idx[edge_i], :]
+            break
+    return result
