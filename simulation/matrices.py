@@ -32,6 +32,8 @@ class Matrices:
               mi * W11 + (2 * mi + la) * W22]
              ]
 
+        B = np.asarray(B)
+
         return B
 
     @staticmethod
@@ -41,13 +43,24 @@ class Matrices:
         for i in range(grid.indNumber()):
             W[i][i] = np.sum(AK[i] * AL[i])
 
-            # c - contacting triangles numbers
-            for j in range(grid.indNumber()):
-                edge = grid.get_edge(i, j)
+        for edge in grid.Edges:
+            i = edge[0]
+            j = edge[1]
+            if i < grid.indNumber() and j < grid.indNumber():
                 c1i, c1j, c2i, c2j = Edge.c(edge)
+                W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
+                W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]
 
-                if c1i >= 0:  # edge was found
-                    W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
-                    W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]
+        # for i in range(grid.indNumber()):
+        #     W[i][i] = np.sum(AK[i] * AL[i])
+        #
+        #     # c - contacting triangles numbers
+        #     for j in range(grid.indNumber()):
+        #         edge = grid.get_edge(i, j)
+        #         c1i, c1j, c2i, c2j = Edge.c(edge)
+        #
+        #         if c1i >= 0:  # edge was found
+        #             W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
+        #             W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]
 
         return W

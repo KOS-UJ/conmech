@@ -154,4 +154,13 @@ class GridFactory:
                 b = grid.getPoint((float(i)) * grid.longTriangleSide, (float(j)) * grid.longTriangleSide)
                 GridFactory.addEdge(grid, a, b, 3)
 
+        grid.edges_idx = np.argsort(grid.Edges[:, 0])
+        grid.edges_start = np.zeros(grid.Points.shape[0] + 1, dtype=int)
+        point = 0
+        for i in range(len(grid.Edges)):
+            while grid.Edges[grid.edges_idx[i], 0] >= point:
+                grid.edges_start[point] = i
+                point += 1
+        grid.edges_start[-1] = grid.Points.shape[0]
+
         return grid
