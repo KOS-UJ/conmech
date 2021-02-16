@@ -3,7 +3,7 @@ Created at 21.08.2019
 """
 
 from simulation.simulation_runner import SimulationRunner
-from examples.example_basic import Setup
+from examples.example_static import Setup
 from utils.drawer import Drawer
 
 
