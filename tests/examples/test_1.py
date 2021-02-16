@@ -1,13 +1,14 @@
 """
 Created at 21.08.2019
-
-@author: Piotr Bartman
 """
 
 from simulation.simulation_runner import SimulationRunner
 from examples.example_basic import Setup
+from utils.drawer import Drawer
 
 
 def test():
     setup = Setup()
-    SimulationRunner.run(setup)
+    runner = SimulationRunner(setup)
+    solver = runner.run()
+    Drawer(solver).draw()
