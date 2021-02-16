@@ -18,10 +18,10 @@ class Setup:
     la = 4
 
     @staticmethod
-    def contact_law_normal_direction(uN, vN, knu):  # un, vN - scalars
+    def contact_law_normal_direction(uN, vN):  # un, vN - scalars
         if uN <= 0:
             return 0 * vN
-        return (knu * uN) * vN
+        return (1. * uN) * vN
 
     @staticmethod
     def contact_law_tangential_direction(uT, vT, rho=0.0000001):  # uT, vT - vectors; Coulomb regularization

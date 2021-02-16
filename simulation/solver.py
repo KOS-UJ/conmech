@@ -44,11 +44,6 @@ class Solver:
 
         self.DisplacedPoints[:self.grid.indNumber(), :2] = self.grid.Points[:self.grid.indNumber(), :2] + self.u[:, :2]
 
-    ########################################################
-
-    knu = 1.
-    delta = 0.1
-
 
 @numba.njit()
 def length(p1, p2):
@@ -85,7 +80,7 @@ def make_f(jnZ, jtZ, h):
     h = numba.njit(h)
 
     @numba.njit()
-    def JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, knu):
+    def JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points):
         JZu = np.zeros((indNumber, 2))
 
         for i in range(0, indNumber):
@@ -113,17 +108,17 @@ def make_f(jnZ, jtZ, h):
                     vThauZero = [1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])]
                     vThauOne = [- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])]
 
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero, knu) + h(uNmL) * jtZ(uTmL, vThauZero))
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne , knu) + h(uNmL) * jtZ(uTmL, vThauOne))
+                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero) + h(uNmL) * jtZ(uTmL, vThauZero))
+                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne) + h(uNmL) * jtZ(uTmL, vThauOne))
         return JZu
 
     @numba.njit()
-    def f(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Points, knu, B, F_Zero, F_One):
+    def f(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Points, B, F_Zero, F_One):
         u = np.zeros((indNumber, 2))
         u[:, 0] = u_vector[0:indNumber]
         u[:, 1] = u_vector[indNumber:2 * indNumber]
 
-        jZu = JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, knu)
+        jZu = JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points)
 
         X = Bu1(B, u) \
             + jZu[:, 0] \
