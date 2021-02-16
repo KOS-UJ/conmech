@@ -28,4 +28,4 @@ jobs:
           pip install pytest
       - run: |
           pip install -r requirements.txt
-      - run: PYTHONPATH=. pytest -p no:unraisableexception -We
+      - run: PYTHONPATH=. pytest -p no:unraisableexception
