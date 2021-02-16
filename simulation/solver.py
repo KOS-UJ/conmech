@@ -144,7 +144,6 @@ def JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, k
 
                 p1 = Points[int(e1)][0:2]
                 p2 = Points[int(e2)][0:2]
-                mL = (p1 + p2) * 0.5
                 L = length(p1, p2)
                 nmL = n_down(Points, Edges, e)  # n at mL
 
@@ -218,12 +217,14 @@ def f(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Poin
     u[:, 0] = u_vector[0:indNumber]
     u[:, 1] = u_vector[indNumber:2 * indNumber]
 
+    jZu = JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, knu)
+
     X = Bu1(B, u) \
-        + JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, knu)[:, 0] \
+        + jZu[:, 0] \
         - F_Zero
 
     Y = Bu2(B, u) \
-        + JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points, knu)[:, 1] \
+        + jZu[:, 1] \
         - F_One
 
     return 100000000 * np.append(X, Y)  # 10000000000
