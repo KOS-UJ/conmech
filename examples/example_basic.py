@@ -4,6 +4,7 @@ Created at 21.08.2019
 
 import numpy as np
 from simulation.simulation_runner import SimulationRunner
+from utils.drawer import Drawer
 
 
 class Setup:
@@ -19,4 +20,6 @@ class Setup:
 
 if __name__ == '__main__':
     setup = Setup()
-    SimulationRunner.run(setup)
+    runner = SimulationRunner(setup)
+    solver = runner.run()
+    Drawer(solver).draw()
