@@ -51,6 +51,7 @@ class Matrices:
                 W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
                 W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]
 
+
         # for i in range(grid.indNumber()):
         #     W[i][i] = np.sum(AK[i] * AL[i])
         #
