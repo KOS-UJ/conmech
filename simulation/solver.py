@@ -63,6 +63,7 @@ def n_down(Points, Edges, e):
         n = -n
     return n
 
+
 @numba.njit()
 def Bu1(B, u):
     result = np.dot(B[0][0], u[:, 0]) + np.dot(B[0][1], u[:, 1])
@@ -73,6 +74,7 @@ def Bu1(B, u):
 def Bu2(B, u):
     result = np.dot(B[1][0], u[:, 0]) + np.dot(B[1][1], u[:, 1])
     return result
+
 
 def make_f(jnZ, jtZ, h):
     jnZ = numba.njit(jnZ)

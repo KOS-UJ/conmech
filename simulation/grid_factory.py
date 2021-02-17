@@ -99,26 +99,48 @@ class GridFactory:
         grid.TriangleArea = (grid.longTriangleSide * grid.longTriangleSide) / 4.
 
         GridFactory.startBorder(grid, 0, 0)
+        GridFactory.add_dirichlet_points(grid, size_x=sizeH)
+        GridFactory.add_neumann_points(grid, size_x=sizeH, size_y=sizeL, height=height)
+        GridFactory.add_contact_points(grid, size_y=sizeL)
+        GridFactory.stopBorder(grid)
+        GridFactory.add_interior_points(grid, size_x=sizeH, size_y=sizeL)
 
-        for i in range(1, sizeH):
+        grid.edges_idx = np.argsort(grid.Edges[:, 0])
+        grid.edges_start = np.zeros(grid.Points.shape[0] + 1, dtype=int)
+        point = 0
+        for i in range(len(grid.Edges)):
+            while grid.Edges[grid.edges_idx[i], 0] >= point:
+                grid.edges_start[point] = i
+                point += 1
+        grid.edges_start[-1] = grid.Points.shape[0]
+
+        return grid
+
+    @staticmethod
+    def add_dirichlet_points(grid, size_x):
+        for i in range(1, size_x):
             GridFactory.addBorderD(grid, 0, float(i) * grid.longTriangleSide)
-        GridFactory.addBorderDLast(grid, 0, float(sizeH) * grid.longTriangleSide)
+        GridFactory.addBorderDLast(grid, 0, float(size_x) * grid.longTriangleSide)
 
-        for i in range(1, sizeL):
+    @staticmethod
+    def add_neumann_points(grid, size_x, size_y, height):
+        for i in range(1, size_y):
             GridFactory.addBorderNTop(grid, float(i) * grid.longTriangleSide, height)
-        GridFactory.addBorderNTopLast(grid, float(sizeL) * grid.longTriangleSide, height)
+        GridFactory.addBorderNTopLast(grid, float(size_y) * grid.longTriangleSide, height)
 
-        for i in range(sizeH - 1, 0, -1):
+        for i in range(size_x - 1, 0, -1):
             GridFactory.addBorderNSide(grid, grid.Length, float(i) * grid.longTriangleSide)
         GridFactory.addBorderNSideLast(grid, grid.Length, float(0))
 
-        for i in range(sizeL - 1, 0, -1):
+    @staticmethod
+    def add_contact_points(grid, size_y):
+        for i in range(size_y - 1, 0, -1):
             GridFactory.addBorderC(grid, float(i) * grid.longTriangleSide, 0)
 
-        GridFactory.stopBorder(grid)
-
-        for i in range(0, sizeL):
-            for j in range(1, sizeH):
+    @staticmethod
+    def add_interior_points(grid, size_x, size_y):
+        for i in range(0, size_y):
+            for j in range(1, size_x):
                 x1 = float(i) * grid.longTriangleSide
                 x2 = float(i + 1) * float(grid.longTriangleSide)
                 y = float(j) * grid.longTriangleSide
@@ -128,8 +150,8 @@ class GridFactory:
                 b = grid.getPoint(x2, y)
                 GridFactory.addEdge(grid, a, b, 1)
 
-        for i in range(1, sizeL):
-            for j in range(0, sizeH):
+        for i in range(1, size_y):
+            for j in range(0, size_x):
                 x = float(i) * grid.longTriangleSide
                 y1 = float(j) * grid.longTriangleSide
                 y2 = float(j + 1) * grid.longTriangleSide
@@ -139,8 +161,8 @@ class GridFactory:
                 b = grid.getPoint(x, y2)
                 GridFactory.addEdge(grid, a, b, 2)
 
-        for i in range(0, sizeL):
-            for j in range(0, sizeH):
+        for i in range(0, size_y):
+            for j in range(0, size_x):
                 x = (float(i) + 0.5) * grid.longTriangleSide
                 y = (float(j) + 0.5) * grid.longTriangleSide
                 GridFactory.addPoint(grid, x, y, 9)
@@ -153,14 +175,3 @@ class GridFactory:
                 GridFactory.addEdge(grid, a, b, 6)
                 b = grid.getPoint((float(i)) * grid.longTriangleSide, (float(j)) * grid.longTriangleSide)
                 GridFactory.addEdge(grid, a, b, 3)
-
-        grid.edges_idx = np.argsort(grid.Edges[:, 0])
-        grid.edges_start = np.zeros(grid.Points.shape[0] + 1, dtype=int)
-        point = 0
-        for i in range(len(grid.Edges)):
-            while grid.Edges[grid.edges_idx[i], 0] >= point:
-                grid.edges_start[point] = i
-                point += 1
-        grid.edges_start[-1] = grid.Points.shape[0]
-
-        return grid
