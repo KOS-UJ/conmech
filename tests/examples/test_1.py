@@ -11,4 +11,4 @@ def test():
     setup = Setup()
     runner = SimulationRunner(setup)
     solver = runner.run()
-    Drawer(solver).draw()
+    # Drawer(solver).draw()
