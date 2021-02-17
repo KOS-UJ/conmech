@@ -17,6 +17,7 @@ class Solver:
                  mi,
                  la,
                  contact_law_normal_direction,
+                 potential_contact_law_normal_direction,
                  contact_law_tangential_direction,
                  friction_bound
     ):
@@ -38,6 +39,7 @@ class Solver:
             self.DisplacedPoints[i] = self.grid.Points[i]
 
         self.f = make_f(jnZ=contact_law_normal_direction, jtZ=contact_law_tangential_direction, h=friction_bound)
+        self.L2 = make_L2(jn=potential_contact_law_normal_direction)
 
     def set_u_and_displaced_points(self, u_vector):
         self.u = u_vector.reshape((2, -1)).T
@@ -108,8 +110,8 @@ def make_f(jnZ, jtZ, h):
                     vThauZero = [1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])]
                     vThauOne = [- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])]
 
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero) + h(uNmL) * jtZ(uTmL, vThauZero))
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne) + h(uNmL) * jtZ(uTmL, vThauOne))
+                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) #+ h(uNmL) * jtZ(uTmL, vThauZero))
+                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) #+ h(uNmL) * jtZ(uTmL, vThauOne))
         return JZu
 
     @numba.njit()
@@ -120,14 +122,52 @@ def make_f(jnZ, jtZ, h):
 
         jZu = JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points)
 
-        X = Bu1(B, u) \
-            + jZu[:, 0] \
-            - F_Zero
+        X = Bu1(B, u) + jZu[:, 0] - F_Zero
 
-        Y = Bu2(B, u) \
-            + jZu[:, 1] \
-            - F_One
+        Y = Bu2(B, u) + jZu[:, 1] - F_One
 
-        return 100000000 * np.append(X, Y)  # 10000000000
+        return  np.append(X, Y)  # 10000000000
 
     return f
+
+
+def make_L2(jn):
+    jn = numba.njit(jn)
+
+    @numba.njit()
+    def Ju(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u_vector, Points):
+        J = 0
+        for e in range(-BorderEdgesD - BorderEdgesN - BorderEdgesC,
+                       -BorderEdgesD - BorderEdgesN):
+            nmL = n_down(Points, Edges, e)  # n at mL
+
+            firstPointIndex = Edges[e][0]
+            secondPointIndex = Edges[e][1]
+
+            umLx = 0.
+            umLy = 0.
+            if firstPointIndex < indNumber:
+                umLx += 0.5 * u_vector[firstPointIndex]
+                umLy += 0.5 * u_vector[secondPointIndex + firstPointIndex]
+            if secondPointIndex < indNumber:
+                umLx += 0.5 * u_vector[secondPointIndex]
+                umLy += 0.5 * u_vector[indNumber + secondPointIndex]
+
+            uNmL = umLx * nmL[0] + umLy * nmL[1]
+            uTmLx = umLx - uNmL * nmL[0]
+            uTmLy = umLy - uNmL * nmL[1]
+
+            firstPointCoordinates = Points[int(firstPointIndex)][0:2]
+            secondPointCoordinates = Points[int(secondPointIndex)][0:2]
+            edgeLength = length(firstPointCoordinates, secondPointCoordinates)
+
+            J += edgeLength * (jn(uNmL))
+
+        return J
+
+    @numba.njit()
+    def L2(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Points, C, E):
+        ju = Ju(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u_vector, Points)
+        return 100000000*(0.5*np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector) + ju)
+
+    return L2
