@@ -6,7 +6,7 @@ import numpy as np
 from simulation.simulation_runner import SimulationRunner
 from utils.drawer import Drawer
 
-
+pSlope = 1.
 class Setup:
     time_step = 1
     gridHeight = 1
@@ -18,10 +18,16 @@ class Setup:
     la = 4
 
     @staticmethod
+    def potential_contact_law_normal_direction(uN):  # un - scalar
+        if (uN <= 0):
+            return 0.
+        return (0.5 * pSlope * uN) * uN
+
+    @staticmethod
     def contact_law_normal_direction(uN, vN):  # un, vN - scalars
         if uN <= 0:
             return 0 * vN
-        return (1. * uN) * vN
+        return (pSlope * uN) * vN
 
     @staticmethod
     def contact_law_tangential_direction(uT, vT, rho=0.0000001):  # uT, vT - vectors; Coulomb regularization
@@ -37,5 +43,9 @@ class Setup:
 if __name__ == '__main__':
     setup = Setup()
     runner = SimulationRunner(setup)
-    solver = runner.run()
-    Drawer(solver).draw()
+
+    solverEquation = runner.run(method='equation')
+    Drawer(solverEquation).draw()
+
+    solverOptimization = runner.run(method='optimization')
+    Drawer(solverOptimization).draw()
