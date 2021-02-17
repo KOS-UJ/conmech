@@ -36,10 +36,10 @@ class SimulationRunner:
                 print(f"iteration = {iteration}; quality = {quality} is too low, trying again...")
             u_vector = scipy.optimize.fsolve(
                 solver.f, u_vector,
-                args=(grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
+                args=(grid.indNumber(), grid.BorderEdgesC, grid.Edges,
                       grid.Points, solver.B, solver.F.Zero, solver.F.One))
             quality_inv = np.linalg.norm(
-                solver.f(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
+                solver.f(u_vector, grid.indNumber(), grid.BorderEdgesC, grid.Edges,
                   grid.Points, solver.B, solver.F.Zero, solver.F.One))
             quality = quality_inv ** -1
             iteration += 1

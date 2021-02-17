@@ -31,33 +31,20 @@ class Drawer:
         i = len(self.grid.Edges) - 1
         j = len(self.grid.Edges) - self.grid.BorderEdgesD - 1
         while j < i:
-            x1 = self.grid.Points[int(self.grid.Edges[i, 0])][0]
-            y1 = self.grid.Points[int(self.grid.Edges[i, 0])][1]
-            x2 = self.grid.Points[int(self.grid.Edges[i, 1])][0]
-            y2 = self.grid.Points[int(self.grid.Edges[i, 1])][1]
+            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
             plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
             i -= 1
         j -= self.grid.BorderEdgesN
         while j < i:
-            x1 = self.grid.Points[int(self.grid.Edges[i, 0])][0]
-            y1 = self.grid.Points[int(self.grid.Edges[i, 0])][1]
-            x2 = self.grid.Points[int(self.grid.Edges[i, 1])][0]
-            y2 = self.grid.Points[int(self.grid.Edges[i, 1])][1]
+            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
             plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
             i -= 1
-        j -= self.grid.BorderEdgesC
-        while j < i:
-            x1 = self.grid.Points[int(self.grid.Edges[i, 0])][0]
-            y1 = self.grid.Points[int(self.grid.Edges[i, 0])][1]
-            x2 = self.grid.Points[int(self.grid.Edges[i, 1])][0]
-            y2 = self.grid.Points[int(self.grid.Edges[i, 1])][1]
+        while self.grid.BorderEdgesC - 1 < i:
+            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
             plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
             i -= 1
         while -1 < i:
-            x1 = self.grid.Points[int(self.grid.Edges[i, 0])][0]
-            y1 = self.grid.Points[int(self.grid.Edges[i, 0])][1]
-            x2 = self.grid.Points[int(self.grid.Edges[i, 1])][0]
-            y2 = self.grid.Points[int(self.grid.Edges[i, 1])][1]
+            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
             plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
             i -= 1
 
@@ -68,34 +55,21 @@ class Drawer:
         i = len(self.grid.Edges) - 1
         j = len(self.grid.Edges) - self.grid.BorderEdgesD - 1
         while j < i:
-            x1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][0]
-            y1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][1]
-            x2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][0]
-            y2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][1]
+            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
             plt.plot([x1, x2], [y1, y2], 'r-', lw=thickness2)
             i -= 1
         j -= self.grid.BorderEdgesN
         while j < i:
-            x1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][0]
-            y1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][1]
-            x2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][0]
-            y2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][1]
+            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
             plt.plot([x1, x2], [y1, y2], 'b-', lw=thickness2)
             i -= 1
-        j -= self.grid.BorderEdgesC
-        while j < i:
-            x1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][0]
-            y1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][1]
-            x2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][0]
-            y2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][1]
-            plt.plot([x1, x2], [y1, y2], 'y-', lw=thickness2)
+        while self.grid.BorderEdgesC - 1 < i:
+            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            plt.plot([x1, x2], [y1, y2], 'k-', lw=thickness2)
             i -= 1
         while -1 < i:
-            x1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][0]
-            y1 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 0])][1]
-            x2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][0]
-            y2 = self.solv.DisplacedPoints[int(self.grid.Edges[i, 1])][1]
-            plt.plot([x1, x2], [y1, y2], 'k-', lw=thickness2)
+            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            plt.plot([x1, x2], [y1, y2], 'y-', lw=thickness2)
             i -= 1
 
             # ------------
@@ -104,3 +78,11 @@ class Drawer:
         # print(txt + '.png')
         plt.show()
         plt.close()
+
+    def get_coordinates(self, array, i):
+        x1 = array[int(self.grid.Edges[i, 0])][0]
+        y1 = array[int(self.grid.Edges[i, 0])][1]
+        x2 = array[int(self.grid.Edges[i, 1])][0]
+        y2 = array[int(self.grid.Edges[i, 1])][1]
+
+        return x1, x2, y1, y2

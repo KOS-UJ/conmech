@@ -82,12 +82,11 @@ def make_f(jnZ, jtZ, h):
     h = numba.njit(h)
 
     @numba.njit()
-    def JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points):
+    def JZu(indNumber, BorderEdgesC, Edges, u, Points):
         JZu = np.zeros((indNumber, 2))
 
         for i in range(0, indNumber):
-            for e in range(-BorderEdgesD - BorderEdgesN - BorderEdgesC,
-                           -BorderEdgesD - BorderEdgesN):
+            for e in range(0, BorderEdgesC):
                 e1 = int(Edges[e][0])
                 e2 = int(Edges[e][1])
                 if i == e1 or i == e2:
@@ -115,12 +114,12 @@ def make_f(jnZ, jtZ, h):
         return JZu
 
     @numba.njit()
-    def f(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Points, B, F_Zero, F_One):
+    def f(u_vector, indNumber, BorderEdgesC, Edges, Points, B, F_Zero, F_One):
         u = np.zeros((indNumber, 2))
         u[:, 0] = u_vector[0:indNumber]
         u[:, 1] = u_vector[indNumber:2 * indNumber]
 
-        jZu = JZu(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u, Points)
+        jZu = JZu(indNumber, BorderEdgesC, Edges, u, Points)
 
         X = Bu1(B, u) \
             + jZu[:, 0] \
