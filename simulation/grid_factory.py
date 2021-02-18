@@ -10,77 +10,78 @@ from simulation.edge import Edge
 
 class GridFactory:
     @staticmethod
-    def addPoint(grid, x, y, t):
+    def add_point(grid, x, y, t):
         i = 0
         while i < len(grid.Points):
-            if grid.Points[i][0] == x and grid.Points[i][1] == y:
+            if grid.Points[i][Point.X] == x and grid.Points[i][Point.Y] == y:
                 return
             else:
                 i += 1
         grid.Points = np.append([[x, y, t]], grid.Points, axis=0)
         for i in range(0, len(grid.Edges)):
-            grid.Edges[i][0] += 1
-            grid.Edges[i][1] += 1
+            grid.Edges[i][Edge.START] += 1
+            grid.Edges[i][Edge.STOP] += 1
 
     @staticmethod
-    def addEdge(grid, i, j, t):  # always (i,j) has i<j on x OR xi equals xj and i<j on y
-        a = i
-        b = j
-        if (grid.Points[j][0] < grid.Points[i][0] or
-                (grid.Points[j][0] == grid.Points[i][0] and grid.Points[j][1] < grid.Points[i][1])):
-            a = j
-            b = i
-        grid.Edges = np.append([[a, b, t]], grid.Edges, axis=0)
+    def add_edge(grid, start_point: int, stop_point: int, t: int):
+        stop_is_smaller_in_x = grid.Points[stop_point][Point.X] < grid.Points[start_point][Point.X]
+        stop_is_equals_in_x = grid.Points[stop_point][Point.X] == grid.Points[start_point][Point.X]
+        stop_is_smaller_in_y = grid.Points[stop_point][Point.Y] < grid.Points[start_point][Point.Y]
+        stop_is_smaller = stop_is_smaller_in_x or (stop_is_equals_in_x and stop_is_smaller_in_y)
+
+        if stop_is_smaller:
+            start_point, stop_point = stop_point, start_point
+        grid.Edges = np.append([[start_point, stop_point, t]], grid.Edges, axis=0)
 
     @staticmethod
     def startBorder(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 0)
+        GridFactory.add_point(grid, x, y, 0)
 
     @staticmethod
     def addBorderD(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 1)
-        GridFactory.addEdge(grid, 1, 0, 2)
+        GridFactory.add_point(grid, x, y, 1)
+        GridFactory.add_edge(grid, 1, 0, Edge.VERTICAL)
         grid.BorderEdgesD += 1
 
     @staticmethod
     def addBorderDLast(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 2)
-        GridFactory.addEdge(grid, 1, 0, 2)
+        GridFactory.add_point(grid, x, y, 2)
+        GridFactory.add_edge(grid, 1, 0, Edge.VERTICAL)
         grid.BorderEdgesD += 1
 
     @staticmethod
     def addBorderNTop(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 3)
-        GridFactory.addEdge(grid, 1, 0, 1)
+        GridFactory.add_point(grid, x, y, 3)
+        GridFactory.add_edge(grid, 1, 0, Edge.HORIZONTAL)
         grid.BorderEdgesN += 1
 
     @staticmethod
     def addBorderNTopLast(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 4)
-        GridFactory.addEdge(grid, 1, 0, 1)
+        GridFactory.add_point(grid, x, y, 4)
+        GridFactory.add_edge(grid, 1, 0, Edge.HORIZONTAL)
         grid.BorderEdgesN += 1
 
     @staticmethod
     def addBorderNSide(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 5)
-        GridFactory.addEdge(grid, 0, 1, 2)
+        GridFactory.add_point(grid, x, y, 5)
+        GridFactory.add_edge(grid, 0, 1, Edge.VERTICAL)
         grid.BorderEdgesN += 1
 
     @staticmethod
     def addBorderNSideLast(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 6)
-        GridFactory.addEdge(grid, 0, 1, 2)
+        GridFactory.add_point(grid, x, y, 6)
+        GridFactory.add_edge(grid, 0, 1, Edge.VERTICAL)
         grid.BorderEdgesN += 1
 
     @staticmethod
     def addBorderC(grid, x, y):
-        GridFactory.addPoint(grid, x, y, 7)
-        GridFactory.addEdge(grid, 0, 1, 1)
+        GridFactory.add_point(grid, x, y, 7)
+        GridFactory.add_edge(grid, 0, 1, Edge.HORIZONTAL)
         grid.BorderEdgesC += 1
 
     @staticmethod
     def stopBorder(grid):
-        GridFactory.addEdge(grid, len(grid.Points) - 1, 0, 1)
+        GridFactory.add_edge(grid, len(grid.Points) - 1, 0, Edge.HORIZONTAL)
         grid.BorderEdgesC += 1
 
     @staticmethod
@@ -89,12 +90,12 @@ class GridFactory:
         grid.SizeH = sizeH
         grid.SizeL = sizeL
         grid.Height = height
-        grid.longTriangleSide = float(height) / sizeH
+        grid.longTriangleSide = height / sizeH
         grid.Length = grid.longTriangleSide * sizeL
 
-        grid.halfLongTriangleSide = float(grid.longTriangleSide) * 0.5
-        grid.shortTriangleSide = float(grid.longTriangleSide) * np.sqrt(2) * 0.5
-        grid.halfShortTriangleSide = float(grid.shortTriangleSide) * 0.5
+        grid.halfLongTriangleSide = grid.longTriangleSide * 0.5
+        grid.shortTriangleSide = grid.longTriangleSide * np.sqrt(2) * 0.5
+        grid.halfShortTriangleSide = grid.shortTriangleSide * 0.5
         grid.TriangleArea = (grid.longTriangleSide * grid.longTriangleSide) / 4.
 
         GridFactory.startBorder(grid, 0, 0)
@@ -111,62 +112,66 @@ class GridFactory:
     @staticmethod
     def add_dirichlet_points(grid):
         for i in range(1, grid.SizeH):
-            GridFactory.addBorderD(grid, 0, float(i) * grid.longTriangleSide)
-        GridFactory.addBorderDLast(grid, 0, float(grid.SizeH) * grid.longTriangleSide)
+            GridFactory.addBorderD(grid, 0, i * grid.longTriangleSide)
+        GridFactory.addBorderDLast(grid, 0, grid.SizeH * grid.longTriangleSide)
 
     @staticmethod
     def add_neumann_points(grid):
         for i in range(1, grid.SizeL):
-            GridFactory.addBorderNTop(grid, float(i) * grid.longTriangleSide, grid.Height)
-        GridFactory.addBorderNTopLast(grid, float(grid.SizeL) * grid.longTriangleSide, grid.Height)
+            GridFactory.addBorderNTop(grid, i * grid.longTriangleSide, grid.Height)
+        GridFactory.addBorderNTopLast(grid, grid.SizeL * grid.longTriangleSide, grid.Height)
 
         for i in range(grid.SizeH - 1, 0, -1):
-            GridFactory.addBorderNSide(grid, grid.Length, float(i) * grid.longTriangleSide)
-        GridFactory.addBorderNSideLast(grid, grid.Length, float(0))
+            GridFactory.addBorderNSide(grid, grid.Length, i * grid.longTriangleSide)
+        GridFactory.addBorderNSideLast(grid, grid.Length, 0.)
 
     @staticmethod
     def add_contact_points(grid):
         for i in range(grid.SizeL - 1, 0, -1):
-            GridFactory.addBorderC(grid, float(i) * grid.longTriangleSide, 0)
+            GridFactory.addBorderC(grid, i * grid.longTriangleSide, 0)
 
     @staticmethod
     def add_interior_points(grid):
         for i in range(0, grid.SizeL):
             for j in range(1, grid.SizeH):
-                x1 = float(i) * grid.longTriangleSide
-                x2 = float(i + 1) * float(grid.longTriangleSide)
-                y = float(j) * grid.longTriangleSide
-                GridFactory.addPoint(grid, x1, y, 8)
-                GridFactory.addPoint(grid, x2, y, 8)
+                x1 = i * grid.longTriangleSide
+                x2 = (i + 1) * grid.longTriangleSide
+                y = j * grid.longTriangleSide
+                GridFactory.add_point(grid, x1, y, 8)
+                GridFactory.add_point(grid, x2, y, 8)
                 a = grid.getPoint(x1, y)
                 b = grid.getPoint(x2, y)
-                GridFactory.addEdge(grid, a, b, 1)
+                GridFactory.add_edge(grid, a, b, Edge.HORIZONTAL)
 
         for i in range(1, grid.SizeL):
             for j in range(0, grid.SizeH):
-                x = float(i) * grid.longTriangleSide
-                y1 = float(j) * grid.longTriangleSide
-                y2 = float(j + 1) * grid.longTriangleSide
-                GridFactory.addPoint(grid, x, y1, 8)
-                GridFactory.addPoint(grid, x, y2, 8)
+                x = i * grid.longTriangleSide
+                y1 = j * grid.longTriangleSide
+                y2 = (j + 1) * grid.longTriangleSide
+                GridFactory.add_point(grid, x, y1, 8)
+                GridFactory.add_point(grid, x, y2, 8)
                 a = grid.getPoint(x, y1)
                 b = grid.getPoint(x, y2)
-                GridFactory.addEdge(grid, a, b, 2)
+                GridFactory.add_edge(grid, a, b, Edge.VERTICAL)
 
         for i in range(0, grid.SizeL):
             for j in range(0, grid.SizeH):
-                x = (float(i) + 0.5) * grid.longTriangleSide
-                y = (float(j) + 0.5) * grid.longTriangleSide
-                GridFactory.addPoint(grid, x, y, 9)
+                x = (i + 0.5) * grid.longTriangleSide
+                y = (j + 0.5) * grid.longTriangleSide
+                GridFactory.add_point(grid, x, y, 9)
                 a = grid.getPoint(x, y)
-                b = grid.getPoint((float(i)) * grid.longTriangleSide, (float(j) + 1.0) * grid.longTriangleSide)
-                GridFactory.addEdge(grid, a, b, 5)
-                b = grid.getPoint((float(i) + 1.0) * grid.longTriangleSide, (float(j) + 1.0) * grid.longTriangleSide)
-                GridFactory.addEdge(grid, a, b, 4)
-                b = grid.getPoint((float(i) + 1.0) * grid.longTriangleSide, (float(j)) * grid.longTriangleSide)
-                GridFactory.addEdge(grid, a, b, 6)
-                b = grid.getPoint((float(i)) * grid.longTriangleSide, (float(j)) * grid.longTriangleSide)
-                GridFactory.addEdge(grid, a, b, 3)
+
+                b = grid.getPoint(i * grid.longTriangleSide, (j + 1) * grid.longTriangleSide)
+                GridFactory.add_edge(grid, a, b, Edge.DIAGONAL_DOWN_TO_CROSS_POINT)
+
+                b = grid.getPoint((i + 1) * grid.longTriangleSide, (j + 1) * grid.longTriangleSide)
+                GridFactory.add_edge(grid, a, b, Edge.DIAGONAL_UP_TO_GRID_POINT)
+
+                b = grid.getPoint((i + 1) * grid.longTriangleSide, j * grid.longTriangleSide)
+                GridFactory.add_edge(grid, a, b, Edge.DIAGONAL_DOWN_TO_GRID_POINT)
+
+                b = grid.getPoint(i * grid.longTriangleSide, j * grid.longTriangleSide)
+                GridFactory.add_edge(grid, a, b, Edge.DIAGONAL_UP_TO_CROSS_POINT)
 
     @staticmethod
     def sort_points(grid):
