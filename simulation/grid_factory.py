@@ -103,12 +103,9 @@ class GridFactory:
         GridFactory.add_contact_points(grid)
         GridFactory.stopBorder(grid)
         GridFactory.add_interior_points(grid)
-        print(grid.Edges)
         GridFactory.sort_points(grid)
         GridFactory.add_edges_idx(grid)
         GridFactory.add_edges_start(grid)
-        print(grid.Points)
-        print(grid.Edges)
         return grid
 
     @staticmethod
