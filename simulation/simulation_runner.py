@@ -3,10 +3,13 @@ Created at 21.08.2019
 """
 
 import numpy as np
-import scipy.optimize
 
 from simulation.grid_factory import GridFactory
-from simulation.solver import Solver
+from simulation.state import State
+from simulation.solvers.solver import Solver
+from simulation.solvers.direct import Direct
+from simulation.solvers.optimization import Optimization
+from simulation.solvers.validator import Validator
 
 
 class SimulationRunner:
@@ -14,75 +17,61 @@ class SimulationRunner:
     def __init__(self, setup):
         self.grid = GridFactory.construct(setup.cells_number[0],
                                           setup.cells_number[1],
-                                          setup.gridHeight)
-        self.solver = Solver(self.grid,
-                             setup.F0, setup.FN,
-                             setup.mi, setup.la,
-                             setup.contact_law_normal_direction,
-                             setup.potential_contact_law_normal_direction,
-                             setup.contact_law_tangential_direction,
-                             setup.friction_bound)
+                                          setup.grid_height
+                                          )
+        self.setup = setup
+        self.THRESHOLD = 1
 
-        self.solver.F.setF()
+    def run(self, initial_guess: (np.ndarray, None) = None, method: str = 'direct', verbose: bool = False) -> State:
+        """
+        :param initial_guess:
+        :param method: 'optimization', 'direct'
+        :param verbose: show prints
+        :return: setup
+        """
+        setup = self.setup
+        solver = self.get_solver(setup, method)
+        state = State(self.grid)
+        validator = Validator(solver)
+        displacement = self.find_solution(
+            solver, state, validator, initial_guess=initial_guess, verbose=verbose)
+        state.set_u_and_displaced_points(displacement)
+        return state
 
-    def run(self, start_u=None, method='optimization'): #method = 'optimization' 'equation'
-        grid = self.grid
-        solver = self.solver
-        u_vector = start_u or np.zeros(2 * grid.indNumber())
-
+    def find_solution(self, solver, state, validator, initial_guess, verbose=False) -> np.ndarray:
         quality = 0
         iteration = 0
-        while quality < 8:
-            if iteration > 0:
-                print(f"iteration = {iteration}; quality = {quality} is too low, trying again...")
-
-            if(method == 'equation'):
-                #print("value on equation starting vector for equation", solver.f(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
-                #          grid.Points, solver.B, solver.F.Zero, solver.F.One))
-
-                u_vector = scipy.optimize.fsolve(
-                    solver.f, u_vector,
-                    args=(grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
-                          grid.Points, solver.B, solver.F.Zero, solver.F.One))
-
-                #print("value on equation final vector for equation", solver.f(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
-                #          grid.Points, solver.B, solver.F.Zero, solver.F.One))
-
-            elif (method == 'optimization'):
-
-                C11 = solver.B[0, 0]
-                C12 = solver.B[0, 1]
-                C21 = solver.B[1, 0]
-                C22 = solver.B[1, 1]
-                C = np.bmat([[C11, C12], [C21, C22]])
-                E = np.append(solver.F.Zero, solver.F.One)
-
-                #print("value on optimization starting vector for optimization", solver.L2(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN,
-                #          grid.BorderEdgesC, grid.Edges, grid.Points, C, E))
-
-                u_vector = scipy.optimize.minimize(solver.L2, u_vector,
-                    args=(grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN,
-                          grid.BorderEdgesC, grid.Edges, grid.Points, C, E),
-                          method='Powell',
-                          options={'disp': True, 'maxiter': len(u_vector) * 1e5},
-                          tol=1e-30).x
-
-                #print("value on optimization final vector for optimization", solver.L2(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN,
-                #          grid.BorderEdgesC, grid.Edges, grid.Points, C, E))
-
-                #print("value on optimization final vector for equation", solver.f(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
-                #          grid.Points, solver.B, solver.F.Zero, solver.F.One))
-
-
-            quality_inv = np.linalg.norm(
-                solver.f(u_vector, grid.indNumber(), grid.BorderEdgesD, grid.BorderEdgesN, grid.BorderEdgesC, grid.Edges,
-                grid.Points, solver.B, solver.F.Zero, solver.F.One))
-
-            quality = quality_inv ** -1
+        displacement = initial_guess or np.zeros(2 * state.grid.indNumber())
+        while quality < self.THRESHOLD:
+            displacement = solver.solve(displacement)
+            quality = validator.check_quality(state, displacement, quality)
             iteration += 1
+            self.print_iteration_info(iteration, quality, verbose)
+        return displacement
 
-        print(f"iteration = {iteration}; quality = {quality} is acceptable.")
+    @staticmethod
+    def get_solver_class(method: str) -> type:
+        if method == 'direct':
+            solver_class = Direct
+        elif method == 'optimization':
+            solver_class = Optimization
+        else:
+            raise ValueError()
+        return solver_class
 
-        solver.set_u_and_displaced_points(u_vector)
-
+    def get_solver(self, setup, method: str) -> Solver:
+        solver_class = self.get_solver_class(method)
+        solver = solver_class(self.grid,
+                              setup.inner_forces, setup.outer_forces,
+                              setup.mu_coef, setup.lambda_coef,
+                              setup.ContactLaw,
+                              setup.friction_bound
+                              )
         return solver
+
+    def print_iteration_info(self, iteration, quality, verbose):
+        qualitative = quality > self.THRESHOLD
+        sign = ">" if qualitative else "<"
+        end = "." if qualitative else ", trying again..."
+        if verbose:
+            print(f"iteration = {iteration}; quality = {quality} {sign} {self.THRESHOLD}{end}")
