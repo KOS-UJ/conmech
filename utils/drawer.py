@@ -11,16 +11,16 @@ import pylab
 
 class Drawer:
 
-    def __init__(self, solv):
-        self.solv = solv
-        self.grid = solv.grid
+    def __init__(self, state):
+        self.state = state
+        self.grid = state.grid
 
     def draw(self):
 
-        txt = 'CROSS EQUATION GR' + str(self.grid.SizeH) + ' ' + str(self.grid.SizeL) \
-              + ' (ml ' + str(self.solv.mi) + " " + str(self.solv.la) \
-              + ') F0[' + str(self.solv.F.F0[0]) + ',' + str(self.solv.F.F0[1]) \
-              + '] FN[' + str(self.solv.F.FN[0]) + ',' + str(self.solv.F.FN[1]) + ']'
+        # txt = 'CROSS EQUATION GR' + str(self.grid.SizeH) + ' ' + str(self.grid.SizeL) \
+        #       + ' (ml ' + str(self.solv.mu_coef) + " " + str(self.solv.la) \
+        #       + ') F0[' + str(self.solv.forces.inner_forces[0]) + ',' + str(self.solv.forces.inner_forces[1]) \
+        #       + '] FN[' + str(self.solv.forces.outer_forces[0]) + ',' + str(self.solv.forces.outer_forces[1]) + ']'
 
         plt.close()
         pylab.axes().set_aspect('equal', 'box')
@@ -55,20 +55,20 @@ class Drawer:
         i = len(self.grid.Edges) - 1
         j = len(self.grid.Edges) - self.grid.BorderEdgesD - 1
         while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
             plt.plot([x1, x2], [y1, y2], 'r-', lw=thickness2)
             i -= 1
         j -= self.grid.BorderEdgesN
         while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
             plt.plot([x1, x2], [y1, y2], 'b-', lw=thickness2)
             i -= 1
         while self.grid.BorderEdgesC - 1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
             plt.plot([x1, x2], [y1, y2], 'k-', lw=thickness2)
             i -= 1
         while -1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.solv.DisplacedPoints, i)
+            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
             plt.plot([x1, x2], [y1, y2], 'y-', lw=thickness2)
             i -= 1
 

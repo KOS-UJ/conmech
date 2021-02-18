@@ -4,47 +4,6 @@ Created at 21.08.2019
 
 import numpy as np
 import numba
-from simulation.matrices import Matrices
-from simulation.f import F
-
-
-class Solver:
-
-    def __init__(self,
-                 grid,
-                 F0,
-                 FN,
-                 mi,
-                 la,
-                 contact_law_normal_direction,
-                 potential_contact_law_normal_direction,
-                 contact_law_tangential_direction,
-                 friction_bound
-    ):
-        self.mi = mi
-        self.la = la
-
-        self.grid = grid
-        # self.time_step = time_step
-        # self.currentTime = 0
-
-        self.B = Matrices.construct_B(grid, mi, la)
-        self.F = F(grid, F0, FN)
-
-        self.u = np.zeros((self.grid.indNumber(), 2))
-
-        self.DisplacedPoints = np.zeros([len(self.grid.Points), 3])
-
-        for i in range(0, len(self.grid.Points)):
-            self.DisplacedPoints[i] = self.grid.Points[i]
-
-        self.f = make_f(jnZ=contact_law_normal_direction, jtZ=contact_law_tangential_direction, h=friction_bound)
-        self.L2 = make_L2(jn=potential_contact_law_normal_direction)
-
-    def set_u_and_displaced_points(self, u_vector):
-        self.u = u_vector.reshape((2, -1)).T
-
-        self.DisplacedPoints[:self.grid.indNumber(), :2] = self.grid.Points[:self.grid.indNumber(), :2] + self.u[:, :2]
 
 
 @numba.njit()
@@ -108,11 +67,11 @@ def make_f(jnZ, jtZ, h):
 
                     vNZero = nmL[0]
                     vNOne = nmL[1]
-                    vThauZero = [1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])]
-                    vThauOne = [- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])]
+                    vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
+                    vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
 
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) #+ h(uNmL) * jtZ(uTmL, vThauZero))
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) #+ h(uNmL) * jtZ(uTmL, vThauOne))
+                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
+                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
         return JZu
 
     @numba.njit()
@@ -127,7 +86,7 @@ def make_f(jnZ, jtZ, h):
 
         Y = Bu2(B, u) + jZu[:, 1] - F_One
 
-        return  np.append(X, Y)  # 10000000000
+        return 1e6 * np.append(X, Y)  # 10000000000
 
     return f
 
@@ -136,10 +95,9 @@ def make_L2(jn):
     jn = numba.njit(jn)
 
     @numba.njit()
-    def Ju(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u_vector, Points):
+    def Ju(indNumber, BorderEdgesC, Edges, u_vector, Points):
         J = 0
-        for e in range(-BorderEdgesD - BorderEdgesN - BorderEdgesC,
-                       -BorderEdgesD - BorderEdgesN):
+        for e in range(0, BorderEdgesC):
             nmL = n_down(Points, Edges, e)  # n at mL
 
             firstPointIndex = Edges[e][0]
@@ -167,8 +125,8 @@ def make_L2(jn):
         return J
 
     @numba.njit()
-    def L2(u_vector, indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, Points, C, E):
-        ju = Ju(indNumber, BorderEdgesD, BorderEdgesN, BorderEdgesC, Edges, u_vector, Points)
+    def L2(u_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
+        ju = Ju(indNumber, BorderEdgesC, Edges, u_vector, Points)
         return 100000000*(0.5*np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector) + ju)
 
     return L2
