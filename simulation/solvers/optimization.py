@@ -5,7 +5,7 @@ Created at 18.02.2021
 import scipy.optimize
 import numpy as np
 from simulation.solvers.solver import Solver
-from simulation.solver import make_L2
+from simulation.solvers.solver_methods import make_L2
 
 
 class Optimization(Solver):

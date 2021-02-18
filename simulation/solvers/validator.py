@@ -3,7 +3,7 @@ Created at 18.02.2021
 """
 
 import numpy as np
-from simulation.solver import make_f
+from simulation.solvers.solver_methods import make_f
 
 
 class Validator:
@@ -23,4 +23,10 @@ class Validator:
                 state.grid.Points, self.B, self.forces.Zero, self.forces.One)
         )
         quality = quality_inv ** -1
+        return quality
+
+    def check_quality(self, state, displacement, previous_quality: float = None) -> float:
+        quality = self.validate(state, displacement)
+        if previous_quality is not None and previous_quality == quality:
+            raise RuntimeError("Can't find a solution! ")
         return quality

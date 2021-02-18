@@ -13,7 +13,6 @@ from simulation.solvers.validator import Validator
 
 
 class SimulationRunner:
-    THRESHOLD = 1
 
     def __init__(self, setup):
         self.grid = GridFactory.construct(setup.cells_number[0],
@@ -21,6 +20,7 @@ class SimulationRunner:
                                           setup.grid_height
                                           )
         self.setup = setup
+        self.THRESHOLD = 1
 
     def run(self, initial_guess: (np.ndarray, None) = None, method: str = 'direct', verbose: bool = False) -> State:
         """
@@ -33,21 +33,20 @@ class SimulationRunner:
         solver = self.get_solver(setup, method)
         state = State(self.grid)
         validator = Validator(solver)
-        displacement = SimulationRunner.find_solution(
+        displacement = self.find_solution(
             solver, state, validator, initial_guess=initial_guess, verbose=verbose)
         state.set_u_and_displaced_points(displacement)
         return state
 
-    @staticmethod
-    def find_solution(solver, state, validator, initial_guess, verbose=False) -> np.ndarray:
+    def find_solution(self, solver, state, validator, initial_guess, verbose=False) -> np.ndarray:
         quality = 0
         iteration = 0
         displacement = initial_guess or np.zeros(2 * state.grid.indNumber())
-        while quality < SimulationRunner.THRESHOLD:
+        while quality < self.THRESHOLD:
             displacement = solver.solve(displacement)
-            quality = validator.validate(state, displacement)
+            quality = validator.check_quality(state, displacement, quality)
             iteration += 1
-            SimulationRunner.print_iteration_info(iteration, quality, verbose)
+            self.print_iteration_info(iteration, quality, verbose)
         return displacement
 
     @staticmethod
@@ -70,10 +69,9 @@ class SimulationRunner:
                               )
         return solver
 
-    @staticmethod
-    def print_iteration_info(iteration, quality, verbose):
-        qualitative = quality > SimulationRunner.THRESHOLD
+    def print_iteration_info(self, iteration, quality, verbose):
+        qualitative = quality > self.THRESHOLD
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
         if verbose:
-            print(f"iteration = {iteration}; quality = {quality} {sign} {SimulationRunner.THRESHOLD}{end}")
+            print(f"iteration = {iteration}; quality = {quality} {sign} {self.THRESHOLD}{end}")

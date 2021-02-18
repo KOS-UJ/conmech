@@ -4,7 +4,7 @@ Created at 18.02.2021
 
 import scipy.optimize
 import numpy as np
-from simulation.solver import make_f
+from simulation.solvers.solver_methods import make_f
 from simulation.solvers.solver import Solver
 
 
