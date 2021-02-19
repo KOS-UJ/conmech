@@ -15,5 +15,4 @@ def test_direct_solver():
 def test_optimization_solver():
     setup = Setup()
     runner = SimulationRunner(setup)
-    runner.THRESHOLD = 1e-5
     _ = runner.run(method="optimization")

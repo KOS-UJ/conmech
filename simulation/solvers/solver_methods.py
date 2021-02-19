@@ -107,7 +107,7 @@ def make_L2(jn):
             umLy = 0.
             if firstPointIndex < indNumber:
                 umLx += 0.5 * u_vector[firstPointIndex]
-                umLy += 0.5 * u_vector[secondPointIndex + firstPointIndex]
+                umLy += 0.5 * u_vector[indNumber + firstPointIndex]
             if secondPointIndex < indNumber:
                 umLx += 0.5 * u_vector[secondPointIndex]
                 umLy += 0.5 * u_vector[indNumber + secondPointIndex]
