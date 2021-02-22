@@ -93,9 +93,10 @@ def make_f(jnZ, jtZ, h):
 
 def make_L2(jn):
     jn = numba.njit(jn)
+    DIMENSION = 2
 
     @numba.njit()
-    def Ju(indNumber, BorderEdgesC, Edges, u_vector, Points):
+    def Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points):
         J = 0
         for e in range(0, BorderEdgesC):
             nmL = n_down(Points, Edges, e)  # n at mL
@@ -105,12 +106,13 @@ def make_L2(jn):
 
             umLx = 0.
             umLy = 0.
-            if firstPointIndex < indNumber:
-                umLx += 0.5 * u_vector[firstPointIndex]
-                umLy += 0.5 * u_vector[indNumber + firstPointIndex]
-            if secondPointIndex < indNumber:
-                umLx += 0.5 * u_vector[secondPointIndex]
-                umLy += 0.5 * u_vector[indNumber + secondPointIndex]
+            offset = len(ut_vector) // DIMENSION
+            if firstPointIndex < indNumber: # exclude points from Gamma_D
+                umLx += 0.5 * ut_vector[firstPointIndex]
+                umLy += 0.5 * ut_vector[offset + firstPointIndex]
+            if secondPointIndex < indNumber: # exclude points from Gamma_D
+                umLx += 0.5 * ut_vector[secondPointIndex]
+                umLy += 0.5 * ut_vector[offset + secondPointIndex]
 
             uNmL = umLx * nmL[0] + umLy * nmL[1]
             uTmLx = umLx - uNmL * nmL[0]
@@ -125,8 +127,8 @@ def make_L2(jn):
         return J
 
     @numba.njit()
-    def L2(u_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
-        ju = Ju(indNumber, BorderEdgesC, Edges, u_vector, Points)
-        return 100000000*(0.5*np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector) + ju)
+    def L2(ut_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
+        ju = Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points)
+        return 100000000*(0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector) + ju)
 
     return L2
