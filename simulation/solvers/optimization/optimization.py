@@ -15,20 +15,28 @@ class Optimization(Solver):
         self.loss = make_L2(jn=contact_law.potential_normal_direction)
 
     @property
-    def C(self):
+    def point_relations(self) -> np.ndarray:
         raise NotImplementedError()
 
     @property
-    def E(self):
+    def point_forces(self) -> np.ndarray:
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
         result = scipy.optimize.minimize(
             self.loss,
             initial_guess,
-            args=(self.grid.indNumber(), self.grid.BorderEdgesC, self.grid.Edges, self.grid.Points, self.C, self.E),
+            args=(
+                self.grid.independent_num(),
+                self.grid.BorderEdgesC,
+                self.grid.Edges,
+                self.grid.Points,
+                self.point_relations,
+                self.point_forces
+            ),
             method='BFGS',
             options={'disp': True, 'maxiter': len(initial_guess) * 1e5},
             tol=1e-12
-        ).x
+        )
+        result = result.x
         return result

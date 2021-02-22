@@ -3,6 +3,8 @@ Created at 22.02.2021
 """
 
 import numpy as np
+from typing import Tuple
+
 from simulation.solvers.optimization.optimization import Optimization
 
 
@@ -11,56 +13,43 @@ class SchurComplement(Optimization):
     def __init__(self, grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound):
         super().__init__(grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound)
 
-        C11 = self.B[0, 0]
-        C12 = self.B[0, 1]
-        C21 = self.B[1, 0]
-        C22 = self.B[1, 1]
+        contact_points_num = grid.contact_num
+        independent_points_num = grid.independent_num()
+        contact_ids = slice(0, contact_points_num)
+        free_ids = slice(contact_points_num, independent_points_num)
 
-        c_num = grid.BorderEdgesC
-        i_num = grid.indNumber()
+        free_x_free = SchurComplement.get_submatrix(self.B, indices=(free_ids, free_ids))
+        free_x_contact = SchurComplement.get_submatrix(self.B, indices=(free_ids, contact_ids))
+        contact_x_free = SchurComplement.get_submatrix(self.B, indices=(contact_ids, free_ids))
+        contact_x_contact = SchurComplement.get_submatrix(self.B, indices=(contact_ids, contact_ids))
 
-        indices = (slice(c_num, i_num), slice(c_num, i_num))
-        self.Cii = np.bmat([[C11[indices], C12[indices]],
-                             [C21[indices], C22[indices]]])
+        self.free_x_contact = free_x_contact
+        self.free_x_free_inverted = np.linalg.inv(free_x_free)
+        _point_relations = np.dot(self.free_x_free_inverted, self.free_x_contact)
+        _point_relations = np.dot(contact_x_free, _point_relations)
+        _point_relations = contact_x_contact - _point_relations
+        self.__point_relations = np.asarray(_point_relations)
 
-        indices = (slice(c_num, i_num), slice(0, c_num))
-        self.Cit = np.bmat([[C11[indices], C12[indices]],
-                             [C21[indices], C22[indices]]])
+        forces_contact = np.append(self.forces.Zero[contact_ids], self.forces.One[contact_ids]).reshape(-1, 1)
+        self.forces_free = np.append(self.forces.Zero[free_ids], self.forces.One[free_ids]).reshape(-1, 1)
+        point_forces = np.dot(self.free_x_free_inverted, self.forces_free)
+        point_forces = np.dot(contact_x_free, point_forces)
+        point_forces = forces_contact - point_forces
+        self.__point_forces = np.asarray(point_forces.reshape(1, -1))
 
-        indices = (slice(0, c_num), slice(c_num, i_num))
-        self.Cti = np.bmat([[C11[indices], C12[indices]],
-                             [C21[indices], C22[indices]]])
-
-        indices = (slice(0, c_num), slice(0, c_num))
-        self.Ctt = np.bmat([[C11[indices], C12[indices]],
-                             [C21[indices], C22[indices]]])
-
-        self.CiiINV = np.linalg.inv(self.Cii)
-        self.CiiINVCit = np.dot(self.CiiINV, self.Cit)
-        self.CtiCiiINVCit = np.dot(self.Cti, self.CiiINVCit)
-        self._C = self.Ctt - self.CtiCiiINVCit
-        self._C = np.asarray(self.C)
-
-        indices = slice(c_num, i_num)
-        self.Ebig = np.append(self.forces.Zero, self.forces.One).reshape(-1,1)
-        self.Ei = np.append(self.forces.Zero[indices], self.forces.One[indices]).reshape(-1,1)
-
-        indices = slice(0, c_num)
-        self.Et = np.append(self.forces.Zero[indices], self.forces.One[indices]).reshape(-1,1)
-
-        self.CiiINVEi = np.dot(self.CiiINV, self.Ei)
-        self.CtiCiiINVEi = np.dot(self.Cti, self.CiiINVEi)
-
-        self._E = self.Et - self.CtiCiiINVEi
-        self._E = np.asarray(self.E.reshape(1, -1))
+    @staticmethod
+    def get_submatrix(arrays: iter, indices: Tuple[slice, slice]) -> np.matrix:
+        result = np.bmat([[arrays[0, 0][indices], arrays[0, 1][indices]],
+                          [arrays[1, 0][indices], arrays[1, 1][indices]]])
+        return result
 
     @property
-    def C(self):
-        return self._C
+    def point_relations(self) -> np.ndarray:
+        return self.__point_relations
 
     @property
-    def E(self):
-        return self._E
+    def point_forces(self) -> np.ndarray:
+        return self.__point_forces
 
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
 
@@ -74,9 +63,9 @@ class SchurComplement(Optimization):
         ut_vector = super().solve(ut_vector)
 
         ut_v = ut_vector.reshape(-1,1)
-        first = np.dot(self.Cit, ut_v)
-        second = self.Ei - first
-        ui_vector = np.dot(self.CiiINV, second)
+        first = np.dot(self.free_x_contact, ut_v)
+        second = self.forces_free - first
+        ui_vector = np.dot(self.free_x_free_inverted, second)
 
         ut = ut_vector.reshape(2, -1)
         ui = ui_vector.reshape(2, -1)
