@@ -14,7 +14,7 @@ class Setup:
     time_step = 1
     grid_height = 1
 
-    cells_number = (64, 64)  # number of triangles per aside
+    cells_number = (2, 5)  # number of triangles per aside
     inner_forces = np.array([-0.2, -0.2])
     outer_forces = np.array([0, 0])
     mu_coef = 4
