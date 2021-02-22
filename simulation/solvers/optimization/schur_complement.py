@@ -56,14 +56,14 @@ class SchurComplement(Optimization):
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def truncate_free_points(self, initial_guess):
+    def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
         _result = _result[:, 0: self.grid.contact_num]
         _result = _result.reshape(1, -1)
         result = _result
         return result
 
-    def complement_free_points(self, truncated_solution):
+    def complement_free_points(self, truncated_solution: np.ndarray) -> np.ndarray:
         _result = truncated_solution.reshape(-1, 1)
         _result = np.dot(self.free_x_contact, _result)
         _result = self.forces_free - _result
@@ -71,7 +71,7 @@ class SchurComplement(Optimization):
         return result
 
     @staticmethod
-    def merge(solution_contact, solution_free):
+    def merge(solution_contact: np.ndarray, solution_free: np.ndarray) -> np.ndarray:
         u_contact = solution_contact.reshape(2, -1)
         u_free = solution_free.reshape(2, -1)
         _result = np.concatenate((u_contact, u_free), axis=1)
