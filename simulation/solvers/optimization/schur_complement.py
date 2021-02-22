@@ -1,18 +1,15 @@
 """
-Created at 18.02.2021
+Created at 22.02.2021
 """
 
-import scipy.optimize
 import numpy as np
-from simulation.solvers.solver import Solver
-from simulation.solvers.solver_methods import make_L2
+from simulation.solvers.optimization.optimization import Optimization
 
 
-class Optimization(Solver):
+class SchurComplement(Optimization):
+
     def __init__(self, grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound):
         super().__init__(grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound)
-
-        #self.C = np.bmat([[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]])
 
         C11 = self.B[0, 0]
         C12 = self.B[0, 1]
@@ -34,17 +31,15 @@ class Optimization(Solver):
         self.Cti = np.bmat([[C11[indices], C12[indices]],
                              [C21[indices], C22[indices]]])
 
-
         indices = (slice(0, c_num), slice(0, c_num))
         self.Ctt = np.bmat([[C11[indices], C12[indices]],
                              [C21[indices], C22[indices]]])
 
-
         self.CiiINV = np.linalg.inv(self.Cii)
         self.CiiINVCit = np.dot(self.CiiINV, self.Cit)
         self.CtiCiiINVCit = np.dot(self.Cti, self.CiiINVCit)
-        self.C = self.Ctt - self.CtiCiiINVCit
-        self.C = np.asarray(self.C)
+        self._C = self.Ctt - self.CtiCiiINVCit
+        self._C = np.asarray(self.C)
 
         indices = slice(c_num, i_num)
         self.Ebig = np.append(self.forces.Zero, self.forces.One).reshape(-1,1)
@@ -53,15 +48,19 @@ class Optimization(Solver):
         indices = slice(0, c_num)
         self.Et = np.append(self.forces.Zero[indices], self.forces.One[indices]).reshape(-1,1)
 
-
         self.CiiINVEi = np.dot(self.CiiINV, self.Ei)
         self.CtiCiiINVEi = np.dot(self.Cti, self.CiiINVEi)
 
-        self.E = self.Et - self.CtiCiiINVEi
-        self.E = np.asarray(self.E.reshape(1,-1))
+        self._E = self.Et - self.CtiCiiINVEi
+        self._E = np.asarray(self.E.reshape(1, -1))
 
+    @property
+    def C(self):
+        return self._C
 
-        self.loss = make_L2(jn=contact_law.potential_normal_direction)
+    @property
+    def E(self):
+        return self._E
 
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
 
@@ -72,19 +71,11 @@ class Optimization(Solver):
         z = y.reshape(1,-1)
         ut_vector = z
 
-        ut_vector = scipy.optimize.minimize(
-            self.loss,
-            ut_vector,
-            args=(self.grid.indNumber(), self.grid.BorderEdgesC, self.grid.Edges, self.grid.Points, self.C, self.E),
-            method='BFGS',
-            options={'disp': True, 'maxiter': len(ut_vector) * 1e5},
-            tol=1e-12
-        ).x
+        ut_vector = super().solve(ut_vector)
 
-        print(ut_vector)
         ut_v = ut_vector.reshape(-1,1)
         first = np.dot(self.Cit, ut_v)
-        second =  self.Ei - first
+        second = self.Ei - first
         ui_vector = np.dot(self.CiiINV, second)
 
         ut = ut_vector.reshape(2, -1)

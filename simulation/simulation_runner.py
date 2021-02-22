@@ -7,8 +7,7 @@ import numpy as np
 from simulation.grid_factory import GridFactory
 from simulation.state import State
 from simulation.solvers.solver import Solver
-from simulation.solvers.direct import Direct
-from simulation.solvers.optimization import Optimization
+from simulation.solvers import get_solver_class
 from simulation.solvers.validator import Validator
 
 
@@ -49,18 +48,8 @@ class SimulationRunner:
             self.print_iteration_info(iteration, quality, verbose)
         return displacement
 
-    @staticmethod
-    def get_solver_class(method: str) -> type:
-        if method == 'direct':
-            solver_class = Direct
-        elif method == 'optimization':
-            solver_class = Optimization
-        else:
-            raise ValueError()
-        return solver_class
-
     def get_solver(self, setup, method: str) -> Solver:
-        solver_class = self.get_solver_class(method)
+        solver_class = get_solver_class(method)
         solver = solver_class(self.grid,
                               setup.inner_forces, setup.outer_forces,
                               setup.mu_coef, setup.lambda_coef,

@@ -12,7 +12,13 @@ def test_direct_solver():
     _ = runner.run(method="direct", verbose=True)
 
 
-def test_optimization_solver():
+def test_global_optimization_solver():
     setup = Setup()
     runner = SimulationRunner(setup)
-    _ = runner.run(method="optimization")
+    _ = runner.run(method="global optimization")
+
+
+def test_schur_complement_solver():
+    setup = Setup()
+    runner = SimulationRunner(setup)
+    _ = runner.run(method="schur")
