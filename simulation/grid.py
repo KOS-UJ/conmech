@@ -47,6 +47,7 @@ class Grid:
         self.halfShortTriangleSide = 0
         self.TriangleArea = 0
 
+    @property
     def independent_num(self):
         return len(self.Points) - self.BorderEdgesD - 1
 

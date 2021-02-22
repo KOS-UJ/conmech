@@ -14,7 +14,7 @@ class SchurComplement(Optimization):
         super().__init__(grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound)
 
         contact_points_num = grid.contact_num
-        independent_points_num = grid.independent_num()
+        independent_points_num = grid.independent_num
         contact_ids = slice(0, contact_points_num)
         free_ids = slice(contact_points_num, independent_points_num)
 

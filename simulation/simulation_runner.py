@@ -40,7 +40,7 @@ class SimulationRunner:
     def find_solution(self, solver, state, validator, initial_guess, verbose=False) -> np.ndarray:
         quality = 0
         iteration = 0
-        displacement = initial_guess or np.zeros(2 * state.grid.independent_num())
+        displacement = initial_guess or np.zeros(2 * state.grid.independent_num)
         while quality < self.THRESHOLD:
             displacement = solver.solve(displacement)
             quality = validator.check_quality(state, displacement, quality)

@@ -27,7 +27,7 @@ class Optimization(Solver):
             self.loss,
             initial_guess,
             args=(
-                self.grid.independent_num(),
+                self.grid.independent_num,
                 self.grid.BorderEdgesC,
                 self.grid.Edges,
                 self.grid.Points,
