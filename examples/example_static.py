@@ -51,8 +51,5 @@ if __name__ == '__main__':
     setup = Setup()
     runner = SimulationRunner(setup)
 
-    state = runner.run(method='direct', verbose=True)
-    Drawer(state).draw()
-
-    state = runner.run(method='optimization', verbose=True)
+    state = runner.run(method='schur', verbose=True)
     Drawer(state).draw()

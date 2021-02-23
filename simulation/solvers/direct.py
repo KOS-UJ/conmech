@@ -21,6 +21,6 @@ class Direct(Solver):
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
         result = scipy.optimize.fsolve(
             self.f, initial_guess,
-            args=(self.grid.indNumber(), self.grid.BorderEdgesC, self.grid.Edges,
+            args=(self.grid.independent_num, self.grid.BorderEdgesC, self.grid.Edges,
                   self.grid.Points, self.B, self.forces.Zero, self.forces.One))
         return np.asarray(result)

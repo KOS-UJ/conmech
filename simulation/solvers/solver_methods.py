@@ -86,7 +86,7 @@ def make_f(jnZ, jtZ, h):
 
         Y = Bu2(B, u) + jZu[:, 1] - F_One
 
-        return 1e6 * np.append(X, Y)  # 10000000000
+        return np.append(X, Y)  # 10000000000
 
     return f
 
@@ -129,6 +129,6 @@ def make_L2(jn):
     @numba.njit()
     def L2(ut_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
         ju = Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points)
-        return 100000000*(0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector) + ju)
+        return 0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector) + ju
 
     return L2

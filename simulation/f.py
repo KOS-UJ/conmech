@@ -10,9 +10,9 @@ class F:
         self.F0 = F0
         self.FN = FN
         self.grid = grid
-        self.F = np.zeros([self.grid.indNumber(), 2])
-        self.Zero = np.zeros([self.grid.indNumber()])
-        self.One = np.zeros([self.grid.indNumber()])
+        self.F = np.zeros([self.grid.independent_num, 2])
+        self.Zero = np.zeros([self.grid.independent_num])
+        self.One = np.zeros([self.grid.independent_num])
 
     # TODO: inject?
     ########################################################
@@ -29,9 +29,9 @@ class F:
         half_long_triangle_side = self.grid.halfLongTriangleSide
         half_short_triangle_side = self.grid.halfShortTriangleSide
 
-        self.F = np.zeros([self.grid.indNumber(), 2])
+        self.F = np.zeros([self.grid.independent_num, 2])
 
-        for i in range(0, self.grid.indNumber()):
+        for i in range(0, self.grid.independent_num):
             x = self.grid.Points[i][0]
             y = self.grid.Points[i][1]
             t = self.grid.Points[i][2]
@@ -108,7 +108,7 @@ class F:
 
                 self.F[i] = (float(self.grid.TriangleArea) / 6) * self.F[i]
 
-        for i in range(0, self.grid.indNumber()):
+        for i in range(0, self.grid.independent_num):
             for e in range(-self.grid.BorderEdgesD - self.grid.BorderEdgesN, -self.grid.BorderEdgesD):
                 e1 = int(self.grid.Edges[e][0])
                 e2 = int(self.grid.Edges[e][1])

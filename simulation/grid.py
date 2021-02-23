@@ -47,8 +47,13 @@ class Grid:
         self.halfShortTriangleSide = 0
         self.TriangleArea = 0
 
-    def indNumber(self):
+    @property
+    def independent_num(self):
         return len(self.Points) - self.BorderEdgesD - 1
+
+    @property
+    def contact_num(self):
+        return self.BorderEdgesC
 
     def getPoint(self, x, y):
         i = 0
