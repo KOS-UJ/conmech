@@ -4,11 +4,11 @@ Created at 21.08.2019
 
 import numpy as np
 
-from simulation.grid_factory import GridFactory
-from simulation.state import State
-from simulation.solvers.solver import Solver
-from simulation.solvers import get_solver_class
-from simulation.solvers.validator import Validator
+from conmech.grid_factory import GridFactory
+from conmech.state import State
+from conmech.solvers.solver import Solver
+from conmech.solvers import get_solver_class
+from conmech.solvers.validator import Validator
 
 
 class SimulationRunner:

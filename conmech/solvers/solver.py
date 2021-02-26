@@ -2,8 +2,8 @@
 Created at 18.02.2021
 """
 
-from simulation.matrices import Matrices
-from simulation.f import F
+from conmech.matrices import Matrices
+from conmech.f import F
 
 
 class Solver:

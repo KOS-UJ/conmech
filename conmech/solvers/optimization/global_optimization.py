@@ -3,7 +3,7 @@ Created at 22.02.2021
 """
 
 import numpy as np
-from simulation.solvers.optimization.optimization import Optimization
+from conmech.solvers.optimization.optimization import Optimization
 
 
 class Global(Optimization):

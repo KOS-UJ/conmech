@@ -3,7 +3,7 @@ Created at 18.02.2021
 """
 
 import numpy as np
-from simulation.solvers.solver_methods import make_f
+from conmech.solvers.solver_methods import make_f
 
 
 class Validator:
