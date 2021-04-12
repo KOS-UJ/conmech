@@ -12,13 +12,13 @@ class GridFactory:
     @staticmethod
     def add_point(grid, x, y, t):
         i = 0
-        while i < len(grid.Points):
+        while i < len(grid.Points):  # avoid adding two points in the same position, BUT MAYBE OVERRIDE TYPE
             if grid.Points[i][Point.X] == x and grid.Points[i][Point.Y] == y:
                 return
             else:
                 i += 1
-        grid.Points = np.append([[x, y, t]], grid.Points, axis=0)
-        for i in range(0, len(grid.Edges)):
+        grid.Points = np.append([[x, y, t]], grid.Points, axis=0)  # add new point at the beginning
+        for i in range(0, len(grid.Edges)):  # increment all edges ends
             grid.Edges[i][Edge.START] += 1
             grid.Edges[i][Edge.STOP] += 1
 
