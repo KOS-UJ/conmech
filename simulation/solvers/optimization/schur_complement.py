@@ -28,6 +28,7 @@ class SchurComplement(Optimization):
         _point_relations = contact_x_contact - _point_relations
         self.__point_relations = np.asarray(_point_relations)
 
+#TODO: When working with velocity v, forces_contact depend on u
         forces_contact = np.append(self.forces.Zero[contact_ids], self.forces.One[contact_ids]).reshape(-1, 1)
         self.forces_free = np.append(self.forces.Zero[free_ids], self.forces.One[free_ids]).reshape(-1, 1)
         point_forces = np.dot(self.free_x_free_inverted, self.forces_free)

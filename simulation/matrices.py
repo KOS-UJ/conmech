@@ -31,6 +31,14 @@ class Matrices:
 
         B = np.asarray(B)
 
+        # TODO: Add matrix A taking into account problems with velocity.
+        #  Now C from Schur Method will depend on A instead of B
+
+        #self.A12 = scipy.sparse.lil_matrix((th * self.W21 + ze * self.W12)).astype(np.single)
+        #self.A21 = scipy.sparse.lil_matrix((ze * self.W21 + th * self.W12)).astype(np.single)
+        #self.A11 = scipy.sparse.lil_matrix(((2 * th + ze) * self.W11 + th * self.W22)).astype(np.single)
+        #self.A22 = scipy.sparse.lil_matrix((th * self.W11 + (2 * th + ze) * self.W22)).astype(np.single)
+
         return B
 
     @staticmethod
