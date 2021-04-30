@@ -9,6 +9,39 @@ from simulation.edge import Edge
 
 
 class Matrices:
+    @staticmethod
+    def construct_A(grid, th, ze):
+
+        # Added matrix A taking into account problems with velocity.
+        #  Now C from Schur Method will depend on A instead of B
+
+        AX = np.zeros([grid.independent_num, 8])  # area with dx
+        AY = np.zeros([grid.independent_num, 8])  # area with dy
+        for i in range(grid.independent_num):
+            p = grid.Points[i]
+            AX[i], AY[i] = Point.ax_ay(p)
+
+        W11 = Matrices.multiply(grid, AX, AX)
+        W12 = Matrices.multiply(grid, AX, AY)
+        W21 = Matrices.multiply(grid, AY, AX)  # np.transpose(W12)
+        W22 = Matrices.multiply(grid, AY, AY)
+
+        A = [[(2 * th + ze) * W11 + th * W22,
+              th * W21 + ze * W12],
+             [ze * W21 + th * W12,
+              th * W11 + (2 * th + ze) * W22]
+             ]
+
+
+        A = np.asarray(A)
+
+        #self.A12 = scipy.sparse.lil_matrix((th * self.W21 + ze * self.W12)).astype(np.single)
+        #self.A21 = scipy.sparse.lil_matrix((ze * self.W21 + th * self.W12)).astype(np.single)
+        #self.A11 = scipy.sparse.lil_matrix(((2 * th + ze) * self.W11 + th * self.W22)).astype(np.single)
+        #self.A22 = scipy.sparse.lil_matrix((th * self.W11 + (2 * th + ze) * self.W22)).astype(np.single)
+
+        return A
+
 
     @staticmethod
     def construct_B(grid, mi, la):
@@ -30,14 +63,6 @@ class Matrices:
              ]
 
         B = np.asarray(B)
-
-        # TODO: Add matrix A taking into account problems with velocity.
-        #  Now C from Schur Method will depend on A instead of B
-
-        #self.A12 = scipy.sparse.lil_matrix((th * self.W21 + ze * self.W12)).astype(np.single)
-        #self.A21 = scipy.sparse.lil_matrix((ze * self.W21 + th * self.W12)).astype(np.single)
-        #self.A11 = scipy.sparse.lil_matrix(((2 * th + ze) * self.W11 + th * self.W22)).astype(np.single)
-        #self.A22 = scipy.sparse.lil_matrix((th * self.W11 + (2 * th + ze) * self.W22)).astype(np.single)
 
         return B
 
