@@ -2,7 +2,7 @@
 Created at 21.08.2019
 """
 
-from simulation.simulation_runner import SimulationRunner
+from conmech.simulation_runner import SimulationRunner
 from examples.example_static import Setup
 
 setup = Setup()

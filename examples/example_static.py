@@ -3,7 +3,7 @@ Created at 21.08.2019
 """
 
 import numpy as np
-from simulation.simulation_runner import SimulationRunner
+from conmech.simulation_runner import SimulationRunner
 from utils.drawer import Drawer
 
 

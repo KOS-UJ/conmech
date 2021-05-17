@@ -3,9 +3,9 @@ Created at 22.08.2019
 """
 
 import numpy as np
-from simulation.grid import Grid
-from simulation.point import Point
-from simulation.edge import Edge
+from conmech.grid import Grid
+from conmech.point import Point
+from conmech.edge import Edge
 
 
 class GridFactory:

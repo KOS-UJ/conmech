@@ -2,9 +2,9 @@
 Created at 18.02.2021
 """
 
-from simulation.solvers.direct import Direct
-from simulation.solvers.optimization.global_optimization import Global
-from simulation.solvers.optimization.schur_complement import SchurComplement
+from conmech.solvers.direct import Direct
+from conmech.solvers.optimization.global_optimization import Global
+from conmech.solvers.optimization.schur_complement import SchurComplement
 
 
 def get_solver_class(method: str) -> type:
