@@ -3,23 +3,26 @@ Created at 21.08.2019
 """
 
 import numpy as np
-
-from conmech.simulation_runner import SimulationRunner
+from simulation.simulation_runner import SimulationRunner
 from utils.drawer import Drawer
 
 
 p_slope = 1.
 
 
-class StaticSetup:
-    time_step = 1Quasistatic
+class QuasistaticSetup:
+    time_step = 1
     grid_height = 1
 
-    cells_number = (2, 5)  # number of triangles per aside
+    cells_number = (2, 5)  # number of triangles per side
     inner_forces = np.array([-0.2, -0.2])
     outer_forces = np.array([0, 0])
     mu_coef = 4
     lambda_coef = 4
+    th_coef = 4
+    ze_coef = 4
+
+    time_step = 0.1
 
     class ContactLaw:
         @staticmethod
@@ -49,7 +52,7 @@ class StaticSetup:
 
 
 if __name__ == '__main__':
-    setup = Setup()
+    setup = QuasistaticSetup()
     runner = SimulationRunner(setup)
 
     state = runner.run(method='schur', verbose=True)

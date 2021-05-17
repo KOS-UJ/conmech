@@ -9,6 +9,7 @@ from conmech.state import State
 from conmech.solvers.solver import Solver
 from conmech.solvers import get_solver_class
 from conmech.solvers.validator import Validator
+from utils.drawer import Drawer
 
 
 class SimulationRunner:
@@ -32,27 +33,37 @@ class SimulationRunner:
         solver = self.get_solver(setup, method)
         state = State(self.grid)
         validator = Validator(solver)
-        displacement = self.find_solution(
-            solver, state, validator, initial_guess=initial_guess, verbose=verbose)
-        state.set_u_and_displaced_points(displacement)
+
+        velocity = np.zeros(2 * state.grid.independent_num)
+        for i in range(1, 10):
+            solver.currentTime = i * solver.time_step
+            velocity = self.find_solution(
+                solver, state, validator, initial_guess=velocity, verbose=verbose)
+            solver.iterate(velocity)
+            state.set_u_and_displaced_points(solver.u_vector)
+            Drawer(state).draw()
+
+        state.set_u_and_displaced_points(solver.u_vector)
         return state
 
     def find_solution(self, solver, state, validator, initial_guess, verbose=False) -> np.ndarray:
         quality = 0
         iteration = 0
-        displacement = initial_guess or np.zeros(2 * state.grid.independent_num)
+        displacement_or_velocity = initial_guess #or np.zeros(2 * state.grid.independent_num)
         while quality < self.THRESHOLD:
-            displacement = solver.solve(displacement)
-            quality = validator.check_quality(state, displacement, quality)
+            displacement_or_velocity = solver.solve(displacement_or_velocity)
+            quality = validator.check_quality(state, displacement_or_velocity, quality)
             iteration += 1
             self.print_iteration_info(iteration, quality, verbose)
-        return displacement
+        return displacement_or_velocity
 
     def get_solver(self, setup, method: str) -> Solver:
         solver_class = get_solver_class(method)
         solver = solver_class(self.grid,
                               setup.inner_forces, setup.outer_forces,
                               setup.mu_coef, setup.lambda_coef,
+                              setup.th_coef, setup.ze_coef,
+                              setup.time_step,
                               setup.ContactLaw,
                               setup.friction_bound
                               )

@@ -70,8 +70,12 @@ def make_f(jnZ, jtZ, h):
                     vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
                     vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
 
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
+#TODO: Move  to seperate method, take into account also problems with velocity
+#u will be calculated by suming ptevious velocities times time step
+
+#TODO: To make function h dependent on u_nu, we need Uzawa approach
+                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(None) * jtZ(uTmL, vThauZero)
+                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(None) * jtZ(uTmL, vThauOne)
         return JZu
 
     @numba.njit()
