@@ -5,7 +5,7 @@ Created at 22.08.2019
 import numpy as np
 from typing import Tuple
 
-from simulation.grid import Grid
+from conmech.grid import Grid
 
 
 class Point:

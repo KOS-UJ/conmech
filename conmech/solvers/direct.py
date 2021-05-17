@@ -4,8 +4,8 @@ Created at 18.02.2021
 
 import scipy.optimize
 import numpy as np
-from simulation.solvers.solver_methods import make_f
-from simulation.solvers.solver import Solver
+from conmech.solvers.solver_methods import make_f
+from conmech.solvers.solver import Solver
 
 
 class Direct(Solver):
