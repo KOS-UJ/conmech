@@ -2,20 +2,23 @@
 Created at 21.08.2019
 """
 
-from conmech.simulation_runner import SimulationRunner
-from examples.example_static import Setup
+from conmech.problem_solver import Static as StaticProblem
+from examples.example_static import StaticSetup
 
-setup = Setup()
-runner = SimulationRunner(setup)
+setup = StaticSetup()
+runner = StaticProblem(setup, "direct")
 
 
 def test_direct_solver():
-    _ = runner.run(method="direct", verbose=True)
+    runner.solving_method = "direct"
+    _ = runner.solve()
 
 
 def test_global_optimization_solver():
-    _ = runner.run(method="global optimization")
+    runner.solving_method = "global optimization"
+    _ = runner.solve()
 
 
 def test_schur_complement_solver():
-    _ = runner.run(method="schur")
+    runner.solving_method = "schur"
+    _ = runner.solve()

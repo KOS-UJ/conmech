@@ -20,6 +20,9 @@ class Direct(Solver):
                         h=friction_bound
                         )
 
+    def __repr__(self):
+        return "direct"
+
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
         result = scipy.optimize.fsolve(
             self.f, initial_guess,

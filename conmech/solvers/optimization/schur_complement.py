@@ -72,6 +72,9 @@ class SchurComplement(Optimization):
             point_forces = forces_contact - point_forces
             self.__point_forces = np.asarray(point_forces.reshape(1, -1))
 
+    def __repr__(self):
+        return "schur"
+
     @staticmethod
     def get_submatrix(arrays: iter, indices: Tuple[slice, slice]) -> np.matrix:
         result = np.bmat([[arrays[0, 0][indices], arrays[0, 1][indices]],

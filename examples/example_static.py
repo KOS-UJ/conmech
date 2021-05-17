@@ -4,7 +4,7 @@ Created at 21.08.2019
 
 import numpy as np
 
-from conmech.simulation_runner import SimulationRunner
+from conmech.problem_solver import Static as StaticProblemSolver
 from utils.drawer import Drawer
 
 
@@ -12,7 +12,7 @@ p_slope = 1.
 
 
 class StaticSetup:
-    time_step = 1Quasistatic
+    dynamism = 'static'  # TODO
     grid_height = 1
 
     cells_number = (2, 5)  # number of triangles per aside
@@ -49,8 +49,8 @@ class StaticSetup:
 
 
 if __name__ == '__main__':
-    setup = Setup()
-    runner = SimulationRunner(setup)
+    setup = StaticSetup()
+    runner = StaticProblemSolver(setup, 'direct')
 
-    state = runner.run(method='schur', verbose=True)
+    state = runner.solve(verbose=True)
     Drawer(state).draw()

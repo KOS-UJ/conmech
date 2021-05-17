@@ -3,7 +3,8 @@ Created at 21.08.2019
 """
 
 import numpy as np
-from simulation.simulation_runner import SimulationRunner
+
+from conmech.problem_solver import Quasistatic as QuasistaticProblemSolver
 from utils.drawer import Drawer
 
 
@@ -11,7 +12,7 @@ p_slope = 1.
 
 
 class QuasistaticSetup:
-    time_step = 1
+    dynamism = 'quasistatic'  # TODO
     grid_height = 1
 
     cells_number = (2, 5)  # number of triangles per side
@@ -53,7 +54,8 @@ class QuasistaticSetup:
 
 if __name__ == '__main__':
     setup = QuasistaticSetup()
-    runner = SimulationRunner(setup)
+    runner = QuasistaticProblemSolver(setup, solving_method='schur')
 
-    state = runner.run(method='schur', verbose=True)
-    Drawer(state).draw()
+    states = runner.solve(n_steps=10, output_step=(0, 5, 9), verbose=True)
+    for state in states:
+        Drawer(state).draw()

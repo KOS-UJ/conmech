@@ -16,6 +16,9 @@ class Optimization(Solver):
                          lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound)
         self.loss = make_L2(jn=contact_law.potential_normal_direction)
 
+    def __repr__(self):
+        raise NotImplementedError()
+
     @property
     def point_relations(self) -> np.ndarray:
         raise NotImplementedError()
