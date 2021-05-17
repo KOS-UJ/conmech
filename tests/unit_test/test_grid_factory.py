@@ -4,10 +4,10 @@ Created at 12.04.2021
 
 import numpy as np
 import pytest
-from simulation.grid import Grid
-from simulation.grid_factory import GridFactory
-from simulation.point import Point
-from simulation.edge import Edge
+from conmech.grid import Grid
+from conmech.grid_factory import GridFactory
+from conmech.point import Point
+from conmech.edge import Edge
 
 
 class TestGridFactory:
