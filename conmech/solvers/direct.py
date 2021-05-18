@@ -10,13 +10,18 @@ from conmech.solvers.solver import Solver
 
 class Direct(Solver):
 
-    def __init__(self, grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound):
-        super().__init__(grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound)
+    def __init__(self, grid, inner_forces, outer_forces, mu_coef,
+                 lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound):
+        super().__init__(grid, inner_forces, outer_forces, mu_coef,
+                         lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound)
 
         self.f = make_f(jnZ=contact_law.subderivative_normal_direction,
                         jtZ=contact_law.regularized_subderivative_tangential_direction,
                         h=friction_bound
                         )
+
+    def __repr__(self):
+        return "direct"
 
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
         result = scipy.optimize.fsolve(

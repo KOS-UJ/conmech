@@ -10,9 +10,14 @@ from conmech.solvers.solver_methods import make_L2
 
 class Optimization(Solver):
 
-    def __init__(self, grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound):
-        super().__init__(grid, inner_forces, outer_forces, mu_coef, lambda_coef, contact_law, friction_bound)
+    def __init__(self, grid, inner_forces, outer_forces, mu_coef,
+                 lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound):
+        super().__init__(grid, inner_forces, outer_forces, mu_coef,
+                         lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound)
         self.loss = make_L2(jn=contact_law.potential_normal_direction)
+
+    def __repr__(self):
+        raise NotImplementedError()
 
     @property
     def point_relations(self) -> np.ndarray:
