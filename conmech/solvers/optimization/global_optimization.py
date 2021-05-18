@@ -15,7 +15,7 @@ class Global(Optimization):
         self.__point_relations = np.bmat([[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]])
         self.__point_forces = np.append(self.forces.Zero, self.forces.One)
 
-    def __repr__(self):
+    def __str__(self):
         return "global optimization"
 
     @property

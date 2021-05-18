@@ -36,7 +36,7 @@ class ProblemSolver:
 
     @property
     def solving_method(self):
-        return repr(self.step_solver)
+        return str(self.step_solver)
 
     @solving_method.setter
     def solving_method(self, value):

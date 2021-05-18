@@ -30,7 +30,7 @@ class Solver:
         self.forces = F(grid, inner_forces, outer_forces)
         self.forces.setF()
 
-    def __repr__(self):
+    def __str__(self):
         raise NotImplementedError()
 
     def iterate(self, velocity):
