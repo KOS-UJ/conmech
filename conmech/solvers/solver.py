@@ -24,7 +24,8 @@ class Solver:
         self.time_step = time_step
         self.currentTime = 0
         self.u_vector = np.zeros([self.grid.independent_num * 2])
-        self.A = Matrices.construct_B(grid, th_coef, ze_coef)
+        self.A = Matrices.construct_B(grid, th_coef, ze_coef)  # TODO: optionally
+        self.U = Matrices.construct_U(grid)  # TODO: optionally
 
         self.B = Matrices.construct_B(grid, mu_coef, lambda_coef)
         self.forces = F(grid, inner_forces, outer_forces)

@@ -42,7 +42,6 @@ class Matrices:
 
         return A
 
-
     @staticmethod
     def construct_B(grid, mi, la):
         AX = np.zeros([grid.independent_num, 8])  # area with dx
@@ -65,6 +64,25 @@ class Matrices:
         B = np.asarray(B)
 
         return B
+
+    @staticmethod
+    def construct_U(grid):
+        A = np.zeros([grid.independent_num, 8])
+        for i in range(grid.independent_num):
+            p = grid.Points[i]
+            A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
+
+        _U = Matrices.multiply(grid, A, A)
+        _U *= grid.shortTriangleSide ** 2 / 24
+        for i in range(grid.independent_num):
+            _U[i, i] *= 2
+
+        _U = [[_U, np.zeros_like(_U)],
+              [np.zeros_like(_U), _U]]
+
+        U = np.asarray(_U)
+
+        return U
 
     @staticmethod
     def multiply(grid, AK, AL):

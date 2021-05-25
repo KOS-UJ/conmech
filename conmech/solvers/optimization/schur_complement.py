@@ -36,11 +36,16 @@ class SchurComplement(Optimization):
         self.__point_relations = np.asarray(_point_relations)
 
         #ADDED When working with velocity v, forces_contact depend on u
-        time_dependent = 1
+        time_dependent = True  # TODO: remove
+        dynamic = True  # TODO: remove
         if time_dependent:
+            self.C = self.B
+            if dynamic:
+                self.C += 1 / self.time_step * self.U
+
             #X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
-            Big_B = np.bmat([[self.B[0, 0], self.B[0, 1]],
-                          [self.B[1, 0], self.B[1, 1]]])
+            Big_B = np.bmat([[self.C[0, 0], self.C[0, 1]],
+                          [self.C[1, 0], self.C[1, 1]]])
 
             X = np.dot(Big_B, self.u_vector.T)
             X2 = X.reshape((2, -1))
