@@ -11,8 +11,8 @@ from utils.drawer import Drawer
 p_slope = 1.
 
 
-class QuasistaticSetup:
-    dynamism = 'quasistatic'  # TODO
+class DynamicSetup:
+    dynamism = 'dynamic'  # TODO
     grid_height = 1
 
     cells_number = (2, 5)  # number of triangles per side
@@ -53,9 +53,9 @@ class QuasistaticSetup:
 
 
 if __name__ == '__main__':
-    setup = QuasistaticSetup()
-    runner = QuasistaticProblemSolver(setup, solving_method='schur')
+    setup = DynamicSetup()
+    runner = QuasistaticProblemSolver(setup, solving_method='schur') #TODO
 
-    states = runner.solve(n_steps=100, output_step=(0, 10, 20, 30, 40, 50, 60, 70, 80, 90), verbose=True)
+    states = runner.solve(n_steps=10, output_step=(0, 5, 9), verbose=True)
     for state in states:
         Drawer(state).draw()
