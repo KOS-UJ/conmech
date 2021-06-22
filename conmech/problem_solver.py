@@ -10,11 +10,14 @@ from conmech.state import State
 from conmech.solvers.solver import Solver
 from conmech.solvers import get_solver_class
 from conmech.solvers.validator import Validator
+from conmech.problems import Problem
+from conmech.problems import Static as StaticProblem
+from conmech.problems import Quasistatic as QuasistaticProblem
 
 
 class ProblemSolver:
 
-    def __init__(self, setup, solving_method: str):
+    def __init__(self, setup: Problem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
@@ -26,32 +29,35 @@ class ProblemSolver:
                                           )
         self.setup = setup
 
-        self.coordinates = 'displacement' if setup.dynamism == 'static' else 'velocity'
+        self.coordinates = 'displacement' if isinstance(setup, StaticProblem) else 'velocity'
         self.step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
         self.solving_method = solving_method
 
     @property
     def solving_method(self):
-        return repr(self.step_solver)
+        return str(self.step_solver)
 
     @solving_method.setter
     def solving_method(self, value):
         solver_class = get_solver_class(value, self.coordinates)
 
-        if self.setup.dynamism == 'static':
+        # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, lambda_coef
+        if isinstance(self.setup, StaticProblem):
             th_coef, ze_coef = self.setup.mu_coef, self.setup.lambda_coef
             time_step = 0
-        else:
+        elif isinstance(self.setup, QuasistaticProblem):
             th_coef, ze_coef = self.setup.th_coef, self.setup.ze_coef
             time_step = self.setup.time_step
+        else:
+            raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
         self.step_solver = solver_class(self.grid,
                                         self.setup.inner_forces, self.setup.outer_forces,
                                         self.setup.mu_coef, self.setup.lambda_coef,
                                         th_coef, ze_coef,
                                         time_step,
-                                        self.setup.ContactLaw,
+                                        self.setup.contact_law,
                                         self.setup.friction_bound
                                         )
         self.validator = Validator(self.step_solver)
@@ -80,7 +86,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, solver, state, validator, verbose=False) -> np.ndarray:
+    def find_solution(self, solver, state, validator, verbose=False) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
         solution = state[self.coordinates].reshape(2, -1)

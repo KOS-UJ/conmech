@@ -72,7 +72,7 @@ class SchurComplement(Optimization):
             point_forces = forces_contact - point_forces
             self.__point_forces = np.asarray(point_forces.reshape(1, -1))
 
-    def __repr__(self):
+    def __str__(self):
         return "schur"
 
     @staticmethod
