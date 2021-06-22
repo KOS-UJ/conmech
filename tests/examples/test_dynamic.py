@@ -2,11 +2,11 @@
 Created at 21.08.2019
 """
 
-from conmech.problem_solver import Quasistatic as QuasistaticProblem
-from examples.example_quasistatic import QuasistaticSetup
+from conmech.problem_solver import Dynamic as DynamicProblem
+from examples.example_dynamic import DynamicSetup
 
-setup = QuasistaticSetup()
-runner = QuasistaticProblem(setup, "direct")
+setup = DynamicSetup()
+runner = DynamicProblem(setup, "direct")
 
 
 def test_direct_solver():

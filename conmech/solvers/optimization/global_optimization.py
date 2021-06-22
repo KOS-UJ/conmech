@@ -8,10 +8,8 @@ from conmech.solvers.optimization.optimization import Optimization
 
 class Global(Optimization):
 
-    def __init__(self, grid, inner_forces, outer_forces, mu_coef,
-                 lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound):
-        super().__init__(grid, inner_forces, outer_forces, mu_coef,
-                         lambda_coef, th_coef, ze_coef, time_step, contact_law, friction_bound)
+    def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
+        super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
         self.__point_relations = np.bmat([[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]])
         self.__point_forces = np.append(self.forces.Zero, self.forces.One)
 

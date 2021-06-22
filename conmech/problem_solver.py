@@ -13,6 +13,8 @@ from conmech.solvers.validator import Validator
 from conmech.problems import Problem
 from conmech.problems import Static as StaticProblem
 from conmech.problems import Quasistatic as QuasistaticProblem
+from conmech.problems import Dynamic as DynamicProblem
+from conmech.solvers.coefficients import Coefficients
 
 
 class ProblemSolver:
@@ -40,22 +42,22 @@ class ProblemSolver:
 
     @solving_method.setter
     def solving_method(self, value):
-        solver_class = get_solver_class(value, self.coordinates)
+        solver_class = get_solver_class(value, self.setup)
 
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, lambda_coef
         if isinstance(self.setup, StaticProblem):
-            th_coef, ze_coef = self.setup.mu_coef, self.setup.lambda_coef
             time_step = 0
-        elif isinstance(self.setup, QuasistaticProblem):
-            th_coef, ze_coef = self.setup.th_coef, self.setup.ze_coef
+            coefficients = Coefficients(mu=self.setup.mu_coef, lambda_=self.setup.lambda_coef)
+        elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
+            coefficients = Coefficients(mu=self.setup.mu_coef, lambda_=self.setup.lambda_coef,
+                                        theta=self.setup.th_coef, zeta=self.setup.ze_coef)
             time_step = self.setup.time_step
         else:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
         self.step_solver = solver_class(self.grid,
                                         self.setup.inner_forces, self.setup.outer_forces,
-                                        self.setup.mu_coef, self.setup.lambda_coef,
-                                        th_coef, ze_coef,
+                                        coefficients,
                                         time_step,
                                         self.setup.contact_law,
                                         self.setup.friction_bound
@@ -176,7 +178,7 @@ class Quasistatic(ProblemSolver):
 
         return results
 
-class Quasistatic(ProblemSolver):
+class Dynamic(ProblemSolver):
 
     def __init__(self, setup, solving_method: str):
         """Solves general Contact Mechanics problem.

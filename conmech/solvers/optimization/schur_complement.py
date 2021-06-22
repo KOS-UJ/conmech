@@ -6,6 +6,7 @@ import numpy as np
 from typing import Tuple
 
 from conmech.solvers.optimization.optimization import Optimization
+from conmech.matrices import Matrices
 
 
 class SchurComplement(Optimization):
@@ -14,10 +15,7 @@ class SchurComplement(Optimization):
         grid,
         inner_forces,
         outer_forces,
-        mu_coef,
-        lambda_coef,
-        th_coef,
-        ze_coef,
+        coefficients,
         time_step,
         contact_law,
         friction_bound,
@@ -26,10 +24,7 @@ class SchurComplement(Optimization):
             grid,
             inner_forces,
             outer_forces,
-            mu_coef,
-            lambda_coef,
-            th_coef,
-            ze_coef,
+            coefficients,
             time_step,
             contact_law,
             friction_bound,
@@ -44,32 +39,24 @@ class SchurComplement(Optimization):
         # contact_x_contact = SchurComplement.get_submatrix(self.B, indices=(contact_ids, contact_ids))
 
         # ADDED When working with velocity v, forces_contact depend on u
-        time_dependent = True  # TODO: remove
-        dynamic = True  # TODO: remove
 
-        self.C = self.B
-
-        if time_dependent:
-            self.C = self.A
-
-            if dynamic:
-                self.C = self.A + (1 / self.time_step) * self.U
+        C = self.get_C()
 
         # Cii
         free_x_free = SchurComplement.get_submatrix(
-            self.C, indices=(free_ids, free_ids)
+            C, indices=(free_ids, free_ids)
         )
         # Cit
         free_x_contact = SchurComplement.get_submatrix(
-            self.C, indices=(free_ids, contact_ids)
+            C, indices=(free_ids, contact_ids)
         )
         # Cti
         contact_x_free = SchurComplement.get_submatrix(
-            self.C, indices=(contact_ids, free_ids)
+            C, indices=(contact_ids, free_ids)
         )
         # Ctt
         contact_x_contact = SchurComplement.get_submatrix(
-            self.C, indices=(contact_ids, contact_ids)
+            C, indices=(contact_ids, contact_ids)
         )
 
         self.free_x_contact = free_x_contact
@@ -83,26 +70,7 @@ class SchurComplement(Optimization):
         _point_relations = contact_x_contact - _point_relations
         self.__point_relations = np.asarray(_point_relations)
 
-
-        X = np.zeros([1, 2 * self.grid.independent_num])
-
-        if time_dependent:
-            # X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
-            Big_B = np.bmat(
-                [[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]]
-            )
-
-            # !!!!!!!!!!!!!!!!!! From old code: times -1 - why?
-            X = -1 * np.dot(Big_B, self.u_vector.T)
-
-            if dynamic:
-                Big_U = np.bmat(
-                    [[self.U[0, 0], self.U[0, 1]], [self.U[1, 0], self.U[1, 1]]]
-                )
-                # ACCv = np.squeeze(np.asarray(np.dot(self.ACC, scipy.sparse.lil_matrix(self.vVector).transpose()).todense()))
-
-                # From old code: times -1 - why?
-                X += (1 / self.time_step) * np.dot(Big_U, self.v_vector.T)
+        X = self.get_X()
 
         X2 = X.reshape((2, -1))
         X_Zero = np.asarray(X2)[0]
@@ -125,6 +93,12 @@ class SchurComplement(Optimization):
         # self.E = (Et - np.asarray(self.Cti.dot(CiiINVEi))).astype(np.single)
         point_forces = forces_contact - point_forces
         self.__point_forces = np.asarray(point_forces.reshape(1, -1))
+
+    def get_C(self):
+        raise NotImplementedError()
+
+    def get_X(self):
+        raise NotImplementedError()
 
     def __str__(self):
         return "schur"
@@ -176,3 +150,57 @@ class SchurComplement(Optimization):
         _result = _result.reshape(1, -1)
         result = np.squeeze(np.asarray(_result))
         return result
+
+
+class Static(SchurComplement):
+    def get_C(self):
+        return self.B
+
+    def get_X(self):
+        return np.zeros((1, 2 * self.grid.independent_num))
+
+
+class Quasistatic(SchurComplement):
+    def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
+        self.A = Matrices.construct_B(grid, coefficients.theta, coefficients.zeta)
+        super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+
+    def get_C(self):
+        return self.A
+
+    def get_X(self):
+        # X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
+        Big_B = np.bmat(
+            [[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]]
+        )
+
+        # TODO: check: from old implementation: times -1 - why?
+        X = -1 * np.dot(Big_B, self.u_vector.T)
+        return X
+
+
+class Dynamic(Quasistatic):
+    def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
+        self.U = Matrices.construct_U(grid)
+        super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+
+    def get_C(self):
+        return self.A + (1 / self.time_step) * self.U
+
+    def get_X(self):
+        # X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
+        Big_B = np.bmat(
+            [[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]]
+        )
+
+        # TODO: check: from old implementation: times -1 - why?
+        X = -1 * np.dot(Big_B, self.u_vector.T)
+
+        Big_U = np.bmat(
+            [[self.U[0, 0], self.U[0, 1]], [self.U[1, 0], self.U[1, 1]]]
+        )
+        # ACCv = np.squeeze(np.asarray(np.dot(self.ACC, scipy.sparse.lil_matrix(self.vVector).transpose()).todense()))
+
+        # TODO: check: from old implementation: times -1 - why?
+        X += (1 / self.time_step) * np.dot(Big_U, self.v_vector.T)
+        return X

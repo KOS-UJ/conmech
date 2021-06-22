@@ -40,7 +40,6 @@ class Problem:
         raise NotImplementedError()
 
 
-@dataclass()
 class Static(Problem):
     @staticmethod
     def friction_bound(u_nu):
@@ -48,6 +47,16 @@ class Static(Problem):
 
 
 class Quasistatic(Problem):
+    th_coef: float
+    ze_coef: float
+    time_step: float
+
+    @staticmethod
+    def friction_bound(u_nu):
+        raise NotImplementedError()
+
+
+class Dynamic(Problem):
     th_coef: float
     ze_coef: float
     time_step: float
