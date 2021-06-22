@@ -33,6 +33,6 @@ if __name__ == '__main__':
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method='schur')
 
-    states = runner.solve(n_steps=10, output_step=(0, 5, 9), verbose=True)
+    states = runner.solve(n_steps=100, output_step=(0, 10, 20, 30, 40, 50, 60, 70, 80, 90), verbose=True)
     for state in states:
         Drawer(state).draw()
