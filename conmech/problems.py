@@ -33,7 +33,7 @@ class Problem:
     mu_coef: float
     lambda_coef: float
     contact_law: ContactLaw
-    dynamism: str = None
+    dynamism: str = None  # TODO: remove
 
     @staticmethod
     def friction_bound(u_nu):

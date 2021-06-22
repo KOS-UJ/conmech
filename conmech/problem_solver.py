@@ -86,7 +86,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, solver, state, validator, verbose=False) -> np.ndarray:
+    def find_solution(self, solver, state, validator, verbose=False) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
         solution = state[self.coordinates].reshape(2, -1)
