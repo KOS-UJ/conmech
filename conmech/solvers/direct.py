@@ -4,10 +4,13 @@ Created at 18.02.2021
 
 import scipy.optimize
 import numpy as np
+
 from conmech.solvers.solver_methods import make_f
 from conmech.solvers.solver import Solver
+from conmech.solvers._solvers import Solvers
 
 
+@Solvers.register("*", "direct")
 class Direct(Solver):
 
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):

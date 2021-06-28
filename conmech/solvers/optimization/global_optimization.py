@@ -3,9 +3,12 @@ Created at 22.02.2021
 """
 
 import numpy as np
+
 from conmech.solvers.optimization.optimization import Optimization
+from conmech.solvers._solvers import Solvers
 
 
+@Solvers.register("*", "global", "global optimization")
 class Global(Optimization):
 
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
