@@ -8,7 +8,7 @@ import numpy as np
 from conmech.grid_factory import GridFactory
 from conmech.state import State
 from conmech.solvers.solver import Solver
-from conmech.solvers import get_solver_class
+from conmech.solvers import Solvers
 from conmech.solvers.validator import Validator
 from conmech.problems import Problem
 from conmech.problems import Static as StaticProblem
@@ -42,7 +42,7 @@ class ProblemSolver:
 
     @solving_method.setter
     def solving_method(self, value):
-        solver_class = get_solver_class(value, self.setup)
+        solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, lambda_coef
         if isinstance(self.setup, StaticProblem):
@@ -177,6 +177,7 @@ class Quasistatic(ProblemSolver):
             results.append(state.copy())
 
         return results
+
 
 class Dynamic(ProblemSolver):
 

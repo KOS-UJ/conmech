@@ -7,6 +7,7 @@ from typing import Tuple
 
 from conmech.solvers.optimization.optimization import Optimization
 from conmech.matrices import Matrices
+from conmech.solvers._solvers import Solvers
 
 
 class SchurComplement(Optimization):
@@ -152,6 +153,7 @@ class SchurComplement(Optimization):
         return result
 
 
+@Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
     def get_C(self):
         return self.B
@@ -160,6 +162,7 @@ class Static(SchurComplement):
         return np.zeros((1, 2 * self.grid.independent_num))
 
 
+@Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
         self.A = Matrices.construct_B(grid, coefficients.theta, coefficients.zeta)
@@ -179,6 +182,7 @@ class Quasistatic(SchurComplement):
         return X
 
 
+@Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(Quasistatic):
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
         self.U = Matrices.construct_U(grid)

@@ -31,7 +31,7 @@ class DynamicSetup(Dynamic):
 
 if __name__ == '__main__':
     setup = DynamicSetup()
-    runner = DynamicProblemSolver(setup, solving_method='schur') #TODO
+    runner = DynamicProblemSolver(setup, solving_method='schur')
 
     states = runner.solve(n_steps=100, output_step=(0, 50, 90), verbose=True)
     for state in states:
