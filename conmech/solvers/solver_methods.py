@@ -132,7 +132,8 @@ def make_L2(jn):
 
     @numba.njit()
     def L2(ut_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
-        ju = Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points)
-        return 0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector) + ju
+        # TODO #21
+        # ju = Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points)
+        return 0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)  # + ju  TODO #21
 
     return L2

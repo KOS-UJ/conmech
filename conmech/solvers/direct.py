@@ -10,7 +10,7 @@ from conmech.solvers.solver import Solver
 from conmech.solvers._solvers import Solvers
 
 
-@Solvers.register("*", "direct")
+@Solvers.register("static", "direct")
 class Direct(Solver):
 
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):

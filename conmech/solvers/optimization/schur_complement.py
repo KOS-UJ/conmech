@@ -31,8 +31,8 @@ class SchurComplement(Optimization):
             friction_bound,
         )
 
-        contact_ids = slice(0, grid.contact_num)
-        free_ids = slice(grid.contact_num, grid.independent_num)
+        self.contact_ids = slice(0, grid.contact_num)
+        self.free_ids = slice(grid.contact_num, grid.independent_num)
 
         # free_x_free = SchurComplement.get_submatrix(self.B, indices=(free_ids, free_ids))
         # free_x_contact = SchurComplement.get_submatrix(self.B, indices=(free_ids, contact_ids))
@@ -45,19 +45,19 @@ class SchurComplement(Optimization):
 
         # Cii
         free_x_free = SchurComplement.get_submatrix(
-            C, indices=(free_ids, free_ids)
+            C, indices=(self.free_ids, self.free_ids)
         )
         # Cit
         free_x_contact = SchurComplement.get_submatrix(
-            C, indices=(free_ids, contact_ids)
+            C, indices=(self.free_ids, self.contact_ids)
         )
         # Cti
-        contact_x_free = SchurComplement.get_submatrix(
-            C, indices=(contact_ids, free_ids)
+        self.contact_x_free = SchurComplement.get_submatrix(
+            C, indices=(self.contact_ids, self.free_ids)
         )
         # Ctt
         contact_x_contact = SchurComplement.get_submatrix(
-            C, indices=(contact_ids, contact_ids)
+            C, indices=(self.contact_ids, self.contact_ids)
         )
 
         self.free_x_contact = free_x_contact
@@ -66,12 +66,15 @@ class SchurComplement(Optimization):
         # CiiINVCit:
         _point_relations = np.dot(self.free_x_free_inverted, self.free_x_contact)
         # CtiCiiINVCit:
-        _point_relations = np.dot(contact_x_free, _point_relations)
+        _point_relations = np.dot(self.contact_x_free, _point_relations)
         # Ctt - CtiCiiINVCit:
         _point_relations = contact_x_contact - _point_relations
-        self.__point_relations = np.asarray(_point_relations)
+        self._point_relations = np.asarray(_point_relations)
+        self.forces_free, self._point_forces = self.recalculate_forces()
 
+    def recalculate_forces(self):
         X = self.get_X()
+        # print("X", X)
 
         X2 = X.reshape((2, -1))
         X_Zero = np.asarray(X2)[0]
@@ -80,20 +83,22 @@ class SchurComplement(Optimization):
         # Ebig = self.FVector - Bu + (1./self.tS) * ACCv / Ebig = self.FVector - X
         # Et = np.append(Ebig[self.i:self.n], Ebig[self.n + self.i:self.n + self.n])
         forces_contact = np.append(
-            self.forces.Zero[contact_ids] + X_Zero[contact_ids],
-            self.forces.One[contact_ids] + X_One[contact_ids],
+            self.forces.Zero[self.contact_ids] + X_Zero[self.contact_ids],
+            self.forces.One[self.contact_ids] + X_One[self.contact_ids],
         ).reshape(-1, 1)
         # self.Ei = np.append(Ebig[0:self.i], Ebig[self.n:self.n + self.i])
-        self.forces_free = np.append(
-            self.forces.Zero[free_ids] + X_Zero[free_ids],
-            self.forces.One[free_ids] + X_One[free_ids],
+        forces_free = np.append(
+            self.forces.Zero[self.free_ids] + X_Zero[self.free_ids],
+            self.forces.One[self.free_ids] + X_One[self.free_ids],
         ).reshape(-1, 1)
         # CiiINVEi = multiplyByDAT('E:\\SPARE\\cross ' + str(self.SizeH) + ' CiiINV.dat', self.Ei)
-        point_forces = np.dot(self.free_x_free_inverted, self.forces_free)
-        point_forces = np.dot(contact_x_free, point_forces)
+        _point_forces = np.dot(self.free_x_free_inverted, forces_free)
+        _point_forces = np.dot(self.contact_x_free, _point_forces)
         # self.E = (Et - np.asarray(self.Cti.dot(CiiINVEi))).astype(np.single)
-        point_forces = forces_contact - point_forces
-        self.__point_forces = np.asarray(point_forces.reshape(1, -1))
+        _point_forces = forces_contact - _point_forces
+        point_forces = np.asarray(_point_forces.reshape(1, -1))
+
+        return forces_free, point_forces
 
     def get_C(self):
         raise NotImplementedError()
@@ -116,22 +121,23 @@ class SchurComplement(Optimization):
 
     @property
     def point_relations(self) -> np.ndarray:
-        return self.__point_relations
+        return self._point_relations
 
     @property
     def point_forces(self) -> np.ndarray:
-        return self.__point_forces
+        return self._point_forces
 
     def solve(self, initial_guess: np.ndarray) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         solution_contact = super().solve(truncated_initial_guess)
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
+        self.iterate(solution)
         return solution
 
     def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
-        _result = _result[:, 0 : self.grid.contact_num]
+        _result = _result[:, 0: self.grid.contact_num]
         _result = _result.reshape(1, -1)
         result = _result
         return result
@@ -181,6 +187,10 @@ class Quasistatic(SchurComplement):
         X = -1 * np.dot(Big_B, self.u_vector.T)
         return X
 
+    def iterate(self, velocity):
+        super(SchurComplement, self).iterate(velocity)
+        self.forces_free, self._point_forces = self.recalculate_forces()
+
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(Quasistatic):
@@ -208,3 +218,7 @@ class Dynamic(Quasistatic):
         # TODO: check: from old implementation: times -1 - why?
         X += (1 / self.time_step) * np.dot(Big_U, self.v_vector.T)
         return X
+
+    def iterate(self, velocity):
+        super(SchurComplement, self).iterate(velocity)
+        self.forces_free, self._point_forces = self.recalculate_forces()
