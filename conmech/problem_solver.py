@@ -67,7 +67,7 @@ class ProblemSolver:
     def solve(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def run(self, state: State, n_steps: int, verbose: bool = False):
+    def run(self, solution, state, n_steps: int, verbose: bool = False):
         """
         :param state:
         :param n_steps: number of steps
@@ -77,29 +77,33 @@ class ProblemSolver:
         for i in range(n_steps):
             self.step_solver.currentTime += self.step_solver.time_step
 
-            solution = self.find_solution(self.step_solver, state, self.validator, verbose=verbose)
+            solution = self.find_solution(self.step_solver, solution, self.validator, verbose=verbose)
 
             if self.coordinates == 'displacement':
                 state.set_displacement(solution, t=self.step_solver.currentTime)
+                self.step_solver.u_vector = state.displacement.reshape(-1)
             elif self.coordinates == 'velocity':
                 state.set_velocity(solution,
                                    update_displacement=True,
                                    t=self.step_solver.currentTime)
                 #################### ADDED
-                self.step_solver.iterate(state.velocity)
+                # self.step_solver.iterate(solution)
                 ####################
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, solver, state, validator, verbose=False) -> np.ndarray:  # TODO
+    def find_solution(self, solver, solution, validator, verbose=False) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
-        solution = state[self.coordinates].reshape(2, -1)
-        while quality < validator.error_tolerance:
+        # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
+        # while quality < validator.error_tolerance:
+        i = 1
+        while i > 0:
+            i -= 1
             solution = solver.solve(solution)
-            quality = validator.check_quality(state, solution, quality)
+            # quality = validator.check_quality(state, solution, quality)
             iteration += 1
-            self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
+            # self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution
 
     @staticmethod
@@ -133,8 +137,9 @@ class Static(ProblemSolver):
         state = State(self.grid)
         if initial_displacement:
             state.set_displacement(initial_displacement)
+        solution = state.displacement.reshape(2, -1)
 
-        self.run(state, n_steps=1, verbose=verbose)
+        self.run(solution, state, n_steps=1, verbose=verbose)
 
         return state
 
@@ -169,11 +174,12 @@ class Quasistatic(ProblemSolver):
         state = State(self.grid)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
+        solution = state.velocity.reshape(2, -1)
 
         output_step = np.diff(output_step)
         results = []
         for n in output_step:
-            self.run(state, n_steps=n, verbose=verbose)
+            self.run(solution, state, n_steps=n, verbose=verbose)
             results.append(state.copy())
 
         return results
@@ -209,11 +215,12 @@ class Dynamic(ProblemSolver):
         state = State(self.grid)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
+        solution = state.velocity.reshape(2, -1)
 
         output_step = np.diff(output_step)
         results = []
         for n in output_step:
-            self.run(state, n_steps=n, verbose=verbose)
+            self.run(solution, state, n_steps=n, verbose=verbose)
             results.append(state.copy())
 
         return results

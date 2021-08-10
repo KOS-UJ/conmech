@@ -69,7 +69,7 @@ class F:
                 idxs = ()
                 if t == self.grid.TOP:
                     idxs = (4, 5, 6, 7)
-                if t == self.grid.LEFT_TOP_CORNER:
+                if t == self.grid.RIGHT_TOP_CORNER:
                     idxs = (6, 7)
                 if t == self.grid.RIGHT_SIDE:
                     idxs = (0, 1, 6, 7)

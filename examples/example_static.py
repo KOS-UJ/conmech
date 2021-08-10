@@ -11,9 +11,6 @@ from examples.p_slope_contact_law import PSlopeContactLaw
 from utils.drawer import Drawer
 
 
-p_slope = 1.
-
-
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1
