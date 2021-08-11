@@ -28,7 +28,7 @@ def test_direct_solver():
     runner.solving_method = "direct"
     result = runner.solve()
     displacement_vector = result.displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=16)
+    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=12)
 
 
 def test_global_optimization_solver():
