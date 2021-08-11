@@ -27,7 +27,7 @@ def test_global_optimization_solver():
     results = runner.solve(n_steps=8)
     print("[", ", ".join((str(n) for n in results[-1].displacement.T.reshape(1, -1)[0])), "]")
     displacement_vector = results[-1].displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=8)
+    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=6)
 
 
 def test_schur_complement_solver():
@@ -47,4 +47,4 @@ def test_schur_complement_solver():
     runner.solving_method = "schur"
     results = runner.solve(n_steps=8)
     displacement_vector = results[-1].displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=8)
+    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=6)
