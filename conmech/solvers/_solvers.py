@@ -38,6 +38,5 @@ class Solvers:
             dynamism_type = "dynamic"
         else:
             raise ValueError(f"Unknown problem class: {problem.__class__.__name__}")
-        print(Solvers.solvers)
         dyn = Solvers.solvers[dynamism_type]
         return dyn[solver_name.lower()]
