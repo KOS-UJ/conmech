@@ -1,6 +1,7 @@
 """
 Created at 21.08.2019
 """
+from typing import Callable, Optional, Any
 
 import numpy as np
 import numba
@@ -42,7 +43,7 @@ def make_f(jnZ, jtZ, h):
     jtZ = numba.njit(jtZ)
     h = numba.njit(h)
 
-    @numba.njit()
+    # @numba.njit()
     def JZu(indNumber, BorderEdgesC, Edges, u, Points):
         JZu = np.zeros((indNumber, 2))
 
@@ -70,15 +71,16 @@ def make_f(jnZ, jtZ, h):
                     vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
                     vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
 
-#TODO: Move  to seperate method, take into account also problems with velocity
-#u will be calculated by suming ptevious velocities times time step
+                    # TODO: Move  to seperate method, take into account also problems with velocity
+                    # u will be calculated by suming ptevious velocities times time step
 
-#TODO: To make function h dependent on u_nu, we need Uzawa approach
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(None) * jtZ(uTmL, vThauZero)
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(None) * jtZ(uTmL, vThauOne)
+                    # TODO: To make function h dependent on u_nu, we need Uzawa approach
+                    #       For now, for validating we can ignore it.
+                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
+                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
         return JZu
 
-    @numba.njit()
+    # @numba.njit()
     def f(u_vector, indNumber, BorderEdgesC, Edges, Points, B, F_Zero, F_One):
         u = np.zeros((indNumber, 2))
         u[:, 0] = u_vector[0:indNumber]
@@ -95,45 +97,67 @@ def make_f(jnZ, jtZ, h):
     return f
 
 
-def make_L2(jn):
-    jn = numba.njit(jn)
+def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
+    if func is None:
+        @numba.njit()
+        def const(_):
+            return value
+        return const
+    return numba.njit(func)
+
+
+def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] = None):
+    jn = njit(jn)
+    jt = njit(jt)
+    h = njit(h)
     DIMENSION = 2
 
+    @numba.njit(inline='always')
+    def interpolate_point_between(first_point_id, second_point_id, vector, ind_number):
+        result = np.zeros(DIMENSION)
+        offset = len(vector) // DIMENSION
+        for i in range(DIMENSION):
+            if first_point_id < ind_number:  # exclude points from Gamma_D
+                result[i] += 0.5 * vector[i * offset + first_point_id]
+        for i in range(DIMENSION):
+            if first_point_id < ind_number:  # exclude points from Gamma_D
+                result[i] += 0.5 * vector[i * offset + second_point_id]
+        return result
+
     @numba.njit()
-    def Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points):
-        J = 0
+    def cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, ut_vector_old, Points):
+        cost = 0
         for e in range(0, BorderEdgesC):
             nmL = n_down(Points, Edges, e)  # n at mL
 
             firstPointIndex = Edges[e][0]
             secondPointIndex = Edges[e][1]
 
-            umLx = 0.
-            umLy = 0.
-            offset = len(ut_vector) // DIMENSION
-            if firstPointIndex < indNumber: # exclude points from Gamma_D
-                umLx += 0.5 * ut_vector[firstPointIndex]
-                umLy += 0.5 * ut_vector[offset + firstPointIndex]
-            if secondPointIndex < indNumber: # exclude points from Gamma_D
-                umLx += 0.5 * ut_vector[secondPointIndex]
-                umLy += 0.5 * ut_vector[offset + secondPointIndex]
+            um = interpolate_point_between(
+                firstPointIndex, secondPointIndex, ut_vector, indNumber)
+            um_old = interpolate_point_between(
+                firstPointIndex, secondPointIndex, ut_vector_old, indNumber)
 
-            uNmL = umLx * nmL[0] + umLy * nmL[1]
-            uTmLx = umLx - uNmL * nmL[0]
-            uTmLy = umLy - uNmL * nmL[1]
+            uNmL = (um * nmL).sum()
+            uNmL_old = (um_old * nmL).sum()
+            uTmL = np.empty(DIMENSION)
+            for i in range(DIMENSION):
+                uTmL[i] = um[i] - uNmL * nmL[i]
 
             firstPointCoordinates = Points[int(firstPointIndex)][0:2]
             secondPointCoordinates = Points[int(secondPointIndex)][0:2]
             edgeLength = length(firstPointCoordinates, secondPointCoordinates)
 
-            J += edgeLength * (jn(uNmL))
+            cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
 
-        return J
+        return cost
 
     @numba.njit()
-    def L2(ut_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
-        # TODO #21
-        # ju = Ju(indNumber, BorderEdgesC, Edges, ut_vector, Points)
-        return 0.5*np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)  # + ju  TODO #21
+    def L2(ut_vector, wt_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
+        ju = cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, wt_vector, Points)
+        result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
+                  + ju)
+        result = np.asarray(result).ravel()
+        return result
 
     return L2

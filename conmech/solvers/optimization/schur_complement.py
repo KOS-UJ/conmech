@@ -1,6 +1,7 @@
 """
 Created at 22.02.2021
 """
+import math
 
 import numpy as np
 from typing import Tuple
@@ -127,9 +128,16 @@ class SchurComplement(Optimization):
     def point_forces(self) -> np.ndarray:
         return self._point_forces
 
-    def solve(self, initial_guess: np.ndarray) -> np.ndarray:
+    def solve(
+            self,
+            initial_guess: np.ndarray,
+            *,
+            fixed_point_abs_tol: float = math.inf,
+            **kwargs
+    ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
-        solution_contact = super().solve(truncated_initial_guess)
+        solution_contact = super().solve(
+            truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs)
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
         self.iterate(solution)
