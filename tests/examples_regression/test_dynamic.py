@@ -3,6 +3,9 @@ Created at 21.08.2019
 """
 
 import numpy as np
+import pytest
+from dataclasses import dataclass
+
 from conmech.problem_solver import Dynamic as DynamicProblem
 from conmech.problems import Dynamic
 from examples.p_slope_contact_law import make_slope_contact_law

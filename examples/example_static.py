@@ -7,7 +7,7 @@ import numpy as np
 
 from conmech.problem_solver import Static as StaticProblemSolver
 from conmech.problems import Static
-from examples.p_slope_contact_law import PSlopeContactLaw
+from examples.p_slope_contact_law import make_slope_contact_law
 from utils.drawer import Drawer
 
 
@@ -19,7 +19,7 @@ class StaticSetup(Static):
     outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
     lambda_coef: ... = 4
-    contact_law: ... = PSlopeContactLaw
+    contact_law: ... = make_slope_contact_law(slope=1)
 
     @staticmethod
     def friction_bound(u_nu):

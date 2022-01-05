@@ -7,7 +7,7 @@ import numpy as np
 
 from conmech.problem_solver import Quasistatic as QuasistaticProblemSolver
 from conmech.problems import Quasistatic
-from examples.p_slope_contact_law import PSlopeContactLaw
+from examples.p_slope_contact_law import make_slope_contact_law
 from utils.drawer import Drawer
 
 
@@ -22,7 +22,7 @@ class QuasistaticSetup(Quasistatic):
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.1
-    contact_law: ... = PSlopeContactLaw
+    contact_law: ... = make_slope_contact_law(slope=1e1)
 
     @staticmethod
     def friction_bound(u_nu):
@@ -33,6 +33,6 @@ if __name__ == '__main__':
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method='schur')
 
-    states = runner.solve(n_steps=100, output_step=(0, 10, 20, 30, 40, 50, 60, 70, 80, 90), verbose=True)
+    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
     for state in states:
         Drawer(state).draw()
