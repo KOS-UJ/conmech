@@ -67,7 +67,7 @@ class ProblemSolver:
     def solve(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def run(self, solution, state, n_steps: int, verbose: bool = False):
+    def run(self, solution, state, n_steps: int, verbose: bool = False, **kwargs):
         """
         :param state:
         :param n_steps: number of steps
@@ -77,7 +77,7 @@ class ProblemSolver:
         for i in range(n_steps):
             self.step_solver.currentTime += self.step_solver.time_step
 
-            solution = self.find_solution(self.step_solver, solution, self.validator, verbose=verbose)
+            solution = self.find_solution(self.step_solver, state, solution, self.validator, verbose=verbose, **kwargs)
 
             if self.coordinates == 'displacement':
                 state.set_displacement(solution, t=self.step_solver.currentTime)
@@ -92,18 +92,16 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, solver, solution, validator, verbose=False) -> np.ndarray:  # TODO
+    def find_solution(
+            self, solver, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        # while quality < validator.error_tolerance:
-        i = 1
-        while i > 0:
-            i -= 1
-            solution = solver.solve(solution)
-            # quality = validator.check_quality(state, solution, quality)
+        while quality < validator.error_tolerance:
+            solution = solver.solve(solution, **kwargs)
+            quality = validator.check_quality(state, solution, quality)
             iteration += 1
-            # self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
+            self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution
 
     @staticmethod
@@ -128,7 +126,12 @@ class Static(ProblemSolver):
         self.coordinates = 'displacement'
         self.solving_method = solving_method
 
-    def solve(self, initial_displacement: np.ndarray = None, verbose: bool = False) -> State:
+    def solve(
+            self,
+            initial_displacement: np.ndarray = None,
+            verbose: bool = False,
+            **kwargs
+    ) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints
@@ -139,7 +142,7 @@ class Static(ProblemSolver):
             state.set_displacement(initial_displacement)
         solution = state.displacement.reshape(2, -1)
 
-        self.run(solution, state, n_steps=1, verbose=verbose)
+        self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
 

@@ -24,7 +24,7 @@ class Direct(Solver):
     def __str__(self):
         return "direct"
 
-    def solve(self, initial_guess: np.ndarray) -> np.ndarray:
+    def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
         result = scipy.optimize.fsolve(
             self.f, initial_guess,
             args=(self.grid.independent_num, self.grid.BorderEdgesC, self.grid.Edges,

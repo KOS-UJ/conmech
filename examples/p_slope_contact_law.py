@@ -7,6 +7,7 @@ import numpy as np
 from conmech.problems import ContactLaw
 
 
+# TODO #26
 p_slope = 1.
 
 
