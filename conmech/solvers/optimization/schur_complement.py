@@ -75,12 +75,12 @@ class SchurComplement(Optimization):
 
     def recalculate_forces(self):
         X = self.get_X()
-        # print("X", X)
 
         X2 = X.reshape((2, -1))
         X_Zero = np.asarray(X2)[0]
         X_One = np.asarray(X2)[1]
 
+        # + [C2X:C2Y]
         # Ebig = self.FVector - Bu + (1./self.tS) * ACCv / Ebig = self.FVector - X
         # Et = np.append(Ebig[self.i:self.n], Ebig[self.n + self.i:self.n + self.n])
         forces_contact = np.append(
@@ -132,20 +132,41 @@ class SchurComplement(Optimization):
             self,
             initial_guess: np.ndarray,
             *,
+            temperature=None,
             fixed_point_abs_tol: float = math.inf,
             **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
+        truncated_temperature = None
+        if temperature is not None:
+            truncated_temperature = temperature[self.contact_ids]
         solution_contact = super().solve(
-            truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs)
+            truncated_initial_guess,
+            temperature=truncated_temperature, fixed_point_abs_tol=fixed_point_abs_tol,
+            **kwargs)
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
         self.iterate(solution)
         return solution
 
+    def solve_t(self, temperature, velocity) -> np.ndarray:
+        truncated_initial_guess = self.truncate_free_points(velocity)
+        truncated_temperature = temperature[self.contact_ids]
+        solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])  # reduce dim
+
+        _solution_free = np.dot(self.T_free_x_contact, solution_contact)
+        _solution_free = self.Q_free - _solution_free
+        solution_free = np.dot(self.T_free_x_free_inverted, _solution_free)
+
+        _result = np.concatenate((solution_contact, solution_free))
+        solution = np.squeeze(np.asarray(_result))
+
+        self.t_vector = solution
+        return solution
+
     def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
-        _result = _result[:, 0: self.grid.contact_num]
+        _result = _result[:, self.contact_ids]
         _result = _result.reshape(1, -1)
         result = _result
         return result
@@ -204,7 +225,37 @@ class Quasistatic(SchurComplement):
 class Dynamic(Quasistatic):
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
         self.U = Matrices.construct_U(grid)
+        self.K = Matrices.construct_K(grid)
+        self.t_vector = np.zeros(grid.independent_num)
         super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+
+        T = (1 / self.time_step) * self.U[0, 0] + self.K
+
+        # Tii
+        T_free_x_free = T[self.free_ids, self.free_ids]
+        # Tit
+        self.T_free_x_contact = T[self.free_ids, self.contact_ids]
+        # Tti
+        self.T_contact_x_free = T[self.contact_ids, self.free_ids]
+        # Ttt
+        T_contact_x_contact = T[self.contact_ids, self.contact_ids]
+
+        # TiiINV:
+        self.T_free_x_free_inverted = np.linalg.inv(T_free_x_free)
+        # TiiINVCit:
+        _point_temperature = np.dot(self.T_free_x_free_inverted, self.T_free_x_contact)
+        # TtiTiiINVTit:
+        _point_temperature = np.dot(self.T_contact_x_free, _point_temperature)
+        # Ttt - TtiTiiINVTit:
+        _point_temperature = T_contact_x_contact - _point_temperature
+        self._point_temperature = np.asarray(_point_temperature)
+
+        self.Q_free, self.Q = self.recalculate_temperature()
+
+
+    @property
+    def T(self):
+        return self._point_temperature
 
     def get_C(self):
         return self.A + (1 / self.time_step) * self.U
@@ -225,8 +276,34 @@ class Dynamic(Quasistatic):
 
         # TODO: check: from old implementation: times -1 - why?
         X += (1 / self.time_step) * np.dot(Big_U, self.v_vector.T)
+
+        C2X, C2Y = Matrices.construct_C2(self.grid)
+        C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.grid.independent_num].transpose()))
+        C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.grid.independent_num].transpose()))
+
+        X += np.concatenate((C2XTemp, C2YTemp))
+
         return X
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
         self.forces_free, self._point_forces = self.recalculate_forces()
+        self.Q_free, self.Q = self.recalculate_temperature()
+
+    def recalculate_temperature(self):
+        C2X, C2Y = Matrices.construct_C2(self.grid)
+
+        C2Xv = np.squeeze(np.asarray(np.dot(C2X, self.v_vector[0:self.grid.independent_num].transpose())))
+        C2Yv = np.squeeze(np.asarray(np.dot(C2Y, self.v_vector[self.grid.independent_num:2*self.grid.independent_num].transpose())))
+
+        Q1 = (1. / self.time_step) * np.squeeze(np.asarray(np.dot(self.U[0, 0], self.t_vector[0:self.grid.independent_num].transpose())))
+
+        QBig = Q1 - C2Xv - C2Yv
+
+        Q_free = QBig[self.free_ids]
+        Q_contact = QBig[self.contact_ids]
+        # TiiINVQi = multiplyByDAT(prefix + ' TiiINV.dat', self.Qi)
+        _point_temperature = np.dot(self.T_free_x_free_inverted, Q_free)
+        Q = (Q_contact - np.asarray(self.T_contact_x_free.dot(_point_temperature)))
+
+        return Q_free, Q

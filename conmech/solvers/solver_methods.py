@@ -153,11 +153,59 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
         return cost
 
     @numba.njit()
-    def L2(ut_vector, wt_vector, indNumber, BorderEdgesC, Edges, Points, C, E):
+    def L2(ut_vector, wt_vector, indNumber, BorderEdgesC, Edges, Points, C, E, t_vector):
         ju = cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, wt_vector, Points)
         result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
                   + ju)
         result = np.asarray(result).ravel()
         return result
+
+    return L2
+
+
+def make_L2_t(h_temp):
+    h_temp = numba.njit(h_temp)
+    DIMENSION = 2
+
+    @numba.njit()
+    def Ht(indNumber, BorderEdgesC, Edges, tt_vector, ut_vector, Points):
+        H = 0.
+
+        for e in range(0, BorderEdgesC):
+            nmL = n_down(Points, Edges, e)  # n at mL
+
+            firstPointIndex = Edges[e][0]
+            secondPointIndex = Edges[e][1]
+
+            umLx = 0.
+            umLy = 0.
+            tmL = 0.
+            offset = len(ut_vector) // DIMENSION
+            if firstPointIndex < indNumber:  # exclude points from Gamma_D
+                umLx += 0.5 * ut_vector[firstPointIndex]
+                umLy += 0.5 * ut_vector[offset + firstPointIndex]
+                tmL += 0.5 * tt_vector[firstPointIndex]
+            if secondPointIndex < indNumber:  # exclude points from Gamma_D
+                umLx += 0.5 * ut_vector[secondPointIndex]
+                umLy += 0.5 * ut_vector[offset + secondPointIndex]
+                tmL += 0.5 * tt_vector[secondPointIndex]
+
+            uNmL = umLx * nmL[0] + umLy * nmL[1]
+            uTmLx = umLx - uNmL * nmL[0]
+            uTmLy = umLy - uNmL * nmL[1]
+
+            firstPointCoordinates = Points[int(firstPointIndex)][0:2]
+            secondPointCoordinates = Points[int(secondPointIndex)][0:2]
+            edgeLength = length(firstPointCoordinates, secondPointCoordinates)
+
+            H += edgeLength * (h_temp(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * tmL)
+
+        return H
+
+    @numba.njit()
+    def L2(tt_vector, indNumber, BorderEdgesC, Edges, Points, T, Q, ut_vector):
+        # TODO #31
+        return 0.5*np.dot(np.dot(T, tt_vector), tt_vector) - np.dot(Q, tt_vector) \
+               - Ht(indNumber, BorderEdgesC, Edges, tt_vector, ut_vector, Points)
 
     return L2

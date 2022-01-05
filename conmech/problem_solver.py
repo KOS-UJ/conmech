@@ -1,12 +1,12 @@
 """
 General solver for Contact Mechanics problem.
 """
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import numpy as np
 
 from conmech.grid_factory import GridFactory
-from conmech.state import State
+from conmech.state import State, TemperatureState
 from conmech.solvers.solver import Solver
 from conmech.solvers import Solvers
 from conmech.solvers.validator import Validator
@@ -103,6 +103,23 @@ class ProblemSolver:
             iteration += 1
             self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution
+
+    def find_solution_uzawa(self, solver, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:  # TODO
+        norm = np.inf
+        old_solution = solution.copy().reshape(-1, 1).squeeze()
+        old_solution_t = solution_t.copy()
+        print("UZAWA iterations")
+        while norm > 1e-3:
+            print("solving velocity")
+            solution = solver.solve(solution, solution_t)
+            print("solving temperature")
+            solution_t = solver.solve_t(solution_t, solution)
+            norm = (np.linalg.norm(solution - old_solution)**2
+                    + np.linalg.norm(old_solution_t - solution_t)**2)**0.5
+            print(norm)
+            old_solution = solution.copy()
+            old_solution_t = solution_t.copy()
+        return solution, solution_t
 
     @staticmethod
     def print_iteration_info(iteration: int, quality: float, error_tolerance: float, verbose: bool):
@@ -224,6 +241,60 @@ class Dynamic(ProblemSolver):
         results = []
         for n in output_step:
             self.run(solution, state, n_steps=n, verbose=verbose)
+            results.append(state.copy())
+
+        return results
+
+
+class TDynamic(ProblemSolver):
+
+    def __init__(self, setup, solving_method: str):
+        """Solves general Contact Mechanics problem.
+
+        :param setup:
+        :param solving_method: 'schur', 'optimization', 'direct'
+        """
+        super().__init__(setup, solving_method)
+
+        self.coordinates = 'velocity'
+        self.solving_method = solving_method
+
+    def solve(self, n_steps: int, output_step: Optional[iter] = None,
+              initial_velocity: np.ndarray = None, verbose: bool = False) -> List[TemperatureState]:
+        """
+        :param n_steps: number of time-step in simulation
+        :param output_step: from which time-step we want to get copy of State,
+                            default (n_steps-1,)
+                            example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
+                                     we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_velocity: for the solver
+        :param verbose: show prints
+        :return: state
+        """
+        output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
+
+        state = TemperatureState(self.grid)
+        if initial_velocity:
+            state.set_velocity(initial_velocity, update_displacement=False)
+        solution = state.velocity.reshape(2, -1)
+        solution_t = state.temperature
+
+        output_step = np.diff(output_step)
+        results = []
+        for n in output_step:
+            for i in range(n):
+                self.step_solver.currentTime += self.step_solver.time_step
+
+                solution, solution_t = self.find_solution_uzawa(
+                    self.step_solver, solution, solution_t)
+
+                if self.coordinates == 'velocity':
+                    state.set_velocity(solution[:],
+                                       update_displacement=True,
+                                       t=self.step_solver.currentTime)
+                    state.set_temperature(solution_t)
+                else:
+                    raise ValueError(f"Unknown coordinates: {self.coordinates}")
             results.append(state.copy())
 
         return results

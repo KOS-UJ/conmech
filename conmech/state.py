@@ -47,3 +47,21 @@ class State:
         copy.time = self.time
         return copy
 
+
+class TemperatureState(State):
+
+    def __init__(self, grid):
+        super().__init__(grid)
+        self.temperature = np.zeros(self.grid.independent_num)
+
+    def set_temperature(self, temperature_vector: np.ndarray):
+        self.temperature = temperature_vector
+
+    def __copy__(self) -> 'TemperatureState':
+        copy = TemperatureState(self.grid)
+        copy.displacement[:] = self.displacement
+        copy.displaced_points[:] = self.displaced_points
+        copy.velocity[:] = self.velocity
+        copy.time = self.time
+        copy.temperature[:] = self.temperature
+        return copy
