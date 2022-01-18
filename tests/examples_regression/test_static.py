@@ -122,4 +122,5 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     runner = StaticProblem(setup, solving_method)
     result = runner.solve()
     displacement_vector = result.displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=5)
+    np.testing.assert_array_almost_equal(
+        displacement_vector, expected_displacement_vector, decimal=3)
