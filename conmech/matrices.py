@@ -33,6 +33,50 @@ class Matrices:
         return B
 
     @staticmethod
+    def construct_K(grid):
+        AX = np.zeros([grid.independent_num, 8])  # area with dx
+        AY = np.zeros([grid.independent_num, 8])  # area with dy
+        for i in range(grid.independent_num):
+            p = grid.Points[i]
+            AX[i], AY[i] = Point.ax_ay(p)
+
+        W11 = Matrices.multiply(grid, AX, AX)
+        W12 = Matrices.multiply(grid, AX, AY)
+        W21 = Matrices.multiply(grid, AY, AX)  # np.transpose(W12)
+        W22 = Matrices.multiply(grid, AY, AY)
+
+        # TODO
+        k11 = k22 = 0.1
+        k12 = k21 = 0
+        return k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
+
+    @staticmethod
+    def construct_C2(grid):
+        A = np.zeros([grid.independent_num, 8])
+        for i in range(grid.independent_num):
+            p = grid.Points[i]
+            A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
+
+        AX = np.zeros([grid.independent_num, 8])  # area with dx
+        AY = np.zeros([grid.independent_num, 8])  # area with dy
+        for i in range(grid.independent_num):
+            p = grid.Points[i]
+            AX[i], AY[i] = Point.ax_ay(p)
+
+        A2 = A * (grid.shortTriangleSide / 6)
+
+        U1 = Matrices.multiply(grid, A2, AX)
+        U2 = Matrices.multiply(grid, A2, AY)
+
+        # TODO
+        c11 = c22 = 0.5
+        c12 = c21 = 0
+        C2X = c11 * U1 + c21 * U2
+        C2Y = c12 * U1 + c22 * U2
+
+        return C2X, C2Y
+
+    @staticmethod
     def construct_U(grid):
         A = np.zeros([grid.independent_num, 8])
         for i in range(grid.independent_num):

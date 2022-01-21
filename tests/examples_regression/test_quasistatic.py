@@ -3,55 +3,128 @@ Created at 21.08.2019
 """
 
 import numpy as np
+import pytest
+from dataclasses import dataclass
 
 from conmech.problem_solver import Quasistatic as QuasistaticProblem
-from examples.example_quasistatic import QuasistaticSetup
-
-setup = QuasistaticSetup()
-runner = QuasistaticProblem(setup, "global optimization")
+from conmech.problems import Quasistatic
+from examples.p_slope_contact_law import make_slope_contact_law
 
 
-def test_global_optimization_solver():
-    expected_displacement_vector = \
-        [-0.03886598154004313, -0.06118683344123006, -0.07252122863348806, -0.07690179888094467,
-         -0.07650483435437616, -0.05095660196034754, -0.008455359715517854, -0.03729241082741386,
-         -0.0024059861287222726, -0.013046170893592019, -0.04239383842941932, -0.03779039749559018,
-         -0.029054139415097855, -0.01559052910840409, -0.025416269143255378, -0.06037271957725121,
-         -0.022371867667928227, -0.05816489446516092, -0.01625596767115312, -0.043045994287246626,
-         -0.00784296548013633, -0.00598763496040588, -0.0009564310779794019, 0.005049186910343184,
-         0.006995819498832686, -0.03620832813849762, -0.07042953129760421, -0.10678393510081544,
-         -0.14124082884111477, -0.17437286138784935, -0.08836914954574102, -0.046364501815873954,
-         -0.05009266417690689, -0.011440297752755901, -0.013642146334088504, -0.14496021663190015,
-         -0.10773207519396032, -0.06816343464558446, -0.028331292919031806, -0.16365050870813608,
-         -0.16070321259386386, -0.12668555782055194, -0.1256237953820429, -0.08724342781104305,
-         -0.18004769288379652, -0.18193461479244344, -0.1453912326403375, -0.10677813481316067,
-         -0.06599869614326125, -0.027056381866750245]
+@pytest.fixture(params=[  # TODO #28
+    # "global optimization",  # TODO #29
+    "schur"
+])
+def solving_method(request):
+    return request.param
 
-    runner.solving_method = "global optimization"
-    results = runner.solve(n_steps=8)
+
+def generate_test_suits():
+    test_suites = []
+
+    # Simple example
+
+    @dataclass()
+    class QuasistaticSetup(Quasistatic):
+        grid_height: ... = 1
+        cells_number: ... = (2, 5)
+        inner_forces: ... = np.array([-0.2, -0.2])
+        outer_forces: ... = np.array([0, 0])
+        mu_coef: ... = 4
+        lambda_coef: ... = 4
+        th_coef: ... = 4
+        ze_coef: ... = 4
+        time_step: ... = 0.1
+        contact_law: ... = make_slope_contact_law(slope=1e1)
+
+        @staticmethod
+        def friction_bound(u_nu):
+            return 0
+
+    setup_m02_m02 = QuasistaticSetup()
+
+    expected_displacement_vector_m02_m02 = \
+        [-0.03174706, -0.04874277, -0.05728225, -0.06046738, -0.05934763,
+         -0.04745009, -0.02026372, -0.03480412, -0.00634097, -0.01233404,
+         -0.05049298, -0.04517364, -0.03491524, -0.0188448, -0.04592061,
+         -0.05611757, -0.04188783, -0.05420494, -0.03304815, -0.05109881,
+         -0.04084441, -0.03832705, -0.03054835, -0.01850842, -0.00648465,
+         -0.02791855, -0.04364193, -0.05630732, -0.06519961, -0.07272399,
+         -0.05121709, -0.03036478, -0.03437744, -0.00866102, -0.01121569,
+         -0.07070694, -0.05903126, -0.04301657, -0.02138356, -0.07706164,
+         -0.07295995, -0.06552595, -0.06358101, -0.05057972, -0.0803347,
+         -0.08283997, -0.07139739, -0.05772674, -0.03964175, -0.01742878]
+
+    test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
+
+    # p = 0 and opposite forces
+
+    setup_0_02_p_0 = QuasistaticSetup()
+    setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
+    setup_0_02_p_0.inner_forces = np.array([0, 0.2])
+
+    expected_displacement_vector_0_02_p_0 = \
+        [0.11383076, 0.18658829, 0.2237752, 0.23790945, 0.24043737,
+         0.10311252, -0.07648543, 0.07648539, -0.02603917, 0.02603916,
+         -0.00000004, -0.00000003, -0.00000002, -0.00000001, -0.11970527,
+         0.11970519, -0.1157959, 0.11579583, -0.10311257, -0.00000004,
+         -0.24043746, -0.23790954, -0.22377527, -0.18658834, -0.11383078,
+         0.120908, 0.30784272, 0.54111482, 0.78856463, 1.03329948,
+         0.41722515, 0.19887081, 0.19887081, 0.04189106, 0.04189106,
+         0.7874323, 0.53698504, 0.29953967, 0.10155982, 0.91078986,
+         0.91078985, 0.66226037, 0.66226037, 0.41722515, 1.03311517,
+         1.03329948, 0.78856464, 0.54111483, 0.30784273, 0.12090801]
+
+    test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
+
+    # p = 0
+
+    setup_0_m02_p_0 = QuasistaticSetup()
+    setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
+    setup_0_m02_p_0.inner_forces = np.array([0, -0.2])
+    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
+    test_suites.append((setup_0_m02_p_0, expected_displacement_vector_0_m02_p_0))
+
+    # various changes
+
+    @dataclass()
+    class QuasistaticSetup(Quasistatic):
+        grid_height: ... = 1.37
+        cells_number: ... = (2, 5)
+        inner_forces: ... = np.array([0, -0.2])
+        outer_forces: ... = np.array([0.3, 0.0])
+        mu_coef: ... = 4.58
+        lambda_coef: ... = 3.33
+        th_coef: ... = 2.11
+        ze_coef: ... = 4.99
+        time_step: ... = 0.1
+        contact_law: ... = make_slope_contact_law(slope=2.71)
+
+        @staticmethod
+        def friction_bound(u_nu):
+            return 0.0
+
+    setup_var = QuasistaticSetup()
+    expected_displacement_vector_var = \
+        [-0.02607508, -0.03693133, -0.03541439, -0.02747097, -0.01291643,
+         0.03057441, 0.11811058, 0.01390255, 0.04038013, 0.00415804,
+         0.14088622, 0.11491156, 0.08150496, 0.04103966, 0.24646681,
+         0.06452929, 0.21760316, 0.04774937, 0.17504007, 0.16050503,
+         0.35617261, 0.32973286, 0.28372653, 0.21878206, 0.12898925,
+         -0.05328279, -0.15587498, -0.29434243, -0.45490567, -0.6276158,
+         -0.22646547, -0.11105349, -0.10056004, -0.02139806, -0.01885423,
+         -0.46991231, -0.30505151, -0.16286354, -0.05168829, -0.56553781,
+         -0.55060983, -0.39162963, -0.37967762, -0.23799145, -0.64941679,
+         -0.66290604, -0.48007335, -0.31781755, -0.17832825, -0.07212695]
+
+    test_suites.append((setup_var, expected_displacement_vector_var))
+
+    return test_suites
+
+
+@pytest.mark.parametrize('setup, expected_displacement_vector', generate_test_suits())
+def test_global_optimization_solver(solving_method, setup, expected_displacement_vector):
+    runner = QuasistaticProblem(setup, solving_method)
+    results = runner.solve(n_steps=32)
     displacement_vector = results[-1].displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector,
-                                         decimal=6)
-
-
-def test_schur_complement_solver():
-    expected_displacement_vector = \
-        [-0.032079978465473113, -0.050950073236082936, -0.06063021205058028, -0.06444003518078953,
-         -0.06437980080443488, -0.04042583570426585, -0.003064005828667873, -0.02954036827464508,
-         -0.0007125750705989492, -0.01028248076552801, -0.030346519440960982, -0.027004485135210466,
-         -0.020718564680144394, -0.01109274641770734, -0.013483300579839447, -0.047985696583380005,
-         -0.01144276784712865, -0.04616300122378625, -0.007571285733430648, -0.030873148250724826,
-         0.0038760952248969418, 0.005096106821310827, 0.00810208727341466, 0.010860788894991405,
-         0.009334841006245915, -0.03023987711106655, -0.061997727111569464, -0.09714687907508598,
-         -0.13156749704863296, -0.16498462420209525, -0.07895565318090059, -0.040329165684627175,
-         -0.043097362569022614, -0.009586727434646232, -0.011178501977570018, -0.13389142244347263,
-         -0.09738235158638486, -0.05980623748444442, -0.023781220177263068, -0.15207951215429363,
-         -0.1501663908878953, -0.11580550541356419, -0.11523519559679508, -0.07797892886048183,
-         -0.16874206161848776, -0.17000020287358197, -0.13415114364247382, -0.0967786042629154,
-         -0.05852560487909402, -0.023592956627465154]
-
-    runner.solving_method = "schur"
-    results = runner.solve(n_steps=8)
-    displacement_vector = results[-1].displacement.T.reshape(1, -1)[0]
-    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector,
-                                         decimal=6)
+    np.testing.assert_array_almost_equal(displacement_vector, expected_displacement_vector, decimal=5)
