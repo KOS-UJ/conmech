@@ -96,27 +96,27 @@ class ProblemSolver:
             self, solver, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
+        fuse = 10
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        while quality < validator.error_tolerance:
+        while quality < validator.error_tolerance and bool(fuse):
+            fuse -= 1
             solution = solver.solve(solution, **kwargs)
             quality = validator.check_quality(state, solution, quality)
             iteration += 1
             self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution
 
-    def find_solution_uzawa(self, solver, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:  # TODO
+    def find_solution_uzawa(self, solver, state, solution, solution_t, *, verbose=False) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
-        print("UZAWA iterations")
-        while norm > 1e-3:
-            print("solving velocity")
-            solution = solver.solve(solution, solution_t)
-            print("solving temperature")
+        fuse = 5
+        while norm > 1e-3 and bool(fuse):
+            fuse -= 1
+            solution = self.find_solution(solver, state, solution, self.validator, temperature=solution_t, verbose=verbose)
             solution_t = solver.solve_t(solution_t, solution)
             norm = (np.linalg.norm(solution - old_solution)**2
                     + np.linalg.norm(old_solution_t - solution_t)**2)**0.5
-            print(norm)
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
         return solution, solution_t
@@ -285,8 +285,10 @@ class TDynamic(ProblemSolver):
             for i in range(n):
                 self.step_solver.currentTime += self.step_solver.time_step
 
+                # solution = self.find_solution(self.step_solver, state, solution, self.validator,
+                #                               verbose=verbose)
                 solution, solution_t = self.find_solution_uzawa(
-                    self.step_solver, solution, solution_t)
+                    self.step_solver, state, solution, solution_t, verbose=verbose)
 
                 if self.coordinates == 'velocity':
                     state.set_velocity(solution[:],

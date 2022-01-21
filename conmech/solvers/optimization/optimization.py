@@ -22,7 +22,11 @@ class Optimization(Solver):
             h=friction_bound
         )
         if hasattr(contact_law, "h_temp"):
-            self.loss_temp = make_L2_t(h_temp=contact_law.h_temp)
+            self.loss_temp = make_L2_t(
+                h=contact_law.h_temp,
+                hn=contact_law.h_nu,
+                ht=contact_law.h_tau
+            )
 
     def __str__(self):
         raise NotImplementedError()

@@ -9,7 +9,16 @@ from conmech.f import F
 
 class Solver:
 
-    def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
+    def __init__(
+            self,
+            grid,
+            inner_forces,
+            outer_forces,
+            coefficients,
+            time_step,
+            contact_law,
+            friction_bound
+    ):
         self.coefficients = coefficients
         self.contact_law = contact_law
         self.friction_bound = friction_bound
