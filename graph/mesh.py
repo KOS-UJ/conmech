@@ -1,17 +1,38 @@
 from ctypes import ArgumentError
+from typing import Callable, List, Tuple
 
 import numpy as np
-from numba import cuda, jit, njit, prange
+import numba
 
-import config
-import helpers
-import mesh_builders
+from graph import mesh_builders
 
 # import os, sys
 # sys.path.append(os.path.abspath('../'))
 
 
-@njit
+# HELPERS #
+from graph.boundaries import Boundaries
+
+
+@numba.njit
+def corner_min(corners):
+    return [corners[0], corners[1]]
+
+
+@numba.njit
+def corner_max(corners):
+    return [corners[2], corners[3]]
+
+
+@numba.njit
+def get_point_index(point, points):
+    for i in range(len(points)):
+        if np.sum(np.abs(point - points[i])) < 0.0001:
+            return i
+    raise ArgumentError
+
+
+@numba.njit
 def get_edges_list(edges_matrix, edges):
     p = len(edges_matrix[0])
     e = 0
@@ -21,8 +42,9 @@ def get_edges_list(edges_matrix, edges):
                 edges[e] = np.array([i, j])
                 e += 1
 
+# END HELPERS #
 
-@njit  # (parallel=True)
+@numba.njit  # (parallel=True)
 def get_edges_matrix(cells, edges_matrix):
     vertices_number = len(cells[0])
     for cell_index in range(len(cells)):  # TODO: prange?
@@ -32,36 +54,63 @@ def get_edges_matrix(cells, edges_matrix):
                 edges_matrix[cell[i], cell[j]] = 1.0
 
 
+@numba.njit
+def len_x(corners):
+    return corners[2] - corners[0]
+
+@numba.njit
+def len_y(corners):
+    return corners[3] - corners[1]
+
+
 ##############
 
 
 class Mesh:
-    def __init__(self, mesh_size, mesh_type, corners, is_adaptive):
+    def __init__(self, mesh_size, mesh_type, corners, is_adaptive,
+                 is_dirichlet: Callable, is_contact: Callable):
         self.mesh_size = mesh_size
         self.mesh_type = mesh_type
         self.corners = corners
         self.is_adaptive = is_adaptive
-        self.min = helpers.min(corners)
-        self.max = helpers.max(corners)
+        self.min = corner_min(corners)
+        self.max = corner_max(corners)
 
         if mesh_type == "cross":
-            self.initial_points, self.cells = mesh_builders.get_cross_rectangle(
+            initial_points, cells = mesh_builders.get_cross_rectangle(
                 self.mesh_size, self.corners
             )
         elif mesh_type == "meshzoo":
-            self.initial_points, self.cells = mesh_builders.get_meshzoo_rectangle(
+            initial_points, cells = mesh_builders.get_meshzoo_rectangle(
                 self.mesh_size, self.corners
             )
         elif mesh_type == "dmsh":
-            self.initial_points, self.cells = mesh_builders.get_dmsh_rectangle(
+            initial_points, cells = mesh_builders.get_dmsh_rectangle(
                 self.mesh_size, self.corners
             )
         elif mesh_type == "pygmsh":
-            self.initial_points, self.cells = mesh_builders.get_pygmsh_rectangle(
+            initial_points, cells = mesh_builders.get_pygmsh_rectangle(
                 self.mesh_size, self.corners, self.is_adaptive
             )
         else:
             raise ArgumentError
+
+        self.boundaries, self.initial_points, self.cells = \
+            Boundaries.identify_boundaries_and_reorder_vertices(
+                initial_points, cells, is_contact, is_dirichlet
+            )
+
+        self.independent_num = len(self.initial_points)
+        for vertex in reversed(self.initial_points):
+            if not is_dirichlet(*vertex):
+                break
+            self.independent_num -= 1
+
+        self.contact_num = 0
+        for vertex in self.initial_points:
+            if not is_contact(*vertex):
+                break
+            self.contact_num += 1
 
         # self.labels = self.get_labels()
 
@@ -80,7 +129,6 @@ class Mesh:
             self.initial_left_bottom,
             self.initial_right_top,
         )
-
 
         self.moved_points2 = np.zeros_like(self.initial_points)
         self.normalized_initial_points = self.normalized_points.copy()
@@ -165,7 +213,7 @@ class Mesh:
         self.u_old = u
 
     def get_initial_index(self, point):
-        return helpers.get_point_index(np.array(point), self.initial_points)
+        return get_point_index(np.array(point), self.initial_points)
 
     @property
     def normalized_a_old(self):

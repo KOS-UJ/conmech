@@ -36,13 +36,29 @@ class Problem:
     dynamism: str = None  # TODO: remove
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_contact(x: float, y: float) -> bool:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_dirichlet(x: float, y: float) -> bool:
         raise NotImplementedError()
 
 
 class Static(Problem):
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_contact(x: float, y: float) -> bool:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_dirichlet(x: float, y: float) -> bool:
         raise NotImplementedError()
 
 
@@ -52,7 +68,15 @@ class Quasistatic(Problem):
     time_step: float
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_contact(x: float, y: float) -> bool:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_dirichlet(x: float, y: float) -> bool:
         raise NotImplementedError()
 
 
@@ -62,5 +86,13 @@ class Dynamic(Problem):
     time_step: float
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_contact(x: float, y: float) -> bool:
+        raise NotImplementedError()
+
+    @staticmethod
+    def is_dirichlet(x: float, y: float) -> bool:
         raise NotImplementedError()

@@ -6,93 +6,58 @@ Created at 21.08.2019
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
-import pylab
-
-from conmech.point import Point
+import networkx as nx
 
 
 class Drawer:
 
     def __init__(self, state):
         self.state = state
-        self.grid = state.grid
+        self.mesh = state.mesh
+        self.node_size = 20 + (1000 / len(self.mesh.initial_points))
 
-    def draw(self, temp_max=None):
+    def draw(self):
+        f, ax = plt.subplots()
 
-        # txt = 'CROSS EQUATION GR' + str(self.grid.SizeH) + ' ' + str(self.grid.SizeL) \
-        #       + ' (ml ' + str(self.solv.mu_coef) + " " + str(self.solv.la) \
-        #       + ') F0[' + str(self.solv.forces.inner_forces[0]) + ',' + str(self.solv.forces.inner_forces[1]) \
-        #       + '] FN[' + str(self.solv.forces.outer_forces[0]) + ',' + str(self.solv.forces.outer_forces[1]) + ']'
+        self.draw_mesh(self.mesh.initial_points, ax, label='Original',
+                       node_color='0.6', edge_color='0.8')
+        self.draw_mesh(self.state.displaced_points, ax, label='Deformed')
+        for contact_boundary in self.mesh.boundaries.contact:
+            self.draw_boundary(self.state.displaced_points[contact_boundary], ax,
+                               edge_color="b")
+        for dirichlet_boundary in self.mesh.boundaries.dirichlet:
+            self.draw_boundary(self.state.displaced_points[dirichlet_boundary], ax,
+                               edge_color="r")
+        for dirichlet_boundary in self.mesh.boundaries.neumann:
+            self.draw_boundary(self.state.displaced_points[dirichlet_boundary], ax,
+                               edge_color="g")
 
-        plt.close()
-        pylab.axes().set_aspect('equal', 'box')
+        # turns on axis, since networkx turn them off
+        plt.axis('on')
+        ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        shadow = 0.1
-        thickness1 = thickness2 = 2
+        handles, labels = plt.gca().get_legend_handles_labels()
+        plt.legend(handles=[handles[0], handles[2]], bbox_to_anchor=(.91, 0.96),
+                   bbox_transform=plt.gcf().transFigure)
 
-        i = len(self.grid.Edges) - 1
-        j = len(self.grid.Edges) - self.grid.BorderEdgesD - 1
-        while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
-            plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
-            i -= 1
-        j -= self.grid.BorderEdgesN
-        while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
-            plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
-            i -= 1
-        while self.grid.BorderEdgesC - 1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
-            plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
-            i -= 1
-        while -1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.grid.Points, i)
-            plt.plot([x1, x2], [y1, y2], 'k-', alpha=shadow, lw=thickness1)
-            i -= 1
+        f.set_size_inches(8, 8)
 
-            # ------------
-
-        # plt.scatter(self.solver.DisplacedPoints[:,0],self.solver.DisplacedPoints[:,1], marker='o')
-
-
-        i = len(self.grid.Edges) - 1
-        j = len(self.grid.Edges) - self.grid.BorderEdgesD - 1
-        while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
-            plt.plot([x1, x2], [y1, y2], 'r-', lw=thickness2)
-            i -= 1
-        j -= self.grid.BorderEdgesN
-        while j < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
-            plt.plot([x1, x2], [y1, y2], 'b-', lw=thickness2)
-            i -= 1
-        while self.grid.BorderEdgesC - 1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
-            plt.plot([x1, x2], [y1, y2], 'k-', lw=thickness2)
-            i -= 1
-        while -1 < i:
-            x1, x2, y1, y2 = self.get_coordinates(self.state.displaced_points, i)
-            plt.plot([x1, x2], [y1, y2], 'y-', lw=thickness2)
-            i -= 1
-
-            # ------------
-
-        if hasattr(self.state, 'temperature'):
-            T = np.concatenate([self.state.temperature[:], np.zeros(len(self.grid.Points) - self.grid.independent_num)])
-            plt.scatter(self.state.displaced_points[:, 0], self.state.displaced_points[:, 1],
-                        marker='o', c=T, cmap='magma', s=200, vmin=0, vmax=temp_max)
-            plt.colorbar()
-
-        # plt.savefig(txt + '.png', transparent=True, bbox_inches='tight', pad_inches=0, dpi=300)  # DPI 500
-        # print(txt + '.png')
         plt.show()
-        plt.close()
 
-    def get_coordinates(self, array, i):
-        x1 = array[int(self.grid.Edges[i, 0])][0]
-        y1 = array[int(self.grid.Edges[i, 0])][1]
-        x2 = array[int(self.grid.Edges[i, 1])][0]
-        y2 = array[int(self.grid.Edges[i, 1])][1]
+    def draw_mesh(self, vertices, ax, label="", node_color='k', edge_color='k'):
+        graph = nx.Graph()
+        for i, j, k in self.mesh.cells:
+            graph.add_edge(i, j)
+            graph.add_edge(i, k)
+            graph.add_edge(j, k)
 
-        return x1, x2, y1, y2
+        nx.draw(graph, pos=vertices, label=label, node_color=node_color,
+                edge_color=edge_color, node_size=self.node_size, ax=ax)
+
+    def draw_boundary(self, vertices, ax, label="", node_color='k', edge_color='k'):
+        graph = nx.Graph()
+        for i in range(1, len(vertices)):
+            graph.add_edge(i - 1, i)
+
+        nx.draw(graph, pos=vertices, label=label, node_color=node_color,
+                edge_color=edge_color, node_size=self.node_size, ax=ax)

@@ -1,13 +1,12 @@
+from typing import Callable
+
 import numpy as np
-from numba import cuda, jit, njit, prange
-from numba.typed import List
+import numba
 
-import config
-import helpers
-from mesh import Mesh
+from graph.mesh import Mesh
 
 
-@njit
+@numba.njit
 def get_edges_features_list(edges_matrix, edges_features_matrix, edges_features):
     p = len(edges_matrix[0])
     e = 0
@@ -18,8 +17,8 @@ def get_edges_features_list(edges_matrix, edges_features_matrix, edges_features)
                 e += 1
 
 
-@njit  # (parallel=True)
-def get_edges_features_matrix(cells, cells_points, edges_features_matrix):
+@numba.njit  # (parallel=True)
+def get_edges_features_matrix(cells, cells_points, edges_features_matrix, cell_area):
     vertices_number = len(cells[0])
 
     for cell_index in range(len(cells)):  # TODO: prange?
@@ -29,23 +28,24 @@ def get_edges_features_matrix(cells, cells_points, edges_features_matrix):
         # TODO: Get rid of repetition (?)
         for i in range(vertices_number):
             i_dPhX, i_dPhY, triangle_area = get_integral_parts(cell_points, i)
+            cell_area[cell] = triangle_area  # TODO
 
             for j in range(vertices_number):
                 j_dPhX, j_dPhY, _ = get_integral_parts(cell_points, j)
 
-                area = (i != j) / 6.0
+                area = (i != j) / 6
                 w11 = i_dPhX * j_dPhX
                 w12 = i_dPhX * j_dPhY
                 w21 = i_dPhY * j_dPhX
                 w22 = i_dPhY * j_dPhY
-                u = (1 + (i == j)) / 12.0
+                u = (1 + (i == j)) / 12
 
                 edges_features_matrix[cell[i], cell[j]] += triangle_area * np.array(
                     [area, w11, w12, w21, w22, u]
                 )
 
 
-@njit
+@numba.njit
 def get_integral_parts(cell_points, vertex_index):
     x_i = cell_points[vertex_index % 3]
     x_j1 = cell_points[(vertex_index + 1) % 3]
@@ -63,7 +63,7 @@ def get_integral_parts(cell_points, vertex_index):
     return dPhX, dPhY, triangle_area
 
 
-@njit
+@numba.njit
 def shoelace_area(points):
     x = points[:, 0].copy()
     y = points[:, 1].copy()
@@ -71,7 +71,7 @@ def shoelace_area(points):
     return area
 
 
-@njit
+@numba.njit
 def denominator(x_i, x_j1, x_j2):
     return (
         x_i[1] * x_j1[0]
@@ -83,7 +83,7 @@ def denominator(x_i, x_j1, x_j2):
     )
 
 
-@njit
+@numba.njit
 def div_or_zero(value, denominator):
     if denominator != 0:
         return value / denominator
@@ -91,7 +91,7 @@ def div_or_zero(value, denominator):
         return 0.0
 
 
-@njit
+@numba.njit
 def calculate_constitutive_matrices_with_angle(W11, W12, W21, W22, MU, LA, angle):
     s = np.sin(angle)
     c = np.cos(angle)
@@ -102,7 +102,7 @@ def calculate_constitutive_matrices_with_angle(W11, W12, W21, W22, MU, LA, angle
     return B11, B12, B21, B22
 
 
-@njit
+@numba.njit
 def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
     B11 = (2 * MU + LA) * W11 + MU * W22
     B22 = MU * W11 + (2 * MU + LA) * W22
@@ -111,8 +111,15 @@ def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
     return B11, B12, B21, B22
 
 
-# @njit
-def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS):
+@numba.njit()
+def construct_K(W11, W12, W21, W22):
+    # TODO
+    k11 = k22 = 0.1
+    k12 = k21 = 0
+    return k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
+
+
+def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP):
     # move config MU, LA,... out to model
     AREA = edges_features_matrix[..., 0]
 
@@ -126,21 +133,32 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS):
 
     # A = np.vstack((np.hstack((c, s)), np.hstack((-s, c))))
     # result = A @ matrix @ A.T
+    A_ = [[A11, A12],
+          [A21, A22]]
+    A_old = np.asarray(A_)
 
     A = np.vstack((np.hstack((A11, A12)), np.hstack((A21, A22))))
     B = np.vstack((np.hstack((B11, B12)), np.hstack((B21, B22))))
+    B_ = [[B11, B12],
+          [B21, B22]]
+    B_old = np.asarray(B_)
     U = edges_features_matrix[..., 5]
 
     Z = np.zeros_like(U)
+    U_ = [[U, Z],
+          [Z, U]]
+    U_old = np.asarray(U_)
     ACC = DENS * np.vstack((np.hstack((U, Z)), np.hstack((Z, U))))
 
-    A_plus_B_times_ts = A + B * config.TIMESTEP
-    C = ACC + A_plus_B_times_ts * config.TIMESTEP
+    A_plus_B_times_ts = A + B * TIMESTEP
+    C = ACC + A_plus_B_times_ts * TIMESTEP
 
-    return C, B, AREA, A_plus_B_times_ts
+    K = construct_K(W11, W12, W21, W22)
+
+    return C, B_old, AREA, A_plus_B_times_ts, K, U_old, A_old
 
 
-@njit
+@numba.njit
 def set_diff(data, position, row, i, j):
     vector = data[j] - data[i]
     row[position : position + 2] = vector
@@ -148,7 +166,7 @@ def set_diff(data, position, row, i, j):
     position += 3
 
 
-@njit  # (parallel=True)
+@numba.njit  # (parallel=True)
 def get_edges_data(
     edges_data, points_number, edges_matrix, u_old, v_old
 ):
@@ -166,35 +184,43 @@ def get_edges_data(
 
 class MeshFeatures(Mesh):
     def __init__(
-        self, mesh_size, mesh_type, corners, is_adaptive
+        self, mesh_size, mesh_type, corners, is_adaptive,
+        MU, LA, TH, ZE, DENS, TIMESTEP,
+        is_dirichlet: Callable,
+        is_contact: Callable
     ):
-        super().__init__(mesh_size, mesh_type, corners, is_adaptive)
-        self.reinitialize_matrices()
+        super().__init__(mesh_size, mesh_type, corners, is_adaptive,
+                         is_dirichlet, is_contact)
+
+        self.reinitialize_matrices(MU, LA, TH, ZE, DENS, TIMESTEP)
+
 
     #def move(self, u_step):
     #    super().move(u_step)
     #    # self.reinitialize_matrices()
 
-    def reinitialize_matrices(self):
+    def reinitialize_matrices(self, MU, LA, TH, ZE, DENS, TIMESTEP):
         p = self.points_number
         self.edges_features_matrix = np.zeros((p, p, 6), dtype=np.float)
         self.edges_features = np.zeros((self.edges_number, 6), dtype=np.float)
+        self.element_area = np.zeros(len(self.cells))
 
         get_edges_features_matrix(
-            self.cells, self.cells_normalized_points, self.edges_features_matrix
+            self.cells, self.cells_normalized_points, self.edges_features_matrix, self.element_area
         )
 
         get_edges_features_list(
             self.edges_matrix, self.edges_features_matrix, self.edges_features
         )
 
-        self.C, self.B, self.AREA, self.A_plus_B_times_ts = get_matrices(
+        self.C, self.B, self.AREA, self.A_plus_B_times_ts, self.K, self.U, self.A = get_matrices(
             self.edges_features_matrix,
-            MU=config.MU,
-            LA=config.LA,
-            TH=config.TH,
-            ZE=config.ZE,
-            DENS=config.DENS,
+            MU=MU,
+            LA=LA,
+            TH=TH,
+            ZE=ZE,
+            DENS=DENS,
+            TIMESTEP=TIMESTEP
         )
         a=0
 

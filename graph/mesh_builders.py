@@ -1,23 +1,18 @@
-import itertools
-import time
-from ctypes import ArgumentError
-from functools import partial
-
 # import dmsh
 # import optimesh
-import matplotlib.pyplot as plt
-import matplotlib.tri as tri
-import meshio
-import meshzoo
-import numba
+# import matplotlib.pyplot as plt
+# import matplotlib.tri as tri
+# import meshio
+# import meshzoo
+# import numba
 import numpy as np
 import pygmsh
-import torch
-from numba import cuda, jit, njit, prange
+# import torch
+# from numba import cuda, jit, njit, prange
 
-import config
-import helpers
-import mesh
+# import config
+# import graph.helpers
+import graph.mesh as helpers
 
 
 def get_cross_points_legacy_ordered(
@@ -92,33 +87,35 @@ def get_cross_cells(points, cells, size, edge_len_x, edge_len_y, left_bottom_poi
 
 
 def get_meshzoo_rectangle(mesh_size, corners):
-    min = helpers.min(corners)
-    max = helpers.max(corners)
-    return meshzoo.rectangle_tri(
-        np.linspace(min[0], max[0], int(mesh_size) + 1),
-        np.linspace(min[1], max[1], int(mesh_size) + 1),
-        variant="zigzag",
-    )
+    pass  # TODO
+    # min = helpers.min(corners)
+    # max = helpers.max(corners)
+    # return meshzoo.rectangle_tri(
+    #     np.linspace(min[0], max[0], int(mesh_size) + 1),
+    #     np.linspace(min[1], max[1], int(mesh_size) + 1),
+    #     variant="zigzag",
+    # )
 
 
 def get_dmsh_rectangle(mesh_size, corners):
-    min = helpers.min(corners)
-    max = helpers.max(corners)
-    geo = dmsh.Rectangle(min[0], max[0], min[1], max[1])
-    # path = dmsh.Path([[0.4, 0.6], [0.6, 0.4]])
-
-    def edge_size(x):
-        return mesh_size  # + 0.1 * path.dist(x)
-
-    points_initial, cells_initial = dmsh.generate(geo, edge_size, tol=1.0e-10)
-    return optimesh.optimize_points_cells(
-        points_initial, cells_initial, "CVT (full)", 1.0e-10, 100
-    )
+    pass  # TODO
+    # min = helpers.min(corners)
+    # max = helpers.max(corners)
+    # geo = dmsh.Rectangle(min[0], max[0], min[1], max[1])
+    # # path = dmsh.Path([[0.4, 0.6], [0.6, 0.4]])
+    #
+    # def edge_size(x):
+    #     return mesh_size  # + 0.1 * path.dist(x)
+    #
+    # points_initial, cells_initial = dmsh.generate(geo, edge_size, tol=1.0e-10)
+    # return optimesh.optimize_points_cells(
+    #     points_initial, cells_initial, "CVT (full)", 1.0e-10, 100
+    # )
 
 
 def get_pygmsh_rectangle(mesh_size, corners, is_adaptive):
-    min = helpers.min(corners)
-    max = helpers.max(corners)
+    min = helpers.corner_min(corners)
+    max = helpers.corner_min(corners)
     with pygmsh.geo.Geometry() as geom:
         geom.add_polygon(
             [[min[0], min[1]], [min[0], max[1]], [max[0], max[1]], [max[0], min[1]],]
@@ -147,7 +144,7 @@ def get_pygmsh_rectangle(mesh_size, corners, is_adaptive):
 
 def get_cross_rectangle(mesh_size, corners):
     size = int(mesh_size)
-    min = helpers.min(corners)
+    min = helpers.corner_min(corners)
     edge_len_x = helpers.len_x(corners) / size
     edge_len_y = helpers.len_y(corners) / size
 
@@ -160,4 +157,3 @@ def get_cross_rectangle(mesh_size, corners):
     get_cross_points_legacy_ordered(points, size, edge_len_x, edge_len_y, min)
     get_cross_cells(points, cells, size, edge_len_x, edge_len_y, min)
     return points, cells
-
