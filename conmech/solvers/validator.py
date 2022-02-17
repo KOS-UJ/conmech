@@ -20,8 +20,8 @@ class Validator:
     def validate(self, state, solution) -> float:
         quality_inv = np.linalg.norm(
             self.f(
-                solution, state.grid.independent_num, state.grid.BorderEdgesC, state.grid.Edges,
-                state.grid.Points, self.B, self.forces.Zero, self.forces.One)
+                solution, state.mesh.initial_points, state.mesh.boundaries.contact,
+                self.B, self.forces.Zero, self.forces.One)
         )
         quality = quality_inv ** -1
         return quality

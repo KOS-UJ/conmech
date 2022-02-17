@@ -40,6 +40,14 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
+
     setup_m02_m02 = StaticSetup()
 
     expected_displacement_vector_m02_m02 = \
@@ -108,6 +116,14 @@ def generate_test_suits():
         @staticmethod
         def friction_bound(u_nu):
             return 0.0
+
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
 
     setup_var = StaticSetup()
     expected_displacement_vector_var = \

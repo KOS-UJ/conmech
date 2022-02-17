@@ -17,7 +17,7 @@ class State:
     def set_displacement(self, displacement_vector: np.ndarray, t: float = 0):
         self.displacement = displacement_vector.reshape((2, -1)).T
         self.displaced_points[:self.mesh.independent_num, :2] = \
-            self.mesh.initial_points + self.displacement[:, :2]
+            self.mesh.initial_points[:self.mesh.independent_num, :2] + self.displacement[:, :2]
         self.time = t
 
     def set_velocity(self, velocity_vector: np.ndarray, t: float = 0, *,

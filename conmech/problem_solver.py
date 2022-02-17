@@ -38,7 +38,7 @@ class ProblemSolver:
         dens = 1
 
         self.grid = MeshFeatures(setup.cells_number[0], "cross",
-                                 corners=[0, 0, setup.grid_height, setup.grid_height],
+                                 corners=[0., 0., setup.grid_height, setup.grid_height],
                                  is_adaptive=False,
                                  MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
                                  DENS=dens, TIMESTEP=time_step,

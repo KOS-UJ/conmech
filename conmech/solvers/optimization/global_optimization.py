@@ -13,8 +13,9 @@ class Global(Optimization):
 
     def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
         super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
-        self.__point_relations = np.bmat([[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]])
-        self.__point_forces = np.append(self.forces.Zero, self.forces.One)
+        ind = slice(0, self.mesh.independent_num)
+        self.__point_relations = self.B
+        self.__point_forces = np.append(self.forces.Zero[ind], self.forces.One[ind])
 
     def __str__(self):
         return "global optimization"

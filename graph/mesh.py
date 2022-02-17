@@ -14,12 +14,12 @@ from graph import mesh_builders
 from graph.boundaries import Boundaries
 
 
-@numba.njit
+# @numba.njit
 def corner_min(corners):
     return [corners[0], corners[1]]
 
 
-@numba.njit
+# @numba.njit
 def corner_max(corners):
     return [corners[2], corners[3]]
 
@@ -54,11 +54,11 @@ def get_edges_matrix(cells, edges_matrix):
                 edges_matrix[cell[i], cell[j]] = 1.0
 
 
-@numba.njit
+# @numba.njit
 def len_x(corners):
     return corners[2] - corners[0]
 
-@numba.njit
+# @numba.njit
 def len_y(corners):
     return corners[3] - corners[1]
 

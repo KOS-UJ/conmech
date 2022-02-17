@@ -23,13 +23,13 @@ def n_down(Points, Edges, e):
     return n
 
 
-@numba.njit()
+# @numba.njit()
 def Bu1(B, u):
     result = np.dot(B[0][0], u[:, 0]) + np.dot(B[0][1], u[:, 1])
     return result
 
 
-@numba.njit()
+# @numba.njit()
 def Bu2(B, u):
     result = np.dot(B[1][0], u[:, 0]) + np.dot(B[1][1], u[:, 1])
     return result
@@ -39,57 +39,64 @@ def make_f(jnZ, jtZ, h):
     jnZ = numba.njit(jnZ)
     jtZ = numba.njit(jtZ)
     h = numba.njit(h)
+    DIMENSION = 2
+
+    @numba.njit(inline='always')
+    def interpolate_point_between(first_point_id, second_point_id, vector):
+        result = np.zeros(DIMENSION)
+        offset = len(vector) // DIMENSION
+        for i in range(DIMENSION):
+            if first_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
+                result[i] += 0.5 * vector[i * offset + first_point_id]
+        for i in range(DIMENSION):
+            if second_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
+                result[i] += 0.5 * vector[i * offset + second_point_id]
+        return result
 
     # @numba.njit()
-    def JZu(indNumber, BorderEdgesC, Edges, u, Points):
-        JZu = np.zeros((indNumber, 2))
+    def JZu(u_vector, vertices, contact_boundaries):
+        JZu = np.zeros_like(u_vector)
+        offset = len(u_vector) // DIMENSION
 
-        for i in range(0, indNumber):
-            for e in range(0, BorderEdgesC):
-                e1 = int(Edges[e][0])
-                e2 = int(Edges[e][1])
-                if i == e1 or i == e2:
-                    umL = np.zeros(2)  # u at mL
-                    if e1 < indNumber:
-                        umL += u[e1] * 0.5
-                    if e2 < indNumber:
-                        umL += u[e2] * 0.5
+        for contact_boundary in contact_boundaries:
+            for i in range(1, len(contact_boundary)):
+                v1_id = contact_boundary[i - 1]
+                v2_id = contact_boundary[i]
 
-                    p1 = Points[int(e1)][0:2]
-                    p2 = Points[int(e2)][0:2]
-                    L = length(p1, p2)
-                    nmL = n_down(Points, Edges, e)  # n at mL
+                um = interpolate_point_between(v1_id, v2_id, u_vector)  # TODO check ravel()
 
-                    uNmL = umL[0] * nmL[0] + umL[1] * nmL[1]
-                    uTmL = umL - uNmL * nmL
+                firstPointCoordinates = vertices[v1_id]
+                secondPointCoordinates = vertices[v2_id]
+                edgeLength = length(firstPointCoordinates, secondPointCoordinates)
+                # nmL = n_down(Points, Edges, e)  # TODO n at mL
+                nmL = np.asarray([0, -1])
 
-                    vNZero = nmL[0]
-                    vNOne = nmL[1]
-                    vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
-                    vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
+                uNmL = (um * nmL).sum()
+                uTmL = um - uNmL * nmL
 
-                    # TODO: Move  to seperate method, take into account also problems with velocity
-                    # u will be calculated by suming ptevious velocities times time step
+                vNZero = nmL[0]
+                vNOne = nmL[1]
+                vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
+                vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
 
-                    # TODO: To make function h dependent on u_nu, we need Uzawa approach
-                    #       For now, for validating we can ignore it.
-                    JZu[i][0] += L * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
-                    JZu[i][1] += L * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
+                # TODO: Move  to seperate method, take into account also problems with velocity
+                # u will be calculated by suming ptevious velocities times time step
+
+                # TODO: To make function h dependent on u_nu, we need Uzawa approach
+                #       For now, for validating we can ignore it.
+                JZu[i] += edgeLength * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
+                JZu[i + offset] += edgeLength * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
         return JZu
 
     # @numba.njit()
-    def f(u_vector, indNumber, BorderEdgesC, Edges, Points, B, F_Zero, F_One):
-        u = np.zeros((indNumber, 2))
-        u[:, 0] = u_vector[0:indNumber]
-        u[:, 1] = u_vector[indNumber:2 * indNumber]
+    def f(u_vector, vertices, contact_boundaries, B, F_Zero, F_One):
+        jZu = JZu(u_vector, vertices, contact_boundaries)
 
-        jZu = JZu(indNumber, BorderEdgesC, Edges, u, Points)
+        F = np.append(F_Zero, F_One)
 
-        X = Bu1(B, u) + jZu[:, 0] - F_Zero
+        result = np.dot(B, u_vector) + jZu - F
 
-        Y = Bu2(B, u) + jZu[:, 1] - F_One
-
-        return np.append(X, Y)  # 10000000000
+        return result  # 10000000000
 
     return f
 
@@ -121,7 +128,7 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
                 result[i] += 0.5 * vector[i * offset + second_point_id]
         return result
 
-    @numba.njit()
+    # @numba.njit()
     def cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries):
         cost = 0
         nmL = np.asarray([0, -1])
@@ -149,7 +156,7 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
 
         return cost
 
-    @numba.njit()
+    # @numba.njit()
     def L2(ut_vector, ut_vector_old, vertices, contact_boundaries, C, E, t_vector):
         ju = cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries)
         result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
@@ -178,7 +185,7 @@ def make_L2_t_new(jn: Callable, jt: Optional[Callable] = None, h: Optional[Calla
                 result[i] += 0.5 * vector[i * offset + second_point_id]
         return result
 
-    @numba.njit()
+    # @numba.njit()
     def cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, ut_vector_old, Points):
         cost = 0
         for e in range(0, BorderEdgesC):
@@ -206,7 +213,7 @@ def make_L2_t_new(jn: Callable, jt: Optional[Callable] = None, h: Optional[Calla
 
         return cost
 
-    @numba.njit()
+    # @numba.njit()
     def L2(ut_vector, wt_vector, indNumber, BorderEdgesC, Edges, Points, C, E, t_vector):
         ju = cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, wt_vector, Points)
         result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
@@ -223,7 +230,7 @@ def make_L2_t(hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable]
     h = numba.njit(h)
     DIMENSION = 2
 
-    @numba.njit()
+    # @numba.njit()
     def cost_functional(indNumber, BorderEdgesC, Edges, tt_vector, ut_vector, Points):
         cost = 0.
 
@@ -259,7 +266,7 @@ def make_L2_t(hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable]
 
         return cost
 
-    @numba.njit()
+    # @numba.njit()
     def L2(tt_vector, indNumber, BorderEdgesC, Edges, Points, T, Q, ut_vector):
         # TODO #31
         return 0.5 * np.dot(np.dot(T, tt_vector), tt_vector) - np.dot(Q, tt_vector) \

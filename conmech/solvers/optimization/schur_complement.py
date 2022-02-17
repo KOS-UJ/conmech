@@ -46,19 +46,19 @@ class SchurComplement(Optimization):
 
         # Cii
         free_x_free = SchurComplement.get_submatrix(
-            C, indices=(self.free_ids, self.free_ids)
+            C, indices=(self.free_ids, self.free_ids), ind_num=self.mesh.independent_num
         )
         # Cit
         free_x_contact = SchurComplement.get_submatrix(
-            C, indices=(self.free_ids, self.contact_ids)
+            C, indices=(self.free_ids, self.contact_ids), ind_num=self.mesh.independent_num
         )
         # Cti
         self.contact_x_free = SchurComplement.get_submatrix(
-            C, indices=(self.contact_ids, self.free_ids)
+            C, indices=(self.contact_ids, self.free_ids), ind_num=self.mesh.independent_num
         )
         # Ctt
         contact_x_contact = SchurComplement.get_submatrix(
-            C, indices=(self.contact_ids, self.contact_ids)
+            C, indices=(self.contact_ids, self.contact_ids), ind_num=self.mesh.independent_num
         )
 
         self.free_x_contact = free_x_contact
@@ -111,11 +111,17 @@ class SchurComplement(Optimization):
         return "schur"
 
     @staticmethod
-    def get_submatrix(arrays: iter, indices: Tuple[slice, slice]) -> np.matrix:
+    def get_submatrix(
+            arrays: iter, indices: Tuple[slice, slice], ind_num: int
+    ) -> np.matrix:
+        ind00 = (slice(0, ind_num), slice(0, ind_num))
+        ind01 = (slice(0, ind_num), slice(ind_num, 2 * ind_num))
+        ind10 = (slice(ind_num, 2 * ind_num), slice(0, ind_num))
+        ind11 = (slice(ind_num, 2 * ind_num), slice(ind_num, 2 * ind_num))
         result = np.bmat(
             [
-                [arrays[0, 0][indices], arrays[0, 1][indices]],
-                [arrays[1, 0][indices], arrays[1, 1][indices]],
+                [arrays[ind00][indices], arrays[ind01][indices]],
+                [arrays[ind10][indices], arrays[ind11][indices]],
             ]
         )
         # result = np.bmat(
@@ -200,7 +206,7 @@ class Static(SchurComplement):
         return self.B
 
     def get_X(self):
-        return np.zeros((1, 2 * self.grid.independent_num))
+        return np.zeros((1, 2 * self.mesh.independent_num))
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
@@ -213,13 +219,8 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_X(self):
-        # X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
-        Big_B = np.bmat(
-            [[self.B[0, 0], self.B[0, 1]], [self.B[1, 0], self.B[1, 1]]]
-        )
-
         # TODO: check: from old implementation: times -1 - why?
-        X = -1 * np.dot(Big_B, self.u_vector.T)
+        X = -1 * np.dot(self.B, self.u_vector.T)
         return X
 
     def iterate(self, velocity):
@@ -268,24 +269,11 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.U
 
     def get_X(self):
-        # X = np.squeeze(np.asarray(np.dot(self.B, scipy.sparse.lil_matrix(self.uVector).transpose()).todense()))
-        ind = slice(0, self.mesh.independent_num)
-        Big_B = np.bmat(
-            [[self.B[0, 0][ind, ind], self.B[0, 1][ind, ind]],
-             [self.B[1, 0][ind, ind], self.B[1, 1][ind, ind]]]
-        )
+        # TODO: check: from old implementation: times -1 - why?
+        X = -1 * np.dot(self.B, self.u_vector.T)
 
         # TODO: check: from old implementation: times -1 - why?
-        X = -1 * np.dot(Big_B, self.u_vector.T)
-
-        Big_U = np.bmat(
-            [[self.U[0, 0][ind, ind], self.U[0, 1][ind, ind]],
-             [self.U[1, 0][ind, ind], self.U[1, 1][ind, ind]]]
-        )
-        # ACCv = np.squeeze(np.asarray(np.dot(self.ACC, scipy.sparse.lil_matrix(self.vVector).transpose()).todense()))
-
-        # TODO: check: from old implementation: times -1 - why?
-        X += (1 / self.time_step) * np.dot(Big_U, self.v_vector.T)
+        X += (1 / self.time_step) * np.asarray(np.dot(self.U, self.v_vector)).ravel()  # TODO np.asarray(dot...).ravel()
 
         # TODO temperature
         # C2X, C2Y = Matrices.construct_C2(self.grid)

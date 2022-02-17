@@ -47,10 +47,10 @@ def get_boundaries(
         boundaries: List[np.ndarray],
         vertices: np.ndarray
 ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
-    dirichlet_boundaries = get_condition_boundaries(
-        is_dirichlet, boundaries, vertices)
     contact_boundaries = get_condition_boundaries(
         is_contact, boundaries, vertices)
+    dirichlet_boundaries = get_condition_boundaries(
+        is_dirichlet, boundaries, vertices)
     neumann_boundaries = get_condition_boundaries_neumann(
         is_contact, is_dirichlet, boundaries, vertices)
 

@@ -31,7 +31,7 @@ class Solver:
         self.u_vector = np.zeros([self.mesh.independent_num * 2])
         self.v_vector = np.zeros([self.mesh.independent_num * 2])
 
-        self.B = mesh.B
+        self.B = mesh.B_ind
 
         self.forces = F(mesh, inner_forces, outer_forces)
         self.forces.setF()

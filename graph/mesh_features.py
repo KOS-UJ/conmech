@@ -119,8 +119,10 @@ def construct_K(W11, W12, W21, W22):
     return k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
 
 
-def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP):
+def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP, independent_num):
     # move config MU, LA,... out to model
+    ind = slice(0, independent_num)
+
     AREA = edges_features_matrix[..., 0]
 
     W11 = edges_features_matrix[..., 1]
@@ -133,21 +135,21 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP):
 
     # A = np.vstack((np.hstack((c, s)), np.hstack((-s, c))))
     # result = A @ matrix @ A.T
-    A_ = [[A11, A12],
-          [A21, A22]]
-    A_old = np.asarray(A_)
+    A_ind = np.vstack((np.hstack((A11[ind, ind], A12[ind, ind])),
+                       np.hstack((A21[ind, ind], A22[ind, ind]))))
 
-    A = np.vstack((np.hstack((A11, A12)), np.hstack((A21, A22))))
-    B = np.vstack((np.hstack((B11, B12)), np.hstack((B21, B22))))
-    B_ = [[B11, B12],
-          [B21, B22]]
-    B_old = np.asarray(B_)
+    A = np.vstack((np.hstack((A11, A12)),
+                   np.hstack((A21, A22))))
+    B = np.vstack((np.hstack((B11, B12)),
+                   np.hstack((B21, B22))))
+    B_ind = np.vstack((np.hstack((B11[ind, ind], B12[ind, ind])),
+                       np.hstack((B21[ind, ind], B22[ind, ind]))))
+
     U = edges_features_matrix[..., 5]
 
     Z = np.zeros_like(U)
-    U_ = [[U, Z],
-          [Z, U]]
-    U_old = np.asarray(U_)
+    U_ind = np.vstack((np.hstack((U[ind, ind], Z[ind, ind])),
+                       np.hstack((Z[ind, ind], U[ind, ind]))))
     ACC = DENS * np.vstack((np.hstack((U, Z)), np.hstack((Z, U))))
 
     A_plus_B_times_ts = A + B * TIMESTEP
@@ -155,7 +157,7 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP):
 
     K = construct_K(W11, W12, W21, W22)
 
-    return C, B_old, AREA, A_plus_B_times_ts, K, U_old, A_old
+    return C, B, AREA, A_plus_B_times_ts, K, U_ind, A_ind, B_ind
 
 
 @numba.njit
@@ -213,16 +215,17 @@ class MeshFeatures(Mesh):
             self.edges_matrix, self.edges_features_matrix, self.edges_features
         )
 
-        self.C, self.B, self.AREA, self.A_plus_B_times_ts, self.K, self.U, self.A = get_matrices(
-            self.edges_features_matrix,
-            MU=MU,
-            LA=LA,
-            TH=TH,
-            ZE=ZE,
-            DENS=DENS,
-            TIMESTEP=TIMESTEP
-        )
-        a=0
+        self.C, self.B, self.AREA, self.A_plus_B_times_ts, self.K, self.U, self.A, self.B_ind = \
+            get_matrices(
+                self.edges_features_matrix,
+                MU=MU,
+                LA=LA,
+                TH=TH,
+                ZE=ZE,
+                DENS=DENS,
+                TIMESTEP=TIMESTEP,
+                independent_num=self.independent_num
+            )
 
     @property
     def edges_data(self):

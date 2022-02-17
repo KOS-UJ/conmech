@@ -44,7 +44,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 @dataclass()
 class TDynamicSetup(Dynamic):
-    grid_height: ... = 1
+    grid_height: ... = 1.
     cells_number: ... = (10, 25)
     inner_forces: ... = np.array([0., -1.])
     outer_forces: ... = np.array([0., 0])
@@ -58,6 +58,14 @@ class TDynamicSetup(Dynamic):
     @staticmethod
     def friction_bound(u_nu):
         return 0
+
+    @staticmethod
+    def is_contact(x, y):
+        return y == 0
+
+    @staticmethod
+    def is_dirichlet(x, y):
+        return x == 0
 
 
 if __name__ == '__main__':
