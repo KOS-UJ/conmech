@@ -37,8 +37,10 @@ class ProblemSolver:
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
         dens = 1
 
-        self.grid = MeshFeatures(setup.cells_number[0], "cross",
-                                 corners=[0., 0., setup.grid_height, setup.grid_height],
+        grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
+
+        self.grid = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
+                                 corners=[0., 0., grid_width, setup.grid_height],
                                  is_adaptive=False,
                                  MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
                                  DENS=dens, TIMESTEP=time_step,

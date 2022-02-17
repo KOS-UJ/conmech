@@ -67,9 +67,10 @@ def len_y(corners):
 
 
 class Mesh:
-    def __init__(self, mesh_size, mesh_type, corners, is_adaptive,
+    def __init__(self, mesh_size_x, mesh_size_y, mesh_type, corners, is_adaptive,
                  is_dirichlet: Callable, is_contact: Callable):
-        self.mesh_size = mesh_size
+        self.mesh_size_x = mesh_size_x
+        self.mesh_size_y = mesh_size_y
         self.mesh_type = mesh_type
         self.corners = corners
         self.is_adaptive = is_adaptive
@@ -78,19 +79,19 @@ class Mesh:
 
         if mesh_type == "cross":
             initial_points, cells = mesh_builders.get_cross_rectangle(
-                self.mesh_size, self.corners
+                self.mesh_size_x, self.mesh_size_y, self.corners
             )
         elif mesh_type == "meshzoo":
             initial_points, cells = mesh_builders.get_meshzoo_rectangle(
-                self.mesh_size, self.corners
+                self.mesh_size_x, self.corners
             )
         elif mesh_type == "dmsh":
             initial_points, cells = mesh_builders.get_dmsh_rectangle(
-                self.mesh_size, self.corners
+                self.mesh_size_x, self.corners
             )
         elif mesh_type == "pygmsh":
             initial_points, cells = mesh_builders.get_pygmsh_rectangle(
-                self.mesh_size, self.corners, self.is_adaptive
+                self.mesh_size_x, self.corners, self.is_adaptive
             )
         else:
             raise ArgumentError

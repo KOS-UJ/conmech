@@ -186,12 +186,12 @@ def get_edges_data(
 
 class MeshFeatures(Mesh):
     def __init__(
-        self, mesh_size, mesh_type, corners, is_adaptive,
+        self, mesh_size_x, mesh_size_y, mesh_type, corners, is_adaptive,
         MU, LA, TH, ZE, DENS, TIMESTEP,
         is_dirichlet: Callable,
         is_contact: Callable
     ):
-        super().__init__(mesh_size, mesh_type, corners, is_adaptive,
+        super().__init__(mesh_size_x, mesh_size_y, mesh_type, corners, is_adaptive,
                          is_dirichlet, is_contact)
 
         self.reinitialize_matrices(MU, LA, TH, ZE, DENS, TIMESTEP)

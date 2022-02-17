@@ -40,7 +40,7 @@ class Drawer:
         plt.legend(handles=[handles[0], handles[2]], bbox_to_anchor=(.91, 0.96),
                    bbox_transform=plt.gcf().transFigure)
 
-        f.set_size_inches(8, 8)
+        f.set_size_inches(10, 4)
 
         plt.show()
 
