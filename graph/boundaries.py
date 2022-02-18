@@ -18,9 +18,9 @@ class Boundaries:
     # CDN: Contact, Dirichlet, Neumann
     def __init__(self, all_, contact, dirichlet, neumann):
         self.all = all_
-        self.contact = contact
-        self.dirichlet = dirichlet
-        self.neumann = neumann
+        self.contact = np.asarray(contact, dtype=np.int32)
+        self.dirichlet = np.asarray(dirichlet, dtype=np.int32)
+        self.neumann = np.asarray(neumann, dtype=np.int32)
 
     @staticmethod
     def identify_boundaries_and_reorder_vertices(

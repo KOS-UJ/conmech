@@ -51,7 +51,7 @@ class F:
                 v1 = neumann_boundary[i]
 
                 edge_length = length(self.mesh.initial_points[v0], self.mesh.initial_points[v1])
-                v_mid = (self.mesh.initial_points[v0] + self.mesh.initial_points[v0]) / 2
+                v_mid = (self.mesh.initial_points[v0] + self.mesh.initial_points[v1]) / 2
 
                 f_neumann = self.fN(v_mid) * edge_length / 2
 

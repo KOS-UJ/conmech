@@ -53,7 +53,7 @@ def make_f(jnZ, jtZ, h):
                 result[i] += 0.5 * vector[i * offset + second_point_id]
         return result
 
-    # @numba.njit()
+    @numba.njit()
     def JZu(u_vector, vertices, contact_boundaries):
         JZu = np.zeros_like(u_vector)
         offset = len(u_vector) // DIMENSION
@@ -128,7 +128,7 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
                 result[i] += 0.5 * vector[i * offset + second_point_id]
         return result
 
-    # @numba.njit()
+    @numba.njit()
     def cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries):
         cost = 0
         nmL = np.asarray([0, -1])
@@ -144,9 +144,7 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
 
                 uNmL = (um * nmL).sum()
                 uNmL_old = (um_old * nmL).sum()
-                uTmL = np.empty(DIMENSION)
-                for i in range(DIMENSION):
-                    uTmL[i] = um[i] - uNmL * nmL[i]
+                uTmL = um - uNmL * nmL
 
                 firstPointCoordinates = vertices[v1_id]
                 secondPointCoordinates = vertices[v2_id]
@@ -156,7 +154,7 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
 
         return cost
 
-    # @numba.njit()
+    @numba.njit()
     def L2(ut_vector, ut_vector_old, vertices, contact_boundaries, C, E, t_vector):
         ju = cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries)
         result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)

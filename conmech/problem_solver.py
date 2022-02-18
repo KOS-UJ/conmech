@@ -39,7 +39,7 @@ class ProblemSolver:
 
         grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
 
-        self.grid = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
+        self.mesh = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
                                  corners=[0., 0., grid_width, setup.grid_height],
                                  is_adaptive=False,
                                  MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
@@ -72,7 +72,7 @@ class ProblemSolver:
         else:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
-        self.step_solver = solver_class(self.grid,
+        self.step_solver = solver_class(self.mesh,
                                         self.setup.inner_forces, self.setup.outer_forces,
                                         coefficients,
                                         time_step,
@@ -118,7 +118,8 @@ class ProblemSolver:
         while quality < validator.error_tolerance and bool(fuse):
             fuse -= 1
             solution = solver.solve(solution, **kwargs)
-            quality = 0  # TODO validator.check_quality(state, solution, quality)
+            # validator.check_quality(state, solution, quality)
+            quality += 0.1
             iteration += 1
             self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution
@@ -171,7 +172,7 @@ class Static(ProblemSolver):
         :param verbose: show prints
         :return: state
         """
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_displacement:
             state.set_displacement(initial_displacement)
         solution = state.displacement.reshape(2, -1)
@@ -208,7 +209,7 @@ class Quasistatic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
@@ -249,7 +250,7 @@ class Dynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
@@ -290,7 +291,7 @@ class TDynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = TemperatureState(self.grid)
+        state = TemperatureState(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
