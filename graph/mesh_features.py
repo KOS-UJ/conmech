@@ -28,7 +28,7 @@ def get_edges_features_matrix(cells, cells_points, edges_features_matrix, cell_a
         # TODO: Get rid of repetition (?)
         for i in range(vertices_number):
             i_dPhX, i_dPhY, triangle_area = get_integral_parts(cell_points, i)
-            cell_area[cell] = triangle_area  # TODO
+            cell_area[cell_index] = triangle_area  # TODO
 
             for j in range(vertices_number):
                 j_dPhX, j_dPhY, _ = get_integral_parts(cell_points, j)
