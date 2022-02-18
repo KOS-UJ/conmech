@@ -8,7 +8,7 @@
 # import dmsh as dmsh
 import numpy as np
 # import optimesh as optimesh
-import pygmsh
+# import pygmsh
 # import torch
 # from numba import cuda, jit, njit, prange
 
@@ -142,31 +142,32 @@ def get_adaptive_mesh_density(x, y, base_density, corner_data):
 
 
 def get_pygmsh_rectangle(mesh_size, corners, is_adaptive):
-    min = helpers.corner_min(corners)
-    max = helpers.corner_min(corners)
-    with pygmsh.geo.Geometry() as geom:
-        geom.add_polygon(
-            [[min[0], min[1]], [min[0], max[1]], [max[0], max[1]], [max[0], min[1]],]
-        )
-        
-        base_density = get_base_density(mesh_size, corners)
-        # if(is_adaptive):
-        #     corner_data = mesh_corner_data(base_density)
-        #     geom.set_mesh_size_callback(
-        #         lambda dim, tag, x, y, z: get_adaptive_mesh_density(x, y, base_density, corner_data)
-        #     )
-        # else:
-        geom.set_mesh_size_callback(
-            lambda dim, tag, x, y, z: base_density)
-
-        geom_mesh = geom.generate_mesh()
-
-        points = geom_mesh.points[:, 0:2].copy()
-        #print("Nodes number: " + str(len(points)))
-        cells = geom_mesh.cells[1].data.astype("long").copy()
-
-    return points, cells
-        # mesh.write("out.vtk")
+    pass  # TODO
+    # min = helpers.corner_min(corners)
+    # max = helpers.corner_min(corners)
+    # with pygmsh.geo.Geometry() as geom:
+    #     geom.add_polygon(
+    #         [[min[0], min[1]], [min[0], max[1]], [max[0], max[1]], [max[0], min[1]],]
+    #     )
+    #
+    #     base_density = get_base_density(mesh_size, corners)
+    #     # if(is_adaptive):
+    #     #     corner_data = mesh_corner_data(base_density)
+    #     #     geom.set_mesh_size_callback(
+    #     #         lambda dim, tag, x, y, z: get_adaptive_mesh_density(x, y, base_density, corner_data)
+    #     #     )
+    #     # else:
+    #     geom.set_mesh_size_callback(
+    #         lambda dim, tag, x, y, z: base_density)
+    #
+    #     geom_mesh = geom.generate_mesh()
+    #
+    #     points = geom_mesh.points[:, 0:2].copy()
+    #     #print("Nodes number: " + str(len(points)))
+    #     cells = geom_mesh.cells[1].data.astype("long").copy()
+    #
+    # return points, cells
+    #     # mesh.write("out.vtk")
 
 
 def get_cross_rectangle(mesh_size_x, mesh_size_y, corners):
