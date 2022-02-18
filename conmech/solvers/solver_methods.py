@@ -10,13 +10,13 @@ from conmech.vertex_utils import length
 
 
 @numba.njit()
-def n_down(Points, Edges, e):
+def n_down(n0, n1):
     # [0,-1]
-    e1 = int(Edges[e][0])
-    e2 = int(Edges[e][1])
-    dx = Points[e2][0] - Points[e1][0]
-    dy = Points[e2][1] - Points[e1][1]
-    norm = np.sqrt(dx * dx + dy * dy)
+    x = 0
+    y = 1
+    dx = n0[x] - n1[x]
+    dy = n0[y] - n1[y]
+    norm = np.sqrt(dx**2 + dy**2)
     n = np.array([float(dy) / norm, float(-dx) / norm])
     if n[1] > 0:
         n = -n
@@ -68,8 +68,7 @@ def make_f(jnZ, jtZ, h):
                 firstPointCoordinates = vertices[v1_id]
                 secondPointCoordinates = vertices[v2_id]
                 edgeLength = length(firstPointCoordinates, secondPointCoordinates)
-                # nmL = n_down(Points, Edges, e)  # TODO n at mL
-                nmL = np.asarray([0, -1])
+                nmL = n_down(firstPointCoordinates, secondPointCoordinates)
 
                 uNmL = (um * nmL).sum()
                 uTmL = um - uNmL * nmL
@@ -131,13 +130,14 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
     @numba.njit()
     def cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries):
         cost = 0
-        nmL = np.asarray([0, -1])
         for contact_boundary in contact_boundaries:
             for i in range(1, len(contact_boundary)):
                 v1_id = contact_boundary[i - 1]
                 v2_id = contact_boundary[i]
+                firstPointCoordinates = vertices[v1_id]
+                secondPointCoordinates = vertices[v2_id]
 
-                # nmL = n_down(Points, Edges, e)  # TODO n at mL
+                nmL = n_down(firstPointCoordinates, secondPointCoordinates)
 
                 um = interpolate_point_between(v1_id, v2_id, ut_vector)
                 um_old = interpolate_point_between(v1_id, v2_id, ut_vector_old)
@@ -146,8 +146,6 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
                 uNmL_old = (um_old * nmL).sum()
                 uTmL = um - uNmL * nmL
 
-                firstPointCoordinates = vertices[v1_id]
-                secondPointCoordinates = vertices[v2_id]
                 edgeLength = length(firstPointCoordinates, secondPointCoordinates)
 
                 cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
