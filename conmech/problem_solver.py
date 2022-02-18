@@ -5,7 +5,6 @@ from typing import Optional, List, Tuple
 
 import numpy as np
 
-from conmech.grid_factory import GridFactory
 from conmech.state import State, TemperatureState
 from conmech.solvers.solver import Solver
 from conmech.solvers import Solvers
@@ -26,12 +25,6 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        # TODO, second size
-        # self.grid = GridFactory.construct(setup.cells_number[0],
-        #                                   setup.cells_number[1],
-        #                                   setup.grid_height
-        #                                   )
-
         th_coef = setup.th_coef if hasattr(setup, "th_coef") else 0
         ze_coef = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
@@ -113,13 +106,12 @@ class ProblemSolver:
             self, solver, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
-        fuse = 1
+        fuse = 10
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         while quality < validator.error_tolerance and bool(fuse):
             fuse -= 1
             solution = solver.solve(solution, **kwargs)
-            # validator.check_quality(state, solution, quality)
-            quality += 0.1
+            quality = validator.check_quality(state, solution, quality)
             iteration += 1
             self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
         return solution

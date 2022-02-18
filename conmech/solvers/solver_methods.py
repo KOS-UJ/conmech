@@ -83,11 +83,19 @@ def make_f(jnZ, jtZ, h):
 
                 # TODO: To make function h dependent on u_nu, we need Uzawa approach
                 #       For now, for validating we can ignore it.
-                JZu[i] += edgeLength * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
-                JZu[i + offset] += edgeLength * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
+                j_x = edgeLength * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
+                j_y = edgeLength * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
+
+                if v1_id < offset:
+                    JZu[v1_id] += j_x
+                    JZu[v1_id + offset] += j_y
+
+                if v2_id < offset:
+                    JZu[v2_id] += j_x
+                    JZu[v2_id + offset] += j_y
         return JZu
 
-    # @numba.njit()
+    @numba.njit()
     def f(u_vector, vertices, contact_boundaries, B, F_Zero, F_One):
         jZu = JZu(u_vector, vertices, contact_boundaries)
 
@@ -95,7 +103,7 @@ def make_f(jnZ, jtZ, h):
 
         result = np.dot(B, u_vector) + jZu - F
 
-        return result  # 10000000000
+        return result
 
     return f
 
@@ -130,6 +138,8 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
     @numba.njit()
     def cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries):
         cost = 0
+        offset = len(ut_vector) // DIMENSION
+
         for contact_boundary in contact_boundaries:
             for i in range(1, len(contact_boundary)):
                 v1_id = contact_boundary[i - 1]
@@ -148,8 +158,8 @@ def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] =
 
                 edgeLength = length(firstPointCoordinates, secondPointCoordinates)
 
-                cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
-
+                if v2_id < offset and v2_id < offset:
+                    cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
         return cost
 
     @numba.njit()
