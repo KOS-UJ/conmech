@@ -8,16 +8,15 @@ from conmech.f import F
 
 
 class Solver:
-
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            coefficients,
-            time_step,
-            contact_law,
-            friction_bound
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        coefficients,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         self.coefficients = coefficients
         self.contact_law = contact_law
@@ -28,10 +27,10 @@ class Solver:
         # Added
         self.time_step = time_step
         self.currentTime = 0
-        self.u_vector = np.zeros([self.mesh.independent_num * 2])
-        self.v_vector = np.zeros([self.mesh.independent_num * 2])
+        self.u_vector = np.zeros([self.mesh.independent_nodes_conunt * 2])
+        self.v_vector = np.zeros([self.mesh.independent_nodes_conunt * 2])
 
-        self.B = mesh.B_ind
+        self.B = mesh.B
 
         self.forces = F(mesh, inner_forces, outer_forces)
         self.forces.setF()

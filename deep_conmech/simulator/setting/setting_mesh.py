@@ -1,6 +1,6 @@
-import common.config as config
-from common import basic_helpers
-import simulator.mesh.mesh_builders as mesh_builders
+import deep_conmech.common.config as config
+from deep_conmech.common import basic_helpers
+import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from numba import njit
@@ -10,8 +10,8 @@ from numba import njit
 
 
 @njit  # (parallel=True)
-def get_edges_matrix(points_number, cells):
-    edges_matrix = np.zeros((points_number, points_number), dtype=numba.int32)
+def get_edges_matrix(nodes_count, cells):
+    edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     cell_vertices_number = len(cells[0])
     for cell in cells:  # TODO: prange?
         for i in range(cell_vertices_number):
@@ -26,17 +26,17 @@ def get_edges_matrix(points_number, cells):
 @njit
 def get_edges_list(edges_matrix):
     edges_number = np.sum(edges_matrix > 0, dtype=numba.int64)
-    points_number = len(edges_matrix[0])
+    nodes_count = len(edges_matrix[0])
     edges = np.zeros((edges_number, 2), dtype=numba.int64)
     e = 0
-    for i in range(points_number):
-        for j in range(points_number):
+    for i in range(nodes_count):
+        for j in range(nodes_count):
             if i != j:
                 if edges_matrix[i, j] == 1:
                     edges[e] = np.array([i, j])
                     e += 1
-    for i in range(points_number):
-        for j in range(points_number):
+    for i in range(nodes_count):
+        for j in range(nodes_count):
             if i != j:
                 if edges_matrix[i, j] > 1:
                     edges[e] = np.array([i, j])
@@ -51,14 +51,14 @@ def get_edges_list(edges_matrix):
 def move_boundary_points_to_start(
     unordered_points, unordered_cells, old_attached_point_indices, old_boundary_indices
 ):
-    points_number = len(old_attached_point_indices)
-    boundary_points_number = len(old_boundary_indices)
+    nodes_count = len(old_attached_point_indices)
+    boundary_nodes_count = len(old_boundary_indices)
 
-    points = np.zeros((points_number, unordered_points.shape[1]))
+    points = np.zeros((nodes_count, unordered_points.shape[1]))
     cells = -(unordered_cells.copy() + 1)
 
     boundary_index = 0
-    inner_index = points_number - 1
+    inner_index = nodes_count - 1
     for old_index in old_attached_point_indices:
         point = unordered_points[old_index]
 
@@ -72,7 +72,7 @@ def move_boundary_points_to_start(
         points[new_index] = point
         cells = np.where(cells == -(old_index + 1), new_index, cells)
 
-    return points, cells, boundary_points_number
+    return points, cells, boundary_nodes_count
 
 
 ############
@@ -82,9 +82,9 @@ def move_boundary_points_to_start(
 def get_furthest_apart(points):
     max_dist = 0.0
     max_i, max_j = 0, 0
-    points_number = len(points)
-    for i in range(points_number):
-        for j in range(i, points_number):
+    nodes_count = len(points)
+    for i in range(nodes_count):
+        for j in range(i, nodes_count):
             dist = basic_helpers.euclidean_norm(points[i] - points[j])
             if dist > max_dist:
                 max_dist = dist
@@ -119,11 +119,20 @@ def get_boundary_edges_internal_nodes(boundary_edges_count, edges, cells):
 
 class SettingMesh:
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
     ):
-        self.mesh_density = mesh_density
+        self.mesh_density_x = mesh_density_x
+        self.mesh_density_y = mesh_density_y
         self.mesh_type = mesh_type
-        self.scale = scale
+        self.scale_x = scale_x
+        self.scale_y = scale_y
         self.is_adaptive = is_adaptive
         self.create_in_subprocess = create_in_subprocess
 
@@ -134,16 +143,18 @@ class SettingMesh:
 
     def set_mesh(self):
         unordered_points, unordered_cells = mesh_builders.build_mesh(
-            self.mesh_type,
-            self.mesh_density,
-            self.scale,
-            self.is_adaptive,
-            self.create_in_subprocess,
+            mesh_type=self.mesh_type,
+            mesh_density_x=self.mesh_density_x,
+            mesh_density_y=self.mesh_density_y,
+            scale_x=self.scale_x,
+            scale_y=self.scale_y,
+            is_adaptive=self.is_adaptive,
+            create_in_subprocess=self.create_in_subprocess,
         )
         (
             self.initial_points,
             self.cells,
-            self.boundary_points_count,
+            self.boundary_nodes_count,
             self.boundary_edges_count,
         ) = self.clean_mesh(unordered_points, unordered_cells)
 
@@ -151,7 +162,7 @@ class SettingMesh:
             self.boundary_points_initial
         )
 
-        self.edges_matrix = get_edges_matrix(self.points_number, self.cells)
+        self.edges_matrix = get_edges_matrix(self.nodes_count, self.cells)
         self.edges = get_edges_list(self.edges_matrix)
         self.boundary_edges_internal_nodes = get_boundary_edges_internal_nodes(
             self.boundary_edges_count, self.edges, self.cells
@@ -162,8 +173,8 @@ class SettingMesh:
         self.set_a_old(np.zeros_like(self.initial_points))
 
     def clean_mesh(self, unordered_points, unordered_cells):
-        points_number = len(unordered_points)
-        edges_matrix = get_edges_matrix(points_number, unordered_cells)
+        nodes_count = len(unordered_points)
+        edges_matrix = get_edges_matrix(nodes_count, unordered_cells)
         boundary_edges_count = np.sum(edges_matrix == 1, dtype=np.int64)
         edges = get_edges_list(edges_matrix)
         boundary_edges = edges[:boundary_edges_count, :]
@@ -171,13 +182,13 @@ class SettingMesh:
         old_attached_point_indices = basic_helpers.get_occurances(unordered_cells)
         old_boundary_indices = basic_helpers.get_occurances(boundary_edges)
 
-        points, cells, boundary_points_count = move_boundary_points_to_start(
+        points, cells, boundary_nodes_count = move_boundary_points_to_start(
             unordered_points,
             unordered_cells,
             old_attached_point_indices,
             old_boundary_indices,
         )
-        return points, cells, boundary_points_count, boundary_edges_count
+        return points, cells, boundary_nodes_count, boundary_edges_count
 
     def set_a_old(self, a):
         self.a_old = a
@@ -311,7 +322,7 @@ class SettingMesh:
         return self.normalized_points[self.cells]
 
     @property
-    def points_number(self):
+    def nodes_count(self):
         return len(self.initial_points)
 
     @property
@@ -323,8 +334,8 @@ class SettingMesh:
         return self.initial_points[: self.boundary_edges_count, :]
 
     @property
-    def inner_points_number(self):
-        return self.points_number - self.boundary_points_count
+    def inner_nodes_count(self):
+        return self.nodes_count - self.boundary_nodes_count
 
     @property
     def boundary_centers(self):

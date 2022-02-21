@@ -12,10 +12,10 @@ def weighted_mean(v1, v2, scale):
 
 
 @njit
-def interpolate_point(initial_point, corner_vectors, setting_scale):
+def interpolate_point(initial_point, corner_vectors, scale_x, scale_y):
     min = [0., 0.]  #########
-    x_scale = (initial_point[0] - min[0]) / setting_scale
-    y_scale = (initial_point[1] - min[1]) / setting_scale
+    x_scale = (initial_point[0] - min[0]) / scale_x
+    y_scale = (initial_point[1] - min[1]) / scale_y
 
     top_scaled = weighted_mean(corner_vectors[1], corner_vectors[2], x_scale)
     bottom_scaled = weighted_mean(corner_vectors[0], corner_vectors[3], x_scale)
@@ -25,11 +25,11 @@ def interpolate_point(initial_point, corner_vectors, setting_scale):
 
 
 @njit
-def interpolate(count, initial_points, corner_vectors, setting_scale):
+def interpolate(count, initial_points, corner_vectors, scale_x, scale_y):
     result = np.zeros((count, config.DIM))
     for i in range(count):
         initial_point = initial_points[i]
-        result[i] = interpolate_point(initial_point, corner_vectors, setting_scale)
+        result[i] = interpolate_point(initial_point, corner_vectors, scale_x, scale_y)
     return result
 
 

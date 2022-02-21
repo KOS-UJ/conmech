@@ -33,7 +33,7 @@ class SchurComplement(Optimization):
         )
 
         self.contact_ids = slice(0, mesh.contact_num)
-        self.free_ids = slice(mesh.contact_num, mesh.independent_num)
+        self.free_ids = slice(mesh.contact_num, mesh.independent_nodes_conunt)
 
         # free_x_free = SchurComplement.get_submatrix(self.B, indices=(free_ids, free_ids))
         # free_x_contact = SchurComplement.get_submatrix(self.B, indices=(free_ids, contact_ids))
@@ -46,19 +46,27 @@ class SchurComplement(Optimization):
 
         # Cii
         free_x_free = SchurComplement.get_submatrix(
-            C, indices=(self.free_ids, self.free_ids), ind_num=self.mesh.independent_num
+            C,
+            indices=(self.free_ids, self.free_ids),
+            ind_num=self.mesh.independent_nodes_conunt,
         )
         # Cit
         free_x_contact = SchurComplement.get_submatrix(
-            C, indices=(self.free_ids, self.contact_ids), ind_num=self.mesh.independent_num
+            C,
+            indices=(self.free_ids, self.contact_ids),
+            ind_num=self.mesh.independent_nodes_conunt,
         )
         # Cti
         self.contact_x_free = SchurComplement.get_submatrix(
-            C, indices=(self.contact_ids, self.free_ids), ind_num=self.mesh.independent_num
+            C,
+            indices=(self.contact_ids, self.free_ids),
+            ind_num=self.mesh.independent_nodes_conunt,
         )
         # Ctt
         contact_x_contact = SchurComplement.get_submatrix(
-            C, indices=(self.contact_ids, self.contact_ids), ind_num=self.mesh.independent_num
+            C,
+            indices=(self.contact_ids, self.contact_ids),
+            ind_num=self.mesh.independent_nodes_conunt,
         )
 
         self.free_x_contact = free_x_contact
@@ -112,7 +120,7 @@ class SchurComplement(Optimization):
 
     @staticmethod
     def get_submatrix(
-            arrays: iter, indices: Tuple[slice, slice], ind_num: int
+        arrays: iter, indices: Tuple[slice, slice], ind_num: int
     ) -> np.matrix:
         ind00 = (slice(0, ind_num), slice(0, ind_num))
         ind01 = (slice(0, ind_num), slice(ind_num, 2 * ind_num))
@@ -141,12 +149,12 @@ class SchurComplement(Optimization):
         return self._point_forces
 
     def solve(
-            self,
-            initial_guess: np.ndarray,
-            *,
-            temperature=None,
-            fixed_point_abs_tol: float = math.inf,
-            **kwargs
+        self,
+        initial_guess: np.ndarray,
+        *,
+        temperature=None,
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         truncated_temperature = None
@@ -154,8 +162,10 @@ class SchurComplement(Optimization):
             truncated_temperature = temperature[self.contact_ids]
         solution_contact = super().solve(
             truncated_initial_guess,
-            temperature=truncated_temperature, fixed_point_abs_tol=fixed_point_abs_tol,
-            **kwargs)
+            temperature=truncated_temperature,
+            fixed_point_abs_tol=fixed_point_abs_tol,
+            **kwargs
+        )
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
         self.iterate(solution)
@@ -164,7 +174,9 @@ class SchurComplement(Optimization):
     def solve_t(self, temperature, velocity) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(velocity)
         truncated_temperature = temperature[self.contact_ids]
-        solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])  # reduce dim
+        solution_contact = super().solve_t(
+            truncated_temperature, truncated_initial_guess[0]
+        )  # reduce dim
 
         _solution_free = np.dot(self.T_free_x_contact, solution_contact)
         _solution_free = self.Q_free - _solution_free
@@ -206,14 +218,31 @@ class Static(SchurComplement):
         return self.B
 
     def get_X(self):
-        return np.zeros((1, 2 * self.mesh.independent_num))
+        return np.zeros((1, 2 * self.mesh.independent_nodes_conunt))
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
-    def __init__(self, mesh, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
+    def __init__(
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        coefficients,
+        time_step,
+        contact_law,
+        friction_bound,
+    ):
         self.A = mesh.A
-        super().__init__(mesh, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+        super().__init__(
+            mesh,
+            inner_forces,
+            outer_forces,
+            coefficients,
+            time_step,
+            contact_law,
+            friction_bound,
+        )
 
     def get_C(self):
         return self.A
@@ -230,14 +259,31 @@ class Quasistatic(SchurComplement):
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(Quasistatic):
-    def __init__(self, mesh, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
-        self.U = mesh.U
+    def __init__(
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        coefficients,
+        time_step,
+        contact_law,
+        friction_bound,
+    ):
+        self.ACC = mesh.ACC
         self.K = mesh.K
-        self.t_vector = np.zeros(mesh.independent_num)
-        super().__init__(mesh, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+        self.t_vector = np.zeros(mesh.independent_nodes_conunt)
+        super().__init__(
+            mesh,
+            inner_forces,
+            outer_forces,
+            coefficients,
+            time_step,
+            contact_law,
+            friction_bound,
+        )
 
         # temperature
-        # T = (1 / self.time_step) * self.U[0, 0] + self.K
+        # T = (1 / self.time_step) * self.ACC[0, 0] + self.K
         #
         # # Tii
         # T_free_x_free = T[self.free_ids, self.free_ids]
@@ -260,25 +306,26 @@ class Dynamic(Quasistatic):
         #
         # self.Q_free, self.Q = self.recalculate_temperature()
 
-
     @property
     def T(self):
         return self._point_temperature
 
     def get_C(self):
-        return self.A + (1 / self.time_step) * self.U
+        return self.A + (1 / self.time_step) * self.ACC
 
     def get_X(self):
         # TODO: check: from old implementation: times -1 - why?
         X = -1 * np.dot(self.B, self.u_vector.T)
 
         # TODO: check: from old implementation: times -1 - why?
-        X += (1 / self.time_step) * np.asarray(np.dot(self.U, self.v_vector)).ravel()  # TODO np.asarray(dot...).ravel()
+        X += (1 / self.time_step) * np.asarray(
+            np.dot(self.ACC, self.v_vector)
+        ).ravel()  # TODO np.asarray(dot...).ravel()
 
         # TODO temperature
         # C2X, C2Y = Matrices.construct_C2(self.grid)
-        # C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.grid.independent_num].transpose()))
-        # C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.grid.independent_num].transpose()))
+        # C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.grid.independent_nodes_conunt].transpose()))
+        # C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.grid.independent_nodes_conunt].transpose()))
         #
         # X += np.concatenate((C2XTemp, C2YTemp))
 
@@ -293,10 +340,34 @@ class Dynamic(Quasistatic):
     def recalculate_temperature(self):
         C2X, C2Y = Matrices.construct_C2(self.grid)
 
-        C2Xv = np.squeeze(np.asarray(np.dot(C2X, self.v_vector[0:self.grid.independent_num].transpose())))
-        C2Yv = np.squeeze(np.asarray(np.dot(C2Y, self.v_vector[self.grid.independent_num:2*self.grid.independent_num].transpose())))
+        C2Xv = np.squeeze(
+            np.asarray(
+                np.dot(
+                    C2X,
+                    self.v_vector[0 : self.grid.independent_nodes_conunt].transpose(),
+                )
+            )
+        )
+        C2Yv = np.squeeze(
+            np.asarray(
+                np.dot(
+                    C2Y,
+                    self.v_vector[
+                        self.grid.independent_nodes_conunt : 2
+                        * self.grid.independent_nodes_conunt
+                    ].transpose(),
+                )
+            )
+        )
 
-        Q1 = (1. / self.time_step) * np.squeeze(np.asarray(np.dot(self.U[0, 0], self.t_vector[0:self.grid.independent_num].transpose())))
+        Q1 = (1.0 / self.time_step) * np.squeeze(
+            np.asarray(
+                np.dot(
+                    self.ACC[0, 0],
+                    self.t_vector[0 : self.grid.independent_nodes_conunt].transpose(),
+                )
+            )
+        )
 
         QBig = Q1 - C2Xv - C2Yv
 
@@ -304,6 +375,6 @@ class Dynamic(Quasistatic):
         Q_contact = QBig[self.contact_ids]
         # TiiINVQi = multiplyByDAT(prefix + ' TiiINV.dat', self.Qi)
         _point_temperature = np.dot(self.T_free_x_free_inverted, Q_free)
-        Q = (Q_contact - np.asarray(self.T_contact_x_free.dot(_point_temperature)))
+        Q = Q_contact - np.asarray(self.T_contact_x_free.dot(_point_temperature))
 
         return Q_free, Q

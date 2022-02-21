@@ -1,7 +1,8 @@
 import numpy as np
+import numba
 from numba import njit
-from common import basic_helpers
-from simulator.setting.setting_matrices import SettingFeatures
+from deep_conmech.common import basic_helpers
+from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 
 
 @njit
@@ -18,31 +19,65 @@ def L2_full_np(a, C, E):
     return value
 
 
-class SettingForces(SettingFeatures):
+@njit
+def get_forces_by_function_numba(
+    forces_function, initial_points, moved_points, scale_x, scale_y, current_time
+):
+    nodes_count = len(initial_points)
+    forces = np.zeros((nodes_count, 2), dtype=numba.double)
+    for i in range(nodes_count):
+        initial_point = initial_points[i]
+        moved_point = moved_points[i]
+        forces[i] = forces_function(
+            initial_point, moved_point, current_time, scale_x, scale_y
+        )
+
+    return forces
+
+
+class SettingForces(SettingMatrices):
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+            mesh_type,
+            mesh_density_x,
+            mesh_density_y,
+            scale_x,
+            scale_y,
+            is_adaptive,
+            create_in_subprocess,
         )
         self.forces = None
-        
+
+    def get_forces_by_function(self, forces_function, current_time):
+        return get_forces_by_function_numba(
+            numba.njit(forces_function),
+            self.initial_points,
+            self.moved_points,
+            self.scale_x,
+            self.scale_y,
+            current_time,
+        )
 
     @property
     def normalized_forces(self):
         return self.rotate_to_upward(self.forces)
 
-
-
     def prepare(self, forces):
         self.forces = forces
         self.set_all_normalized_E_np()
-        
+
     def clear(self):
         self.forces = None
 
-
-    
     def set_a_old(self, a):
         self.clear_all_E()
         super().set_a_old(a)
@@ -55,7 +90,6 @@ class SettingForces(SettingFeatures):
         self.clear_all_E()
         super().set_u_old(u)
 
-
     def clear_all_E(self):
         self.normalized_E = None
         self.normalized_Ei = None
@@ -63,7 +97,7 @@ class SettingForces(SettingFeatures):
 
     def set_all_normalized_E_np(self):
         self.normalized_E = self.get_normalized_E_np()
-        t = self.boundary_points_count
+        t = self.boundary_nodes_count
         normalized_E_split = basic_helpers.unstack(self.normalized_E)
         normalized_Et = basic_helpers.stack_column(normalized_E_split[:t, :])
         self.normalized_Ei = basic_helpers.stack_column(normalized_E_split[t:, :])

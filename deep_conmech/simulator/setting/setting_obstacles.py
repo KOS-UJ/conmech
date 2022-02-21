@@ -1,10 +1,10 @@
 import time
 
-from common import config, basic_helpers
+from deep_conmech.common import config, basic_helpers
 import numpy as np
 from numba import njit
 
-from simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_forces import *
 
 
 @njit
@@ -30,7 +30,9 @@ def integrate(nodes, v, edges, closest_obstacle_normals, closest_obstacle_origin
     middle_node = np.mean(edge_node, axis=1)
     middle_v = np.mean(edge_v, axis=1)
 
-    middle_node_normal = basic_helpers.elementwise_dot(middle_node - closest_obstacle_origins, normals)
+    middle_node_normal = basic_helpers.elementwise_dot(
+        middle_node - closest_obstacle_origins, normals
+    )
     middle_v_normal = basic_helpers.elementwise_dot(middle_v, normals)
 
     middle_v_tangential = middle_v - (middle_v_normal.reshape(-1, 1) * normals)
@@ -45,11 +47,13 @@ def integrate(nodes, v, edges, closest_obstacle_normals, closest_obstacle_origin
 
 
 @njit
-def integrate_numba(nodes, v, edges, closest_obstacle_normals, closest_obstacle_origins):
+def integrate_numba(
+    nodes, v, edges, closest_obstacle_normals, closest_obstacle_origins
+):
     result = 0.0
     for i in range(len(edges)):
         normal = -closest_obstacle_normals[i]
-        #if(np.sum(normal) == 0):
+        # if(np.sum(normal) == 0):
         #    continue
         origin = closest_obstacle_origins[i]  # normal to edge and not obstacle?
         e1, e2 = edges[i]
@@ -71,6 +75,7 @@ def integrate_numba(nodes, v, edges, closest_obstacle_normals, closest_obstacle_
         result += edge_length * (resistance_normal + resistance_tangential)
     return result * 0.5  # edges present twice
 
+
 @njit
 def get_closest_obstacle_data(
     nodes, edges_normals, edges, obstacle_normals, obstacle_origins
@@ -81,12 +86,12 @@ def get_closest_obstacle_data(
     for i in range(len(edges)):
         e1, e2 = edges[i]
         middle_node = 0.5 * (nodes[e1] + nodes[e2])
-        #edge_normal = edges_normals[i]
+        # edge_normal = edges_normals[i]
 
         distances = basic_helpers.euclidean_norm(obstacle_origins - middle_node)
-        #valid_indices = np.where((obstacle_normals @ edge_normal) > 0)[0]
-        #if(len(valid_indices) > 0):
-        #min_index = valid_indices[distances[valid_indices].argmin()]
+        # valid_indices = np.where((obstacle_normals @ edge_normal) > 0)[0]
+        # if(len(valid_indices) > 0):
+        # min_index = valid_indices[distances[valid_indices].argmin()]
         min_index = distances.argmin()
 
         closest_obstacle_origins[i] = obstacle_origins[min_index]
@@ -104,24 +109,20 @@ def L2_obstacle_np(
     boundary_points,
     boundary_edges,
     closest_obstacle_normals,
-    closest_obstacle_origins
+    closest_obstacle_origins,
 ):
     value = L2_full_np(boundary_a, C_boundary, E_boundary)
 
-    boundary_v_new = (
-        boundary_v_old + config.TIMESTEP * boundary_a
-    )
-    boundary_points_new = (
-        boundary_points + config.TIMESTEP * boundary_v_new
-    )
+    boundary_v_new = boundary_v_old + config.TIMESTEP * boundary_a
+    boundary_points_new = boundary_points + config.TIMESTEP * boundary_v_new
     boundary_integral = integrate_numba(
         boundary_points_new,
         boundary_v_new,
         boundary_edges,
         closest_obstacle_normals,
-        closest_obstacle_origins
+        closest_obstacle_origins,
     )
-    '''
+    """
     boundary_integral2 = integrate(
         boundary_points_new,
         boundary_v_new,
@@ -129,21 +130,34 @@ def L2_obstacle_np(
         closest_obstacle_normals,
         closest_obstacle_origins
     )
-    '''
-    
+    """
+
     return value + boundary_integral
 
 
 class SettingObstacle(SettingForces):
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+            mesh_type,
+            mesh_density_x,
+            mesh_density_y,
+            scale_x,
+            scale_y,
+            is_adaptive,
+            create_in_subprocess,
         )
         self.obstacles = None
         self.set_empty_closest_obstacle_data()
-   
+
     def set_empty_closest_obstacle_data(self):
         self.closest_obstacle_origins = None
         self.closest_obstacle_normals = None
@@ -156,23 +170,21 @@ class SettingObstacle(SettingForces):
         super().clear()
         self.set_empty_closest_obstacle_data()
 
-
-
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         self.obstacles[0, ...] = basic_helpers.normalize(self.obstacles[0, ...])
 
-
     def set_closest_obstacle_data(self):
-        self.closest_obstacle_origins, self.closest_obstacle_normals = get_closest_obstacle_data(
+        (
+            self.closest_obstacle_origins,
+            self.closest_obstacle_normals,
+        ) = get_closest_obstacle_data(
             self.moved_points,
             self.boundary_edges_normals,
             self.boundary_edges,
             self.obstacle_normals,
             self.obstacle_origins,
         )
-
-
 
     @property
     def obstacle_normals(self):
@@ -182,16 +194,15 @@ class SettingObstacle(SettingForces):
     def obstacle_origins(self):
         return self.obstacles[1, ...]
 
-
     @property
     def normalized_closest_obstacle_normals(self):
         return self.rotate_to_upward(self.closest_obstacle_normals)
 
     @property
     def normalized_closest_obstacle_origins(self):
-        return self.rotate_to_upward(self.closest_obstacle_origins - self.mean_moved_points)
-
-
+        return self.rotate_to_upward(
+            self.closest_obstacle_origins - self.mean_moved_points
+        )
 
     @property
     def normalized_obstacle_normals(self):
@@ -200,12 +211,6 @@ class SettingObstacle(SettingForces):
     @property
     def normalized_obstacle_origins(self):
         return self.rotate_to_upward(self.obstacle_origins - self.mean_moved_points)
-
-
-
-
-
-
 
     @property
     def obstacle_normal(self):
@@ -237,21 +242,24 @@ class SettingObstacle(SettingForces):
 
     @property
     def normalized_boundary_v_old(self):
-        return self.normalized_v_old[: self.boundary_points_count, :]
+        return self.normalized_v_old[: self.boundary_nodes_count, :]
 
     @property
     def normalized_boundary_points(self):
-        return self.normalized_points[: self.boundary_points_count, :]
+        return self.normalized_points[: self.boundary_nodes_count, :]
 
     @property
     def boundary_centers_penetration_scale(self):
         normals = -self.closest_obstacle_normals
 
-        boundary_centers_to_obstacle_at_normal = basic_helpers.elementwise_dot(self.boundary_centers - self.closest_obstacle_origins, normals)
+        boundary_centers_to_obstacle_at_normal = basic_helpers.elementwise_dot(
+            self.boundary_centers - self.closest_obstacle_origins, normals
+        )
 
-        return ((
-            boundary_centers_to_obstacle_at_normal > 0
-        ) * boundary_centers_to_obstacle_at_normal).reshape(-1,1)
+        return (
+            (boundary_centers_to_obstacle_at_normal > 0)
+            * boundary_centers_to_obstacle_at_normal
+        ).reshape(-1, 1)
 
     @property
     def boundary_centers_penetration(self):

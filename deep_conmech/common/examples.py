@@ -1,4 +1,5 @@
 import numpy as np
+import numba
 from deep_conmech.common import config
 
 
@@ -12,24 +13,28 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
 ##################
 
 
-def f_slide(ip, mp, t, scale):
+def f_slide(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
     if t <= 0.1:
         force = np.array([0.2, 0.0])
     return force
 
 
-def f_accelerate_fast(ip, mp, t, scale):
+def f_accelerate_fast(ip, mp, t, scale_x, scale_y):
     force = np.array([0.2, 0.0])
     return force
 
 
-def f_accelerate_slow(ip, mp, t, scale):
+def f_accelerate_slow_right(ip, mp, t, scale_x, scale_y):
     force = np.array([0.01, 0.0])
     return force
 
+def f_accelerate_slow_left(ip, mp, t, scale_x, scale_y):
+    force = np.array([-0.01, 0.0])
+    return force
 
-def f_push(ip, mp, t, scale):
+
+def f_push(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
     if ip[0] == 0.0:
         p = 5.0 * np.maximum(min[0] - mp[0], 0.0)
@@ -39,13 +44,13 @@ def f_push(ip, mp, t, scale):
     return force
 
 
-def f_obstacle(ip, mp, t, scale):
+def f_obstacle(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
     obstacle_x = 1.5
     obstacle_y = 0.7
 
     if (
-        ip[0] == scale
+        ip[0] == scale_x
         and ip[1] < obstacle_y
         and mp[0] > obstacle_x
         and mp[1] < obstacle_y
@@ -57,7 +62,7 @@ def f_obstacle(ip, mp, t, scale):
     return force
 
 
-def f_tug_and_rotate(ip, mp, t, scale):
+def f_tug_and_rotate(ip, mp, t, scale_x, scale_y):
     min = basic_helpers.min(corners)
     max = basic_helpers.max(corners)
     force = np.array([0.0, 0.0])
@@ -80,16 +85,16 @@ def f_tug_and_rotate(ip, mp, t, scale):
     return force
 
 
-def f_stay(ip, mp, t, scale):
+def f_stay(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
 
 
 # def get_f_rotate(t_cutoff = 0.1, force_cutoff=0.5):
-def f_rotate(ip, mp, t, scale):
+def f_rotate(ip, mp, t, scale_x, scale_y):
     t_cutoff = 0.1
     force_cutoff = 0.5
     if t <= t_cutoff:
-        y_scaled = ip[1] / scale
+        y_scaled = ip[1] / scale_y
         # y_scaled = 2*y_scaled - 1.
         return y_scaled * np.array([force_cutoff, 0.0])
     return np.array([0.0, 0.0])
@@ -99,16 +104,16 @@ def f_rotate(ip, mp, t, scale):
 
 
 def reverse(f):
-    return lambda ip, mp, t, scale: -f(ip, mp, t, scale)
+    return lambda ip, mp, t, scale_x, scale_y: numba.njit(-f(ip, mp, t, scale_x, scale_y))
 
 
-def f_random(ip, mp, t, scale):
+def f_random(ip, mp, t, scale_x, scale_y):
     scale = config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
     return force
 
 
-def f_drag(ip, mp, t, scale):
+def f_drag(ip, mp, t, scale_x, scale_y):
     max = basic_helpers.max(corners)
     if t <= 0.1 and ip[1] == max[1]:
         return np.array([1.0, 0.0])
@@ -144,7 +149,7 @@ def circle_slope(scale, is_adaptive):
     m_circle,
     config.MESH_DENSITY,
     scale,
-    f_accelerate_slow,
+    f_accelerate_slow_right,
     o_slope * scale,
     is_adaptive
 )
@@ -154,7 +159,7 @@ def circle_right(scale, is_adaptive):
     m_circle,
     config.MESH_DENSITY,
     scale,
-    f_accelerate_slow,
+    f_accelerate_slow_right,
     o_front * scale,
     is_adaptive
 )
@@ -164,7 +169,7 @@ def circle_left(scale, is_adaptive):
     m_circle,
     config.MESH_DENSITY,
     scale,
-    reverse(f_accelerate_slow),
+    f_accelerate_slow_left,
     o_back * scale,
     is_adaptive
 )

@@ -11,9 +11,9 @@ from conmech.edge import Edge
 class Matrices:
     @staticmethod
     def construct_B(grid, mi, la):
-        AX = np.zeros([grid.independent_num, 8])  # area with dx
-        AY = np.zeros([grid.independent_num, 8])  # area with dy
-        for i in range(grid.independent_num):
+        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
+        for i in range(grid.independent_nodes_conunt):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -22,11 +22,10 @@ class Matrices:
         W21 = Matrices.multiply(grid, AY, AX)  # np.transpose(W12)
         W22 = Matrices.multiply(grid, AY, AY)
 
-        B = [[(2 * mi + la) * W11 + mi * W22,
-              mi * W21 + la * W12],
-             [la * W21 + mi * W12,
-              mi * W11 + (2 * mi + la) * W22]
-             ]
+        B = [
+            [(2 * mi + la) * W11 + mi * W22, mi * W21 + la * W12],
+            [la * W21 + mi * W12, mi * W11 + (2 * mi + la) * W22],
+        ]
 
         B = np.asarray(B)
 
@@ -34,9 +33,9 @@ class Matrices:
 
     @staticmethod
     def construct_K(grid):
-        AX = np.zeros([grid.independent_num, 8])  # area with dx
-        AY = np.zeros([grid.independent_num, 8])  # area with dy
-        for i in range(grid.independent_num):
+        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
+        for i in range(grid.independent_nodes_conunt):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -52,14 +51,14 @@ class Matrices:
 
     @staticmethod
     def construct_C2(grid):
-        A = np.zeros([grid.independent_num, 8])
-        for i in range(grid.independent_num):
+        A = np.zeros([grid.independent_nodes_conunt, 8])
+        for i in range(grid.independent_nodes_conunt):
             p = grid.Points[i]
             A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
 
-        AX = np.zeros([grid.independent_num, 8])  # area with dx
-        AY = np.zeros([grid.independent_num, 8])  # area with dy
-        for i in range(grid.independent_num):
+        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
+        for i in range(grid.independent_nodes_conunt):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -78,18 +77,17 @@ class Matrices:
 
     @staticmethod
     def construct_U(grid):
-        A = np.zeros([grid.independent_num, 8])
-        for i in range(grid.independent_num):
+        A = np.zeros([grid.independent_nodes_conunt, 8])
+        for i in range(grid.independent_nodes_conunt):
             p = grid.Points[i]
             A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
 
         _U = Matrices.multiply(grid, A, A)
         _U *= grid.shortTriangleSide ** 2 / 24
-        for i in range(grid.independent_num):
+        for i in range(grid.independent_nodes_conunt):
             _U[i, i] *= 2
 
-        _U = [[_U, np.zeros_like(_U)],
-              [np.zeros_like(_U), _U]]
+        _U = [[_U, np.zeros_like(_U)], [np.zeros_like(_U), _U]]
 
         U = np.asarray(_U)
 
@@ -97,15 +95,15 @@ class Matrices:
 
     @staticmethod
     def multiply(grid, AK, AL):
-        W = np.zeros([grid.independent_num, grid.independent_num])
+        W = np.zeros([grid.independent_nodes_conunt, grid.independent_nodes_conunt])
 
-        for i in range(grid.independent_num):
+        for i in range(grid.independent_nodes_conunt):
             W[i][i] = np.sum(AK[i] * AL[i])
 
         for edge in grid.Edges:
             i = edge[0]
             j = edge[1]
-            if i < grid.independent_num and j < grid.independent_num:
+            if i < grid.independent_nodes_conunt and j < grid.independent_nodes_conunt:
                 c1i, c1j, c2i, c2j = Edge.c(edge)
                 W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
                 W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]

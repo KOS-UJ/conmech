@@ -65,8 +65,8 @@ def L2_normalized_obstacle_correction_cuda(
 
     internal = L2_normalized_cuda(normalized_a, C, normalized_E)
 
-    boundary_points_count = normalized_boundary_v_old.shape[0]
-    normalized_boundary_a = normalized_a[:boundary_points_count, :]
+    boundary_nodes_count = normalized_boundary_v_old.shape[0]
+    normalized_boundary_a = normalized_a[:boundary_nodes_count, :]
 
     normalized_boundary_v_new = (
         normalized_boundary_v_old + config.TIMESTEP * normalized_boundary_a
@@ -162,10 +162,23 @@ def L2_obstacle_nvt(
 
 class SettingInput(SettingRandomized):
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+            mesh_type,
+            mesh_density_x,
+            mesh_density_y,
+            scale_x,
+            scale_y,
+            is_adaptive,
+            create_in_subprocess,
         )
 
     @property
@@ -187,7 +200,7 @@ class SettingInput(SettingRandomized):
 
     @property
     def x(self):
-        # data = torch.ones(self.points_number, 1)
+        # data = torch.ones(self.nodes_count, 1)
         data = torch.hstack(
             (
                 self.get_data_with_norm(self.input_forces_torch),
@@ -212,7 +225,7 @@ class SettingInput(SettingRandomized):
             normalized_a_correction=self.normalized_a_correction_torch,
             setting_index=setting_index,
             exact_normalized_a_torch=exact_normalized_a_torch,
-            boundary_points_count=self.boundary_points_count_torch,
+            boundary_nodes_count=self.boundary_nodes_count_torch,
             boundary_edges_count=self.boundary_edges_count_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
             normalized_boundary_points=self.normalized_boundary_points_torch,

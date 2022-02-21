@@ -8,8 +8,8 @@ from matplotlib import cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
 
-import common.config as config
-from simulator.setting.setting_forces import *
+import deep_conmech.common.config as config
+from deep_conmech.simulator.setting.setting_forces import *
 
 background_color = "24292E"  # '1F2428'
 plt.rcParams["axes.facecolor"] = background_color
@@ -48,9 +48,9 @@ class Plotter:
 
     def draw_setting_ax(self, setting, ax, boundaries, base_setting, time):
         ax.set_aspect("equal", "box")
-        scale = setting.scale
         min = np.array([0.0, 0.0])
-        max = np.array([scale, scale])
+        max = np.array([setting.scale_x, setting.scale_y])
+        scale = setting.scale_x
 
         x_min = -3.0 * 2.0  # min[0] - (boundaries[0] * scale)
         x_max = 13.0 * 2.0  # max[0] + (boundaries[2] * scale)
@@ -148,12 +148,12 @@ class Plotter:
             ax,
         )
 
-    def draw_rectangle(self, ax, position, scale):
+    def draw_rectangle(self, ax, position, scale_x, scale_y):
         ax.add_patch(
             Rectangle(
                 (position[0], position[1],),
-                scale,
-                scale,
+                scale_x,
+                scale_y,
                 fill=None,
                 alpha=1.0,
                 color="w",
@@ -188,7 +188,7 @@ class Plotter:
             )
 
     def draw_displaced(self, setting, position, color, ax):
-        self.draw_rectangle(ax, position, setting.scale)
+        self.draw_rectangle(ax, position, setting.scale_x, setting.scale_y)
         self.draw_triplot(setting.moved_points + position, setting, f"tab:{color}", ax)
         # self.draw_data("P", obstacle_forces, setting, [7.5, -1.5], ax)
 
@@ -248,7 +248,7 @@ class Plotter:
             fontsize=5,
         )
         ax.annotate(
-            f"nodes: {str(setting.points_number)}",
+            f"nodes: {str(setting.nodes_count)}",
             xy=(x_max - 1.8 * scale, y_max - 0.6 * scale),
             color="w",
             fontsize=5,
@@ -277,7 +277,7 @@ class Plotter:
         points = setting.normalized_boundary_points + position
         scaled_arrows = normalized_vectors * scale
 
-        for i in range(setting.points_number):
+        for i in range(setting.nodes_count):
             ax.arrow(
                 points[i, 0],
                 points[i, 1],
@@ -292,17 +292,17 @@ class Plotter:
     """
 
     def draw_arrows(self, points, normalized_vectors, ax):
-        points_number = len(points)
+        nodes_count = len(points)
         scale = 1.0  # 3.0
         points = points
         scaled_arrows = normalized_vectors * scale
 
         max_arrow_count = 64
         arrow_skip = 1
-        if points_number > max_arrow_count:
-            arrow_skip = int(points_number / max_arrow_count)
+        if nodes_count > max_arrow_count:
+            arrow_skip = int(nodes_count / max_arrow_count)
 
-        for i in range(points_number):
+        for i in range(nodes_count):
             if i % arrow_skip == 0:
                 ax.arrow(
                     points[i, 0],
@@ -506,8 +506,8 @@ def draw_mesh_density(id):
         )
 
     def get_x_draw_torch(self, force, mesh):
-        u_old = np.repeat([[0.0, 0.0]], mesh.points_number, axis=0)
-        forces = np.repeat([force], mesh.points_number, axis=0)
+        u_old = np.repeat([[0.0, 0.0]], mesh.nodes_count, axis=0)
+        forces = np.repeat([force], mesh.nodes_count, axis=0)
         x = np.hstack((forces, u_old, mesh.on_gamma_d))
         x =basic_helpers.to_torch_float(x)
         return x

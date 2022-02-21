@@ -18,9 +18,9 @@ NORMALIZE_ROTATE = True
 # "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
-PRINT_SCALE = 1.0  # 2.0
+PRINT_SCALE = 2.0
 
-MESH_DENSITY = 4  # 20
+MESH_DENSITY = 20
 ADAPTIVE_MESH = True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
 SIMULATE_DIRTY_DATA_SIMULATOR = True

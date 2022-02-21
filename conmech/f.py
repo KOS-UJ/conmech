@@ -13,9 +13,9 @@ class F:
         self.F0 = F0
         self.FN = FN
         self.mesh = mesh
-        self.F = np.zeros([self.mesh.independent_num, 2])
-        self.Zero = np.zeros([self.mesh.independent_num])
-        self.One = np.zeros([self.mesh.independent_num])
+        self.F = np.zeros([self.mesh.independent_nodes_conunt, 2])
+        self.Zero = np.zeros([self.mesh.independent_nodes_conunt])
+        self.One = np.zeros([self.mesh.independent_nodes_conunt])
 
     # TODO: inject?
     ########################################################
@@ -29,10 +29,10 @@ class F:
     ########################################################
 
     def setF(self):
-        #f0 = np.array([self.f0(p) for p in self.mesh.moved_points])
-        #self.F = self.mesh.AREA @ f0
+        # f0 = np.array([self.f0(p) for p in self.mesh.moved_points])
+        # self.F = self.mesh.AREA @ f0
 
-        self.F = np.zeros([self.mesh.points_number, 2])
+        self.F = np.zeros([self.mesh.nodes_count, 2])
 
         for element_id, element in enumerate(self.mesh.cells):
             p0 = self.mesh.initial_points[element[0]]
@@ -45,9 +45,15 @@ class F:
 
             f_mean = (f0 + f1 + f2) / 3  # TODO
 
-            self.F[element[0]] += f_mean / 3 * self.mesh.element_area[element_id]
-            self.F[element[1]] += f_mean / 3 * self.mesh.element_area[element_id]
-            self.F[element[2]] += f_mean / 3 * self.mesh.element_area[element_id]
+            self.F[element[0]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
+            self.F[element[1]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
+            self.F[element[2]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
 
         # np.allclose(self.F2,  self.F)
         for neumann_boundary in self.mesh.boundaries.neumann:

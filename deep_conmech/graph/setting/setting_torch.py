@@ -10,10 +10,23 @@ def L2_torch(argument, C, E):
 
 class SettingTorch(SettingObstacle):
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+            mesh_type,
+            mesh_density_x,
+            mesh_density_y,
+            scale_x,
+            scale_y,
+            is_adaptive,
+            create_in_subprocess,
         )
         self.exact_normalized_a_torch = None  # todo: clear on change
 
@@ -70,8 +83,8 @@ class SettingTorch(SettingObstacle):
         return basic_helpers.to_torch_double(self.input_v_old)
 
     @property
-    def boundary_points_count_torch(self):
-        return basic_helpers.to_torch_long(self.boundary_points_count)
+    def boundary_nodes_count_torch(self):
+        return basic_helpers.to_torch_long(self.boundary_nodes_count)
 
     @property
     def boundary_edges_count_torch(self):

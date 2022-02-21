@@ -1,19 +1,20 @@
-import numpy as np
+from typing import Callable
+
+import deep_conmech.common.config as config
 import numba
+import numpy as np
+from conmech.old.boundaries import Boundaries
+from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
-import common.config as config
-from simulator.setting.setting_mesh import SettingMesh
 
 
 # @njit
 def get_edges_features_list(edges_number, edges_features_matrix):
-    points_number = len(edges_features_matrix[0])
-    edges_features = np.zeros(
-        (edges_number + points_number, 8)
-    )  # , dtype=numba.double)
+    nodes_count = len(edges_features_matrix[0])
+    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
     e = 0
-    for i in range(points_number):
-        for j in range(points_number):
+    for i in range(nodes_count):
+        for j in range(nodes_count):
             if np.any(edges_features_matrix[i, j]):
                 edges_features[e] = edges_features_matrix[i, j]
                 e += 1
@@ -21,10 +22,10 @@ def get_edges_features_list(edges_number, edges_features_matrix):
 
 
 @njit  # (parallel=True)
-def get_edges_features_matrix(points_number, cells, cells_points):
-    edges_features_matrix = np.zeros(
-        (points_number, points_number, 8), dtype=numba.double
-    )
+def get_edges_features_matrix(nodes_count, cells, cells_points):
+    edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=numba.double)
+    element_initial_area = np.zeros(len(cells))
+
     cell_vertices_number = len(cells[0])
 
     for cell_index in range(len(cells)):  # TODO: prange?
@@ -34,6 +35,8 @@ def get_edges_features_matrix(points_number, cells, cells_points):
         # TODO: Get rid of repetition (?)
         for i in range(cell_vertices_number):
             i_dPhX, i_dPhY, triangle_area = get_integral_parts(cell_points, i)
+            # TODO: Avoid repetition
+            element_initial_area[cell_index] = triangle_area
 
             for j in range(cell_vertices_number):
                 j_dPhX, j_dPhY, _ = get_integral_parts(cell_points, j)
@@ -51,7 +54,7 @@ def get_edges_features_matrix(points_number, cells, cells_points):
                 edges_features_matrix[cell[i], cell[j]] += triangle_area * np.array(
                     [area, w11, w12, w21, w22, u1, u2, u]
                 )
-    return edges_features_matrix
+    return edges_features_matrix, element_initial_area
 
 
 @njit
@@ -94,10 +97,7 @@ def denominator(x_i, x_j1, x_j2):
 
 @njit
 def div_or_zero(value, denominator):
-    if denominator != 0:
-        return value / denominator
-    else:
-        return 0.0
+    return value / denominator if denominator != 0 else 0.0
 
 
 @njit
@@ -121,7 +121,9 @@ def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
 
 
 # @njit
-def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS):
+def get_matrices(
+    edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP, independent_nodes_conunt
+):
     # move config MU, LA,... out to model
     AREA = edges_features_matrix[..., 0]
 
@@ -136,18 +138,32 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS):
     # A = np.vstack((np.hstack((c, s)), np.hstack((-s, c))))
     # result = A @ matrix @ A.T
 
-    A = np.vstack((np.hstack((A11, A12)), np.hstack((A21, A22))))
-    B = np.vstack((np.hstack((B11, B12)), np.hstack((B21, B22))))
+    ind = slice(0, independent_nodes_conunt)
 
-    U1 = edges_features_matrix[..., 5]
-    U2 = edges_features_matrix[..., 6]
-    U = edges_features_matrix[..., 7]
+    A = np.vstack(
+        (
+            np.hstack((A11[ind, ind], A12[ind, ind])),
+            np.hstack((A21[ind, ind], A22[ind, ind])),
+        )
+    )
+    B = np.vstack(
+        (
+            np.hstack((B11[ind, ind], B12[ind, ind])),
+            np.hstack((B21[ind, ind], B22[ind, ind])),
+        )
+    )
+
+    U1 = edges_features_matrix[..., 5][ind, ind]
+    U2 = edges_features_matrix[..., 6][ind, ind]
+    U = edges_features_matrix[..., 7][ind, ind]
 
     Z = np.zeros_like(U)
-    ACC = DENS * np.vstack((np.hstack((U, Z)), np.hstack((Z, U))))
+    ACC = DENS * np.vstack(
+        (np.hstack((U, Z)), np.hstack((Z, U)))
+    )
 
-    A_plus_B_times_ts = A + B * config.TIMESTEP
-    C = ACC + A_plus_B_times_ts * config.TIMESTEP
+    A_plus_B_times_ts = A + B * TIMESTEP
+    C = ACC + A_plus_B_times_ts * TIMESTEP
 
     k11 = 0.5
     k12 = k21 = 0.5
@@ -160,48 +176,81 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, DENS):
     C2X = c11 * U1 + c21 * U2
     C2Y = c12 * U1 + c22 * U2
 
-    T = (1.0 / config.TIMESTEP) * k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
+    # T = (1.0 / TIMESTEP) * k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
 
-    return C, B, AREA, A_plus_B_times_ts
+    k11 = k22 = 0.1
+    k12 = k21 = 0
+    K = k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
 
+    return C, B, AREA, A_plus_B_times_ts, A, ACC, K
 
-
-
-class SettingFeatures(SettingMesh):
+class SettingMatrices(SettingMesh):
     def __init__(
-        self, mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+        self,
+        mesh_type,
+        mesh_density_x,
+        mesh_density_y,
+        scale_x,
+        scale_y,
+        is_adaptive,
+        create_in_subprocess,
+        mu=config.MU,
+        la=config.LA,
+        th=config.TH,
+        ze=config.ZE,
+        density=config.DENS,
+        timestep=config.TIMESTEP,
+        reorganize_boundaries=None,
     ):
         super().__init__(
-            mesh_density, mesh_type, scale, is_adaptive, create_in_subprocess
+            mesh_type,
+            mesh_density_x,
+            mesh_density_y,
+            scale_x,
+            scale_y,
+            is_adaptive,
+            create_in_subprocess,
         )
-        self.reinitialize_matrices()
+        self.mu = mu
+        self.la = la
+        self.th = th
+        self.ze = ze
+        self.density = density
+        self.timestep = timestep
 
+        self.boundaries = None
+        self.independent_nodes_conunt = self.nodes_count
+        if reorganize_boundaries is not None:
+            reorganize_boundaries()
+
+        self.reinitialize_matrices()
 
     def remesh(self):
         super().remesh()
         self.reinitialize_matrices()
 
-
     def reinitialize_matrices(self):
-        edges_features_matrix = get_edges_features_matrix(
-            self.points_number, self.cells, self.cells_normalized_points
+        edges_features_matrix, self.element_initial_area = get_edges_features_matrix(
+            self.nodes_count, self.cells, self.cells_normalized_points
         )
 
-        #edges_features = get_edges_features_list(
+        # edges_features = get_edges_features_list(
         #    self.edges_number, edges_features_matrix
-        #)
+        # )
 
-        self.C, self.B, self.AREA, self.A_plus_B_times_ts = get_matrices(
+        self.C, self.B, self.AREA, self.A_plus_B_times_ts, self.A, self.ACC, self.K = get_matrices(
             edges_features_matrix,
-            MU=config.MU,
-            LA=config.LA,
-            TH=config.TH,
-            ZE=config.ZE,
-            DENS=config.DENS,
+            MU=self.mu,
+            LA=self.la,
+            TH=self.th,
+            ZE=self.ze,
+            DENS=self.density,
+            TIMESTEP=self.timestep,
+            independent_nodes_conunt=self.independent_nodes_conunt,
         )
 
-        p = self.points_number
-        t = self.boundary_points_count
+        p = self.independent_nodes_conunt
+        t = self.boundary_nodes_count
         i = p - t
 
         # self.C = np.array([[i*j for i in range(4)] for j in range(4)])
@@ -220,9 +269,14 @@ class SettingFeatures(SettingMesh):
         CtiCiiINVCit = self.Cti @ CiiINVCit
 
         self.C_boundary = Ctt - CtiCiiINVCit
-        a = 0
+        
 
     def clear_save(self):
+        self.element_initial_area = None
+        self.A = None
+        self.ACC = None
+        self.K = None
+
         self.B = None
         self.AREA = None
         self.A_plus_B_times_ts = None

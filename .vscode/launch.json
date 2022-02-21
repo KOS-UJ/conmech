@@ -17,14 +17,14 @@
             "name": "Graph",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/deep_conmech/starter_graph.py",
+            "program": "${workspaceFolder}/starter_graph.py",
             "console": "integratedTerminal"
         },
         {
             "name": "Simulator",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/deep_conmech/starter_simulator.py",
+            "program": "${workspaceFolder}/starter_simulator.py",
             "console": "integratedTerminal"
         }
     ]

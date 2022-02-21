@@ -12,6 +12,7 @@ import psutil
 import torch
 from numba import njit
 from tqdm import tqdm
+import numba
 
 import deep_conmech.common.config as config
 
@@ -105,15 +106,7 @@ def get_random_normal_circle(count, scale):
         result[i] = [r * math.cos(alpha), r * math.sin(alpha)]
     return result
 
-@njit
-def get_forces_by_function(forces_function, setting, current_time):
-    forces = np.zeros((setting.points_number, 2))
-    for i in range(setting.points_number):
-        initial_point = setting.initial_points[i]
-        moved_point = setting.moved_points[i]
-        forces[i] = forces_function(initial_point, moved_point, current_time, setting.scale)
 
-    return forces
 
 
 def norm(data):

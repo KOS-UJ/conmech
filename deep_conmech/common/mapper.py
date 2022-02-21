@@ -1,19 +1,22 @@
 import time
-from simulator.calculator import Calculator
 
-import common.config as config
-from deep_conmech.common import config, basic_helpers
+from deep_conmech.common import basic_helpers, config
 from deep_conmech.common.basic_helpers import *
-from graph.model import *
-from graph.setting.setting_input import *
+from deep_conmech.graph.model import *
+from deep_conmech.graph.setting.setting_input import *
+from deep_conmech.simulator.calculator import Calculator
+
+import deep_conmech.common.config as config
 
 
 def get_setting(scenario, simulate_dirty_data):
     setting = SettingInput(
-        scenario.mesh_density,
-        scenario.mesh_type,
-        scenario.scale,
-        scenario.is_adaptive,
+        mesh_type=scenario.mesh_type,
+        mesh_density_x=scenario.mesh_density,
+        mesh_density_y=scenario.mesh_density,
+        scale_x=scenario.scale,
+        scale_y=scenario.scale,
+        is_adaptive=scenario.is_adaptive,
         create_in_subprocess=True
     )
     setting.set_randomization(simulate_dirty_data)
@@ -23,10 +26,12 @@ def get_setting(scenario, simulate_dirty_data):
 
 def get_base_setting(scenario):
     setting = SettingInput(
-        scenario.mesh_density,
-        scenario.mesh_type,
-        scenario.scale,
-        scenario.is_adaptive,
+        mesh_type=scenario.mesh_type,
+        mesh_density_x=scenario.mesh_density,
+        mesh_density_y=scenario.mesh_density,
+        scale_x=scenario.scale,
+        scale_y=scenario.scale,
+        is_adaptive=scenario.is_adaptive,
         create_in_subprocess=True
     )
     setting.set_obstacles(scenario.obstacles)
@@ -58,7 +63,7 @@ def map_time(
     for timestep in time_tqdm:
         current_time = (timestep + 1) * config.TIMESTEP
 
-        forces =basic_helpers.get_forces_by_function(scenario.forces_function, setting, current_time)
+        forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)
         max_data.set(setting, timestep)
 

@@ -65,7 +65,7 @@ class Calculator:
     def solve_normalized_optimization(setting, initial_boundary_vector=None):
         if initial_boundary_vector is None:
             initial_boundary_vector = np.zeros(
-                setting.boundary_points_count * config.DIM
+                setting.boundary_nodes_count * config.DIM
             )
 
         tstart = time.time()
@@ -75,14 +75,14 @@ class Calculator:
             method="L-BFGS-B",  # , options={"disp": True}
         ).x
         t_np = time.time() - tstart
-        '''
+        """
         tstart = time.time()
         normalized_boundary_a_vector_nvt = scipy.optimize.minimize(
             setting.normalized_L2_obstacle_nvt,
             initial_boundary_vector,  # , options={"disp": True}
         ).x
         t_nvt = time.time() - tstart
-        '''
+        """
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
 
         normalized_a_vector = Calculator.get_normalized_a_vector(

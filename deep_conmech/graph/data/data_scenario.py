@@ -1,4 +1,4 @@
-from graph.data.data_base import *
+from deep_conmech.graph.data.data_base import *
 from deep_conmech.common import config, basic_helpers
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
@@ -9,8 +9,10 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 def get_setting(scenario):
     setting = SettingInput(
         mesh_type=scenario.mesh_type,
-        mesh_density=scenario.mesh_density,
-        scale=scenario.scale,
+        mesh_density_x=scenario.mesh_density,
+        mesh_density_y=scenario.mesh_density,
+        scale_x=scenario.scale,
+        scale_y=scenario.scale,
         is_adaptive=scenario.is_adaptive,
         create_in_subprocess=False, ###################################
     )
@@ -47,8 +49,8 @@ def generate_scenario_data_process(
                 return False
                 
             current_time = ts * config.TIMESTEP
-            forces = basic_helpers.get_forces_by_function(
-                scenario.forces_function, setting, current_time
+            forces = setting.get_forces_by_function(
+                scenario.forces_function, current_time
             )
             setting.prepare(forces)
 

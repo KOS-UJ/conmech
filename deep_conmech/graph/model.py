@@ -72,8 +72,8 @@ class GraphModelDynamic:
         graph_sizes = np.ediff1d(basic_helpers.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 
-    def boundary_points_counts(self, batch):
-        return basic_helpers.to_np_long(batch.boundary_points_count).tolist()
+    def boundary_nodes_counts(self, batch):
+        return basic_helpers.to_np_long(batch.boundary_nodes_count).tolist()
 
     def boundary_edges_counts(self, batch):
         return basic_helpers.to_np_long(batch.boundary_edges_count).tolist()
@@ -192,7 +192,7 @@ class GraphModelDynamic:
     def E(self, batch):
         graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
-        boundary_points_counts = self.boundary_points_counts(batch)
+        boundary_nodes_counts = self.boundary_nodes_counts(batch)
         boundary_edges_counts = self.boundary_edges_counts(batch)
         dim_graph_sizes = [size * config.DIM for size in graph_sizes]
         dim_dim_graph_sizes = [
@@ -209,10 +209,10 @@ class GraphModelDynamic:
         normalized_E_split = batch.normalized_E.split(dim_graph_sizes)
         normalized_a_correction_split = batch.normalized_a_correction.split(graph_sizes)
         normalized_boundary_v_old_split = batch.normalized_boundary_v_old.split(
-            boundary_points_counts
+            boundary_nodes_counts
         )
         normalized_boundary_points_split = batch.normalized_boundary_points.split(
-            boundary_points_counts
+            boundary_nodes_counts
         )
         boundary_edges_split = batch.boundary_edges.split(boundary_edges_counts)
         normalized_closest_obstacle_normals_split = batch.normalized_closest_obstacle_normals.split(

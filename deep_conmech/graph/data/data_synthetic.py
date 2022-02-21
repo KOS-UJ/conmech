@@ -1,19 +1,19 @@
-import graph.data.data_interpolation as data_interpolation
+import deep_conmech.graph.data.data_interpolation as data_interpolation
 import numpy as np
 from deep_conmech.common import basic_helpers, config
+from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
-from graph.data.data_base import *
 from torch_geometric.loader import DataLoader
 
 
 def create_forces(setting):
     if data_interpolation.decide(config.DATA_ZERO_FORCES):
-        forces = np.zeros([setting.points_number, config.DIM])
+        forces = np.zeros([setting.nodes_count, config.DIM])
     else:
         forces = data_interpolation.interpolate_four(
-            setting.points_number,
+            setting.nodes_count,
             setting.initial_points,
             config.FORCES_RANDOM_SCALE,
             setting.scale,
@@ -23,7 +23,7 @@ def create_forces(setting):
 
 def create_u_old(setting):
     u_old = data_interpolation.interpolate_four(
-        setting.points_number,
+        setting.nodes_count,
         setting.initial_points,
         config.U_RANDOM_SCALE,
         setting.scale,
@@ -34,14 +34,14 @@ def create_u_old(setting):
 def create_v_old(setting):
     if data_interpolation.decide(config.DATA_ROTATE_VELOCITY):
         v_old = data_interpolation.interpolate_rotate(
-            setting.points_number,
+            setting.nodes_count,
             setting.initial_points,
             config.V_RANDOM_SCALE,
             setting.scale,
         )
     else:
         v_old = data_interpolation.interpolate_four(
-            setting.points_number,
+            setting.nodes_count,
             setting.initial_points,
             config.V_RANDOM_SCALE,
             setting.scale,
@@ -79,9 +79,11 @@ def create_mesh_type():
 
 def get_base_setting(mesh_type):
     return SettingInput(
-        mesh_density=config.MESH_DENSITY,
         mesh_type=mesh_type,
-        scale=config.TRAIN_SCALE,
+        mesh_density_x=config.MESH_DENSITY,
+        mesh_density_y=config.MESH_DENSITY,
+        scale_x=config.TRAIN_SCALE,
+        scale_y=config.TRAIN_SCALE,
         is_adaptive=config.ADAPTIVE_MESH,
         create_in_subprocess=False,
     )
