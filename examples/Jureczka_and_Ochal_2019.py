@@ -44,7 +44,7 @@ class JureczkaOchal2018(ContactLaw):
 
 @dataclass()
 class StaticSetup(Static):
-    grid_height: ... = 1
+    grid_height: ... = 1.
     cells_number: ... = (4, 8)
     inner_forces: ... = np.array([-1.2, -0.8])
     outer_forces: ... = np.array([0, 0])
@@ -59,6 +59,14 @@ class StaticSetup(Static):
         if u_nu < 0.1:
             return 8 * u_nu
         return 0.8
+
+    @staticmethod
+    def is_contact(x, y):
+        return y == 0
+
+    @staticmethod
+    def is_dirichlet(x, y):
+        return x == 0
 
 
 if __name__ == '__main__':

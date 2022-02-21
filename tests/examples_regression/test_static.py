@@ -40,6 +40,14 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
+
     setup_m02_m02 = StaticSetup()
 
     expected_displacement_vector_m02_m02 = \
@@ -109,6 +117,14 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0.0
 
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
+
     setup_var = StaticSetup()
     expected_displacement_vector_var = \
         [[0., 0.],
@@ -136,8 +152,8 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     runner = StaticProblem(setup, solving_method)
     result = runner.solve()
 
-    displacement = result.grid.Points[:, :2] - result.displaced_points[:, :2]
-    std_ids = standard_boundary_nodes(runner.grid)
+    displacement = result.mesh.initial_points[:] - result.displaced_points[:]
+    std_ids = standard_boundary_nodes(runner.mesh.initial_points, runner.mesh.cells)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

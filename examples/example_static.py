@@ -14,7 +14,7 @@ from conmech.utils.drawer import Drawer
 
 @dataclass()
 class StaticSetup(Static):
-    grid_height: ... = 1
+    grid_height: ... = 1.
     cells_number: ... = (2, 5)
     inner_forces: ... = np.array([-0.2, -0.2])
     outer_forces: ... = np.array([0, 0])
@@ -25,6 +25,14 @@ class StaticSetup(Static):
     @staticmethod
     def friction_bound(u_nu):
         return 0
+
+    @staticmethod
+    def is_contact(x, y):
+        return y == 0
+
+    @staticmethod
+    def is_dirichlet(x, y):
+        return x == 0
 
 
 if __name__ == '__main__':
