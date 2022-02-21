@@ -46,14 +46,20 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 class TDynamicSetup(Dynamic):
     grid_height: ... = 1.
     cells_number: ... = (10, 25)
-    inner_forces: ... = np.array([0., -1.])
-    outer_forces: ... = np.array([0., 0])
     mu_coef: ... = 4
     lambda_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
+
+    @staticmethod
+    def inner_forces(x, y):
+        return np.array([0., -1.])
+
+    @staticmethod
+    def outer_forces(x, y):
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu):

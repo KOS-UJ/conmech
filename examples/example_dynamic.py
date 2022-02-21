@@ -15,14 +15,20 @@ from utils.drawer import Drawer
 class DynamicSetup(Dynamic):
     grid_height: ... = 1.
     cells_number: ... = (2, 5)
-    inner_forces: ... = np.array([-0.2, -0.2])
-    outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
     lambda_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.1
     contact_law: ... = make_slope_contact_law(slope=1e1)
+
+    @staticmethod
+    def inner_forces(x, y):
+        return np.array([-0.2, -0.2])
+
+    @staticmethod
+    def outer_forces(x, y):
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu):
