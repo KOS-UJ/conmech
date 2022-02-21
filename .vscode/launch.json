@@ -9,16 +9,9 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Current file from root",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "env": {"PYTHONPATH": "${cwd}"}
+            /*"cwd": "${workspaceFolder}",
+            "env": {"PYTHONPATH": "${cwd}"}*/
         },
         {
             "name": "Graph",

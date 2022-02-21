@@ -1,6 +1,7 @@
 """
 Created at 21.08.2019
 """
+#%%
 from dataclasses import dataclass
 
 import numpy as np
@@ -36,3 +37,5 @@ if __name__ == '__main__':
     states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
     for state in states:
         Drawer(state).draw()
+
+# %%
