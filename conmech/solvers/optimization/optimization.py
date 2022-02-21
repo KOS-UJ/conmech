@@ -13,8 +13,14 @@ from conmech.solvers.solver_methods import make_L2_t
 
 class Optimization(Solver):
 
-    def __init__(self, grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound):
-        super().__init__(grid, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
+    def __init__(
+            self, mesh,
+            inner_forces, outer_forces,
+            coefficients, time_step,
+            contact_law, friction_bound
+    ):
+        super().__init__(
+            mesh, inner_forces, outer_forces, coefficients, time_step, contact_law, friction_bound)
         self.loss = make_L2(
             jn=contact_law.potential_normal_direction,
             jt=contact_law.potential_tangential_direction
@@ -56,10 +62,8 @@ class Optimization(Solver):
                 solution,
                 args=(
                     old_solution,
-                    self.grid.independent_num,
-                    self.grid.BorderEdgesC,
-                    self.grid.Edges,
-                    self.grid.Points,
+                    self.mesh.initial_points,
+                    self.mesh.boundaries.contact,
                     self.point_relations,
                     self.point_forces,
                     temperature

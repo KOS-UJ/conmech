@@ -42,6 +42,14 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
+
     setup_m02_m02 = QuasistaticSetup()
 
     expected_displacement_vector_m02_m02 = \
@@ -114,6 +122,14 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0.0
 
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
+
     setup_var = QuasistaticSetup()
     expected_displacement_vector_var = \
         [[0., 0.],
@@ -141,12 +157,12 @@ def test_global_optimization_solver(solving_method, setup, expected_displacement
     runner = QuasistaticProblem(setup, solving_method)
     results = runner.solve(n_steps=32)
 
-    displacement = results[-1].grid.Points[:, :2] - results[-1].displaced_points[:, :2]
-    std_ids = standard_boundary_nodes(runner.grid)
+    displacement = results[-1].mesh.initial_points[:] - results[-1].displaced_points[:]
+    std_ids = standard_boundary_nodes(runner.mesh.initial_points, runner.mesh.cells)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
     print(repr(displacement[std_ids]))
 
     np.testing.assert_array_almost_equal(
-        displacement[std_ids], expected_displacement_vector, decimal=5)
+        displacement[std_ids], expected_displacement_vector, decimal=3)

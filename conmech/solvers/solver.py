@@ -11,7 +11,7 @@ class Solver:
 
     def __init__(
             self,
-            grid,
+            mesh,
             inner_forces,
             outer_forces,
             coefficients,
@@ -23,17 +23,17 @@ class Solver:
         self.contact_law = contact_law
         self.friction_bound = friction_bound
 
-        self.grid = grid
+        self.mesh = mesh
 
         # Added
         self.time_step = time_step
         self.currentTime = 0
-        self.u_vector = np.zeros([self.grid.independent_num * 2])
-        self.v_vector = np.zeros([self.grid.independent_num * 2])
+        self.u_vector = np.zeros([self.mesh.independent_num * 2])
+        self.v_vector = np.zeros([self.mesh.independent_num * 2])
 
-        self.B = Matrices.construct_B(grid, coefficients.mu, coefficients.lambda_)
+        self.B = mesh.B_ind
 
-        self.forces = F(grid, inner_forces, outer_forces)
+        self.forces = F(mesh, inner_forces, outer_forces)
         self.forces.setF()
 
     def __str__(self):

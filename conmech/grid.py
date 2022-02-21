@@ -27,7 +27,7 @@ class Grid:
         self.Edges = np.zeros([0, 3], dtype=np.int32)
         self.edges_idx = None
         self.edges_start = None
-        # TODO: bad practice
+        # TODO: Bad practice
         #  i, j, type: (always i<j on plane)
         #  0 - no edge
         #  1 - from normal go right to normal, 2 - from normal go up to normal,

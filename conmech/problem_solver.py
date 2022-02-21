@@ -5,7 +5,6 @@ from typing import Optional, List, Tuple
 
 import numpy as np
 
-from conmech.grid_factory import GridFactory
 from conmech.state import State, TemperatureState
 from conmech.solvers.solver import Solver
 from conmech.solvers import Solvers
@@ -15,6 +14,7 @@ from conmech.problems import Static as StaticProblem
 from conmech.problems import Quasistatic as QuasistaticProblem
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.solvers.coefficients import Coefficients
+from graph.mesh_features import MeshFeatures
 
 
 class ProblemSolver:
@@ -25,10 +25,20 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.grid = GridFactory.construct(setup.cells_number[0],
-                                          setup.cells_number[1],
-                                          setup.grid_height
-                                          )
+        th_coef = setup.th_coef if hasattr(setup, "th_coef") else 0
+        ze_coef = setup.ze_coef if hasattr(setup, "ze_coef") else 0
+        time_step = setup.time_step if hasattr(setup, "time_step") else 0
+        dens = 1
+
+        grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
+
+        self.mesh = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
+                                 corners=[0., 0., grid_width, setup.grid_height],
+                                 is_adaptive=False,
+                                 MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
+                                 DENS=dens, TIMESTEP=time_step,
+                                 is_dirichlet=setup.is_dirichlet,
+                                 is_contact=setup.is_contact)
         self.setup = setup
 
         self.coordinates = 'displacement' if isinstance(setup, StaticProblem) else 'velocity'
@@ -55,7 +65,7 @@ class ProblemSolver:
         else:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
-        self.step_solver = solver_class(self.grid,
+        self.step_solver = solver_class(self.mesh,
                                         self.setup.inner_forces, self.setup.outer_forces,
                                         coefficients,
                                         time_step,
@@ -154,7 +164,7 @@ class Static(ProblemSolver):
         :param verbose: show prints
         :return: state
         """
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_displacement:
             state.set_displacement(initial_displacement)
         solution = state.displacement.reshape(2, -1)
@@ -191,7 +201,7 @@ class Quasistatic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
@@ -232,7 +242,7 @@ class Dynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.grid)
+        state = State(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
@@ -273,7 +283,7 @@ class TDynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = TemperatureState(self.grid)
+        state = TemperatureState(self.mesh)
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
