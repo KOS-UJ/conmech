@@ -3,6 +3,8 @@ Created at 21.08.2019
 """
 
 import numpy as np
+from deep_conmech.common import basic_helpers
+
 from conmech.vertex_utils import length
 
 
@@ -27,6 +29,9 @@ class F:
     ########################################################
 
     def setF(self):
+        #f0 = np.array([self.f0(p) for p in self.mesh.moved_points])
+        #self.F = self.mesh.AREA @ f0
+
         self.F = np.zeros([self.mesh.points_number, 2])
 
         for element_id, element in enumerate(self.mesh.cells):
@@ -44,14 +49,19 @@ class F:
             self.F[element[1]] += f_mean / 3 * self.mesh.element_area[element_id]
             self.F[element[2]] += f_mean / 3 * self.mesh.element_area[element_id]
 
+        # np.allclose(self.F2,  self.F)
         for neumann_boundary in self.mesh.boundaries.neumann:
 
             for i in range(1, len(neumann_boundary)):
                 v0 = neumann_boundary[i - 1]
                 v1 = neumann_boundary[i]
 
-                edge_length = length(self.mesh.initial_points[v0], self.mesh.initial_points[v1])
-                v_mid = (self.mesh.initial_points[v0] + self.mesh.initial_points[v1]) / 2
+                edge_length = length(
+                    self.mesh.initial_points[v0], self.mesh.initial_points[v1]
+                )
+                v_mid = (
+                    self.mesh.initial_points[v0] + self.mesh.initial_points[v1]
+                ) / 2
 
                 f_neumann = self.fN(v_mid) * edge_length / 2
 

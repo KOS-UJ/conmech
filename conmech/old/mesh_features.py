@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 import numba
 
-from graph.mesh import Mesh
+from conmech.old.mesh import Mesh
 
 
 @numba.njit

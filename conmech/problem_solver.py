@@ -14,7 +14,7 @@ from conmech.problems import Static as StaticProblem
 from conmech.problems import Quasistatic as QuasistaticProblem
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.solvers.coefficients import Coefficients
-from graph.mesh_features import MeshFeatures
+from conmech.old.mesh_features import MeshFeatures
 
 
 class ProblemSolver:
@@ -33,7 +33,7 @@ class ProblemSolver:
         grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
 
         self.mesh = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
-                                 corners=[0., 0., grid_width, setup.grid_height],
+                                 corners=[0., 0., float(grid_width), float(setup.grid_height)],
                                  is_adaptive=False,
                                  MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
                                  DENS=dens, TIMESTEP=time_step,

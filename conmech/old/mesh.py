@@ -4,14 +4,14 @@ from typing import Callable, List, Tuple
 import numpy as np
 import numba
 
-from graph import mesh_builders
+from deep_conmech.simulator.mesh import mesh_builders
 
 # import os, sys
 # sys.path.append(os.path.abspath('../'))
 
 
 # HELPERS #
-from graph.boundaries import Boundaries
+from conmech.old.boundaries import Boundaries
 
 
 # @numba.njit
