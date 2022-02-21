@@ -1,7 +1,7 @@
 """
 Created at 21.08.2019
 """
-#%% 
+#%%
 from dataclasses import dataclass
 
 import numpy as np
@@ -14,12 +14,12 @@ from conmech.utils.drawer import Drawer
 
 @dataclass()
 class DynamicSetup(Dynamic):
-    grid_height: ... = 1.
+    grid_height: ... = 1.0
     cells_number: ... = (2, 5)
     inner_forces: ... = np.array([-0.2, -0.2])
     outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
-    lambda_coef: ... = 4
+    la_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.1
@@ -38,9 +38,9 @@ class DynamicSetup(Dynamic):
         return x == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup = DynamicSetup()
-    runner = DynamicProblemSolver(setup, solving_method='schur')
+    runner = DynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
     for state in states:

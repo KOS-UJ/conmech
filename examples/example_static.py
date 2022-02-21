@@ -14,12 +14,12 @@ from conmech.utils.drawer import Drawer
 
 @dataclass()
 class StaticSetup(Static):
-    grid_height: ... = 1.
+    grid_height: ... = 1.0
     cells_number: ... = (2, 5)
     inner_forces: ... = np.array([-0.2, -0.2])
     outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
-    lambda_coef: ... = 4
+    la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
 
     @staticmethod
@@ -35,9 +35,9 @@ class StaticSetup(Static):
         return x == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup = StaticSetup()
-    runner = StaticProblemSolver(setup, 'direct')
+    runner = StaticProblemSolver(setup, "direct")
 
     state = runner.solve(verbose=True)
     Drawer(state).draw()

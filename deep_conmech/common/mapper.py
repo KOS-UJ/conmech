@@ -17,7 +17,7 @@ def get_setting(scenario, simulate_dirty_data):
         scale_x=scenario.scale,
         scale_y=scenario.scale,
         is_adaptive=scenario.is_adaptive,
-        create_in_subprocess=True
+        create_in_subprocess=True,
     )
     setting.set_randomization(simulate_dirty_data)
     setting.set_obstacles(scenario.obstacles)
@@ -32,7 +32,7 @@ def get_base_setting(scenario):
         scale_x=scenario.scale,
         scale_y=scenario.scale,
         is_adaptive=scenario.is_adaptive,
-        create_in_subprocess=True
+        create_in_subprocess=True,
     )
     setting.set_obstacles(scenario.obstacles)
     return setting
@@ -45,7 +45,7 @@ def map_time(
     solve_function,
     scenario,
     simulate_dirty_data,
-    description
+    description,
 ):
     print("-----")
     setting = get_setting(scenario, simulate_dirty_data)
@@ -59,13 +59,15 @@ def map_time(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = basic_helpers.get_tqdm(range(episode_steps), f"{description} - {scenario.id}")
-    for timestep in time_tqdm:
-        current_time = (timestep + 1) * config.TIMESTEP
+    time_tqdm = basic_helpers.get_tqdm(
+        range(episode_steps), f"{description} - {scenario.id}"
+    )
+    for time_step in time_tqdm:
+        current_time = (time_step + 1) * config.TIMESTEP
 
         forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)
-        max_data.set(setting, timestep)
+        max_data.set(setting, time_step)
 
         start_time = time.time()
         a = solve_function(setting)
@@ -75,7 +77,9 @@ def map_time(
             setting.make_dirty()
 
         if compare_with_base_setting:
-            base_setting.set_forces_from_function(scenario.forces_function, current_time)
+            base_setting.set_forces_from_function(
+                scenario.forces_function, current_time
+            )
 
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  ## save in setting
@@ -87,7 +91,7 @@ def map_time(
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
 
-        #setting.remesh_self() ####################################################
+        # setting.remesh_self() ####################################################
 
     comparison_str = (
         f" | Comparison {Calculator.mode()} time: {comparison_time}"

@@ -122,7 +122,7 @@ def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
 
 # @njit
 def get_matrices(
-    edges_features_matrix, MU, LA, TH, ZE, DENS, TIMESTEP, independent_nodes_conunt
+    edges_features_matrix, MU, LA, TH, ZE, density, time_step, independent_nodes_conunt
 ):
     # move config MU, LA,... out to model
     AREA = edges_features_matrix[..., 0]
@@ -158,13 +158,12 @@ def get_matrices(
     U = edges_features_matrix[..., 7][ind, ind]
 
     Z = np.zeros_like(U)
-    ACC = DENS * np.vstack(
-        (np.hstack((U, Z)), np.hstack((Z, U)))
-    )
+    ACC = density * np.vstack((np.hstack((U, Z)), np.hstack((Z, U))))
 
-    A_plus_B_times_ts = A + B * TIMESTEP
-    C = ACC + A_plus_B_times_ts * TIMESTEP
+    A_plus_B_times_ts = A + B * time_step
+    C = ACC + A_plus_B_times_ts * time_step
 
+    """
     k11 = 0.5
     k12 = k21 = 0.5
     k22 = 0.5
@@ -177,12 +176,14 @@ def get_matrices(
     C2Y = c12 * U1 + c22 * U2
 
     # T = (1.0 / TIMESTEP) * k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
+    """
 
     k11 = k22 = 0.1
     k12 = k21 = 0
     K = k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
 
     return C, B, AREA, A_plus_B_times_ts, A, ACC, K
+
 
 class SettingMatrices(SettingMesh):
     def __init__(
@@ -199,7 +200,7 @@ class SettingMatrices(SettingMesh):
         th=config.TH,
         ze=config.ZE,
         density=config.DENS,
-        timestep=config.TIMESTEP,
+        time_step=config.TIMESTEP,
         reorganize_boundaries=None,
     ):
         super().__init__(
@@ -216,7 +217,7 @@ class SettingMatrices(SettingMesh):
         self.th = th
         self.ze = ze
         self.density = density
-        self.timestep = timestep
+        self.time_step = time_step
 
         self.boundaries = None
         self.independent_nodes_conunt = self.nodes_count
@@ -238,17 +239,28 @@ class SettingMatrices(SettingMesh):
         #    self.edges_number, edges_features_matrix
         # )
 
-        self.C, self.B, self.AREA, self.A_plus_B_times_ts, self.A, self.ACC, self.K = get_matrices(
+        (
+            self.C,
+            self.B,
+            self.AREA,
+            self.A_plus_B_times_ts,
+            self.A,
+            self.ACC,
+            self.K,
+        ) = get_matrices(
             edges_features_matrix,
-            MU=self.mu,
-            LA=self.la,
-            TH=self.th,
-            ZE=self.ze,
-            DENS=self.density,
-            TIMESTEP=self.timestep,
-            independent_nodes_conunt=self.independent_nodes_conunt,
+            self.mu,
+            self.la,
+            self.th,
+            self.ze,
+            self.density,
+            self.time_step,
+            self.independent_nodes_conunt,
         )
 
+        self.calculate_C()
+
+    def calculate_C(self):
         p = self.independent_nodes_conunt
         t = self.boundary_nodes_count
         i = p - t
@@ -269,7 +281,6 @@ class SettingMatrices(SettingMesh):
         CtiCiiINVCit = self.Cti @ CiiINVCit
 
         self.C_boundary = Ctt - CtiCiiINVCit
-        
 
     def clear_save(self):
         self.element_initial_area = None

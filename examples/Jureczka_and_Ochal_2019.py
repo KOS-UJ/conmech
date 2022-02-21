@@ -1,7 +1,7 @@
 """
 Created at 21.08.2019
 """
-#%% 
+#%%
 from dataclasses import dataclass
 
 import numpy as np
@@ -18,21 +18,23 @@ class JureczkaOchal2018(ContactLaw):
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
         if u_nu <= 0:
-            return 0.
+            return 0.0
         if u_nu < 0.1:
             return 10 * u_nu * u_nu
         return 0.1
 
     @staticmethod
     def potential_tangential_direction(u_tau: np.ndarray) -> float:
-        return np.log(np.sum(u_tau * u_tau)**.5 + 1)
+        return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)
 
     @staticmethod
     def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
         return 0
 
     @staticmethod
-    def regularized_subderivative_tangential_direction(u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7) -> float:
+    def regularized_subderivative_tangential_direction(
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    ) -> float:
         """
         Coulomb regularization
         """
@@ -44,12 +46,12 @@ class JureczkaOchal2018(ContactLaw):
 
 @dataclass()
 class StaticSetup(Static):
-    grid_height: ... = 1.
+    grid_height: ... = 1.0
     cells_number: ... = (4, 8)
     inner_forces: ... = np.array([-1.2, -0.8])
     outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
-    lambda_coef: ... = 4
+    la_coef: ... = 4
     contact_law: ... = JureczkaOchal2018
 
     @staticmethod
@@ -69,9 +71,9 @@ class StaticSetup(Static):
         return x == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup = StaticSetup()
-    runner = StaticProblemSolver(setup, 'schur')
+    runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(verbose=True, fixed_point_abs_tol=0.001)
     Drawer(state).draw()
