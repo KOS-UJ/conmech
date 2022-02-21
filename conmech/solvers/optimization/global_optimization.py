@@ -1,5 +1,5 @@
 """
-Created at 22.02.2021
+Created 22.02.2021
 """
 
 import numpy as np

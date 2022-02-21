@@ -1,10 +1,3 @@
-"""
-Created at 21.08.2019
-
-@author: Michał Jureczka
-@author: Piotr Bartman
-"""
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pylab

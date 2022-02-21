@@ -5,10 +5,33 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Conmech - Graph",
+            "name": "Current file",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/graph/starter_conmech.py", //"${file}",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Current file from root",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {"PYTHONPATH": "${cwd}"}
+        },
+        {
+            "name": "Graph",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/starter_graph.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Simulator",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/starter_simulator.py",
             "console": "integratedTerminal"
         }
     ]

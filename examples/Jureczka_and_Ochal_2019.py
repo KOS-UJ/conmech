@@ -7,7 +7,7 @@ import numpy as np
 
 from conmech.problem_solver import Static as StaticProblemSolver
 from conmech.problems import Static
-from utils.drawer import Drawer
+from conmech.utils.drawer import Drawer
 
 
 from conmech.problems import ContactLaw

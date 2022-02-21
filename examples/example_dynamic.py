@@ -1,6 +1,7 @@
 """
 Created at 21.08.2019
 """
+#%% 
 from dataclasses import dataclass
 
 import numpy as np
@@ -8,7 +9,7 @@ import numpy as np
 from conmech.problem_solver import Dynamic as DynamicProblemSolver
 from conmech.problems import Dynamic
 from examples.p_slope_contact_law import make_slope_contact_law
-from utils.drawer import Drawer
+from conmech.utils.drawer import Drawer
 
 
 @dataclass()
@@ -36,3 +37,5 @@ if __name__ == '__main__':
     states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
     for state in states:
         Drawer(state).draw()
+
+# %%
