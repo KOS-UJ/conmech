@@ -63,8 +63,8 @@ def get_integral_parts(cell_points, vertex_index):
     x_j1 = cell_points[(vertex_index + 1) % 3]
     x_j2 = cell_points[(vertex_index + 2) % 3]
 
-    dm = denominator(x_i, x_j1, x_j2)  # np.abs(dm) / 2 = shoelace_area
-    triangle_area = np.abs(dm) / 2.0
+    dm = denominator(x_i, x_j1, x_j2)
+    triangle_area = np.abs(dm) / 2.0 # = np.abs(dm) / 2.0 = shoelace_area
 
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]

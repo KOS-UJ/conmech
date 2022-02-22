@@ -243,6 +243,7 @@ all_train = [
     circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
     circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
     #circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
+    #polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
     polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True)
 ]
@@ -252,6 +253,7 @@ all_print = [
     #circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False)
 ]

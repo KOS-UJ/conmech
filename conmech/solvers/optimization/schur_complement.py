@@ -75,10 +75,7 @@ class SchurComplement(Optimization):
         self.forces_free, self._point_forces = self.recalculate_forces()
 
     def recalculate_forces(self):
-        X = self.get_E()
-        n = self.mesh.independent_nodes_count
-        X_contact_unstuck = basic_helpers.unstack(X)
-        E_split = self.forces.F[:n, :] + X_contact_unstuck
+        E_split = self.get_E_split()
         # Et
         forces_contact = basic_helpers.stack_column(E_split[self.contact_ids, :])
         # Ei
@@ -100,7 +97,7 @@ class SchurComplement(Optimization):
     def get_C(self):
         raise NotImplementedError()
 
-    def get_E(self):
+    def get_E_split(self):
         raise NotImplementedError()
 
     def __str__(self):
@@ -205,8 +202,8 @@ class Static(SchurComplement):
     def get_C(self):
         return self.B
 
-    def get_E(self):
-        return np.zeros((1, 2 * self.mesh.independent_nodes_count))
+    def get_E_split(self):
+        return self.forces.F
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
@@ -235,10 +232,8 @@ class Quasistatic(SchurComplement):
     def get_C(self):
         return self.A
 
-    def get_E(self):
-        # TODO: check: from old implementation: times -1 - why?
-        X = -1 * self.B @ self.u_vector.T
-        return X
+    def get_E_split(self):
+        return self.forces.F - basic_helpers.unstack(self.B @ self.u_vector.T)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -301,12 +296,10 @@ class Dynamic(Quasistatic):
     def get_C(self):
         return self.A + (1 / self.time_step) * self.ACC
 
-    def get_E(self):
-        X = -1 * self.B @ self.u_vector.T
+    def get_E_split(self):
+        X = -1 * basic_helpers.unstack(self.B @ self.u_vector)
 
-        X += (1 / self.time_step) * np.asarray(
-            self.ACC @ self.v_vector
-        ).ravel()  # TODO np.asarray(dot...).ravel()
+        X += (1 / self.time_step) * basic_helpers.unstack(self.ACC @ self.v_vector)
 
         # TODO temperature
         # C2X, C2Y = Matrices.construct_C2(self.grid)
@@ -315,7 +308,7 @@ class Dynamic(Quasistatic):
         #
         # X += np.concatenate((C2XTemp, C2YTemp))
 
-        return X
+        return self.forces.F + X
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
