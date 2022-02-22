@@ -11,9 +11,9 @@ from conmech.edge import Edge
 class Matrices:
     @staticmethod
     def construct_B(grid, mi, la):
-        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
-        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
-        for i in range(grid.independent_nodes_conunt):
+        AX = np.zeros([grid.independent_nodes_count, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_count, 8])  # area with dy
+        for i in range(grid.independent_nodes_count):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -33,9 +33,9 @@ class Matrices:
 
     @staticmethod
     def construct_K(grid):
-        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
-        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
-        for i in range(grid.independent_nodes_conunt):
+        AX = np.zeros([grid.independent_nodes_count, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_count, 8])  # area with dy
+        for i in range(grid.independent_nodes_count):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -51,14 +51,14 @@ class Matrices:
 
     @staticmethod
     def construct_C2(grid):
-        A = np.zeros([grid.independent_nodes_conunt, 8])
-        for i in range(grid.independent_nodes_conunt):
+        A = np.zeros([grid.independent_nodes_count, 8])
+        for i in range(grid.independent_nodes_count):
             p = grid.Points[i]
             A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
 
-        AX = np.zeros([grid.independent_nodes_conunt, 8])  # area with dx
-        AY = np.zeros([grid.independent_nodes_conunt, 8])  # area with dy
-        for i in range(grid.independent_nodes_conunt):
+        AX = np.zeros([grid.independent_nodes_count, 8])  # area with dx
+        AY = np.zeros([grid.independent_nodes_count, 8])  # area with dy
+        for i in range(grid.independent_nodes_count):
             p = grid.Points[i]
             AX[i], AY[i] = Point.ax_ay(p)
 
@@ -77,14 +77,14 @@ class Matrices:
 
     @staticmethod
     def construct_U(grid):
-        A = np.zeros([grid.independent_nodes_conunt, 8])
-        for i in range(grid.independent_nodes_conunt):
+        A = np.zeros([grid.independent_nodes_count, 8])
+        for i in range(grid.independent_nodes_count):
             p = grid.Points[i]
             A[i] = Point.get_slopes(point_type=int(p[Point.TYPE]))
 
         _U = Matrices.multiply(grid, A, A)
         _U *= grid.shortTriangleSide ** 2 / 24
-        for i in range(grid.independent_nodes_conunt):
+        for i in range(grid.independent_nodes_count):
             _U[i, i] *= 2
 
         _U = [[_U, np.zeros_like(_U)], [np.zeros_like(_U), _U]]
@@ -95,15 +95,15 @@ class Matrices:
 
     @staticmethod
     def multiply(grid, AK, AL):
-        W = np.zeros([grid.independent_nodes_conunt, grid.independent_nodes_conunt])
+        W = np.zeros([grid.independent_nodes_count, grid.independent_nodes_count])
 
-        for i in range(grid.independent_nodes_conunt):
+        for i in range(grid.independent_nodes_count):
             W[i][i] = np.sum(AK[i] * AL[i])
 
         for edge in grid.Edges:
             i = edge[0]
             j = edge[1]
-            if i < grid.independent_nodes_conunt and j < grid.independent_nodes_conunt:
+            if i < grid.independent_nodes_count and j < grid.independent_nodes_count:
                 c1i, c1j, c2i, c2j = Edge.c(edge)
                 W[i][j] = AK[i][c1i] * AL[j][c1j] + AK[i][c2i] * AL[j][c2j]
                 W[j][i] = AL[i][c1i] * AK[j][c1j] + AL[i][c2i] * AK[j][c2j]

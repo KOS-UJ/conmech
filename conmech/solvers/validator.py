@@ -24,8 +24,7 @@ class Validator:
                 state.mesh.initial_points,
                 state.mesh.boundaries.contact,
                 self.B,
-                self.forces.Zero[: state.mesh.independent_nodes_conunt],
-                self.forces.One[: state.mesh.independent_nodes_conunt],
+                self.forces.F_vector
             )
         )
         quality = quality_inv ** -1

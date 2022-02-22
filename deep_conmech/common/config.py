@@ -18,7 +18,7 @@ NORMALIZE_ROTATE = True
 # "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
-PRINT_SCALE = 2.0
+PRINT_SCALE = 1.0 # 2.0
 
 MESH_DENSITY = 20
 ADAPTIVE_MESH = True
@@ -43,7 +43,7 @@ V_IN_RANDOM_FACTOR = 0.005 * V_RANDOM_SCALE
 
 ############
 
-PRINT_FINAL_TIME = 10.0
+PRINT_FINAL_TIME = 4.0 #10.0 #!#
 VAL_PRINT_EPISODE_STEPS = int(PRINT_FINAL_TIME / TIMESTEP)
 
 ############
@@ -54,7 +54,7 @@ PRINT_DATA_CUTOFF = 1
 ############
 
 VALIDATE_AT_EPOCHS = 20
-DRAW_AT_MINUTES = 1  #!#60  # 1
+DRAW_AT_MINUTES = 60  # 1 60 #!#
 PRINT_SKIP = 0.1
 DRAW_DETAILED = True
 

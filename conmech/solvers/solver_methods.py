@@ -96,12 +96,10 @@ def make_f(jnZ, jtZ, h):
         return JZu
 
     @numba.njit()
-    def f(u_vector, vertices, contact_boundaries, B, F_Zero, F_One):
+    def f(u_vector, vertices, contact_boundaries, B, F_vector):
         jZu = JZu(u_vector, vertices, contact_boundaries)
 
-        F = np.append(F_Zero, F_One)
-
-        result = np.dot(B, u_vector) + jZu - F
+        result = np.dot(B, u_vector) + jZu - F_vector
 
         return result
 

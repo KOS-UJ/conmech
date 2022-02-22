@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from conmech.old.mesh_features import MeshFeatures
+from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem

@@ -173,6 +173,16 @@ def circle_left(scale, is_adaptive):
     o_back * scale,
     is_adaptive
 )
+def polygon_left(scale, is_adaptive):
+    return Scenario(
+    "polygon_left",
+    m_polygon,
+    config.MESH_DENSITY,
+    scale,
+    f_accelerate_slow_left,
+    o_back * scale,
+    is_adaptive
+)
 def polygon_slope(scale, is_adaptive):
     return Scenario(
     "polygon_slope",
@@ -241,7 +251,7 @@ all_print = [
     polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    #circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False)
 ]

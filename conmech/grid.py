@@ -48,7 +48,7 @@ class Grid:
         self.TriangleArea = 0
 
     @property
-    def independent_nodes_conunt(self):
+    def independent_nodes_count(self):
         return len(self.Points) - self.BorderEdgesD - 1
 
     @property

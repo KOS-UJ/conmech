@@ -314,22 +314,22 @@ class GraphModelDynamic:
 
     def epoch_raport(self, tqdm, examples_seen, epoch):
         for dataset, dataloader in self.all_val_data:
-            # print(f"Validating {dataset.description} |", end='')
+            # print(f"Validating {dataset.relative_path} |", end='')
             labels_count = len(self.loss_labels)
             mean_loss_array = np.zeros([labels_count])
 
-            batch_tqdm = basic_helpers.get_tqdm(dataloader, desc=dataset.description)
+            batch_tqdm = basic_helpers.get_tqdm(dataloader, desc=dataset.relative_path)
             for _, batch in enumerate(batch_tqdm):
                 mean_loss_array += self.test_step(batch)
             mean_loss_array = mean_loss_array / len(dataloader)
 
             # tqdm.set_description(
-            #    f"EPOCH: {epoch}, lr: {self.lr:.6f}, {dataset.description} val loss {mean_loss_array[0]:.4f}"
+            #    f"EPOCH: {epoch}, lr: {self.lr:.6f}, {dataset.relative_path} val loss {mean_loss_array[0]:.4f}"
             # )
 
             for i in range(labels_count):
                 self.writer.add_scalar(
-                    f"Loss/Validation/{dataset.description}/{self.loss_labels[i]}",
+                    f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
                     mean_loss_array[i],
                     examples_seen,
                 )

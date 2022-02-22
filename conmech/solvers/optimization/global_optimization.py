@@ -29,9 +29,9 @@ class Global(Optimization):
             contact_law,
             friction_bound,
         )
-        ind = slice(0, self.mesh.independent_nodes_conunt)
+        ind = slice(0, self.mesh.independent_nodes_count)
         self.__point_relations = self.B
-        self.__point_forces = np.append(self.forces.Zero[ind], self.forces.One[ind])
+        self.__point_forces = self.forces.F_vector
 
     def __str__(self):
         return "global optimization"

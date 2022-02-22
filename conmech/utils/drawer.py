@@ -73,9 +73,7 @@ class Drawer:
             T = np.concatenate(
                 [
                     self.state.temperature[:],
-                    np.zeros(
-                        len(self.grid.Points) - self.grid.independent_nodes_conunt
-                    ),
+                    np.zeros(len(self.grid.Points) - self.grid.independent_nodes_count),
                 ]
             )
             plt.scatter(

@@ -3,7 +3,7 @@ from typing import Callable
 import deep_conmech.common.config as config
 import numba
 import numpy as np
-from conmech.old.boundaries import Boundaries
+from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
 
@@ -122,7 +122,7 @@ def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
 
 # @njit
 def get_matrices(
-    edges_features_matrix, MU, LA, TH, ZE, density, time_step, independent_nodes_conunt
+    edges_features_matrix, MU, LA, TH, ZE, density, time_step, independent_nodes_count
 ):
     # move config MU, LA,... out to model
     AREA = edges_features_matrix[..., 0]
@@ -138,7 +138,7 @@ def get_matrices(
     # A = np.vstack((np.hstack((c, s)), np.hstack((-s, c))))
     # result = A @ matrix @ A.T
 
-    ind = slice(0, independent_nodes_conunt)
+    ind = slice(0, independent_nodes_count)
 
     A = np.vstack(
         (
@@ -220,7 +220,7 @@ class SettingMatrices(SettingMesh):
         self.time_step = time_step
 
         self.boundaries = None
-        self.independent_nodes_conunt = self.nodes_count
+        self.independent_nodes_count = self.nodes_count
         if reorganize_boundaries is not None:
             reorganize_boundaries()
 
@@ -255,13 +255,13 @@ class SettingMatrices(SettingMesh):
             self.ze,
             self.density,
             self.time_step,
-            self.independent_nodes_conunt,
+            self.independent_nodes_count,
         )
 
         self.calculate_C()
 
     def calculate_C(self):
-        p = self.independent_nodes_conunt
+        p = self.independent_nodes_count
         t = self.boundary_nodes_count
         i = p - t
 

@@ -27,8 +27,8 @@ class Solver:
         # Added
         self.time_step = time_step
         self.currentTime = 0
-        self.u_vector = np.zeros([self.mesh.independent_nodes_conunt * 2])
-        self.v_vector = np.zeros([self.mesh.independent_nodes_conunt * 2])
+        self.u_vector = np.zeros([self.mesh.independent_nodes_count * 2])
+        self.v_vector = np.zeros([self.mesh.independent_nodes_count * 2])
 
         self.B = mesh.B
 

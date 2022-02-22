@@ -88,7 +88,7 @@ class Optimization(Solver):
 
     def solve_t(self, initial_guess: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         loss_args = (
-            self.grid.independent_nodes_conunt,
+            self.grid.independent_nodes_count,
             self.grid.BorderEdgesC,
             self.grid.Edges,
             self.grid.Points,

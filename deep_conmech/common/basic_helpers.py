@@ -64,9 +64,6 @@ def stack(data):
     return data.T.flatten()
 
 
-# return data.flatten('F')
-# self.F_vector = np.append(self.F[:,0],self.F[:,1])
-
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)

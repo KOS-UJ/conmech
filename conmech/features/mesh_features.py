@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy as np
 import numba
-from conmech.old.boundaries import Boundaries
+from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 
 
@@ -50,11 +50,11 @@ class MeshFeatures(SettingMatrices):
             self.initial_points, self.cells, is_contact, is_dirichlet
         )
 
-        self.independent_nodes_conunt = len(self.initial_points)
+        self.independent_nodes_count = len(self.initial_points)
         for vertex in reversed(self.initial_points):
             if not is_dirichlet(*vertex):
                 break
-            self.independent_nodes_conunt -= 1
+            self.independent_nodes_count -= 1
 
         self.contact_num = 0
         for vertex in self.initial_points:

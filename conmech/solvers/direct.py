@@ -49,8 +49,7 @@ class Direct(Solver):
                 self.mesh.initial_points,
                 self.mesh.boundaries.contact,
                 self.B,
-                self.forces.Zero[: self.mesh.independent_nodes_conunt],  # TODO
-                self.forces.One[: self.mesh.independent_nodes_conunt],
+                self.forces.F_vector
             ),
         )
         return np.asarray(result)

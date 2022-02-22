@@ -2,13 +2,13 @@
 Created at 22.02.2021
 """
 import math
-
-import numpy as np
 from typing import Tuple
 
-from conmech.solvers.optimization.optimization import Optimization
+import numpy as np
 from conmech.matrices import Matrices
 from conmech.solvers._solvers import Solvers
+from conmech.solvers.optimization.optimization import Optimization
+from deep_conmech.common import basic_helpers
 
 
 class SchurComplement(Optimization):
@@ -33,7 +33,8 @@ class SchurComplement(Optimization):
         )
 
         self.contact_ids = slice(0, mesh.contact_num)
-        self.free_ids = slice(mesh.contact_num, mesh.independent_nodes_conunt)
+        self.free_ids = slice(mesh.contact_num, mesh.independent_nodes_count)
+        n = self.mesh.independent_nodes_count
 
         # free_x_free = SchurComplement.get_submatrix(self.B, indices=(free_ids, free_ids))
         # free_x_contact = SchurComplement.get_submatrix(self.B, indices=(free_ids, contact_ids))
@@ -45,64 +46,51 @@ class SchurComplement(Optimization):
         C = self.get_C()
 
         # Cii
-        free_x_free = SchurComplement.get_submatrix(
-            C,
-            indices=(self.free_ids, self.free_ids),
-            ind_num=self.mesh.independent_nodes_conunt,
+        free_x_free = self.get_submatrix(
+            C, indices=(self.free_ids, self.free_ids), ind_num=n
         )
         # Cit
-        free_x_contact = SchurComplement.get_submatrix(
-            C,
-            indices=(self.free_ids, self.contact_ids),
-            ind_num=self.mesh.independent_nodes_conunt,
+        free_x_contact = self.get_submatrix(
+            C, indices=(self.free_ids, self.contact_ids), ind_num=n
         )
         # Cti
-        self.contact_x_free = SchurComplement.get_submatrix(
-            C,
-            indices=(self.contact_ids, self.free_ids),
-            ind_num=self.mesh.independent_nodes_conunt,
+        self.contact_x_free = self.get_submatrix(
+            C, indices=(self.contact_ids, self.free_ids), ind_num=n
         )
         # Ctt
-        contact_x_contact = SchurComplement.get_submatrix(
-            C,
-            indices=(self.contact_ids, self.contact_ids),
-            ind_num=self.mesh.independent_nodes_conunt,
+        contact_x_contact = self.get_submatrix(
+            C, indices=(self.contact_ids, self.contact_ids), ind_num=n
         )
 
         self.free_x_contact = free_x_contact
         # CiiINV:
         self.free_x_free_inverted = np.linalg.inv(free_x_free)
         # CiiINVCit:
-        _point_relations = np.dot(self.free_x_free_inverted, self.free_x_contact)
+        _point_relations = self.free_x_free_inverted @ self.free_x_contact
         # CtiCiiINVCit:
-        _point_relations = np.dot(self.contact_x_free, _point_relations)
+        _point_relations = self.contact_x_free @ _point_relations
         # Ctt - CtiCiiINVCit:
         _point_relations = contact_x_contact - _point_relations
         self._point_relations = np.asarray(_point_relations)
         self.forces_free, self._point_forces = self.recalculate_forces()
 
     def recalculate_forces(self):
-        X = self.get_X()
+        X = self.get_E()
+        n = self.mesh.independent_nodes_count
+        X_contact_unstuck = basic_helpers.unstack(X)
+        E_split = self.forces.F[:n, :] + X_contact_unstuck
+        # Et
+        forces_contact = basic_helpers.stack_column(E_split[self.contact_ids, :])
+        # Ei
+        forces_free = basic_helpers.stack_column(E_split[self.free_ids, :])
 
-        X2 = X.reshape((2, -1))
-        X_Zero = np.asarray(X2)[0]
-        X_One = np.asarray(X2)[1]
-
-        # + [C2X:C2Y]
         # Ebig = self.FVector - Bu + (1./self.tS) * ACCv / Ebig = self.FVector - X
         # Et = np.append(Ebig[self.i:self.n], Ebig[self.n + self.i:self.n + self.n])
-        forces_contact = np.append(
-            self.forces.Zero[self.contact_ids] + X_Zero[self.contact_ids],
-            self.forces.One[self.contact_ids] + X_One[self.contact_ids],
-        ).reshape(-1, 1)
         # self.Ei = np.append(Ebig[0:self.i], Ebig[self.n:self.n + self.i])
-        forces_free = np.append(
-            self.forces.Zero[self.free_ids] + X_Zero[self.free_ids],
-            self.forces.One[self.free_ids] + X_One[self.free_ids],
-        ).reshape(-1, 1)
+
         # CiiINVEi = multiplyByDAT('E:\\SPARE\\cross ' + str(self.SizeH) + ' CiiINV.dat', self.Ei)
-        _point_forces = np.dot(self.free_x_free_inverted, forces_free)
-        _point_forces = np.dot(self.contact_x_free, _point_forces)
+        _point_forces = self.free_x_free_inverted @ forces_free
+        _point_forces = self.contact_x_free @ _point_forces
         # self.E = (Et - np.asarray(self.Cti.dot(CiiINVEi))).astype(np.single)
         _point_forces = forces_contact - _point_forces
         point_forces = np.asarray(_point_forces.reshape(1, -1))
@@ -112,7 +100,7 @@ class SchurComplement(Optimization):
     def get_C(self):
         raise NotImplementedError()
 
-    def get_X(self):
+    def get_E(self):
         raise NotImplementedError()
 
     def __str__(self):
@@ -178,9 +166,9 @@ class SchurComplement(Optimization):
             truncated_temperature, truncated_initial_guess[0]
         )  # reduce dim
 
-        _solution_free = np.dot(self.T_free_x_contact, solution_contact)
+        _solution_free = self.T_free_x_contact @ solution_contact
         _solution_free = self.Q_free - _solution_free
-        solution_free = np.dot(self.T_free_x_free_inverted, _solution_free)
+        solution_free = self.T_free_x_free_inverted @ _solution_free
 
         _result = np.concatenate((solution_contact, solution_free))
         solution = np.squeeze(np.asarray(_result))
@@ -197,9 +185,9 @@ class SchurComplement(Optimization):
 
     def complement_free_points(self, truncated_solution: np.ndarray) -> np.ndarray:
         _result = truncated_solution.reshape(-1, 1)
-        _result = np.dot(self.free_x_contact, _result)
+        _result = self.free_x_contact @ _result
         _result = self.forces_free - _result
-        result = np.dot(self.free_x_free_inverted, _result)
+        result = self.free_x_free_inverted @ _result
         return result
 
     @staticmethod
@@ -217,8 +205,8 @@ class Static(SchurComplement):
     def get_C(self):
         return self.B
 
-    def get_X(self):
-        return np.zeros((1, 2 * self.mesh.independent_nodes_conunt))
+    def get_E(self):
+        return np.zeros((1, 2 * self.mesh.independent_nodes_count))
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
@@ -247,9 +235,9 @@ class Quasistatic(SchurComplement):
     def get_C(self):
         return self.A
 
-    def get_X(self):
+    def get_E(self):
         # TODO: check: from old implementation: times -1 - why?
-        X = -1 * np.dot(self.B, self.u_vector.T)
+        X = -1 * self.B @ self.u_vector.T
         return X
 
     def iterate(self, velocity):
@@ -271,7 +259,7 @@ class Dynamic(Quasistatic):
     ):
         self.ACC = mesh.ACC
         self.K = mesh.K
-        self.t_vector = np.zeros(mesh.independent_nodes_conunt)
+        self.t_vector = np.zeros(mesh.independent_nodes_count)
         super().__init__(
             mesh,
             inner_forces,
@@ -313,19 +301,17 @@ class Dynamic(Quasistatic):
     def get_C(self):
         return self.A + (1 / self.time_step) * self.ACC
 
-    def get_X(self):
-        # TODO: check: from old implementation: times -1 - why?
-        X = -1 * np.dot(self.B, self.u_vector.T)
+    def get_E(self):
+        X = -1 * self.B @ self.u_vector.T
 
-        # TODO: check: from old implementation: times -1 - why?
         X += (1 / self.time_step) * np.asarray(
-            np.dot(self.ACC, self.v_vector)
+            self.ACC @ self.v_vector
         ).ravel()  # TODO np.asarray(dot...).ravel()
 
         # TODO temperature
         # C2X, C2Y = Matrices.construct_C2(self.grid)
-        # C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.grid.independent_nodes_conunt].transpose()))
-        # C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.grid.independent_nodes_conunt].transpose()))
+        # C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.grid.independent_nodes_count].transpose()))
+        # C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.grid.independent_nodes_count].transpose()))
         #
         # X += np.concatenate((C2XTemp, C2YTemp))
 
@@ -342,30 +328,23 @@ class Dynamic(Quasistatic):
 
         C2Xv = np.squeeze(
             np.asarray(
-                np.dot(
-                    C2X,
-                    self.v_vector[0 : self.grid.independent_nodes_conunt].transpose(),
-                )
+                C2X @ self.v_vector[0 : self.grid.independent_nodes_count].transpose(),
             )
         )
         C2Yv = np.squeeze(
             np.asarray(
-                np.dot(
-                    C2Y,
-                    self.v_vector[
-                        self.grid.independent_nodes_conunt : 2
-                        * self.grid.independent_nodes_conunt
-                    ].transpose(),
-                )
+                C2Y
+                @ self.v_vector[
+                    self.grid.independent_nodes_count : 2
+                    * self.grid.independent_nodes_count
+                ].transpose()
             )
         )
 
         Q1 = (1.0 / self.time_step) * np.squeeze(
             np.asarray(
-                np.dot(
-                    self.ACC[0, 0],
-                    self.t_vector[0 : self.grid.independent_nodes_conunt].transpose(),
-                )
+                self.ACC[0, 0]
+                @ self.t_vector[0 : self.grid.independent_nodes_count].transpose(),
             )
         )
 
@@ -374,7 +353,7 @@ class Dynamic(Quasistatic):
         Q_free = QBig[self.free_ids]
         Q_contact = QBig[self.contact_ids]
         # TiiINVQi = multiplyByDAT(prefix + ' TiiINV.dat', self.Qi)
-        _point_temperature = np.dot(self.T_free_x_free_inverted, Q_free)
+        _point_temperature = self.T_free_x_free_inverted @ Q_free
         Q = Q_contact - np.asarray(self.T_contact_x_free.dot(_point_temperature))
 
         return Q_free, Q
