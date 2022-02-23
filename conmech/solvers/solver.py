@@ -3,8 +3,7 @@ Created at 18.02.2021
 """
 import numpy as np
 
-from conmech.matrices import Matrices
-from conmech.f import F
+from conmech.forces import Forces
 
 
 class Solver:
@@ -33,7 +32,7 @@ class Solver:
 
         self.B = mesh.B_ind
 
-        self.forces = F(mesh, inner_forces, outer_forces)
+        self.forces = Forces(mesh, inner_forces, outer_forces)
         self.forces.setF()
 
     def __str__(self):

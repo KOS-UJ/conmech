@@ -30,11 +30,17 @@ def generate_test_suits():
     class StaticSetup(Static):
         grid_height: ... = 1
         cells_number: ... = (2, 5)
-        inner_forces: ... = np.array([-0.2, -0.2])
-        outer_forces: ... = np.array([0, 0])
         mu_coef: ... = 4
         lambda_coef: ... = 4
         contact_law: ... = make_slope_contact_law(slope=1)
+
+        @staticmethod
+        def inner_forces(x, y):
+            return np.array([-0.2, -0.2])
+
+        @staticmethod
+        def outer_forces(x, y):
+            return np.array([0, 0])
 
         @staticmethod
         def friction_bound(u_nu):
@@ -72,7 +78,10 @@ def generate_test_suits():
 
     setup_0_02_p_0 = StaticSetup()
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
-    setup_0_02_p_0.inner_forces = np.array([0, 0.2])
+
+    def inner_forces(x, y):
+        return np.array([0, 0.2])
+    setup_0_02_p_0.inner_forces = inner_forces
 
     expected_displacement_vector_0_02_p_0 = \
         [[0., 0.],
@@ -96,7 +105,11 @@ def generate_test_suits():
 
     setup_0_m02_p_0 = StaticSetup()
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
-    setup_0_m02_p_0.inner_forces = np.array([0, -0.2])
+
+    def inner_forces(x, y):
+        return np.array([0, -0.2])
+    setup_0_m02_p_0.inner_forces = inner_forces
+
     expected_displacement_vector_0_m02_p_0 = [[-v[0], -v[1]]
                                               for v in expected_displacement_vector_0_02_p_0]
     test_suites.append((setup_0_m02_p_0, expected_displacement_vector_0_m02_p_0))
@@ -107,11 +120,17 @@ def generate_test_suits():
     class StaticSetup(Static):
         grid_height: ... = 1.37
         cells_number: ... = (2, 5)
-        inner_forces: ... = np.array([0, -0.2])
-        outer_forces: ... = np.array([0.3, 0.0])
         mu_coef: ... = 4.58
         lambda_coef: ... = 3.33
         contact_law: ... = make_slope_contact_law(slope=2.71)
+
+        @staticmethod
+        def inner_forces(x, y):
+            return np.array([0, -0.2])
+
+        @staticmethod
+        def outer_forces(x, y):
+            return np.array([0.3, 0.0])
 
         @staticmethod
         def friction_bound(u_nu):

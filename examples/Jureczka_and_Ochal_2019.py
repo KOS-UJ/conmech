@@ -45,11 +45,17 @@ class JureczkaOchal2018(ContactLaw):
 class StaticSetup(Static):
     grid_height: ... = 1.
     cells_number: ... = (4, 8)
-    inner_forces: ... = np.array([-1.2, -0.8])
-    outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
     lambda_coef: ... = 4
     contact_law: ... = JureczkaOchal2018
+
+    @staticmethod
+    def inner_forces(x, y):
+        return np.array([-1.2, -0.8])
+
+    @staticmethod
+    def outer_forces(x, y):
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
