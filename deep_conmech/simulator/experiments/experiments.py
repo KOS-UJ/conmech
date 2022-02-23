@@ -1,8 +1,6 @@
-#%%
 import matplotlib.pyplot as plt
 import meshzoo
 import numpy as np
-from deep_conmech.graph.data.data_interpolation import interpolate_point
 from mpl_toolkits import mplot3d
 import numba
 from numba import njit
@@ -11,6 +9,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from deep_conmech.graph.helpers import thh
 from conmech.helpers import nph
+
+from deep_conmech.simulator.experiments.matrices import *
 
 
 def get_meshzoo_cube(mesh_size):
@@ -49,57 +49,6 @@ def get_boundary_faces(elements):
 ######################################
 
 
-@njit  # (parallel=True)
-def get_edges_features_matrix(elements, nodes):
-    nodes_count = len(nodes)
-    elements_count, element_size = elements.shape
-    dim=element_size-1
-
-    edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=np.double)
-    element_initial_volume = np.zeros(elements_count)
-
-    for element_index in range(elements_count):  # TODO: prange?
-        element = elements[element_index]
-        element_points = nodes[element]
-
-        # TODO: Get rid of repetition (?)
-        for i in range(element_size):
-            i_dPhX, i_dPhY, element_volume = get_integral_parts(element_points, i)
-            # TODO: Avoid repetition
-            element_initial_volume[element_index] = element_volume
-
-            for j in range(element_size):
-                j_dPhX, j_dPhY, _ = get_integral_parts(element_points, j)
-
-                area = (i != j) / 6.0
-                w11 = i_dPhX * j_dPhX
-                w12 = i_dPhX * j_dPhY
-                w21 = i_dPhY * j_dPhX
-                w22 = i_dPhY * j_dPhY
-                u = (1 + (i == j)) / 12.0
-
-                u1 = i_dPhX / 3.0
-                u2 = i_dPhY / 3.0
-
-                edges_features_matrix[element[i], element[j]] += element_volume * np.array(
-                    [area, w11, w12, w21, w22, u1, u2, u]
-                )
-
-    return edges_features_matrix, element_initial_volume
-
-
-
-@njit
-def shoelace_area(points):
-    x = points[:, 0].copy()
-    y = points[:, 1].copy()
-    area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-    return area
-
-
-
-#######################################
-
 
 def plot_mesh(ax, nodes, elements):
     for e in elements:
@@ -115,13 +64,12 @@ def plot_mesh(ax, nodes, elements):
     # ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], color="b")
 
 
-mesh_size = 3
+mesh_size = 8
 nodes, elements = get_meshzoo_cube(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes = np.unique(nodes[boundary_faces].reshape(-1, 3), axis=0)
 
-
-edges_features = get_edges_features_matrix(elements, nodes)
+edges_features_matrix = get_edges_features_matrix_numba(elements, nodes)
 
 
 fig = plt.figure()
