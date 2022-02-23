@@ -19,7 +19,6 @@ def get_writer():
         f"./log/{basic_helpers.CURRENT_TIME} \
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
-| ac {config.ACTIVATION._get_name()} \
 | ah {config.ATTENTION_HEADS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \

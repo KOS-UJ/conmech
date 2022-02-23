@@ -1,5 +1,3 @@
-import torch.nn as nn
-
 # Standardize data! (from -1 to 1)
 DIM = 2
 
@@ -76,7 +74,6 @@ DROPOUT_RATE = 0.1  # 0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0
 
-ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
 ATTENTION_HEADS = None  # 1  # None 1 3 5
 
 INITIAL_LR = 1e-4
