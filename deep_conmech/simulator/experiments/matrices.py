@@ -26,7 +26,9 @@ def get_edges_features_matrix_numba(elements, nodes):
             for j in range(element_size):
                 j_dPhX, j_dPhY, j_dPhZ, _ = get_integral_parts_numba(element_points, j)
 
-                volume = (i != j) / (6.0 * 4.0) # in 2D: divide by 3 in for element integral | divide by 2 for each edge (3D: 4 - each face)
+                # in 2D: divide by 3 in for integral of phi over the element (in 3D: 4)
+                # | divide by 2 for each edge - info about single triangle is sent to node twice via both edges (in 3D: 3)
+                volume = (i != j) / (4.0 * 3.0)
                 u = (1 + (i == j)) / 20.0 # in 2D: divide by 6 or 12
                 #u1 = i_dPhX / 3.0
                 #u2 = i_dPhY / 3.0

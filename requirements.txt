@@ -5,4 +5,5 @@ matplotlib
 scipy
 pytest
 pygmsh
+gmsh
 networkx

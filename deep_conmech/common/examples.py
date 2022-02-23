@@ -238,6 +238,16 @@ def cross_slope(scale, is_adaptive):
     is_adaptive
 )
 
+def cross_two():
+    return Scenario(
+    "polygon_two",
+    m_cross,
+    config.MESH_DENSITY,
+    1.0,
+    f_slide,
+    o_two,
+    False
+)
 
 all_train = [
     #polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
@@ -250,6 +260,7 @@ all_train = [
 ]
 
 all_print = [
+    cross_two(),
     polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
     #circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
