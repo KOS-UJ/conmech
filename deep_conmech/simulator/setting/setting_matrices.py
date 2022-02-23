@@ -6,40 +6,32 @@ import numpy as np
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
+from deep_conmech.common import basic_helpers
 
 
-# @njit
-def get_edges_features_list(edges_number, edges_features_matrix):
-    nodes_count = len(edges_features_matrix[0])
-    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
-    e = 0
-    for i in range(nodes_count):
-        for j in range(nodes_count):
-            if np.any(edges_features_matrix[i, j]):
-                edges_features[e] = edges_features_matrix[i, j]
-                e += 1
-    return edges_features
 
 
 @njit  # (parallel=True)
-def get_edges_features_matrix(nodes_count, cells, cells_points):
-    edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=numba.double)
-    element_initial_area = np.zeros(len(cells))
+def get_edges_features_matrix(elements, nodes):
+    nodes_count = len(nodes)
+    elements_count, element_size = elements.shape
+    dim=element_size-1
 
-    cell_vertices_number = len(cells[0])
+    edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=np.double)
+    element_initial_volume = np.zeros(elements_count)
 
-    for cell_index in range(len(cells)):  # TODO: prange?
-        cell = cells[cell_index]
-        cell_points = cells_points[cell_index]
+    for element_index in range(elements_count):  # TODO: prange?
+        element = elements[element_index]
+        element_points = nodes[element]
 
         # TODO: Get rid of repetition (?)
-        for i in range(cell_vertices_number):
-            i_dPhX, i_dPhY, triangle_area = get_integral_parts(cell_points, i)
+        for i in range(element_size):
+            i_dPhX, i_dPhY, element_volume = get_integral_parts(element_points, i)
             # TODO: Avoid repetition
-            element_initial_area[cell_index] = triangle_area
+            element_initial_volume[element_index] = element_volume
 
-            for j in range(cell_vertices_number):
-                j_dPhX, j_dPhY, _ = get_integral_parts(cell_points, j)
+            for j in range(element_size):
+                j_dPhX, j_dPhY, _ = get_integral_parts(element_points, j)
 
                 area = (i != j) / 6.0
                 w11 = i_dPhX * j_dPhX
@@ -51,17 +43,20 @@ def get_edges_features_matrix(nodes_count, cells, cells_points):
                 u1 = i_dPhX / 3.0
                 u2 = i_dPhY / 3.0
 
-                edges_features_matrix[cell[i], cell[j]] += triangle_area * np.array(
+                edges_features_matrix[element[i], element[j]] += element_volume * np.array(
                     [area, w11, w12, w21, w22, u1, u2, u]
                 )
-    return edges_features_matrix, element_initial_area
+
+    return edges_features_matrix, element_initial_volume
+
+
 
 
 @njit
-def get_integral_parts(cell_points, vertex_index):
-    x_i = cell_points[vertex_index % 3]
-    x_j1 = cell_points[(vertex_index + 1) % 3]
-    x_j2 = cell_points[(vertex_index + 2) % 3]
+def get_integral_parts(element_nodes, element_index):
+    x_i = element_nodes[element_index % 3]
+    x_j1 = element_nodes[(element_index + 1) % 3]
+    x_j2 = element_nodes[(element_index + 2) % 3]
 
     dm = denominator(x_i, x_j1, x_j2)
     triangle_area = np.abs(dm) / 2.0 # = np.abs(dm) / 2.0 = shoelace_area
@@ -69,8 +64,8 @@ def get_integral_parts(cell_points, vertex_index):
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
 
-    dPhX = div_or_zero(y_sub, dm)
-    dPhY = div_or_zero(x_sub, dm)
+    dPhX = basic_helpers.div_or_zero(y_sub, dm)
+    dPhY = basic_helpers.div_or_zero(x_sub, dm)
 
     return dPhX, dPhY, triangle_area
 
@@ -95,20 +90,20 @@ def denominator(x_i, x_j1, x_j2):
     )
 
 
-@njit
-def div_or_zero(value, denominator):
-    return value / denominator if denominator != 0 else 0.0
+
+# @njit
+def get_edges_features_list(edges_number, edges_features_matrix):
+    nodes_count = len(edges_features_matrix[0])
+    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
+    e = 0
+    for i in range(nodes_count):
+        for j in range(nodes_count):
+            if np.any(edges_features_matrix[i, j]):
+                edges_features[e] = edges_features_matrix[i, j]
+                e += 1
+    return edges_features
 
 
-@njit
-def calculate_constitutive_matrices_with_angle(W11, W12, W21, W22, MU, LA, angle):
-    s = np.sin(angle)
-    c = np.cos(angle)
-    B11 = (MU + LA + MU * c) * W11 + (MU * s) * W12 + (-MU * s) * W21 + (MU * c) * W22
-    B12 = (MU * s) * W11 + (MU + LA - MU * c) * W12 + (MU * c) * W21 + (MU * s) * W22
-    B21 = (-MU * s) * W11 + (MU * c) * W12 + (MU + LA - MU * c) * W21 + (-MU * s) * W22
-    B22 = (MU * c) * W11 + (MU * s) * W12 + (-MU * s) * W21 + (MU + LA + MU * c) * W22
-    return B11, B12, B21, B22
 
 
 @njit
@@ -231,8 +226,9 @@ class SettingMatrices(SettingMesh):
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
+
         edges_features_matrix, self.element_initial_area = get_edges_features_matrix(
-            self.nodes_count, self.cells, self.cells_normalized_points
+            self.cells, self.normalized_points
         )
 
         # edges_features = get_edges_features_list(

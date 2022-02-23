@@ -65,9 +65,18 @@ def stack(data):
 
 
 
+@njit
+def div_or_zero(value, denominator):
+    return value / denominator if denominator != 0 else 0.0
+
+
+
+
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
 
+# TODO: @numba.njit(inline='always') - when using small function inside other numba 
+# TODO: Use numba.njit(...)
 @njit
 def stack_column_numba(data):
     return data.T.flatten().reshape(-1, 1)

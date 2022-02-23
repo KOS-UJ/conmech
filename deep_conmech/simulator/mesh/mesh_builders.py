@@ -241,3 +241,4 @@ def get_cross_rectangle(mesh_density_x, mesh_density_y, scale_x, scale_y):
     )  # TODO size_y
     return points, cells
 
+

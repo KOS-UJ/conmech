@@ -49,6 +49,8 @@ if __name__ == "__main__":
 
 # TODO:
 
+# give network get_edges_features_list
+
 # podawac v wymnozone przez ts
 
 #wyswietlac dane < cutoff w getitem z nowymi randomizacjami
