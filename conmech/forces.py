@@ -2,6 +2,7 @@
 Created at 21.08.2019
 """
 
+from typing import Callable
 import numpy as np
 from deep_conmech.common import basic_helpers
 
@@ -9,9 +10,9 @@ from conmech.vertex_utils import length
 
 
 class F:
-    def __init__(self, mesh, F0, FN):
-        self.F0 = F0
-        self.FN = FN
+    def __init__(self, mesh, inter_forces: Callable, outer_forces: Callable):
+        self.inter_forces = inter_forces
+        self.outer_forces = outer_forces
         self.mesh = mesh
         self.F = np.zeros([self.mesh.independent_nodes_count, 2])
 
@@ -19,16 +20,6 @@ class F:
     def F_vector(self):
         return basic_helpers.stack_column(self.F).reshape(-1)
 
-    # TODO: inject?
-    ########################################################
-
-    def f0(self, x):
-        return self.F0
-
-    def fN(self, x):
-        return self.FN
-
-    ########################################################
 
     def setF(self):
         # f0 = np.array([self.f0(p) for p in self.mesh.moved_points])
@@ -41,9 +32,9 @@ class F:
             p1 = self.mesh.initial_points[element[1]]
             p2 = self.mesh.initial_points[element[2]]
 
-            f0 = self.f0(p0)
-            f1 = self.f0(p1)
-            f2 = self.f0(p2)
+            f0 = self.inter_forces(*p0)
+            f1 = self.inter_forces(*p1)
+            f2 = self.inter_forces(*p2)
 
             f_mean = (f0 + f1 + f2) / 3  # TODO
 
@@ -71,7 +62,7 @@ class F:
                     self.mesh.initial_points[v0] + self.mesh.initial_points[v1]
                 ) / 2
 
-                f_neumann = self.fN(v_mid) * edge_length / 2
+                f_neumann = self.outer_forces(*v_mid) * edge_length / 2
 
                 F[v0] += f_neumann
                 F[v1] += f_neumann

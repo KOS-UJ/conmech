@@ -1,7 +1,6 @@
 """
 Created at 21.08.2019
 """
-#%%
 from dataclasses import dataclass
 
 import numpy as np
@@ -47,14 +46,20 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 class TDynamicSetup(Dynamic):
     grid_height: ... = 1.0
     cells_number: ... = (10, 25)
-    inner_forces: ... = np.array([0.0, -1.0])
-    outer_forces: ... = np.array([0.0, 0])
     mu_coef: ... = 4
     la_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
+
+    @staticmethod
+    def inner_forces(x, y):
+        return np.array([0.0, -1.0])
+
+    @staticmethod
+    def outer_forces(x, y):
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu):
@@ -79,5 +84,3 @@ if __name__ == "__main__":
         T_max = np.max(state.temperature)
     for state in states:
         Drawer(state).draw(temp_max=T_max)
-
-# %%

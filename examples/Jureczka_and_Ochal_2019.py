@@ -1,7 +1,6 @@
 """
 Created at 21.08.2019
 """
-#%%
 from dataclasses import dataclass
 
 import numpy as np
@@ -48,11 +47,17 @@ class JureczkaOchal2018(ContactLaw):
 class StaticSetup(Static):
     grid_height: ... = 1.0
     cells_number: ... = (4, 8)
-    inner_forces: ... = np.array([-1.2, -0.8])
-    outer_forces: ... = np.array([0, 0])
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = JureczkaOchal2018
+
+    @staticmethod
+    def inner_forces(x, y):
+        return np.array([-1.2, -0.8])
+
+    @staticmethod
+    def outer_forces(x, y):
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
@@ -77,5 +82,3 @@ if __name__ == "__main__":
 
     state = runner.solve(verbose=True, fixed_point_abs_tol=0.001)
     Drawer(state).draw()
-
-# %%

@@ -4,7 +4,6 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-
 from conmech.features.boundaries import identify_surfaces, get_boundaries
 
 

@@ -32,12 +32,18 @@ class Problem:
     cells_number: Union[
         Tuple[int, int], Tuple[int, int, int]
     ]  # number of triangles per aside
-    inner_forces: Union[Tuple[float, float], Tuple[float, float, float]]
-    outer_forces: Union[Tuple[float, float], Tuple[float, float, float]]
     mu_coef: float
     la_coef: float
     contact_law: ContactLaw
     dynamism: str = None  # TODO: remove
+
+    @staticmethod
+    def inner_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
@@ -53,6 +59,14 @@ class Problem:
 
 
 class Static(Problem):
+    @staticmethod
+    def inner_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
     @staticmethod
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
@@ -72,6 +86,14 @@ class Quasistatic(Problem):
     time_step: float
 
     @staticmethod
+    def inner_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
 
@@ -88,6 +110,14 @@ class Dynamic(Problem):
     th_coef: float
     ze_coef: float
     time_step: float
+
+    @staticmethod
+    def inner_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: float, y: float) -> np.ndarray:
+        raise NotImplementedError()
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:

@@ -1,7 +1,6 @@
 """
 Example contact law
 """
-
 from typing import Type
 
 import numpy as np
@@ -34,4 +33,3 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
             return result
 
     return PSlopeContactLaw
-
