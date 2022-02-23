@@ -10,6 +10,7 @@ from scipy.spatial import Delaunay
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from deep_conmech.common import basic_helpers
+from conmech.helpers import nph
 
 
 
@@ -100,8 +101,8 @@ def get_integral_parts(element_nodes, element_index):
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
 
-    dPhX = basic_helpers.div_or_zero(y_sub, dm)
-    dPhY = basic_helpers.div_or_zero(x_sub, dm)
+    dPhX = numba.njit(nph.div_or_zero(y_sub, dm), inline='always')
+    dPhY = numba.njit(nph.div_or_zero(x_sub, dm), inline='always')
 
     return dPhX, dPhY, element_volume
 

@@ -6,8 +6,7 @@ import numpy as np
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
-from deep_conmech.common import basic_helpers
-
+from conmech.helpers import nph
 
 
 
@@ -64,8 +63,8 @@ def get_integral_parts(element_nodes, element_index):
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
 
-    dPhX = basic_helpers.div_or_zero(y_sub, dm)
-    dPhY = basic_helpers.div_or_zero(x_sub, dm)
+    dPhX = nph.div_or_zero_numba(y_sub, dm)
+    dPhY = nph.div_or_zero_numba(x_sub, dm)
 
     return dPhX, dPhY, triangle_area
 
