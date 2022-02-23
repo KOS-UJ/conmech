@@ -114,17 +114,6 @@ def shoelace_area(points):
     return area
 
 
-@njit
-def denominator(x_i, x_j1, x_j2):
-    return (
-        x_i[1] * x_j1[0]
-        + x_j1[1] * x_j2[0]
-        + x_i[0] * x_j2[1]
-        - x_i[1] * x_j2[0]
-        - x_j2[1] * x_j1[0]
-        - x_i[0] * x_j1[1]
-    )
-
 
 #######################################
 
