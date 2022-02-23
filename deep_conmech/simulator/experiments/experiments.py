@@ -88,23 +88,6 @@ def get_edges_features_matrix(elements, nodes):
     return edges_features_matrix, element_initial_volume
 
 
-@njit
-def get_integral_parts(element_nodes, element_index):
-    x_i = element_nodes[element_index % 3]
-    x_j1 = element_nodes[(element_index + 1) % 3]
-    x_j2 = element_nodes[(element_index + 2) % 3]
-
-    dm = denominator(x_i, x_j1, x_j2)
-    triangle_area = np.abs(dm) / 2.0 # = np.abs(dm) / 2.0 = shoelace_area
-
-    y_sub = x_j2[1] - x_j1[1]
-    x_sub = x_j1[0] - x_j2[0]
-
-    dPhX = y_sub / dm
-    dPhY = x_sub / dm
-
-    return dPhX, dPhY, triangle_area
-
 
 @njit
 def shoelace_area(points):

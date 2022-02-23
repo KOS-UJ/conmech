@@ -4,7 +4,7 @@ from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.graph.helpers import thh
-from conmech.helpers.mph import mph
+from conmech.helpers import mph
 
 
 def get_setting(scenario):

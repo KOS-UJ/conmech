@@ -211,10 +211,10 @@ class SettingInput(SettingRandomized):
         # )
 
         data = Data(
-            pos=helpers.set_precision(self.normalized_initial_points_torch),
-            x=helpers.set_precision(self.x),
+            pos=thh.set_precision(self.normalized_initial_points_torch),
+            x=thh.set_precision(self.x),
             edge_index=self.contiguous_edges_torch,
-            edge_attr=helpers.set_precision(self.edges_data_torch),
+            edge_attr=thh.set_precision(self.edges_data_torch),
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
             normalized_a_correction=self.normalized_a_correction_torch,

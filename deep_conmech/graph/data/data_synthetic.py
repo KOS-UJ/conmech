@@ -3,7 +3,7 @@ import numpy as np
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
-from conmech.helpers.mph import mph
+from conmech.helpers import mph
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
