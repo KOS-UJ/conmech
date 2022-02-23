@@ -8,30 +8,30 @@ import numpy as np
 from conmech.problem_solver import TDynamic as TDynamicProblemSolver
 from conmech.problems import Dynamic
 from examples.p_slope_contact_law import make_slope_contact_law
-from utils.drawer import Drawer
+from conmech.utils.drawer import Drawer
 
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     # @staticmethod
     # def g(t):
     #     return 10.7 + t * 0.02
-        # return 0.5 + t * 0.01
+    # return 0.5 + t * 0.01
 
     @staticmethod
     def h_nu(uN, t):
         g_t = 10.7 + t * 0.02
         if uN > g_t:
-            return 100. * (uN - g_t)
+            return 100.0 * (uN - g_t)
         return 0
-
 
     @staticmethod
     def h_tau(uN, t):
         # return 0
         g_t = 10.7 + t * 0.02
         if uN > g_t:
-            return 10. * (uN - g_t)
+            return 10.0 * (uN - g_t)
         return 0
+
     #
     # def jT(self, vTx, vTy):
     #     # return np.log(np.linalg.norm(vTx, vTy)+1)
@@ -44,10 +44,10 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 @dataclass()
 class TDynamicSetup(Dynamic):
-    grid_height: ... = 1.
+    grid_height: ... = 1.0
     cells_number: ... = (10, 25)
     mu_coef: ... = 4
-    lambda_coef: ... = 4
+    la_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.02
@@ -55,7 +55,9 @@ class TDynamicSetup(Dynamic):
 
     @staticmethod
     def inner_forces(x, y):
-        return np.array([0., -1.])
+
+        return np.array([0.0, -1.0])
+
 
     @staticmethod
     def outer_forces(x, y):
@@ -74,9 +76,9 @@ class TDynamicSetup(Dynamic):
         return x == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup = TDynamicSetup()
-    runner = TDynamicProblemSolver(setup, solving_method='schur')
+    runner = TDynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(n_steps=32, output_step=range(0, 32, 4), verbose=True)
     T_max = 0

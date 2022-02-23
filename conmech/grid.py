@@ -48,7 +48,7 @@ class Grid:
         self.TriangleArea = 0
 
     @property
-    def independent_num(self):
+    def independent_nodes_count(self):
         return len(self.Points) - self.BorderEdgesD - 1
 
     @property
@@ -73,7 +73,7 @@ class Grid:
 def get_edge(edges, edges_idx, edges_start, i, j):
     result = np.full(3, -1, dtype=np.int32)
 
-    for edge_i in range(edges_start[i], edges_start[i+1]):
+    for edge_i in range(edges_start[i], edges_start[i + 1]):
         if edges[edges_idx[edge_i], 1] == j:
             result = edges[edges_idx[edge_i], :]
             break

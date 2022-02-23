@@ -1,2 +1,4 @@
-Contact mechanics error estimation package
+# conmech
+
+Contact mechanics simulation package
 

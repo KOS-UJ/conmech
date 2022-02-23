@@ -8,15 +8,15 @@ import numpy as np
 from conmech.problem_solver import Quasistatic as QuasistaticProblemSolver
 from conmech.problems import Quasistatic
 from examples.p_slope_contact_law import make_slope_contact_law
-from utils.drawer import Drawer
+from conmech.utils.drawer import Drawer
 
 
 @dataclass()
 class QuasistaticSetup(Quasistatic):
-    grid_height: ... = 1.
+    grid_height: ... = 1.0
     cells_number: ... = (2, 5)
     mu_coef: ... = 4
-    lambda_coef: ... = 4
+    la_coef: ... = 4
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.1
@@ -43,9 +43,9 @@ class QuasistaticSetup(Quasistatic):
         return x == 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     setup = QuasistaticSetup()
-    runner = QuasistaticProblemSolver(setup, solving_method='schur')
+    runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
     for state in states:

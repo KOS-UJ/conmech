@@ -1,24 +1,23 @@
 """
 General solver for Contact Mechanics problem.
 """
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
-from conmech.state import State, TemperatureState
-from conmech.solvers.solver import Solver
-from conmech.solvers import Solvers
-from conmech.solvers.validator import Validator
-from conmech.problems import Problem
-from conmech.problems import Static as StaticProblem
-from conmech.problems import Quasistatic as QuasistaticProblem
+from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
+from conmech.problems import Problem
+from conmech.problems import Quasistatic as QuasistaticProblem
+from conmech.problems import Static as StaticProblem
+from conmech.solvers import Solvers
 from conmech.solvers.coefficients import Coefficients
-from graph.mesh_features import MeshFeatures
+from conmech.solvers.solver import Solver
+from conmech.solvers.validator import Validator
+from conmech.state import State, TemperatureState
 
 
 class ProblemSolver:
-
     def __init__(self, setup: Problem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
@@ -28,20 +27,30 @@ class ProblemSolver:
         th_coef = setup.th_coef if hasattr(setup, "th_coef") else 0
         ze_coef = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
-        dens = 1
 
         grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
 
-        self.mesh = MeshFeatures(setup.cells_number[1], setup.cells_number[0], "cross",
-                                 corners=[0., 0., grid_width, setup.grid_height],
-                                 is_adaptive=False,
-                                 MU=setup.mu_coef, LA=setup.lambda_coef, TH=th_coef, ZE=ze_coef,
-                                 DENS=dens, TIMESTEP=time_step,
-                                 is_dirichlet=setup.is_dirichlet,
-                                 is_contact=setup.is_contact)
+        self.mesh = MeshFeatures(
+            mesh_type="cross",
+            mesh_density_x=setup.cells_number[1],
+            mesh_density_y=setup.cells_number[0],
+            scale_x=float(grid_width),
+            scale_y=float(setup.grid_height),
+            is_adaptive=False,
+            mu_coef=setup.mu_coef,
+            la_coef=setup.la_coef,
+            th_coef=th_coef,
+            ze_coef=ze_coef,
+            density=1,
+            time_step=time_step,
+            is_dirichlet=setup.is_dirichlet,
+            is_contact=setup.is_contact,
+        )
         self.setup = setup
 
-        self.coordinates = 'displacement' if isinstance(setup, StaticProblem) else 'velocity'
+        self.coordinates = (
+            "displacement" if isinstance(setup, StaticProblem) else "velocity"
+        )
         self.step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
         self.solving_method = solving_method
@@ -54,24 +63,32 @@ class ProblemSolver:
     def solving_method(self, value):
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
-        # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, lambda_coef
+        # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
-            coefficients = Coefficients(mu=self.setup.mu_coef, lambda_=self.setup.lambda_coef)
+            coefficients = Coefficients(
+                mu=self.setup.mu_coef, lambda_=self.setup.la_coef
+            )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            coefficients = Coefficients(mu=self.setup.mu_coef, lambda_=self.setup.lambda_coef,
-                                        theta=self.setup.th_coef, zeta=self.setup.ze_coef)
+            coefficients = Coefficients(
+                mu=self.setup.mu_coef,
+                lambda_=self.setup.la_coef,
+                theta=self.setup.th_coef,
+                zeta=self.setup.ze_coef,
+            )
             time_step = self.setup.time_step
         else:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
-        self.step_solver = solver_class(self.mesh,
-                                        self.setup.inner_forces, self.setup.outer_forces,
-                                        coefficients,
-                                        time_step,
-                                        self.setup.contact_law,
-                                        self.setup.friction_bound
-                                        )
+        self.step_solver = solver_class(
+            self.mesh,
+            self.setup.inner_forces,
+            self.setup.outer_forces,
+            coefficients,
+            time_step,
+            self.setup.contact_law,
+            self.setup.friction_bound,
+        )
         self.validator = Validator(self.step_solver)
 
     def solve(self, *args, **kwargs):
@@ -87,15 +104,22 @@ class ProblemSolver:
         for i in range(n_steps):
             self.step_solver.currentTime += self.step_solver.time_step
 
-            solution = self.find_solution(self.step_solver, state, solution, self.validator, verbose=verbose, **kwargs)
+            solution = self.find_solution(
+                self.step_solver,
+                state,
+                solution,
+                self.validator,
+                verbose=verbose,
+                **kwargs,
+            )
 
-            if self.coordinates == 'displacement':
+            if self.coordinates == "displacement":
                 state.set_displacement(solution, t=self.step_solver.currentTime)
                 self.step_solver.u_vector = state.displacement.reshape(-1)
-            elif self.coordinates == 'velocity':
-                state.set_velocity(solution,
-                                   update_displacement=True,
-                                   t=self.step_solver.currentTime)
+            elif self.coordinates == "velocity":
+                state.set_velocity(
+                    solution, update_displacement=True, t=self.step_solver.currentTime
+                )
                 #################### ADDED
                 # self.step_solver.iterate(solution)
                 ####################
@@ -103,7 +127,8 @@ class ProblemSolver:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
     def find_solution(
-            self, solver, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:  # TODO
+        self, solver, state, solution, validator, *, verbose=False, **kwargs
+    ) -> np.ndarray:  # TODO
         quality = 0
         iteration = 0
         fuse = 10
@@ -113,35 +138,51 @@ class ProblemSolver:
             solution = solver.solve(solution, **kwargs)
             quality = validator.check_quality(state, solution, quality)
             iteration += 1
-            self.print_iteration_info(iteration, quality, validator.error_tolerance, verbose)
+            self.print_iteration_info(
+                iteration, quality, validator.error_tolerance, verbose
+            )
         return solution
 
-    def find_solution_uzawa(self, solver, state, solution, solution_t, *, verbose=False) -> Tuple[np.ndarray, np.ndarray]:
+    def find_solution_uzawa(
+        self, solver, state, solution, solution_t, *, verbose=False
+    ) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
         fuse = 5
         while norm > 1e-3 and bool(fuse):
             fuse -= 1
-            solution = self.find_solution(solver, state, solution, self.validator, temperature=solution_t, verbose=verbose)
+            solution = self.find_solution(
+                solver,
+                state,
+                solution,
+                self.validator,
+                temperature=solution_t,
+                verbose=verbose,
+            )
             solution_t = solver.solve_t(solution_t, solution)
-            norm = (np.linalg.norm(solution - old_solution)**2
-                    + np.linalg.norm(old_solution_t - solution_t)**2)**0.5
+            norm = (
+                np.linalg.norm(solution - old_solution) ** 2
+                + np.linalg.norm(old_solution_t - solution_t) ** 2
+            ) ** 0.5
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
         return solution, solution_t
 
     @staticmethod
-    def print_iteration_info(iteration: int, quality: float, error_tolerance: float, verbose: bool):
+    def print_iteration_info(
+        iteration: int, quality: float, error_tolerance: float, verbose: bool
+    ):
         qualitative = quality > error_tolerance
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
         if verbose:
-            print(f"iteration = {iteration}; quality = {quality} {sign} {error_tolerance}{end}")
+            print(
+                f"iteration = {iteration}; quality = {quality} {sign} {error_tolerance}{end}"
+            )
 
 
 class Static(ProblemSolver):
-
     def __init__(self, setup, solving_method: str):
         """Solves general Contact Mechanics problem.
 
@@ -150,14 +191,11 @@ class Static(ProblemSolver):
         """
         super().__init__(setup, solving_method)
 
-        self.coordinates = 'displacement'
+        self.coordinates = "displacement"
         self.solving_method = solving_method
 
     def solve(
-            self,
-            initial_displacement: np.ndarray = None,
-            verbose: bool = False,
-            **kwargs
+        self, initial_displacement: np.ndarray = None, verbose: bool = False, **kwargs
     ) -> State:
         """
         :param initial_displacement: for the solver
@@ -175,7 +213,6 @@ class Static(ProblemSolver):
 
 
 class Quasistatic(ProblemSolver):
-
     def __init__(self, setup, solving_method: str):
         """Solves general Contact Mechanics problem.
 
@@ -184,11 +221,16 @@ class Quasistatic(ProblemSolver):
         """
         super().__init__(setup, solving_method)
 
-        self.coordinates = 'velocity'
+        self.coordinates = "velocity"
         self.solving_method = solving_method
 
-    def solve(self, n_steps: int, output_step: Optional[iter] = None,
-              initial_velocity: np.ndarray = None, verbose: bool = False) -> List[State]:
+    def solve(
+        self,
+        n_steps: int,
+        output_step: Optional[iter] = None,
+        initial_velocity: np.ndarray = None,
+        verbose: bool = False,
+    ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
         :param output_step: from which time-step we want to get copy of State,
@@ -216,7 +258,6 @@ class Quasistatic(ProblemSolver):
 
 
 class Dynamic(ProblemSolver):
-
     def __init__(self, setup, solving_method: str):
         """Solves general Contact Mechanics problem.
 
@@ -225,11 +266,16 @@ class Dynamic(ProblemSolver):
         """
         super().__init__(setup, solving_method)
 
-        self.coordinates = 'velocity'
+        self.coordinates = "velocity"
         self.solving_method = solving_method
 
-    def solve(self, n_steps: int, output_step: Optional[iter] = None,
-              initial_velocity: np.ndarray = None, verbose: bool = False) -> List[State]:
+    def solve(
+        self,
+        n_steps: int,
+        output_step: Optional[iter] = None,
+        initial_velocity: np.ndarray = None,
+        verbose: bool = False,
+    ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
         :param output_step: from which time-step we want to get copy of State,
@@ -257,7 +303,6 @@ class Dynamic(ProblemSolver):
 
 
 class TDynamic(ProblemSolver):
-
     def __init__(self, setup, solving_method: str):
         """Solves general Contact Mechanics problem.
 
@@ -266,11 +311,16 @@ class TDynamic(ProblemSolver):
         """
         super().__init__(setup, solving_method)
 
-        self.coordinates = 'velocity'
+        self.coordinates = "velocity"
         self.solving_method = solving_method
 
-    def solve(self, n_steps: int, output_step: Optional[iter] = None,
-              initial_velocity: np.ndarray = None, verbose: bool = False) -> List[TemperatureState]:
+    def solve(
+        self,
+        n_steps: int,
+        output_step: Optional[iter] = None,
+        initial_velocity: np.ndarray = None,
+        verbose: bool = False,
+    ) -> List[TemperatureState]:
         """
         :param n_steps: number of time-step in simulation
         :param output_step: from which time-step we want to get copy of State,
@@ -298,12 +348,15 @@ class TDynamic(ProblemSolver):
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
                 solution, solution_t = self.find_solution_uzawa(
-                    self.step_solver, state, solution, solution_t, verbose=verbose)
+                    self.step_solver, state, solution, solution_t, verbose=verbose
+                )
 
-                if self.coordinates == 'velocity':
-                    state.set_velocity(solution[:],
-                                       update_displacement=True,
-                                       t=self.step_solver.currentTime)
+                if self.coordinates == "velocity":
+                    state.set_velocity(
+                        solution[:],
+                        update_displacement=True,
+                        t=self.step_solver.currentTime,
+                    )
                     state.set_temperature(solution_t)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")

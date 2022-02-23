@@ -17,7 +17,9 @@ class ContactLaw:
         raise NotImplementedError()
 
     @staticmethod
-    def regularized_subderivative_tangential_direction(u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7) -> float:
+    def regularized_subderivative_tangential_direction(
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    ) -> float:
         """
         Coulomb regularization
         """
@@ -27,9 +29,13 @@ class ContactLaw:
 @dataclass()
 class Problem:
     grid_height: float
-    cells_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
+
+    cells_number: Union[
+        Tuple[int, int], Tuple[int, int, int]
+    ]  # number of triangles per aside
+
     mu_coef: float
-    lambda_coef: float
+    la_coef: float
     contact_law: ContactLaw
     dynamism: str = None  # TODO: remove
 
