@@ -29,9 +29,11 @@ class ContactLaw:
 @dataclass()
 class Problem:
     grid_height: float
+
     cells_number: Union[
         Tuple[int, int], Tuple[int, int, int]
     ]  # number of triangles per aside
+
     mu_coef: float
     la_coef: float
     contact_law: ContactLaw

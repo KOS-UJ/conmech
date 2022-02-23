@@ -98,6 +98,7 @@ def generate_test_suits():
         [0.0, 0.0],
     ]
 
+
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
 
     # p = 0
@@ -108,11 +109,13 @@ def generate_test_suits():
     def inner_forces(x, y):
         return np.array([0, -0.2])
 
+
     setup_0_m02_p_0.inner_forces = inner_forces
 
     expected_displacement_vector_0_m02_p_0 = [
         [-v[0], -v[1]] for v in expected_displacement_vector_0_02_p_0
     ]
+
     test_suites.append((setup_0_m02_p_0, expected_displacement_vector_0_m02_p_0))
 
     # various changes

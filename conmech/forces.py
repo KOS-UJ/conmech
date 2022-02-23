@@ -2,6 +2,7 @@
 Created at 21.08.2019
 """
 
+
 from typing import Callable
 import numpy as np
 from deep_conmech.common import basic_helpers
@@ -10,10 +11,12 @@ from conmech.vertex_utils import length
 
 
 class F:
+
     def __init__(self, mesh, inter_forces: Callable, outer_forces: Callable):
         self.inter_forces = inter_forces
         self.outer_forces = outer_forces
         self.mesh = mesh
+
         self.F = np.zeros([self.mesh.independent_nodes_count, 2])
 
     @property
@@ -49,6 +52,7 @@ class F:
             )
 
         # np.allclose(self.F2,  self.F)
+
         for neumann_boundary in self.mesh.boundaries.neumann:
 
             for i in range(1, len(neumann_boundary)):
@@ -68,3 +72,4 @@ class F:
                 F[v1] += f_neumann
 
         self.F = F[:self.mesh.independent_nodes_count, :]
+
