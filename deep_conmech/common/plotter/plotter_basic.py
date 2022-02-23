@@ -421,17 +421,17 @@ def draw_mesh_density(id):
     fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
     # Make data.
-    min = basic_helpers.min(corners)
-    max = basic_helpers.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     precision = 0.01
     X = np.arange(min[0], max[0], precision)
     Y = np.arange(min[1], max[1], precision)
     X, Y = np.meshgrid(X, Y)
     # points = np.stack((X,Y), axis = -1)
 
-    base_density = basic_helpers.get_base_density(mesh_density, corners)
-    corner_data = basic_helpers.mesh_corner_data(base_density)
-    Z = basic_helpers.get_adaptive_mesh_density(X, Y, base_density, corner_data)
+    base_density = nph.get_base_density(mesh_density, corners)
+    corner_data = nph.mesh_corner_data(base_density)
+    Z = nph.get_adaptive_mesh_density(X, Y, base_density, corner_data)
 
     # Plot the surface.
     surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
@@ -509,7 +509,7 @@ def draw_mesh_density(id):
         u_old = np.repeat([[0.0, 0.0]], mesh.nodes_count, axis=0)
         forces = np.repeat([force], mesh.nodes_count, axis=0)
         x = np.hstack((forces, u_old, mesh.on_gamma_d))
-        x =basic_helpers.to_torch_float(x)
+        x =thh.to_torch_float(x)
         return x
 """
 

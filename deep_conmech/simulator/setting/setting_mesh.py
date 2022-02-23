@@ -1,9 +1,9 @@
 import deep_conmech.common.config as config
-from deep_conmech.common import basic_helpers
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from numba import njit
+from conmech.helpers import nph
 
 # import os, sys
 # sys.path.append(os.path.abspath('../'))
@@ -85,12 +85,12 @@ def get_furthest_apart(points):
     nodes_count = len(points)
     for i in range(nodes_count):
         for j in range(i, nodes_count):
-            dist = basic_helpers.euclidean_norm(points[i] - points[j])
+            dist = nph.euclidean_norm_numba(points[i] - points[j])
             if dist > max_dist:
                 max_dist = dist
                 max_i, max_j = i, j
 
-    if basic_helpers.euclidean_norm(points[max_i]) < basic_helpers.euclidean_norm(
+    if nph.euclidean_norm_numba(points[max_i]) < nph.euclidean_norm_numba(
         points[max_j]
     ):
         return [max_i, max_j]
@@ -179,8 +179,8 @@ class SettingMesh:
         edges = get_edges_list(edges_matrix)
         boundary_edges = edges[:boundary_edges_count, :]
 
-        old_attached_point_indices = basic_helpers.get_occurances(unordered_cells)
-        old_boundary_indices = basic_helpers.get_occurances(boundary_edges)
+        old_attached_point_indices = nph.get_occurances(unordered_cells)
+        old_boundary_indices = nph.get_occurances(boundary_edges)
 
         points, cells, boundary_nodes_count = move_boundary_points_to_start(
             unordered_points,
@@ -200,7 +200,7 @@ class SettingMesh:
         self.u_old = u
 
     def get_initial_index(self, point):
-        return basic_helpers.get_point_index(np.array(point), self.initial_points)
+        return nph.get_point_index_numba(np.array(point), self.initial_points)
 
     @property
     def boundary_edges_normals(self):
@@ -208,11 +208,11 @@ class SettingMesh:
         internal_nodes = self.moved_points[self.boundary_edges_internal_nodes]
         tail_nodes, head_nodes = edges_nodes[:, 0], edges_nodes[:, 1]
 
-        unoriented_normals = basic_helpers.get_oriented_tangential(
-            basic_helpers.normalize(head_nodes - tail_nodes)
+        unoriented_normals = nph.get_oriented_tangential_numba(
+            nph.normalize(head_nodes - tail_nodes)
         )
         internal_orientation = np.sign(
-            basic_helpers.elementwise_dot(
+            nph.elementwise_dot(
                 internal_nodes - tail_nodes, unoriented_normals
             )
         )
@@ -289,25 +289,20 @@ class SettingMesh:
         if not config.NORMALIZE_ROTATE:
             return np.array([0.0, 1.0])
 
-        reference_vector = basic_helpers.rotate_up(
+        reference_vector = nph.rotate_up_numba(
             self.moved_reference_vector, self.initial_reference_vector
         )
-        reference_vector = reference_vector / basic_helpers.euclidean_norm(
+        reference_vector = reference_vector / nph.euclidean_norm_numba(
             reference_vector
         )
         return reference_vector
 
-    @property
-    def angle(self):
-        return basic_helpers.calculate_angle(self.up_vector)
 
     def rotate_to_upward(self, vectors):
-        # return basic_helpers.rotate(vectors, self.angle)
-        return basic_helpers.rotate_up(vectors, self.up_vector)
+        return nph.rotate_up_numba(vectors, self.up_vector)
 
     def rotate_from_upward(self, vectors):
-        # return basic_helpers.rotate(vectors, -self.angle)
-        return basic_helpers.rotate_up(vectors, self.up_vector * [-1.0, 1.0])
+        return nph.rotate_up_numba(vectors, self.up_vector * [-1.0, 1.0])
 
     @property
     def edges_moved_points(self):

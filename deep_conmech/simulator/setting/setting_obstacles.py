@@ -1,6 +1,7 @@
 import time
 
-from deep_conmech.common import config, basic_helpers
+from deep_conmech.common import config, trh
+from conmech.helpers import nph
 import numpy as np
 from numba import njit
 
@@ -15,7 +16,7 @@ def obstacle_resistance_potential_normal(normal_displacement):
 
 @njit
 def obstacle_resistance_potential_tangential(normal_displacement, tangential_velocity):
-    value = config.OBSTACLE_FRICTION * basic_helpers.euclidean_norm(tangential_velocity)
+    value = config.OBSTACLE_FRICTION * nph.euclidean_norm_numba(tangential_velocity)
     return (
         (normal_displacement > 0) * value * ((1.0 / config.TIMESTEP))
     )  # rozkminic, do not use ReLU(normal_displacement)
@@ -30,14 +31,14 @@ def integrate(nodes, v, edges, closest_obstacle_normals, closest_obstacle_origin
     middle_node = np.mean(edge_node, axis=1)
     middle_v = np.mean(edge_v, axis=1)
 
-    middle_node_normal = basic_helpers.elementwise_dot(
+    middle_node_normal = nph.elementwise_dot(
         middle_node - closest_obstacle_origins, normals
     )
-    middle_v_normal = basic_helpers.elementwise_dot(middle_v, normals)
+    middle_v_normal = nph.elementwise_dot(middle_v, normals)
 
     middle_v_tangential = middle_v - (middle_v_normal.reshape(-1, 1) * normals)
 
-    edge_lengths = basic_helpers.euclidean_norm(edge_node[:, 0] - edge_node[:, 1])
+    edge_lengths = nph.euclidean_norm_numba(edge_node[:, 0] - edge_node[:, 1])
     resistance_normal = obstacle_resistance_potential_normal(middle_node_normal)
     resistance_tangential = obstacle_resistance_potential_tangential(
         middle_node_normal, middle_v_tangential
@@ -69,7 +70,7 @@ def integrate_numba(
             middle_node_normal, middle_v_tangential
         )
 
-        edge_length = basic_helpers.euclidean_norm(
+        edge_length = nph.euclidean_norm_numba(
             nodes[e1] - nodes[e2]
         )  # integrate with initial edge lengths?
         result += edge_length * (resistance_normal + resistance_tangential)
@@ -88,7 +89,7 @@ def get_closest_obstacle_data(
         middle_node = 0.5 * (nodes[e1] + nodes[e2])
         # edge_normal = edges_normals[i]
 
-        distances = basic_helpers.euclidean_norm(obstacle_origins - middle_node)
+        distances = nph.euclidean_norm_numba(obstacle_origins - middle_node)
         # valid_indices = np.where((obstacle_normals @ edge_normal) > 0)[0]
         # if(len(valid_indices) > 0):
         # min_index = valid_indices[distances[valid_indices].argmin()]
@@ -172,7 +173,7 @@ class SettingObstacle(SettingForces):
 
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
-        self.obstacles[0, ...] = basic_helpers.normalize(self.obstacles[0, ...])
+        self.obstacles[0, ...] = nph.normalize(self.obstacles[0, ...])
 
     def set_closest_obstacle_data(self):
         (
@@ -230,7 +231,7 @@ class SettingObstacle(SettingForces):
 
     def normalized_L2_obstacle_np(self, normalized_boundary_a_vector):
         return L2_obstacle_np(
-            basic_helpers.unstack(normalized_boundary_a_vector),
+            nph.unstack(normalized_boundary_a_vector),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
@@ -252,7 +253,7 @@ class SettingObstacle(SettingForces):
     def boundary_centers_penetration_scale(self):
         normals = -self.closest_obstacle_normals
 
-        boundary_centers_to_obstacle_at_normal = basic_helpers.elementwise_dot(
+        boundary_centers_to_obstacle_at_normal = nph.elementwise_dot(
             self.boundary_centers - self.closest_obstacle_origins, normals
         )
 

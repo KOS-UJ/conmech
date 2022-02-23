@@ -14,9 +14,7 @@ def obstacle_resistance_potential_normal_torch(normal_displacement):
 def obstacle_resistance_potential_tangential_torch(
     normal_displacement, tangential_velocity
 ):
-    value = config.OBSTACLE_FRICTION * basic_helpers.euclidean_norm_torch(
-        tangential_velocity
-    )
+    value = config.OBSTACLE_FRICTION * thh.euclidean_norm_torch(tangential_velocity)
     return (normal_displacement > 0) * value * ((1.0 / config.TIMESTEP))
 
 
@@ -31,14 +29,14 @@ def integrate_torch(
     middle_node = torch.mean(edge_node, axis=1)
     middle_v = torch.mean(edge_v, axis=1)
 
-    middle_node_normal = basic_helpers.elementwise_dot_torch(
+    middle_node_normal = nph.elementwise_dot(
         middle_node - closest_obstacle_origins, normals
     )
-    middle_v_normal = basic_helpers.elementwise_dot_torch(middle_v, normals)
+    middle_v_normal = nph.elementwise_dot(middle_v, normals)
 
     middle_v_tangential = middle_v - (middle_v_normal.reshape(-1, 1) * normals)
 
-    edge_lengths = basic_helpers.euclidean_norm_torch(edge_node[:, 0] - edge_node[:, 1])
+    edge_lengths = thh.euclidean_norm_torch(edge_node[:, 0] - edge_node[:, 1])
     resistance_normal = obstacle_resistance_potential_normal_torch(middle_node_normal)
     resistance_tangential = obstacle_resistance_potential_tangential_torch(
         middle_node_normal, middle_v_tangential
@@ -142,21 +140,17 @@ def L2_obstacle_nvt(
 ):  # np via torch
 
     value_torch = L2_normalized_obstacle_correction_cuda(
-        basic_helpers.to_torch_double(boundary_a).to(basic_helpers.device),
-        basic_helpers.to_torch_double(C_boundary).to(basic_helpers.device),
-        basic_helpers.to_torch_double(E_boundary).to(basic_helpers.device),
-        basic_helpers.to_torch_double(boundary_v_old).to(basic_helpers.device),
-        basic_helpers.to_torch_double(boundary_points).to(basic_helpers.device),
-        basic_helpers.to_torch_long(boundary_edges).to(basic_helpers.device),
-        basic_helpers.to_torch_double(closest_obstacle_normals).to(
-            basic_helpers.device
-        ),
-        basic_helpers.to_torch_double(closest_obstacle_origins).to(
-            basic_helpers.device
-        ),
+        thh.to_torch_double(boundary_a).to(thh.device),
+        thh.to_torch_double(C_boundary).to(thh.device),
+        thh.to_torch_double(E_boundary).to(thh.device),
+        thh.to_torch_double(boundary_v_old).to(thh.device),
+        thh.to_torch_double(boundary_points).to(thh.device),
+        thh.to_torch_long(boundary_edges).to(thh.device),
+        thh.to_torch_double(closest_obstacle_normals).to(thh.device),
+        thh.to_torch_double(closest_obstacle_origins).to(thh.device),
         None,
     )
-    value = basic_helpers.to_np_double(value_torch)
+    value = thh.to_np_double(value_torch)
     return value  # .item()
 
 
@@ -193,7 +187,7 @@ class SettingInput(SettingRandomized):
             self.normalized_obstacle_normal,
             self.boundary_centers_penetration_scale,
         )
-        return basic_helpers.to_torch_double(edges_data)
+        return thh.to_torch_double(edges_data)
 
     def get_data_with_norm(self, data):
         return torch.hstack((data, torch.linalg.norm(data, keepdim=True, dim=1)))
@@ -249,7 +243,7 @@ class SettingInput(SettingRandomized):
 
     def normalized_L2_obstacle_nvt(self, normalized_boundary_a_vector):
         return L2_obstacle_nvt(
-            basic_helpers.unstack(normalized_boundary_a_vector),
+            thh.unstack(normalized_boundary_a_vector),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,

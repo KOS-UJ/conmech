@@ -1,6 +1,7 @@
 import numpy as np
 import numba
 from deep_conmech.common import config
+from conmech.helpers import nph
 
 
 o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
@@ -63,14 +64,14 @@ def f_obstacle(ip, mp, t, scale_x, scale_y):
 
 
 def f_tug_and_rotate(ip, mp, t, scale_x, scale_y):
-    min = basic_helpers.min(corners)
-    max = basic_helpers.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     force = np.array([0.0, 0.0])
     rotate_scalar = 0.4
     tug_scalar = 0.8
 
     if t <= 0.1:
-        y_scaled = (ip[1] - min[1]) / basic_helpers.len_y(min, max)
+        y_scaled = (ip[1] - min[1]) / nph.len_y(min, max)
         force += y_scaled * np.array([rotate_scalar, 0.0])
 
     if t <= 1.0:
@@ -114,7 +115,7 @@ def f_random(ip, mp, t, scale_x, scale_y):
 
 
 def f_drag(ip, mp, t, scale_x, scale_y):
-    max = basic_helpers.max(corners)
+    max = nph.max(corners)
     if t <= 0.1 and ip[1] == max[1]:
         return np.array([1.0, 0.0])
     return np.array([0.0, 0.0])

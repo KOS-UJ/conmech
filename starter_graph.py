@@ -1,20 +1,21 @@
-
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.model import GraphModelDynamic
 import deep_conmech.common.examples as examples
-import deep_conmech.common.basic_helpers as basic_helpers
+import deep_conmech.common.trh as trh
 
 
 def main():
-    basic_helpers.set_memory_limit()
+    thh.set_memory_limit()
     # torch.multiprocessing.set_start_method('spawn')
 
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
-    #train_dataset = TrainingSyntheticDatasetDynamic()
+    # train_dataset = TrainingSyntheticDatasetDynamic()
     train_dataset = TrainingScenariosDatasetDynamic(examples.all_train)
-    all_val_datasets = [ValidationDatasetDynamic(scenario) for scenario in examples.all_print]
+    all_val_datasets = [
+        ValidationDatasetDynamic(scenario) for scenario in examples.all_print
+    ]
 
     model = GraphModelDynamic(train_dataset, all_val_datasets, examples.all_print)
     if path is not None:
@@ -26,8 +27,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
 
 
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
@@ -46,14 +45,13 @@ if __name__ == "__main__":
 # ]
 
 
-
 # TODO:
 
 # give network get_edges_features_list
 
 # podawac v wymnozone przez ts
 
-#wyswietlac dane < cutoff w getitem z nowymi randomizacjami
+# wyswietlac dane < cutoff w getitem z nowymi randomizacjami
 
 # porównać uczenie za pomocą funkcji energii i RMSE
 

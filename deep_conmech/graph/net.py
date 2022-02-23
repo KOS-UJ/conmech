@@ -4,11 +4,11 @@ from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
-from deep_conmech.common import config, basic_helpers
+from deep_conmech.common import config, trh
 
-#TODO: move
+# TODO: move
 ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
-#| ac {.ACTIVATION._get_name()} \
+# | ac {.ACTIVATION._get_name()} \
 
 
 class Block(nn.Module):
@@ -132,7 +132,7 @@ class ForwardNet(nn.Module):
             )
         )
 
-        self.net = basic_helpers.set_precision(nn.Sequential(*layers))
+        self.net = thh.set_precision(nn.Sequential(*layers))
 
     def forward(self, x):
         result = self.net(x)
@@ -236,7 +236,7 @@ class ProcessorLayer(MessagePassing):
 
         # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
         # self.vertex_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
-        self.layer_norm = basic_helpers.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
         self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS)
         self.epsilon = Parameter(torch.Tensor(1))
 
@@ -294,12 +294,12 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             input_normalization=True,
             output_linear_dim=config.LATENT_DIM,
         )
-        self.layer_norm = basic_helpers.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
 
         self.processor_layers = []
         for _ in range(config.MESSAGE_PASSES):
             processor_layer = ProcessorLayer()
-            processor_layer.to(basic_helpers.device)
+            processor_layer.to(thh.device)
             self.processor_layers.append(processor_layer)
 
         self.decoder = ForwardNet(

@@ -16,7 +16,7 @@ start = time.time()
 
 def get_writer():
     return SummaryWriter(
-        f"./log/{basic_helpers.CURRENT_TIME} \
+        f"./log/{thh.CURRENT_TIME} \
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
@@ -52,7 +52,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet().to(basic_helpers.device)
+        self.net = CustomGraphNet().to(thh.device)
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -68,14 +68,14 @@ class GraphModelDynamic:
         return float(self.scheduler.get_last_lr()[0])
 
     def graph_sizes(self, batch):
-        graph_sizes = np.ediff1d(basic_helpers.to_np_long(batch.ptr)).tolist()
+        graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 
     def boundary_nodes_counts(self, batch):
-        return basic_helpers.to_np_long(batch.boundary_nodes_count).tolist()
+        return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
     def boundary_edges_counts(self, batch):
-        return basic_helpers.to_np_long(batch.boundary_edges_count).tolist()
+        return thh.to_np_long(batch.boundary_edges_count).tolist()
 
     def get_split(self, batch, index, graph_sizes):
         value = batch.x[:, index * config.DIM : (index + 1) * config.DIM]
@@ -86,7 +86,7 @@ class GraphModelDynamic:
 
     def solve(self, setting, print_time=False):
         self.net.eval()
-        batch = setting.get_data().to(basic_helpers.device)
+        batch = setting.get_data().to(thh.device)
 
         start = time.time()
         normalized_a_cuda = self.net(
@@ -95,7 +95,7 @@ class GraphModelDynamic:
         if print_time:
             print("Graph solve time: ", time.time() - start)
 
-        normalized_a = basic_helpers.to_np_double(normalized_a_cuda)
+        normalized_a = thh.to_np_double(normalized_a_cuda)
         a = setting.rotate_from_upward(normalized_a)
         return a
 
@@ -103,9 +103,9 @@ class GraphModelDynamic:
 
     def save(self):
         print("Saving model")
-        timestamp = basic_helpers.get_timestamp()
-        catalog = f"output/GRAPH - {basic_helpers.CURRENT_TIME}"
-        basic_helpers.create_folders(catalog)
+        timestamp = thh.get_timestamp()
+        catalog = f"output/GRAPH - {thh.CURRENT_TIME}"
+        thh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         torch.save(self.net.state_dict(), path)
 
@@ -127,7 +127,7 @@ class GraphModelDynamic:
             epoch += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            batch_tqdm = basic_helpers.get_tqdm(self.train_dataloader, desc="Batch")
+            batch_tqdm = thh.get_tqdm(self.train_dataloader, desc="Batch")
             for batch_number, batch in enumerate(batch_tqdm):
 
                 train_loss, train_loss_array = self.train_step(batch)
@@ -201,7 +201,7 @@ class GraphModelDynamic:
         loss = 0.0
         loss_array = np.zeros([3])
 
-        batch_cuda = batch.to(basic_helpers.device)
+        batch_cuda = batch.to(thh.device)
         predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
 
         reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
@@ -280,9 +280,7 @@ class GraphModelDynamic:
                     #    / torch.abs(exact_normalized_L2)
                     # )
                     loss_array[2] += float(
-                        basic_helpers.rmse_torch(
-                            predicted_normalized_a, exact_normalized_a
-                        )
+                        thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
                     )
 
                 # new_setting = setting.iterate(helpers.to_np(a_predicted))
@@ -317,7 +315,7 @@ class GraphModelDynamic:
             labels_count = len(self.loss_labels)
             mean_loss_array = np.zeros([labels_count])
 
-            batch_tqdm = basic_helpers.get_tqdm(dataloader, desc=dataset.relative_path)
+            batch_tqdm = thh.get_tqdm(dataloader, desc=dataset.relative_path)
             for _, batch in enumerate(batch_tqdm):
                 mean_loss_array += self.test_step(batch)
             mean_loss_array = mean_loss_array / len(dataloader)
@@ -337,7 +335,7 @@ class GraphModelDynamic:
     #################
 
     def print_raport(self):
-        path = f"GRAPH - {basic_helpers.CURRENT_TIME}/{basic_helpers.get_timestamp()} - RESULT"
+        path = f"GRAPH - {thh.CURRENT_TIME}/{thh.get_timestamp()} - RESULT"
         for scenario in self.print_scenarios:
 
             plotter_mapper.print_one_dynamic(
@@ -395,8 +393,8 @@ class GraphModelDynamic:
 class GraphModelStatic(GraphModelDynamic):
     def b(self, batch):
         x = batch.pos
-        rx = (x[..., 0] - config.min[0]) / basic_helpers.len_x(corners)
-        ry = (x[..., 0] - config.min[0]) / basic_helpers.len_y(corners)
+        rx = (x[..., 0] - config.min[0]) / nph.len_x(corners)
+        ry = (x[..., 0] - config.min[0]) / nph.len_y(corners)
         result = torch.stack((rx, ry), -1)
         return result
 
@@ -416,7 +414,7 @@ class GraphModelStatic(GraphModelDynamic):
         loss_array = torch.zeros(batch.num_graphs)
         for i in range(batch.num_graphs):
             # forces_i = forces_split[i]
-            # forces_i =basic_helpers.to_torch_float([-0.1, 0.1])
+            # forces_i =thh.to_torch_float([-0.1, 0.1])
             forces_i = batch.setting[i].FORCES()
             l2 = batch.setting[i].L2_torch(u_split[i], forces_i)
             loss_array[i] = l2

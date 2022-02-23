@@ -39,6 +39,7 @@ class MeshFeatures(SettingMatrices):
             density,
             time_step,
             lambda: self.reorganize_boundaries(is_contact, is_dirichlet),
+            False
         )
 
     def reorganize_boundaries(self, is_contact, is_dirichlet):
