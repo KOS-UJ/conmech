@@ -5,7 +5,7 @@ import numpy as np
 
 
 from conmech.matrices import Matrices
-from conmech.forces import F
+from conmech.forces import Forces
 
 
 
