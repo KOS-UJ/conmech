@@ -4,7 +4,8 @@ from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
-from deep_conmech.common import config, trh
+from deep_conmech.common import config
+from deep_conmech.graph.helpers import thh
 
 # TODO: move
 ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU

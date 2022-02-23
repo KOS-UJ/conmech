@@ -3,6 +3,7 @@ from deep_conmech.common.plotter.plotter_basic import Plotter
 from deep_conmech.common import mapper, config
 from deep_conmech.graph.model import *
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.graph.helpers import thh
 
 
 def print_setting(setting, filename, catalog):

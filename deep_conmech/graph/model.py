@@ -10,6 +10,7 @@ from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard import SummaryWriter
+from deep_conmech.graph.helpers import thh
 
 start = time.time()
 

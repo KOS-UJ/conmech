@@ -3,6 +3,7 @@ import numpy as np
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
+from conmech.helpers.mph import mph
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
@@ -149,7 +150,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         result = False
         while result is False:
-            result = thh.run_processes(
+            result = mph.run_processes(
                 generate_synthetic_data_process, (self, data_part_count), num_workers,
             )
             if result is False:

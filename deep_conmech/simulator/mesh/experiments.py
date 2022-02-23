@@ -53,7 +53,7 @@ def get_boundary_faces(elements):
 def get_edges_features_matrix(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
-    dim = element_size - 1
+    dim=element_size-1
 
     edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
@@ -81,9 +81,9 @@ def get_edges_features_matrix(elements, nodes):
                 u1 = i_dPhX / 3.0
                 u2 = i_dPhY / 3.0
 
-                edges_features_matrix[
-                    element[i], element[j]
-                ] += element_volume * np.array([area, w11, w12, w21, w22, u1, u2, u])
+                edges_features_matrix[element[i], element[j]] += element_volume * np.array(
+                    [area, w11, w12, w21, w22, u1, u2, u]
+                )
 
     return edges_features_matrix, element_initial_volume
 
@@ -95,15 +95,15 @@ def get_integral_parts(element_nodes, element_index):
     x_j2 = element_nodes[(element_index + 2) % 3]
 
     dm = denominator(x_i, x_j1, x_j2)
-    element_volume = np.abs(dm) / 2.0  # = np.abs(dm) / 2.0 = shoelace_area
+    triangle_area = np.abs(dm) / 2.0 # = np.abs(dm) / 2.0 = shoelace_area
 
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
 
-    dPhX = numba.njit(nph.div_or_zero(y_sub, dm), inline="always")
-    dPhY = numba.njit(nph.div_or_zero(x_sub, dm), inline="always")
+    dPhX = y_sub / dm
+    dPhY = x_sub / dm
 
-    return dPhX, dPhY, element_volume
+    return dPhX, dPhY, triangle_area
 
 
 @njit

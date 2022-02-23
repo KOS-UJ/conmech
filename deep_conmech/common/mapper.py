@@ -1,6 +1,7 @@
 import time
 
 from deep_conmech.common import config
+from conmech.helpers import nph
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.model import *
 from deep_conmech.graph.setting.setting_input import *
@@ -54,7 +55,7 @@ def map_time(
     else:
         base_setting = None
         base_a = None
-    max_data = MaxData(scenario.id, episode_steps)
+    max_data = thh.MaxData(scenario.id, episode_steps)
 
     solver_time = 0
     comparison_time = 0

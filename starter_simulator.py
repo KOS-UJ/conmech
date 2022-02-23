@@ -1,6 +1,6 @@
 from matplotlib.pyplot import draw
 
-import deep_conmech.common.trh as trh
+from deep_conmech.graph.helpers import thh
 import deep_conmech.common.config as config
 import deep_conmech.common.examples as examples
 import deep_conmech.common.plotter.plotter_mapper as mapper

@@ -1,7 +1,6 @@
 import numpy as np
 import numba
 from numba import njit
-from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from conmech.helpers import nph
 

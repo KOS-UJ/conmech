@@ -1,5 +1,5 @@
-from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.setting.setting_obstacles import *
+from deep_conmech.graph.helpers import thh
 
 
 def L2_torch(argument, C, E):

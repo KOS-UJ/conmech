@@ -4,6 +4,7 @@ from deep_conmech.graph.setting.setting_randomized import *
 from deep_conmech.graph.setting.setting_randomized import L2_normalized_cuda
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.data import Data
+from deep_conmech.graph.helpers import thh
 
 
 def obstacle_resistance_potential_normal_torch(normal_displacement):

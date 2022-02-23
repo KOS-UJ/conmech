@@ -2,12 +2,12 @@ from ctypes import ArgumentError
 
 # import dmsh
 # import optimesh
-import meshzoo
+# import meshzoo
 import numpy as np
 import pygmsh
 from deep_conmech.graph.data.data_interpolation import interpolate_point_numba
 from numba import njit
-from conmech.helpers import nph
+from conmech.helpers import mph, nph
 
 
 def get_cross_points_legacy_ordered(
@@ -84,8 +84,8 @@ def get_cross_cells(
 
 
 def get_meshzoo_rectangle(mesh_density, corners):
-    min = thh.min(corners)
-    max = thh.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     points, cells = meshzoo.rectangle_tri(
         np.linspace(min[0], max[0], int(mesh_density) + 1),
         np.linspace(min[1], max[1], int(mesh_density) + 1),
@@ -95,8 +95,8 @@ def get_meshzoo_rectangle(mesh_density, corners):
 
 
 def get_dmsh_rectangle(mesh_density, corners):
-    min = thh.min(corners)
-    max = thh.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     geo = dmsh.Rectangle(min[0], max[0], min[1], max[1])
     # path = dmsh.Path([[0.4, 0.6], [0.6, 0.4]])
 
@@ -161,7 +161,7 @@ def build_mesh(
             mesh_type, mesh_density_x, scale_x, scale_y, is_adaptive
         )
         function = (
-            (lambda: thh.run_process(inner_function))
+            (lambda: mph.run_process(inner_function))
             if create_in_subprocess
             else inner_function
         )

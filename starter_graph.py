@@ -2,7 +2,7 @@ from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.model import GraphModelDynamic
 import deep_conmech.common.examples as examples
-import deep_conmech.common.trh as trh
+from deep_conmech.graph.helpers import thh
 
 
 def main():

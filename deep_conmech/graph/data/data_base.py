@@ -4,13 +4,13 @@ from os import listdir
 from os.path import isfile, join
 
 import deep_conmech.common.config as config
-import deep_conmech.common.trh as trh
 import numpy as np
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import torch
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
+from deep_conmech.graph.helpers import thh
 
 
 def get_print_dataloader(dataset):

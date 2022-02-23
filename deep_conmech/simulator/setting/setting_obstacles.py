@@ -1,6 +1,6 @@
 import time
 
-from deep_conmech.common import config, trh
+from deep_conmech.common import config
 from conmech.helpers import nph
 import numpy as np
 from numba import njit
