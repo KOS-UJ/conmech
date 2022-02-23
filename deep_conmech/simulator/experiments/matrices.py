@@ -1,31 +1,31 @@
-
-@njit
-def denominator(x_i, x_j1, x_j2):
-    return (
-        x_i[1] * x_j1[0]
-        + x_j1[1] * x_j2[0]
-        + x_i[0] * x_j2[1]
-        - x_i[1] * x_j2[0]
-        - x_j2[1] * x_j1[0]
-        - x_i[0] * x_j1[1]
-    )
+from tkinter import Y
 
 
-X:
-{{(j2 k1 - j1 k2 - j2 l1 + k2 l1 + j1 l2 - k1 l2) /
-(I2 j1 k0 - I1 j2 k0 - I2 j0 k1 + I0 j2 k1 + I1 j0 k2 - I0 j1 k2 - I2 j1 l0 + I1 j2 l0 +
-I2 k1 l0 - j2 k1 l0 - I1 k2 l0 + j1 k2 l0 + I2 j0 l1 - I0 j2 l1 - I2 k0 l1 + j2 k0 l1 +
-I0 k2 l1 - j0 k2 l1 - I1 j0 l2 + I0 j1 l2 + I1 k0 l2 - j1 k0 l2 - I0 k1 l2 + j0 k1 l2)}}
+X
+{{(xj12 xj21 - xj11 xj22 - xj12 xj31 + xj22 xj31 + xj11 xj32 - xj21 xj32) /
 
-Y:
-{{(j2 k0 - j0 k2 - j2 l0 + k2 l0 + j0 l2 - k0 l2) /
-(-I2 j1 k0 + I1 j2 k0 + I2 j0 k1 - I0 j2 k1 - I1 j0 k2 + I0 j1 k2 + I2 j1 l0 - I1 j2 l0 -
-I2 k1 l0 + j2 k1 l0 + I1 k2 l0 - j1 k2 l0 - I2 j0 l1 + I0 j2 l1 + I2 k0 l1 - j2 k0 l1 -
-I0 k2 l1 + j0 k2 l1 + I1 j0 l2 - I0 j1 l2 - I1 k0 l2 + j1 k0 l2 + I0 k1 l2 - j0 k1 l2)}}
+(xi2 xj11 xj20 - xi1 xj12 xj20 - xi2 xj10 xj21 + xi0 xj12 xj21 + xi1 xj10 xj22 -
+xi0 xj11 xj22 - xi2 xj11 xj30 + xi1 xj12 xj30 + xi2 xj21 xj30 - xj12 xj21 xj30 -
+xi1 xj22 xj30 + xj11 xj22 xj30 + xi2 xj10 xj31 - xi0 xj12 xj31 - xi2 xj20 xj31 +
+xj12 xj20 xj31 + xi0 xj22 xj31 - xj10 xj22 xj31 - xi1 xj10 xj32 + xi0 xj11 xj32 +
+xi1 xj20 xj32 - xj11 xj20 xj32 - xi0 xj21 xj32 + xj10 xj21 xj32)}}
 
 
-Z:
-{{(j1 k0 - j0 k1 - j1 l0 + k1 l0 + j0 l1 - k0 l1) /
-(I2 j1 k0 - I1 j2 k0 - I2 j0 k1 + I0 j2 k1 + I1 j0 k2 - I0 j1 k2 - I2 j1 l0 + I1 j2 l0 +
-I2 k1 l0 - j2 k1 l0 - I1 k2 l0 + j1 k2 l0 + I2 j0 l1 - I0 j2 l1 - I2 k0 l1 + j2 k0 l1 +
-I0 k2 l1 - j0 k2 l1 - I1 j0 l2 + I0 j1 l2 + I1 k0 l2 - j1 k0 l2 - I0 k1 l2 + j0 k1 l2)}}
+Y
+{{(xj12 xj20 - xj10 xj22 - xj12 xj30 + xj22 xj30 + xj10 xj32 - xj20 xj32) /
+
+(-xi2 xj11 xj20 + xi1 xj12 xj20 + xi2 xj10 xj21 - xi0 xj12 xj21 - xi1 xj10 xj22 +
+xi0 xj11 xj22 + xi2 xj11 xj30 - xi1 xj12 xj30 - xi2 xj21 xj30 + xj12 xj21 xj30 +
+xi1 xj22 xj30 - xj11 xj22 xj30 - xi2 xj10 xj31 + xi0 xj12 xj31 + xi2 xj20 xj31 -
+xj12 xj20 xj31 - xi0 xj22 xj31 + xj10 xj22 xj31 + xi1 xj10 xj32 - xi0 xj11 xj32 -
+xi1 xj20 xj32 + xj11 xj20 xj32 + xi0 xj21 xj32 - xj10 xj21 xj32)}}
+
+
+Z
+{{(xj11 xj20 - xj10 xj21 - xj11 xj30 + xj21 xj30 + xj10 xj31 - xj20 xj31) /
+
+(xi2 xj11 xj20 - xi1 xj12 xj20 - xi2 xj10 xj21 + xi0 xj12 xj21 + xi1 xj10 xj22 -
+xi0 xj11 xj22 - xi2 xj11 xj30 + xi1 xj12 xj30 + xi2 xj21 xj30 - xj12 xj21 xj30 -
+xi1 xj22 xj30 + xj11 xj22 xj30 + xi2 xj10 xj31 - xi0 xj12 xj31 - xi2 xj20 xj31 +
+xj12 xj20 xj31 + xi0 xj22 xj31 - xj10 xj22 xj31 - xi1 xj10 xj32 + xi0 xj11 xj32 +
+xi1 xj20 xj32 - xj11 xj20 xj32 - xi0 xj21 xj32 + xj10 xj21 xj32)}}
