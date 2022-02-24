@@ -32,5 +32,4 @@ jobs:
       - if: matrix.platform == 'ubuntu-latest'
         run: sudo apt-get install -y python3-gmsh
 
-      - run: |
-        PYTHONPATH=. pytest -p no:unraisableexception
+      - run: PYTHONPATH=. pytest -p no:unraisableexception
