@@ -8,9 +8,8 @@ from numba import njit
 def get_edges_features_matrix_numba(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
-    dim=element_size-1
 
-    edges_features_matrix = np.zeros((nodes_count, nodes_count, 11), dtype=np.double)
+    edges_features_matrix = np.zeros((nodes_count, nodes_count, 14), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: prange?
@@ -30,9 +29,10 @@ def get_edges_features_matrix_numba(elements, nodes):
                 # | divide by 2 for each edge - info about single triangle is sent to node twice via both edges (in 3D: 3)
                 volume = (i != j) / (4.0 * 3.0)
                 u = (1 + (i == j)) / 20.0 # in 2D: divide by 6 or 12
-                #u1 = i_dPhX / 3.0
-                #u2 = i_dPhY / 3.0
-                #u3 = i_dPhZ / 3.0
+                
+                u1 = i_dPhX / 4.0 # 1/4 = intergal of phi over the element
+                u2 = i_dPhY / 4.0
+                u3 = i_dPhZ / 4.0
 
                 w11 = i_dPhX * j_dPhX
                 w12 = i_dPhX * j_dPhY
@@ -47,7 +47,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 w33 = i_dPhZ * j_dPhZ
 
                 edges_features_matrix[element[i], element[j]] += element_volume * np.array(
-                    [volume, w11, w12, w13, w21, w22, w23, w31, w32, w33, u]
+                    [volume, w11, w12, w13, w21, w22, w23, w31, w32, w33, u1, u2, u3, u]
                 )
 
     return edges_features_matrix, element_initial_volume
@@ -55,6 +55,8 @@ def get_edges_features_matrix_numba(elements, nodes):
 
 #@njit
 def get_integral_parts_numba(element_nodes, element_index):
+    
+    #TODO: Simplify
     x_i = element_nodes[element_index % 4]
     x_j1 = element_nodes[(element_index + 1) % 4]
     x_j2 = element_nodes[(element_index + 2) % 4]

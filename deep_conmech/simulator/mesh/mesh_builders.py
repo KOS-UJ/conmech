@@ -81,7 +81,7 @@ def build_mesh(
             else inner_function
         )
     else:
-        raise ArgumentError
+        raise ArgumentError()
 
     unordered_points, unordered_cells = function()
     return unordered_points, unordered_cells

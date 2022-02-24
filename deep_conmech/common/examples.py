@@ -1,8 +1,7 @@
-import numpy as np
 import numba
-from deep_conmech.common import config
+import numpy as np
 from conmech.helpers import nph
-
+from deep_conmech.common import config
 
 o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
 o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
@@ -29,6 +28,7 @@ def f_accelerate_fast(ip, mp, t, scale_x, scale_y):
 def f_accelerate_slow_right(ip, mp, t, scale_x, scale_y):
     force = np.array([0.01, 0.0])
     return force
+
 
 def f_accelerate_slow_left(ip, mp, t, scale_x, scale_y):
     force = np.array([-0.01, 0.0])
@@ -105,7 +105,9 @@ def f_rotate(ip, mp, t, scale_x, scale_y):
 
 
 def reverse(f):
-    return lambda ip, mp, t, scale_x, scale_y: numba.njit(-f(ip, mp, t, scale_x, scale_y))
+    return lambda ip, mp, t, scale_x, scale_y: numba.njit(
+        -f(ip, mp, t, scale_x, scale_y)
+    )
 
 
 def f_random(ip, mp, t, scale_x, scale_y):
@@ -132,7 +134,18 @@ m_cross = "cross"
 
 
 class Scenario:
-    def __init__(self, id, mesh_type, mesh_density, scale, forces_function, obstacles, is_adaptive, duration=None, is_randomized=None):
+    def __init__(
+        self,
+        id,
+        mesh_type,
+        mesh_density,
+        scale,
+        forces_function,
+        obstacles,
+        is_adaptive,
+        duration=None,
+        is_randomized=None,
+    ):
         self.id = id
         self.mesh_type = mesh_type
         self.mesh_density = mesh_density
@@ -146,126 +159,128 @@ class Scenario:
 
 def circle_slope(scale, is_adaptive):
     return Scenario(
-    "circle_slope",
-    m_circle,
-    config.MESH_DENSITY,
-    scale,
-    f_accelerate_slow_right,
-    o_slope * scale,
-    is_adaptive
-)
+        "circle_slope",
+        m_circle,
+        config.MESH_DENSITY,
+        scale,
+        f_accelerate_slow_right,
+        o_slope * scale,
+        is_adaptive,
+    )
+
+
 def circle_right(scale, is_adaptive):
     return Scenario(
-    "circle_right",
-    m_circle,
-    config.MESH_DENSITY,
-    scale,
-    f_accelerate_slow_right,
-    o_front * scale,
-    is_adaptive
-)
+        "circle_right",
+        m_circle,
+        config.MESH_DENSITY,
+        scale,
+        f_accelerate_slow_right,
+        o_front * scale,
+        is_adaptive,
+    )
+
+
 def circle_left(scale, is_adaptive):
     return Scenario(
-    "circle_left",
-    m_circle,
-    config.MESH_DENSITY,
-    scale,
-    f_accelerate_slow_left,
-    o_back * scale,
-    is_adaptive
-)
+        "circle_left",
+        m_circle,
+        config.MESH_DENSITY,
+        scale,
+        f_accelerate_slow_left,
+        o_back * scale,
+        is_adaptive,
+    )
+
+
 def polygon_left(scale, is_adaptive):
     return Scenario(
-    "polygon_left",
-    m_polygon,
-    config.MESH_DENSITY,
-    scale,
-    f_accelerate_slow_left,
-    o_back * scale,
-    is_adaptive
-)
+        "polygon_left",
+        m_polygon,
+        config.MESH_DENSITY,
+        scale,
+        f_accelerate_slow_left,
+        o_back * scale,
+        is_adaptive,
+    )
+
+
 def polygon_slope(scale, is_adaptive):
     return Scenario(
-    "polygon_slope",
-    m_polygon,
-    config.MESH_DENSITY,
-    scale,
-    f_slide,
-    o_slope * scale,
-    is_adaptive
-)
+        "polygon_slope",
+        m_polygon,
+        config.MESH_DENSITY,
+        scale,
+        f_slide,
+        o_slope * scale,
+        is_adaptive,
+    )
+
+
 def circle_rotate(scale, is_adaptive):
     return Scenario(
-    "circle_rotate",
-    m_circle,
-    config.MESH_DENSITY,
-    scale,
-    f_rotate,
-    o_side * scale,
-    is_adaptive
-)
+        "circle_rotate",
+        m_circle,
+        config.MESH_DENSITY,
+        scale,
+        f_rotate,
+        o_side * scale,
+        is_adaptive,
+    )
+
 
 def polygon_stay(scale, is_adaptive):
     return Scenario(
-    "polygon_stay",
-    m_polygon,
-    config.MESH_DENSITY,
-    scale,
-    f_stay,
-    o_side * scale,
-    is_adaptive
-)
+        "polygon_stay",
+        m_polygon,
+        config.MESH_DENSITY,
+        scale,
+        f_stay,
+        o_side * scale,
+        is_adaptive,
+    )
+
 
 def polygon_two(scale, is_adaptive):
     return Scenario(
-    "polygon_two",
-    m_polygon,
-    config.MESH_DENSITY,
-    scale,
-    f_slide,
-    o_two * scale,
-    is_adaptive
-)
+        "polygon_two",
+        m_polygon,
+        config.MESH_DENSITY,
+        scale,
+        f_slide,
+        o_two * scale,
+        is_adaptive,
+    )
+
 
 def cross_slope(scale, is_adaptive):
     return Scenario(
-    "cross_slope",
-    m_cross,
-    config.MESH_DENSITY,
-    scale,
-    f_slide,
-    o_side * scale,
-    is_adaptive
-)
+        "cross_slope",
+        m_cross,
+        config.MESH_DENSITY,
+        scale,
+        f_slide,
+        o_side * scale,
+        is_adaptive,
+    )
 
-def cross_two():
-    return Scenario(
-    "polygon_two",
-    m_cross,
-    config.MESH_DENSITY,
-    1.0,
-    f_slide,
-    o_two,
-    False
-)
 
 all_train = [
-    #polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
+    # polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
     circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
     circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
-    #circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
-    #polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    # circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
+    # polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True)
+    polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
 ]
 
 all_print = [
-    cross_two(),
     polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
-    #circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
-    #circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
-    #circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    # circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
+    # circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
+    # circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False)
+    polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
 ]

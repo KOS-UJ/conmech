@@ -4,20 +4,29 @@ from os import listdir
 from os.path import isfile, join
 
 import deep_conmech.common.config as config
-import numpy as np
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
+import numpy as np
 import torch
+from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
-from deep_conmech.graph.helpers import thh
 
 
 def get_print_dataloader(dataset):
     return get_dataloader(dataset, config.BATCH_SIZE, num_workers=0, shuffle=False)
 
 
-def get_fast_dataloader(dataset):
+def get_valid_dataloader(dataset):
+    return get_dataloader(
+        dataset,
+        config.VALID_BATCH_SIZE,
+        num_workers=config.DATALOADER_WORKERS,
+        shuffle=False,
+    )
+
+
+def get_train_dataloader(dataset):
     return get_dataloader(
         dataset, config.BATCH_SIZE, num_workers=config.DATALOADER_WORKERS, shuffle=True
     )

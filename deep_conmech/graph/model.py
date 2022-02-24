@@ -25,7 +25,7 @@ def get_writer():
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \
 | vpes {config.VAL_PRINT_EPISODE_STEPS} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
-| bs {config.BATCH_SIZE} bie {config.BATCHES_IN_EPOCH} \
+| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.BATCHES_IN_EPOCH} \
 | ld {config.LATENT_DIM} \
 | lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
 | mp {config.MESSAGE_PASSES}"
@@ -40,9 +40,9 @@ class GraphModelDynamic:
     def __init__(
         self, train_dataset, all_val_datasets, print_scenarios,
     ):
-        self.train_dataloader = data_base.get_fast_dataloader(train_dataset)
+        self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
-            (dataset, data_base.get_print_dataloader(dataset))
+            (dataset, data_base.get_valid_dataloader(dataset))
             for dataset in all_val_datasets
         ]
         self.print_scenarios = print_scenarios

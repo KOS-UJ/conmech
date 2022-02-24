@@ -69,11 +69,20 @@ nodes, elements = get_meshzoo_cube(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes = np.unique(nodes[boundary_faces].reshape(-1, 3), axis=0)
 
-edges_features_matrix = get_edges_features_matrix_numba(elements, nodes)
+edges_features_matrix, element_initial_volume = get_edges_features_matrix_numba(elements, nodes)
+# TODO: To tests - sum off slice for area and u == 1
+# np.moveaxis(edges_features_matrix, -1,0)[i].sum() == 0
+# np.moveaxis(edges_features_matrix, -1,0)[0].sum() == 1
+# TODO: switch to dictionary
+# TODO: simplify get_integral_parts_numba
+# TODO: reshape so that AREA = edges_features_matrix[..., 0] is   AREA = edges_features_matrix[0]
+# np.moveaxis(edges_features_matrix, -1,0)[0].sum()
+#rollaxis -> moveaxis
+
 
 
 fig = plt.figure()
-ax = fig.add_subplot(111, projection="3d")
+ax = fig.add_subplot(projection="3d")
 plot_mesh(ax, nodes, elements)
 # ax.scatter(boundary_nodes[:, 0], boundary_nodes[:, 1], boundary_nodes[:, 2], color="r")
 
