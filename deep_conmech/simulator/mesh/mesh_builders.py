@@ -67,11 +67,11 @@ def build_mesh(
         function = lambda: legacy_mesh.get_cross_rectangle(
             mesh_density_x, mesh_density_y, scale_x, scale_y
         )
-    if mesh_type == "meshzoo":
+    elif mesh_type == "meshzoo":
         function = lambda: get_meshzoo_rectangle(mesh_density_x, scale_x, scale_y)
     elif mesh_type == "dmsh":
         function = lambda: get_dmsh_rectangle(mesh_density_x, scale_x, scale_y)
-    elif "pygmsh" in mesh_type:
+    elif mesh_type == "pygmsh":
         inner_function = lambda: get_pygmsh(
             mesh_type, mesh_density_x, scale_x, scale_y, is_adaptive
         )
@@ -148,5 +148,3 @@ def set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive):
         )
     else:
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
-
-
