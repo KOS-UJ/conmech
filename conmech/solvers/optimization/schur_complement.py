@@ -8,7 +8,7 @@ import numpy as np
 from conmech.matrices import Matrices
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
-from deep_conmech.common import basic_helpers
+from conmech.helpers import nph
 
 
 class SchurComplement(Optimization):
@@ -77,9 +77,9 @@ class SchurComplement(Optimization):
     def recalculate_forces(self):
         E_split = self.get_E_split()
         # Et
-        forces_contact = basic_helpers.stack_column(E_split[self.contact_ids, :])
+        forces_contact = nph.stack_column(E_split[self.contact_ids, :])
         # Ei
-        forces_free = basic_helpers.stack_column(E_split[self.free_ids, :])
+        forces_free = nph.stack_column(E_split[self.free_ids, :])
 
         # Ebig = self.FVector - Bu + (1./self.tS) * ACCv / Ebig = self.FVector - X
         # Et = np.append(Ebig[self.i:self.n], Ebig[self.n + self.i:self.n + self.n])
@@ -233,7 +233,7 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_E_split(self):
-        return self.forces.F - basic_helpers.unstack(self.B @ self.u_vector.T)
+        return self.forces.F - nph.unstack(self.B @ self.u_vector.T)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -297,9 +297,9 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * basic_helpers.unstack(self.B @ self.u_vector)
+        X = -1 * nph.unstack(self.B @ self.u_vector)
 
-        X += (1 / self.time_step) * basic_helpers.unstack(self.ACC @ self.v_vector)
+        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector)
 
         # TODO temperature
         # C2X, C2Y = Matrices.construct_C2(self.grid)

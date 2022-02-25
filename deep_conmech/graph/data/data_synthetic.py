@@ -1,7 +1,9 @@
 import deep_conmech.graph.data.data_interpolation as data_interpolation
 import numpy as np
-from deep_conmech.common import basic_helpers, config
+from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
+from deep_conmech.graph.helpers import thh
+from conmech.helpers import mph
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
@@ -50,7 +52,7 @@ def create_v_old(setting):
 
 
 def create_obstacles(setting):
-    obstacle_normals_unnormaized = basic_helpers.get_random_normal_circle(
+    obstacle_normals_unnormaized = nph.get_random_normal_circle(
         1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_points
@@ -64,7 +66,7 @@ def create_mesh_type():
 
 
 def create_obstacles(setting):
-    obstacle_normals_unnormaized = basic_helpers.get_random_normal_circle(
+    obstacle_normals_unnormaized = thh.get_random_normal_circle(
         1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_points
@@ -106,7 +108,7 @@ def generate_random_setting_data(index):
 
     # if Calculator.is_fast():
     normalized_a = Calculator.solve_normalized(setting)
-    exact_normalized_a_torch = basic_helpers.to_torch_double(normalized_a)
+    exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
     # data = setting.get_data(index, exact_normalized_a_torch)
     return setting, exact_normalized_a_torch  # data, setting
@@ -115,9 +117,7 @@ def generate_random_setting_data(index):
 def generate_synthetic_data_process(dataset, data_part_count, queue, process_id):
     indices_to_do = get_process_indices_to_do(process_id, data_part_count, dataset.path)
     tqdm_description = f"Process {process_id} - generating {dataset.relative_path} data"
-    step_tqdm = basic_helpers.get_tqdm(
-        indices_to_do, desc=tqdm_description, position=process_id,
-    )
+    step_tqdm = thh.get_tqdm(indices_to_do, desc=tqdm_description, position=process_id,)
 
     if not indices_to_do:
         return end_process(queue, step_tqdm, process_id, "done", True)
@@ -150,7 +150,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         result = False
         while result is False:
-            result = basic_helpers.run_processes(
+            result = mph.run_processes(
                 generate_synthetic_data_process, (self, data_part_count), num_workers,
             )
             if result is False:

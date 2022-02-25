@@ -4,10 +4,10 @@ from os import listdir
 from os.path import isfile, join
 
 import deep_conmech.common.config as config
-import deep_conmech.common.basic_helpers as basic_helpers
-import numpy as np
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
+import numpy as np
 import torch
+from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
@@ -17,7 +17,16 @@ def get_print_dataloader(dataset):
     return get_dataloader(dataset, config.BATCH_SIZE, num_workers=0, shuffle=False)
 
 
-def get_fast_dataloader(dataset):
+def get_valid_dataloader(dataset):
+    return get_dataloader(
+        dataset,
+        config.VALID_BATCH_SIZE,
+        num_workers=config.DATALOADER_WORKERS,
+        shuffle=False,
+    )
+
+
+def get_train_dataloader(dataset):
     return get_dataloader(
         dataset, config.BATCH_SIZE, num_workers=config.DATALOADER_WORKERS, shuffle=True
     )
@@ -34,12 +43,11 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 
 
 def is_memory_overflow(step_tqdm, tqdm_description):
-    memory_usage = basic_helpers.get_used_memory_gb()
+    memory_usage = thh.get_used_memory_gb()
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
     return memory_usage > config.GENERATION_MEMORY_LIMIT_GB
-
 
 
 def get_procss_data_range(process_id, data_part_count):
@@ -76,19 +84,14 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
-
-
-
-
-
 class BaseDatasetDynamic:
     def __init__(self, relative_path, data_count, randomize_at_load):
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        basic_helpers.create_folders(self.path)
-        basic_helpers.create_folders(self.data_path)
-        basic_helpers.create_folders(self.images_path)
+        thh.create_folders(self.path)
+        thh.create_folders(self.data_path)
+        thh.create_folders(self.images_path)
 
     def generate_all_data(self):
         pass
@@ -129,7 +132,7 @@ class BaseDatasetDynamic:
 
         setting.exact_normalized_a_torch = None
         data = setting.get_data(
-            f"{basic_helpers.get_timestamp()} - {index}", exact_normalized_a_torch
+            f"{thh.get_timestamp()} - {index}", exact_normalized_a_torch
         )
         return data
 
@@ -153,7 +156,7 @@ class BaseDatasetDynamic:
         return self.data_count
 
     def initialize_data(self):
-        basic_helpers.create_folders(self.path)
+        thh.create_folders(self.path)
         indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
         # current_data_count = 0 if len(indices) < 1 else max(indices) + 1
         if not indices_to_do:

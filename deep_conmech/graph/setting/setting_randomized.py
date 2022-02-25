@@ -4,6 +4,7 @@ import deep_conmech.simulator.mesh.remesher as remesher
 from deep_conmech.common import *
 from deep_conmech.graph.setting.setting_torch import *
 from deep_conmech.simulator.setting.setting_forces import *
+from conmech.helpers import nph
 
 
 # MIN AT
@@ -16,7 +17,7 @@ def L2_normalized_correction_cuda(
 
 
 def L2_normalized_cuda(normalized_a_cuda, C_cuda, normalized_E_cuda):
-    normalized_a_vector_cuda = basic_helpers.stack_column(normalized_a_cuda)
+    normalized_a_vector_cuda = nph.stack_column(normalized_a_cuda)
     value = L2_torch(normalized_a_vector_cuda.double(), C_cuda, normalized_E_cuda,)
     return value
 
@@ -51,10 +52,10 @@ class SettingRandomized(SettingTorch):
     def set_randomization(self, randomized_inputs):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
-            self.v_old_randomization = basic_helpers.get_random_normal(
+            self.v_old_randomization = nph.get_random_normal(
                 self.nodes_count, config.V_IN_RANDOM_FACTOR
             )
-            self.u_old_randomization = basic_helpers.get_random_normal(
+            self.u_old_randomization = nph.get_random_normal(
                 self.nodes_count, config.U_IN_RANDOM_FACTOR
             )
         else:
@@ -87,11 +88,11 @@ class SettingRandomized(SettingTorch):
 
     @property
     def input_u_old_torch(self):
-        return basic_helpers.to_torch_double(self.input_u_old)
+        return thh.to_torch_double(self.input_u_old)
 
     @property
     def input_v_old_torch(self):
-        return basic_helpers.to_torch_double(self.input_v_old)
+        return thh.to_torch_double(self.input_v_old)
 
     @property
     def normalized_forces_mean(self):
@@ -99,11 +100,11 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_forces_mean_torch(self):
-        return basic_helpers.to_torch_double(self.normalized_forces_mean)
+        return thh.to_torch_double(self.normalized_forces_mean)
 
     @property
     def predicted_normalized_a_mean_cuda(self):
-        return self.normalized_forces_mean_torch.to(basic_helpers.device) * config.DENS
+        return self.normalized_forces_mean_torch.to(thh.device) * config.DENS
 
     @property
     def input_forces(self):
@@ -111,7 +112,7 @@ class SettingRandomized(SettingTorch):
 
     @property
     def input_forces_torch(self):
-        return basic_helpers.to_torch_double(self.input_forces)
+        return thh.to_torch_double(self.input_forces)
 
     @property
     def a_correction(self):
@@ -129,7 +130,7 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_a_correction_torch(self):
-        return basic_helpers.to_torch_double(self.normalized_a_correction)
+        return thh.to_torch_double(self.normalized_a_correction)
 
     def make_dirty(self):
         self.v_old = self.randomized_v_old
@@ -164,13 +165,13 @@ class SettingRandomized(SettingTorch):
 
         self.remesh()
 
-        u = remesher.approximate_all(
+        u = remesher.approximate_all_numba(
             self.initial_points, old_initial_points, u_old, old_cells
         )
-        v = remesher.approximate_all(
+        v = remesher.approximate_all_numba(
             self.initial_points, old_initial_points, v_old, old_cells
         )
-        a = remesher.approximate_all(
+        a = remesher.approximate_all_numba(
             self.initial_points, old_initial_points, a_old, old_cells
         )
 

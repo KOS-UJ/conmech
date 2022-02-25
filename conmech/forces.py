@@ -5,12 +5,12 @@ Created at 21.08.2019
 
 from typing import Callable
 import numpy as np
-from deep_conmech.common import basic_helpers
+from conmech.helpers import nph
 
 from conmech.vertex_utils import length
 
 
-class F:
+class Forces:
 
     def __init__(self, mesh, inter_forces: Callable, outer_forces: Callable):
         self.inter_forces = inter_forces
@@ -21,7 +21,7 @@ class F:
 
     @property
     def F_vector(self):
-        return basic_helpers.stack_column(self.F).reshape(-1)
+        return nph.stack_column(self.F).reshape(-1)
 
 
     def setF(self):

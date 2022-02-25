@@ -2,88 +2,19 @@ from ctypes import ArgumentError
 
 # import dmsh
 # import optimesh
-import meshzoo
+# import meshzoo
 import numpy as np
 import pygmsh
-from deep_conmech.common import basic_helpers, config
-from deep_conmech.graph.data.data_interpolation import interpolate_point
+from deep_conmech.graph.data.data_interpolation import interpolate_point_numba
 from numba import njit
+from conmech.helpers import mph, nph
+from deep_conmech.simulator.mesh import legacy_mesh
 
-def get_cross_points_legacy_ordered(
-    points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
-):
-
-    index = 0
-    for j in range(size_y - 1, -1, -1):
-        for i in range(size_x - 1, -1, -1):
-            points[index] = np.array([(i + 0.5) * edge_len_x, (j + 0.5) * edge_len_y])
-            index += 1
-
-    for j in range(size_y - 1, 0, -1):
-        for i in range(size_x - 1, 0, -1):
-            points[index] = np.array([i * edge_len_x, j * edge_len_y])
-            index += 1
-
-    for i in range(1, size_x + 1):
-        points[index] = np.array([i * edge_len_x, size_y * edge_len_y])
-        index += 1
-
-    for j in range(size_y - 1, -1, -1):
-        points[index] = np.array([size_x * edge_len_x, j * edge_len_y])
-        index += 1
-
-    for i in range(size_x - 1, -1, -1):
-        points[index] = np.array([i * edge_len_x, 0.0])
-        index += 1
-
-    for j in range(1, size_y + 1):
-        points[index] = np.array([0.0, j * edge_len_y])
-        index += 1
-
-    points += np.array(left_bottom_point)
-
-
-# @njit
-def get_cross_cells(points, cells, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point):
-
-    index = 0
-    for i in range(size_x):
-        for j in range(size_y):
-            left_bottom = np.array([i * edge_len_x, j * edge_len_y]) + np.array(
-                left_bottom_point
-            )
-
-            lb = basic_helpers.get_point_index(left_bottom, points)
-            rb = basic_helpers.get_point_index(
-                left_bottom + np.array([edge_len_x, 0.0]), points
-            )
-            c = basic_helpers.get_point_index(
-                left_bottom + np.array([0.5 * edge_len_x, 0.5 * edge_len_y]), points,
-            )
-            lt = basic_helpers.get_point_index(
-                left_bottom + np.array([0.0, edge_len_y]), points
-            )
-            rt = basic_helpers.get_point_index(
-                left_bottom + np.array([edge_len_x, edge_len_y]), points
-            )
-
-            cells[index] = np.array([lb, rb, c])
-            index += 1
-            cells[index] = np.array([rb, rt, c])
-            index += 1
-            cells[index] = np.array([rt, lt, c])
-            index += 1
-            cells[index] = np.array([lt, lb, c])
-            index += 1
-
-
-
-############################
 
 
 def get_meshzoo_rectangle(mesh_density, corners):
-    min = basic_helpers.min(corners)
-    max = basic_helpers.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     points, cells = meshzoo.rectangle_tri(
         np.linspace(min[0], max[0], int(mesh_density) + 1),
         np.linspace(min[1], max[1], int(mesh_density) + 1),
@@ -93,8 +24,8 @@ def get_meshzoo_rectangle(mesh_density, corners):
 
 
 def get_dmsh_rectangle(mesh_density, corners):
-    min = basic_helpers.min(corners)
-    max = basic_helpers.max(corners)
+    min = nph.min(corners)
+    max = nph.max(corners)
     geo = dmsh.Rectangle(min[0], max[0], min[1], max[1])
     # path = dmsh.Path([[0.4, 0.6], [0.6, 0.4]])
 
@@ -123,36 +54,34 @@ def random_corner_mesh_size(mesh_density):
 ###############################
 
 
-# CORNERS left, bottom, right, top
-@njit
-def is_rectangle_boundary(point, corners):
-    return (
-        (point[0] == corners[0])
-        | (point[0] == corners[2])
-        | (point[1] == corners[1])
-        | (point[1] == corners[3])
-    )
-
-
-###############################
-
-
-def build_mesh(mesh_type, mesh_density_x, mesh_density_y, scale_x, scale_y, is_adaptive, create_in_subprocess):
+def build_mesh(
+    mesh_type,
+    mesh_density_x,
+    mesh_density_y,
+    scale_x,
+    scale_y,
+    is_adaptive,
+    create_in_subprocess,
+):
     if mesh_type == "cross":
-        function = lambda: get_cross_rectangle(mesh_density_x, mesh_density_y, scale_x, scale_y)
+        function = lambda: legacy_mesh.get_cross_rectangle(
+            mesh_density_x, mesh_density_y, scale_x, scale_y
+        )
     elif mesh_type == "meshzoo":
         function = lambda: get_meshzoo_rectangle(mesh_density_x, scale_x, scale_y)
     elif mesh_type == "dmsh":
         function = lambda: get_dmsh_rectangle(mesh_density_x, scale_x, scale_y)
     elif "pygmsh" in mesh_type:
-        inner_function = lambda: get_pygmsh(mesh_type, mesh_density_x, scale_x, scale_y, is_adaptive)
+        inner_function = lambda: get_pygmsh(
+            mesh_type, mesh_density_x, scale_x, scale_y, is_adaptive
+        )
         function = (
-            (lambda: basic_helpers.run_process(inner_function))
+            (lambda: mph.run_process(inner_function))
             if create_in_subprocess
             else inner_function
         )
     else:
-        raise ArgumentError
+        raise ArgumentError()
 
     unordered_points, unordered_cells = function()
     return unordered_points, unordered_cells
@@ -166,7 +95,9 @@ def get_pygmsh(type, mesh_density, scale_x, scale_y, is_adaptive):
                 [[0.0, 0.0], [0.0, scale_y], [scale_x, scale_y], [scale_x, 0.0]]
             )
         elif "circle" in type:
-            geom.add_circle([scale_x / 2.0, scale_y / 2.0], scale_x / 2.0) # add elipsoid
+            geom.add_circle(
+                [scale_x / 2.0, scale_y / 2.0], scale_x / 2.0
+            )  # add elipsoid
         elif "polygon" in type:
             geom.add_polygon(
                 [
@@ -211,34 +142,9 @@ def set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive):
     if is_adaptive:
         corner_mesh_size = random_corner_mesh_size(mesh_density)
         geom.set_mesh_size_callback(
-            lambda dim, tag, x, y, z: interpolate_point(
+            lambda dim, tag, x, y, z: interpolate_point_numba(
                 np.array([x, y]), corner_mesh_size, scale_x, scale_y
             )
         )
     else:
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
-
-
-
-
-
-def get_cross_rectangle(mesh_density_x, mesh_density_y, scale_x, scale_y):
-    min = np.array([0.0, 0.0])
-    size_x = int(mesh_density_x)
-    size_y = int(mesh_density_y)
-    edge_len_x = scale_x / size_x
-    edge_len_y = scale_y / size_y
-
-    points_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
-    points = np.zeros([points_count, 2], dtype="float")
-
-    cells_count = 4 * (size_x * size_y)
-    cells = np.zeros([cells_count, 3], dtype="long")
-
-    get_cross_points_legacy_ordered(points, size_x, size_y, edge_len_x, edge_len_y, min)
-    get_cross_cells(
-        points, cells, size_x, size_y, edge_len_x, edge_len_y, min
-    )  # TODO size_y
-    return points, cells
-
-

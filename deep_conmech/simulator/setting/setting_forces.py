@@ -1,8 +1,8 @@
 import numpy as np
 import numba
 from numba import njit
-from deep_conmech.common import basic_helpers
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+from conmech.helpers import nph
 
 
 @njit
@@ -14,7 +14,7 @@ def L2_numba(argument, C, E):
 
 @njit
 def L2_full_np(a, C, E):
-    a_vector = basic_helpers.stack_column_numba(a)
+    a_vector = nph.stack_column_numba(a)
     value = L2_numba(a_vector, C, E)
     return value
 
@@ -98,9 +98,9 @@ class SettingForces(SettingMatrices):
     def set_all_normalized_E_np(self):
         self.normalized_E = self.get_normalized_E_np()
         t = self.boundary_nodes_count
-        normalized_E_split = basic_helpers.unstack(self.normalized_E)
-        normalized_Et = basic_helpers.stack_column(normalized_E_split[:t, :])
-        self.normalized_Ei = basic_helpers.stack_column(normalized_E_split[t:, :])
+        normalized_E_split = nph.unstack(self.normalized_E)
+        normalized_Et = nph.stack_column(normalized_E_split[:t, :])
+        self.normalized_Ei = nph.stack_column(normalized_E_split[t:, :])
         CiiINVEi = self.CiiINV @ self.normalized_Ei
         self.normalized_E_boundary = normalized_Et - (self.Cti @ CiiINVEi)
 
@@ -115,9 +115,9 @@ class SettingForces(SettingMatrices):
         )
 
     def get_E(self, forces, u_old, v_old, AREA, A_plus_B_times_ts, B):
-        F_vector = basic_helpers.stack_column(AREA @ forces)
-        u_old_vector = basic_helpers.stack_column(u_old)
-        v_old_vector = basic_helpers.stack_column(v_old)
+        F_vector = nph.stack_column(AREA @ forces)
+        u_old_vector = nph.stack_column(u_old)
+        v_old_vector = nph.stack_column(v_old)
 
         E = F_vector - A_plus_B_times_ts @ v_old_vector - B @ u_old_vector
         return E

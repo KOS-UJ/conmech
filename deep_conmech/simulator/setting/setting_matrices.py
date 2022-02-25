@@ -6,8 +6,7 @@ import numpy as np
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
-from deep_conmech.common import basic_helpers
-
+from conmech.helpers import nph
 
 
 
@@ -64,8 +63,8 @@ def get_integral_parts(element_nodes, element_index):
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
 
-    dPhX = basic_helpers.div_or_zero(y_sub, dm)
-    dPhY = basic_helpers.div_or_zero(x_sub, dm)
+    dPhX = y_sub / dm
+    dPhY = x_sub / dm
 
     return dPhX, dPhY, triangle_area
 
@@ -197,6 +196,7 @@ class SettingMatrices(SettingMesh):
         density=config.DENS,
         time_step=config.TIMESTEP,
         reorganize_boundaries=None,
+        with_C = True
     ):
         super().__init__(
             mesh_type,
@@ -218,6 +218,7 @@ class SettingMatrices(SettingMesh):
         self.independent_nodes_count = self.nodes_count
         if reorganize_boundaries is not None:
             reorganize_boundaries()
+        self.with_C = with_C
 
         self.reinitialize_matrices()
 
@@ -254,7 +255,8 @@ class SettingMatrices(SettingMesh):
             self.independent_nodes_count,
         )
 
-        self.calculate_C()
+        if self.with_C:
+            self.calculate_C()
 
     def calculate_C(self):
         p = self.independent_nodes_count

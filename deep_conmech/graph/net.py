@@ -4,7 +4,13 @@ from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
-from deep_conmech.common import *
+from deep_conmech.common import config
+from deep_conmech.graph.helpers import thh
+
+# TODO: move
+ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
+# | ac {.ACTIVATION._get_name()} \
+
 
 class Block(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_rate):
@@ -50,7 +56,7 @@ class ResidualBlock(Block):
                 nn.Linear(channels, channels),
                 # if batch_norm:  # check also after ReLU
                 #    layers.append(nn.BatchNorm1d(channels))
-                config.ACTIVATION,
+                ACTIVATION,
                 nn.Dropout(dropout_rate),
             )
 
@@ -101,7 +107,7 @@ class ForwardNet(nn.Module):
                 out_channels=config.LATENT_DIM,
                 bias=True,
                 # batch_norm=config.BATCH_NORM,
-                activation=config.ACTIVATION,
+                activation=ACTIVATION,
                 dropout_rate=False,
             )
         )
@@ -127,7 +133,7 @@ class ForwardNet(nn.Module):
             )
         )
 
-        self.net = basic_helpers.set_precision(nn.Sequential(*layers))
+        self.net = thh.set_precision(nn.Sequential(*layers))
 
     def forward(self, x):
         result = self.net(x)
@@ -156,8 +162,8 @@ class MLP(nn.Module):
                     in_channels=in_channels,
                     out_channels=config.LATENT_DIM,
                     bias=True,
-                    activation=config.ACTIVATION,
-                    dropout_rate=config.DROPOUT_RATE,
+                    activation=ACTIVATION,
+                    dropout_rate=DROPOUT_RATE,
                 )
             )
             in_channels = layers[-1].out_channels
@@ -167,7 +173,7 @@ class MLP(nn.Module):
                 in_channels=config.LATENT_DIM,
                 out_channels=output_linear_dim,
                 bias=output_bias,
-                activation=config.ACTIVATION,  ##########################False,
+                activation=ACTIVATION,  ##########################False,
                 dropout_rate=False,
             )
         )
@@ -194,7 +200,7 @@ class Attention(Block):
             in_channels=config.LATENT_DIM,
             out_channels=self.heads,
             bias=True,
-            activation=config.ACTIVATION,
+            activation=ACTIVATION,
             dropout_rate=False,
         )
 
@@ -231,7 +237,7 @@ class ProcessorLayer(MessagePassing):
 
         # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
         # self.vertex_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
-        self.layer_norm = basic_helpers.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
         self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS)
         self.epsilon = Parameter(torch.Tensor(1))
 
@@ -289,12 +295,12 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             input_normalization=True,
             output_linear_dim=config.LATENT_DIM,
         )
-        self.layer_norm = basic_helpers.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
 
         self.processor_layers = []
         for _ in range(config.MESSAGE_PASSES):
             processor_layer = ProcessorLayer()
-            processor_layer.to(basic_helpers.device)
+            processor_layer.to(thh.device)
             self.processor_layers.append(processor_layer)
 
         self.decoder = ForwardNet(

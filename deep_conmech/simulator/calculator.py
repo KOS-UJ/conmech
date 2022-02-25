@@ -5,7 +5,8 @@ import numpy as np
 import scipy
 from scipy import optimize
 
-from deep_conmech.common import config, basic_helpers
+from deep_conmech.common import config
+from conmech.helpers import nph
 
 
 class Calculator:
@@ -42,7 +43,7 @@ class Calculator:
     def solve_normalized_function(setting):
         normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
-        return basic_helpers.unstack(normalized_a_vector)
+        return nph.unstack(normalized_a_vector)
 
         """
         base (BFGS) - 178 / 1854
@@ -89,7 +90,7 @@ class Calculator:
             setting, setting.normalized_Ei, normalized_boundary_a_vector
         )
 
-        return basic_helpers.unstack(normalized_a_vector)
+        return nph.unstack(normalized_a_vector)
 
     @staticmethod
     def clean(setting, normalized_a):
@@ -107,9 +108,9 @@ class Calculator:
 
         normalized_a = np.vstack(
             (
-                basic_helpers.unstack(normalized_at_vector),
-                basic_helpers.unstack(normalized_ai_vector),
+                nph.unstack(normalized_at_vector),
+                nph.unstack(normalized_ai_vector),
             )
         )
-        normalized_a_vector = basic_helpers.stack(normalized_a)
+        normalized_a_vector = nph.stack(normalized_a)
         return normalized_a_vector
