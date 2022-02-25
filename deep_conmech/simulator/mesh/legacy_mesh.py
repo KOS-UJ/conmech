@@ -3,7 +3,7 @@ from numba import njit
 from conmech.helpers import nph
 
 
-@njit
+#@njit
 def get_cross_points_legacy_ordered(
     points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
@@ -38,7 +38,7 @@ def get_cross_points_legacy_ordered(
     points += np.array(left_bottom_point)
 
 
-@njit
+#@njit
 def get_cross_cells(
     points, cells, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
@@ -90,5 +90,5 @@ def get_cross_rectangle(mesh_density_x, mesh_density_y, scale_x, scale_y):
     get_cross_points_legacy_ordered(points, size_x, size_y, edge_len_x, edge_len_y, min)
     get_cross_cells(
         points, cells, size_x, size_y, edge_len_x, edge_len_y, min
-    )  # TODO size_y
+    )
     return points, cells

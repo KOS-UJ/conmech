@@ -71,7 +71,7 @@ def build_mesh(
         function = lambda: get_meshzoo_rectangle(mesh_density_x, scale_x, scale_y)
     elif mesh_type == "dmsh":
         function = lambda: get_dmsh_rectangle(mesh_density_x, scale_x, scale_y)
-    elif mesh_type == "pygmsh":
+    elif "pygmsh" in mesh_type:
         inner_function = lambda: get_pygmsh(
             mesh_type, mesh_density_x, scale_x, scale_y, is_adaptive
         )
