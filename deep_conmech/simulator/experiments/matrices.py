@@ -3,8 +3,10 @@ import numba
 from numba import njit
 
 
+DIM = 3
+EDIM = DIM+1
 
-#@njit  # (parallel=True)
+@njit  # (parallel=True)
 def get_edges_features_matrix_numba(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
@@ -24,15 +26,15 @@ def get_edges_features_matrix_numba(elements, nodes):
 
             for j in range(element_size):
                 j_dPhX, j_dPhY, j_dPhZ, _ = get_integral_parts_numba(element_points, j)
-
+                
                 # in 2D: divide by 3 in for integral of phi over the element (in 3D: 4)
                 # | divide by 2 for each edge - info about single triangle is sent to node twice via both edges (in 3D: 3)
-                volume = (i != j) / (4.0 * 3.0)
+                volume = (i != j) / (EDIM * 3.0)
                 u = (1 + (i == j)) / 20.0 # in 2D: divide by 6 or 12
                 
-                u1 = i_dPhX / 4.0 # 1/4 = intergal of phi over the element
-                u2 = i_dPhY / 4.0
-                u3 = i_dPhZ / 4.0
+                u1 = i_dPhX / EDIM # 1/4 = intergal of phi over the element
+                u2 = i_dPhY / EDIM
+                u3 = i_dPhZ / EDIM
 
                 w11 = i_dPhX * j_dPhX
                 w12 = i_dPhX * j_dPhY
@@ -53,14 +55,10 @@ def get_edges_features_matrix_numba(elements, nodes):
     return edges_features_matrix, element_initial_volume
 
 
-#@njit
+@njit
 def get_integral_parts_numba(element_nodes, element_index):
-    
-    #TODO: Simplify
-    x_i = element_nodes[element_index % 4]
-    x_j1 = element_nodes[(element_index + 1) % 4]
-    x_j2 = element_nodes[(element_index + 2) % 4]
-    x_j3 = element_nodes[(element_index + 3) % 4]
+    x_i = element_nodes[element_index]
+    x_j1, x_j2, x_j3 = list(element_nodes[np.arange(EDIM) != element_index])
 
     dm = denominator_numba(x_i, x_j1, x_j2, x_j3)
     element_volume = np.abs(dm) / 6.0
@@ -76,6 +74,8 @@ def get_integral_parts_numba(element_nodes, element_index):
     return dPhX, dPhY, dPhZ, element_volume
 
 
+
+
 @njit
 def denominator_numba(x_i, x_j1, x_j2, x_j3):
     return (
@@ -85,3 +85,56 @@ def denominator_numba(x_i, x_j1, x_j2, x_j3):
     + x_j1[2]*x_j2[0]*x_j3[1] + x_i[0]*x_j2[2]*x_j3[1] - x_j1[0]*x_j2[2]*x_j3[1] - x_i[1]*x_j1[0]*x_j3[2] + x_i[0]*x_j1[1]*x_j3[2]
     + x_i[1]*x_j2[0]*x_j3[2] - x_j1[1]*x_j2[0]*x_j3[2] - x_i[0]*x_j2[1]*x_j3[2] + x_j1[0]*x_j2[1]*x_j3[2]
     )
+
+
+
+######################################
+
+
+def calculate_constitutive_matrices(W11, W12, W13, W21, W22, W23, W31, W32, W33, MU, LA):
+    X11 = (2 * MU + LA) * W11 + MU * W22 + LA * W33
+    X22 = MU * W11 + (2 * MU + LA) * W22 + LA * W33
+    X33 = MU * W11 + LA * W22 + (2 * MU + LA) * W33
+
+    X12 = MU * W21 + LA * W12
+    X13 = MU * W31 + LA * W13
+    X23 = MU * W32 + LA * W23
+    
+    X21 = X12.T
+    X31 = X13.T
+    X32 = X23.T
+
+    return np.block([
+        [X11, X12, X13],
+        [X21, X22, X23],
+        [X31, X32, X33]
+    ])
+    
+def create_acceleration(U, density):
+    Z = np.zeros_like(U)
+    return density * np.block([
+        [U, Z, Z],
+        [Z, U, Z],
+        [Z, Z, U]
+    ])
+
+
+def get_matrices(
+    edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind
+):
+    # move config MU, LA,... out to model
+    AREA = edges_features_matrix[..., 0]
+
+    ALL_W = [edges_features_matrix[..., i][slice_ind, slice_ind] for i in range(1,10)]
+    U = edges_features_matrix[..., -1][slice_ind, slice_ind]
+
+    A = calculate_constitutive_matrices(*ALL_W, TH, ZE)
+    B = calculate_constitutive_matrices(*ALL_W, MU, LA)
+    ACC = create_acceleration(U, density)
+
+    A_plus_B_times_ts = A + B * time_step
+    C = ACC + A_plus_B_times_ts * time_step
+    
+    return C, B, AREA, A_plus_B_times_ts
+    
+

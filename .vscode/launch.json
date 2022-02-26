@@ -26,6 +26,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/starter_simulator.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "3D",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/simulator/experiments/experiments_starter.py",
+            "console": "integratedTerminal"
         }
     ]
 }
