@@ -79,20 +79,18 @@ def move_boundary_points_to_start(
 
 
 @njit
-def get_furthest_apart_numba(points):
+def get_furthest_apart_numba(points, variable):
     max_dist = 0.0
     max_i, max_j = 0, 0
     nodes_count = len(points)
     for i in range(nodes_count):
         for j in range(i, nodes_count):
-            dist = nph.euclidean_norm_numba(points[i] - points[j])
+            dist = np.abs(points[i, variable] - points[j, variable])
             if dist > max_dist:
                 max_dist = dist
                 max_i, max_j = i, j
 
-    if nph.euclidean_norm_numba(points[max_i]) < nph.euclidean_norm_numba(
-        points[max_j]
-    ):
+    if points[max_i, variable] < points[max_j, variable]:
         return [max_i, max_j]
     else:
         return [max_j, max_i]
@@ -159,7 +157,7 @@ class SettingMesh:
         ) = self.clean_mesh(unordered_points, unordered_cells)
 
         self.rotation_reference_indices = get_furthest_apart_numba(
-            self.boundary_points_initial
+            self.boundary_points_initial, 1
         )
 
         self.edges_matrix = get_edges_matrix(self.nodes_count, self.cells)
@@ -276,23 +274,24 @@ class SettingMesh:
 
     @property
     def initial_base_seed(self):
-        return self.initial_reference_points[1] - self.initial_reference_points[0]
+        return np.array([self.initial_reference_points[1] - self.initial_reference_points[0]])
 
     @property
     def moved_base_seed(self):
-        return self.moved_reference_points[1] - self.moved_reference_points[0]
+        return np.array([self.moved_reference_points[1] - self.moved_reference_points[0]])
 
     @property
-    def rotated_base_seed(self):
-        if not config.NORMALIZE_ROTATE:
-            return np.array((0.0, 1.0))
-        return nph.get_in_base(np.array(self.moved_base_seed), self.initial_base_seed)
+    def to_rotated_base_seed(self):
+        return nph.get_in_base(self.moved_base_seed, self.initial_base_seed) if config.NORMALIZE_ROTATE else np.array((0.0, 1.0))
+    @property
+    def from_rotated_base_seed(self):
+        return nph.get_in_base(self.initial_base_seed, self.moved_base_seed) if config.NORMALIZE_ROTATE else np.array((0.0, 1.0))
 
     def rotate_to_upward(self, vectors):
-        return nph.get_in_base(vectors, self.rotated_base_seed)
+        return nph.get_in_base(vectors, self.to_rotated_base_seed)
 
     def rotate_from_upward(self, vectors):
-        return nph.get_in_base(vectors, nph.normalize_euclidean_numba(self.rotated_base_seed) * [-1.0, 1.0])
+        return nph.get_in_base(vectors, self.from_rotated_base_seed)
 
     @property
     def edges_moved_points(self):

@@ -66,8 +66,8 @@ def get_integral_parts_numba(element_nodes, element_index):
     y_sub = x_j1[0]*x_j2[2] - x_j1[2]*x_j2[0] + x_j1[2]*x_j3[0] - x_j2[2]*x_j3[0] - x_j1[0]*x_j3[2] + x_j2[0]*x_j3[2]
     z_sub = x_j1[1]*x_j2[0] - x_j1[0]*x_j2[1] - x_j1[1]*x_j3[0] + x_j2[1]*x_j3[0] + x_j1[0]*x_j3[1] - x_j2[0]*x_j3[1]
 
-    dPhX = y_sub / dm
-    dPhY = x_sub / dm
+    dPhX = x_sub / dm
+    dPhY = y_sub / dm
     dPhZ = z_sub / dm
 
     return dPhX, dPhY, dPhZ, element_volume
@@ -95,13 +95,13 @@ def calculate_constitutive_matrices(W11, W12, W13, W21, W22, W23, W31, W32, W33,
     X22 = MU * W11 + (2 * MU + LA) * W22 + LA * W33
     X33 = MU * W11 + LA * W22 + (2 * MU + LA) * W33
 
-    X12 = MU * W21 + LA * W12
-    X13 = MU * W31 + LA * W13
-    X23 = MU * W32 + LA * W23
+    X21 = MU * W21 + LA * W12
+    X31 = MU * W31 + LA * W13
+    X32 = MU * W32 + LA * W23
     
-    X21 = X12.T
-    X31 = X13.T
-    X32 = X23.T
+    X12 = LA * W21 + MU * W12
+    X13 = LA * W31 + MU * W13
+    X23 = LA * W32 + MU * W23
 
     return np.block([
         [X11, X12, X13],

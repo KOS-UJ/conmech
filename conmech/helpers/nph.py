@@ -5,6 +5,7 @@ from ctypes import ArgumentError
 import numba
 import numpy as np
 from numba import njit
+from torch import nonzero
 
 DIM = 2
 
@@ -53,16 +54,24 @@ def get_tangential_2d(normal):
 
 
 def complete_base(base_seed):
-    dim = base_seed.shape[0]
+    dim = base_seed.shape[-1]
     normalized_base_seed = normalize_euclidean_numba(base_seed)
     if dim == 2:
-        y_vector = normalized_base_seed
-        x_vector = get_tangential_2d(y_vector)
-        return np.array((x_vector, y_vector))
-    elif  dim == 3:
-        raise ArgumentError()
+        ny = normalized_base_seed[0]
+        nx = get_tangential_2d(ny)
+        unnormalized_base = np.array((nx, ny))
+    elif dim == 3:
+        ny = normalized_base_seed[0]
+
+        mz = normalized_base_seed[1]
+        nz = mz - (mz@ny)*ny # Gramm-schmidt orthog.
+        
+        nx = np.cross(ny,nz)
+        unnormalized_base = np.array((nx, ny, nz))
     else:
         raise ArgumentError()
+    base = normalize_euclidean_numba(unnormalized_base)
+    return base
 
 
 

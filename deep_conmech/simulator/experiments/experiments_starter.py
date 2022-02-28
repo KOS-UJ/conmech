@@ -1,4 +1,6 @@
 # %%
+import os
+
 import imageio
 import matplotlib.pyplot as plt
 import meshzoo
@@ -12,7 +14,6 @@ from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from numba import njit
 from scipy.spatial import Delaunay
-import os
 
 DIM = 3
 EDIM = 4
@@ -54,8 +55,9 @@ def get_boundary_faces(elements):
 ######################################################
 
 
-def plot_mesh(ax, nodes, boundary_nodes_indices, elements):
-    boundary_nodes = nodes[boundary_nodes_indices]
+def plot_mesh(ax, nodes, nodes_indices, elements):
+    boundary_nodes = nodes[nodes_indices]
+    
     for e in elements:
         pts = nodes[e, :]
         lw = 0.4
@@ -65,20 +67,54 @@ def plot_mesh(ax, nodes, boundary_nodes_indices, elements):
                     ax.plot3D(
                         pts[[i, j], 0], pts[[i, j], 1], pts[[i, j], 2], color="b", lw=lw
                     )
-
+    
     # ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], color="b")
     ax.scatter(
-        boundary_nodes[:, 0], boundary_nodes[:, 1], boundary_nodes[:, 2], color="r"
+        boundary_nodes[:, 0], boundary_nodes[:, 1], boundary_nodes[:, 2], color="y"
     )
 
 
 ######################################################
 
 
-mesh_size = 4
+@njit
+def get_furthest_apart_numba(nodes, variable):
+    max_dist = 0.0
+    max_i, max_j = 0, 0
+    nodes_count = len(nodes)
+    for i in range(nodes_count):
+        for j in range(i, nodes_count):
+            dist = np.abs(nodes[i, variable] - nodes[j, variable])
+            if dist > max_dist:
+                max_dist = dist
+                max_i, max_j = i, j
+
+    if nodes[max_i, variable] < nodes[max_j, variable]:
+        return [max_i, max_j]
+    else:
+        return [max_j, max_i]
+
+def get_base_seed_indices(nodes):
+    dim = nodes.shape[1]
+    base_seed_indices = np.array([ get_furthest_apart_numba(nodes, i)  for i in range(1, dim)])
+    return base_seed_indices
+
+
+def get_base_seed(nodes, base_seed_indices):
+    base_seed_initial_nodes = nodes[base_seed_indices]
+    return base_seed_initial_nodes[...,1,:] - base_seed_initial_nodes[...,0,:]
+
+
+
+######################################################
+
+mesh_size = 3
 initial_nodes, elements = get_meshzoo_cube(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
+
+
+base_seed_indices = get_base_seed_indices(initial_nodes)
 
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_numba(
     elements, initial_nodes
@@ -133,19 +169,41 @@ def plt_save(path, extension):
     plt.close()
 
 
-def print_frame(nodes, elements, path, extension, all_images_paths):
+def print_frame(moved_nodes, normalized_nodes, forces, elements, path, extension, all_images_paths):
 
     fig = plt.figure()
     ax = fig.add_subplot(projection="3d")
-    ax.set_box_aspect((10,3,3))
+    ax.set_box_aspect((10,4,3))
     #ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
     
     ax.set_xlim(-1, 9)
-    ax.set_ylim(-1, 2)
+    ax.set_ylim(-1, 3)
     ax.set_zlim(-1, 2)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
-    plot_mesh(ax, nodes, boundary_nodes_indices, elements)
+    initial_base_seed = get_base_seed(initial_nodes, base_seed_indices)
+    moved_base_seed = get_base_seed(moved_nodes, base_seed_indices)
 
+    initial_base = nph.complete_base(initial_base_seed)
+    moved_base = nph.complete_base(moved_base_seed)
+
+    for v in initial_base:
+        z = np.zeros_like(v)
+        nv = nph.normalize_euclidean_numba(v)
+        ax.quiver(*z,*nv)
+    for v in moved_base:
+        z = np.zeros_like(v)
+        nv = nph.normalize_euclidean_numba(v)
+        ax.quiver(*z,*nv,color='g')
+    for i in range(len(forces)):
+        m = moved_nodes[i]
+        f = forces[i] * 50
+        ax.quiver(*m,*f,color='g')
+
+    plot_mesh(ax, moved_nodes, boundary_nodes_indices, elements) # boundary_nodes_indices
+    plot_mesh(ax, normalized_nodes, boundary_nodes_indices, elements) # boundary_nodes_indices
 
     plt.show()
     plt_save(path, extension)
@@ -162,8 +220,8 @@ def f_push(ip, t):
 
 def f_rotate(ip, t):
     if t <= 0.5:
-        y_scaled = ip[-1]
-        return y_scaled * np.array([0.5, 0.0, 0.0])
+        scale = ip[1] #* ip[2]
+        return scale * np.array([0.05, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
         
 
@@ -173,10 +231,22 @@ def get_forces_by_function(
     nodes_count = len(initial_nodes)
     forces = np.zeros((nodes_count, 3), dtype=np.double)
     for i in range(nodes_count):
-        initial_point = initial_nodes[i]
-        forces[i] = forces_function(initial_point, current_time)
+        forces[i] = forces_function(initial_nodes[i], current_time)
     return forces
 
+
+
+def to_rotated_base_seed(moved_base_seed, initial_base_seed):
+    return nph.get_in_base(moved_base_seed, initial_base_seed)
+    
+def from_rotated_base_seed(moved_base_seed, initial_base_seed):
+    return nph.get_in_base(initial_base_seed, moved_base_seed)
+
+def rotate_to_upward(vectors, moved_base_seed, initial_base_seed):
+    return nph.get_in_base(vectors, to_rotated_base_seed(moved_base_seed, initial_base_seed))
+
+def rotate_from_upward(vectors, moved_base_seed, initial_base_seed):
+    return nph.get_in_base(vectors, from_rotated_base_seed(moved_base_seed, initial_base_seed))
 
 
 def print_one_dynamic():
@@ -187,21 +257,37 @@ def print_one_dynamic():
     u_old = np.zeros((nodes_count, DIM), dtype=np.double)
     v_old = np.zeros((nodes_count, DIM), dtype=np.double)
 
-    scenario_length = 200
+    scenario_length = 400
+    moved_nodes = initial_nodes
+    initial_base_seed = get_base_seed(initial_nodes, base_seed_indices)
     for i in range(1, scenario_length + 1):
         current_time = (i + 1) * time_step
         print(f"time: {current_time}")
+        
+        moved_base_seed = get_base_seed(moved_nodes, base_seed_indices)
+
+        mean_moved_nodes =  np.mean(moved_nodes, axis=0)
+        normalized_nodes = rotate_to_upward(moved_nodes - mean_moved_nodes, moved_base_seed, initial_base_seed)
 
         forces = get_forces_by_function(f_rotate, initial_nodes, current_time)
-        E = get_E(forces, u_old, v_old)
+        normalized_forces = rotate_to_upward(forces, moved_base_seed, initial_base_seed)
+        normalized_u_old = rotate_to_upward(u_old, moved_base_seed, initial_base_seed)
+        normalized_v_old = rotate_to_upward(v_old, moved_base_seed, initial_base_seed)
 
-        a = unstack(np.linalg.solve(C, E))
+        normalized_E = get_E(normalized_forces, normalized_u_old, normalized_v_old)
+        normalized_a = unstack(np.linalg.solve(C, normalized_E))
+        a = rotate_from_upward(normalized_a, moved_base_seed, initial_base_seed)
+
         v_old = v_old + time_step * a
         u_old = u_old + time_step * v_old
 
+        moved_nodes = initial_nodes + u_old
+
         if i % 10 == 0:
             print_frame(
-                initial_nodes + u_old,
+                moved_nodes,
+                normalized_nodes,
+                forces,
                 elements,
                 f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension,
