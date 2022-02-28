@@ -108,7 +108,7 @@ def get_base_seed(nodes, base_seed_indices):
 
 ######################################################
 
-mesh_size = 3
+mesh_size = 5
 initial_nodes, elements = get_meshzoo_cube(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
@@ -220,7 +220,7 @@ def f_push(ip, t):
 
 def f_rotate(ip, t):
     if t <= 0.5:
-        scale = ip[1] #* ip[2]
+        scale = ip[1] * ip[2]
         return scale * np.array([0.05, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
         
@@ -259,6 +259,9 @@ def print_one_dynamic():
 
     scenario_length = 400
     moved_nodes = initial_nodes
+    
+    mean_initial_nodes = np.mean(initial_nodes, axis=0)
+    normalized_initial_nodes = initial_nodes - mean_initial_nodes
     initial_base_seed = get_base_seed(initial_nodes, base_seed_indices)
     for i in range(1, scenario_length + 1):
         current_time = (i + 1) * time_step
@@ -271,8 +274,8 @@ def print_one_dynamic():
 
         forces = get_forces_by_function(f_rotate, initial_nodes, current_time)
         normalized_forces = rotate_to_upward(forces, moved_base_seed, initial_base_seed)
-        normalized_u_old = rotate_to_upward(u_old, moved_base_seed, initial_base_seed)
-        normalized_v_old = rotate_to_upward(v_old, moved_base_seed, initial_base_seed)
+        normalized_u_old = normalized_nodes - normalized_initial_nodes
+        normalized_v_old = rotate_to_upward(v_old-np.mean(v_old, axis=0), moved_base_seed, initial_base_seed)
 
         normalized_E = get_E(normalized_forces, normalized_u_old, normalized_v_old)
         normalized_a = unstack(np.linalg.solve(C, normalized_E))
