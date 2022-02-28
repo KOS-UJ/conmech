@@ -12,18 +12,19 @@ from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from numba import njit
 from scipy.spatial import Delaunay
+import os
 
 DIM = 3
 EDIM = 4
 
 
 def get_meshzoo_cube(mesh_size):
-    nodes, elements = meshzoo.cube_tetra(
+    initial_nodes, elements = meshzoo.cube_tetra(
         np.linspace(0.0, 1.0, mesh_size),
         np.linspace(0.0, 1.0, mesh_size),
         np.linspace(0.0, 1.0, mesh_size),
     )
-    return nodes, elements
+    return initial_nodes, elements
 
 
 def list_all_faces(elements):
@@ -75,12 +76,12 @@ def plot_mesh(ax, nodes, boundary_nodes_indices, elements):
 
 
 mesh_size = 4
-nodes, elements = get_meshzoo_cube(mesh_size)
+initial_nodes, elements = get_meshzoo_cube(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
 
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_numba(
-    elements, nodes
+    elements, initial_nodes
 )
 # TODO: To tests - sum off slice for area and u == 1
 # np.moveaxis(edges_features_matrix, -1,0)[i].sum() == 0
@@ -97,7 +98,7 @@ th = 0.01
 ze = 0.01
 density = 0.01
 time_step = 0.01
-nodes_count = len(nodes)
+nodes_count = len(initial_nodes)
 independent_nodes_count = nodes_count
 slice_ind = slice(0, nodes_count)
 
@@ -136,19 +137,46 @@ def print_frame(nodes, elements, path, extension, all_images_paths):
 
     fig = plt.figure()
     ax = fig.add_subplot(projection="3d")
+    ax.set_box_aspect((10,3,3))
+    #ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
+    
+    ax.set_xlim(-1, 9)
+    ax.set_ylim(-1, 2)
+    ax.set_zlim(-1, 2)
+
     plot_mesh(ax, nodes, boundary_nodes_indices, elements)
 
-    lim = 2.0
-    ax.set_xlim(-lim, 1.0 + lim)
-    ax.set_ylim(-lim, 1.0 + lim)
-    ax.set_zlim(-lim, 1.0 + lim)
 
     plt.show()
     plt_save(path, extension)
     all_images_paths.append(path)
 
 
-catalog = f"output/3d {thh.get_timestamp()}"
+catalog = f"output/3D {thh.get_timestamp()}"
+
+
+
+def f_push(ip, t):
+    return np.array([0.05, -0.05, 0.05])
+    #return np.repeat(np.array([f0]), nodes_count, axis=0)
+
+def f_rotate(ip, t):
+    if t <= 0.5:
+        y_scaled = ip[-1]
+        return y_scaled * np.array([0.5, 0.0, 0.0])
+    return np.array([0.0, 0.0, 0.0])
+        
+
+def get_forces_by_function(
+    forces_function, initial_nodes, current_time
+):
+    nodes_count = len(initial_nodes)
+    forces = np.zeros((nodes_count, 3), dtype=np.double)
+    for i in range(nodes_count):
+        initial_point = initial_nodes[i]
+        forces[i] = forces_function(initial_point, current_time)
+    return forces
+
 
 
 def print_one_dynamic():
@@ -159,11 +187,12 @@ def print_one_dynamic():
     u_old = np.zeros((nodes_count, DIM), dtype=np.double)
     v_old = np.zeros((nodes_count, DIM), dtype=np.double)
 
-    scenario_length = 100
+    scenario_length = 200
     for i in range(1, scenario_length + 1):
-        print(float(i) / scenario_length)
-        f0 = np.array([0.05, 0.0, 0.0])
-        forces = np.repeat(np.array([f0]), nodes_count, axis=0)
+        current_time = (i + 1) * time_step
+        print(f"time: {current_time}")
+
+        forces = get_forces_by_function(f_rotate, initial_nodes, current_time)
         E = get_E(forces, u_old, v_old)
 
         a = unstack(np.linalg.solve(C, E))
@@ -172,7 +201,7 @@ def print_one_dynamic():
 
         if i % 10 == 0:
             print_frame(
-                nodes + u_old,
+                initial_nodes + u_old,
                 elements,
                 f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension,
@@ -189,6 +218,8 @@ def print_one_dynamic():
     args = {"duration": duration}
     imageio.mimsave(path, images, **args)
 
+    for image_path in all_images_paths:
+        os.remove(image_path)
 
 print_one_dynamic()
 

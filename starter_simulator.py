@@ -23,7 +23,7 @@ def run_conmech_dynamic(all_scenatrios):
 
 
 def main():
-    scenarios = examples.all_print
+    scenarios = examples.all_simulator
     run_conmech_dynamic(scenarios)
 
 

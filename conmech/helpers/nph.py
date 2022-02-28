@@ -9,41 +9,69 @@ from numba import njit
 DIM = 2
 
 
-
 def stack(data):
     return data.T.flatten()
+
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
 
+
 def unstack(data):
     return data.reshape(-1, DIM, order="F")
+
+
+def elementwise_dot(x, y):
+    return (x * y).sum(axis=1)
 
 
 def get_occurances(data):
     return np.array(list(set(data.flatten())))
 
 
-def norm(data):
-    return np.sqrt((data ** 2).sum(-1))[..., np.newaxis] #.reshape(-1,1)
-
-def normalize(data):
-    #return np.divide(data, np.linalg.norm(data, axis=-1))
-    return data / norm(data)
-
-def elementwise_dot(x, y):
-    return (x * y).sum(axis=1)
+###################
 
 
+@njit
+def euclidean_norm_numba(vector):
+    norm = np.sqrt((vector ** 2).sum(axis=-1))
+    return norm if vector.ndim == 1 else norm.reshape(-1, 1)
+    # return np.linalg.norm(vector, axis=-1)
+    # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
+
+
+@njit
+def normalize_euclidean_numba(data):
+    return data / euclidean_norm_numba(data)
+
+
+###################
+
+
+def get_tangential_2d(normal):
+    return np.array((normal[..., 1], -normal[..., 0])).T
+
+
+def complete_base(base_seed):
+    dim = base_seed.shape[0]
+    normalized_base_seed = normalize_euclidean_numba(base_seed)
+    if dim == 2:
+        y_vector = normalized_base_seed
+        x_vector = get_tangential_2d(y_vector)
+        return np.array((x_vector, y_vector))
+    elif  dim == 3:
+        raise ArgumentError()
+    else:
+        raise ArgumentError()
 
 
 
+def get_in_base(vectors, base_seed):
+    base = complete_base(base_seed)
+    return vectors @ base.T
 
 
-
-
-
-
+###################
 
 
 @njit
@@ -66,19 +94,15 @@ def max_numba(corners):
     return [corners[2], corners[3]]
 
 
-
-# TODO: @numba.njit(inline='always') - when using small function inside other numba 
+# TODO: @numba.njit(inline='always') - when using small function inside other numba
 # TODO: Use numba.njit(...)
 # TODO : use slice instead of int
+
 
 @njit
 def stack_column_numba(data):
     return data.T.flatten().reshape(-1, 1)
 
-
-@njit
-def euclidean_norm_numba(vector):
-    return np.sqrt(np.sum(vector ** 2, axis=-1))
 
 @njit
 def get_point_index_numba(point, points):
@@ -104,25 +128,7 @@ def get_random_normal_circle_numba(count, scale):
     return result
 
 
-@njit
-def internal_tuple_to_array_numba(tuple, argument):
-    return np.array(tuple) if argument.ndim == 1 else np.vstack(tuple).T
-
-    
-@njit
-def get_oriented_tangential_numba(normal):
-    tuple = (normal[...,1], -normal[...,0])
-    result = internal_tuple_to_array_numba(tuple, normal)
-    return result
-
-@njit
-def rotate_up_numba(old_vectors, up_vector):
-    tangential = get_oriented_tangential_numba(up_vector)
-    tuple = (old_vectors @ tangential, old_vectors @ up_vector)
-    result = internal_tuple_to_array_numba(tuple, old_vectors)
-    return result
-
-
+"""
 @njit
 def calculate_angle_numba(new_up_vector):
     old_up_vector = np.array([0., 1.])
@@ -139,3 +145,4 @@ def rotate_numba(vectors, angle):
     rotated_vectors[:, 1] = vectors[:, 0] * s + vectors[:, 1] * c
     
     return rotated_vectors
+"""

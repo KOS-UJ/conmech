@@ -1,7 +1,6 @@
-import numpy as np
 import numba
+import numpy as np
 from numba import njit
-
 
 DIM = 3
 EDIM = DIM+1

@@ -297,3 +297,7 @@ all_print = [
     polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
 ]
+
+all_simulator = [
+    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False)
+]

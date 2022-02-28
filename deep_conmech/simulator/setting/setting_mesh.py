@@ -2,8 +2,8 @@ import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
-from numba import njit
 from conmech.helpers import nph
+from numba import njit
 
 # import os, sys
 # sys.path.append(os.path.abspath('../'))
@@ -79,7 +79,7 @@ def move_boundary_points_to_start(
 
 
 @njit
-def get_furthest_apart(points):
+def get_furthest_apart_numba(points):
     max_dist = 0.0
     max_i, max_j = 0, 0
     nodes_count = len(points)
@@ -158,7 +158,7 @@ class SettingMesh:
             self.boundary_edges_count,
         ) = self.clean_mesh(unordered_points, unordered_cells)
 
-        self.rotation_reference_indices = get_furthest_apart(
+        self.rotation_reference_indices = get_furthest_apart_numba(
             self.boundary_points_initial
         )
 
@@ -208,13 +208,11 @@ class SettingMesh:
         internal_nodes = self.moved_points[self.boundary_edges_internal_nodes]
         tail_nodes, head_nodes = edges_nodes[:, 0], edges_nodes[:, 1]
 
-        unoriented_normals = nph.get_oriented_tangential_numba(
-            nph.normalize(head_nodes - tail_nodes)
+        unoriented_normals = nph.get_tangential_2d(
+            nph.normalize_euclidean_numba(head_nodes - tail_nodes)
         )
         internal_orientation = np.sign(
-            nph.elementwise_dot(
-                internal_nodes - tail_nodes, unoriented_normals
-            )
+            nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals)
         )
         result = unoriented_normals * (-1) * internal_orientation.reshape(-1, 1)
         return result
@@ -277,32 +275,24 @@ class SettingMesh:
         return self.normalized_points[self.rotation_reference_indices]
 
     @property
-    def initial_reference_vector(self):
+    def initial_base_seed(self):
         return self.initial_reference_points[1] - self.initial_reference_points[0]
 
     @property
-    def moved_reference_vector(self):
+    def moved_base_seed(self):
         return self.moved_reference_points[1] - self.moved_reference_points[0]
 
     @property
-    def up_vector(self):
+    def rotated_base_seed(self):
         if not config.NORMALIZE_ROTATE:
-            return np.array([0.0, 1.0])
-
-        reference_vector = nph.rotate_up_numba(
-            self.moved_reference_vector, self.initial_reference_vector
-        )
-        reference_vector = reference_vector / nph.euclidean_norm_numba(
-            reference_vector
-        )
-        return reference_vector
-
+            return np.array((0.0, 1.0))
+        return nph.get_in_base(np.array(self.moved_base_seed), self.initial_base_seed)
 
     def rotate_to_upward(self, vectors):
-        return nph.rotate_up_numba(vectors, self.up_vector)
+        return nph.get_in_base(vectors, self.rotated_base_seed)
 
     def rotate_from_upward(self, vectors):
-        return nph.rotate_up_numba(vectors, self.up_vector * [-1.0, 1.0])
+        return nph.get_in_base(vectors, nph.normalize_euclidean_numba(self.rotated_base_seed) * [-1.0, 1.0])
 
     @property
     def edges_moved_points(self):

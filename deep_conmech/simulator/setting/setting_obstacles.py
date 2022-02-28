@@ -173,7 +173,7 @@ class SettingObstacle(SettingForces):
 
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
-        self.obstacles[0, ...] = nph.normalize(self.obstacles[0, ...])
+        self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
 
     def set_closest_obstacle_data(self):
         (

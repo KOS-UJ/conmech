@@ -253,7 +253,7 @@ class Plotter:
             color="w",
             fontsize=5,
         )
-
+    '''
     def draw_angles(self, setting, ax):
         scale = 10.0
         up_vector = setting.up_vector
@@ -270,8 +270,8 @@ class Plotter:
         )
 
         ax.annotate(str(round(setting.angle, 4)), xy=(0.5, 1.5))
-
-    """
+    '''
+    '''
     def draw_boundary_arrows(self, setting, normalized_vectors, position, ax):
         scale = 1.0
         points = setting.normalized_boundary_points + position
@@ -289,7 +289,7 @@ class Plotter:
                 color="w",
                 zorder=2,
             )
-    """
+    '''
 
     def draw_arrows(self, points, normalized_vectors, ax):
         nodes_count = len(points)
