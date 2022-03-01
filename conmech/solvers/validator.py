@@ -12,8 +12,8 @@ class Validator:
         self.B = solver.B
         self.forces = solver.forces
         self.f = make_f(
-            jnZ=solver.contact_law.subderivative_normal_direction,
-            jtZ=solver.contact_law.regularized_subderivative_tangential_direction,
+            jn=solver.contact_law.subderivative_normal_direction,
+            jt=solver.contact_law.regularized_subderivative_tangential_direction,
             h=solver.friction_bound,
         )
 
@@ -21,7 +21,7 @@ class Validator:
         quality_inv = np.linalg.norm(
             self.f(
                 solution,
-                state.mesh.initial_points,
+                state.mesh.initial_nodes,
                 state.mesh.boundaries.contact,
                 self.B,
                 self.forces.F_vector

@@ -152,7 +152,7 @@ class SettingMesh:
             create_in_subprocess=self.create_in_subprocess,
         )
         (
-            self.initial_points,
+            self.initial_nodes,
             self.cells,
             self.boundary_nodes_count,
             self.boundary_edges_count,
@@ -168,9 +168,9 @@ class SettingMesh:
             self.boundary_edges_count, self.edges, self.cells
         )
 
-        self.set_u_old(np.zeros_like(self.initial_points))
-        self.set_v_old(np.zeros_like(self.initial_points))
-        self.set_a_old(np.zeros_like(self.initial_points))
+        self.set_u_old(np.zeros_like(self.initial_nodes))
+        self.set_v_old(np.zeros_like(self.initial_nodes))
+        self.set_a_old(np.zeros_like(self.initial_nodes))
 
     def clean_mesh(self, unordered_points, unordered_cells):
         nodes_count = len(unordered_points)
@@ -200,7 +200,7 @@ class SettingMesh:
         self.u_old = u
 
     def get_initial_index(self, point):
-        return nph.get_point_index_numba(np.array(point), self.initial_points)
+        return nph.get_point_index_numba(np.array(point), self.initial_nodes)
 
     @property
     def boundary_edges_normals(self):
@@ -233,7 +233,7 @@ class SettingMesh:
 
     @property
     def mean_initial_points(self):
-        return np.mean(self.initial_points, axis=0)
+        return np.mean(self.initial_nodes, axis=0)
 
     @property
     def normalized_points(self):
@@ -241,7 +241,7 @@ class SettingMesh:
 
     @property
     def normalized_initial_points(self):
-        return self.initial_points - self.mean_initial_points
+        return self.initial_nodes - self.mean_initial_points
 
     @property
     def normalized_v_old(self):
@@ -262,11 +262,11 @@ class SettingMesh:
 
     @property
     def moved_points(self):
-        return self.initial_points + self.u_old
+        return self.initial_nodes + self.u_old
 
     @property
     def initial_reference_points(self):
-        return self.initial_points[self.rotation_reference_indices]
+        return self.initial_nodes[self.rotation_reference_indices]
 
     @property
     def moved_reference_points(self):
@@ -318,7 +318,7 @@ class SettingMesh:
 
     @property
     def nodes_count(self):
-        return len(self.initial_points)
+        return len(self.initial_nodes)
 
     @property
     def boundary_edges(self):
@@ -326,7 +326,7 @@ class SettingMesh:
 
     @property
     def boundary_points_initial(self):
-        return self.initial_points[: self.boundary_edges_count, :]
+        return self.initial_nodes[: self.boundary_edges_count, :]
 
     @property
     def inner_nodes_count(self):

@@ -4,9 +4,7 @@ Created at 18.02.2021
 import numpy as np
 
 
-from conmech.matrices import Matrices
 from conmech.forces import Forces
-
 
 
 class Solver:

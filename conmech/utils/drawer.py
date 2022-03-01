@@ -14,12 +14,12 @@ class Drawer:
     def __init__(self, state):
         self.state = state
         self.mesh = state.mesh
-        self.node_size = 20 + (1000 / len(self.mesh.initial_points))
+        self.node_size = 20 + (1000 / len(self.mesh.initial_nodes))
 
     def draw(self):
         f, ax = plt.subplots()
 
-        self.draw_mesh(self.mesh.initial_points, ax, label='Original',
+        self.draw_mesh(self.mesh.initial_nodes, ax, label='Original',
                        node_color='0.6', edge_color='0.8')
         self.draw_mesh(self.state.displaced_points, ax, label='Deformed')
         for contact_boundary in self.mesh.boundaries.contact:
