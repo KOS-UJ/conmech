@@ -4,6 +4,7 @@ import os
 import imageio
 import matplotlib.pyplot as plt
 import meshzoo
+import pygmsh
 import numba
 import numpy as np
 from conmech.helpers import nph
@@ -14,6 +15,7 @@ from mpl_toolkits import mplot3d
 from mpl_toolkits.mplot3d import Axes3D
 from numba import njit
 from scipy.spatial import Delaunay
+
 
 DIM = 3
 EDIM = 4
@@ -26,6 +28,41 @@ def get_meshzoo_cube(mesh_size):
         np.linspace(0.0, 1.0, mesh_size),
     )
     return initial_nodes, elements
+
+def get_meshzoo_sphere(mesh_size):
+    nodes, elements = meshzoo.ball_tetra(mesh_size)
+    nodes = nodes - np.min(nodes,axis=0)
+    nodes = nodes / np.max(nodes,axis=0)
+    return nodes, elements
+
+def get_twist(mesh_size):
+    with pygmsh.geo.Geometry() as geom:
+        poly = geom.add_polygon(
+            [
+                [+0.0, +0.5],
+                [-0.1, +0.1],
+                [-0.5, +0.0],
+                [-0.1, -0.1],
+                [+0.0, -0.5],
+                [+0.1, -0.1],
+                [+0.5, +0.0],
+                [+0.1, +0.1],
+            ],
+            mesh_size=0.05,
+        )
+
+        geom.twist(
+            poly,
+            translation_axis=[0, 0, 1],
+            rotation_axis=[0, 0, 1],
+            point_on_axis=[0, 0, 0],
+            angle=np.pi / 3,
+        )
+
+        mesh = geom.generate_mesh()
+        nodes = mesh.points.copy()
+        elements = mesh.cells[2].data.astype("long").copy()
+    return nodes, elements
 
 
 def list_all_faces(elements):
@@ -55,23 +92,29 @@ def get_boundary_faces(elements):
 ######################################################
 
 
-def plot_mesh(ax, nodes, nodes_indices, elements):
-    boundary_nodes = nodes[nodes_indices]
+def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
     
+    for boundary_face in boundary_faces:
+        boundary_faces_nodes = nodes[boundary_face]
+        ax.plot3D(
+            boundary_faces_nodes[:, 0], boundary_faces_nodes[:, 1], boundary_faces_nodes[:, 2], color=color, lw=0.4
+        )
+
+    '''
     for e in elements:
         pts = nodes[e, :]
-        lw = 0.4
         for i in range(EDIM):
             for j in range(EDIM):
                 if i < j:
                     ax.plot3D(
-                        pts[[i, j], 0], pts[[i, j], 1], pts[[i, j], 2], color="b", lw=lw
+                        pts[[i, j], 0], pts[[i, j], 1], pts[[i, j], 2], color=color, lw=0.4
                     )
+    '''
     
-    # ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], color="b")
-    ax.scatter(
-        boundary_nodes[:, 0], boundary_nodes[:, 1], boundary_nodes[:, 2], color="y"
-    )
+    #boundary_nodes = nodes[nodes_indices]
+    #ax.scatter(
+    #    boundary_nodes[:, 0], boundary_nodes[:, 1], boundary_nodes[:, 2], color="y"
+    #)
 
 
 ######################################################
@@ -109,7 +152,8 @@ def get_base_seed(nodes, base_seed_indices):
 ######################################################
 
 mesh_size = 5
-initial_nodes, elements = get_meshzoo_cube(mesh_size)
+#initial_nodes, elements = get_meshzoo_cube(mesh_size)
+initial_nodes, elements = get_meshzoo_sphere(mesh_size)
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
 
@@ -192,18 +236,18 @@ def print_frame(moved_nodes, normalized_nodes, forces, elements, path, extension
     for v in initial_base:
         z = np.zeros_like(v)
         nv = nph.normalize_euclidean_numba(v)
-        ax.quiver(*z,*nv)
+        ax.quiver(*z,*nv,color='tab:blue')
     for v in moved_base:
         z = np.zeros_like(v)
         nv = nph.normalize_euclidean_numba(v)
-        ax.quiver(*z,*nv,color='g')
+        ax.quiver(*z,*nv,color='tab:orange')
     for i in range(len(forces)):
         m = moved_nodes[i]
         f = forces[i] * 50
-        ax.quiver(*m,*f,color='g')
+        ax.quiver(*m,*f,color='w')
 
-    plot_mesh(ax, moved_nodes, boundary_nodes_indices, elements) # boundary_nodes_indices
-    plot_mesh(ax, normalized_nodes, boundary_nodes_indices, elements) # boundary_nodes_indices
+    plot_mesh(ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, 'tab:orange') # boundary_nodes_indices
+    plot_mesh(ax, normalized_nodes, boundary_faces, boundary_nodes_indices, elements , 'tab:blue') # boundary_nodes_indices
 
     plt.show()
     plt_save(path, extension)
@@ -215,13 +259,13 @@ catalog = f"output/3D {thh.get_timestamp()}"
 
 
 def f_push(ip, t):
-    return np.array([0.05, -0.05, 0.05])
+    return np.array([0.05, 0.05, 0.05])
     #return np.repeat(np.array([f0]), nodes_count, axis=0)
 
 def f_rotate(ip, t):
     if t <= 0.5:
         scale = ip[1] * ip[2]
-        return scale * np.array([0.05, 0.0, 0.0])
+        return scale * np.array([0.1, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
         
 
@@ -272,7 +316,7 @@ def print_one_dynamic():
         mean_moved_nodes =  np.mean(moved_nodes, axis=0)
         normalized_nodes = rotate_to_upward(moved_nodes - mean_moved_nodes, moved_base_seed, initial_base_seed)
 
-        forces = get_forces_by_function(f_rotate, initial_nodes, current_time)
+        forces = get_forces_by_function(f_rotate, initial_nodes, current_time) #f_rotate
         normalized_forces = rotate_to_upward(forces, moved_base_seed, initial_base_seed)
         normalized_u_old = normalized_nodes - normalized_initial_nodes
         normalized_v_old = rotate_to_upward(v_old-np.mean(v_old, axis=0), moved_base_seed, initial_base_seed)
