@@ -57,8 +57,10 @@ class MeshFeatures(SettingMatrices):
                 break
             self.independent_nodes_count -= 1
 
-        self.contact_num = 0
+        self.contact_count = 0
         for vertex in self.initial_nodes:
             if not is_contact(*vertex):
                 break
-            self.contact_num += 1
+            self.contact_count += 1
+
+        self.dirichlet_count = len(self.initial_nodes) - self.independent_nodes_count
