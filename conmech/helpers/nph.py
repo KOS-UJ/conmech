@@ -75,8 +75,7 @@ def complete_base(base_seed):
 
 
 
-def get_in_base(vectors, base_seed):
-    base = complete_base(base_seed)
+def get_in_base(vectors, base):
     return vectors @ base.T
 
 
