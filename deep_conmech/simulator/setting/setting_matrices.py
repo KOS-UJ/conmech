@@ -14,7 +14,6 @@ from conmech.helpers import nph
 def get_edges_features_matrix(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
-    dim=element_size-1
 
     edges_features_matrix = np.zeros((nodes_count, nodes_count, 8), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
@@ -32,15 +31,15 @@ def get_edges_features_matrix(elements, nodes):
             for j in range(element_size):
                 j_dPhX, j_dPhY, _ = get_integral_parts(element_points, j)
 
-                area = (i != j) / 6.0
+                area = (i != j) / 6
                 w11 = i_dPhX * j_dPhX
                 w12 = i_dPhX * j_dPhY
                 w21 = i_dPhY * j_dPhX
                 w22 = i_dPhY * j_dPhY
-                u = (1 + (i == j)) / 12.0
+                u = (1 + (i == j)) / 12
 
-                u1 = i_dPhX / 3.0
-                u2 = i_dPhY / 3.0
+                u1 = j_dPhX / (3 * np.sqrt(2))
+                u2 = j_dPhY / (3 * np.sqrt(2))
 
                 edges_features_matrix[element[i], element[j]] += element_volume * np.array(
                     [area, w11, w12, w21, w22, u1, u2, u]
@@ -58,7 +57,7 @@ def get_integral_parts(element_nodes, element_index):
     x_j2 = element_nodes[(element_index + 2) % 3]
 
     dm = denominator(x_i, x_j1, x_j2)
-    triangle_area = np.abs(dm) / 2.0 # = np.abs(dm) / 2.0 = shoelace_area
+    triangle_area = np.abs(dm) / 2  # = np.abs(dm) / 2.0 = shoelace_area
 
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
@@ -101,8 +100,6 @@ def get_edges_features_list(edges_number, edges_features_matrix):
                 edges_features[e] = edges_features_matrix[i, j]
                 e += 1
     return edges_features
-
-
 
 
 @njit
