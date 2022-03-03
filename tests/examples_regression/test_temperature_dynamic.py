@@ -8,8 +8,8 @@ from dataclasses import dataclass
 
 from conmech.problem_solver import TDynamic as TDynamicProblem
 from conmech.problems import Dynamic
-from examples.example_temperature_dynamic import TPSlopeContactLaw
 from examples.p_slope_contact_law import make_slope_contact_law
+from tests.examples_regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(params=[  # TODO #28
@@ -52,18 +52,32 @@ def generate_test_suits():
     class DynamicSetup(Dynamic):
         grid_height: ... = 1
         cells_number: ... = (2, 5)
-        inner_forces: ... = np.array([-0.2, -0.2])
-        outer_forces: ... = np.array([0, 0])
         mu_coef: ... = 4
-        lambda_coef: ... = 4
+        la_coef: ... = 4
         th_coef: ... = 4
         ze_coef: ... = 4
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(1e1)
 
         @staticmethod
+        def inner_forces(x, y):
+            return np.array([-0.2, -0.2])
+
+        @staticmethod
+        def outer_forces(x, y):
+            return np.array([0, 0])
+
+        @staticmethod
         def friction_bound(u_nu):
             return 0
+
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
 
     setup_m02_m02 = DynamicSetup()
 
@@ -94,7 +108,11 @@ def generate_test_suits():
 
     setup_0_02_p_0 = DynamicSetup()
     setup_0_02_p_0.contact_law = make_slope_contact_law_temp(0)
-    setup_0_02_p_0.inner_forces = np.array([0, 0.2])
+
+    def inner_forces(x, y):
+        return np.array([0, 0.2])
+
+    setup_0_02_p_0.inner_forces = inner_forces
 
     expected_displacement_vector_0_02_p_0 = np.asarray([
         [0., 0.],
@@ -124,7 +142,11 @@ def generate_test_suits():
 
     setup_0_m02_p_0 = DynamicSetup()
     setup_0_m02_p_0.contact_law = make_slope_contact_law_temp(0)
-    setup_0_m02_p_0.inner_forces = np.array([0, -0.2])
+
+    def inner_forces(x, y):
+        return np.array([0, -0.2])
+
+    setup_0_m02_p_0.inner_forces = inner_forces
     expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
     expected_temperature_vector_0_m02_p_0 = np.asarray(
         [0., 0.01692873, 0.02963103, 0.03895211, 0.04455073,
@@ -140,18 +162,32 @@ def generate_test_suits():
     class DynamicSetup(Dynamic):
         grid_height: ... = 1.37
         cells_number: ... = (2, 5)
-        inner_forces: ... = np.array([0, -0.2])
-        outer_forces: ... = np.array([0.3, 0.0])
         mu_coef: ... = 4.58
-        lambda_coef: ... = 3.33
+        la_coef: ... = 3.33
         th_coef: ... = 2.11
         ze_coef: ... = 4.99
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(2.71)
 
         @staticmethod
+        def inner_forces(x, y):
+            return np.array([0, -0.2])
+
+        @staticmethod
+        def outer_forces(x, y):
+            return np.array([0.3, 0.0])
+
+        @staticmethod
         def friction_bound(u_nu):
             return 0.0
+
+        @staticmethod
+        def is_contact(x, y):
+            return y == 0
+
+        @staticmethod
+        def is_dirichlet(x, y):
+            return x == 0
 
     setup_var = DynamicSetup()
     expected_displacement_vector_var = np.asarray([
@@ -188,9 +224,9 @@ def test_global_optimization_solver(
     runner = TDynamicProblem(setup, solving_method)
     results = runner.solve(n_steps=32)
 
-    std_ids = standard_boundary_nodes(runner.grid.Points)
-    displacement = results[-1].grid.Points[:, :2] - results[-1].displaced_points[:, :2]
-    temperature = np.zeros(len(results[-1].grid.Points))
+    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.cells)
+    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
+    temperature = np.zeros(len(results[-1].mesh.initial_nodes))
     temperature[:len(results[-1].temperature)] = results[-1].temperature
 
     # print result
@@ -204,45 +240,3 @@ def test_global_optimization_solver(
     np.testing.assert_array_almost_equal(
         temperature[std_ids], expected_temperature_vector, decimal=3
     )
-
-
-def standard_boundary_nodes(nodes):
-    nodes = nodes[:, :2]
-    max_x = np.max(nodes[:, 0])
-    max_y = np.max(nodes[:, 1])
-    bottom = []
-    right = []
-    top = []
-    left = []
-    for i, node in enumerate(nodes):
-        x = node[0]
-        y = node[1]
-        if y == 0:
-            bottom.append((i, node))
-        if x == max_x:
-            right.append((i, node))
-        if y == max_y:
-            top.append((i, node))
-        if x == 0:
-            left.append((i, node))
-    bottom = sorted(bottom, key=lambda n: n[1][0])
-    right = sorted(right, key=lambda n: n[1][1])
-    top = sorted(top, key=lambda n: -n[1][0])
-    left = sorted(left, key=lambda n: -n[1][1])
-    assert bottom[-1] == right[0]
-    assert right[-1] == top[0]
-    assert top[-1] == left[0]
-    assert left[-1] == bottom[0]
-
-    std_boundary = []
-
-    for i, n in bottom:
-        std_boundary.append(i)
-    for i, n in right[1:]:
-        std_boundary.append(i)
-    for i, n in top[1:]:
-        std_boundary.append(i)
-    for i, n in left[1:-1]:
-        std_boundary.append(i)
-
-    return std_boundary
