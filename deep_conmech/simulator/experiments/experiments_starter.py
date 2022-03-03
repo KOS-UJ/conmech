@@ -2,92 +2,19 @@
 import os
 
 import imageio
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import meshzoo
-import numba
 import numpy as np
-import pygmsh
 from conmech.helpers import nph
 from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.experiments.matrices import *
+from deep_conmech.simulator.mesh.mesh_builders_3d import *
+from deep_conmech.simulator.setting.setting_mesh import *
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
-from numba import njit
-
-from deep_conmech.simulator.setting.setting_mesh import *
 
 DIM = 3
 EDIM = 4
-
-
-def normalize_nodes(nodes):
-    nodes = nodes - np.min(nodes, axis=0)
-    nodes = nodes / np.max(nodes, axis=0)
-    return nodes
-
-
-def get_from_pygmsh(mesh):
-    nodes = mesh.points.copy()
-    elements = mesh.cells[2].data.astype("long").copy()
-    return nodes, elements
-
-
-def get_meshzoo_cube(mesh_size):
-    initial_nodes, elements = meshzoo.cube_tetra(
-        np.linspace(0.0, 1.0, mesh_size),
-        np.linspace(0.0, 1.0, mesh_size),
-        np.linspace(0.0, 1.0, mesh_size),
-    )
-    return initial_nodes, elements
-
-
-def get_meshzoo_ball(mesh_size):
-    nodes, elements = meshzoo.ball_tetra(mesh_size)
-    return normalize_nodes(nodes), elements
-
-
-def get_extrude(mesh_size):
-    with pygmsh.geo.Geometry() as geom:
-        poly = geom.add_polygon(
-            [[0.0, 0.0], [1.0, -0.2], [1.1, 1.2], [0.1, 0.7],],
-            mesh_size=1.0 / mesh_size,
-        )
-        geom.extrude(poly, [0.0, 0.3, 1.0], num_layers=5)
-        mesh = geom.generate_mesh()
-
-    nodes, elements = get_from_pygmsh(mesh)
-    return normalize_nodes(nodes), elements
-
-
-def get_twist(mesh_size):
-    with pygmsh.geo.Geometry() as geom:
-        poly = geom.add_polygon(
-            [
-                [+0.0, +0.5],
-                [-0.1, +0.1],
-                [-0.5, +0.0],
-                [-0.1, -0.1],
-                [+0.0, -0.5],
-                [+0.1, -0.1],
-                [+0.5, +0.0],
-                [+0.1, +0.1],
-            ],
-            mesh_size=1.0 / mesh_size,
-        )
-
-        geom.twist(
-            poly,
-            translation_axis=[0, 0, 1],
-            rotation_axis=[0, 0, 1],
-            point_on_axis=[0, 0, 0],
-            angle=np.pi / 3,
-        )
-
-        mesh = geom.generate_mesh()
-    nodes, elements = get_from_pygmsh(mesh)
-    return normalize_nodes(nodes), elements
 
 
 def list_all_faces(elements):
@@ -151,8 +78,6 @@ def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
 ######################################################
 
 
-
-
 def normalize_rotate(vectors, moved_base):
     return nph.get_in_base(vectors, moved_base)
 
@@ -163,11 +88,9 @@ def denormalize_rotate(vectors, moved_base):
 
 ######################################################
 
-mesh_size = 10
-# initial_nodes, elements = get_meshzoo_cube(mesh_size)
-# initial_nodes, elements = get_meshzoo_ball(mesh_size)
-# initial_nodes, elements = get_twist(mesh_size)
-initial_nodes, elements = get_extrude(mesh_size)
+initial_nodes, elements = mesh_builders.build_mesh(
+    mesh_type="pygmsh_3d", mesh_density_x=10
+)
 
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)

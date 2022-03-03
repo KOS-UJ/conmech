@@ -94,7 +94,7 @@ def get_closest_to_axis(nodes, variable):
 
     correct_order = nodes[final_i, variable] < nodes[final_j, variable]
     indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([error, *indices])
+    return np.array([error, indices[0], indices[1]])
 
 
 def get_base_seed_indices(nodes):
