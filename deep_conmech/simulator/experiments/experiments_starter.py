@@ -11,6 +11,7 @@ import pygmsh
 from conmech.helpers import nph
 from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.experiments.matrices import *
+from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
 from numba import njit
@@ -149,7 +150,7 @@ def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
 
 
 @njit
-def get_furthest_apart_numba(nodes, variable):
+def get_closest_to_axis(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
     nodes_count = len(nodes)
@@ -163,22 +164,26 @@ def get_furthest_apart_numba(nodes, variable):
                 min_error, final_i, final_j = error, i, j
 
     correct_order = nodes[final_i, variable] < nodes[final_j, variable]
-    # print("MIN ERROR:" + min_error)
-    return [final_i, final_j] if correct_order else [final_j, final_i]
+    indices = (final_i, final_j) if correct_order else (final_j, final_i)
+    return np.array([error, *indices])
 
 
 def get_base_seed_indices(nodes):
     dim = nodes.shape[1]
-    base_seed_indices = np.array(
-        [get_furthest_apart_numba(nodes, i) for i in range(dim)]
-    )
-    return base_seed_indices
+    base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
+    errors = np.zeros(3)
+    for i in range(dim):
+        result = get_closest_to_axis(nodes, i)
+        errors[i] = result[0]
+        base_seed_indices[i] = result[1:].astype(np.int64)
+        # print(f"MIN ERROR for variable {i}: {errors[i]}")
+    return base_seed_indices, np.argmin(errors)
 
 
-def get_base(nodes, base_seed_indices):
+def get_base(nodes, base_seed_indices, closest_seed_index):
     base_seed_initial_nodes = nodes[base_seed_indices]
     base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
-    return nph.complete_base(base_seed)
+    return nph.complete_base(base_seed, closest_seed_index)
 
 
 ######################################################
@@ -194,17 +199,17 @@ def denormalize_rotate(vectors, moved_base):
 
 ######################################################
 
-mesh_size = 3
+mesh_size = 10
 # initial_nodes, elements = get_meshzoo_cube(mesh_size)
-initial_nodes, elements = get_meshzoo_ball(mesh_size)
+# initial_nodes, elements = get_meshzoo_ball(mesh_size)
 # initial_nodes, elements = get_twist(mesh_size)
-# initial_nodes, elements = get_extrude(mesh_size)
+initial_nodes, elements = get_extrude(mesh_size)
 
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
 
-base_seed_indices = get_base_seed_indices(initial_nodes)
-initial_base = get_base(initial_nodes, base_seed_indices)
+base_seed_indices, closest_seed_index = get_base_seed_indices(initial_nodes)
+initial_base = get_base(initial_nodes, base_seed_indices, closest_seed_index)
 
 
 mean_initial_nodes = np.mean(initial_nodes, axis=0)
@@ -254,9 +259,9 @@ def get_E(forces, u_old, v_old):
     return E
 
 
-def get_ax(fig, spec, angle, distance):
-    ax = fig.add_subplot(spec, projection="3d", facecolor="none")  # none") #000000
-    ax.set_proj_type('ortho')
+def get_ax(fig, grid, angle, distance):
+    ax = fig.add_subplot(grid, projection="3d", facecolor="none")  # none") #000000
+    ax.set_proj_type("ortho")
     ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
     ax.dist = distance
 
@@ -267,10 +272,10 @@ def get_ax(fig, spec, angle, distance):
 
     aspect = (12, 4, 4)
     ax.set_box_aspect(aspect)
-    
-    ax.set_xlim(-1, aspect[0]-1)
-    ax.set_ylim(-1, aspect[1]-1)
-    ax.set_zlim(-1, aspect[2]-1)
+
+    ax.set_xlim(-1, aspect[0] - 1)
+    ax.set_ylim(-1, aspect[1] - 1)
+    ax.set_zlim(-1, aspect[2] - 1)
 
     # ax.set_xlabel("x", color="w")
     # ax.set_ylabel("y", color="w")
@@ -302,30 +307,39 @@ def print_frame(
     all_images_paths,
     moved_base,
 ):
+    print = lambda ax: print_subframe(
+        moved_nodes=moved_nodes,
+        normalized_nodes=normalized_nodes,
+        normalized_data=normalized_data,
+        elements=elements,
+        moved_base=moved_base,
+        ax=ax,
+    )
+
     angles = np.array([[[0, -90], [0, 0]], [[30, -60], [90, 0]]])
-    distances = np.array([[11, 11], [8, 11]])
+    distances = np.array([[10, 10], [11, 10]])
     rows, columns, _ = angles.shape
 
     fig = plt.figure()  # constrained_layout=True)
+    grid = fig.add_gridspec(nrows=rows, ncols=columns)
+    # , width_ratios=[1, 1.], height_ratios=[1., 1.])
+    # fig.subplots_adjust(left=-0.2, bottom=0., right=1., top=1.)#, wspace=-0.4, hspace=-0.4)
 
-    fig.subplots_adjust(left=-0.2, bottom=0., right=1., top=1.)#, wspace=-0.4, hspace=-0.4)
-    # fig.add_subplots... kwargs...
-    specs = fig.add_gridspec(
-        nrows=rows, ncols=columns, width_ratios=[1, 1.], height_ratios=[1., 1.],
-    )
-    for row in range(rows):
-        for column in range(columns):
-            ax = get_ax(
-                fig, specs[row, column], angles[row, column], distances[row, column]
-            )
-            print_subframe(
-                moved_nodes=moved_nodes,
-                normalized_nodes=normalized_nodes,
-                normalized_data=normalized_data,
-                elements=elements,
-                moved_base=moved_base,
-                ax=ax,
-            )
+    ax1 = get_ax(fig, grid[0, 0], angles[0, 0], distances[0, 0])
+    ax1.set_position([0.6, 0.8, 0.4, 0.4])
+    print(ax1)
+
+    ax2 = get_ax(fig, grid[0, 1], angles[0, 1], distances[0, 1])
+    ax2.set_position([1.0, 0.8, 0.4, 0.4])
+    print(ax2)
+
+    ax3 = get_ax(fig, grid[1, 0], angles[1, 0], distances[1, 0])
+    ax3.set_position([0.5, 0.3, 0.7, 0.7])
+    print(ax3)
+
+    ax4 = get_ax(fig, grid[1, 1], angles[1, 1], distances[1, 1])
+    ax4.set_position([1.0, 0.5, 0.4, 0.4])
+    print(ax4)
 
     plt.show()
     plt_save(path, extension)
@@ -368,9 +382,9 @@ def plt_save(path, extension):
     plt.savefig(
         path,
         transparent=False,
-        facecolor="#AAAAAA",  # 24292E',
+        facecolor="#24292E",  # AAAAAA',
         bbox_inches="tight",
-        pad_inches=0.1,
+        pad_inches=0.0,
         format=extension,
         dpi=1000,  # 800 1200,
     )
@@ -416,7 +430,7 @@ def print_one_dynamic():
         print(f"time: {current_time}")
 
         moved_nodes = initial_nodes + u_old
-        moved_base = get_base(moved_nodes, base_seed_indices)
+        moved_base = get_base(moved_nodes, base_seed_indices, closest_seed_index)
 
         mean_moved_nodes = np.mean(moved_nodes, axis=0)
         normalized_nodes = normalize_rotate(moved_nodes - mean_moved_nodes, moved_base)

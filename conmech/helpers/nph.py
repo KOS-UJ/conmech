@@ -53,7 +53,7 @@ def get_tangential_2d(normal):
     return np.array((normal[..., 1], -normal[..., 0])).T
 
 
-def complete_base(base_seed):
+def complete_base(base_seed, closest_seed_index=0):
     dim = base_seed.shape[-1]
     normalized_base_seed = normalize_euclidean_numba(base_seed)
     if dim == 2:
@@ -61,23 +61,25 @@ def complete_base(base_seed):
         nx = get_tangential_2d(ny)
         unnormalized_base = np.array((nx, ny))
     elif dim == 3:
-        # Gramm-schmidt orthog.
-        mx, my, mz = normalized_base_seed
-        
-        nx = mx
-        ny = my - (my@nx)*nx
-
-        #MGS for stability
-        mz2 = mz - (mz@nx)*nx
-        nz = mz2 - (mz2@ny)*ny
-        
-        #nx = np.cross(ny,nz)
-        unnormalized_base = np.array((nx, ny, nz))
+        rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
+        unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
+        unnormalized_base = np.roll(unnormalized_rolled_base, closest_seed_index, axis=0)
     else:
         raise ArgumentError()
     base = normalize_euclidean_numba(unnormalized_base)
     return base
 
+
+def orthogonalize_gram_schmidt(vectors):
+    v1, v2, v3 = vectors
+    # Gramm-schmidt orthog.
+    b1 = v1
+    b2 = v2 - (v2 @ v1) * v1
+    # MGS for stability
+    w3 = v3 - (v3 @ b1) * b1
+    b3 = w3 - (w3 @ b2) * b2
+    # nx = np.cross(ny,nz)
+    return np.array((b1, b2, b3))
 
 
 def get_in_base(vectors, base):
