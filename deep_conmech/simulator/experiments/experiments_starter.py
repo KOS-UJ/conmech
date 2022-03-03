@@ -7,7 +7,6 @@ import meshzoo
 import numba
 import numpy as np
 import pygmsh
-from torch import arange
 from conmech.helpers import nph
 from deep_conmech.common.plotter.plotter_basic import Plotter
 from deep_conmech.graph.helpers import thh
@@ -18,6 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from numba import njit
 from scipy.spatial import Delaunay
+from torch import arange
 
 DIM = 3
 EDIM = 4
@@ -160,9 +160,8 @@ def get_furthest_apart_numba(nodes, variable):
     for i in range(nodes_count):
         for j in range(i, nodes_count):
             dist = np.abs(nodes[i, variable] - nodes[j, variable])
-            if (
-                dist > max_dist
-            ):  # and np.sum(np.delete(nodes[i], variable) - np.delete(nodes[j], variable)) == 0.:
+            error = nph.euclidean_norm_numba(np.delete(nodes[i], variable) - np.delete(nodes[j], variable))
+            if dist > max_dist and error < 0.02:
                 max_dist = dist
                 max_i, max_j = i, j
 
@@ -189,10 +188,29 @@ def get_base(nodes, base_seed_indices):
 ######################################################
 
 
+def correct_base(moved_base):
+    
+    vx, vy, vz = moved_base
+    ix, iy, iz = initial_base
+    e1, e2, e3 = np.eye(3)
+    base = nph.normalize_euclidean_numba(
+        np.array(
+            [
+                vx - e2 * vy * (ix / iy) - e3 * vz * (ix / iz),
+                vy - e1 * vx * (iy / ix) - e3 * vz * (iy / iz),
+                vz - e1 * vx * (iz / ix) - e2 * vy * (iz / iy),
+            ]
+        )
+    )
+    return base
+
+# przedstawić siły w initial base (-)
 def common_base(moved_base):
-    #canonical_base = np.eye(3)
-    a = nph.get_in_base(moved_base, initial_base)
-    return a
+    return moved_base
+    #return correct_base(moved_base)
+    # a = nph.get_in_base(moved_base, np.linalg.inv(initial_base.T))
+    # a = nph.get_in_base(correcting_base, moved_base)
+    # return a
 
 
 def normalize_rotate(vectors, moved_base):
@@ -216,17 +234,19 @@ def denormalize_rotate(vectors, moved_base):
 ######################################################
 
 mesh_size = 3
-initial_nodes, elements = get_meshzoo_cube(mesh_size)
-# initial_nodes, elements = get_meshzoo_ball(mesh_size)
+#initial_nodes, elements = get_meshzoo_cube(mesh_size)
+#initial_nodes, elements = get_meshzoo_ball(mesh_size)
 # initial_nodes, elements = get_twist(mesh_size)
-# initial_nodes, elements = get_extrude(mesh_size)
+initial_nodes, elements = get_extrude(mesh_size)
 
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
 
 base_seed_indices = get_base_seed_indices(initial_nodes)
-base_seed_indices[0, 1] += 1  #################
+#base_seed_indices[0, 1] += 1
+#base_seed_indices[1, 1] -= 1  #################
 initial_base = get_base(initial_nodes, base_seed_indices)
+
 
 mean_initial_nodes = np.mean(initial_nodes, axis=0)
 normalized_initial_nodes = normalize_rotate(
@@ -295,7 +315,7 @@ def get_fig(ax_count):
     plt.rcParams["figure.facecolor"] = background_color
     plt.tight_layout()
 
-    fig = plt.figure(figsize=plt.figaspect(1./ax_count))
+    fig = plt.figure(figsize=plt.figaspect(1.0 / ax_count))
     return fig
 
 
@@ -312,18 +332,18 @@ def prepare_ax(ax):
     ax.set_ylim(-1, 3)
     ax.set_zlim(-1, 2)
 
-    ax.set_xlabel("x", color='w')
-    ax.set_ylabel("y", color='w')
-    ax.set_zlabel("z", color='w')
-    
-    ticks = np.arange(0,2,1)
+    ax.set_xlabel("x", color="w")
+    ax.set_ylabel("y", color="w")
+    ax.set_zlabel("z", color="w")
+
+    ticks = np.arange(0, 2, 1)
     ax.set_xticks(ticks)
     ax.set_yticks(ticks)
     ax.set_zticks(ticks)
 
-    ax.tick_params(axis='x', colors='w')
-    ax.tick_params(axis='y', colors='w')
-    ax.tick_params(axis='z', colors='w')
+    ax.tick_params(axis="x", colors="w")
+    ax.tick_params(axis="y", colors="w")
+    ax.tick_params(axis="z", colors="w")
 
     ax.w_xaxis.line.set_color("w")
     ax.w_yaxis.line.set_color("w")
@@ -342,12 +362,12 @@ def print_frame(
     all_images_paths,
     moved_base,
 ):
-    angles = [[0, 270], [0, 0], [90,0]]
+    angles = [[0, 270], [0, 0], [90, 0]]
     angles_count = len(angles)
     fig = get_fig(angles_count)
     # ax = fig.add_subplot(projection="3d")
     for i in range(angles_count):
-        ax = fig.add_subplot(1, angles_count, i+1, projection="3d")
+        ax = fig.add_subplot(1, angles_count, i + 1, projection="3d")
         ax.view_init(elev=angles[i][0], azim=angles[i][1])
         prepare_ax(ax)
         print_frame_internal(
@@ -358,7 +378,7 @@ def print_frame(
             forces=forces,
             elements=elements,
             moved_base=moved_base,
-            ax=ax
+            ax=ax,
         )
 
     plt.show()
@@ -383,8 +403,11 @@ def print_frame_internal(
     ax.quiver(*z, *(base[1]), color="y")
     ax.quiver(*z, *(base[2]), color="g")
 
-
-
+    base2 = moved_base
+    z = np.array([0, 1.5, 1.5])
+    ax.quiver(*z, *(base2[0]), color="r")
+    ax.quiver(*z, *(base2[1]), color="y")
+    ax.quiver(*z, *(base2[2]), color="g")
 
     n = normalized_nodes[base_seed_indices[0]]
     ax.scatter(n[:, 0], n[:, 1], n[:, 2], color="y")
@@ -427,12 +450,7 @@ def print_frame_internal(
         ax.quiver(*m, *data, color="w")
     """
     plot_mesh(
-        ax,
-        moved_nodes - np.mean(moved_nodes, axis=0),
-        boundary_faces,
-        boundary_nodes_indices,
-        elements,
-        "tab:orange",
+        ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, "tab:orange",
     )  # boundary_nodes_indices
 
     plot_mesh(
@@ -500,7 +518,7 @@ def print_one_dynamic():
 
         if i % 10 == 0:
             print_frame(
-                moved_nodes=moved_nodes - mean_moved_nodes,
+                moved_nodes=moved_nodes,
                 normalized_nodes=normalized_nodes,
                 normalized_data=[
                     normalized_forces * 20,
