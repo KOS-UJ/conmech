@@ -52,7 +52,7 @@ class SettingTorch(SettingObstacle):
 
     @property
     def initial_points_torch(self):
-        return thh.to_torch_double(self.initial_points)
+        return thh.to_torch_double(self.initial_nodes)
 
     @property
     def normalized_initial_points_torch(self):

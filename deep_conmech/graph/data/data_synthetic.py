@@ -16,7 +16,7 @@ def create_forces(setting):
     else:
         forces = data_interpolation.interpolate_four(
             setting.nodes_count,
-            setting.initial_points,
+            setting.initial_nodes,
             config.FORCES_RANDOM_SCALE,
             setting.scale,
         )
@@ -26,7 +26,7 @@ def create_forces(setting):
 def create_u_old(setting):
     u_old = data_interpolation.interpolate_four(
         setting.nodes_count,
-        setting.initial_points,
+        setting.initial_nodes,
         config.U_RANDOM_SCALE,
         setting.scale,
     )
@@ -37,14 +37,14 @@ def create_v_old(setting):
     if data_interpolation.decide(config.DATA_ROTATE_VELOCITY):
         v_old = data_interpolation.interpolate_rotate(
             setting.nodes_count,
-            setting.initial_points,
+            setting.initial_nodes,
             config.V_RANDOM_SCALE,
             setting.scale,
         )
     else:
         v_old = data_interpolation.interpolate_four(
             setting.nodes_count,
-            setting.initial_points,
+            setting.initial_nodes,
             config.V_RANDOM_SCALE,
             setting.scale,
         )

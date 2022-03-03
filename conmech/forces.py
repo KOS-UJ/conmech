@@ -31,9 +31,9 @@ class Forces:
         F = np.zeros([self.mesh.nodes_count, 2])
 
         for element_id, element in enumerate(self.mesh.cells):
-            p0 = self.mesh.initial_points[element[0]]
-            p1 = self.mesh.initial_points[element[1]]
-            p2 = self.mesh.initial_points[element[2]]
+            p0 = self.mesh.initial_nodes[element[0]]
+            p1 = self.mesh.initial_nodes[element[1]]
+            p2 = self.mesh.initial_nodes[element[2]]
 
             f0 = self.inter_forces(*p0)
             f1 = self.inter_forces(*p1)
@@ -60,10 +60,10 @@ class Forces:
                 v1 = neumann_boundary[i]
 
                 edge_length = length(
-                    self.mesh.initial_points[v0], self.mesh.initial_points[v1]
+                    self.mesh.initial_nodes[v0], self.mesh.initial_nodes[v1]
                 )
                 v_mid = (
-                    self.mesh.initial_points[v0] + self.mesh.initial_points[v1]
+                                self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]
                 ) / 2
 
                 f_neumann = self.outer_forces(*v_mid) * edge_length / 2
@@ -72,4 +72,3 @@ class Forces:
                 F[v1] += f_neumann
 
         self.F = F[:self.mesh.independent_nodes_count, :]
-

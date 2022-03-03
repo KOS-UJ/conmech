@@ -161,14 +161,19 @@ def get_matrices(
     k11 = 0.5
     k12 = k21 = 0.5
     k22 = 0.5
+    """
 
     c11 = 1.5
     c12 = c21 = 1.5
     c22 = 1.5
 
+    c11 = c22 = 0.5
+    c12 = c21 = 0
+
     C2X = c11 * U1 + c21 * U2
     C2Y = c12 * U1 + c22 * U2
 
+    """
     # T = (1.0 / TIMESTEP) * k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
     """
 
@@ -176,7 +181,7 @@ def get_matrices(
     k12 = k21 = 0
     K = k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22
 
-    return C, B, AREA, A_plus_B_times_ts, A, ACC, K
+    return C, B, AREA, A_plus_B_times_ts, A, ACC, K, C2X, C2Y
 
 
 class SettingMatrices(SettingMesh):
@@ -244,6 +249,8 @@ class SettingMatrices(SettingMesh):
             self.A,
             self.ACC,
             self.K,
+            self.C2X,
+            self.C2Y
         ) = get_matrices(
             edges_features_matrix,
             self.mu,
@@ -293,4 +300,3 @@ class SettingMatrices(SettingMesh):
         self.Cit = None
         self.CiiINV = None
         self.C_boundary = None
-

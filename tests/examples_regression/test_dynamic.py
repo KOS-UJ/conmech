@@ -189,8 +189,8 @@ def test_global_optimization_solver(
     runner = DynamicProblem(setup, solving_method)
     results = runner.solve(n_steps=32)
 
-    displacement = results[-1].mesh.initial_points[:] - results[-1].displaced_points[:]
-    std_ids = standard_boundary_nodes(runner.mesh.initial_points, runner.mesh.cells)
+    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
+    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.cells)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

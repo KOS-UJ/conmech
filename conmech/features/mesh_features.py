@@ -45,20 +45,22 @@ class MeshFeatures(SettingMatrices):
     def reorganize_boundaries(self, is_contact, is_dirichlet):
         (
             self.boundaries,
-            self.initial_points,
+            self.initial_nodes,
             self.cells,
         ) = Boundaries.identify_boundaries_and_reorder_vertices(
-            self.initial_points, self.cells, is_contact, is_dirichlet
+            self.initial_nodes, self.cells, is_contact, is_dirichlet
         )
 
-        self.independent_nodes_count = len(self.initial_points)
-        for vertex in reversed(self.initial_points):
+        self.independent_nodes_count = len(self.initial_nodes)
+        for vertex in reversed(self.initial_nodes):
             if not is_dirichlet(*vertex):
                 break
             self.independent_nodes_count -= 1
 
-        self.contact_num = 0
-        for vertex in self.initial_points:
+        self.contact_count = 0
+        for vertex in self.initial_nodes:
             if not is_contact(*vertex):
                 break
-            self.contact_num += 1
+            self.contact_count += 1
+
+        self.dirichlet_count = len(self.initial_nodes) - self.independent_nodes_count

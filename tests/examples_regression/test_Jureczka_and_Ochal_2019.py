@@ -44,8 +44,8 @@ def test_global_optimization_solver(solving_method):
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(fixed_point_abs_tol=0.001)
 
-    displacement = result.mesh.initial_points[:] - result.displaced_points[:]
-    std_ids = standard_boundary_nodes(runner.mesh.initial_points, runner.mesh.cells)
+    displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
+    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.cells)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
