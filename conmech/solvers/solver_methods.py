@@ -9,6 +9,9 @@ import numba
 from conmech.vertex_utils import length
 
 
+DIMENSION = 2
+
+
 @numba.njit()
 def n_down(n0, n1):
     # [0,-1]
@@ -23,84 +26,69 @@ def n_down(n0, n1):
     return n
 
 
-# @numba.njit()
-def Bu1(B, u):
-    result = np.dot(B[0][0], u[:, 0]) + np.dot(B[0][1], u[:, 1])
+@numba.njit(inline='always')
+def interpolate_point_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
+    result = np.zeros(dimension)
+    offset = len(vector) // dimension
+    for i in range(dimension):
+        if node_id_0 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += 0.5 * vector[i * offset + node_id_0]
+    for i in range(dimension):
+        if node_id_1 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += 0.5 * vector[i * offset + node_id_1]
     return result
 
 
-# @numba.njit()
-def Bu2(B, u):
-    result = np.dot(B[1][0], u[:, 0]) + np.dot(B[1][1], u[:, 1])
-    return result
-
-
-def make_f(jnZ, jtZ, h):
-    jnZ = numba.njit(jnZ)
-    jtZ = numba.njit(jtZ)
+def make_f(jn, jt, h):
+    jn = numba.njit(jn)
+    jt = numba.njit(jt)
     h = numba.njit(h)
-    DIMENSION = 2
-
-    @numba.njit(inline='always')
-    def interpolate_point_between(first_point_id, second_point_id, vector):
-        result = np.zeros(DIMENSION)
-        offset = len(vector) // DIMENSION
-        for i in range(DIMENSION):
-            if first_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
-                result[i] += 0.5 * vector[i * offset + first_point_id]
-        for i in range(DIMENSION):
-            if second_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
-                result[i] += 0.5 * vector[i * offset + second_point_id]
-        return result
 
     @numba.njit()
-    def JZu(u_vector, vertices, contact_boundaries):
-        JZu = np.zeros_like(u_vector)
+    def contact_part(u_vector, nodes, contact_boundaries):
+        contact_vector = np.zeros_like(u_vector)
         offset = len(u_vector) // DIMENSION
 
         for contact_boundary in contact_boundaries:
             for i in range(1, len(contact_boundary)):
-                v1_id = contact_boundary[i - 1]
-                v2_id = contact_boundary[i]
+                n_id_0 = contact_boundary[i - 1]
+                n_id_1 = contact_boundary[i]
+                n_0 = nodes[n_id_0]
+                n_1 = nodes[n_id_1]
 
-                um = interpolate_point_between(v1_id, v2_id, u_vector)  # TODO check ravel()
+                # ASSUMING `u_vector` and `nodes` have the same order!
+                um = interpolate_point_between(n_id_0, n_id_1, u_vector)
 
-                firstPointCoordinates = vertices[v1_id]
-                secondPointCoordinates = vertices[v2_id]
-                edgeLength = length(firstPointCoordinates, secondPointCoordinates)
-                nmL = n_down(firstPointCoordinates, secondPointCoordinates)
+                normal_vector = n_down(n_0, n_1)
 
-                uNmL = (um * nmL).sum()
-                uTmL = um - uNmL * nmL
+                um_normal = (um * normal_vector).sum()
+                um_tangential = um - um_normal * normal_vector
 
-                vNZero = nmL[0]
-                vNOne = nmL[1]
-                vThauZero = np.asarray([1. - float(nmL[0] * nmL[0]), - float(nmL[0] * nmL[1])])
-                vThauOne = np.asarray([- float(nmL[0] * nmL[1]), 1. - float(nmL[1] * nmL[1])])
+                v_tau_0 = np.asarray([1 - normal_vector[0] * normal_vector[0],
+                                      0 - normal_vector[0] * normal_vector[1]])
+                v_tau_1 = np.asarray([0 - normal_vector[0] * normal_vector[1],
+                                      1 - normal_vector[1] * normal_vector[1]])
 
-                # TODO: Move  to seperate method, take into account also problems with velocity
-                # u will be calculated by suming ptevious velocities times time step
+                edge_len = length(n_0, n_1)
+                j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) \
+                    + h(um_normal) * jt(um_tangential, v_tau_0)
+                j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) \
+                    + h(um_normal) * jt(um_tangential, v_tau_1)
 
-                # TODO: To make function h dependent on u_nu, we need Uzawa approach
-                #       For now, for validating we can ignore it.
-                j_x = edgeLength * 0.5 * (jnZ(uNmL, vNZero)) + h(uNmL) * jtZ(uTmL, vThauZero)
-                j_y = edgeLength * 0.5 * (jnZ(uNmL, vNOne)) + h(uNmL) * jtZ(uTmL, vThauOne)
+                if n_id_0 < offset:
+                    contact_vector[n_id_0] += j_x
+                    contact_vector[n_id_0 + offset] += j_y
 
-                if v1_id < offset:
-                    JZu[v1_id] += j_x
-                    JZu[v1_id + offset] += j_y
+                if n_id_1 < offset:
+                    contact_vector[n_id_1] += j_x
+                    contact_vector[n_id_1 + offset] += j_y
 
-                if v2_id < offset:
-                    JZu[v2_id] += j_x
-                    JZu[v2_id + offset] += j_y
-        return JZu
+        return contact_vector
 
     @numba.njit()
     def f(u_vector, vertices, contact_boundaries, B, F_vector):
-        jZu = JZu(u_vector, vertices, contact_boundaries)
-
-        result = np.dot(B, u_vector) + jZu - F_vector
-
+        c_part = contact_part(u_vector, vertices, contact_boundaries)
+        result = np.dot(B, u_vector) + c_part - F_vector
         return result
 
     return f
@@ -115,165 +103,85 @@ def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
     return numba.njit(func)
 
 
-def make_L2(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] = None):
+def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] = None):
     jn = njit(jn)
     jt = njit(jt)
     h = njit(h)
-    DIMENSION = 2
-
-    @numba.njit(inline='always')
-    def interpolate_point_between(first_point_id, second_point_id, vector):
-        result = np.zeros(DIMENSION)
-        offset = len(vector) // DIMENSION
-        for i in range(DIMENSION):
-            if first_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
-                result[i] += 0.5 * vector[i * offset + first_point_id]
-        for i in range(DIMENSION):
-            if second_point_id < offset:  # exclude points from Gamma_D, TODO ind_num
-                result[i] += 0.5 * vector[i * offset + second_point_id]
-        return result
 
     @numba.njit()
-    def cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries):
+    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundaries):
         cost = 0
-        offset = len(ut_vector) // DIMENSION
+        offset = len(u_vector) // DIMENSION
 
         for contact_boundary in contact_boundaries:
             for i in range(1, len(contact_boundary)):
-                v1_id = contact_boundary[i - 1]
-                v2_id = contact_boundary[i]
-                firstPointCoordinates = vertices[v1_id]
-                secondPointCoordinates = vertices[v2_id]
+                n_id_0 = contact_boundary[i - 1]
+                n_id_1 = contact_boundary[i]
+                n_0 = nodes[n_id_0]
+                n_1 = nodes[n_id_1]
 
-                nmL = n_down(firstPointCoordinates, secondPointCoordinates)
+                # ASSUMING `u_vector` and `nodes` have the same order!
+                um = interpolate_point_between(n_id_0, n_id_1, u_vector)
+                um_old = interpolate_point_between(n_id_0, n_id_1, u_vector_old)
 
-                um = interpolate_point_between(v1_id, v2_id, ut_vector)
-                um_old = interpolate_point_between(v1_id, v2_id, ut_vector_old)
+                normal_vector = n_down(n_0, n_1)
 
-                uNmL = (um * nmL).sum()
-                uNmL_old = (um_old * nmL).sum()
-                uTmL = um - uNmL * nmL
+                um_normal = (um * normal_vector).sum()
+                um_old_normal = (um_old * normal_vector).sum()
+                um_tangential = um - um_normal * normal_vector
 
-                edgeLength = length(firstPointCoordinates, secondPointCoordinates)
-
-                if v2_id < offset and v2_id < offset:
-                    cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
+                if n_id_0 < offset and n_id_1 < offset:
+                    cost += length(n_0, n_1) * (jn(um_normal) + h(um_old_normal) * jt(um_tangential))
         return cost
 
     @numba.njit()
-    def L2(ut_vector, ut_vector_old, vertices, contact_boundaries, C, E, t_vector):
-        ju = cost_functional(ut_vector, ut_vector_old, vertices, contact_boundaries)
-        result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
+    def cost_functional(u_vector, u_vector_old, nodes, contact_boundaries, C, E, t_vector):
+        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundaries)
+        result = (0.5 * np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector)
                   + ju)
         result = np.asarray(result).ravel()
         return result
 
-    return L2
+    return cost_functional
 
 
-def make_L2_t_new(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] = None):
-    jn = njit(jn)
-    jt = njit(jt)
-    h = njit(h)
-    DIMENSION = 2
-
-    @numba.njit(inline='always')
-    def interpolate_point_between(first_point_id, second_point_id, vector, ind_number):
-        result = np.zeros(DIMENSION)
-        offset = len(vector) // DIMENSION
-        for i in range(DIMENSION):
-            if first_point_id < ind_number:  # exclude points from Gamma_D
-                result[i] += 0.5 * vector[i * offset + first_point_id]
-        for i in range(DIMENSION):
-            if second_point_id < ind_number:  # exclude points from Gamma_D
-                result[i] += 0.5 * vector[i * offset + second_point_id]
-        return result
-
-    # @numba.njit()
-    def cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, ut_vector_old, Points):
-        cost = 0
-        for e in range(0, BorderEdgesC):
-            nmL = n_down(Points, Edges, e)  # n at mL
-
-            firstPointIndex = Edges[e][0]
-            secondPointIndex = Edges[e][1]
-
-            um = interpolate_point_between(
-                firstPointIndex, secondPointIndex, ut_vector, indNumber)
-            um_old = interpolate_point_between(
-                firstPointIndex, secondPointIndex, ut_vector_old, indNumber)
-
-            uNmL = (um * nmL).sum()
-            uNmL_old = (um_old * nmL).sum()
-            uTmL = np.empty(DIMENSION)
-            for i in range(DIMENSION):
-                uTmL[i] = um[i] - uNmL * nmL[i]
-
-            firstPointCoordinates = Points[int(firstPointIndex)][0:2]
-            secondPointCoordinates = Points[int(secondPointIndex)][0:2]
-            edgeLength = length(firstPointCoordinates, secondPointCoordinates)
-
-            cost += edgeLength * (jn(uNmL) + h(uNmL_old) * jt(uTmL))
-
-        return cost
-
-    # @numba.njit()
-    def L2(ut_vector, wt_vector, indNumber, BorderEdgesC, Edges, Points, C, E, t_vector):
-        ju = cost_functional(indNumber, BorderEdgesC, Edges, ut_vector, wt_vector, Points)
-        result = (0.5 * np.dot(np.dot(C, ut_vector), ut_vector) - np.dot(E, ut_vector)
-                  + ju)
-        result = np.asarray(result).ravel()
-        return result
-
-    return L2
-
-
-def make_L2_t(hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable] = None):
+def make_cost_functional_temperature(
+        hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable] = None):
     hn = njit(hn)
     ht = njit(ht)
     h = numba.njit(h)
-    DIMENSION = 2
 
-    # @numba.njit()
-    def cost_functional(indNumber, BorderEdgesC, Edges, tt_vector, ut_vector, Points):
-        cost = 0.
+    @numba.njit()
+    def contact_cost_functional(temperature, u_vector, nodes, contact_boundaries):
+        cost = 0
+        offset = len(u_vector) // DIMENSION
 
-        for e in range(0, BorderEdgesC):
-            nmL = n_down(Points, Edges, e)  # n at mL
+        for contact_boundary in contact_boundaries:
+            for i in range(1, len(contact_boundary)):
+                n_id_0 = contact_boundary[i - 1]
+                n_id_1 = contact_boundary[i]
+                n_0 = nodes[n_id_0]
+                n_1 = nodes[n_id_1]
 
-            firstPointIndex = Edges[e][0]
-            secondPointIndex = Edges[e][1]
+                # ASSUMING `u_vector` and `nodes` have the same order!
+                um = interpolate_point_between(n_id_0, n_id_1, u_vector)
+                tm = interpolate_point_between(n_id_0, n_id_1, temperature, dimension=1)
 
-            umLx = 0.
-            umLy = 0.
-            tmL = 0.
-            offset = len(ut_vector) // DIMENSION
-            if firstPointIndex < indNumber:  # exclude points from Gamma_D
-                umLx += 0.5 * ut_vector[firstPointIndex]
-                umLy += 0.5 * ut_vector[offset + firstPointIndex]
-                tmL += 0.5 * tt_vector[firstPointIndex]
-            if secondPointIndex < indNumber:  # exclude points from Gamma_D
-                umLx += 0.5 * ut_vector[secondPointIndex]
-                umLy += 0.5 * ut_vector[offset + secondPointIndex]
-                tmL += 0.5 * tt_vector[secondPointIndex]
+                normal_vector = n_down(n_0, n_1)
 
-            uNmL = umLx * nmL[0] + umLy * nmL[1]
-            uTmLx = umLx - uNmL * nmL[0]
-            uTmLy = umLy - uNmL * nmL[1]
+                um_normal = (um * normal_vector).sum()
+                um_tangential = um - um_normal * normal_vector
 
-            firstPointCoordinates = Points[int(firstPointIndex)][0:2]
-            secondPointCoordinates = Points[int(secondPointIndex)][0:2]
-            edgeLength = length(firstPointCoordinates, secondPointCoordinates)
-
-            # cost += edgeLength * (hn(uNmL, tmL) + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-            cost += edgeLength * (h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * tmL)
-
+                if n_id_0 < offset and n_id_1 < offset:
+                    # cost += edgeLength * (hn(uNmL, tmL)
+                    #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
+                    cost += length(n_0, n_1) * tm * h(np.linalg.norm(um_tangential))
         return cost
 
-    # @numba.njit()
-    def L2(tt_vector, indNumber, BorderEdgesC, Edges, Points, T, Q, ut_vector):
+    @numba.njit()
+    def cost_functional(temp_vector, nodes, contact_boundaries, T, Q, u_vector):
         # TODO #31
-        return 0.5 * np.dot(np.dot(T, tt_vector), tt_vector) - np.dot(Q, tt_vector) \
-               - cost_functional(indNumber, BorderEdgesC, Edges, tt_vector, ut_vector, Points)
+        return 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
+               - contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
 
-    return L2
+    return cost_functional

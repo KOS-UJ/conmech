@@ -60,7 +60,7 @@ class SettingForces(SettingMatrices):
     def get_forces_by_function(self, forces_function, current_time):
         return get_forces_by_function_numba(
             numba.njit(forces_function),
-            self.initial_points,
+            self.initial_nodes,
             self.moved_points,
             self.scale_x,
             self.scale_y,
@@ -121,4 +121,3 @@ class SettingForces(SettingMatrices):
 
         E = F_vector - A_plus_B_times_ts @ v_old_vector - B @ u_old_vector
         return E
-

@@ -169,7 +169,7 @@ class SettingMesh:
             create_in_subprocess=self.create_in_subprocess,
         )
         (
-            self.initial_points,
+            self.initial_nodes,
             self.cells,
             self.boundary_nodes_count,
             self.boundary_edges_count,
@@ -185,9 +185,9 @@ class SettingMesh:
             self.boundary_edges_count, self.edges, self.cells
         )
 
-        self.set_u_old(np.zeros_like(self.initial_points))
-        self.set_v_old(np.zeros_like(self.initial_points))
-        self.set_a_old(np.zeros_like(self.initial_points))
+        self.set_u_old(np.zeros_like(self.initial_nodes))
+        self.set_v_old(np.zeros_like(self.initial_nodes))
+        self.set_a_old(np.zeros_like(self.initial_nodes))
 
     def clean_mesh(self, unordered_points, unordered_cells):
         nodes_count = len(unordered_points)
@@ -217,7 +217,7 @@ class SettingMesh:
         self.u_old = u
 
     def get_initial_index(self, point):
-        return nph.get_point_index_numba(np.array(point), self.initial_points)
+        return nph.get_point_index_numba(np.array(point), self.initial_nodes)
 
     @property
     def boundary_edges_normals(self):
@@ -247,16 +247,16 @@ class SettingMesh:
         return np.mean(self.moved_points, axis=0)
 
     @property
-    def mean_initial_points(self):
-        return np.mean(self.initial_points, axis=0)
+    def mean_initial_nodes(self):
+        return np.mean(self.initial_nodes, axis=0)
 
     @property
     def normalized_points(self):
         return self.normalize_rotate(self.moved_points - self.mean_moved_points)
 
     @property
-    def normalized_initial_points(self):
-        return self.initial_points - self.mean_initial_points
+    def normalized_initial_nodes(self):
+        return self.initial_nodes - self.mean_initial_nodes
 
     @property
     def normalized_v_old(self):
@@ -268,8 +268,8 @@ class SettingMesh:
         # normalized_u_old2 = self.normalize_rotate(
         #    self.u_old - np.mean(self.u_old, axis=0)
         # )
-        return self.normalized_points - self.normalized_initial_points
-        # return self.normalize_rotate(self.moved_points - np.mean(self.moved_points, axis=0)) - self.normalized_initial_points
+        return self.normalized_points - self.normalized_initial_nodes
+        # return self.normalize_rotate(self.moved_points - np.mean(self.moved_points, axis=0)) - self.normalized_initial_nodes
 
     @property
     def origin_u_old(self):
@@ -277,20 +277,19 @@ class SettingMesh:
 
     @property
     def moved_points(self):
-        return self.initial_points + self.u_old
-
+        return self.initial_nodes + self.u_old
 
     @property
     def moved_base(self):
-        return get_base(self.moved_points, self.base_seed_indices, self.closest_seed_index)
+        return get_base(
+            self.moved_points, self.base_seed_indices, self.closest_seed_index
+        )
 
     def normalize_rotate(self, vectors):
         return nph.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
-
-
 
     @property
     def edges_moved_points(self):
@@ -306,7 +305,7 @@ class SettingMesh:
 
     @property
     def nodes_count(self):
-        return len(self.initial_points)
+        return len(self.initial_nodes)
 
     @property
     def boundary_edges(self):
@@ -314,7 +313,7 @@ class SettingMesh:
 
     @property
     def boundary_points_initial(self):
-        return self.initial_points[: self.boundary_edges_count, :]
+        return self.initial_nodes[: self.boundary_edges_count, :]
 
     @property
     def inner_nodes_count(self):
@@ -344,7 +343,7 @@ class SettingMesh:
     @property
     def normalized_v_nt_old(self):
         normalized_v_n_old = self.project(
-            self.normalized_v_old, self.normalized_initial_points
+            self.normalized_v_old, self.normalized_initial_nodes
         )
         normalized_v_t_old = self.normalized_v_old - normalized_v_n_old
         return normalized_v_n_old, normalized_v_t_old
