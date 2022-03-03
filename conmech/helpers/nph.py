@@ -5,7 +5,6 @@ from ctypes import ArgumentError
 import numba
 import numpy as np
 from numba import njit
-from torch import nonzero
 
 DIM = 2
 
