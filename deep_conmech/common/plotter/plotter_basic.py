@@ -11,9 +11,9 @@ from matplotlib.ticker import LinearLocator
 import deep_conmech.common.config as config
 from deep_conmech.simulator.setting.setting_forces import *
 
-background_color = "24292E"  # '1F2428'
-plt.rcParams["axes.facecolor"] = background_color
-plt.rcParams["figure.facecolor"] = background_color
+#background_color = "24292E"  # '1F2428'
+#plt.rcParams["axes.facecolor"] = background_color
+#plt.rcParams["figure.facecolor"] = background_color
 
 
 class Plotter:

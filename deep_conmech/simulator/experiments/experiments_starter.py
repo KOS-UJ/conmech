@@ -2,22 +2,18 @@
 import os
 
 import imageio
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import meshzoo
 import numba
 import numpy as np
 import pygmsh
 from conmech.helpers import nph
-from deep_conmech.common.plotter.plotter_basic import Plotter
 from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.experiments.matrices import *
-from matplotlib.collections import PolyCollection
-from mpl_toolkits import mplot3d
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
 from numba import njit
-from scipy.spatial import Delaunay
-from torch import arange
 
 DIM = 3
 EDIM = 4
@@ -128,7 +124,7 @@ def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
             edgecolors=color,
             linewidths=0.1,
             facecolors=color,
-            alpha=0.08,
+            alpha=0.2,
         )
     )
 
@@ -152,29 +148,29 @@ def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
 ######################################################
 
 
-# @njit
+@njit
 def get_furthest_apart_numba(nodes, variable):
-    max_dist = 0.0
-    max_i, max_j = 0, 0
+    min_error = 1.0
+    final_i, final_j = 0, 0
     nodes_count = len(nodes)
     for i in range(nodes_count):
-        for j in range(i, nodes_count):
-            dist = np.abs(nodes[i, variable] - nodes[j, variable])
-            error = nph.euclidean_norm_numba(np.delete(nodes[i], variable) - np.delete(nodes[j], variable))
-            if dist > max_dist and error < 0.02:
-                max_dist = dist
-                max_i, max_j = i, j
+        for j in range(i + 1, nodes_count):
+            # dist = np.abs(nodes[i, variable] - nodes[j, variable])
+            error = nph.euclidean_norm_numba(
+                np.delete(nodes[i], variable) - np.delete(nodes[j], variable)
+            )
+            if error < min_error:
+                min_error, final_i, final_j = error, i, j
 
-    if nodes[max_i, variable] < nodes[max_j, variable]:
-        return [max_i, max_j]
-    else:
-        return [max_j, max_i]
+    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
+    # print("MIN ERROR:" + min_error)
+    return [final_i, final_j] if correct_order else [final_j, final_i]
 
 
 def get_base_seed_indices(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.array(
-        [get_furthest_apart_numba(nodes, i) for i in range(1, dim)]
+        [get_furthest_apart_numba(nodes, i) for i in range(dim)]
     )
     return base_seed_indices
 
@@ -188,63 +184,26 @@ def get_base(nodes, base_seed_indices):
 ######################################################
 
 
-def correct_base(moved_base):
-    
-    vx, vy, vz = moved_base
-    ix, iy, iz = initial_base
-    e1, e2, e3 = np.eye(3)
-    base = nph.normalize_euclidean_numba(
-        np.array(
-            [
-                vx - e2 * vy * (ix / iy) - e3 * vz * (ix / iz),
-                vy - e1 * vx * (iy / ix) - e3 * vz * (iy / iz),
-                vz - e1 * vx * (iz / ix) - e2 * vy * (iz / iy),
-            ]
-        )
-    )
-    return base
-
-# przedstawić siły w initial base (-)
-def common_base(moved_base):
-    return moved_base
-    #return correct_base(moved_base)
-    # a = nph.get_in_base(moved_base, np.linalg.inv(initial_base.T))
-    # a = nph.get_in_base(correcting_base, moved_base)
-    # return a
-
-
 def normalize_rotate(vectors, moved_base):
-    return nph.get_in_base(
-        vectors,
-        common_base(
-            moved_base
-        ),  # normalized_base_seed(moved_base_seed, initial_base_seed)
-    )
+    return nph.get_in_base(vectors, moved_base)
 
 
 def denormalize_rotate(vectors, moved_base):
-    reverse_base = np.linalg.inv(common_base(moved_base))
-    return nph.get_in_base(
-        vectors,
-        # nph.get_in_base(initial_base, moved_base)
-        reverse_base,  # denormalized_base_seed(moved_base_seed, initial_base_seed)
-    )
+    return nph.get_in_base(vectors, np.linalg.inv(moved_base),)
 
 
 ######################################################
 
 mesh_size = 3
-#initial_nodes, elements = get_meshzoo_cube(mesh_size)
-#initial_nodes, elements = get_meshzoo_ball(mesh_size)
+# initial_nodes, elements = get_meshzoo_cube(mesh_size)
+initial_nodes, elements = get_meshzoo_ball(mesh_size)
 # initial_nodes, elements = get_twist(mesh_size)
-initial_nodes, elements = get_extrude(mesh_size)
+# initial_nodes, elements = get_extrude(mesh_size)
 
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
 
 base_seed_indices = get_base_seed_indices(initial_nodes)
-#base_seed_indices[0, 1] += 1
-#base_seed_indices[1, 1] -= 1  #################
 initial_base = get_base(initial_nodes, base_seed_indices)
 
 
@@ -295,48 +254,29 @@ def get_E(forces, u_old, v_old):
     return E
 
 
-def plt_save(path, extension):
-    plt.savefig(
-        path,
-        transparent=False,
-        bbox_inches="tight",
-        format=extension,
-        pad_inches=0.1,
-        dpi=800,  # 1200,
-    )
-    plt.close()
+def get_ax(fig, spec, angle, distance):
+    ax = fig.add_subplot(spec, projection="3d", facecolor="none")  # none") #000000
+    ax.set_proj_type('ortho')
+    ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
+    ax.dist = distance
 
-
-def get_fig(ax_count):
-    # plt.style.use('dark_background')
-
-    background_color = "24292E"  # '1F2428'
-    plt.rcParams["axes.facecolor"] = background_color
-    plt.rcParams["figure.facecolor"] = background_color
-    plt.tight_layout()
-
-    fig = plt.figure(figsize=plt.figaspect(1.0 / ax_count))
-    return fig
-
-
-def prepare_ax(ax):
     ax.grid(False)
     ax.w_xaxis.pane.fill = False
     ax.w_yaxis.pane.fill = False
     ax.w_zaxis.pane.fill = False
 
-    # ax.set_box_aspect((np.ptp(xs), np.ptp(ys), np.ptp(zs)))
-    ax.set_box_aspect((12, 4, 3))
+    aspect = (12, 4, 4)
+    ax.set_box_aspect(aspect)
+    
+    ax.set_xlim(-1, aspect[0]-1)
+    ax.set_ylim(-1, aspect[1]-1)
+    ax.set_zlim(-1, aspect[2]-1)
 
-    ax.set_xlim(-1, 11)
-    ax.set_ylim(-1, 3)
-    ax.set_zlim(-1, 2)
+    # ax.set_xlabel("x", color="w")
+    # ax.set_ylabel("y", color="w")
+    # ax.set_zlabel("z", color="w")
 
-    ax.set_xlabel("x", color="w")
-    ax.set_ylabel("y", color="w")
-    ax.set_zlabel("z", color="w")
-
-    ticks = np.arange(0, 2, 1)
+    ticks = []  # np.arange(0, 2, 1)
     ax.set_xticks(ticks)
     ax.set_yticks(ticks)
     ax.set_zticks(ticks)
@@ -349,118 +289,92 @@ def prepare_ax(ax):
     ax.w_yaxis.line.set_color("w")
     ax.w_zaxis.line.set_color("w")
 
+    return ax
+
 
 def print_frame(
     moved_nodes,
     normalized_nodes,
     normalized_data,
-    a,
-    forces,
     elements,
     path,
     extension,
     all_images_paths,
     moved_base,
 ):
-    angles = [[0, 270], [0, 0], [90, 0]]
-    angles_count = len(angles)
-    fig = get_fig(angles_count)
-    # ax = fig.add_subplot(projection="3d")
-    for i in range(angles_count):
-        ax = fig.add_subplot(1, angles_count, i + 1, projection="3d")
-        ax.view_init(elev=angles[i][0], azim=angles[i][1])
-        prepare_ax(ax)
-        print_frame_internal(
-            moved_nodes=moved_nodes,
-            normalized_nodes=normalized_nodes,
-            normalized_data=normalized_data,
-            a=a,
-            forces=forces,
-            elements=elements,
-            moved_base=moved_base,
-            ax=ax,
-        )
+    angles = np.array([[[0, -90], [0, 0]], [[30, -60], [90, 0]]])
+    distances = np.array([[11, 11], [8, 11]])
+    rows, columns, _ = angles.shape
+
+    fig = plt.figure()  # constrained_layout=True)
+
+    fig.subplots_adjust(left=-0.2, bottom=0., right=1., top=1.)#, wspace=-0.4, hspace=-0.4)
+    # fig.add_subplots... kwargs...
+    specs = fig.add_gridspec(
+        nrows=rows, ncols=columns, width_ratios=[1, 1.], height_ratios=[1., 1.],
+    )
+    for row in range(rows):
+        for column in range(columns):
+            ax = get_ax(
+                fig, specs[row, column], angles[row, column], distances[row, column]
+            )
+            print_subframe(
+                moved_nodes=moved_nodes,
+                normalized_nodes=normalized_nodes,
+                normalized_data=normalized_data,
+                elements=elements,
+                moved_base=moved_base,
+                ax=ax,
+            )
 
     plt.show()
     plt_save(path, extension)
     all_images_paths.append(path)
 
 
-def print_frame_internal(
-    moved_nodes, normalized_nodes, normalized_data, a, forces, elements, moved_base, ax
+def print_subframe(
+    moved_nodes, normalized_nodes, normalized_data, elements, moved_base, ax
 ):
-    """
-    reverse_base = np.linalg.inv(moved_base)
-    for v in reverse_base: #initial_base:
-        z = np.array([0, 0., 0.])
-        nv = nph.normalize_euclidean_numba(v)
-        ax.quiver(*z, *nv, color="tab:blue")
-    """
+    base = moved_base
+    z = np.array([0, 2.0, 2.0])
+    ax.quiver(*z, *(base[0]), arrow_length_ratio=0.1, color="r")
+    ax.quiver(*z, *(base[1]), arrow_length_ratio=0.1, color="y")
+    ax.quiver(*z, *(base[2]), arrow_length_ratio=0.1, color="g")
 
-    base = common_base(moved_base)
-    z = np.array([0, 0, 1.5])
-    ax.quiver(*z, *(base[0]), color="r")
-    ax.quiver(*z, *(base[1]), color="y")
-    ax.quiver(*z, *(base[2]), color="g")
+    plot_mesh(
+        ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, "tab:orange",
+    )
 
-    base2 = moved_base
-    z = np.array([0, 1.5, 1.5])
-    ax.quiver(*z, *(base2[0]), color="r")
-    ax.quiver(*z, *(base2[1]), color="y")
-    ax.quiver(*z, *(base2[2]), color="g")
-
-    n = normalized_nodes[base_seed_indices[0]]
-    ax.scatter(n[:, 0], n[:, 1], n[:, 2], color="y")
-    n = normalized_nodes[base_seed_indices[1]]
-    ax.scatter(n[:, 0], n[:, 1], n[:, 2], color="g")
-    """
-    n = moved_nodes[base_seed_indices[0]]
-    ax.scatter(n[:,0],n[:,1],n[:,2])
-    n = moved_nodes[base_seed_indices[1]]
-    ax.scatter(n[:,0],n[:,1],n[:,2])
-    """
-    """
-    for i in range(len(moved_nodes)):
-        m = moved_nodes[i]
-        f = forces[i] * 40.
-        ax.quiver(*m, *f, color="w")
-    """
-
-    normalized_nodes2 = normalized_nodes
+    shifted_normalized_nodes = normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
-        normalized_nodes2 = normalized_nodes2 + np.array([1.5, 0, 0])
         for i in boundary_nodes_indices:
-            m = normalized_nodes2[i]
+            m = shifted_normalized_nodes[i]
             d = data[i]
-            ax.quiver(*m, *d, color="w", lw=0.2)
+            ax.quiver(*m, *d, arrow_length_ratio=0.1, color="w", lw=0.2)
 
         plot_mesh(
             ax,
-            normalized_nodes2,
+            shifted_normalized_nodes,
             boundary_faces,
             boundary_nodes_indices,
             elements,
             "tab:blue",
-        )  # boundary_nodes_indices
+        )
 
-    """
-    for i in range(len(moved_nodes)):
-        m = moved_nodes[i]
-        data = a[i]
-        ax.quiver(*m, *data, color="w")
-    """
-    plot_mesh(
-        ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, "tab:orange",
-    )  # boundary_nodes_indices
+        shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
-    plot_mesh(
-        ax,
-        normalized_nodes,
-        boundary_faces,
-        boundary_nodes_indices,
-        elements,
-        "tab:blue",
-    )  # boundary_nodes_indices
+
+def plt_save(path, extension):
+    plt.savefig(
+        path,
+        transparent=False,
+        facecolor="#AAAAAA",  # 24292E',
+        bbox_inches="tight",
+        pad_inches=0.1,
+        format=extension,
+        dpi=1000,  # 800 1200,
+    )
+    plt.close()
 
 
 catalog = f"output/3D {thh.get_timestamp()}"
@@ -473,7 +387,7 @@ def f_push(ip, t):
 
 def f_rotate(ip, t):
     if t <= 0.5:
-        scale = ip[2]  # * ip[2]
+        scale = ip[1] * ip[2]
         return scale * np.array([0.1, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
 
@@ -522,12 +436,10 @@ def print_one_dynamic():
                 normalized_nodes=normalized_nodes,
                 normalized_data=[
                     normalized_forces * 20,
-                    normalized_a / 10,
-                    normalized_u_old / 2,
-                    normalized_v_old / 2,
+                    normalized_u_old,
+                    normalized_v_old,
+                    normalized_a,
                 ],
-                a=a,
-                forces=forces,
                 elements=elements,
                 path=f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension=extension,

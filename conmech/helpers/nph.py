@@ -61,12 +61,17 @@ def complete_base(base_seed):
         nx = get_tangential_2d(ny)
         unnormalized_base = np.array((nx, ny))
     elif dim == 3:
-        nz = normalized_base_seed[1]
+        # Gramm-schmidt orthog.
+        mx, my, mz = normalized_base_seed
         
-        my = normalized_base_seed[0]
-        ny = my - (my@nz)*nz # Gramm-schmidt orthog.
+        nx = mx
+        ny = my - (my@nx)*nx
+
+        #MGS for stability
+        mz2 = mz - (mz@nx)*nx
+        nz = mz2 - (mz2@ny)*ny
         
-        nx = np.cross(ny,nz)
+        #nx = np.cross(ny,nz)
         unnormalized_base = np.array((nx, ny, nz))
     else:
         raise ArgumentError()
