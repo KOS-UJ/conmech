@@ -33,8 +33,8 @@ class Direct(Solver):
         )
 
         self.f = make_f(
-            jnZ=contact_law.subderivative_normal_direction,
-            jtZ=contact_law.regularized_subderivative_tangential_direction,
+            jn=contact_law.subderivative_normal_direction,
+            jt=contact_law.regularized_subderivative_tangential_direction,
             h=friction_bound,
         )
 
@@ -46,7 +46,7 @@ class Direct(Solver):
             self.f,
             initial_guess,
             args=(
-                self.mesh.initial_points,
+                self.mesh.initial_nodes,
                 self.mesh.boundaries.contact,
                 self.B,
                 self.forces.F_vector

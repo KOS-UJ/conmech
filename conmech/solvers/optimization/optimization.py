@@ -7,8 +7,8 @@ from typing import Optional
 import scipy.optimize
 import numpy as np
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_L2
-from conmech.solvers.solver_methods import make_L2_t
+from conmech.solvers.solver_methods import make_cost_functional
+from conmech.solvers.solver_methods import make_cost_functional_temperature
 
 
 class Optimization(Solver):
@@ -31,7 +31,7 @@ class Optimization(Solver):
             contact_law,
             friction_bound,
         )
-        self.loss = make_L2(
+        self.loss = make_cost_functional(
             jn=contact_law.potential_normal_direction,
             jt=contact_law.potential_tangential_direction
             if hasattr(contact_law, "potential_tangential_direction")
@@ -39,7 +39,7 @@ class Optimization(Solver):
             h=friction_bound,
         )
         if hasattr(contact_law, "h_temp"):
-            self.loss_temp = make_L2_t(
+            self.loss_temp = make_cost_functional_temperature(
                 h=contact_law.h_temp, hn=contact_law.h_nu, ht=contact_law.h_tau
             )
 
@@ -71,7 +71,7 @@ class Optimization(Solver):
                 solution,
                 args=(
                     old_solution,
-                    self.mesh.initial_points,
+                    self.mesh.initial_nodes,
                     self.mesh.boundaries.contact,
                     self.point_relations,
                     self.point_forces,
@@ -88,10 +88,8 @@ class Optimization(Solver):
 
     def solve_t(self, initial_guess: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         loss_args = (
-            self.grid.independent_nodes_count,
-            self.grid.BorderEdgesC,
-            self.grid.Edges,
-            self.grid.Points,
+            self.mesh.initial_nodes,
+            self.mesh.boundaries.contact,
             self.T,
             self.Q,
             velocity,

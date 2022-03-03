@@ -55,9 +55,7 @@ class TDynamicSetup(Dynamic):
 
     @staticmethod
     def inner_forces(x, y):
-
         return np.array([0.0, -1.0])
-
 
     @staticmethod
     def outer_forces(x, y):
