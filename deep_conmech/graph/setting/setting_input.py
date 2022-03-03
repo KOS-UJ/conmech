@@ -98,7 +98,7 @@ def set_diff(data, position, row, i, j):
 @njit  # (parallel=True)
 def get_edges_data(
     edges,
-    initial_points,
+    initial_nodes,
     u_old,
     v_old,
     forces,
@@ -112,7 +112,7 @@ def get_edges_data(
         i = edges[e, 0]
         j = edges[e, 1]
 
-        set_diff(initial_points, 0, edges_data[e], i, j)
+        set_diff(initial_nodes, 0, edges_data[e], i, j)
         set_diff(u_old, 3, edges_data[e], i, j)
         set_diff(v_old, 6, edges_data[e], i, j)
         set_diff(forces, 9, edges_data[e], i, j)
@@ -180,7 +180,7 @@ class SettingInput(SettingRandomized):
     def edges_data_torch(self):
         edges_data = get_edges_data(
             self.edges,
-            self.normalized_initial_points,
+            self.normalized_initial_nodes,
             self.input_u_old,
             self.input_v_old,
             self.input_forces,
@@ -211,7 +211,7 @@ class SettingInput(SettingRandomized):
         # )
 
         data = Data(
-            pos=thh.set_precision(self.normalized_initial_points_torch),
+            pos=thh.set_precision(self.normalized_initial_nodes_torch),
             x=thh.set_precision(self.x),
             edge_index=self.contiguous_edges_torch,
             edge_attr=thh.set_precision(self.edges_data_torch),

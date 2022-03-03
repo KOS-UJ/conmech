@@ -51,12 +51,12 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_long(self.edges).t().contiguous()
 
     @property
-    def initial_points_torch(self):
+    def initial_nodes_torch(self):
         return thh.to_torch_double(self.initial_nodes)
 
     @property
-    def normalized_initial_points_torch(self):
-        return thh.to_torch_double(self.normalized_initial_points)
+    def normalized_initial_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_initial_nodes)
 
     @property
     def normalized_points_torch(self):
