@@ -77,8 +77,7 @@ def print_at_interval(time, setting, path, base_setting, all_images_paths, exten
 def print_setting_internal(setting, path, base_setting, extension, time):
     plotter = Plotter()
     ax = plotter.get_one_ax()
-    height = 1 if base_setting is None else 2
-    plotter.draw_setting_ax(setting, ax, [3, height, 12, 3], base_setting, time)
+    plotter.draw_setting_ax(setting, ax, base_setting, time)
     plotter.plt_save(path, extension)
 
 
@@ -118,7 +117,7 @@ def print_steps(drawer, axs, row, time_steps, skip, force, get_a_function):
         setting.iterate(a)
         if time % skip == 0:
             drawer.draw_setting_ax(
-                setting, axs[row, int(i / skip)], boundaries=[1, 1, 1, 1], time=time
+                setting, axs[row, int(i / skip)], time=time
             )
 
 

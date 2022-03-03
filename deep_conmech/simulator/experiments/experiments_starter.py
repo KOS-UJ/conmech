@@ -16,6 +16,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
 from numba import njit
 
+from deep_conmech.simulator.setting.setting_mesh import *
+
 DIM = 3
 EDIM = 4
 
@@ -149,44 +151,6 @@ def plot_mesh(ax, nodes, boundary_faces, nodes_indices, elements, color):
 ######################################################
 
 
-@njit
-def get_closest_to_axis(nodes, variable):
-    min_error = 1.0
-    final_i, final_j = 0, 0
-    nodes_count = len(nodes)
-    for i in range(nodes_count):
-        for j in range(i + 1, nodes_count):
-            # dist = np.abs(nodes[i, variable] - nodes[j, variable])
-            error = nph.euclidean_norm_numba(
-                np.delete(nodes[i], variable) - np.delete(nodes[j], variable)
-            )
-            if error < min_error:
-                min_error, final_i, final_j = error, i, j
-
-    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
-    indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([error, *indices])
-
-
-def get_base_seed_indices(nodes):
-    dim = nodes.shape[1]
-    base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
-    errors = np.zeros(3)
-    for i in range(dim):
-        result = get_closest_to_axis(nodes, i)
-        errors[i] = result[0]
-        base_seed_indices[i] = result[1:].astype(np.int64)
-        # print(f"MIN ERROR for variable {i}: {errors[i]}")
-    return base_seed_indices, np.argmin(errors)
-
-
-def get_base(nodes, base_seed_indices, closest_seed_index):
-    base_seed_initial_nodes = nodes[base_seed_indices]
-    base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
-    return nph.complete_base(base_seed, closest_seed_index)
-
-
-######################################################
 
 
 def normalize_rotate(vectors, moved_base):
@@ -194,7 +158,7 @@ def normalize_rotate(vectors, moved_base):
 
 
 def denormalize_rotate(vectors, moved_base):
-    return nph.get_in_base(vectors, np.linalg.inv(moved_base),)
+    return nph.get_in_base(vectors, np.linalg.inv(moved_base))
 
 
 ######################################################
@@ -207,6 +171,7 @@ initial_nodes, elements = get_extrude(mesh_size)
 
 boundary_faces = get_boundary_faces(elements)
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
+
 
 base_seed_indices, closest_seed_index = get_base_seed_indices(initial_nodes)
 initial_base = get_base(initial_nodes, base_seed_indices, closest_seed_index)

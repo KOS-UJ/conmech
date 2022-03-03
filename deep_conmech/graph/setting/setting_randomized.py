@@ -64,11 +64,11 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_v_old_randomization(self):
-        return self.rotate_to_upward(self.v_old_randomization)
+        return self.normalize_rotate(self.v_old_randomization)
 
     @property
     def normalized_u_old_randomization(self):
-        return self.rotate_to_upward(self.u_old_randomization)
+        return self.normalize_rotate(self.u_old_randomization)
 
     @property
     def randomized_v_old(self):
@@ -126,7 +126,7 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_a_correction(self):
-        return self.rotate_to_upward(self.a_correction)
+        return self.normalize_rotate(self.a_correction)
 
     @property
     def normalized_a_correction_torch(self):

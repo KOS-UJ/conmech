@@ -197,21 +197,21 @@ class SettingObstacle(SettingForces):
 
     @property
     def normalized_closest_obstacle_normals(self):
-        return self.rotate_to_upward(self.closest_obstacle_normals)
+        return self.normalize_rotate(self.closest_obstacle_normals)
 
     @property
     def normalized_closest_obstacle_origins(self):
-        return self.rotate_to_upward(
+        return self.normalize_rotate(
             self.closest_obstacle_origins - self.mean_moved_points
         )
 
     @property
     def normalized_obstacle_normals(self):
-        return self.rotate_to_upward(self.obstacle_normals)
+        return self.normalize_rotate(self.obstacle_normals)
 
     @property
     def normalized_obstacle_origins(self):
-        return self.rotate_to_upward(self.obstacle_origins - self.mean_moved_points)
+        return self.normalize_rotate(self.obstacle_origins - self.mean_moved_points)
 
     @property
     def obstacle_normal(self):
@@ -268,4 +268,4 @@ class SettingObstacle(SettingForces):
 
     @property
     def normalized_boundary_centers_penetration(self):
-        return self.rotate_to_upward(self.boundary_centers_penetration)
+        return self.normalize_rotate(self.boundary_centers_penetration)

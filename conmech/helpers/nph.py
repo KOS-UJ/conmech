@@ -57,9 +57,7 @@ def complete_base(base_seed, closest_seed_index=0):
     dim = base_seed.shape[-1]
     normalized_base_seed = normalize_euclidean_numba(base_seed)
     if dim == 2:
-        ny = normalized_base_seed[0]
-        nx = get_tangential_2d(ny)
-        unnormalized_base = np.array((nx, ny))
+        unnormalized_base = orthogonalize_gram_schmidt(normalized_base_seed)
     elif dim == 3:
         rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
         unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
@@ -71,15 +69,20 @@ def complete_base(base_seed, closest_seed_index=0):
 
 
 def orthogonalize_gram_schmidt(vectors):
-    v1, v2, v3 = vectors
     # Gramm-schmidt orthog.
-    b1 = v1
-    b2 = v2 - (v2 @ v1) * v1
+    b0 =  vectors[0]
+    if len(vectors) == 1:
+        return np.array((b0))
+
+    b1 =  vectors[1] - (vectors[1] @ b0) * b0
+    if len(vectors) == 2:
+        return np.array((b0, b1))
+
     # MGS for stability
-    w3 = v3 - (v3 @ b1) * b1
-    b3 = w3 - (w3 @ b2) * b2
+    w2 = vectors[2] - (vectors[2] @ b0) * b0
+    b2 = w2 - (w2 @ b1) * b1
     # nx = np.cross(ny,nz)
-    return np.array((b1, b2, b3))
+    return np.array((b0, b1, b2))
 
 
 def get_in_base(vectors, base):

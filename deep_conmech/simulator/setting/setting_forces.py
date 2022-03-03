@@ -1,8 +1,8 @@
-import numpy as np
 import numba
-from numba import njit
-from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+import numpy as np
 from conmech.helpers import nph
+from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+from numba import njit
 
 
 @njit
@@ -69,7 +69,7 @@ class SettingForces(SettingMatrices):
 
     @property
     def normalized_forces(self):
-        return self.rotate_to_upward(self.forces)
+        return self.normalize_rotate(self.forces)
 
     def prepare(self, forces):
         self.forces = forces
