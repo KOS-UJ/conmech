@@ -34,9 +34,8 @@ def normalize_nodes(nodes):
     nodes = nodes / np.max(nodes, axis=0)
     return nodes
 
-def get_nodes_and_elements(geom):
+def get_nodes_and_elements(geom, dim):
     geom_mesh = geom.generate_mesh()
     nodes = geom_mesh.points.copy()
-    elements = geom_mesh.cells[2].data.astype("long").copy()
-    return nodes, elements
-
+    elements = geom_mesh.cells[-2].data.astype("long").copy()
+    return nodes[:, :dim], elements

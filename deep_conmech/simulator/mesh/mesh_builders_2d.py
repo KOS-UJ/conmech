@@ -76,7 +76,7 @@ def get_pygmsh_elements_and_nodes(mesh_type, mesh_density, scale_x, scale_y, is_
             raise ArgumentError
 
         set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive)
-        nodes, elements = get_nodes_and_elements(geom)
+        nodes, elements = get_nodes_and_elements(geom, 2)
         # boundary_edges = geom_mesh.cells[0].data.astype("long").copy()
 
     return nodes, elements  # , boundary_edges  # not in with

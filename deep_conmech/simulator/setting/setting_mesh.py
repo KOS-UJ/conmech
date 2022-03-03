@@ -100,7 +100,7 @@ def get_closest_to_axis(nodes, variable):
 def get_base_seed_indices(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
-    errors = np.zeros(3)
+    errors = np.zeros(dim)
     for i in range(dim):
         result = get_closest_to_axis(nodes, i)
         errors[i] = result[0]

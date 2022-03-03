@@ -25,7 +25,7 @@ def get_pygmsh_extrude(mesh_density):
         )
         geom.extrude(poly, [0.0, 0.3, 1.0], num_layers=5)
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
-        nodes, elements = get_nodes_and_elements(geom)
+        nodes, elements = get_nodes_and_elements(geom, 3)
     return normalize_nodes(nodes), elements
 
 
@@ -52,6 +52,6 @@ def get_pygmsh_twist(mesh_density):
             angle=np.pi / 3,
         )
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
-        nodes, elements = get_nodes_and_elements(geom)
+        nodes, elements = get_nodes_and_elements(geom, 3)
     return normalize_nodes(nodes), elements
 
