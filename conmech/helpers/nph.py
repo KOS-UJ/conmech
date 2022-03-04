@@ -17,8 +17,8 @@ def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
 
 
-def unstack(data):
-    return data.reshape(-1, DIM, order="F")
+def unstack(data, dim = DIM):
+    return data.reshape(-1, dim, order="F")
 
 
 def elementwise_dot(x, y):

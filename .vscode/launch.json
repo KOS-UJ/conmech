@@ -21,17 +21,17 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Simulator",
+            "name": "Simulator_2D",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/starter_simulator.py",
+            "program": "${workspaceFolder}/deep_conmech/starter_simulator_2d.py",
             "console": "integratedTerminal"
         },
         {
-            "name": "3D",
+            "name": "Simulator_3D",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/deep_conmech/simulator/experiments/experiments_starter.py",
+            "program": "${workspaceFolder}/deep_conmech/starter_simulator_3d.py",
             "console": "integratedTerminal"
         }
     ]
