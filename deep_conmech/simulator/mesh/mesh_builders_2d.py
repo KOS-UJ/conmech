@@ -11,12 +11,10 @@ from deep_conmech.simulator.mesh.mesh_builders_helpers import *
 
 
 
-def get_meshzoo_rectangle(mesh_density, corners):
-    min = nph.min(corners)
-    max = nph.max(corners)
+def get_meshzoo_rectangle(mesh_density, scale_x, scale_y):
     points, cells = meshzoo.rectangle_tri(
-        np.linspace(min[0], max[0], int(mesh_density) + 1),
-        np.linspace(min[1], max[1], int(mesh_density) + 1),
+        np.linspace(0., scale_x, int(mesh_density) + 1),
+        np.linspace(0., scale_y, int(mesh_density) + 1),
         variant="zigzag",
     )
     return points, cells

@@ -5,14 +5,15 @@ import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import nph
-from deep_conmech.common.plotter import plotter_3d
-from deep_conmech.graph.helpers import thh
-from deep_conmech.simulator.setting.matrices_3d import *
-from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.setting_mesh import *
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
+
+from deep_conmech.common.plotter import plotter_3d
+from deep_conmech.graph.helpers import thh
+from deep_conmech.simulator.mesh.mesh_builders_3d import *
+from deep_conmech.simulator.setting.matrices_3d import *
+from deep_conmech.simulator.setting.setting_mesh import *
 
 DIM = 3
 EDIM = 4
@@ -65,7 +66,7 @@ def denormalize_rotate(vectors, moved_base):
 ######################################################
 
 initial_nodes, elements = mesh_builders.build_mesh(
-    mesh_type="pygmsh_3d", mesh_density_x=3
+    mesh_type="meshzoo_cube_3d", mesh_density_x=3  # pygmsh_3d
 )
 
 boundary_faces, boundary_internal_indices = get_boundary_faces(elements)
@@ -75,15 +76,15 @@ def get_boundary_normals(moved_nodes):
     boundary_faces_nodes = moved_nodes[boundary_faces]
     boundary_internal_nodes = moved_nodes[boundary_internal_indices]
 
-    va = boundary_faces_nodes[...,1]-boundary_faces_nodes[...,0]
-    vb = boundary_faces_nodes[...,2]-boundary_faces_nodes[...,0]
-    vc = np.cross(va,vb)
+    va = boundary_faces_nodes[..., 1] - boundary_faces_nodes[..., 0]
+    vb = boundary_faces_nodes[..., 2] - boundary_faces_nodes[..., 0]
+    vc = np.cross(va, vb)
 
     boundary_normals = nph.normalize_euclidean_numba(va)
     return boundary_normals
 
-#nph.elementwise_dot(vc, boundary_internal_nodes) > 0
 
+# nph.elementwise_dot(vc, boundary_internal_nodes) > 0
 
 
 boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
@@ -98,16 +99,16 @@ normalized_initial_nodes = normalize_rotate(
 )
 
 
-edges_features_matrix, element_initial_volume = get_edges_features_matrix_numba(
+edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
     elements, initial_nodes
 )
-# TODO: To tests - sum off slice for area and u == 1
-# np.moveaxis(edges_features_matrix, -1,0)[i].sum() == 0
-# np.moveaxis(edges_features_matrix, -1,0)[0].sum() == 1
+# TODO: To tests - sum of slice for area and u == 1
+# edges_features_matrix[i].sum() == 0
+# edges_features_matrix[0].sum() == 1
 # TODO: switch to dictionary
-# TODO: reshape so that AREA = edges_features_matrix[..., 0] is   AREA = edges_features_matrix[0]
-# np.moveaxis(edges_features_matrix, -1,0)[0].sum()
 # rollaxis -> moveaxis
+
+
 
 
 mu = 0.01
@@ -205,7 +206,7 @@ def print_one_dynamic():
                 moved_base=moved_base,
                 boundary_nodes_indices=boundary_nodes_indices,
                 boundary_faces=boundary_faces,
-                boundary_normals=get_boundary_normals(moved_nodes)
+                boundary_normals=get_boundary_normals(moved_nodes),
             )
 
         v_old = v_old + time_step * a
