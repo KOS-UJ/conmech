@@ -171,9 +171,9 @@ def calculate_constitutive_matrices(
     return np.block([[X11, X12, X13], [X21, X22, X23], [X31, X32, X33]])
 
 
-def create_acceleration(Y, density):
-    Z = np.zeros_like(Y)
-    return density * np.block([[Y, Z, Z], [Z, Y, Z], [Z, Z, Y]])
+def create_acceleration(U, density):
+    Z = np.zeros_like(U)
+    return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
 def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind):

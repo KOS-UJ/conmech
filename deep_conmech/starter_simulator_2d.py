@@ -10,7 +10,7 @@ from deep_conmech.simulator.calculator import Calculator
 def run_conmech_dynamic(all_scenatrios):
 
     for scenario in all_scenatrios:
-        path = f"SIMULATOR - {thh.CURRENT_TIME}"
+        path = f"SIMULATOR 2D - {thh.CURRENT_TIME}"
 
         mapper.print_one_dynamic(
             Calculator.solve,

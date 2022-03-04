@@ -1,30 +1,32 @@
 import numpy as np
 import pytest
-from conmech.features.boundaries import identify_surfaces, get_boundaries
-from deep_conmech.simulator.setting.matrices_3d import get_edges_features_matrix_3d_numba
+from deep_conmech.simulator.matrices.matrices_3d import get_edges_features_matrix_3d_numba
+from deep_conmech.simulator.matrices.matrices_2d import get_edges_features_matrix_2d_numba
 from deep_conmech.simulator.mesh import mesh_builders
-from deep_conmech.simulator.setting.setting_matrices import get_edges_features_matrix_2d_numba
 
 
-def test_matrices_unit_cube_2d_integrals():
+def test_matrices_2d_integrals():
     # Arrange
+    scale_x = 2
+    scale_y = 3
+    area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_type="meshzoo_rectangle", mesh_density_x=3, scale_x=1, scale_y=1
+        mesh_type="meshzoo_rectangle", mesh_density_x=3, scale_x=scale_x, scale_y=scale_y
     )      
     edges_features_matrix, element_initial_volume = get_edges_features_matrix_2d_numba(
         elements, initial_nodes
     )
 
     # Act and Assert
-    np.testing.assert_allclose(element_initial_volume.sum(),1)
+    np.testing.assert_allclose(element_initial_volume.sum(),area)
 
     VOL = edges_features_matrix[0]
     U = edges_features_matrix[1]
-    np.testing.assert_allclose(VOL.sum(),1)
-    np.testing.assert_allclose(U.sum(),1)
+    np.testing.assert_allclose(VOL.sum(),area)
+    np.testing.assert_allclose(U.sum(),area)
     
-    ALL_V = [edges_features_matrix[i] for i in range(2, 1)]
-    ALL_W = [edges_features_matrix[i] for i in range(5, 8)]
+    ALL_V = [edges_features_matrix[i] for i in range(2, 4)]
+    ALL_W = [edges_features_matrix[i] for i in range(4, 8)]
 
     for M in (*ALL_V, *ALL_W):
         np.testing.assert_almost_equal(M.sum(), 0)
@@ -33,7 +35,7 @@ def test_matrices_unit_cube_2d_integrals():
 
 
 
-def test_matrices_unit_cube_3d_integrals():
+def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
         mesh_type="meshzoo_cube_3d", mesh_density_x=3
@@ -43,7 +45,7 @@ def test_matrices_unit_cube_3d_integrals():
     )
 
     # Act and Assert
-    #np.testing.assert_allclose(element_initial_volume.sum(),1)
+    np.testing.assert_allclose(element_initial_volume.sum(),1)
 
     VOL = edges_features_matrix[0]
     U = edges_features_matrix[1]
