@@ -4,6 +4,7 @@ jupyter
 matplotlib
 scipy
 pytest
+meshzoo
 pygmsh
 gmsh
 networkx

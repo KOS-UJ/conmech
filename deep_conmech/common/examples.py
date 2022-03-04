@@ -229,6 +229,18 @@ def circle_rotate(scale, is_adaptive):
     )
 
 
+def polygon_rotate(scale, is_adaptive):
+    return Scenario(
+        "polygon_rotate",
+        m_polygon,
+        config.MESH_DENSITY,
+        scale,
+        f_rotate,
+        o_side * scale,
+        is_adaptive,
+    )
+
+
 def polygon_stay(scale, is_adaptive):
     return Scenario(
         "polygon_stay",
@@ -281,6 +293,11 @@ all_print = [
     # circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
     # circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
+    # circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
+    polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
+]
+
+all_simulator = [
+    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False)
 ]

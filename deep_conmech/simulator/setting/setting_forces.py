@@ -1,8 +1,8 @@
-import numpy as np
 import numba
-from numba import njit
-from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+import numpy as np
 from conmech.helpers import nph
+from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+from numba import njit
 
 
 @njit
@@ -21,12 +21,12 @@ def L2_full_np(a, C, E):
 
 @njit
 def get_forces_by_function_numba(
-    forces_function, initial_points, moved_points, scale_x, scale_y, current_time
+    forces_function, initial_nodes, moved_points, scale_x, scale_y, current_time
 ):
-    nodes_count = len(initial_points)
+    nodes_count = len(initial_nodes)
     forces = np.zeros((nodes_count, 2), dtype=numba.double)
     for i in range(nodes_count):
-        initial_point = initial_points[i]
+        initial_point = initial_nodes[i]
         moved_point = moved_points[i]
         forces[i] = forces_function(
             initial_point, moved_point, current_time, scale_x, scale_y
@@ -69,7 +69,7 @@ class SettingForces(SettingMatrices):
 
     @property
     def normalized_forces(self):
-        return self.rotate_to_upward(self.forces)
+        return self.normalize_rotate(self.forces)
 
     def prepare(self, forces):
         self.forces = forces

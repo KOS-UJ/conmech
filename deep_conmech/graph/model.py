@@ -97,7 +97,7 @@ class GraphModelDynamic:
             print("Graph solve time: ", time.time() - start)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
-        a = setting.rotate_from_upward(normalized_a)
+        a = setting.denormalize_rotate(normalized_a)
         return a
 
     ################
@@ -381,7 +381,7 @@ class GraphModelDynamic:
     def calculate_error(
         self, setting, base_setting, a, base_a, error_result, episode_steps
     ):
-        cleaned_normalized_a = setting.rotate_to_upward(a)
+        cleaned_normalized_a = setting.normalize_rotate(a)
         function = setting.get_L2_full_normalized_correction_np()
         predicted_normalized_L2 = function(cleaned_normalized_a) * 0. ##################################
         error_result.value += float(predicted_normalized_L2 / episode_steps)
