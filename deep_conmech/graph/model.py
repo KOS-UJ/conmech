@@ -214,7 +214,7 @@ class GraphModelDynamic:
         normalized_boundary_points_split = batch.normalized_boundary_points.split(
             boundary_nodes_counts
         )
-        boundary_edges_split = batch.boundary_edges.split(boundary_edges_counts)
+        boundary_faces_split = batch.boundary_faces.split(boundary_edges_counts)
         normalized_closest_obstacle_normals_split = batch.normalized_closest_obstacle_normals.split(
             boundary_edges_counts
         )
@@ -234,7 +234,7 @@ class GraphModelDynamic:
             #
             normalized_boundary_v_old = normalized_boundary_v_old_split[i]
             normalized_boundary_points = normalized_boundary_points_split[i]
-            boundary_edges = boundary_edges_split[i]
+            boundary_faces = boundary_faces_split[i]
             normalized_closest_obstacle_normals = normalized_closest_obstacle_normals_split[
                 i
             ]
@@ -254,7 +254,7 @@ class GraphModelDynamic:
                 normalized_E,
                 normalized_boundary_v_old,
                 normalized_boundary_points,
-                boundary_edges,
+                boundary_faces,
                 normalized_closest_obstacle_normals,
                 normalized_closest_obstacle_origins,
                 normalized_a_correction,

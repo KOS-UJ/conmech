@@ -2,7 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.matrices_3d import *
+from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.setting.setting_mesh import *
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -85,6 +85,7 @@ def print_frame(
     boundary_nodes_indices,
     boundary_faces,
     boundary_normals,
+    boundary_internal_indices
 ):
     print = lambda ax: print_subframe(
         moved_nodes=moved_nodes,
@@ -95,6 +96,7 @@ def print_frame(
         boundary_nodes_indices=boundary_nodes_indices,
         boundary_faces=boundary_faces,
         boundary_normals=boundary_normals,
+        boundary_internal_indices=boundary_internal_indices,
         ax=ax,
     )
 
@@ -149,6 +151,7 @@ def print_subframe(
     boundary_nodes_indices,
     boundary_faces,
     boundary_normals,
+    boundary_internal_indices,
     ax,
 ):
     draw_base_arrows(ax, moved_base)
@@ -158,6 +161,12 @@ def print_subframe(
     plot_arrows(ax, starts=moved_boundary_faces_centers, vectors=boundary_normals)
 
 
+    moved_boundary_internal_nodes = moved_nodes[boundary_internal_indices]
+    ax.scatter(
+       moved_boundary_internal_nodes[:, 0], moved_boundary_internal_nodes[:, 1], moved_boundary_internal_nodes[:, 2],
+       s=0.05,
+       color="w"
+    )
     '''
     all_boundary_nodes = moved_boundary_faces_nodes.reshape(-1,3)
     ax.scatter(
@@ -171,7 +180,7 @@ def print_subframe(
         ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, "tab:orange",
     )
 
-    
+    '''
     shifted_normalized_nodes = normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(ax, starts=shifted_normalized_nodes, vectors=data)
@@ -186,7 +195,7 @@ def print_subframe(
         )
 
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
-    
+    '''
 
 
 def plt_save(path, extension):

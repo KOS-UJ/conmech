@@ -16,10 +16,10 @@ NORMALIZE_ROTATE = True
 # "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
-PRINT_SCALE = 2.0
-SIMULATOR_SCALE = 0.5
+PRINT_SCALE = 1.0 # 2.0
+SIMULATOR_SCALE = 1.0
 
-MESH_DENSITY = 16
+MESH_DENSITY = 8 # 16
 ADAPTIVE_MESH = True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
 SIMULATE_DIRTY_DATA_SIMULATOR = True
@@ -53,13 +53,13 @@ PRINT_DATA_CUTOFF = 1
 ############
 
 VALIDATE_AT_EPOCHS = 20
-DRAW_AT_MINUTES = 60  # 1 60 #!#
+DRAW_AT_MINUTES = 1 # 1 60 #!#
 PRINT_SKIP = 0.1
 DRAW_DETAILED = True
 
 
-BATCH_SIZE = 128  #!#
-VALID_BATCH_SIZE = 32  #!#
+BATCH_SIZE = 12 # 128  #!#
+VALID_BATCH_SIZE = 8 #32  #!#
 BATCHES_IN_EPOCH = 16  # 512 #!#
 TRAIN_SOLVERS_COUNT = BATCH_SIZE * BATCHES_IN_EPOCH
 

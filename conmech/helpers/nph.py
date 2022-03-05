@@ -21,8 +21,8 @@ def unstack(data, dim = DIM):
     return data.reshape(-1, dim, order="F")
 
 
-def elementwise_dot(x, y):
-    return (x * y).sum(axis=1)
+def elementwise_dot(x, y, keepdims=False):
+    return (x * y).sum(axis=1, keepdims=keepdims)
 
 
 def get_occurances(data):

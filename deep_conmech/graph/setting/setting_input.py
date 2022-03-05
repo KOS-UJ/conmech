@@ -33,9 +33,9 @@ def integrate_torch(
     middle_node_normal = nph.elementwise_dot(
         middle_node - closest_obstacle_origins, normals
     )
-    middle_v_normal = nph.elementwise_dot(middle_v, normals)
+    middle_v_normal = nph.elementwise_dot(middle_v, normals, keepdims=True)
 
-    middle_v_tangential = middle_v - (middle_v_normal.reshape(-1, 1) * normals)
+    middle_v_tangential = middle_v - (middle_v_normal * normals)
 
     edge_lengths = thh.euclidean_norm_torch(edge_node[:, 0] - edge_node[:, 1])
     resistance_normal = obstacle_resistance_potential_normal_torch(middle_node_normal)
@@ -52,7 +52,7 @@ def L2_normalized_obstacle_correction_cuda(
     normalized_E,
     normalized_boundary_v_old,
     normalized_boundary_points,
-    boundary_edges,
+    boundary_faces,
     normalized_closest_obstacle_normals,
     normalized_closest_obstacle_origins,
     normalized_a_correction=None,
@@ -77,7 +77,7 @@ def L2_normalized_obstacle_correction_cuda(
     boundary_integral = integrate_torch(
         normalized_boundary_points_new,
         normalized_boundary_v_new,
-        boundary_edges,
+        boundary_faces,
         normalized_closest_obstacle_normals,
         normalized_closest_obstacle_origins,
     )
@@ -135,7 +135,7 @@ def L2_obstacle_nvt(
     E_boundary,
     boundary_v_old,
     boundary_points,
-    boundary_edges,
+    boundary_faces,
     closest_obstacle_normals,
     closest_obstacle_origins,
 ):  # np via torch
@@ -146,7 +146,7 @@ def L2_obstacle_nvt(
         thh.to_torch_double(E_boundary).to(thh.device),
         thh.to_torch_double(boundary_v_old).to(thh.device),
         thh.to_torch_double(boundary_points).to(thh.device),
-        thh.to_torch_long(boundary_edges).to(thh.device),
+        thh.to_torch_long(boundary_faces).to(thh.device),
         thh.to_torch_double(closest_obstacle_normals).to(thh.device),
         thh.to_torch_double(closest_obstacle_origins).to(thh.device),
         None,
@@ -224,7 +224,7 @@ class SettingInput(SettingRandomized):
             boundary_edges_count=self.boundary_edges_count_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
             normalized_boundary_points=self.normalized_boundary_points_torch,
-            boundary_edges=self.boundary_edges_torch,
+            boundary_faces=self.boundary_faces_torch,
             normalized_closest_obstacle_normals=self.normalized_closest_obstacle_normals_torch,
             normalized_closest_obstacle_origins=self.normalized_closest_obstacle_origins_torch
             # pin_memory=True,
@@ -249,7 +249,7 @@ class SettingInput(SettingRandomized):
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_points,
-            self.boundary_edges,
+            self.boundary_faces,
             self.normalized_closest_obstacle_normals,
             self.normalized_closest_obstacle_origins,
         )

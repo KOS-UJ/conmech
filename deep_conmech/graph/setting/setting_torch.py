@@ -91,8 +91,8 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_long(self.boundary_edges_count)
 
     @property
-    def boundary_edges_torch(self):
-        return thh.to_torch_long(self.boundary_edges)
+    def boundary_faces_torch(self):
+        return thh.to_torch_long(self.boundary_faces)
 
     @property
     def normalized_boundary_v_old_torch(self):

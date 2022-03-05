@@ -11,8 +11,8 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
 
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
+from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.matrices_3d import *
 from deep_conmech.simulator.setting.setting_mesh import *
 
 DIM = 3
@@ -20,39 +20,6 @@ EDIM = 4
 
 catalog = f"output/SIMULATOR 3D - {thh.CURRENT_TIME}"
 
-
-def list_all_faces(elements):
-    elements.sort(axis=1)
-    elements_count, element_size = elements.shape
-    dim = element_size - 1
-    faces = np.zeros((element_size * elements_count, dim), dtype=np.int64)
-    opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
-    i = 0
-    for j in range(element_size):
-        faces[i : i + elements_count, :j] = elements[:, :j]  # ignoring j-th column
-        faces[i : i + elements_count, j:dim] = elements[:, j + 1 : element_size]
-        opposing_indices[i : i + elements_count] = elements[:, j]
-        i += elements_count
-    return faces, opposing_indices
-
-
-def extract_unique_elements(elements, opposing_indices):
-    _, indices, count = np.unique(
-        elements, axis=0, return_index=True, return_counts=True
-    )
-    unique_indices = indices[count == 1]
-    return elements[unique_indices], opposing_indices[unique_indices]
-
-
-def get_boundary_faces(elements):
-    faces, opposing_indices = list_all_faces(elements)
-    boundary_faces, boundary_internal_indices = extract_unique_elements(
-        faces, opposing_indices
-    )
-    return boundary_faces, boundary_internal_indices
-
-
-######################################################
 
 
 def normalize_rotate(vectors, moved_base):
@@ -65,42 +32,36 @@ def denormalize_rotate(vectors, moved_base):
 
 ######################################################
 
-initial_nodes, elements = mesh_builders.build_mesh(
-    mesh_type="meshzoo_cube_3d", mesh_density_x=3  # pygmsh_3d
-)
-
-boundary_faces, boundary_internal_indices = get_boundary_faces(elements)
-
-
 def get_boundary_normals(moved_nodes):
-    boundary_faces_nodes = moved_nodes[boundary_faces]
-    boundary_internal_nodes = moved_nodes[boundary_internal_indices]
+    faces_nodes = moved_nodes[setting.boundary_faces]
+    internal_nodes = moved_nodes[setting.boundary_internal_indices]
 
-    va = boundary_faces_nodes[..., 1] - boundary_faces_nodes[..., 0]
-    vb = boundary_faces_nodes[..., 2] - boundary_faces_nodes[..., 0]
-    vc = np.cross(va, vb)
+    tail_nodes, head_nodes1, head_nodes2 = [
+        faces_nodes[:, i, :] for i in range(3)
+    ]
 
-    boundary_normals = nph.normalize_euclidean_numba(va)
-    return boundary_normals
+    unoriented_normals = nph.normalize_euclidean_numba(
+        np.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
+    )
 
+    external_orientation = (-1) * np.sign(
+        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
+    )
 
-# nph.elementwise_dot(vc, boundary_internal_nodes) > 0
-
-
-boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
-
-base_seed_indices, closest_seed_index = get_base_seed_indices(initial_nodes)
-initial_base = get_base(initial_nodes, base_seed_indices, closest_seed_index)
+    return unoriented_normals * external_orientation
 
 
-mean_initial_nodes = np.mean(initial_nodes, axis=0)
-normalized_initial_nodes = normalize_rotate(
-    initial_nodes - mean_initial_nodes, initial_base
-)
+
+
+############################
+
+setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=2)
+
+initial_base = get_base(setting.initial_nodes, setting.base_seed_indices, setting.closest_seed_index)
 
 
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
-    elements, initial_nodes
+    setting.cells, setting.initial_nodes
 )
 # TODO: To tests - sum of slice for area and u == 1
 # edges_features_matrix[i].sum() == 0
@@ -109,15 +70,13 @@ edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_num
 # rollaxis -> moveaxis
 
 
-
-
 mu = 0.01
 la = 0.01
 th = 0.01
 ze = 0.01
 density = 0.01
 time_step = 0.01
-nodes_count = len(initial_nodes)
+nodes_count = len(setting.initial_nodes)
 independent_nodes_count = nodes_count
 slice_ind = slice(0, nodes_count)
 
@@ -164,28 +123,25 @@ def print_one_dynamic():
     extension = "png"  # pdf
     thh.create_folders(catalog)
 
-    u_old = np.zeros((nodes_count, DIM), dtype=np.double)
-    v_old = np.zeros((nodes_count, DIM), dtype=np.double)
-
     scenario_length = 400
-    moved_nodes = initial_nodes
+    moved_nodes = setting.initial_nodes
 
     for i in range(1, scenario_length + 1):
         current_time = i * time_step
         print(f"time: {current_time}")
 
-        moved_nodes = initial_nodes + u_old
-        moved_base = get_base(moved_nodes, base_seed_indices, closest_seed_index)
+        moved_nodes = setting.initial_nodes + setting.u_old
+        moved_base = get_base(moved_nodes, setting.base_seed_indices, setting.closest_seed_index)
 
         mean_moved_nodes = np.mean(moved_nodes, axis=0)
         normalized_nodes = normalize_rotate(moved_nodes - mean_moved_nodes, moved_base)
 
-        forces = get_forces_by_function(f_rotate, initial_nodes, current_time)
+        forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
         normalized_forces = normalize_rotate(forces, moved_base)
-        normalized_u_old = normalized_nodes - normalized_initial_nodes
-        normalized_v_old = normalize_rotate(v_old - np.mean(v_old, axis=0), moved_base)
+        normalized_u_old = normalized_nodes - setting.normalized_initial_nodes
+        normalized_v_old = normalize_rotate(setting.v_old - np.mean(setting.v_old, axis=0), moved_base)
 
-        normalized_E = get_E(normalized_forces, normalized_u_old, normalized_v_old)
+        normalized_E = get_E(normalized_forces, setting.normalized_u_old, setting.normalized_v_old)
         normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=DIM)
         a = denormalize_rotate(normalized_a, moved_base)
 
@@ -199,18 +155,19 @@ def print_one_dynamic():
                     normalized_v_old,
                     normalized_a,
                 ],
-                elements=elements,
+                elements=setting.cells,
                 path=f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension=extension,
                 all_images_paths=all_images_paths,
                 moved_base=moved_base,
-                boundary_nodes_indices=boundary_nodes_indices,
-                boundary_faces=boundary_faces,
+                boundary_nodes_indices=setting.boundary_nodes_indices,
+                boundary_faces=setting.boundary_faces,
                 boundary_normals=get_boundary_normals(moved_nodes),
+                boundary_internal_indices=setting.boundary_internal_indices,
             )
 
-        v_old = v_old + time_step * a
-        u_old = u_old + time_step * v_old
+        setting.set_v_old(setting.v_old + time_step * a)
+        setting.set_u_old(setting.u_old + time_step * setting.v_old)
 
     path = f"{catalog}/ANIMATION.gif"
 

@@ -11,6 +11,7 @@ from matplotlib.ticker import LinearLocator
 import deep_conmech.common.config as config
 from deep_conmech.simulator.setting.setting_forces import *
 
+
 class Plotter:
     # plt.axes.set_aspect("equal")
     # print(numba.cuda.gpus)
@@ -31,7 +32,6 @@ class Plotter:
 
     ###########################
 
-
     def get_one_ax(self):
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1, facecolor="none")
@@ -41,7 +41,7 @@ class Plotter:
         ax.set_aspect("equal", "box")
         scale = setting.scale_x
 
-        x_max = 20.
+        x_max = 20.0
         y_max = 3
         ax.set_xlim(-4, x_max)
         ax.set_ylim(-4, y_max)
@@ -67,10 +67,6 @@ class Plotter:
             # position[0] += 2.0
             self.draw_input_u(setting, position, ax)
             position[0] += 2.5 * scale
-            # self.draw_v_n(setting, position, ax)
-            # position[0] += 1.5
-            # self.draw_v_t(setting, position, ax)
-            # position[0] += 1.5
             # self.draw_v(setting, position, ax)
             # position[0] += 2.0
             self.draw_input_v(setting, position, ax)
@@ -131,7 +127,7 @@ class Plotter:
         self.draw_additional_setting("N", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_centers + position,
-            setting.normalized_boundary_edges_normals,
+            setting.normalized_boundary_faces_normals,
             ax,
         )
 
@@ -152,7 +148,7 @@ class Plotter:
     def draw_main_displaced(self, setting, ax):
         position = np.array([0.0, 0.0])
         self.draw_displaced(setting, position, "orange", ax)
-        #self.draw_points(setting.moved_reference_points, position, "orange", ax)
+        # self.draw_points(setting.moved_reference_points, position, "orange", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
                 setting.obstacle_origins, setting.obstacle_normals, position, ax
@@ -160,10 +156,10 @@ class Plotter:
         """
         self.draw_arrows(
             setting.boundary_centers + position,
-            setting.boundary_edges_normals,
+            setting.boundary_faces_normals,
             ax,
         )
-        self.draw_points(setting.moved_points[setting.boundary_edges_internal_nodes], position, "purple", ax)
+        self.draw_points(setting.moved_points[setting.boundary_faces_internal_nodes], position, "purple", ax)
         """
 
     def draw_base_displaced(self, setting, scale, ax):
@@ -182,14 +178,6 @@ class Plotter:
     def draw_points(self, points, position, color, ax):
         moved_points = points + position
         ax.scatter(moved_points[:, 0], moved_points[:, 1], s=0.1, c=f"tab:{color}")
-
-    def draw_v_n(self, setting, position, ax):
-        normalized_v_n_old, _ = setting.normalized_v_nt_old
-        return self.draw_data("V_N", normalized_v_n_old, setting, position, ax)
-
-    def draw_v_t(self, setting, position, ax):
-        _, normalized_v_t_old = setting.normalized_v_nt_old
-        return self.draw_data("V_T", normalized_v_t_old, setting, position, ax)
 
     def draw_forces(self, setting, position, ax):
         return self.draw_data("F", setting.normalized_forces, setting, position, ax)
@@ -240,7 +228,8 @@ class Plotter:
             color="w",
             fontsize=5,
         )
-    '''
+
+    """
     def draw_angles(self, setting, ax):
         scale = 10.0
         up_vector = setting.up_vector
@@ -257,8 +246,8 @@ class Plotter:
         )
 
         ax.annotate(str(round(setting.angle, 4)), xy=(0.5, 1.5))
-    '''
-    '''
+    """
+    """
     def draw_boundary_arrows(self, setting, normalized_vectors, position, ax):
         scale = 1.0
         points = setting.normalized_boundary_points + position
@@ -276,7 +265,7 @@ class Plotter:
                 color="w",
                 zorder=2,
             )
-    '''
+    """
 
     def draw_arrows(self, points, normalized_vectors, ax):
         nodes_count = len(points)
@@ -304,7 +293,7 @@ class Plotter:
                 )
 
     def draw_triplot(self, points, setting, color, ax):
-        boundary_points = points[setting.boundary_edges]
+        boundary_points = points[setting.boundary_faces]
         ax.add_collection(
             collections.LineCollection(
                 boundary_points,
