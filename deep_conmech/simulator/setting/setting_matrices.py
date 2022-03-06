@@ -8,6 +8,7 @@ from conmech.helpers import nph
 from deep_conmech.simulator.matrices.matrices_2d import get_edges_features_matrix_2d_numba, get_matrices
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
+from deep_conmech.common.plotter import plotter_mapper
 
 
 @njit

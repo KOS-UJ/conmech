@@ -59,8 +59,8 @@ class Plotter:
             if setting.obstacles is not None:
                 self.draw_obstacle_resistance_normalized(setting, position, ax)
                 position[0] += 2.5 * scale
-            # self.draw_boundary_normals(setting, position, ax)
-            # position[0] += 2.5 * scale
+            self.draw_boundary_normals(setting, position, ax)
+            position[0] += 2.5 * scale
             self.draw_forces(setting, position, ax)
             position[0] += 2.5 * scale
             # self.draw_u(setting, position, ax)
@@ -159,7 +159,7 @@ class Plotter:
             setting.boundary_faces_normals,
             ax,
         )
-        self.draw_points(setting.moved_points[setting.boundary_faces_internal_nodes], position, "purple", ax)
+        self.draw_points(setting.moved_points[setting.boundary_internal_nodes], position, "purple", ax)
         """
 
     def draw_base_displaced(self, setting, scale, ax):
@@ -246,25 +246,6 @@ class Plotter:
         )
 
         ax.annotate(str(round(setting.angle, 4)), xy=(0.5, 1.5))
-    """
-    """
-    def draw_boundary_arrows(self, setting, normalized_vectors, position, ax):
-        scale = 1.0
-        points = setting.normalized_boundary_points + position
-        scaled_arrows = normalized_vectors * scale
-
-        for i in range(setting.nodes_count):
-            ax.arrow(
-                points[i, 0],
-                points[i, 1],
-                scaled_arrows[i, 0],
-                scaled_arrows[i, 1],
-                width=0.00005,
-                length_includes_head=True,
-                head_width=0.02,
-                color="w",
-                zorder=2,
-            )
     """
 
     def draw_arrows(self, points, normalized_vectors, ax):

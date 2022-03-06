@@ -7,10 +7,10 @@ from deep_conmech.common import *
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
+from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard import SummaryWriter
-from deep_conmech.graph.helpers import thh
 
 start = time.time()
 
@@ -75,8 +75,8 @@ class GraphModelDynamic:
     def boundary_nodes_counts(self, batch):
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
-    def boundary_edges_counts(self, batch):
-        return thh.to_np_long(batch.boundary_edges_count).tolist()
+    def boundary_faces_counts(self, batch):
+        return thh.to_np_long(batch.boundary_fac_count).tolist()
 
     def get_split(self, batch, index, graph_sizes):
         value = batch.x[:, index * config.DIM : (index + 1) * config.DIM]
@@ -190,10 +190,10 @@ class GraphModelDynamic:
     #################
 
     def E(self, batch):
-        graph_couts = [1 for i in range(batch.num_graphs)]
+        #graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        boundary_edges_counts = self.boundary_edges_counts(batch)
+        boundary_faces_counts = self.boundary_faces_counts(batch)
         dim_graph_sizes = [size * config.DIM for size in graph_sizes]
         dim_dim_graph_sizes = [
             (size * config.DIM) ** config.DIM for size in graph_sizes
@@ -214,16 +214,16 @@ class GraphModelDynamic:
         normalized_boundary_points_split = batch.normalized_boundary_points.split(
             boundary_nodes_counts
         )
-        boundary_faces_split = batch.boundary_faces.split(boundary_edges_counts)
+        boundary_faces_split = batch.boundary_fac.split(boundary_faces_counts)
         normalized_closest_obstacle_normals_split = batch.normalized_closest_obstacle_normals.split(
-            boundary_edges_counts
+            boundary_faces_counts
         )
         normalized_closest_obstacle_origins_split = batch.normalized_closest_obstacle_origins.split(
-            boundary_edges_counts
+            boundary_faces_counts
         )
 
-        if hasattr(batch, "exact_normalized_a_torch"):
-            exact_normalized_a_split = batch.exact_normalized_a_torch.split(graph_sizes)
+        if hasattr(batch, "exact_normalized_a"):
+            exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
 
         # dataset = StepDataset(batch.num_graphs)
         for i in range(batch.num_graphs):

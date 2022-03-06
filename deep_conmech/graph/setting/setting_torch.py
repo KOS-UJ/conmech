@@ -47,10 +47,6 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_double(self.C)
 
     @property
-    def contiguous_edges_torch(self):
-        return thh.to_torch_long(self.edges).t().contiguous()
-
-    @property
     def initial_nodes_torch(self):
         return thh.to_torch_double(self.initial_nodes)
 
@@ -87,8 +83,8 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_long(self.boundary_nodes_count)
 
     @property
-    def boundary_edges_count_torch(self):
-        return thh.to_torch_long(self.boundary_edges_count)
+    def boundary_faces_count_torch(self):
+        return thh.to_torch_long(self.boundary_faces_count)
 
     @property
     def boundary_faces_torch(self):

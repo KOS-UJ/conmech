@@ -277,27 +277,31 @@ def cross_slope(scale, is_adaptive):
     )
 
 
+
+#circle = problem with middle point not being connected
+#polygon_two - obstacles not serializing
 all_train = [
-    # polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
-    circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
-    circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
+    #polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
+    #circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
+    #circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
     # circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
-    # polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
+    polygon_left(scale=config.PRINT_SCALE, is_adaptive=True),
+    #circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
+    #polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
 ]
 
 all_print = [
-    polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
+    #polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
     # circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
     # circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
     # circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
     # circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
+    #polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
+    #polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
 ]
 
 all_simulator = [
+    #polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
     polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False)
 ]

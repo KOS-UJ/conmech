@@ -81,6 +81,13 @@ def print_setting_internal(setting, path, base_setting, extension, time):
     plotter.plt_save(path, extension)
 
 
+def print_setting_test(setting):
+    plotter = Plotter()
+    ax = plotter.get_one_ax()
+    plotter.draw_displaced(setting, [0.0, 0.0], "orange", ax)
+    plotter.plt_save("./output/1.png", "png")
+
+
 ###############################
 
 
@@ -120,24 +127,6 @@ def print_steps(drawer, axs, row, time_steps, skip, force, get_a_function):
                 setting, axs[row, int(i / skip)], time=time
             )
 
-
-"""
-def draw_one_dynamic(self, model, description):
-    mesh = Mesh(mesh_type=config.MESH_TYPE, mesh_density=config.MESH_SIZE_PRINT)
-    setting = SolverDynamic(mesh)
-
-    force =thh.to_torch_float([config.DRAW_FORCE_ONE])
-    forces_at_time = torch.repeat_interleave(force, mesh.nodes_count, axis=0)
-
-    self.draw_mesh(mesh)
-
-    for i in range(100):
-        x = torch.hstack((forces_at_time, setting.u_old_torch, setting.v_old_torch))
-        v = self.predict(mesh, model, x)
-        setting.iterate(v)
-        if i % 20 == 0:
-            self.draw_mesh(mesh, description)
-"""
 
 
 ###############################

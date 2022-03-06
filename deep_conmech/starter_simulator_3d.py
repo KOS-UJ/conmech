@@ -18,7 +18,7 @@ from deep_conmech.simulator.setting.setting_mesh import *
 DIM = 3
 EDIM = 4
 
-catalog = f"output/SIMULATOR 3D - {thh.CURRENT_TIME}"
+catalog = f"output/3D - {thh.CURRENT_TIME}"
 
 
 
@@ -130,36 +130,29 @@ def print_one_dynamic():
         current_time = i * time_step
         print(f"time: {current_time}")
 
-        moved_nodes = setting.initial_nodes + setting.u_old
-        moved_base = get_base(moved_nodes, setting.base_seed_indices, setting.closest_seed_index)
-
-        mean_moved_nodes = np.mean(moved_nodes, axis=0)
-        normalized_nodes = normalize_rotate(moved_nodes - mean_moved_nodes, moved_base)
 
         forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
-        normalized_forces = normalize_rotate(forces, moved_base)
-        normalized_u_old = normalized_nodes - setting.normalized_initial_nodes
-        normalized_v_old = normalize_rotate(setting.v_old - np.mean(setting.v_old, axis=0), moved_base)
+        normalized_forces = setting.normalize_rotate(forces)
 
         normalized_E = get_E(normalized_forces, setting.normalized_u_old, setting.normalized_v_old)
         normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=DIM)
-        a = denormalize_rotate(normalized_a, moved_base)
+        a = setting.denormalize_rotate(normalized_a)
 
         if i % 10 == 0:
             plotter_3d.print_frame(
                 moved_nodes=moved_nodes,
-                normalized_nodes=normalized_nodes,
+                normalized_nodes=setting.normalized_points,
                 normalized_data=[
                     normalized_forces * 20,
-                    normalized_u_old,
-                    normalized_v_old,
+                    setting.normalized_u_old,
+                    setting.normalized_v_old,
                     normalized_a,
                 ],
                 elements=setting.cells,
                 path=f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension=extension,
                 all_images_paths=all_images_paths,
-                moved_base=moved_base,
+                moved_base=setting.moved_base,
                 boundary_nodes_indices=setting.boundary_nodes_indices,
                 boundary_faces=setting.boundary_faces,
                 boundary_normals=get_boundary_normals(moved_nodes),
