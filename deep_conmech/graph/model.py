@@ -190,7 +190,7 @@ class GraphModelDynamic:
     #################
 
     def E(self, batch):
-        #graph_couts = [1 for i in range(batch.num_graphs)]
+        # graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
         boundary_faces_counts = self.boundary_faces_counts(batch)
@@ -215,10 +215,10 @@ class GraphModelDynamic:
             boundary_nodes_counts
         )
         boundary_faces_split = batch.boundary_fac.split(boundary_faces_counts)
-        normalized_closest_obstacle_normals_split = batch.normalized_closest_obstacle_normals.split(
+        normalized_closest_to_faces_obstacle_normals_split = batch.normalized_closest_to_faces_obstacle_normals.split(
             boundary_faces_counts
         )
-        normalized_closest_obstacle_origins_split = batch.normalized_closest_obstacle_origins.split(
+        normalized_closest_to_faces_obstacle_origins_split = batch.normalized_closest_to_faces_obstacle_origins.split(
             boundary_faces_counts
         )
 
@@ -235,10 +235,10 @@ class GraphModelDynamic:
             normalized_boundary_v_old = normalized_boundary_v_old_split[i]
             normalized_boundary_points = normalized_boundary_points_split[i]
             boundary_faces = boundary_faces_split[i]
-            normalized_closest_obstacle_normals = normalized_closest_obstacle_normals_split[
+            normalized_closest_to_faces_obstacle_normals = normalized_closest_to_faces_obstacle_normals_split[
                 i
             ]
-            normalized_closest_obstacle_origins = normalized_closest_obstacle_origins_split[
+            normalized_closest_to_faces_obstacle_origins = normalized_closest_to_faces_obstacle_origins_split[
                 i
             ]
 
@@ -255,8 +255,8 @@ class GraphModelDynamic:
                 normalized_boundary_v_old,
                 normalized_boundary_points,
                 boundary_faces,
-                normalized_closest_obstacle_normals,
-                normalized_closest_obstacle_origins,
+                normalized_closest_to_faces_obstacle_normals,
+                normalized_closest_to_faces_obstacle_origins,
                 normalized_a_correction,
             )
 

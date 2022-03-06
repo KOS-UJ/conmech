@@ -21,9 +21,13 @@ def obstacle_resistance_potential_tangential_torch(
 
 
 def integrate_torch(
-    nodes, v, faces, closest_obstacle_normals, closest_obstacle_origins
+    nodes,
+    v,
+    faces,
+    closest_to_faces_obstacle_normals,
+    closest_to_faces_obstacle_origins,
 ):
-    normals = -closest_obstacle_normals
+    normals = -closest_to_faces_obstacle_normals
 
     edge_node = nodes[faces]
     edge_v = v[faces]
@@ -32,7 +36,7 @@ def integrate_torch(
     middle_v = torch.mean(edge_v, axis=1)
 
     middle_node_normal = nph.elementwise_dot(
-        middle_node - closest_obstacle_origins, normals
+        middle_node - closest_to_faces_obstacle_origins, normals
     )
     middle_v_normal = nph.elementwise_dot(middle_v, normals, keepdims=True)
 
@@ -44,7 +48,7 @@ def integrate_torch(
         middle_node_normal, middle_v_tangential
     )
     result = torch.sum(edge_lengths * (resistance_normal + resistance_tangential))
-    return result #* 0.5  # edges present twice
+    return result
 
 
 def L2_normalized_obstacle_correction_cuda(
@@ -54,8 +58,8 @@ def L2_normalized_obstacle_correction_cuda(
     normalized_boundary_v_old,
     normalized_boundary_points,
     boundary_faces,
-    normalized_closest_obstacle_normals,
-    normalized_closest_obstacle_origins,
+    normalized_closest_to_faces_obstacle_normals,
+    normalized_closest_to_faces_obstacle_origins,
     normalized_a_correction=None,
 ):
     if normalized_a_correction is not None:
@@ -79,8 +83,8 @@ def L2_normalized_obstacle_correction_cuda(
         normalized_boundary_points_new,
         normalized_boundary_v_new,
         boundary_faces,
-        normalized_closest_obstacle_normals,
-        normalized_closest_obstacle_origins,
+        normalized_closest_to_faces_obstacle_normals,
+        normalized_closest_to_faces_obstacle_origins,
     )
 
     return internal + boundary_integral
@@ -117,14 +121,14 @@ def get_edges_data(
         set_diff(u_old, 3, edges_data[e], i, j)
         set_diff(v_old, 6, edges_data[e], i, j)
         set_diff(forces, 9, edges_data[e], i, j)
-        '''#TODO: move to points
+        """#TODO: move to points
         if e < boundary_faces_count:
             penetration = boundary_centers_penetration_scale[e].item()
             if penetration > 0:
                 edges_data[e, 12:14] = obstacle_normal
                 edges_data[e, 14] = penetration
             edges_data[e, 15] = 1.0
-        '''
+        """
     return edges_data
 
 
@@ -138,8 +142,8 @@ def L2_obstacle_nvt(
     boundary_v_old,
     boundary_points,
     boundary_faces,
-    closest_obstacle_normals,
-    closest_obstacle_origins,
+    closest_to_faces_obstacle_normals,
+    closest_to_faces_obstacle_origins,
 ):  # np via torch
 
     value_torch = L2_normalized_obstacle_correction_cuda(
@@ -149,8 +153,8 @@ def L2_obstacle_nvt(
         thh.to_torch_double(boundary_v_old).to(thh.device),
         thh.to_torch_double(boundary_points).to(thh.device),
         thh.to_torch_long(boundary_faces).to(thh.device),
-        thh.to_torch_double(closest_obstacle_normals).to(thh.device),
-        thh.to_torch_double(closest_obstacle_origins).to(thh.device),
+        thh.to_torch_double(closest_to_faces_obstacle_normals).to(thh.device),
+        thh.to_torch_double(closest_to_faces_obstacle_origins).to(thh.device),
         None,
     )
     value = thh.to_np_double(value_torch)
@@ -179,9 +183,9 @@ class SettingInput(SettingRandomized):
         )
 
     @property
-    def edges_data_torch(self):
+    def get_edges_data_torch(self, edges):
         edges_data = get_edges_data(
-            self.edges,
+            edges,
             self.normalized_initial_nodes,
             self.input_u_old,
             self.input_v_old,
@@ -207,35 +211,33 @@ class SettingInput(SettingRandomized):
         )
         return data
 
-
     @property
-    def contiguous_edges_torch(self):
-        return thh.to_torch_long(self.edges).t().contiguous()
-        
+    def get_contiguous_torch(self, edges):
+        return thh.to_torch_long(edges).t().contiguous()
+
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
         # Do not use "face" in name (probably reserved in PyG)
+        directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
         data = Data(
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
             x=thh.set_precision(self.x),
-            edge_index=self.contiguous_edges_torch,
-            edge_attr=thh.set_precision(self.edges_data_torch),
+            edge_index=self.get_contiguous_torch(directional_edges),
+            edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
-
             normalized_a_correction=self.normalized_a_correction_torch,
             setting_index=setting_index,
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
-            normalized_closest_obstacle_normals=self.normalized_closest_obstacle_normals_torch,
-            normalized_closest_obstacle_origins=self.normalized_closest_obstacle_origins_torch,
-            
+            normalized_closest_to_faces_obstacle_normals=self.normalized_closest_to_faces_obstacle_normals_torch,
+            normalized_closest_to_faces_obstacle_origins=self.normalized_closest_to_faces_obstacle_origins_torch,
             boundary_nodes_count=self.boundary_nodes_count_torch,
             normalized_boundary_points=self.normalized_boundary_points_torch,
             boundary_fac_count=self.boundary_faces_count_torch,
-            boundary_fac = self.boundary_faces_torch,
+            boundary_fac=self.boundary_faces_torch,
             # pin_memory=True,
             # num_workers=1
         )
@@ -259,7 +261,7 @@ class SettingInput(SettingRandomized):
             self.normalized_boundary_v_old,
             self.normalized_boundary_points,
             self.boundary_faces,
-            self.normalized_closest_obstacle_normals,
-            self.normalized_closest_obstacle_origins,
+            self.normalized_closest_to_faces_obstacle_normals,
+            self.normalized_closest_to_faces_obstacle_origins,
         )
 

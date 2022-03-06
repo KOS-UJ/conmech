@@ -76,7 +76,7 @@ class Plotter:
             # self.draw_edges_data(setting, position, ax)
             # self.draw_vertices_data(setting, position, ax)
 
-    def draw_obstacles(self, obstacle_origins, obstacle_normals, position, ax):
+    def draw_obstacles(self, obstacle_origins, obstacle_normals, position, color, ax):
         obstacles_tangient = np.hstack(
             (-obstacle_normals[:, 1, None], obstacle_normals[:, 0, None])
         )
@@ -85,19 +85,20 @@ class Plotter:
             ax.arrow(
                 *bias,
                 *obstacle_normals[i],
-                color="tab:gray",
+                color=f"tab:{color}",
+                alpha=0.4,
                 width=0.00002,
                 length_includes_head=True,
                 head_width=0.01,
             )
             line = ax.axline(
-                bias, obstacles_tangient[i] + bias, color="tab:gray", linewidth=0.4
+                bias, obstacles_tangient[i] + bias, color=f"tab:{color}", alpha=0.4, linewidth=0.4
             )
             # ax.fill_between(bias, obstacles_tangient[i] + bias)
 
     def draw_main_obstacles(self, setting, ax):
         self.draw_obstacles(
-            setting.obstacle_origins, setting.obstacle_normals, [0, 0], ax
+            setting.obstacle_origins, setting.obstacle_normals, [0, 0], "orange", ax
         )
 
     def draw_normalized_obstacles(self, setting, position, ax):
@@ -105,6 +106,7 @@ class Plotter:
             setting.normalized_obstacle_origins,
             setting.normalized_obstacle_normals,
             position,
+            "blue",
             ax,
         )
 
@@ -127,7 +129,7 @@ class Plotter:
         self.draw_additional_setting("N", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_centers + position,
-            setting.normalized_boundary_faces_normals,
+            setting.normalized_boundary_normals,
             ax,
         )
 
@@ -151,12 +153,12 @@ class Plotter:
         # self.draw_points(setting.moved_reference_points, position, "orange", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
-                setting.obstacle_origins, setting.obstacle_normals, position, ax
+                setting.obstacle_origins, setting.obstacle_normals, position, "orange", ax
             )
         """
         self.draw_arrows(
             setting.boundary_centers + position,
-            setting.boundary_faces_normals,
+            setting.boundary_normals,
             ax,
         )
         self.draw_points(setting.moved_points[setting.boundary_internal_nodes], position, "purple", ax)
@@ -167,7 +169,7 @@ class Plotter:
         self.draw_displaced(setting, position, "purple", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
-                setting.obstacle_origins, setting.obstacle_normals, position, ax
+                setting.obstacle_origins, setting.obstacle_normals, position, "orange", ax
             )
 
     def draw_displaced(self, setting, position, color, ax):

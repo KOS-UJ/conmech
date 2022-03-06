@@ -20,23 +20,21 @@ def get_edges_matrix(nodes_count, cells):
                     edges_matrix[cell[i], cell[j]] += 1.0
     return edges_matrix
 
-
-######################################################
-
 @njit
-def get_edges_list(edges_matrix):
-    edges_number = np.sum(edges_matrix > 0, dtype=numba.int64)
-    nodes_count = len(edges_matrix[0])
-    edges = np.zeros((edges_number, 2), dtype=numba.int64)
-    e = 0
-    for i in range(nodes_count):
-        for j in range(nodes_count):
-            if i != j:
-                if edges_matrix[i, j] > 0:
-                    edges[e] = np.array([i, j])
-                    e += 1
+def get_edges_list_numba(edges_matrix):
+    nodes_count = edges_matrix.shape[0]
+    edges = np.array(
+        [
+            (i, j)
+            for i, j in np.ndindex((nodes_count, nodes_count))
+            if j>i and edges_matrix[i, j] > 0
+        ],
+        dtype=numba.int64,
+    )
     return edges
 
+
+######################################################
 
 @njit
 def move_boundary_nodes_to_start_numba(
@@ -68,6 +66,7 @@ def move_boundary_nodes_to_start_numba(
 
 ######################################################
 
+
 @njit
 def list_all_faces_numba(sorted_elements):
     elements_count, element_size = sorted_elements.shape
@@ -76,7 +75,9 @@ def list_all_faces_numba(sorted_elements):
     opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
     i = 0
     for j in range(element_size):
-        faces[i : i + elements_count, :j] = sorted_elements[:, :j]  # ignoring j-th column
+        faces[i : i + elements_count, :j] = sorted_elements[
+            :, :j
+        ]  # ignoring j-th column
         faces[i : i + elements_count, j:dim] = sorted_elements[:, j + 1 : element_size]
         opposing_indices[i : i + elements_count] = sorted_elements[:, j]
         i += elements_count
@@ -90,6 +91,7 @@ def extract_unique_elements(elements, opposing_indices):
     unique_indices = indices[count == 1]
     return elements[unique_indices], opposing_indices[unique_indices]
 
+
 def get_boundary_faces(elements):
     elements.sort(axis=1)
     faces, opposing_indices = list_all_faces_numba(sorted_elements=elements)
@@ -101,15 +103,18 @@ def get_boundary_faces(elements):
 
 
 def clean_mesh(unordered_nodes, unordered_elements):
-    #TODO: Move also boundary edges and faces 
+    # TODO: Move also boundary edges and faces (?)
     _, unordered_boundary_indices, _ = get_boundary_faces(unordered_elements)
-    return move_boundary_nodes_to_start_numba(unordered_nodes, unordered_elements, unordered_boundary_indices)
+    return move_boundary_nodes_to_start_numba(
+        unordered_nodes, unordered_elements, unordered_boundary_indices
+    )
+
 
 ######################################################
 
 
 @njit
-def get_closest_to_axis(nodes, variable):
+def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
     nodes_count = len(nodes)
@@ -127,15 +132,15 @@ def get_closest_to_axis(nodes, variable):
     return np.array([error, indices[0], indices[1]])
 
 
-def get_base_seed_indices(nodes):
+@njit
+def get_base_seed_indices_numba(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
     errors = np.zeros(dim)
     for i in range(dim):
-        result = get_closest_to_axis(nodes, i)
+        result = get_closest_to_axis_numba(nodes, i)
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
-        # print(f"MIN ERROR for variable {i}: {errors[i]}")
     return base_seed_indices, np.argmin(errors)
 
 
@@ -190,11 +195,9 @@ class SettingMesh:
                 create_in_subprocess=self.create_in_subprocess,
             )
 
-        (
-            self.initial_nodes,
-            self.cells,
-            self.boundary_nodes_count,
-        ) = clean_mesh(unordered_nodes, unordered_elements)
+        (self.initial_nodes, self.cells, self.boundary_nodes_count,) = clean_mesh(
+            unordered_nodes, unordered_elements
+        )
 
         (
             self.boundary_faces,
@@ -202,15 +205,16 @@ class SettingMesh:
             self.boundary_internal_indices,
         ) = get_boundary_faces(self.cells)
 
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
+        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
+            self.initial_nodes
+        )
 
         self.edges_matrix = get_edges_matrix(self.nodes_count, self.cells)
-        self.edges = get_edges_list(self.edges_matrix)
+        self.edges = get_edges_list_numba(self.edges_matrix)
 
         self.u_old = np.zeros_like(self.initial_nodes)
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
-
 
     def set_a_old(self, a):
         self.a_old = a
@@ -222,7 +226,7 @@ class SettingMesh:
         self.u_old = u
 
     @property
-    def boundary_faces_normals(self):
+    def boundary_normals(self):
         faces_nodes = self.moved_points[self.boundary_faces]
         internal_nodes = self.moved_points[self.boundary_internal_indices]
         tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
@@ -238,8 +242,8 @@ class SettingMesh:
         return unoriented_normals * external_orientation
 
     @property
-    def normalized_boundary_faces_normals(self):
-        return self.normalize_rotate(self.boundary_faces_normals)
+    def normalized_boundary_normals(self):
+        return self.normalize_rotate(self.boundary_normals)
 
     @property
     def normalized_a_old(self):
