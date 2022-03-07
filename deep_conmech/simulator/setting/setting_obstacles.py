@@ -54,64 +54,41 @@ def integrate(
 
 @njit
 def integrate_numba(
-    nodes,
-    v,
-    faces,
-    faces_normals,
-    closest_to_faces_obstacle_normals,
-    closest_to_faces_obstacle_origins,
+    nodes, nodes_normals, obstacle_nodes, obstacle_nodes_normals, v, nodes_volume
 ):
     result = 0.0
-    for i in range(len(faces)):
-        face_normal = faces_normals[i]  # (normal to obstacle and not edge?)
-        obstacle_normal = closest_to_faces_obstacle_normals[i]
-        origin = closest_to_faces_obstacle_origins[i]
-        # if(np.sum(obstacle_normal) == 0):
-        #    continue
-        f1, f2 = faces[i]
-        middle_node = 0.5 * (nodes[f1] + nodes[f2])
-        middle_v = 0.5 * (v[f1] + v[f2])
-
-        middle_node_penetration = (-1) * obstacle_normal @ (middle_node - origin)
-        middle_v_normal = face_normal @ middle_v
-        middle_v_tangential = middle_v - (middle_v_normal * face_normal)
-
-        resistance_normal = obstacle_resistance_potential_normal(
-            middle_node_penetration
+    for i in range(len(nodes_normals)):
+        node_penetration = (
+            (-1) * (nodes[i] - obstacle_nodes[i]) @ obstacle_nodes_normals[i]
         )
+
+        node_v_normal = v[i] @ nodes_normals[i]
+        node_v_tangential = v[i] - (node_v_normal * nodes_normals[i])
+
+        resistance_normal = obstacle_resistance_potential_normal(node_penetration)
         resistance_tangential = obstacle_resistance_potential_tangential(
-            middle_node_penetration, middle_v_tangential
+            node_penetration, node_v_tangential
         )
 
-        edge_length = nph.euclidean_norm_numba(
-            nodes[f1] - nodes[f2]
-        )  # integrate with initial edge lengths?
-        result += edge_length * (resistance_normal + resistance_tangential)
+        result += nodes_volume[i] * (resistance_normal + resistance_tangential)
     return result
 
 
 @njit
-def get_closest_to_faces_obstacle_data(
-    nodes, faces_normals, faces, obstacle_normals, obstacle_origins
-):
-    closest_to_faces_obstacle_origins = np.zeros((len(faces), config.DIM))
-    closest_to_faces_obstacle_normals = np.zeros((len(faces), config.DIM))
+def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
+    boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
 
-    for i in range(len(faces)):
-        f1, f2 = faces[i]
-        middle_node = 0.5 * (nodes[f1] + nodes[f2])
-        # edge_normal = normals[i]
+    for i in range(len(boundary_nodes)):
+        boundary_node = boundary_nodes[i]
 
-        distances = nph.euclidean_norm_numba(obstacle_origins - middle_node)
+        distances = nph.euclidean_norm_numba(obstacle_nodes - boundary_node)
         # valid_indices = np.where((obstacle_normals @ edge_normal) > 0)[0]
         # if(len(valid_indices) > 0):
         # min_index = valid_indices[distances[valid_indices].argmin()]
-        min_index = distances.argmin()
 
-        closest_to_faces_obstacle_origins[i] = obstacle_origins[min_index]
-        closest_to_faces_obstacle_normals[i] = obstacle_normals[min_index]
+        boundary_obstacle_indices[i] = distances.argmin()
 
-    return closest_to_faces_obstacle_origins, closest_to_faces_obstacle_normals
+    return boundary_obstacle_indices
 
 
 # @njit
@@ -120,24 +97,24 @@ def L2_obstacle_np(
     C_boundary,
     E_boundary,
     boundary_v_old,
-    boundary_points,
-    boundary_faces,
-    boundary_faces_normals,
-    closest_to_faces_obstacle_normals,
-    closest_to_faces_obstacle_origins,
+    boundary_nodes,
+    boundary_nodes_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    boundary_nodes_volume,
 ):
     value = L2_full_np(boundary_a, C_boundary, E_boundary)
 
     boundary_v_new = boundary_v_old + config.TIMESTEP * boundary_a
-    boundary_points_new = boundary_points + config.TIMESTEP * boundary_v_new
+    boundary_nodes_new = boundary_nodes + config.TIMESTEP * boundary_v_new
 
     args = (
-        boundary_points_new,
+        boundary_nodes_new,
+        boundary_nodes_normals,
+        boundary_obstacle_nodes,
+        boundary_obstacle_normals,
         boundary_v_new,
-        boundary_faces,
-        boundary_faces_normals,
-        closest_to_faces_obstacle_normals,
-        closest_to_faces_obstacle_origins,
+        boundary_nodes_volume,
     )
     boundary_integral = integrate_numba(*args)
     """
@@ -167,35 +144,21 @@ class SettingObstacle(SettingForces):
             create_in_subprocess,
         )
         self.obstacles = None
-        self.clear_closest_to_faces_obstacle_data()
-
-    def clear_closest_to_faces_obstacle_data(self):
-        self.closest_to_faces_obstacle_origins = None
-        self.closest_to_faces_obstacle_normals = None
+        self.clear()
 
     def prepare(self, forces):
         super().prepare(forces)
-        self.set_closest_to_faces_obstacle_data()
+        self.boundary_obstacle_indices = get_closest_obstacle_to_boundary_numba(
+            self.moved_points, self.obstacle_origins
+        )
 
     def clear(self):
         super().clear()
-        self.clear_closest_to_faces_obstacle_data()
+        self.boundary_obstacle_nodes_indices = None
 
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
-
-    def set_closest_to_faces_obstacle_data(self):
-        (
-            self.closest_to_faces_obstacle_origins,
-            self.closest_to_faces_obstacle_normals,
-        ) = get_closest_to_faces_obstacle_data(
-            self.moved_points,
-            self.boundary_faces_normals,
-            self.boundary_faces,
-            self.obstacle_normals,
-            self.obstacle_origins,
-        )
 
     @property
     def obstacle_normals(self):
@@ -206,14 +169,30 @@ class SettingObstacle(SettingForces):
         return self.obstacles[1, ...]
 
     @property
-    def normalized_closest_to_faces_obstacle_normals(self):
-        return self.normalize_rotate(self.closest_to_faces_obstacle_normals)
+    def obstacle_nodes(self):
+        return self.obstacles[1, ...]
 
     @property
-    def normalized_closest_to_faces_obstacle_origins(self):
+    def obstacle_nodes_normals(self):
+        return self.obstacles[0, ...]
+
+    @property
+    def boundary_obstacle_nodes(self):
+        return self.obstacle_nodes[self.boundary_obstacle_indices]
+
+    @property
+    def boundary_obstacle_normals(self):
+        return self.obstacle_normals[self.boundary_obstacle_indices]
+
+    @property
+    def normalized_boundary_obstacle_nodes(self):
         return self.normalize_rotate(
-            self.closest_to_faces_obstacle_origins - self.mean_moved_points
+            self.boundary_obstacle_nodes - self.mean_moved_points
         )
+
+    @property
+    def normalized_boundary_obstacle_normals(self):
+        return self.normalize_rotate(self.boundary_obstacle_normals)
 
     @property
     def normalized_obstacle_normals(self):
@@ -246,10 +225,10 @@ class SettingObstacle(SettingForces):
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_points,
-            self.boundary_faces,
-            self.boundary_faces_normals,
-            self.normalized_closest_to_faces_obstacle_normals,
-            self.normalized_closest_to_faces_obstacle_origins,
+            self.normalized_boundary_nodes_normals,
+            self.normalized_boundary_obstacle_nodes,
+            self.normalized_boundary_obstacle_normals,
+            self.boundary_nodes_volume,
         )
 
     @property
@@ -261,26 +240,21 @@ class SettingObstacle(SettingForces):
         return self.normalized_points[: self.boundary_nodes_count, :]
 
     @property
-    def boundary_centers_penetration_scale(self):
-        normals = -self.closest_to_faces_obstacle_normals
-
-        boundary_centers_to_obstacle_at_normal = nph.elementwise_dot(
-            self.boundary_centers - self.closest_to_faces_obstacle_origins,
-            normals,
+    def boundary_obstacle_penetration(self):
+        node_penetration = (-1) * nph.elementwise_dot(
+            self.moved_points - self.boundary_obstacle_nodes,
+            self.boundary_obstacle_normals,
             keepdims=True,
         )
-
-        return (
-            boundary_centers_to_obstacle_at_normal > 0
-        ) * boundary_centers_to_obstacle_at_normal
+        return (node_penetration > 0) * node_penetration
 
     @property
-    def boundary_centers_penetration(self):
+    def boundary_obstacle_penetration_normals(self):
         return (
-            self.boundary_centers_penetration_scale
-            * self.closest_to_faces_obstacle_normals
+            self.boundary_obstacle_penetration
+            * self.boundary_obstacle_normals
         )
 
     @property
-    def normalized_boundary_centers_penetration(self):
-        return self.normalize_rotate(self.boundary_centers_penetration)
+    def normalized_boundary_obstacle_penetration_normals(self):
+        return self.normalize_rotate(self.boundary_obstacle_penetration_normals)

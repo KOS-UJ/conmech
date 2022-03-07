@@ -59,8 +59,8 @@ class Plotter:
             if setting.obstacles is not None:
                 self.draw_obstacle_resistance_normalized(setting, position, ax)
                 position[0] += 2.5 * scale
-            self.draw_boundary_faces_normals(setting, position, ax)
-            position[0] += 2.5 * scale
+            #self.draw_boundary_faces_normals(setting, position, ax)
+            #position[0] += 2.5 * scale
             self.draw_boundary_nodes_normals(setting, position, ax)
             position[0] += 2.5 * scale
             self.draw_forces(setting, position, ax)
@@ -122,8 +122,8 @@ class Plotter:
 
         self.draw_additional_setting("O", setting, position, ax)
         self.draw_arrows(
-            setting.normalized_boundary_centers + position,
-            setting.normalized_boundary_centers_penetration,
+            setting.normalized_boundary_nodes + position,
+            setting.normalized_boundary_obstacle_penetration_normals,
             ax,
         )
 
@@ -136,7 +136,7 @@ class Plotter:
         )
 
     def draw_boundary_nodes_normals(self, setting, position, ax):
-        self.draw_additional_setting("Nod", setting, position, ax)
+        self.draw_additional_setting("N", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
             setting.normalized_boundary_nodes_normals,

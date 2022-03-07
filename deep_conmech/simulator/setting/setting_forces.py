@@ -40,11 +40,11 @@ class SettingForces(SettingMatrices):
         self,
         mesh_type,
         mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        mesh_density_y=None,
+        scale_x=None,
+        scale_y=None,
+        is_adaptive=False,
+        create_in_subprocess=False,
     ):
         super().__init__(
             mesh_type,

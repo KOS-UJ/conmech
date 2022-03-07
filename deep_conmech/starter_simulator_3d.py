@@ -11,7 +11,7 @@ from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.setting_mesh import *
+from deep_conmech.simulator.setting.setting_forces import SettingForces
 
 
 
@@ -19,10 +19,7 @@ catalog = f"output/3D - {thh.CURRENT_TIME}"
 
 ######################################################
 mesh_density_x = 5
-setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
-
-initial_base = get_base(setting.initial_nodes, setting.base_seed_indices, setting.closest_seed_index)
-
+setting = SettingForces(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
 
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
     setting.cells, setting.initial_nodes

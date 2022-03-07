@@ -196,7 +196,8 @@ def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_i
     return unoriented_normals * external_orientation
 
 
-def element_volume_part(face_nodes):
+@njit
+def element_volume_part_numba(face_nodes):
     dim = face_nodes.shape[1]
     nodes_count = face_nodes.shape[0]
     if dim == 2:
@@ -210,14 +211,14 @@ def element_volume_part(face_nodes):
     return volume / nodes_count
 
 
-# @njit
+@njit
 def get_boundary_nodes_data_numba(
     boundary_faces_normals, boundary_faces, boundary_nodes_indices, moved_nodes
 ):
     boundary_nodes_count = len(boundary_nodes_indices)
     dim = boundary_faces_normals.shape[1]
     boundary_nodes_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
-    boundary_nodes_volumes = np.zeros(boundary_nodes_count, dtype=np.float64)
+    boundary_nodes_volume = np.zeros(boundary_nodes_count, dtype=np.float64)
 
     for i in range(boundary_nodes_count):
         # mask = np.bitwise_or.reduce(boundary_faces == i, axis=1) (or np.any)
@@ -231,12 +232,12 @@ def get_boundary_nodes_data_numba(
                 boundary_nodes_normals[i] += boundary_faces_normals[j]
 
                 face_nodes = moved_nodes[boundary_faces[j]]
-                boundary_nodes_volumes[i] += element_volume_part(face_nodes)
+                boundary_nodes_volume[i] += element_volume_part_numba(face_nodes)
 
         boundary_nodes_normals[i] /= node_faces_count
 
     boundary_nodes_normals = nph.normalize_euclidean_numba(boundary_nodes_normals)
-    return boundary_nodes_normals, boundary_nodes_volumes
+    return boundary_nodes_normals, boundary_nodes_volume
 
 
 ################
@@ -322,7 +323,7 @@ class SettingMesh:
         )
         (
             self.boundary_nodes_normals,
-            self.boundary_nodes_volumes,
+            self.boundary_nodes_volume,
         ) = get_boundary_nodes_data_numba(
             self.boundary_faces_normals,
             self.boundary_faces,
@@ -334,7 +335,7 @@ class SettingMesh:
     def clear(self):
         self.boundary_faces_normals = None
         self.boundary_nodes_normals = None
-        self.boundary_nodes_volumes = None
+        self.boundary_nodes_volume = None
 
     @property
     def boundary_nodes(self):

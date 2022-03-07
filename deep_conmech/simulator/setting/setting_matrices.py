@@ -1,6 +1,9 @@
 import deep_conmech.common.config as config
 import numpy as np
-from deep_conmech.simulator.matrices.matrices_2d import get_edges_features_matrix_2d_numba, get_matrices
+from deep_conmech.simulator.matrices.matrices_2d import (
+    get_edges_features_matrix_2d_numba,
+    get_matrices,
+)
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
 
@@ -18,17 +21,16 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
     return edges_features
 
 
-
 class SettingMatrices(SettingMesh):
     def __init__(
         self,
         mesh_type,
         mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        mesh_density_y=None,
+        scale_x=None,
+        scale_y=None,
+        is_adaptive=False,
+        create_in_subprocess=False,
         mu=config.MU,
         la=config.LA,
         th=config.TH,
@@ -68,9 +70,10 @@ class SettingMatrices(SettingMesh):
 
     def reinitialize_matrices(self):
 
-        edges_features_matrix, self.element_initial_area = get_edges_features_matrix_2d_numba(
-            self.cells, self.normalized_points
-        )
+        (
+            edges_features_matrix,
+            self.element_initial_area,
+        ) = get_edges_features_matrix_2d_numba(self.cells, self.normalized_points)
 
         # edges_features = get_edges_features_list(
         #    self.edges_number, edges_features_matrix
