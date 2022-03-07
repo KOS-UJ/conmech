@@ -25,24 +25,25 @@ def integrate(
     nodes,
     v,
     faces,
-    normals,
+    face_normals,
     closest_to_faces_obstacle_normals,
     closest_to_faces_obstacle_origins,
 ):
-    edge_node = nodes[faces]
-    edge_v = v[faces]
+    face_nodes = nodes[faces]
 
-    middle_node = np.mean(edge_node, axis=1)
-    middle_v = np.mean(edge_v, axis=1)
-
+    middle_node = np.mean(face_nodes, axis=1)
     middle_node_penetration = (-1) * nph.elementwise_dot(
-        middle_node - closest_to_faces_obstacle_origins, closest_to_faces_obstacle_normals
+        middle_node - closest_to_faces_obstacle_origins,
+        closest_to_faces_obstacle_normals,
     )
-    middle_v_normal = nph.elementwise_dot(middle_v, normals, keepdims=True)
 
-    middle_v_tangential = middle_v - (middle_v_normal * normals)
+    face_v = v[faces]
+    middle_v = np.mean(face_v, axis=1)
+    middle_v_normal = nph.elementwise_dot(middle_v, face_normals, keepdims=True)
 
-    edge_lengths = nph.euclidean_norm_numba(edge_node[:, 0] - edge_node[:, 1])
+    middle_v_tangential = middle_v - (middle_v_normal * face_normals)
+
+    edge_lengths = nph.euclidean_norm_numba(face_nodes[:, 0] - face_nodes[:, 1])
     resistance_normal = obstacle_resistance_potential_normal(middle_node_penetration)
     resistance_tangential = obstacle_resistance_potential_tangential(
         middle_node_penetration, middle_v_tangential
@@ -52,11 +53,17 @@ def integrate(
 
 
 @njit
-def integrate_numba(nodes, v, faces, normals,
-    closest_to_faces_obstacle_normals, closest_to_faces_obstacle_origins):
+def integrate_numba(
+    nodes,
+    v,
+    faces,
+    faces_normals,
+    closest_to_faces_obstacle_normals,
+    closest_to_faces_obstacle_origins,
+):
     result = 0.0
     for i in range(len(faces)):
-        normal = normals[i] #(normal to obstacle and not edge?)
+        face_normal = faces_normals[i]  # (normal to obstacle and not edge?)
         obstacle_normal = closest_to_faces_obstacle_normals[i]
         origin = closest_to_faces_obstacle_origins[i]
         # if(np.sum(obstacle_normal) == 0):
@@ -66,10 +73,12 @@ def integrate_numba(nodes, v, faces, normals,
         middle_v = 0.5 * (v[f1] + v[f2])
 
         middle_node_penetration = (-1) * obstacle_normal @ (middle_node - origin)
-        middle_v_normal = normal @ middle_v
-        middle_v_tangential = middle_v - (middle_v_normal * normal)
+        middle_v_normal = face_normal @ middle_v
+        middle_v_tangential = middle_v - (middle_v_normal * face_normal)
 
-        resistance_normal = obstacle_resistance_potential_normal(middle_node_penetration)
+        resistance_normal = obstacle_resistance_potential_normal(
+            middle_node_penetration
+        )
         resistance_tangential = obstacle_resistance_potential_tangential(
             middle_node_penetration, middle_v_tangential
         )
@@ -83,7 +92,7 @@ def integrate_numba(nodes, v, faces, normals,
 
 @njit
 def get_closest_to_faces_obstacle_data(
-    nodes, normals, faces, obstacle_normals, obstacle_origins
+    nodes, faces_normals, faces, obstacle_normals, obstacle_origins
 ):
     closest_to_faces_obstacle_origins = np.zeros((len(faces), config.DIM))
     closest_to_faces_obstacle_normals = np.zeros((len(faces), config.DIM))
@@ -113,7 +122,7 @@ def L2_obstacle_np(
     boundary_v_old,
     boundary_points,
     boundary_faces,
-    boundary_normals,
+    boundary_faces_normals,
     closest_to_faces_obstacle_normals,
     closest_to_faces_obstacle_origins,
 ):
@@ -121,14 +130,14 @@ def L2_obstacle_np(
 
     boundary_v_new = boundary_v_old + config.TIMESTEP * boundary_a
     boundary_points_new = boundary_points + config.TIMESTEP * boundary_v_new
-    
+
     args = (
         boundary_points_new,
         boundary_v_new,
         boundary_faces,
-        boundary_normals,
+        boundary_faces_normals,
         closest_to_faces_obstacle_normals,
-        closest_to_faces_obstacle_origins
+        closest_to_faces_obstacle_origins,
     )
     boundary_integral = integrate_numba(*args)
     """
@@ -158,9 +167,9 @@ class SettingObstacle(SettingForces):
             create_in_subprocess,
         )
         self.obstacles = None
-        self.set_empty_closest_to_faces_obstacle_data()
+        self.clear_closest_to_faces_obstacle_data()
 
-    def set_empty_closest_to_faces_obstacle_data(self):
+    def clear_closest_to_faces_obstacle_data(self):
         self.closest_to_faces_obstacle_origins = None
         self.closest_to_faces_obstacle_normals = None
 
@@ -170,7 +179,7 @@ class SettingObstacle(SettingForces):
 
     def clear(self):
         super().clear()
-        self.set_empty_closest_to_faces_obstacle_data()
+        self.clear_closest_to_faces_obstacle_data()
 
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
@@ -182,7 +191,7 @@ class SettingObstacle(SettingForces):
             self.closest_to_faces_obstacle_normals,
         ) = get_closest_to_faces_obstacle_data(
             self.moved_points,
-            self.boundary_normals,
+            self.boundary_faces_normals,
             self.boundary_faces,
             self.obstacle_normals,
             self.obstacle_origins,
@@ -238,7 +247,7 @@ class SettingObstacle(SettingForces):
             self.normalized_boundary_v_old,
             self.normalized_boundary_points,
             self.boundary_faces,
-            self.boundary_normals,
+            self.boundary_faces_normals,
             self.normalized_closest_to_faces_obstacle_normals,
             self.normalized_closest_to_faces_obstacle_origins,
         )

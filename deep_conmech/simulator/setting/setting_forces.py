@@ -72,10 +72,12 @@ class SettingForces(SettingMatrices):
         return self.normalize_rotate(self.forces)
 
     def prepare(self, forces):
+        super().prepare()
         self.forces = forces
         self.set_all_normalized_E_np()
 
     def clear(self):
+        super().clear()
         self.forces = None
 
     def set_a_old(self, a):

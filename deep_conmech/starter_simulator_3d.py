@@ -32,7 +32,7 @@ def denormalize_rotate(vectors, moved_base):
 
 ######################################################
 
-def get_boundary_normals(moved_nodes):
+def get_boundary_faces_normals(moved_nodes):
     faces_nodes = moved_nodes[setting.boundary_faces]
     internal_nodes = moved_nodes[setting.boundary_internal_indices]
 
@@ -155,7 +155,7 @@ def print_one_dynamic():
                 moved_base=setting.moved_base,
                 boundary_nodes_indices=setting.boundary_nodes_indices,
                 boundary_faces=setting.boundary_faces,
-                boundary_normals=get_boundary_normals(moved_nodes),
+                boundary_faces_normals=get_boundary_faces_normals(moved_nodes),
                 boundary_internal_indices=setting.boundary_internal_indices,
             )
 

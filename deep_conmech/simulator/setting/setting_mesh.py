@@ -20,6 +20,7 @@ def get_edges_matrix(nodes_count, cells):
                     edges_matrix[cell[i], cell[j]] += 1.0
     return edges_matrix
 
+
 @njit
 def get_edges_list_numba(edges_matrix):
     nodes_count = edges_matrix.shape[0]
@@ -27,7 +28,7 @@ def get_edges_list_numba(edges_matrix):
         [
             (i, j)
             for i, j in np.ndindex((nodes_count, nodes_count))
-            if j>i and edges_matrix[i, j] > 0
+            if j > i and edges_matrix[i, j] > 0
         ],
         dtype=numba.int64,
     )
@@ -35,6 +36,7 @@ def get_edges_list_numba(edges_matrix):
 
 
 ######################################################
+
 
 @njit
 def move_boundary_nodes_to_start_numba(
@@ -150,6 +152,57 @@ def get_base(nodes, base_seed_indices, closest_seed_index):
     return nph.complete_base(base_seed, closest_seed_index)
 
 
+######################################################
+
+
+def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_indices):
+    faces_nodes = moved_points[boundary_faces]
+    internal_nodes = moved_points[boundary_internal_indices]
+    tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
+
+    unoriented_normals = nph.get_tangential_2d(
+        nph.normalize_euclidean_numba(head_nodes - tail_nodes)
+    )
+    external_orientation = (-1) * np.sign(
+        nph.elementwise_dot(
+            internal_nodes - tail_nodes, unoriented_normals, keepdims=True
+        )
+    )
+    return unoriented_normals * external_orientation
+
+
+@njit
+def get_boundary_nodes_data_numba(
+    boundary_faces_normals, boundary_faces, boundary_nodes_indices, moved_nodes
+):
+    boundary_nodes_count = len(boundary_nodes_indices)
+    dim = boundary_faces_normals.shape[1]
+    boundary_nodes_normals = np.zeros((boundary_nodes_count, dim), dtype=numba.float64)
+    boundary_nodes_volumes = np.zeros(boundary_nodes_count, dtype=numba.float64)
+
+    for i in range(boundary_nodes_count):
+        # mask = np.bitwise_or.reduce(boundary_faces == i, axis=1) (or np.any)
+        # node_faces = boundary_faces[mask]
+        # face_nodes = moved_nodes[boundary_faces[mask]]
+
+        node_faces_count = 0
+        for j in range(len(boundary_faces)):
+            if np.any(boundary_faces[j] == i):
+                node_faces_count += 1
+                boundary_nodes_normals[i] += boundary_faces_normals[j]
+
+                face_nodes = moved_nodes[boundary_faces[j]]
+                boundary_nodes_volumes[i] += nph.euclidean_norm_numba(
+                    face_nodes[:, 0] - face_nodes[:, 1]
+                )  # TODO: 3D
+
+        boundary_nodes_normals[i] /= node_faces_count
+        boundary_nodes_volumes[i] /= node_faces_count
+
+    boundary_nodes_normals = nph.normalize_euclidean_numba(boundary_nodes_normals)
+    return boundary_nodes_normals, boundary_nodes_volumes
+
+
 ################
 
 
@@ -195,7 +248,7 @@ class SettingMesh:
                 create_in_subprocess=self.create_in_subprocess,
             )
 
-        (self.initial_nodes, self.cells, self.boundary_nodes_count,) = clean_mesh(
+        (self.initial_nodes, self.cells, self.boundary_nodes_count) = clean_mesh(
             unordered_nodes, unordered_elements
         )
 
@@ -216,6 +269,8 @@ class SettingMesh:
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
 
+        self.clear()
+
     def set_a_old(self, a):
         self.a_old = a
 
@@ -225,25 +280,41 @@ class SettingMesh:
     def set_u_old(self, u):
         self.u_old = u
 
-    @property
-    def boundary_normals(self):
-        faces_nodes = self.moved_points[self.boundary_faces]
-        internal_nodes = self.moved_points[self.boundary_internal_indices]
-        tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
-
-        unoriented_normals = nph.get_tangential_2d(
-            nph.normalize_euclidean_numba(head_nodes - tail_nodes)
+    def prepare(self):
+        self.boundary_faces_normals = get_boundary_faces_normals(
+            self.moved_points, self.boundary_faces, self.boundary_internal_indices
         )
-        external_orientation = (-1) * np.sign(
-            nph.elementwise_dot(
-                internal_nodes - tail_nodes, unoriented_normals, keepdims=True
-            )
+        (
+            self.boundary_nodes_normals,
+            self.boundary_nodes_volumes,
+        ) = get_boundary_nodes_data_numba(
+            self.boundary_faces_normals,
+            self.boundary_faces,
+            self.boundary_nodes_indices,
+            self.moved_points,
         )
-        return unoriented_normals * external_orientation
+        x = 0
+
+    def clear(self):
+        self.boundary_faces_normals = None
+        self.boundary_nodes_normals = None
+        self.boundary_nodes_volumes = None
 
     @property
-    def normalized_boundary_normals(self):
-        return self.normalize_rotate(self.boundary_normals)
+    def boundary_nodes(self):
+        return self.moved_points[self.boundary_nodes_indices]
+
+    @property
+    def normalized_boundary_nodes(self):
+        return self.normalized_points[self.boundary_nodes_indices]
+
+    @property
+    def normalized_boundary_nodes_normals(self):
+        return self.normalize_rotate(self.boundary_nodes_normals)
+
+    @property
+    def normalized_boundary_faces_normals(self):
+        return self.normalize_rotate(self.boundary_faces_normals)
 
     @property
     def normalized_a_old(self):

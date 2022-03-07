@@ -84,7 +84,7 @@ def print_frame(
     moved_base,
     boundary_nodes_indices,
     boundary_faces,
-    boundary_normals,
+    boundary_faces_normals,
     boundary_internal_indices
 ):
     print = lambda ax: print_subframe(
@@ -95,7 +95,7 @@ def print_frame(
         moved_base=moved_base,
         boundary_nodes_indices=boundary_nodes_indices,
         boundary_faces=boundary_faces,
-        boundary_normals=boundary_normals,
+        boundary_faces_normals=boundary_faces_normals,
         boundary_internal_indices=boundary_internal_indices,
         ax=ax,
     )
@@ -150,7 +150,7 @@ def print_subframe(
     moved_base,
     boundary_nodes_indices,
     boundary_faces,
-    boundary_normals,
+    boundary_faces_normals,
     boundary_internal_indices,
     ax,
 ):
@@ -158,7 +158,7 @@ def print_subframe(
 
     moved_boundary_faces_nodes = moved_nodes[boundary_faces]
     moved_boundary_faces_centers = np.mean(moved_boundary_faces_nodes, axis=1)
-    plot_arrows(ax, starts=moved_boundary_faces_centers, vectors=boundary_normals)
+    plot_arrows(ax, starts=moved_boundary_faces_centers, vectors=boundary_faces_normals)
 
 
     moved_boundary_internal_nodes = moved_nodes[boundary_internal_indices]

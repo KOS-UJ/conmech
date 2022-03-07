@@ -59,7 +59,9 @@ class Plotter:
             if setting.obstacles is not None:
                 self.draw_obstacle_resistance_normalized(setting, position, ax)
                 position[0] += 2.5 * scale
-            self.draw_boundary_normals(setting, position, ax)
+            self.draw_boundary_faces_normals(setting, position, ax)
+            position[0] += 2.5 * scale
+            self.draw_boundary_nodes_normals(setting, position, ax)
             position[0] += 2.5 * scale
             self.draw_forces(setting, position, ax)
             position[0] += 2.5 * scale
@@ -125,13 +127,22 @@ class Plotter:
             ax,
         )
 
-    def draw_boundary_normals(self, setting, position, ax):
+    def draw_boundary_faces_normals(self, setting, position, ax):
         self.draw_additional_setting("N", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_centers + position,
-            setting.normalized_boundary_normals,
+            setting.normalized_boundary_faces_normals,
             ax,
         )
+
+    def draw_boundary_nodes_normals(self, setting, position, ax):
+        self.draw_additional_setting("Nod", setting, position, ax)
+        self.draw_arrows(
+            setting.normalized_boundary_nodes + position,
+            setting.normalized_boundary_nodes_normals,
+            ax,
+        )
+
 
     def draw_rectangle(self, ax, position, scale_x, scale_y):
         ax.add_patch(
@@ -158,7 +169,7 @@ class Plotter:
         """
         self.draw_arrows(
             setting.boundary_centers + position,
-            setting.boundary_normals,
+            setting.boundary_faces_normals,
             ax,
         )
         self.draw_points(setting.moved_points[setting.boundary_internal_nodes], position, "purple", ax)
