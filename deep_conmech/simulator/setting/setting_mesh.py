@@ -1,9 +1,11 @@
 from argparse import ArgumentError
+
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.helpers import nph
+from deep_conmech.simulator.matrices import matrices_2d
 from numba import njit
 
 # import os, sys
@@ -156,7 +158,6 @@ def get_base(nodes, base_seed_indices, closest_seed_index):
 ######################################################
 
 
-
 def get_unoriented_normals_2d(faces_nodes):
     tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
 
@@ -165,10 +166,9 @@ def get_unoriented_normals_2d(faces_nodes):
     )
     return tail_nodes, unoriented_normals
 
+
 def get_unoriented_normals_3d(faces_nodes):
-    tail_nodes, head_nodes1, head_nodes2 = [
-        faces_nodes[:, i, :] for i in range(3)
-    ]
+    tail_nodes, head_nodes1, head_nodes2 = [faces_nodes[:, i, :] for i in range(3)]
 
     unoriented_normals = nph.normalize_euclidean_numba(
         np.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
@@ -184,7 +184,7 @@ def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_i
         tail_nodes, unoriented_normals = get_unoriented_normals_2d(faces_nodes)
     elif dim == 3:
         tail_nodes, unoriented_normals = get_unoriented_normals_3d(faces_nodes)
-    else: 
+    else:
         raise ArgumentError
 
     internal_nodes = moved_points[boundary_internal_indices]
@@ -196,7 +196,21 @@ def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_i
     return unoriented_normals * external_orientation
 
 
-@njit
+def element_volume_part(face_nodes):
+    dim = face_nodes.shape[1]
+    nodes_count = face_nodes.shape[0]
+    if dim == 2:
+        volume = nph.euclidean_norm_numba(face_nodes[0] - face_nodes[1])
+    elif dim == 3:
+        volume = 0.5 * nph.euclidean_norm_numba(
+            np.cross(face_nodes[1] - face_nodes[0], face_nodes[2] - face_nodes[0])
+        )
+    else:
+        raise ArgumentError
+    return volume / nodes_count
+
+
+# @njit
 def get_boundary_nodes_data_numba(
     boundary_faces_normals, boundary_faces, boundary_nodes_indices, moved_nodes
 ):
@@ -217,12 +231,9 @@ def get_boundary_nodes_data_numba(
                 boundary_nodes_normals[i] += boundary_faces_normals[j]
 
                 face_nodes = moved_nodes[boundary_faces[j]]
-                boundary_nodes_volumes[i] += nph.euclidean_norm_numba(
-                    face_nodes[0] - face_nodes[1]
-                )  # TODO: 3D
+                boundary_nodes_volumes[i] += element_volume_part(face_nodes)
 
         boundary_nodes_normals[i] /= node_faces_count
-        boundary_nodes_volumes[i] /= node_faces_count
 
     boundary_nodes_normals = nph.normalize_euclidean_numba(boundary_nodes_normals)
     return boundary_nodes_normals, boundary_nodes_volumes
@@ -304,7 +315,6 @@ class SettingMesh:
 
     def set_u_old(self, u):
         self.u_old = u
-
 
     def prepare(self):
         self.boundary_faces_normals = get_boundary_faces_normals(

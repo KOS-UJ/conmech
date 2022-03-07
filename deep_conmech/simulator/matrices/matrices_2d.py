@@ -5,7 +5,6 @@ import numba
 import numpy as np
 from conmech.features.boundaries import Boundaries
 from conmech.helpers import nph
-from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
 
 
@@ -79,7 +78,6 @@ def shoelace_area_numba(points):
     y = points[:, 1].copy()
     area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
     return area
-
 
 @njit
 def denominator_numba(x_i, x_j1, x_j2):

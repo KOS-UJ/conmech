@@ -31,11 +31,11 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         np.ones((len(setting.boundary_nodes_normals), 1)),
     )
 
-'''
+
 def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
-    setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=3)
+    setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=4)
     setting.prepare()
 
     # Act and Assert
@@ -44,4 +44,4 @@ def test_boundary_nodes_data_3d():
         nph.euclidean_norm_numba(setting.boundary_nodes_normals),
         np.ones((len(setting.boundary_nodes_normals), 1)),
     )
-'''
+    

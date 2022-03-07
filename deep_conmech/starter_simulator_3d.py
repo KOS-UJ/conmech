@@ -18,8 +18,8 @@ from deep_conmech.simulator.setting.setting_mesh import *
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
 ######################################################
-
-setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=2)
+mesh_density_x = 5
+setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
 
 initial_base = get_base(setting.initial_nodes, setting.base_seed_indices, setting.closest_seed_index)
 
@@ -85,7 +85,6 @@ def print_one_dynamic():
     thh.create_folders(catalog)
 
     scenario_length = 400
-    moved_nodes = setting.initial_nodes
 
     for i in range(1, scenario_length + 1):
         current_time = i * time_step
@@ -94,6 +93,7 @@ def print_one_dynamic():
 
         forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
         normalized_forces = setting.normalize_rotate(forces)
+        setting.prepare() #normalized_forces
 
         normalized_E = get_E(normalized_forces, setting.normalized_u_old, setting.normalized_v_old)
         normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=3)
@@ -101,7 +101,7 @@ def print_one_dynamic():
 
         if i % 10 == 0:
             plotter_3d.print_frame(
-                moved_nodes=moved_nodes,
+                moved_nodes=setting.moved_points,
                 normalized_nodes=setting.normalized_points,
                 normalized_data=[
                     normalized_forces * 20,
