@@ -22,6 +22,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         scale_x=scale_x,
         scale_y=scale_y,
     )
+    setting.prepare()
 
     # Act and Assert
     np.testing.assert_allclose(setting.boundary_nodes_volumes.sum(), volume)
@@ -35,6 +36,7 @@ def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
     setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=3)
+    setting.prepare()
 
     # Act and Assert
     np.testing.assert_allclose(setting.boundary_nodes_volumes.sum(), volume)

@@ -215,10 +215,10 @@ class GraphModelDynamic:
             boundary_nodes_counts
         )
         boundary_faces_split = batch.boundary_fac.split(boundary_faces_counts)
-        normalized_closest_to_faces_obstacle_normals_split = batch.normalized_closest_to_faces_obstacle_normals.split(
+        normalized_closest_to_faces_obstacle_normals_split = batch.normalized_closest_to_fac_obstacle_normals.split(
             boundary_faces_counts
         )
-        normalized_closest_to_faces_obstacle_origins_split = batch.normalized_closest_to_faces_obstacle_origins.split(
+        normalized_closest_to_faces_obstacle_origins_split = batch.normalized_closest_to_fac_obstacle_origins.split(
             boundary_faces_counts
         )
 

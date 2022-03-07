@@ -1,4 +1,5 @@
 from ast import If
+
 import torch
 from deep_conmech.common import *
 from deep_conmech.graph.helpers import thh
@@ -182,7 +183,6 @@ class SettingInput(SettingRandomized):
             create_in_subprocess,
         )
 
-    @property
     def get_edges_data_torch(self, edges):
         edges_data = get_edges_data(
             edges,
@@ -196,24 +196,17 @@ class SettingInput(SettingRandomized):
         )
         return thh.to_torch_double(edges_data)
 
-    def get_data_with_norm(self, data):
-        return torch.hstack((data, torch.linalg.norm(data, keepdim=True, dim=1)))
-
     @property
     def x(self):
         # data = torch.ones(self.nodes_count, 1)
         data = torch.hstack(
             (
-                self.get_data_with_norm(self.input_forces_torch),
-                # self.get_data_with_norm(self.input_u_old_torch),
-                # self.get_data_with_norm(self.input_v_old_torch)
+                thh.get_data_with_euclidean_norm(self.input_forces_torch),
+                # thh.get_data_with_euclidean_norm(self.input_u_old_torch),
+                # thh.get_data_with_euclidean_norm(self.input_v_old_torch)
             )
         )
         return data
-
-    @property
-    def get_contiguous_torch(self, edges):
-        return thh.to_torch_long(edges).t().contiguous()
 
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
@@ -224,7 +217,7 @@ class SettingInput(SettingRandomized):
         data = Data(
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
             x=thh.set_precision(self.x),
-            edge_index=self.get_contiguous_torch(directional_edges),
+            edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
@@ -232,8 +225,8 @@ class SettingInput(SettingRandomized):
             setting_index=setting_index,
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
-            normalized_closest_to_faces_obstacle_normals=self.normalized_closest_to_faces_obstacle_normals_torch,
-            normalized_closest_to_faces_obstacle_origins=self.normalized_closest_to_faces_obstacle_origins_torch,
+            normalized_closest_to_fac_obstacle_normals=self.normalized_closest_to_faces_obstacle_normals_torch,
+            normalized_closest_to_fac_obstacle_origins=self.normalized_closest_to_faces_obstacle_origins_torch,
             boundary_nodes_count=self.boundary_nodes_count_torch,
             normalized_boundary_points=self.normalized_boundary_points_torch,
             boundary_fac_count=self.boundary_faces_count_torch,

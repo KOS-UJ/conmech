@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import nph
 from matplotlib.gridspec import GridSpec
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from mpl_toolkits.mplot3d.axes3d import Axes3D, get_test_data
 
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
@@ -15,45 +13,11 @@ from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_mesh import *
 
-DIM = 3
-EDIM = 4
+
 
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
-
-
-def normalize_rotate(vectors, moved_base):
-    return nph.get_in_base(vectors, moved_base)
-
-
-def denormalize_rotate(vectors, moved_base):
-    return nph.get_in_base(vectors, np.linalg.inv(moved_base))
-
-
 ######################################################
-
-def get_boundary_faces_normals(moved_nodes):
-    faces_nodes = moved_nodes[setting.boundary_faces]
-    internal_nodes = moved_nodes[setting.boundary_internal_indices]
-
-    tail_nodes, head_nodes1, head_nodes2 = [
-        faces_nodes[:, i, :] for i in range(3)
-    ]
-
-    unoriented_normals = nph.normalize_euclidean_numba(
-        np.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
-    )
-
-    external_orientation = (-1) * np.sign(
-        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
-    )
-
-    return unoriented_normals * external_orientation
-
-
-
-
-############################
 
 setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=2)
 
@@ -63,9 +27,6 @@ initial_base = get_base(setting.initial_nodes, setting.base_seed_indices, settin
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
     setting.cells, setting.initial_nodes
 )
-# TODO: To tests - sum of slice for area and u == 1
-# edges_features_matrix[i].sum() == 0
-# edges_features_matrix[0].sum() == 1
 # TODO: switch to dictionary
 # rollaxis -> moveaxis
 
@@ -135,7 +96,7 @@ def print_one_dynamic():
         normalized_forces = setting.normalize_rotate(forces)
 
         normalized_E = get_E(normalized_forces, setting.normalized_u_old, setting.normalized_v_old)
-        normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=DIM)
+        normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=3)
         a = setting.denormalize_rotate(normalized_a)
 
         if i % 10 == 0:
@@ -155,7 +116,7 @@ def print_one_dynamic():
                 moved_base=setting.moved_base,
                 boundary_nodes_indices=setting.boundary_nodes_indices,
                 boundary_faces=setting.boundary_faces,
-                boundary_faces_normals=get_boundary_faces_normals(moved_nodes),
+                boundary_faces_normals=setting.boundary_faces_normals,
                 boundary_internal_indices=setting.boundary_internal_indices,
             )
 

@@ -57,9 +57,11 @@ def to_np_long(data):
 
 
 
+def get_contiguous_torch(data):
+    return to_torch_long(data).t().contiguous()
 
-
-
+def get_data_with_euclidean_norm(data):
+    return torch.hstack((data, torch.linalg.norm(data, keepdim=True, dim=1)))
 
 
 

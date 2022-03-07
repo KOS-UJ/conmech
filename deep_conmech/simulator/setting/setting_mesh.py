@@ -1,3 +1,4 @@
+from argparse import ArgumentError
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
@@ -155,14 +156,38 @@ def get_base(nodes, base_seed_indices, closest_seed_index):
 ######################################################
 
 
-def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_indices):
-    faces_nodes = moved_points[boundary_faces]
-    internal_nodes = moved_points[boundary_internal_indices]
+
+def get_unoriented_normals_2d(faces_nodes):
     tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
 
     unoriented_normals = nph.get_tangential_2d(
         nph.normalize_euclidean_numba(head_nodes - tail_nodes)
     )
+    return tail_nodes, unoriented_normals
+
+def get_unoriented_normals_3d(faces_nodes):
+    tail_nodes, head_nodes1, head_nodes2 = [
+        faces_nodes[:, i, :] for i in range(3)
+    ]
+
+    unoriented_normals = nph.normalize_euclidean_numba(
+        np.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
+    )
+    return tail_nodes, unoriented_normals
+
+
+def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_indices):
+    dim = moved_points.shape[1]
+    faces_nodes = moved_points[boundary_faces]
+
+    if dim == 2:
+        tail_nodes, unoriented_normals = get_unoriented_normals_2d(faces_nodes)
+    elif dim == 3:
+        tail_nodes, unoriented_normals = get_unoriented_normals_3d(faces_nodes)
+    else: 
+        raise ArgumentError
+
+    internal_nodes = moved_points[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
         nph.elementwise_dot(
             internal_nodes - tail_nodes, unoriented_normals, keepdims=True
@@ -269,7 +294,7 @@ class SettingMesh:
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
 
-        self.prepare()
+        self.clear()
 
     def set_a_old(self, a):
         self.a_old = a
