@@ -177,8 +177,8 @@ def get_boundary_nodes_data_numba(
 ):
     boundary_nodes_count = len(boundary_nodes_indices)
     dim = boundary_faces_normals.shape[1]
-    boundary_nodes_normals = np.zeros((boundary_nodes_count, dim), dtype=numba.float64)
-    boundary_nodes_volumes = np.zeros(boundary_nodes_count, dtype=numba.float64)
+    boundary_nodes_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
+    boundary_nodes_volumes = np.zeros(boundary_nodes_count, dtype=np.float64)
 
     for i in range(boundary_nodes_count):
         # mask = np.bitwise_or.reduce(boundary_faces == i, axis=1) (or np.any)
@@ -193,7 +193,7 @@ def get_boundary_nodes_data_numba(
 
                 face_nodes = moved_nodes[boundary_faces[j]]
                 boundary_nodes_volumes[i] += nph.euclidean_norm_numba(
-                    face_nodes[:, 0] - face_nodes[:, 1]
+                    face_nodes[0] - face_nodes[1]
                 )  # TODO: 3D
 
         boundary_nodes_normals[i] /= node_faces_count
@@ -214,8 +214,8 @@ class SettingMesh:
         mesh_density_y=None,
         scale_x=None,
         scale_y=None,
-        is_adaptive=None,
-        create_in_subprocess=None,
+        is_adaptive=False,
+        create_in_subprocess=False,
         is_3d=False,
     ):
         self.mesh_density_x = mesh_density_x
@@ -269,7 +269,7 @@ class SettingMesh:
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
 
-        self.clear()
+        self.prepare()
 
     def set_a_old(self, a):
         self.a_old = a
@@ -279,6 +279,7 @@ class SettingMesh:
 
     def set_u_old(self, u):
         self.u_old = u
+
 
     def prepare(self):
         self.boundary_faces_normals = get_boundary_faces_normals(
