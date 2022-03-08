@@ -1,16 +1,10 @@
-from typing import Callable
-
 import deep_conmech.common.config as config
-import numba
 import numpy as np
-from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
-from conmech.helpers import nph
 
 
-
-@njit  # (parallel=True)
+@njit
 def get_edges_features_matrix(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
@@ -38,16 +32,14 @@ def get_edges_features_matrix(elements, nodes):
                 w22 = i_dPhY * j_dPhY
                 u = (1 + (i == j)) / 12
 
-                u1 = j_dPhX / (3 * np.sqrt(2))
-                u2 = j_dPhY / (3 * np.sqrt(2))
+                u1 = j_dPhX / 3
+                u2 = j_dPhY / 3
 
                 edges_features_matrix[element[i], element[j]] += element_volume * np.array(
                     [area, w11, w12, w21, w22, u1, u2, u]
                 )
 
     return edges_features_matrix, element_initial_volume
-
-
 
 
 @njit
@@ -88,8 +80,6 @@ def denominator(x_i, x_j1, x_j2):
     )
 
 
-
-# @njit
 def get_edges_features_list(edges_number, edges_features_matrix):
     nodes_count = len(edges_features_matrix[0])
     edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
@@ -111,7 +101,6 @@ def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
     return B11, B12, B21, B22
 
 
-# @njit
 def get_matrices(
     edges_features_matrix, MU, LA, TH, ZE, density, time_step, independent_nodes_count
 ):
