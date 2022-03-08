@@ -176,9 +176,9 @@ def get_unoriented_normals_3d(faces_nodes):
     return tail_nodes, unoriented_normals
 
 
-def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_indices):
-    dim = moved_points.shape[1]
-    faces_nodes = moved_points[boundary_faces]
+def get_boundary_faces_normals(moved_nodes, boundary_faces, boundary_internal_indices):
+    dim = moved_nodes.shape[1]
+    faces_nodes = moved_nodes[boundary_faces]
 
     if dim == 2:
         tail_nodes, unoriented_normals = get_unoriented_normals_2d(faces_nodes)
@@ -187,7 +187,7 @@ def get_boundary_faces_normals(moved_points, boundary_faces, boundary_internal_i
     else:
         raise ArgumentError
 
-    internal_nodes = moved_points[boundary_internal_indices]
+    internal_nodes = moved_nodes[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
         nph.elementwise_dot(
             internal_nodes - tail_nodes, unoriented_normals, keepdims=True
@@ -217,7 +217,7 @@ def get_boundary_nodes_data_numba(
 ):
     boundary_nodes_count = len(boundary_nodes_indices)
     dim = boundary_faces_normals.shape[1]
-    boundary_nodes_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
+    boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
     boundary_nodes_volume = np.zeros(boundary_nodes_count, dtype=np.float64)
 
     for i in range(boundary_nodes_count):
@@ -229,15 +229,15 @@ def get_boundary_nodes_data_numba(
         for j in range(len(boundary_faces)):
             if np.any(boundary_faces[j] == i):
                 node_faces_count += 1
-                boundary_nodes_normals[i] += boundary_faces_normals[j]
+                boundary_normals[i] += boundary_faces_normals[j]
 
                 face_nodes = moved_nodes[boundary_faces[j]]
                 boundary_nodes_volume[i] += element_volume_part_numba(face_nodes)
 
-        boundary_nodes_normals[i] /= node_faces_count
+        boundary_normals[i] /= node_faces_count
 
-    boundary_nodes_normals = nph.normalize_euclidean_numba(boundary_nodes_normals)
-    return boundary_nodes_normals, boundary_nodes_volume
+    boundary_normals = nph.normalize_euclidean_numba(boundary_normals)
+    return boundary_normals, boundary_nodes_volume
 
 
 ################
@@ -319,35 +319,35 @@ class SettingMesh:
 
     def prepare(self):
         self.boundary_faces_normals = get_boundary_faces_normals(
-            self.moved_points, self.boundary_faces, self.boundary_internal_indices
+            self.moved_nodes, self.boundary_faces, self.boundary_internal_indices
         )
         (
-            self.boundary_nodes_normals,
+            self.boundary_normals,
             self.boundary_nodes_volume,
         ) = get_boundary_nodes_data_numba(
             self.boundary_faces_normals,
             self.boundary_faces,
             self.boundary_nodes_indices,
-            self.moved_points,
+            self.moved_nodes,
         )
         x = 0
 
     def clear(self):
         self.boundary_faces_normals = None
-        self.boundary_nodes_normals = None
+        self.boundary_normals = None
         self.boundary_nodes_volume = None
 
     @property
     def boundary_nodes(self):
-        return self.moved_points[self.boundary_nodes_indices]
+        return self.moved_nodes[self.boundary_nodes_indices]
 
     @property
     def normalized_boundary_nodes(self):
         return self.normalized_points[self.boundary_nodes_indices]
 
     @property
-    def normalized_boundary_nodes_normals(self):
-        return self.normalize_rotate(self.boundary_nodes_normals)
+    def normalized_boundary_normals(self):
+        return self.normalize_rotate(self.boundary_normals)
 
     @property
     def normalized_boundary_faces_normals(self):
@@ -358,8 +358,8 @@ class SettingMesh:
         return self.normalize_rotate(self.a_old)
 
     @property
-    def mean_moved_points(self):
-        return np.mean(self.moved_points, axis=0)
+    def mean_moved_nodes(self):
+        return np.mean(self.moved_nodes, axis=0)
 
     @property
     def mean_initial_nodes(self):
@@ -367,7 +367,7 @@ class SettingMesh:
 
     @property
     def normalized_points(self):
-        return self.normalize_rotate(self.moved_points - self.mean_moved_points)
+        return self.normalize_rotate(self.moved_nodes - self.mean_moved_nodes)
 
     @property
     def normalized_initial_nodes(self):
@@ -386,13 +386,13 @@ class SettingMesh:
         return self.denormalize_rotate(self.normalized_u_old)
 
     @property
-    def moved_points(self):
+    def moved_nodes(self):
         return self.initial_nodes + self.u_old
 
     @property
     def moved_base(self):
         return get_base(
-            self.moved_points, self.base_seed_indices, self.closest_seed_index
+            self.moved_nodes, self.base_seed_indices, self.closest_seed_index
         )
 
     def normalize_rotate(self, vectors):
@@ -402,8 +402,8 @@ class SettingMesh:
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     @property
-    def edges_moved_points(self):
-        return self.moved_points[self.edges]
+    def edges_moved_nodes(self):
+        return self.moved_nodes[self.edges]
 
     @property
     def edges_normalized_points(self):
@@ -427,7 +427,7 @@ class SettingMesh:
 
     @property
     def boundary_centers(self):
-        return np.mean(self.moved_points[self.boundary_faces], axis=1)
+        return np.mean(self.moved_nodes[self.boundary_faces], axis=1)
 
     @property
     def normalized_boundary_centers(self):
@@ -436,3 +436,7 @@ class SettingMesh:
     @property
     def edges_number(self):
         return len(self.edges)
+
+    @property
+    def dim(self):
+        return self.initial_nodes.shape[1]

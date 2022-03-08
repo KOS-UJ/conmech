@@ -12,14 +12,14 @@ from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_forces import SettingForces
-
+from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 
 
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
 ######################################################
 mesh_density_x = 5
-setting = SettingForces(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
+setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
 
 edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
     setting.cells, setting.initial_nodes
@@ -87,18 +87,19 @@ def print_one_dynamic():
         current_time = i * time_step
         print(f"time: {current_time}")
 
-
         forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
         normalized_forces = setting.normalize_rotate(forces)
-        setting.prepare() #normalized_forces
+        setting.prepare()  # normalized_forces
 
-        normalized_E = get_E(normalized_forces, setting.normalized_u_old, setting.normalized_v_old)
+        normalized_E = get_E(
+            normalized_forces, setting.normalized_u_old, setting.normalized_v_old
+        )
         normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=3)
         a = setting.denormalize_rotate(normalized_a)
 
         if i % 10 == 0:
             plotter_3d.print_frame(
-                moved_nodes=setting.moved_points,
+                moved_nodes=setting.moved_nodes,
                 normalized_nodes=setting.normalized_points,
                 normalized_data=[
                     normalized_forces * 20,

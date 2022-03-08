@@ -59,9 +59,9 @@ class Plotter:
             if setting.obstacles is not None:
                 self.draw_obstacle_resistance_normalized(setting, position, ax)
                 position[0] += 2.5 * scale
-            #self.draw_boundary_faces_normals(setting, position, ax)
-            #position[0] += 2.5 * scale
-            self.draw_boundary_nodes_normals(setting, position, ax)
+            # self.draw_boundary_faces_normals(setting, position, ax)
+            # position[0] += 2.5 * scale
+            self.draw_boundary_normals(setting, position, ax)
             position[0] += 2.5 * scale
             self.draw_forces(setting, position, ax)
             position[0] += 2.5 * scale
@@ -94,7 +94,11 @@ class Plotter:
                 head_width=0.01,
             )
             line = ax.axline(
-                bias, obstacles_tangient[i] + bias, color=f"tab:{color}", alpha=0.4, linewidth=0.4
+                bias,
+                obstacles_tangient[i] + bias,
+                color=f"tab:{color}",
+                alpha=0.4,
+                linewidth=0.4,
             )
             # ax.fill_between(bias, obstacles_tangient[i] + bias)
 
@@ -135,14 +139,13 @@ class Plotter:
             ax,
         )
 
-    def draw_boundary_nodes_normals(self, setting, position, ax):
+    def draw_boundary_normals(self, setting, position, ax):
         self.draw_additional_setting("N", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
-            setting.normalized_boundary_nodes_normals,
+            setting.normalized_boundary_normals,
             ax,
         )
-
 
     def draw_rectangle(self, ax, position, scale_x, scale_y):
         ax.add_patch(
@@ -164,7 +167,11 @@ class Plotter:
         # self.draw_points(setting.moved_reference_points, position, "orange", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
-                setting.obstacle_origins, setting.obstacle_normals, position, "orange", ax
+                setting.obstacle_origins,
+                setting.obstacle_normals,
+                position,
+                "orange",
+                ax,
             )
         """
         self.draw_arrows(
@@ -172,7 +179,7 @@ class Plotter:
             setting.boundary_faces_normals,
             ax,
         )
-        self.draw_points(setting.moved_points[setting.boundary_internal_nodes], position, "purple", ax)
+        self.draw_points(setting.moved_nodes[setting.boundary_internal_nodes], position, "purple", ax)
         """
 
     def draw_base_displaced(self, setting, scale, ax):
@@ -180,17 +187,21 @@ class Plotter:
         self.draw_displaced(setting, position, "purple", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
-                setting.obstacle_origins, setting.obstacle_normals, position, "orange", ax
+                setting.obstacle_origins,
+                setting.obstacle_normals,
+                position,
+                "orange",
+                ax,
             )
 
     def draw_displaced(self, setting, position, color, ax):
         self.draw_rectangle(ax, position, setting.scale_x, setting.scale_y)
-        self.draw_triplot(setting.moved_points + position, setting, f"tab:{color}", ax)
+        self.draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", ax)
         # self.draw_data("P", obstacle_forces, setting, [7.5, -1.5], ax)
 
     def draw_points(self, points, position, color, ax):
-        moved_points = points + position
-        ax.scatter(moved_points[:, 0], moved_points[:, 1], s=0.1, c=f"tab:{color}")
+        moved_nodes = points + position
+        ax.scatter(moved_nodes[:, 0], moved_nodes[:, 1], s=0.1, c=f"tab:{color}")
 
     def draw_forces(self, setting, position, ax):
         return self.draw_data("F", setting.normalized_forces, setting, position, ax)
@@ -287,11 +298,11 @@ class Plotter:
                 )
 
     def draw_triplot(self, points, setting, color, ax):
-        boundary_points = points[setting.boundary_faces]
+        boundary_nodes = points[setting.boundary_faces]
         ax.add_collection(
             collections.LineCollection(
-                boundary_points,
-                colors=[color for _ in range(boundary_points.shape[0])],
+                boundary_nodes,
+                colors=[color for _ in range(boundary_nodes.shape[0])],
                 linewidths=0.3,
             )
         )
@@ -363,8 +374,8 @@ class Plotter:
 
         colors = np.array([(x - 0.5) ** 2 + (y - 0.5) ** 2 for x, y in centers])
         plt.tripcolor(
-            mesh.moved_points[:, 0],
-            mesh.moved_points[:, 1],
+            mesh.moved_nodes[:, 0],
+            mesh.moved_nodes[:, 1],
             mesh.cells,
             facecolors=colors,
             edgecolors="k",
@@ -471,7 +482,7 @@ def draw_mesh_density(id):
 
         X = self.get_x_draw_torch(force, mesh)
         u = self.predict(mesh, model, X)
-        points = mesh.moved_points + u
+        points = mesh.moved_nodes + u
         ax.triplot(
             points[:, 0], points[:, 1], mesh.cells, color="tab:orange",
         )

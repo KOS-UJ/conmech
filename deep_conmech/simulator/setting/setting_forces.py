@@ -5,29 +5,23 @@ from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from numba import njit
 
 
-@njit
-def L2_numba(argument, C, E):
-    first = 0.5 * (C @ argument) - E
-    value = first.reshape(-1) @ argument
-    return value
 
-
-@njit
-def L2_full_np(a, C, E):
-    a_vector = nph.stack_column_numba(a)
-    value = L2_numba(a_vector, C, E)
+def L2_new(a, C, E):
+    a_vector = nph.stack_column(a)
+    first = 0.5 * (C @ a_vector) - E
+    value = first.reshape(-1) @ a_vector
     return value
 
 
 @njit
 def get_forces_by_function_numba(
-    forces_function, initial_nodes, moved_points, scale_x, scale_y, current_time
+    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, current_time
 ):
     nodes_count = len(initial_nodes)
     forces = np.zeros((nodes_count, 2), dtype=numba.double)
     for i in range(nodes_count):
         initial_point = initial_nodes[i]
-        moved_point = moved_points[i]
+        moved_point = moved_nodes[i]
         forces[i] = forces_function(
             initial_point, moved_point, current_time, scale_x, scale_y
         )
@@ -61,7 +55,7 @@ class SettingForces(SettingMatrices):
         return get_forces_by_function_numba(
             numba.njit(forces_function),
             self.initial_nodes,
-            self.moved_points,
+            self.moved_nodes,
             self.scale_x,
             self.scale_y,
             current_time,
@@ -100,7 +94,7 @@ class SettingForces(SettingMatrices):
     def set_all_normalized_E_np(self):
         self.normalized_E = self.get_normalized_E_np()
         t = self.boundary_nodes_count
-        normalized_E_split = nph.unstack(self.normalized_E)
+        normalized_E_split = nph.unstack(self.normalized_E, self.dim)
         normalized_Et = nph.stack_column(normalized_E_split[:t, :])
         self.normalized_Ei = nph.stack_column(normalized_E_split[t:, :])
         CiiINVEi = self.CiiINV @ self.normalized_Ei

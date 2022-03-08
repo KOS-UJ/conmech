@@ -2,12 +2,6 @@ from deep_conmech.simulator.setting.setting_obstacles import *
 from deep_conmech.graph.helpers import thh
 
 
-def L2_torch(argument, C, E):
-    first = 0.5 * (C @ argument) - E
-    value = first.reshape(-1) @ argument
-    return value
-
-
 class SettingTorch(SettingObstacle):
     def __init__(
         self,
@@ -95,8 +89,8 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_double(self.normalized_boundary_v_old)
 
     @property
-    def normalized_boundary_points_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_points)
+    def normalized_boundary_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_nodes)
 
     @property
     def normalized_closest_to_faces_obstacle_normals_torch(self):

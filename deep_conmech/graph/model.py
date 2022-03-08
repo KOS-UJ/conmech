@@ -211,7 +211,7 @@ class GraphModelDynamic:
         normalized_boundary_v_old_split = batch.normalized_boundary_v_old.split(
             boundary_nodes_counts
         )
-        normalized_boundary_points_split = batch.normalized_boundary_points.split(
+        normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
             boundary_nodes_counts
         )
         boundary_faces_split = batch.boundary_fac.split(boundary_faces_counts)
@@ -233,7 +233,7 @@ class GraphModelDynamic:
             normalized_a_correction = normalized_a_correction_split[i]
             #
             normalized_boundary_v_old = normalized_boundary_v_old_split[i]
-            normalized_boundary_points = normalized_boundary_points_split[i]
+            normalized_boundary_nodes = normalized_boundary_nodes_split[i]
             boundary_faces = boundary_faces_split[i]
             normalized_closest_to_faces_obstacle_normals = normalized_closest_to_faces_obstacle_normals_split[
                 i
@@ -250,14 +250,14 @@ class GraphModelDynamic:
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction_cuda(
                 predicted_normalized_a,
+                normalized_a_correction,
                 C,
                 normalized_E,
                 normalized_boundary_v_old,
-                normalized_boundary_points,
+                normalized_boundary_nodes,
                 boundary_faces,
                 normalized_closest_to_faces_obstacle_normals,
                 normalized_closest_to_faces_obstacle_origins,
-                normalized_a_correction,
             )
 
             loss += predicted_normalized_L2

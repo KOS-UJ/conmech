@@ -67,6 +67,7 @@ def get_data_with_euclidean_norm(data):
 
 
 def euclidean_norm_torch(vector):
+    
     return torch.sqrt(torch.sum(vector ** 2, axis=-1))
 
 

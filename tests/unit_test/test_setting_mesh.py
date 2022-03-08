@@ -27,8 +27,8 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Act and Assert
     np.testing.assert_allclose(setting.boundary_nodes_volume.sum(), volume)
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(setting.boundary_nodes_normals),
-        np.ones((len(setting.boundary_nodes_normals), 1)),
+        nph.euclidean_norm_numba(setting.boundary_normals),
+        np.ones((len(setting.boundary_normals), 1)),
     )
 
 
@@ -41,6 +41,6 @@ def test_boundary_nodes_data_3d():
     # Act and Assert
     np.testing.assert_allclose(setting.boundary_nodes_volume.sum(), volume)
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(setting.boundary_nodes_normals),
-        np.ones((len(setting.boundary_nodes_normals), 1)),
+        nph.euclidean_norm_numba(setting.boundary_normals),
+        np.ones((len(setting.boundary_normals), 1)),
     )

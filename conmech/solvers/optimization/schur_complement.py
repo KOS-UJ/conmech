@@ -227,7 +227,7 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.B @ self.u_vector.T)
+        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=2)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -290,9 +290,9 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * nph.unstack(self.B @ self.u_vector)
+        X = -1 * nph.unstack(self.B @ self.u_vector, dim=2)
 
-        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector)
+        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector, dim=2)
 
         C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
         C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))

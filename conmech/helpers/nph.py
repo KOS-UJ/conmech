@@ -17,7 +17,7 @@ def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
 
 
-def unstack(data, dim = DIM):
+def unstack(data, dim):
     return data.reshape(-1, dim, order="F")
 
 
@@ -32,17 +32,24 @@ def get_occurances(data):
 ###################
 
 
+def euclidean_norm(vector):
+    data = (vector ** 2).sum(axis=-1)
+    if isinstance(data, np.ndarray):
+        return np.sqrt(data)
+    return data.sqrt()
+
 @njit
 def euclidean_norm_numba(vector):
-    norm = np.sqrt((vector ** 2).sum(axis=-1))
-    return norm if vector.ndim == 1 else norm.reshape(-1, 1)
+    return np.sqrt((vector ** 2).sum(axis=-1))
     # return np.linalg.norm(vector, axis=-1)
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
 
 
 @njit
 def normalize_euclidean_numba(data):
-    return data / euclidean_norm_numba(data)
+    norm = euclidean_norm_numba(data)
+    reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
+    return data / reshaped_norm
 
 
 ###################

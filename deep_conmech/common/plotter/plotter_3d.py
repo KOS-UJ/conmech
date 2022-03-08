@@ -155,11 +155,11 @@ def print_subframe(
     ax,
 ):
     draw_base_arrows(ax, moved_base)
-
+    
+    '''
     moved_boundary_faces_nodes = moved_nodes[boundary_faces]
     moved_boundary_faces_centers = np.mean(moved_boundary_faces_nodes, axis=1)
     plot_arrows(ax, starts=moved_boundary_faces_centers, vectors=boundary_faces_normals)
-
 
     moved_boundary_internal_nodes = moved_nodes[boundary_internal_indices]
     ax.scatter(
@@ -167,7 +167,6 @@ def print_subframe(
        s=0.05,
        color="w"
     )
-    '''
     all_boundary_nodes = moved_boundary_faces_nodes.reshape(-1,3)
     ax.scatter(
        all_boundary_nodes[:, 0], all_boundary_nodes[:, 1], all_boundary_nodes[:, 2],
@@ -180,7 +179,6 @@ def print_subframe(
         ax, moved_nodes, boundary_faces, boundary_nodes_indices, elements, "tab:orange",
     )
 
-    '''
     shifted_normalized_nodes = normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(ax, starts=shifted_normalized_nodes, vectors=data)
@@ -195,7 +193,7 @@ def print_subframe(
         )
 
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
-    '''
+    
 
 
 def plt_save(path, extension):

@@ -55,7 +55,7 @@ def create_obstacles(setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle(
         1, config.OBSTACLE_ORIGIN_SCALE
     )
-    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_points
+    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
 
 
@@ -69,7 +69,7 @@ def create_obstacles(setting):
     obstacle_normals_unnormaized = thh.get_random_normal_circle(
         1, config.OBSTACLE_ORIGIN_SCALE
     )
-    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_points
+    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
 
 
