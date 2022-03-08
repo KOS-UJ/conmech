@@ -1,13 +1,6 @@
 import numpy as np
 import pytest
 from conmech.helpers import nph
-from deep_conmech.simulator.matrices.matrices_2d import (
-    get_edges_features_matrix_2d_numba,
-)
-from deep_conmech.simulator.matrices.matrices_3d import (
-    get_edges_features_matrix_3d_numba,
-)
-from deep_conmech.simulator.mesh import mesh_builders
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 
 
@@ -28,7 +21,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     np.testing.assert_allclose(setting.boundary_nodes_volume.sum(), volume)
     np.testing.assert_allclose(
         nph.euclidean_norm_numba(setting.boundary_normals),
-        np.ones((len(setting.boundary_normals), 1)),
+        np.ones(len(setting.boundary_normals)),
     )
 
 
@@ -42,5 +35,5 @@ def test_boundary_nodes_data_3d():
     np.testing.assert_allclose(setting.boundary_nodes_volume.sum(), volume)
     np.testing.assert_allclose(
         nph.euclidean_norm_numba(setting.boundary_normals),
-        np.ones((len(setting.boundary_normals), 1)),
+        np.ones(len(setting.boundary_normals)),
     )

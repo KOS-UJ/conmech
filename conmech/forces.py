@@ -39,9 +39,9 @@ class Forces:
 
             f_mean = (f0 + f1 + f2) / 3  # TODO
 
-            F[element[0]] += f_mean / 3 * self.mesh.element_initial_area[element_id]
-            F[element[1]] += f_mean / 3 * self.mesh.element_initial_area[element_id]
-            F[element[2]] += f_mean / 3 * self.mesh.element_initial_area[element_id]
+            F[element[0]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
+            F[element[1]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
+            F[element[2]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
 
         # np.allclose(self.F2,  self.F)
 

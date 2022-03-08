@@ -4,7 +4,7 @@ from numba import njit
 
 
 @njit  # (parallel=True)
-def get_edges_features_matrix_3d_numba(elements, nodes):
+def get_edges_features_matrix_numba(elements, nodes):
     ELEMENT_NODES_COUNT = 4
     CONNECTED_EDGES_COUNT = 3
     int_Ph = 1 / ELEMENT_NODES_COUNT
@@ -190,5 +190,9 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slic
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step
 
-    return C, B, VOL, A_plus_B_times_ts
+    K = None
+    C2X = None
+    C2Y = None
+    
+    return C, B, VOL, A_plus_B_times_ts, A, ACC, K, C2X, C2Y
 

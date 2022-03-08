@@ -9,7 +9,7 @@ from numba import njit
 
 
 @njit  # (parallel=True)
-def get_edges_features_matrix_2d_numba(elements, nodes):
+def get_edges_features_matrix_numba(elements, nodes):
     ELEMENT_NODES_COUNT = 3
     CONNECTED_EDGES_COUNT = 2
     int_Ph = 1 / ELEMENT_NODES_COUNT

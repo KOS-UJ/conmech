@@ -7,51 +7,16 @@ import numpy as np
 from conmech.helpers import nph
 from matplotlib.gridspec import GridSpec
 
+from deep_conmech.common import config
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_forces import SettingForces
+from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 
-
 catalog = f"output/3D - {thh.CURRENT_TIME}"
-
-######################################################
-mesh_density_x = 5
-setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
-
-edges_features_matrix, element_initial_volume = get_edges_features_matrix_3d_numba(
-    setting.cells, setting.initial_nodes
-)
-# TODO: switch to dictionary
-# rollaxis -> moveaxis
-
-
-mu = 0.01
-la = 0.01
-th = 0.01
-ze = 0.01
-density = 0.01
-time_step = 0.01
-nodes_count = len(setting.initial_nodes)
-independent_nodes_count = nodes_count
-slice_ind = slice(0, nodes_count)
-
-
-C, B, AREA, A_plus_B_times_ts = get_matrices(
-    edges_features_matrix, mu, la, th, ze, density, time_step, slice_ind
-)
-
-
-def get_E(forces, u_old, v_old):
-    F_vector = nph.stack_column(AREA @ forces)
-    u_old_vector = nph.stack_column(u_old)
-    v_old_vector = nph.stack_column(v_old)
-
-    E = F_vector - A_plus_B_times_ts @ v_old_vector - B @ u_old_vector
-    return E
-
 
 ######
 
@@ -76,7 +41,13 @@ def get_forces_by_function(forces_function, initial_nodes, current_time):
     return forces
 
 
-def print_one_dynamic():
+
+######################################################
+
+def main():
+    mesh_density_x = 5
+    setting = SettingForces(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
+
     all_images_paths = []
     extension = "png"  # pdf
     thh.create_folders(catalog)
@@ -84,17 +55,14 @@ def print_one_dynamic():
     scenario_length = 400
 
     for i in range(1, scenario_length + 1):
-        current_time = i * time_step
+        current_time = i * setting.time_step
         print(f"time: {current_time}")
 
         forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
         normalized_forces = setting.normalize_rotate(forces)
-        setting.prepare()  # normalized_forces
+        setting.prepare(normalized_forces)
 
-        normalized_E = get_E(
-            normalized_forces, setting.normalized_u_old, setting.normalized_v_old
-        )
-        normalized_a = nph.unstack(np.linalg.solve(C, normalized_E), dim=3)
+        normalized_a = nph.unstack(np.linalg.solve(setting.C, setting.normalized_E), dim=setting.dim)
         a = setting.denormalize_rotate(normalized_a)
 
         if i % 10 == 0:
@@ -118,8 +86,8 @@ def print_one_dynamic():
                 boundary_internal_indices=setting.boundary_internal_indices,
             )
 
-        setting.set_v_old(setting.v_old + time_step * a)
-        setting.set_u_old(setting.u_old + time_step * setting.v_old)
+        setting.set_v_old(setting.v_old + setting.time_step * a)
+        setting.set_u_old(setting.u_old + setting.time_step * setting.v_old)
 
     path = f"{catalog}/ANIMATION.gif"
 
@@ -134,8 +102,9 @@ def print_one_dynamic():
     for image_path in all_images_paths:
         os.remove(image_path)
 
+if __name__ == "__main__":
+    main()
 
-print_one_dynamic()
 
 
 # %%

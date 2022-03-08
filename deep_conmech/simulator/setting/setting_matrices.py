@@ -1,9 +1,6 @@
 import deep_conmech.common.config as config
 import numpy as np
-from deep_conmech.simulator.matrices.matrices_2d import (
-    get_edges_features_matrix_2d_numba,
-    get_matrices,
-)
+from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
 
@@ -38,7 +35,7 @@ class SettingMatrices(SettingMesh):
         density=config.DENS,
         time_step=config.TIMESTEP,
         reorganize_boundaries=None,
-        with_C=True,
+        with_schur_complement_matrices=True,
     ):
         super().__init__(
             mesh_type,
@@ -60,7 +57,7 @@ class SettingMatrices(SettingMesh):
         self.independent_nodes_count = self.nodes_count
         if reorganize_boundaries is not None:
             reorganize_boundaries()
-        self.with_C = with_C
+        self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.reinitialize_matrices()
 
@@ -70,10 +67,22 @@ class SettingMatrices(SettingMesh):
 
     def reinitialize_matrices(self):
 
+        get_edges_features_matrix = (
+            lambda *args: matrices_2d.get_edges_features_matrix_numba(*args)
+            if self.dim == 2
+            else matrices_3d.get_edges_features_matrix_numba(*args)
+        )
+
+        get_matrices = (
+            lambda *args: matrices_2d.get_matrices(*args)
+            if self.dim == 2
+            else matrices_3d.get_matrices(*args)
+        )
+
         (
             edges_features_matrix,
-            self.element_initial_area,
-        ) = get_edges_features_matrix_2d_numba(self.cells, self.normalized_points)
+            self.element_initial_volume,
+        ) = get_edges_features_matrix(self.cells, self.normalized_points)
 
         # edges_features = get_edges_features_list(
         #    self.edges_number, edges_features_matrix
@@ -100,24 +109,23 @@ class SettingMatrices(SettingMesh):
             slice_ind,
         )
 
-        if self.with_C:
-            self.calculate_C()
+        if self.with_schur_complement_matrices:
+            self.calculate_schur_complement_matrices()
 
-    def calculate_C(self):
+    def calculate_schur_complement_matrices(self):
         p = self.independent_nodes_count
         t = self.boundary_nodes_count
         i = p - t
 
-        # self.C = np.array([[i*j for i in range(4)] for j in range(4)])
         C_split = np.array(
             np.split(
-                np.array(np.split(self.C, config.DIM, axis=-1)), config.DIM, axis=1
+                np.array(np.split(self.C, self.dim, axis=-1)), self.dim, axis=1
             )
         )
-        Ctt = np.moveaxis(C_split[..., :t, :t], 1, 2).reshape(2 * t, 2 * t)
-        self.Cti = np.moveaxis(C_split[..., :t, t:], 1, 2).reshape(2 * t, 2 * i)
-        self.Cit = np.moveaxis(C_split[..., t:, :t], 1, 2).reshape(2 * i, 2 * t)
-        Cii = np.moveaxis(C_split[..., t:, t:], 1, 2).reshape(2 * i, 2 * i)
+        Ctt = np.moveaxis(C_split[..., :t, :t], 1, 2).reshape(self.dim * t, self.dim * t)
+        self.Cti = np.moveaxis(C_split[..., :t, t:], 1, 2).reshape(self.dim * t, self.dim * i)
+        self.Cit = np.moveaxis(C_split[..., t:, :t], 1, 2).reshape(self.dim * i, self.dim * t)
+        Cii = np.moveaxis(C_split[..., t:, t:], 1, 2).reshape(self.dim * i, self.dim * i)
 
         self.CiiINV = np.linalg.inv(Cii)
         CiiINVCit = self.CiiINV @ self.Cit
@@ -125,8 +133,10 @@ class SettingMatrices(SettingMesh):
 
         self.C_boundary = Ctt - CtiCiiINVCit
 
+
+
     def clear_save(self):
-        self.element_initial_area = None
+        self.element_initial_volume = None
         self.A = None
         self.ACC = None
         self.K = None
