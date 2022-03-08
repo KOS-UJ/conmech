@@ -75,8 +75,6 @@ class GraphModelDynamic:
     def boundary_nodes_counts(self, batch):
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
-    def boundary_faces_counts(self, batch):
-        return thh.to_np_long(batch.boundary_fac_count).tolist()
 
     def get_split(self, batch, index, graph_sizes):
         value = batch.x[:, index * config.DIM : (index + 1) * config.DIM]
@@ -193,7 +191,6 @@ class GraphModelDynamic:
         # graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        boundary_faces_counts = self.boundary_faces_counts(batch)
         dim_graph_sizes = [size * config.DIM for size in graph_sizes]
         dim_dim_graph_sizes = [
             (size * config.DIM) ** config.DIM for size in graph_sizes
@@ -214,13 +211,18 @@ class GraphModelDynamic:
         normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
             boundary_nodes_counts
         )
-        boundary_faces_split = batch.boundary_fac.split(boundary_faces_counts)
-        normalized_closest_to_faces_obstacle_normals_split = batch.normalized_closest_to_fac_obstacle_normals.split(
-            boundary_faces_counts
+        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(boundary_nodes_counts)
+
+        normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
+            boundary_nodes_counts
         )
-        normalized_closest_to_faces_obstacle_origins_split = batch.normalized_closest_to_fac_obstacle_origins.split(
-            boundary_faces_counts
+        normalized_boundary_obstacle_normals_split = batch.normalized_boundary_obstacle_normals.split(
+            boundary_nodes_counts
         )
+        boundary_nodes_volume_split = batch.boundary_nodes_volume.split(
+            boundary_nodes_counts
+        )
+
 
         if hasattr(batch, "exact_normalized_a"):
             exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
@@ -231,17 +233,7 @@ class GraphModelDynamic:
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]
-            #
-            normalized_boundary_v_old = normalized_boundary_v_old_split[i]
-            normalized_boundary_nodes = normalized_boundary_nodes_split[i]
-            boundary_faces = boundary_faces_split[i]
-            normalized_closest_to_faces_obstacle_normals = normalized_closest_to_faces_obstacle_normals_split[
-                i
-            ]
-            normalized_closest_to_faces_obstacle_origins = normalized_closest_to_faces_obstacle_origins_split[
-                i
-            ]
-
+            
             predicted_normalized_a = predicted_normalized_a_split[i]
             # + setting.predicted_normalized_a_mean_cuda
             # predicted_normalized_L2 = setting_input.L2_normalized_correction_cuda(
@@ -253,11 +245,14 @@ class GraphModelDynamic:
                 normalized_a_correction,
                 C,
                 normalized_E,
-                normalized_boundary_v_old,
-                normalized_boundary_nodes,
-                boundary_faces,
-                normalized_closest_to_faces_obstacle_normals,
-                normalized_closest_to_faces_obstacle_origins,
+
+                normalized_boundary_v_old_split[i],
+                normalized_boundary_nodes_split[i],
+                normalized_boundary_normals_split[i],
+
+                normalized_boundary_obstacle_nodes_split[i],
+                normalized_boundary_obstacle_normals_split[i],
+                boundary_nodes_volume_split[i]
             )
 
             loss += predicted_normalized_L2

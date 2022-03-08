@@ -142,18 +142,20 @@ class SettingInput(SettingRandomized):
             x=thh.set_precision(self.x),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
+            setting_index=setting_index,
+            
+            normalized_a_correction=self.normalized_a_correction_torch,
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
-            normalized_a_correction=self.normalized_a_correction_torch,
-            setting_index=setting_index,
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
-            normalized_closest_to_fac_obstacle_normals=self.normalized_closest_to_faces_obstacle_normals_torch,
-            normalized_closest_to_fac_obstacle_origins=self.normalized_closest_to_faces_obstacle_origins_torch,
-            boundary_nodes_count=self.boundary_nodes_count_torch,
             normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
-            boundary_fac_count=self.boundary_faces_count_torch,
-            boundary_fac=self.boundary_faces_torch,
+            normalized_boundary_normals=self.normalized_boundary_normals_torch,
+            normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
+            normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
+            boundary_nodes_volume=self.boundary_nodes_volume_torch,
+            
+            boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1
         )

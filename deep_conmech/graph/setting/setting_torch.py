@@ -93,16 +93,20 @@ class SettingTorch(SettingObstacle):
         return thh.to_torch_double(self.normalized_boundary_nodes)
 
     @property
-    def normalized_closest_to_faces_obstacle_normals_torch(self):
-        return thh.to_torch_double(self.normalized_closest_to_faces_obstacle_normals)
+    def normalized_boundary_normals_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_normals)
+        
+    @property
+    def normalized_boundary_obstacle_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
 
     @property
-    def normalized_closest_to_faces_obstacle_origins_torch(self):
-        return thh.to_torch_double(self.normalized_closest_to_faces_obstacle_origins)
+    def normalized_boundary_obstacle_normals_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
 
     @property
-    def angle_torch(self):
-        return thh.to_torch_double(self.angle)
+    def boundary_nodes_volume_torch(self):
+        return thh.to_torch_double(self.boundary_nodes_volume)
 
     @property
     def normalized_E_torch(self):
