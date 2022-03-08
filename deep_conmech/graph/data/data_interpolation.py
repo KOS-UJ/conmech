@@ -12,7 +12,7 @@ def weighted_mean_numba(v1, v2, scale):
 
 @njit
 def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
-    min = [0., 0.]  #########
+    min = [0.0, 0.0]  #########
     x_scale = (initial_point[0] - min[0]) / scale_x
     y_scale = (initial_point[1] - min[1]) / scale_y
 
@@ -24,21 +24,20 @@ def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
 
 
 @njit
-def interpolate_numba(count, initial_points, corner_vectors, scale_x, scale_y):
-    dim = initial_points.shape[1]
+def interpolate_numba(count, initial_nodes, corner_vectors, scale_x, scale_y):
+    dim = initial_nodes.shape[1]
     result = np.zeros((count, dim))
     for i in range(count):
-        initial_point = initial_points[i]
-        result[i] = interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y)
+        initial_point = initial_nodes[i]
+        result[i] = interpolate_point_numba(
+            initial_point, corner_vectors, scale_x, scale_y
+        )
     return result
-
-
-
-
 
 
 def decide(scale):
     return np.random.uniform(low=0, high=1) < scale
+
 
 def choose(list):
     return random.choice(list)
@@ -57,9 +56,19 @@ def get_corner_vectors_four(scale):
     return corner_vectors
 
 
-def interpolate_rotate(count, initial_points, randomization_scale, setting_scale):
-    return interpolate_numba(count, initial_points, get_corner_vectors_rotate(randomization_scale), setting_scale)
+def interpolate_rotate(count, initial_nodes, randomization_scale, setting_scale):
+    return interpolate_numba(
+        count,
+        initial_nodes,
+        get_corner_vectors_rotate(randomization_scale),
+        setting_scale,
+    )
 
 
-def interpolate_four(count, initial_points, randomization_scale, setting_scale):
-    return interpolate_numba(count, initial_points, get_corner_vectors_four(randomization_scale), setting_scale)
+def interpolate_four(count, initial_nodes, randomization_scale, setting_scale):
+    return interpolate_numba(
+        count,
+        initial_nodes,
+        get_corner_vectors_four(randomization_scale),
+        setting_scale,
+    )

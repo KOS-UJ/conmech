@@ -2,8 +2,8 @@ import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
-from numba import njit
 from conmech.helpers import nph
+from numba import njit
 
 # import os, sys
 # sys.path.append(os.path.abspath('../'))
@@ -79,23 +79,40 @@ def move_boundary_points_to_start(
 
 
 @njit
-def get_furthest_apart(points):
-    max_dist = 0.0
-    max_i, max_j = 0, 0
-    nodes_count = len(points)
+def get_closest_to_axis(nodes, variable):
+    min_error = 1.0
+    final_i, final_j = 0, 0
+    nodes_count = len(nodes)
     for i in range(nodes_count):
-        for j in range(i, nodes_count):
-            dist = nph.euclidean_norm_numba(points[i] - points[j])
-            if dist > max_dist:
-                max_dist = dist
-                max_i, max_j = i, j
+        for j in range(i + 1, nodes_count):
+            # dist = np.abs(nodes[i, variable] - nodes[j, variable])
+            error = nph.euclidean_norm_numba(
+                np.delete(nodes[i], variable) - np.delete(nodes[j], variable)
+            )
+            if error < min_error:
+                min_error, final_i, final_j = error, i, j
 
-    if nph.euclidean_norm_numba(points[max_i]) < nph.euclidean_norm_numba(
-        points[max_j]
-    ):
-        return [max_i, max_j]
-    else:
-        return [max_j, max_i]
+    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
+    indices = (final_i, final_j) if correct_order else (final_j, final_i)
+    return np.array([error, indices[0], indices[1]])
+
+
+def get_base_seed_indices(nodes):
+    dim = nodes.shape[1]
+    base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
+    errors = np.zeros(dim)
+    for i in range(dim):
+        result = get_closest_to_axis(nodes, i)
+        errors[i] = result[0]
+        base_seed_indices[i] = result[1:].astype(np.int64)
+        # print(f"MIN ERROR for variable {i}: {errors[i]}")
+    return base_seed_indices, np.argmin(errors)
+
+
+def get_base(nodes, base_seed_indices, closest_seed_index):
+    base_seed_initial_nodes = nodes[base_seed_indices]
+    base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
+    return nph.complete_base(base_seed, closest_seed_index)
 
 
 ############
@@ -158,7 +175,7 @@ class SettingMesh:
             self.boundary_edges_count,
         ) = self.clean_mesh(unordered_points, unordered_cells)
 
-        self.rotation_reference_indices = get_furthest_apart(
+        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(
             self.boundary_points_initial
         )
 
@@ -208,101 +225,71 @@ class SettingMesh:
         internal_nodes = self.moved_points[self.boundary_edges_internal_nodes]
         tail_nodes, head_nodes = edges_nodes[:, 0], edges_nodes[:, 1]
 
-        unoriented_normals = nph.get_oriented_tangential_numba(
-            nph.normalize(head_nodes - tail_nodes)
+        unoriented_normals = nph.get_tangential_2d(
+            nph.normalize_euclidean_numba(head_nodes - tail_nodes)
         )
         internal_orientation = np.sign(
-            nph.elementwise_dot(
-                internal_nodes - tail_nodes, unoriented_normals
-            )
+            nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals)
         )
         result = unoriented_normals * (-1) * internal_orientation.reshape(-1, 1)
         return result
 
     @property
     def normalized_boundary_edges_normals(self):
-        return self.rotate_to_upward(self.boundary_edges_normals)
+        return self.normalize_rotate(self.boundary_edges_normals)
 
     @property
     def normalized_a_old(self):
-        return self.rotate_to_upward(self.a_old)
+        return self.normalize_rotate(self.a_old)
 
     @property
     def mean_moved_points(self):
         return np.mean(self.moved_points, axis=0)
 
     @property
-    def mean_initial_points(self):
+    def mean_initial_nodes(self):
         return np.mean(self.initial_nodes, axis=0)
 
     @property
     def normalized_points(self):
-        return self.rotate_to_upward(self.moved_points - self.mean_moved_points)
+        return self.normalize_rotate(self.moved_points - self.mean_moved_points)
 
     @property
-    def normalized_initial_points(self):
-        return self.initial_nodes - self.mean_initial_points
+    def normalized_initial_nodes(self):
+        return self.initial_nodes - self.mean_initial_nodes
 
     @property
     def normalized_v_old(self):
-        return self.rotate_to_upward(self.v_old - np.mean(self.v_old, axis=0))
+        return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))
 
     @property
     def normalized_u_old(self):
         # TODO: Rozkminić
-        # normalized_u_old2 = self.rotate_to_upward(
+        # normalized_u_old2 = self.normalize_rotate(
         #    self.u_old - np.mean(self.u_old, axis=0)
         # )
-        return self.normalized_points - self.normalized_initial_points
-        # return self.rotate_to_upward(self.moved_points - np.mean(self.moved_points, axis=0)) - self.normalized_initial_points
+        return self.normalized_points - self.normalized_initial_nodes
+        # return self.normalize_rotate(self.moved_points - np.mean(self.moved_points, axis=0)) - self.normalized_initial_nodes
 
     @property
     def origin_u_old(self):
-        return self.rotate_from_upward(self.normalized_u_old)
+        return self.denormalize_rotate(self.normalized_u_old)
 
     @property
     def moved_points(self):
         return self.initial_nodes + self.u_old
 
     @property
-    def initial_reference_points(self):
-        return self.initial_nodes[self.rotation_reference_indices]
-
-    @property
-    def moved_reference_points(self):
-        return self.moved_points[self.rotation_reference_indices]
-
-    @property
-    def normalized_reference_points(self):
-        return self.normalized_points[self.rotation_reference_indices]
-
-    @property
-    def initial_reference_vector(self):
-        return self.initial_reference_points[1] - self.initial_reference_points[0]
-
-    @property
-    def moved_reference_vector(self):
-        return self.moved_reference_points[1] - self.moved_reference_points[0]
-
-    @property
-    def up_vector(self):
-        if not config.NORMALIZE_ROTATE:
-            return np.array([0.0, 1.0])
-
-        reference_vector = nph.rotate_up_numba(
-            self.moved_reference_vector, self.initial_reference_vector
+    def moved_base(self):
+        return get_base(
+            self.moved_points, self.base_seed_indices, self.closest_seed_index
         )
-        reference_vector = reference_vector / nph.euclidean_norm_numba(
-            reference_vector
-        )
-        return reference_vector
 
+    def normalize_rotate(self, vectors):
+        return nph.get_in_base(vectors, self.moved_base)
 
-    def rotate_to_upward(self, vectors):
-        return nph.rotate_up_numba(vectors, self.up_vector)
-
-    def rotate_from_upward(self, vectors):
-        return nph.rotate_up_numba(vectors, self.up_vector * [-1.0, 1.0])
+    def denormalize_rotate(self, vectors):
+        return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     @property
     def edges_moved_points(self):
@@ -356,7 +343,7 @@ class SettingMesh:
     @property
     def normalized_v_nt_old(self):
         normalized_v_n_old = self.project(
-            self.normalized_v_old, self.normalized_initial_points
+            self.normalized_v_old, self.normalized_initial_nodes
         )
         normalized_v_t_old = self.normalized_v_old - normalized_v_n_old
         return normalized_v_n_old, normalized_v_t_old

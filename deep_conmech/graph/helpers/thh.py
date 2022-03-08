@@ -84,20 +84,6 @@ def get_tqdm(iterable, desc=None, position=None):
 
 
 
-def get_oriented_tangential_torch(normal):
-    tangential = torch.tensor([normal[1], -normal[0]]).to(device)
-    return tangential
-
-def rotate_up_torch(old_vectors, up_vector):
-    tangential = get_oriented_tangential_torch(up_vector)
-    result = torch.vstack((old_vectors @ tangential, old_vectors @ up_vector)).T
-    return result
-
-
-
-
-
-
 class MaxData:
     def __init__(self, description, episode_steps):
         self.description = description

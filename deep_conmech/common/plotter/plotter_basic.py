@@ -11,11 +11,6 @@ from matplotlib.ticker import LinearLocator
 import deep_conmech.common.config as config
 from deep_conmech.simulator.setting.setting_forces import *
 
-background_color = "24292E"  # '1F2428'
-plt.rcParams["axes.facecolor"] = background_color
-plt.rcParams["figure.facecolor"] = background_color
-
-
 class Plotter:
     # plt.axes.set_aspect("equal")
     # print(numba.cuda.gpus)
@@ -36,28 +31,20 @@ class Plotter:
 
     ###########################
 
-    def get_multiple_axs(self, rows, columns):
-        plt.figure()
-        fig, axs = plt.subplots(rows, columns)
-        # fig.patch.set_facecolor('white')
-        # fig.patch.set_alpha(0.6)
-        return axs
 
     def get_one_ax(self):
-        return plt.axes()
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, facecolor="none")
+        return ax
 
-    def draw_setting_ax(self, setting, ax, boundaries, base_setting, time):
+    def draw_setting_ax(self, setting, ax, base_setting, time):
         ax.set_aspect("equal", "box")
-        min = np.array([0.0, 0.0])
-        max = np.array([setting.scale_x, setting.scale_y])
         scale = setting.scale_x
 
-        x_min = -3.0 * 2.0  # min[0] - (boundaries[0] * scale)
-        x_max = 13.0 * 2.0  # max[0] + (boundaries[2] * scale)
-        y_min = -3.0 * 2.0  # min[1] - (boundaries[3] * scale)
-        y_max = 2.0 * 2.0  # max[1] + (boundaries[1] * scale)
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+        x_max = 20.
+        y_max = 3
+        ax.set_xlim(-4, x_max)
+        ax.set_ylim(-4, y_max)
 
         self.draw_main_displaced(setting, ax)
         # self.draw_obstacle_resistance_main(setting, ax)
@@ -165,7 +152,7 @@ class Plotter:
     def draw_main_displaced(self, setting, ax):
         position = np.array([0.0, 0.0])
         self.draw_displaced(setting, position, "orange", ax)
-        self.draw_points(setting.moved_reference_points, position, "orange", ax)
+        #self.draw_points(setting.moved_reference_points, position, "orange", ax)
         if setting.obstacles is not None:
             self.draw_obstacles(
                 setting.obstacle_origins, setting.obstacle_normals, position, ax
@@ -253,7 +240,7 @@ class Plotter:
             color="w",
             fontsize=5,
         )
-
+    '''
     def draw_angles(self, setting, ax):
         scale = 10.0
         up_vector = setting.up_vector
@@ -270,8 +257,8 @@ class Plotter:
         )
 
         ax.annotate(str(round(setting.angle, 4)), xy=(0.5, 1.5))
-
-    """
+    '''
+    '''
     def draw_boundary_arrows(self, setting, normalized_vectors, position, ax):
         scale = 1.0
         points = setting.normalized_boundary_points + position
@@ -289,7 +276,7 @@ class Plotter:
                 color="w",
                 zorder=2,
             )
-    """
+    '''
 
     def draw_arrows(self, points, normalized_vectors, ax):
         nodes_count = len(points)
@@ -333,10 +320,11 @@ class Plotter:
         plt.savefig(
             path,
             transparent=False,
+            facecolor="#24292E",  # AAAAAA',
             bbox_inches="tight",
+            pad_inches=0.0,
             format=extension,
-            pad_inches=0.1,
-            dpi=800,  # 1200,
+            dpi=1000,  # 800 1200,
         )
         plt.close()
 

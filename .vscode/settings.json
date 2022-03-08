@@ -1,8 +1,0 @@
-{
-    /*"python.autoComplete.extraPaths": ["${workspaceFolder}"],*/
-    "jupyter.notebookFileRoot": "${workspaceFolder}",
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.pytestEnabled": true
-}

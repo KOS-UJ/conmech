@@ -64,11 +64,11 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_v_old_randomization(self):
-        return self.rotate_to_upward(self.v_old_randomization)
+        return self.normalize_rotate(self.v_old_randomization)
 
     @property
     def normalized_u_old_randomization(self):
-        return self.rotate_to_upward(self.u_old_randomization)
+        return self.normalize_rotate(self.u_old_randomization)
 
     @property
     def randomized_v_old(self):
@@ -126,7 +126,7 @@ class SettingRandomized(SettingTorch):
 
     @property
     def normalized_a_correction(self):
-        return self.rotate_to_upward(self.a_correction)
+        return self.normalize_rotate(self.a_correction)
 
     @property
     def normalized_a_correction_torch(self):
@@ -157,7 +157,7 @@ class SettingRandomized(SettingTorch):
         return self
 
     def remesh_self(self):
-        old_initial_points = self.initial_nodes.copy()
+        old_initial_nodes = self.initial_nodes.copy()
         old_cells = self.cells.copy()
         u_old = self.u_old.copy()
         v_old = self.v_old.copy()
@@ -166,13 +166,13 @@ class SettingRandomized(SettingTorch):
         self.remesh()
 
         u = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_points, u_old, old_cells
+            self.initial_nodes, old_initial_nodes, u_old, old_cells
         )
         v = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_points, v_old, old_cells
+            self.initial_nodes, old_initial_nodes, v_old, old_cells
         )
         a = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_points, a_old, old_cells
+            self.initial_nodes, old_initial_nodes, a_old, old_cells
         )
 
         self.set_u_old(u)

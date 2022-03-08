@@ -98,7 +98,7 @@ class Calculator:
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):
-        return setting.rotate_from_upward(normalized_cleaned_a)
+        return setting.denormalize_rotate(normalized_cleaned_a)
 
     @staticmethod
     def get_normalized_a_vector(setting, normalized_Ei, normalized_at_vector):
@@ -107,10 +107,7 @@ class Calculator:
         )
 
         normalized_a = np.vstack(
-            (
-                nph.unstack(normalized_at_vector),
-                nph.unstack(normalized_ai_vector),
-            )
+            (nph.unstack(normalized_at_vector), nph.unstack(normalized_ai_vector),)
         )
         normalized_a_vector = nph.stack(normalized_a)
         return normalized_a_vector
