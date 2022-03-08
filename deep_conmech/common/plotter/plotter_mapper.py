@@ -25,7 +25,7 @@ def print_dataset(dataset, cutoff, timestamp, description):
         #    setting.set_forces(np.random.uniform(
         #        low= -config.FORCES_DATA_SCALE,
         #        high= config.FORCES_DATA_SCALE,
-        #        size=(setting.nodes_count, config.DIM)
+        #        size=(setting.nodes_count, dim)
         #    ))
         #    test_setting(setting)
         #    a = setting.calculate_normalized()

@@ -71,7 +71,7 @@ class Calculator:
     def solve_normalized_optimization(setting, initial_boundary_vector=None):
         if initial_boundary_vector is None:
             initial_boundary_vector = np.zeros(
-                setting.boundary_nodes_count * config.DIM
+                setting.boundary_nodes_count * setting.dim
             )
 
         tstart = time.time()

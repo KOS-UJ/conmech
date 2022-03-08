@@ -12,7 +12,7 @@ from torch_geometric.loader import DataLoader
 
 def create_forces(setting):
     if data_interpolation.decide(config.DATA_ZERO_FORCES):
-        forces = np.zeros([setting.nodes_count, config.DIM])
+        forces = np.zeros([setting.nodes_count, dim])
     else:
         forces = data_interpolation.interpolate_four(
             setting.nodes_count,

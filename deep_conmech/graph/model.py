@@ -76,8 +76,8 @@ class GraphModelDynamic:
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
 
-    def get_split(self, batch, index, graph_sizes):
-        value = batch.x[:, index * config.DIM : (index + 1) * config.DIM]
+    def get_split(self, batch, index, dim, graph_sizes):
+        value = batch.x[:, index * dim : (index + 1) * dim]
         value_split = value.split(graph_sizes)
         return value_split
 
@@ -189,11 +189,12 @@ class GraphModelDynamic:
 
     def E(self, batch):
         # graph_couts = [1 for i in range(batch.num_graphs)]
+        dim = -1
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        dim_graph_sizes = [size * config.DIM for size in graph_sizes]
+        dim_graph_sizes = [size * dim for size in graph_sizes]
         dim_dim_graph_sizes = [
-            (size * config.DIM) ** config.DIM for size in graph_sizes
+            (size * dim) ** dim for size in graph_sizes
         ]
 
         loss = 0.0
@@ -229,7 +230,7 @@ class GraphModelDynamic:
 
         # dataset = StepDataset(batch.num_graphs)
         for i in range(batch.num_graphs):
-            C_side_len = graph_sizes[i] * config.DIM
+            C_side_len = graph_sizes[i] * dim
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]

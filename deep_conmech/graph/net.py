@@ -306,7 +306,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         self.decoder = ForwardNet(
             input_dim=config.LATENT_DIM,
             layers_count=config.DEC_LAYER_COUNT,
-            output_linear_dim=config.DIM,
+            output_linear_dim=dim,
         )
         """
         self.vector_encoder = MLP(
@@ -319,7 +319,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         )
         self.decoder = MLP(
             input_dim=config.LATENT_DIM,
-            output_linear_dim=config.DIM,
+            output_linear_dim=dim,
             output_bias=False
         )
         """

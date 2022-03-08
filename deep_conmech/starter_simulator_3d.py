@@ -10,11 +10,10 @@ from matplotlib.gridspec import GridSpec
 from deep_conmech.common import config
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
+from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.setting_forces import SettingForces
-from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
-from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
@@ -41,12 +40,19 @@ def get_forces_by_function(forces_function, initial_nodes, current_time):
     return forces
 
 
-
 ######################################################
 
+
 def main():
-    mesh_density_x = 5
-    setting = SettingForces(mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x)
+    mesh_density_x = 3
+    # meshzoo_cube_3d
+    # meshzoo_ball_3d
+    # pygmsh_3d
+    setting = SettingObstacles(
+        mesh_type="meshzoo_ball_3d", mesh_density_x=mesh_density_x
+    )
+    obstacles = np.array([[[-1.0, 0.0, 1.0]], [[3.0, 0.0, 0.0]]])
+    setting.set_obstacles(obstacles)
 
     all_images_paths = []
     extension = "png"  # pdf
@@ -62,28 +68,21 @@ def main():
         normalized_forces = setting.normalize_rotate(forces)
         setting.prepare(normalized_forces)
 
-        normalized_a = nph.unstack(np.linalg.solve(setting.C, setting.normalized_E), dim=setting.dim)
+        normalized_a = Calculator.solve_normalized(setting)
         a = setting.denormalize_rotate(normalized_a)
 
         if i % 10 == 0:
-            plotter_3d.print_frame(
-                moved_nodes=setting.moved_nodes,
-                normalized_nodes=setting.normalized_points,
+            plotter_3d.plot_frame(
+                setting=setting,
                 normalized_data=[
                     normalized_forces * 20,
                     setting.normalized_u_old,
                     setting.normalized_v_old,
                     normalized_a,
                 ],
-                elements=setting.cells,
                 path=f"{catalog}/{int(thh.get_timestamp() * 100)}.{extension}",
                 extension=extension,
                 all_images_paths=all_images_paths,
-                moved_base=setting.moved_base,
-                boundary_nodes_indices=setting.boundary_nodes_indices,
-                boundary_faces=setting.boundary_faces,
-                boundary_faces_normals=setting.boundary_faces_normals,
-                boundary_internal_indices=setting.boundary_internal_indices,
             )
 
         setting.set_v_old(setting.v_old + setting.time_step * a)
@@ -102,9 +101,9 @@ def main():
     for image_path in all_images_paths:
         os.remove(image_path)
 
+
 if __name__ == "__main__":
     main()
-
 
 
 # %%

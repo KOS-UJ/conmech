@@ -116,21 +116,21 @@ def L2_obstacle(
         boundary_v_new,
         boundary_nodes_volume,
     )
-    #boundary_integral = integrate_numba(*args)
-    boundary_integral = integrate(*args)
+    boundary_integral = integrate_numba(*args)
+    #boundary_integral = integrate(*args)
     return value + boundary_integral
 
 
-class SettingObstacle(SettingForces):
+class SettingObstacles(SettingForces):
     def __init__(
         self,
         mesh_type,
         mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        mesh_density_y=None,
+        scale_x=None,
+        scale_y=None,
+        is_adaptive=False,
+        create_in_subprocess=False
     ):
         super().__init__(
             mesh_type,

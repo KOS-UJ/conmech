@@ -2,7 +2,7 @@ from deep_conmech.simulator.setting.setting_obstacles import *
 from deep_conmech.graph.helpers import thh
 
 
-class SettingTorch(SettingObstacle):
+class SettingTorch(SettingObstacles):
     def __init__(
         self,
         mesh_type,
