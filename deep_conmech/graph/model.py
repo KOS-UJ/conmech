@@ -40,6 +40,7 @@ class GraphModelDynamic:
     def __init__(
         self, train_dataset, all_val_datasets, print_scenarios,
     ):
+        self.dim = train_dataset.dim #TODO: Check validation datasets
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
@@ -53,7 +54,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet().to(thh.device)
+        self.net = CustomGraphNet(self.dim).to(thh.device)
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -189,12 +190,11 @@ class GraphModelDynamic:
 
     def E(self, batch):
         # graph_couts = [1 for i in range(batch.num_graphs)]
-        dim = -1
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        dim_graph_sizes = [size * dim for size in graph_sizes]
+        dim_graph_sizes = [size * self.dim for size in graph_sizes]
         dim_dim_graph_sizes = [
-            (size * dim) ** dim for size in graph_sizes
+            (size *  self.dim) **  self.dim for size in graph_sizes
         ]
 
         loss = 0.0
@@ -230,7 +230,7 @@ class GraphModelDynamic:
 
         # dataset = StepDataset(batch.num_graphs)
         for i in range(batch.num_graphs):
-            C_side_len = graph_sizes[i] * dim
+            C_side_len = graph_sizes[i] * self.dim
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]

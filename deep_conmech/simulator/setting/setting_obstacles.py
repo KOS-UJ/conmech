@@ -116,8 +116,9 @@ def L2_obstacle(
         boundary_v_new,
         boundary_nodes_volume,
     )
-    boundary_integral = integrate_numba(*args)
-    #boundary_integral = integrate(*args)
+
+
+    boundary_integral = integrate_numba(*args) if a is np.array else integrate(*args)
     return value + boundary_integral
 
 

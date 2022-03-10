@@ -2,7 +2,7 @@ from matplotlib.pyplot import draw
 
 from deep_conmech.graph.helpers import thh
 import deep_conmech.common.config as config
-import deep_conmech.common.examples as examples
+import deep_conmech.common.scenarios as scenarios
 import deep_conmech.common.plotter.plotter_mapper as mapper
 from deep_conmech.simulator.calculator import Calculator
 
@@ -23,7 +23,7 @@ def run_conmech_dynamic(all_scenatrios):
 
 
 def main():
-    scenarios = examples.all_simulator
+    scenarios = scenarios.all_simulator
     run_conmech_dynamic(scenarios)
 
 

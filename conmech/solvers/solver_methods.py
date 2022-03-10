@@ -182,6 +182,6 @@ def make_cost_functional_temperature(
     def cost_functional(temp_vector, nodes, contact_boundaries, T, Q, u_vector):
         # TODO #31
         return 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
-               - contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
+               #- contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
 
     return cost_functional

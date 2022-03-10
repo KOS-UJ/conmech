@@ -1,7 +1,7 @@
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.model import GraphModelDynamic
-import deep_conmech.common.examples as examples
+import deep_conmech.common.scenarios as scenarios
 from deep_conmech.graph.helpers import thh
 
 
@@ -12,12 +12,12 @@ def main():
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
     # train_dataset = TrainingSyntheticDatasetDynamic()
-    train_dataset = TrainingScenariosDatasetDynamic(examples.all_train)
+    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
     all_val_datasets = [
-        ValidationDatasetDynamic(scenario) for scenario in examples.all_print
+        ValidationDatasetDynamic(scenario) for scenario in scenarios.all_print
     ]
 
-    model = GraphModelDynamic(train_dataset, all_val_datasets, examples.all_print)
+    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print)
     if path is not None:
         model.load(path)
         model.print_raport()

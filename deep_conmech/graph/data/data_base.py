@@ -85,7 +85,8 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 
 
 class BaseDatasetDynamic:
-    def __init__(self, relative_path, data_count, randomize_at_load):
+    def __init__(self, dim, relative_path, data_count, randomize_at_load):
+        self.dim=dim
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load

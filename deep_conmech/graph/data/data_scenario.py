@@ -79,9 +79,11 @@ def generate_scenario_data_process(dataset, all_scenarios, num_workers, process_
 
 class TrainingScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(self, base_scenarios, repetitions=2):
+        dim = base_scenarios[0].dim #TODO: Check other
         self.all_scenarios = base_scenarios * repetitions
         data_count = config.VAL_PRINT_EPISODE_STEPS * len(self.all_scenarios)
         super().__init__(
+            dim,
             relative_path="training_scenarios",
             data_count=data_count,
             randomize_at_load=True,
@@ -107,6 +109,7 @@ class TrainingScenariosDatasetDynamic(BaseDatasetDynamic):
 class ValidationDatasetDynamic(BaseDatasetDynamic):
     def __init__(self, scenario):
         super().__init__(
+            dim=scenario.dim,
             relative_path=f"validation/{scenario.id}",
             data_count=config.VAL_PRINT_EPISODE_STEPS,
             randomize_at_load=False,

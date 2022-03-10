@@ -280,7 +280,7 @@ class ProcessorLayer(MessagePassing):
 
 
 class CustomGraphNet(nn.Module):  # SAMPLE
-    def __init__(self):
+    def __init__(self, output_dim):
         super().__init__()
 
         self.vector_encoder = ForwardNet(
@@ -306,7 +306,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         self.decoder = ForwardNet(
             input_dim=config.LATENT_DIM,
             layers_count=config.DEC_LAYER_COUNT,
-            output_linear_dim=dim,
+            output_linear_dim=output_dim,
         )
         """
         self.vector_encoder = MLP(

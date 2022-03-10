@@ -143,6 +143,7 @@ class Scenario:
         forces_function,
         obstacles,
         is_adaptive,
+        dim=2,
         duration=None,
         is_randomized=None,
     ):
@@ -153,6 +154,7 @@ class Scenario:
         self.forces_function = forces_function
         self.obstacles = obstacles
         self.is_adaptive = is_adaptive
+        self.dim=dim
         self.duration = duration
         self.is_randomized = is_randomized
 

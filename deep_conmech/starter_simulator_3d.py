@@ -49,7 +49,7 @@ def main():
     # meshzoo_ball_3d
     # pygmsh_3d
     setting = SettingObstacles(
-        mesh_type="meshzoo_ball_3d", mesh_density_x=mesh_density_x
+        mesh_type="pygmsh_3d", mesh_density_x=mesh_density_x
     )
     obstacles = np.array([[[-1.0, 0.0, 1.0]], [[3.0, 0.0, 0.0]]])
     setting.set_obstacles(obstacles)
