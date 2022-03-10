@@ -305,5 +305,6 @@ all_print = [
 
 all_simulator = [
     #polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False)
+    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False),
+    circle_right(scale=config.TRAIN_SCALE, is_adaptive=True)
 ]

@@ -111,12 +111,6 @@ class SchurComplement(Optimization):
                 [arrays[ind10][indices], arrays[ind11][indices]],
             ]
         )
-        # result = np.bmat(
-        #     [
-        #         [arrays[0, 0][indices[0]][:, indices[1]], arrays[0, 1][indices[0]][:, indices[1]]],
-        #         [arrays[1, 0][indices[0]][:, indices[1]], arrays[1, 1][indices[0]][:, indices[1]]],
-        #     ]
-        # )
         return result
 
     @property
@@ -259,7 +253,9 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        T = (1 / self.time_step) * self.ACC[0, 0] + self.K
+        T = (1 / self.time_step) \
+            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
+            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
 
         # Tii
         T_free_x_free = T[self.free_ids, self.free_ids]
@@ -298,7 +294,7 @@ class Dynamic(Quasistatic):
         C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
         C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
 
-        X += np.stack((C2XTemp, C2YTemp), axis=-1)
+        X += -1 * np.stack((C2XTemp, C2YTemp), axis=-1)
 
         return self.forces.F + X
 
@@ -323,7 +319,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        Q1 = (1.0 / self.time_step) * np.squeeze(
+        Q1 = (1 / self.time_step) * np.squeeze(
             np.asarray(
                 self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
                 @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),

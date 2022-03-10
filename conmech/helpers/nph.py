@@ -15,6 +15,8 @@ def stack(data):
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
+    
+stack_column_numba = numba.njit(stack_column)
 
 
 def unstack(data, dim):
@@ -37,12 +39,13 @@ def euclidean_norm(vector):
     if isinstance(data, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
+    # return np.linalg.norm(vector, axis=-1)
+    # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
 
 @njit
 def euclidean_norm_numba(vector):
-    return np.sqrt((vector ** 2).sum(axis=-1))
-    # return np.linalg.norm(vector, axis=-1)
-    # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
+    data = (vector ** 2).sum(axis=-1)
+    return np.sqrt(data)
 
 
 @njit
@@ -123,9 +126,7 @@ def max_numba(corners):
 # TODO : use slice instead of int
 
 
-@njit
-def stack_column_numba(data):
-    return data.T.flatten().reshape(-1, 1)
+
 
 
 @njit

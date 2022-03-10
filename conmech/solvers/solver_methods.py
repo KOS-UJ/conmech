@@ -165,7 +165,7 @@ def make_cost_functional_temperature(
 
                 # ASSUMING `u_vector` and `nodes` have the same order!
                 um = interpolate_point_between(n_id_0, n_id_1, u_vector)
-                tm = interpolate_point_between(n_id_0, n_id_1, temperature, dimension=1)
+                tm = interpolate_point_between(n_id_0, n_id_1, temperature, dimension=1)[0]
 
                 normal_vector = n_down(n_0, n_1)
 
@@ -180,8 +180,9 @@ def make_cost_functional_temperature(
 
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundaries, T, Q, u_vector):
-        # TODO #31
-        return 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
-               #- contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
+        result = 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
+               - contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
+        result = np.asarray(result).ravel()
+        return result
 
     return cost_functional

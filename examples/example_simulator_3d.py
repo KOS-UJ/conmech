@@ -49,16 +49,16 @@ def main():
     # meshzoo_ball_3d
     # pygmsh_3d
     setting = SettingObstacles(
-        mesh_type="pygmsh_3d", mesh_density_x=mesh_density_x
+        mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x
     )
-    obstacles = np.array([[[-1.0, 0.0, 1.0]], [[3.0, 0.0, 0.0]]])
+    obstacles = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
     setting.set_obstacles(obstacles)
 
     all_images_paths = []
     extension = "png"  # pdf
     thh.create_folders(catalog)
 
-    scenario_length = 400
+    scenario_length = 500
 
     for i in range(1, scenario_length + 1):
         current_time = i * setting.time_step

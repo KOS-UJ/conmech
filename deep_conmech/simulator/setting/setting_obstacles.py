@@ -7,28 +7,21 @@ from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
 
+
 def obstacle_resistance_potential_normal(penetration):
     value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
     return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
 
-@njit
-def obstacle_resistance_potential_normal_numba(penetration):
-    value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
-    return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
+obstacle_resistance_potential_normal_numba = numba.njit(obstacle_resistance_potential_normal)
 
-
-@njit
-def obstacle_resistance_potential_tangential_numba(penetration, tangential_velocity):
-    value = config.OBSTACLE_FRICTION * nph.euclidean_norm_numba(tangential_velocity)
-    return (
-        (penetration > 0) * value * ((1.0 / config.TIMESTEP))
-    )
 
 def obstacle_resistance_potential_tangential(penetration, tangential_velocity):
     value = config.OBSTACLE_FRICTION * nph.euclidean_norm(tangential_velocity)
     return (
         (penetration > 0) * value * ((1.0 / config.TIMESTEP))
     )
+obstacle_resistance_potential_tangential_numba = numba.njit(obstacle_resistance_potential_tangential)
+
 
 
 def integrate(
@@ -216,8 +209,8 @@ class SettingObstacles(SettingForces):
     def normalized_obstacle_origin(self):
         return self.normalized_obstacle_origins[0]
 
-    def normalized_L2_obstacle_np(self, normalized_boundary_a_vector):
-        return L2_obstacle(
+    def get_normalized_L2_obstacle_np(self):
+        return lambda normalized_boundary_a_vector : L2_obstacle(
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.C_boundary,
             self.normalized_E_boundary,

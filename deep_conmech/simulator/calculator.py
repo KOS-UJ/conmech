@@ -75,8 +75,9 @@ class Calculator:
             )
 
         tstart = time.time()
+        cost_function = setting.get_normalized_L2_obstacle_np()
         normalized_boundary_a_vector_np = Calculator.minimize(
-            setting.normalized_L2_obstacle_np, initial_boundary_vector
+            cost_function, initial_boundary_vector
         ) 
         t_np = time.time() - tstart
         '''

@@ -4,11 +4,11 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-
 from conmech.problem_solver import TDynamic as TDynamicProblemSolver
 from conmech.problems import Dynamic
-from examples.p_slope_contact_law import make_slope_contact_law
 from conmech.utils.drawer import Drawer
+
+from examples.p_slope_contact_law import make_slope_contact_law
 
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
@@ -79,8 +79,10 @@ if __name__ == "__main__":
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(n_steps=32, output_step=range(0, 32, 4), verbose=True)
-    T_max = 0
+    T_max = -np.inf
+    T_min = np.inf
     for state in states:
-        T_max = np.max(state.temperature)
+        T_max = max(T_max, np.max(state.temperature))
+        T_min = min(T_min, np.min(state.temperature))
     for state in states:
-        Drawer(state).draw(temp_max=T_max)
+        Drawer(state).draw(temp_max=T_max, temp_min=T_min)
