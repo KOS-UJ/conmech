@@ -23,8 +23,7 @@ def run_conmech_dynamic(all_scenatrios):
 
 
 def main():
-    scenarios = scenarios.all_simulator
-    run_conmech_dynamic(scenarios)
+    run_conmech_dynamic(scenarios.all_simulator)
 
 
 if __name__ == "__main__":

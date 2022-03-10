@@ -7,7 +7,6 @@ from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
 
-
 def obstacle_resistance_potential_normal(penetration):
     value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
     return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
