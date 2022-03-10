@@ -326,7 +326,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        QBig = Q1 - C2Xv - C2Yv
+        QBig = Q1 + C2Xv + C2Yv ###############################
 
         Q_free = QBig[self.free_ids]
         Q_contact = QBig[self.contact_ids]
