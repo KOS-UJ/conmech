@@ -3,6 +3,19 @@ import numpy as np
 from conmech.helpers import nph
 from deep_conmech.common import config
 
+
+
+
+
+####################################
+
+m_rectangle = "pygmsh_rectangle"
+m_circle = "pygmsh_circle"
+m_polygon = "pygmsh_polygon"
+
+
+####################################
+
 o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
 o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
 o_slope = np.array([[[-1.0, -2.0]], [[4.0, 0.0]]])
@@ -10,8 +23,11 @@ o_side = np.array([[[0.0, 1.0]], [[0.0, -3.0]]])
 
 o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
 
-##################
+###########
 
+o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
+
+##################
 
 def f_slide(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
@@ -101,15 +117,6 @@ def f_rotate(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
 
 
-# return f_rotate
-
-
-def reverse(f):
-    return lambda ip, mp, t, scale_x, scale_y: numba.njit(
-        -f(ip, mp, t, scale_x, scale_y)
-    )
-
-
 def f_random(ip, mp, t, scale_x, scale_y):
     scale = config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
@@ -123,12 +130,19 @@ def f_drag(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
 
 
+
 ####################################
 
-m_rectangle = "pygmsh_rectangle"
-m_circle = "pygmsh_circle"
-m_polygon = "pygmsh_polygon"
-m_cross = "cross"
+def f_push_3d(ip, mp, t, scale_x, scale_y):
+    return np.array([0.05, 0.05, 0.05])
+    # return np.repeat(np.array([f0]), nodes_count, axis=0)
+
+
+def f_rotate_3d(ip, mp, t, scale_x, scale_y):
+    if t <= 0.5:
+        scale = ip[1] * ip[2]
+        return scale * np.array([0.1, 0.0, 0.0])
+    return np.array([0.0, 0.0, 0.0])
 
 ####################################
 
@@ -280,31 +294,30 @@ def cross_slope(scale, is_adaptive):
 
 
 
-#circle = problem with middle point not being connected
 #polygon_two - obstacles not serializing
 all_train = [
-    #polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
-    #circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
-    #circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
-    # circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
+    polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
+    circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
+    circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
+    circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
     polygon_left(scale=config.PRINT_SCALE, is_adaptive=True),
-    #circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
-    #polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
+    circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
+    polygon_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
+    polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
 ]
 
 all_print = [
-    #polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
-    # circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
-    # circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
-    # circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
-    # circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    #polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    #polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
+    polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
+    polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
 ]
 
 all_simulator = [
-    #polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
     polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False),
     circle_right(scale=config.TRAIN_SCALE, is_adaptive=True)
 ]

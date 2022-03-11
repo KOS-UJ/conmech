@@ -82,6 +82,7 @@ def get_pygmsh_elements_and_nodes(
         # boundary_faces = geom_mesh.cells[0].data.astype("long").copy()
 
     #present_nodes = [i in elements for i in range(len(nodes))]
+
     return nodes, elements  # , boundary_faces  # not in with
     # mesh.write("out.vtk")
 

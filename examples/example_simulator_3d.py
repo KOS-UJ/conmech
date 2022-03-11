@@ -10,6 +10,7 @@ from matplotlib.gridspec import GridSpec
 from deep_conmech.common import config
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.graph.helpers import thh
+from deep_conmech import scenarios
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
@@ -17,30 +18,6 @@ from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
-######
-
-
-def f_push(ip, t):
-    return np.array([0.05, 0.05, 0.05])
-    # return np.repeat(np.array([f0]), nodes_count, axis=0)
-
-
-def f_rotate(ip, t):
-    if t <= 0.5:
-        scale = ip[1] * ip[2]
-        return scale * np.array([0.1, 0.0, 0.0])
-    return np.array([0.0, 0.0, 0.0])
-
-
-def get_forces_by_function(forces_function, initial_nodes, current_time):
-    nodes_count = len(initial_nodes)
-    forces = np.zeros((nodes_count, 3), dtype=np.double)
-    for i in range(nodes_count):
-        forces[i] = forces_function(initial_nodes[i], current_time)
-    return forces
-
-
-######################################################
 
 
 def main():
@@ -51,20 +28,19 @@ def main():
     setting = SettingObstacles(
         mesh_type="meshzoo_cube_3d", mesh_density_x=mesh_density_x
     )
-    obstacles = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
-    setting.set_obstacles(obstacles)
+    setting.set_obstacles(scenarios.o_3d)
 
     all_images_paths = []
     extension = "png"  # pdf
     thh.create_folders(catalog)
 
-    scenario_length = 500
 
-    for i in range(1, scenario_length + 1):
+
+    for i in range(1, config.EPISODE_STEPS + 1):
         current_time = i * setting.time_step
         print(f"time: {current_time}")
 
-        forces = get_forces_by_function(f_rotate, setting.initial_nodes, current_time)
+        forces = setting.get_forces_by_function(scenarios.f_rotate_3d, current_time)
         normalized_forces = setting.normalize_rotate(forces)
         setting.prepare(normalized_forces)
 

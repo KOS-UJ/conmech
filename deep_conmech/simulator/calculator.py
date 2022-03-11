@@ -87,7 +87,7 @@ class Calculator:
         ) 
         t_nvt = time.time() - tstart
         '''
-
+        
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(
             setting, setting.normalized_Ei, normalized_boundary_a_vector

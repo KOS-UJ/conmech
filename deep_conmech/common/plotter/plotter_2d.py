@@ -47,7 +47,6 @@ class Plotter:
         ax.set_ylim(-4, y_max)
 
         self.draw_main_displaced(setting, ax)
-        # self.draw_obstacle_resistance_main(setting, ax)
         if base_setting is not None:
             self.draw_base_displaced(base_setting, scale, ax)
         self.description_offset = np.array([-0.1, -1.1]) * scale
@@ -116,26 +115,13 @@ class Plotter:
             ax,
         )
 
-    def draw_obstacle_resistance_main(self, setting, ax):
-        self.draw_arrows(
-            setting.boundary_centers, setting.boundary_centers_penetration, ax
-        )
-
     def draw_obstacle_resistance_normalized(self, setting, position, ax):
         self.draw_normalized_obstacles(setting, position, ax)
 
         self.draw_additional_setting("O", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
-            setting.normalized_boundary_obstacle_penetration_normals,
-            ax,
-        )
-
-    def draw_boundary_faces_normals(self, setting, position, ax):
-        self.draw_additional_setting("N", setting, position, ax)
-        self.draw_arrows(
-            setting.normalized_boundary_centers + position,
-            setting.normalized_boundary_faces_normals,
+            setting.normalized_boundary_obstacle_penetration_vectors,
             ax,
         )
 

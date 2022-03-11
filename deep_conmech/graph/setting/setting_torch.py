@@ -1,5 +1,6 @@
-from deep_conmech.simulator.setting.setting_obstacles import *
+import torch
 from deep_conmech.graph.helpers import thh
+from deep_conmech.simulator.setting.setting_obstacles import *
 
 
 class SettingTorch(SettingObstacles):
@@ -23,6 +24,11 @@ class SettingTorch(SettingObstacles):
             create_in_subprocess,
         )
         self.exact_normalized_a_torch = None  # todo: clear on change
+
+    def complete_boundary_data_with_zeros(self, data):
+        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data[self.boundary_nodes_indices] = data
+        return completed_data
 
     @property
     def AREA_torch(self):
@@ -95,10 +101,16 @@ class SettingTorch(SettingObstacles):
     @property
     def normalized_boundary_normals_torch(self):
         return thh.to_torch_double(self.normalized_boundary_normals)
-        
+
     @property
     def normalized_boundary_obstacle_nodes_torch(self):
         return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
+
+    @property
+    def normalized_boundary_obstacle_penetration_vectors_torch(self):
+        return thh.to_torch_double(
+            self.normalized_boundary_obstacle_penetration_vectors
+        )
 
     @property
     def normalized_boundary_obstacle_normals_torch(self):

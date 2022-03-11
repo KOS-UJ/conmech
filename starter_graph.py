@@ -1,7 +1,7 @@
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.model import GraphModelDynamic
-import deep_conmech.common.scenarios as scenarios
+import deep_conmech.scenarios as scenarios
 from deep_conmech.graph.helpers import thh
 
 

@@ -17,15 +17,11 @@ def L2_new(a, C, E):
 def get_forces_by_function_numba(
     forces_function, initial_nodes, moved_nodes, scale_x, scale_y, current_time
 ):
-    nodes_count = len(initial_nodes)
-    forces = np.zeros((nodes_count, 2), dtype=numba.double)
-    for i in range(nodes_count):
-        initial_point = initial_nodes[i]
-        moved_point = moved_nodes[i]
+    forces = np.zeros_like(initial_nodes, dtype=numba.double)
+    for i in range(len(initial_nodes)):
         forces[i] = forces_function(
-            initial_point, moved_point, current_time, scale_x, scale_y
+            initial_nodes[i], moved_nodes[i], current_time, scale_x, scale_y
         )
-
     return forces
 
 

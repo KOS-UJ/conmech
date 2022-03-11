@@ -137,7 +137,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
     def __init__(self):
         super().__init__(
             relative_path="training_synthetic",
-            data_count=config.TRAIN_SOLVERS_COUNT,
+            data_count=config.SYNTHETIC_SOLVERS_COUNT,
             randomize_at_load=True,
         )
         self.initialize_data()

@@ -35,7 +35,7 @@ def get_edges_data(
     boundary_obstacle_penetration,
 ):  # , forces
     edges_number = edges.shape[0]
-    edges_data = np.zeros((edges_number, config.EDGE_DATA_DIM))
+    edges_data = np.zeros((edges_number, 12))
     for e in range(edges_number):
         i = edges[e, 0]
         j = edges[e, 1]
@@ -44,14 +44,6 @@ def get_edges_data(
         set_diff(u_old, 3, edges_data[e], i, j)
         set_diff(v_old, 6, edges_data[e], i, j)
         set_diff(forces, 9, edges_data[e], i, j)
-        """#TODO: move to nodes
-        if e < boundary_faces_count:
-            penetration = boundary_obstacle_penetration[e].item()
-            if penetration > 0:
-                edges_data[e, 12:14] = obstacle_normal
-                edges_data[e, 14] = penetration
-            edges_data[e, 15] = 1.0
-        """
     return edges_data
 
 
@@ -119,14 +111,24 @@ class SettingInput(SettingRandomized):
         )
         return thh.to_torch_double(edges_data)
 
-    @property
-    def x(self):
-        # data = torch.ones(self.nodes_count, 1)
+    def get_nodes_data(self):
+
+        penetration = self.complete_boundary_data_with_zeros(
+            self.normalized_boundary_obstacle_penetration_vectors_torch
+        )
+        normals = self.complete_boundary_data_with_zeros(
+            self.normalized_boundary_normals_torch
+        )
+        volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
+
         data = torch.hstack(
             (
-                thh.get_data_with_euclidean_norm(self.input_forces_torch),
-                # thh.get_data_with_euclidean_norm(self.input_u_old_torch),
-                # thh.get_data_with_euclidean_norm(self.input_v_old_torch)
+                thh.append_euclidean_norm(self.input_forces_torch),
+                # thh.append_euclidean_norm(self.input_u_old_torch),
+                # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
+                thh.append_euclidean_norm(penetration),
+                thh.append_euclidean_norm(normals),
+                volume
             )
         )
         return data
@@ -139,11 +141,10 @@ class SettingInput(SettingRandomized):
         directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
         data = Data(
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
-            x=thh.set_precision(self.x),
+            x=thh.set_precision(self.get_nodes_data()),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
             setting_index=setting_index,
-            
             normalized_a_correction=self.normalized_a_correction_torch,
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
@@ -154,7 +155,6 @@ class SettingInput(SettingRandomized):
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
             normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
             boundary_nodes_volume=self.boundary_nodes_volume_torch,
-            
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1

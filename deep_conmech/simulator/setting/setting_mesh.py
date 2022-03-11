@@ -40,6 +40,19 @@ def get_edges_list_numba(edges_matrix):
 
 ######################################################
 
+@njit
+def remove_unconnected_nodes_numba(nodes, elements):
+    nodes_count = len(nodes)
+    i = 0
+    while i< nodes_count:
+        if i not in elements:
+            print(f"Index {i} not in elements - fixing")
+            nodes = np.vstack((nodes[:i],nodes[i+1:]))
+            elements = (elements > i) * (elements - 1) + (elements < i) * elements
+            nodes_count -= 1
+        else:
+            i += 1
+    return nodes, elements
 
 @njit
 def move_boundary_nodes_to_start_numba(
@@ -107,12 +120,15 @@ def get_boundary_faces(elements):
     return boundary_faces, boundary_nodes_indices, boundary_internal_indices
 
 
-def clean_mesh(unordered_nodes, unordered_elements):
+def clean_mesh(nodes, elements):
     # TODO: Move also boundary edges and faces (?)
-    _, unordered_boundary_indices, _ = get_boundary_faces(unordered_elements)
-    return move_boundary_nodes_to_start_numba(
-        unordered_nodes, unordered_elements, unordered_boundary_indices
+    nodes, elements = remove_unconnected_nodes_numba(nodes, elements)
+
+    _, boundary_indices, _ = get_boundary_faces(elements)
+    nodes, elements, boundary_nodes_count = move_boundary_nodes_to_start_numba(
+        nodes, elements, boundary_indices
     )
+    return nodes, elements, boundary_nodes_count
 
 
 ######################################################
@@ -218,7 +234,7 @@ def get_boundary_nodes_data_numba(
     boundary_nodes_count = len(boundary_nodes_indices)
     dim = boundary_faces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
-    boundary_nodes_volume = np.zeros(boundary_nodes_count, dtype=np.float64)
+    boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for i in range(boundary_nodes_count):
         # mask = np.bitwise_or.reduce(boundary_faces == i, axis=1) (or np.any)
@@ -318,22 +334,20 @@ class SettingMesh:
         self.u_old = u
 
     def prepare(self):
-        self.boundary_faces_normals = get_boundary_faces_normals(
+        boundary_faces_normals = get_boundary_faces_normals(
             self.moved_nodes, self.boundary_faces, self.boundary_internal_indices
         )
         (
             self.boundary_normals,
             self.boundary_nodes_volume,
         ) = get_boundary_nodes_data_numba(
-            self.boundary_faces_normals,
+            boundary_faces_normals,
             self.boundary_faces,
             self.boundary_nodes_indices,
             self.moved_nodes,
         )
-        x = 0
 
     def clear(self):
-        self.boundary_faces_normals = None
         self.boundary_normals = None
         self.boundary_nodes_volume = None
 
@@ -348,10 +362,6 @@ class SettingMesh:
     @property
     def normalized_boundary_normals(self):
         return self.normalize_rotate(self.boundary_normals)
-
-    @property
-    def normalized_boundary_faces_normals(self):
-        return self.normalize_rotate(self.boundary_faces_normals)
 
     @property
     def normalized_a_old(self):
@@ -428,10 +438,6 @@ class SettingMesh:
     @property
     def boundary_centers(self):
         return np.mean(self.moved_nodes[self.boundary_faces], axis=1)
-
-    @property
-    def normalized_boundary_centers(self):
-        return np.mean(self.normalized_points[self.boundary_faces], axis=1)
 
     @property
     def edges_number(self):

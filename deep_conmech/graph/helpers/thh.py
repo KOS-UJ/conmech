@@ -4,20 +4,21 @@ import time
 from ctypes import ArgumentError
 from datetime import datetime
 
+import deep_conmech.common.config as config
 import numpy as np
 import pandas
 import psutil
 import torch
 from tqdm import tqdm
 
-import deep_conmech.common.config as config
-
 # np.random.seed(42)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def get_timestamp():
     return int(time.time() * 10000)
+
 
 RUN_TIMESTEMP = get_timestamp()
 
@@ -31,10 +32,6 @@ print(f"RUNNING USING {device}")
 def cuda_launch_blocking():
     print("CUDA_LAUNCH_BLOCKING !!!!")
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-
-
-
-
 
 
 def set_precision(data):
@@ -52,39 +49,34 @@ def to_torch_long(data):
 def to_np_double(data):
     return data.cpu().detach().numpy().astype(np.float64)
 
+
 def to_np_long(data):
     return data.cpu().detach().numpy().astype(np.long)
-
 
 
 def get_contiguous_torch(data):
     return to_torch_long(data).t().contiguous()
 
-def get_data_with_euclidean_norm(data):
+
+def append_euclidean_norm(data):
     return torch.hstack((data, torch.linalg.norm(data, keepdim=True, dim=1)))
 
 
-
-
 def euclidean_norm_torch(vector):
-    
+
     return torch.sqrt(torch.sum(vector ** 2, axis=-1))
 
 
 def max_norm(data):
-    return torch.max(torch.linalg.norm(data, axis=1)) #-1 ?
+    return torch.max(torch.linalg.norm(data, axis=1))  # -1 ?
 
 
 def rmse_torch(predicted, exact):
     return torch.sqrt(torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2))
 
 
-
 def get_tqdm(iterable, desc=None, position=None):
     return tqdm(iterable, desc=desc, position=position, ascii=True)
-
-
-
 
 
 class MaxData:
@@ -125,9 +117,6 @@ def set_memory_limit():
     # print('Soft limit changed to :', soft)
 
 
-
-
-
 def skip(time, skip):
     return np.allclose(time % skip, 0.0) or np.allclose(time % skip, skip)
 
@@ -143,5 +132,4 @@ def create_folders(path):
     for folder in all_folders:
         final_path += f"{folder}/"
         create_folder(final_path)
-
 

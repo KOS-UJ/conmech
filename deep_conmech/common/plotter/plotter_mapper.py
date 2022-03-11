@@ -1,5 +1,5 @@
 import time
-from deep_conmech.common.plotter.plotter_basic import Plotter
+from deep_conmech.common.plotter.plotter_2d import Plotter
 from deep_conmech.common import mapper, config
 from deep_conmech.graph.model import *
 from deep_conmech.simulator.setting.setting_forces import *
@@ -56,7 +56,7 @@ def print_one_dynamic(
     mapper.map_time(
         print_base,
         _print_at_interval,
-        config.VAL_PRINT_EPISODE_STEPS,
+        config.EPISODE_STEPS,
         solve_function,
         scenario,
         simulate_dirty_data,
@@ -123,10 +123,7 @@ def print_steps(drawer, axs, row, time_steps, skip, force, get_a_function):
         a = get_a_function(setting)
         setting.iterate(a)
         if time % skip == 0:
-            drawer.draw_setting_ax(
-                setting, axs[row, int(i / skip)], time=time
-            )
-
+            drawer.draw_setting_ax(setting, axs[row, int(i / skip)], time=time)
 
 
 ###############################

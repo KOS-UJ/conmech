@@ -23,9 +23,9 @@ def get_writer():
 | ah {config.ATTENTION_HEADS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \
-| vpes {config.VAL_PRINT_EPISODE_STEPS} \
+| vpes {config.EPISODE_STEPS} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
-| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.BATCHES_IN_EPOCH} \
+| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
 | ld {config.LATENT_DIM} \
 | lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
 | mp {config.MESSAGE_PASSES}"
@@ -40,7 +40,7 @@ class GraphModelDynamic:
     def __init__(
         self, train_dataset, all_val_datasets, print_scenarios,
     ):
-        self.dim = train_dataset.dim #TODO: Check validation datasets
+        self.dim = train_dataset.dim  # TODO: Check validation datasets
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
@@ -75,7 +75,6 @@ class GraphModelDynamic:
 
     def boundary_nodes_counts(self, batch):
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
-
 
     def get_split(self, batch, index, dim, graph_sizes):
         value = batch.x[:, index * dim : (index + 1) * dim]
@@ -193,9 +192,7 @@ class GraphModelDynamic:
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
         dim_graph_sizes = [size * self.dim for size in graph_sizes]
-        dim_dim_graph_sizes = [
-            (size *  self.dim) **  self.dim for size in graph_sizes
-        ]
+        dim_dim_graph_sizes = [(size * self.dim) ** self.dim for size in graph_sizes]
 
         loss = 0.0
         loss_array = np.zeros([3])
@@ -212,7 +209,9 @@ class GraphModelDynamic:
         normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
             boundary_nodes_counts
         )
-        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(boundary_nodes_counts)
+        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(
+            boundary_nodes_counts
+        )
 
         normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
             boundary_nodes_counts
@@ -224,7 +223,6 @@ class GraphModelDynamic:
             boundary_nodes_counts
         )
 
-
         if hasattr(batch, "exact_normalized_a"):
             exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
 
@@ -234,7 +232,7 @@ class GraphModelDynamic:
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]
-            
+
             predicted_normalized_a = predicted_normalized_a_split[i]
             # + setting.predicted_normalized_a_mean_cuda
             # predicted_normalized_L2 = setting_input.L2_normalized_correction_cuda(
@@ -246,14 +244,12 @@ class GraphModelDynamic:
                 normalized_a_correction,
                 C,
                 normalized_E,
-
                 normalized_boundary_v_old_split[i],
                 normalized_boundary_nodes_split[i],
                 normalized_boundary_normals_split[i],
-
                 normalized_boundary_obstacle_nodes_split[i],
                 normalized_boundary_obstacle_normals_split[i],
-                boundary_nodes_volume_split[i]
+                boundary_nodes_volume_split[i],
             )
 
             loss += predicted_normalized_L2
@@ -349,7 +345,7 @@ class GraphModelDynamic:
         for forces_function in self.rollout_forces_functions:
             error_result = ErrorResult()
 
-            episode_steps = config.VAL_PRINT_EPISODE_STEPS
+            episode_steps = config.EPISODE_STEPS
             _validate = lambda time, setting, base_setting, a, base_a: self.calculate_error(
                 setting, base_setting, a, base_a, error_result, episode_steps
             )

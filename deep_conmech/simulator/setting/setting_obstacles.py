@@ -7,21 +7,24 @@ from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
 
-
 def obstacle_resistance_potential_normal(penetration):
     value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
     return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
 
-obstacle_resistance_potential_normal_numba = numba.njit(obstacle_resistance_potential_normal)
+
+obstacle_resistance_potential_normal_numba = numba.njit(
+    obstacle_resistance_potential_normal
+)
 
 
 def obstacle_resistance_potential_tangential(penetration, tangential_velocity):
     value = config.OBSTACLE_FRICTION * nph.euclidean_norm(tangential_velocity)
-    return (
-        (penetration > 0) * value * ((1.0 / config.TIMESTEP))
-    )
-obstacle_resistance_potential_tangential_numba = numba.njit(obstacle_resistance_potential_tangential)
+    return (penetration > 0) * value * ((1.0 / config.TIMESTEP))
 
+
+obstacle_resistance_potential_tangential_numba = numba.njit(
+    obstacle_resistance_potential_tangential
+)
 
 
 def integrate(
@@ -95,7 +98,7 @@ def L2_obstacle(
     value = L2_new(a, C, E)
 
     boundary_nodes_count = boundary_v_old.shape[0]
-    boundary_a = a[:boundary_nodes_count, :] #TODO: boundary slice
+    boundary_a = a[:boundary_nodes_count, :]  # TODO: boundary slice
 
     boundary_v_new = boundary_v_old + config.TIMESTEP * boundary_a
     boundary_nodes_new = boundary_nodes + config.TIMESTEP * boundary_v_new
@@ -108,7 +111,6 @@ def L2_obstacle(
         boundary_v_new,
         boundary_nodes_volume,
     )
-
 
     boundary_integral = integrate_numba(*args) if a is np.array else integrate(*args)
     return value + boundary_integral
@@ -123,7 +125,7 @@ class SettingObstacles(SettingForces):
         scale_x=None,
         scale_y=None,
         is_adaptive=False,
-        create_in_subprocess=False
+        create_in_subprocess=False,
     ):
         super().__init__(
             mesh_type,
@@ -210,7 +212,7 @@ class SettingObstacles(SettingForces):
         return self.normalized_obstacle_origins[0]
 
     def get_normalized_L2_obstacle_np(self):
-        return lambda normalized_boundary_a_vector : L2_obstacle(
+        return lambda normalized_boundary_a_vector: L2_obstacle(
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.C_boundary,
             self.normalized_E_boundary,
@@ -240,9 +242,9 @@ class SettingObstacles(SettingForces):
         return (node_penetration > 0) * node_penetration
 
     @property
-    def boundary_obstacle_penetration_normals(self):
+    def boundary_obstacle_penetration_vectors(self):
         return self.boundary_obstacle_penetration * self.boundary_obstacle_normals
 
     @property
-    def normalized_boundary_obstacle_penetration_normals(self):
-        return self.normalize_rotate(self.boundary_obstacle_penetration_normals)
+    def normalized_boundary_obstacle_penetration_vectors(self):
+        return self.normalize_rotate(self.boundary_obstacle_penetration_vectors)

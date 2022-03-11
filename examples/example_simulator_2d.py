@@ -2,7 +2,7 @@ from matplotlib.pyplot import draw
 
 from deep_conmech.graph.helpers import thh
 import deep_conmech.common.config as config
-import deep_conmech.common.scenarios as scenarios
+import deep_conmech.scenarios as scenarios
 import deep_conmech.common.plotter.plotter_mapper as mapper
 from deep_conmech.simulator.calculator import Calculator
 
@@ -16,7 +16,7 @@ def run_conmech_dynamic(all_scenatrios):
             Calculator.solve,
             scenario,
             path,
-            simulate_dirty_data=config.SIMULATE_DIRTY_DATA_SIMULATOR,
+            simulate_dirty_data=config.SIMULATE_DIRTY_DATA,
             print_base=False,
             description="Printing simulator",
         )

@@ -23,7 +23,7 @@ def get_setting(scenario):
 
 def generate_scenario_data_process(dataset, all_scenarios, num_workers, process_id):
     assigned_scenarios = get_assigned_scenarios(all_scenarios, num_workers, process_id)
-    data_count = config.VAL_PRINT_EPISODE_STEPS * len(assigned_scenarios)
+    data_count = config.EPISODE_STEPS * len(assigned_scenarios)
 
     start_index = process_id * data_count
     stop_index = start_index + data_count
@@ -40,7 +40,7 @@ def generate_scenario_data_process(dataset, all_scenarios, num_workers, process_
         scenario_start_index = current_index
         tqdm_description = f"Process {process_id}: Generating {dataset.relative_path} {scenario.id} data"
         step_tqdm = thh.get_tqdm(
-            range(1, config.VAL_PRINT_EPISODE_STEPS + 1),
+            range(1, config.EPISODE_STEPS + 1),
             desc=tqdm_description,
             position=process_id,
         )
@@ -79,9 +79,9 @@ def generate_scenario_data_process(dataset, all_scenarios, num_workers, process_
 
 class TrainingScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(self, base_scenarios, repetitions=2):
-        dim = base_scenarios[0].dim #TODO: Check other
+        dim = base_scenarios[0].dim  # TODO: Check other
         self.all_scenarios = base_scenarios * repetitions
-        data_count = config.VAL_PRINT_EPISODE_STEPS * len(self.all_scenarios)
+        data_count = config.EPISODE_STEPS * len(self.all_scenarios)
         super().__init__(
             dim,
             relative_path="training_scenarios",
@@ -111,7 +111,7 @@ class ValidationDatasetDynamic(BaseDatasetDynamic):
         super().__init__(
             dim=scenario.dim,
             relative_path=f"validation/{scenario.id}",
-            data_count=config.VAL_PRINT_EPISODE_STEPS,
+            data_count=config.EPISODE_STEPS,
             randomize_at_load=False,
         )
         self.scenario = scenario
