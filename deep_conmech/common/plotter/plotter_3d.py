@@ -45,7 +45,7 @@ def get_ax(fig, grid, angle, distance):
     return ax
 
 
-def plot_frame(setting, normalized_data, path, extension, all_images_paths):
+def plot_frame(setting, normalized_data, path, extension):
     plot_subframe_lambda = lambda ax: plot_subframe(
         setting, normalized_data=normalized_data, ax=ax,
     )
@@ -75,9 +75,6 @@ def plot_frame(setting, normalized_data, path, extension, all_images_paths):
     ax4.set_position([1.0, 0.5, 0.4, 0.4])
     plot_subframe_lambda(ax4)
 
-    plt.show()
-    plt_save(path, extension)
-    all_images_paths.append(path)
 
 
 def draw_base_arrows(ax, base):

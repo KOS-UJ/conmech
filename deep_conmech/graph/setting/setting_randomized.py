@@ -48,10 +48,10 @@ class SettingRandomized(SettingTorch):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.v_old_randomization = nph.get_random_normal(
-                self.nodes_count, config.V_IN_RANDOM_FACTOR
+                self.dim, self.nodes_count, config.V_IN_RANDOM_FACTOR
             )
             self.u_old_randomization = nph.get_random_normal(
-                self.nodes_count, config.U_IN_RANDOM_FACTOR
+                self.dim, self.nodes_count, config.U_IN_RANDOM_FACTOR
             )
         else:
             self.v_old_randomization = np.zeros_like(self.initial_nodes)

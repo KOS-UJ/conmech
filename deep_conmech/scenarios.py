@@ -13,6 +13,9 @@ m_rectangle = "pygmsh_rectangle"
 m_circle = "pygmsh_circle"
 m_polygon = "pygmsh_polygon"
 
+m_cube_3d = "meshzoo_cube_3d"
+m_ball_3d = "meshzoo_ball_3d"
+m_polygon_3d = "pygmsh_polygon_3d"
 
 ####################################
 
@@ -20,10 +23,8 @@ o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
 o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
 o_slope = np.array([[[-1.0, -2.0]], [[4.0, 0.0]]])
 o_side = np.array([[[0.0, 1.0]], [[0.0, -3.0]]])
-
 o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
 
-###########
 
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
@@ -321,3 +322,14 @@ all_simulator = [
     polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False),
     circle_right(scale=config.TRAIN_SCALE, is_adaptive=True)
 ]
+
+
+scenario_3d = Scenario(
+        "scenario_3d",
+        m_cube_3d,
+        3,
+        1,
+        f_rotate_3d,
+        o_3d * 1,
+        False,
+    )

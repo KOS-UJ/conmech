@@ -6,8 +6,6 @@ import numba
 import numpy as np
 from numba import njit
 
-DIM = 2
-
 
 def stack(data):
     return data.T.flatten()
@@ -137,16 +135,16 @@ def get_point_index_numba(point, points):
     raise ArgumentError
 
 
-def get_random_normal(count, scale):
+def get_random_normal(dim, nodes_count, scale):
     # noise = np.random.uniform(low=-scale, high=scale, size=shape)
-    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[count, DIM])
+    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[nodes_count, dim])
     return noise
 
 
 @njit
-def get_random_normal_circle_numba(count, scale):
-    result = np.zeros((count, DIM))
-    for i in range(count):
+def get_random_normal_circle_numba(dim, nodes_count, scale):
+    result = np.zeros((nodes_count, dim))
+    for i in range(nodes_count):
         alpha = 2 * math.pi * np.random.uniform(low=0, high=1)
         r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
         result[i] = [r * math.cos(alpha), r * math.sin(alpha)]

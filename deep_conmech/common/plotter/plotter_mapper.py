@@ -1,5 +1,6 @@
 import time
 from deep_conmech.common.plotter.plotter_2d import Plotter
+from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.common import mapper, config
 from deep_conmech.graph.model import *
 from deep_conmech.simulator.setting.setting_forces import *
@@ -75,10 +76,24 @@ def print_at_interval(time, setting, path, base_setting, all_images_paths, exten
 
 
 def print_setting_internal(setting, path, base_setting, extension, time):
-    plotter = Plotter()
-    ax = plotter.get_one_ax()
-    plotter.draw_setting_ax(setting, ax, base_setting, time)
-    plotter.plt_save(path, extension)
+    if setting.dim == 2:
+        plotter = Plotter()
+        ax = plotter.get_one_ax()
+        plotter.draw_setting_ax(setting, ax, base_setting, time)
+        plotter.plt_save(path, extension)
+    else:
+        plotter_3d.plot_frame(
+            setting=setting,
+            normalized_data=[
+                setting.normalized_forces * 20,
+                setting.normalized_u_old,
+                setting.normalized_v_old,
+                setting.normalized_a_old,
+            ],
+            path=path,
+            extension=extension,
+        )
+        plotter_3d.plt_save(path, extension)
 
 
 def print_setting_test(setting):
