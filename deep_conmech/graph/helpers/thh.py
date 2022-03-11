@@ -26,7 +26,7 @@ CURRENT_TIME = datetime.now().strftime("%d-%H.%M.%S")
 
 
 # torch.autograd.set_detect_anomaly(True)
-print(f"RUNNING USING {device}")
+print(f"Running using {device}")
 
 
 def cuda_launch_blocking():

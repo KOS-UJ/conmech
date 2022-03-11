@@ -98,6 +98,21 @@ class SettingInput(SettingRandomized):
             create_in_subprocess,
         )
 
+    @staticmethod
+    def edges_data_dim():
+        return 12
+        
+    @staticmethod
+    def get_edges_data_description(dim):
+        desc = []
+        for attr in ["initial_nodes", "u_old", "v_old", "forces"]:
+            for i in range(dim):
+                desc.append(f"{attr}_{i}")
+            desc.append(f"{attr}_norm")
+
+        return desc
+
+
     def get_edges_data_torch(self, edges):
         edges_data = get_edges_data(
             edges,
@@ -111,27 +126,47 @@ class SettingInput(SettingRandomized):
         )
         return thh.to_torch_double(edges_data)
 
-    def get_nodes_data(self):
 
-        penetration = self.complete_boundary_data_with_zeros(
+    @staticmethod
+    def nodes_data_dim():
+        return 10
+
+    @staticmethod
+    def get_nodes_data_description(dim):
+        desc = []
+        for attr in ["forces", "boundary_penetration", "boundary_normals"]:
+            for i in range(dim):
+                desc.append(f"{attr}_{i}")
+            desc.append(f"{attr}_norm")
+
+        for attr in ["boundary_volume"]:
+            desc.append(attr)
+        return desc
+
+
+    def get_nodes_data(self):
+        boundary_penetration = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_obstacle_penetration_vectors_torch
         )
-        normals = self.complete_boundary_data_with_zeros(
+        boundary_normals = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_normals_torch
         )
-        volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
+        boundary_volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
 
-        data = torch.hstack(
+        nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.input_forces_torch),
                 # thh.append_euclidean_norm(self.input_u_old_torch),
                 # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
-                thh.append_euclidean_norm(penetration),
-                thh.append_euclidean_norm(normals),
-                volume
+                thh.append_euclidean_norm(boundary_penetration),
+                thh.append_euclidean_norm(boundary_normals),
+                boundary_volume
             )
         )
-        return data
+        return nodes_data
+
+
+
 
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(

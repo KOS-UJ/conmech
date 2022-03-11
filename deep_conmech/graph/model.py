@@ -38,15 +38,17 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-        self, train_dataset, all_val_datasets, print_scenarios,
+        self, train_dataset, all_val_datasets, print_scenarios, nodes_statistics, edges_statistics
     ):
+        self.train_dataset = train_dataset
+        self.all_val_datasets = all_val_datasets
+        self.print_scenarios = print_scenarios
         self.dim = train_dataset.dim  # TODO: Check validation datasets
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
             for dataset in all_val_datasets
         ]
-        self.print_scenarios = print_scenarios
         self.writer = get_writer()
         self.loss_labels = [
             "Main",
@@ -54,7 +56,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet(self.dim).to(thh.device)
+        self.net = CustomGraphNet(self.dim, nodes_statistics, edges_statistics).to(thh.device)
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -115,11 +117,11 @@ class GraphModelDynamic:
 
     ################
 
+
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         examples_seen = 0
-
         start_time = time.time()
         epoch = 0
         while True:
@@ -254,7 +256,7 @@ class GraphModelDynamic:
 
             loss += predicted_normalized_L2
 
-            if hasattr(batch, "exact_normalized_a_torch"):
+            if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
                 if exact_normalized_a is not None:
                     exact_normalized_L2 = setting_input.L2_normalized_correction_cuda(

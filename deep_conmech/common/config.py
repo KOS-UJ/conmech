@@ -10,19 +10,20 @@ ZE = 0.01
 OBSTACLE_HARDNESS = 0.04
 OBSTACLE_FRICTION = 0.004
 
-NORMALIZE_ROTATE = False
+NORMALIZE_ROTATE = True
 ############
 
 # "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
+VALIDATION_SCALE = 1.0  # 2.0
 PRINT_SCALE = 1.0  # 2.0
 SIMULATOR_SCALE = 1.0
 
 MESH_DENSITY = 16
 ADAPTIVE_MESH = True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
-SIMULATE_DIRTY_DATA = True
+SIMULATE_DIRTY_DATA = False # True
 
 TIMESTEP = 0.01
 
@@ -87,8 +88,3 @@ ENC_LAYER_COUNT = 2
 PROC_LAYER_COUNT = 0
 DEC_LAYER_COUNT = 2
 MESSAGE_PASSES = 8  # 5 # 10
-
-
-VERTEX_DATA_DIM = 10
-EDGE_DATA_DIM = 12
-ALL_VERTEX_DIM = LATENT_DIM + VERTEX_DATA_DIM + DIM

@@ -7,7 +7,10 @@ import deep_conmech.common.config as config
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import numpy as np
 import torch
+import torch
+import pandas as pd
 from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
@@ -30,6 +33,9 @@ def get_train_dataloader(dataset):
     return get_dataloader(
         dataset, config.BATCH_SIZE, num_workers=config.DATALOADER_WORKERS, shuffle=True
     )
+
+def get_all_dataloader(dataset):
+    return get_dataloader(dataset, len(dataset), num_workers=0, shuffle=False)
 
 
 def get_dataloader(dataset, batch_size, num_workers, shuffle):
@@ -84,6 +90,13 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
+
+class DatasetStatistics:
+    def __init__(self, data):
+        self.data_mean = torch.mean(data, axis=0)
+        self.data_std = torch.std(data, axis=0)
+
+
 class BaseDatasetDynamic:
     def __init__(self, dim, relative_path, data_count, randomize_at_load):
         self.dim=dim
@@ -93,6 +106,28 @@ class BaseDatasetDynamic:
         thh.create_folders(self.path)
         thh.create_folders(self.data_path)
         thh.create_folders(self.images_path)
+
+
+    def get_statistics(self):
+        dataloader = get_train_dataloader(self)
+
+        nodes_data = torch.empty((0,SettingInput.nodes_data_dim()))
+        edges_data = torch.empty((0,SettingInput.edges_data_dim()))
+        for data in thh.get_tqdm(dataloader, desc="Calculating dataset statistics"):
+            nodes_data = torch.cat((nodes_data, data.x))
+            edges_data = torch.cat((edges_data, data.edge_attr))
+        
+        pandas_nodes_data = pd.DataFrame(nodes_data.numpy())
+        pandas_nodes_data.columns = SettingInput.get_nodes_data_description(self.dim)
+
+        pandas_edges_data = pd.DataFrame(edges_data.numpy())
+        pandas_edges_data.columns = SettingInput.get_edges_data_description(self.dim)
+
+        #pandas_edges_data.describe()
+        #pandas_nodes_data.describe()
+
+        return DatasetStatistics(nodes_data), DatasetStatistics(edges_data)
+        
 
     def generate_all_data(self):
         pass

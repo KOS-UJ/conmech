@@ -14,10 +14,11 @@ def main():
     # train_dataset = TrainingSyntheticDatasetDynamic()
     train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
     all_val_datasets = [
-        ValidationDatasetDynamic(scenario) for scenario in scenarios.all_print
+        ValidationDatasetDynamic(scenario) for scenario in scenarios.all_validation
     ]
-
-    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print)
+    nodes_statistics, edges_statistics = train_dataset.get_statistics()
+    
+    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, nodes_statistics, edges_statistics)
     if path is not None:
         model.load(path)
         model.print_raport()
