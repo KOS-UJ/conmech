@@ -1,5 +1,7 @@
 from argparse import ArgumentError
 
+from sqlalchemy import true
+
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
@@ -40,12 +42,13 @@ def get_edges_list_numba(edges_matrix):
 
 ######################################################
 
+
 @njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
     i = 0
-    while i< nodes_count:
-        if i not in elements:
+    while i < nodes_count:
+        if nph.check_if_contains_numba(i, elements) is False:
             print(f"Index {i} not in elements - fixing")
             nodes = np.vstack((nodes[:i],nodes[i+1:]))
             elements = (elements > i) * (elements - 1) + (elements < i) * elements

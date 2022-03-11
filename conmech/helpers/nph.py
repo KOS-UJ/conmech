@@ -125,6 +125,13 @@ def max_numba(corners):
 
 
 
+@njit
+def check_if_contains_numba(value, array):
+    for i in range(array.shape[0]):
+        for j in range(array.shape[1]):
+            if value == array[i][j]:
+                return True
+    return False
 
 
 @njit
