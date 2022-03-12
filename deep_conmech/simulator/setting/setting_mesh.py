@@ -40,12 +40,12 @@ def get_edges_list_numba(edges_matrix):
 ######################################################
 
 
-#@njit
+@njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = np.int64(len(nodes))
     i = np.int64(0)
     while i < nodes_count:
-        if nph.check_if_contains_numba(i, elements):
+        if i in elements:
             i += 1
         else:
             print(f"Index {i} not in elements - fixing")
