@@ -155,7 +155,7 @@ def get_closest_to_axis_numba(nodes, variable):
 
     correct_order = nodes[final_i, variable] < nodes[final_j, variable]
     indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([min_error, *indices])
+    return np.array([min_error, indices[0], indices[1]])
 
 
 @njit
