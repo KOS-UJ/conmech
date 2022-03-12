@@ -42,15 +42,18 @@ def get_edges_list_numba(edges_matrix):
 
 @njit
 def remove_unconnected_nodes_numba(nodes, elements):
-    nodes_count = np.int64(len(nodes))
-    i = np.int64(0)
-    while i < nodes_count:
-        if i in elements:
-            i += 1
+    nodes_count = len(nodes)
+    index = 0
+    while index < nodes_count:
+        if index in elements:
+            index += 1
         else:
-            print(f"Index {i} not in elements - fixing")
-            nodes = np.vstack((nodes[:i],nodes[i+1:]))
-            elements = (elements > i) * (elements - 1) + (elements < i) * elements
+            print(f"Index {index} not in elements - fixing")
+            nodes = np.vstack((nodes[:index],nodes[index+1:]))
+            for i in range(elements.shape[0]):
+                for j in range(elements.shape[1]):
+                    if elements[i,j] > index:
+                        elements[i,j] -= 1
             nodes_count -= 1
     return nodes, elements
 

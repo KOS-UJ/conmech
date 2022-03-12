@@ -41,10 +41,10 @@ class Plotter:
         ax.set_aspect("equal", "box")
         scale = setting.scale_x
 
-        x_max = 20.0
-        y_max = 3
-        ax.set_xlim(-4, x_max)
-        ax.set_ylim(-4, y_max)
+        x_max = 20.0 * scale
+        y_max = 3 * scale
+        ax.set_xlim(-4 * scale, x_max)
+        ax.set_ylim(-4 * scale, y_max)
 
         self.draw_main_displaced(setting, ax)
         if base_setting is not None:
@@ -64,12 +64,8 @@ class Plotter:
             position[0] += 2.5 * scale
             self.draw_forces(setting, position, ax)
             position[0] += 2.5 * scale
-            # self.draw_u(setting, position, ax)
-            # position[0] += 2.0
             self.draw_input_u(setting, position, ax)
             position[0] += 2.5 * scale
-            # self.draw_v(setting, position, ax)
-            # position[0] += 2.0
             self.draw_input_v(setting, position, ax)
             position[0] += 2.5 * scale
             self.draw_a(setting, position, ax)
@@ -192,17 +188,11 @@ class Plotter:
     def draw_forces(self, setting, position, ax):
         return self.draw_data("F", setting.normalized_forces, setting, position, ax)
 
-    def draw_u(self, setting, position, ax):
-        return self.draw_data("U", setting.normalized_u_old, setting, position, ax)
-
     def draw_input_u(self, setting, position, ax):
-        return self.draw_data("U_IN", setting.input_u_old, setting, position, ax)
-
-    def draw_v(self, setting, position, ax):
-        return self.draw_data("V", setting.normalized_v_old, setting, position, ax)
+        return self.draw_data("U", setting.input_u_old, setting, position, ax)
 
     def draw_input_v(self, setting, position, ax):
-        return self.draw_data("V_IN", setting.input_v_old, setting, position, ax)
+        return self.draw_data("V", setting.input_v_old, setting, position, ax)
 
     def draw_a(self, setting, position, ax):
         return self.draw_data(

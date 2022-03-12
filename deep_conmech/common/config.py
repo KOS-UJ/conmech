@@ -16,7 +16,7 @@ NORMALIZE_ROTATE = True
 # "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
-VALIDATION_SCALE = 1.0  # 2.0
+VALIDATION_SCALE = 1.0
 PRINT_SCALE = 2.0
 SIMULATOR_SCALE = 1.0
 
@@ -73,7 +73,7 @@ TOTAL_MEMORY_LIMIT_GB = 29.0
 
 ############
 
-DROPOUT_RATE = 0.1  # 0.05
+DROPOUT_RATE = 0.0# 0.1  # 0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0
 
