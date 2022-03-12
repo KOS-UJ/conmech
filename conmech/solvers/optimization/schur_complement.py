@@ -294,7 +294,7 @@ class Dynamic(Quasistatic):
         C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
         C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
 
-        X += -1 * np.stack((C2XTemp, C2YTemp), axis=-1)
+        X +=  np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Probably -1 * 
 
         return self.forces.F + X
 
@@ -326,7 +326,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        QBig = Q1 + C2Xv + C2Yv ###############################
+        QBig = Q1 - C2Xv - C2Yv #TODO: Probably Q1 + C2Xv + C2Y
 
         Q_free = QBig[self.free_ids]
         Q_contact = QBig[self.contact_ids]

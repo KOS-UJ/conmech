@@ -1,4 +1,5 @@
 from argparse import ArgumentError
+
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
@@ -49,13 +50,14 @@ def remove_unconnected_nodes_numba(nodes, elements):
             index += 1
         else:
             print(f"Index {index} not in elements - fixing")
-            nodes = np.vstack((nodes[:index],nodes[index+1:]))
+            nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
-                    if elements[i,j] > index:
-                        elements[i,j] -= 1
+                    if elements[i, j] > index:
+                        elements[i, j] -= 1
             nodes_count -= 1
     return nodes, elements
+
 
 @njit
 def move_boundary_nodes_to_start_numba(
@@ -153,7 +155,7 @@ def get_closest_to_axis_numba(nodes, variable):
 
     correct_order = nodes[final_i, variable] < nodes[final_j, variable]
     indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([error, indices[0], indices[1]])
+    return np.array([min_error, *indices])
 
 
 @njit
@@ -272,7 +274,6 @@ class SettingMesh:
         scale_y=None,
         is_adaptive=False,
         create_in_subprocess=False,
-        is_3d=False,
     ):
         self.mesh_density_x = mesh_density_x
         self.mesh_density_y = mesh_density_y
@@ -281,7 +282,6 @@ class SettingMesh:
         self.scale_y = scale_y
         self.is_adaptive = is_adaptive
         self.create_in_subprocess = create_in_subprocess
-        self.is_3d = is_3d
 
         self.set_mesh()
 
@@ -289,25 +289,20 @@ class SettingMesh:
         self.set_mesh()
 
     def set_mesh(self):
-        if self.is_3d:
-            unordered_nodes, unordered_elements = mesh_builders.build_mesh(
-                mesh_type=self.mesh_type, mesh_density_x=self.mesh_density_x
-            )
-        else:
-            unordered_nodes, unordered_elements = mesh_builders.build_mesh(
-                mesh_type=self.mesh_type,
-                mesh_density_x=self.mesh_density_x,
-                mesh_density_y=self.mesh_density_y,
-                scale_x=self.scale_x,
-                scale_y=self.scale_y,
-                is_adaptive=self.is_adaptive,
-                create_in_subprocess=self.create_in_subprocess,
-            )
-
+        unordered_nodes, unordered_elements = mesh_builders.build_mesh(
+            mesh_type=self.mesh_type,
+            mesh_density_x=self.mesh_density_x,
+            mesh_density_y=self.mesh_density_y,
+            scale_x=self.scale_x,
+            scale_y=self.scale_y,
+            is_adaptive=self.is_adaptive,
+            create_in_subprocess=self.create_in_subprocess,
+        )
         (self.initial_nodes, self.cells, self.boundary_nodes_count) = clean_mesh(
             unordered_nodes, unordered_elements
         )
 
+        self.reorganize_boundaries()
         (
             self.boundary_faces,
             self.boundary_nodes_indices,
@@ -326,6 +321,10 @@ class SettingMesh:
         self.a_old = np.zeros_like(self.initial_nodes)
 
         self.clear()
+
+    def reorganize_boundaries(self):
+        self.boundaries = None
+        self.independent_nodes_count = self.nodes_count
 
     def set_a_old(self, a):
         self.a_old = a

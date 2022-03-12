@@ -24,6 +24,8 @@ class MeshFeatures(SettingMatrices):
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
+        self.is_contact = is_contact
+        self.is_dirichlet = is_dirichlet
         super().__init__(
             mesh_type,
             mesh_density_x,
@@ -38,28 +40,27 @@ class MeshFeatures(SettingMatrices):
             ze_coef,
             density,
             time_step,
-            lambda: self.reorganize_boundaries(is_contact, is_dirichlet),
             False
         )
 
-    def reorganize_boundaries(self, is_contact, is_dirichlet):
+    def reorganize_boundaries(self):
         (
             self.boundaries,
             self.initial_nodes,
             self.cells,
         ) = Boundaries.identify_boundaries_and_reorder_vertices(
-            self.initial_nodes, self.cells, is_contact, is_dirichlet
+            self.initial_nodes, self.cells, self.is_contact, self.is_dirichlet
         )
 
         self.independent_nodes_count = len(self.initial_nodes)
         for vertex in reversed(self.initial_nodes):
-            if not is_dirichlet(*vertex):
+            if not self.is_dirichlet(*vertex):
                 break
             self.independent_nodes_count -= 1
 
         self.contact_count = 0
         for vertex in self.initial_nodes:
-            if not is_contact(*vertex):
+            if not self.is_contact(*vertex):
                 break
             self.contact_count += 1
 

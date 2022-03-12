@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from conmech.helpers import nph
+from deep_conmech.simulator.setting import setting_mesh
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 
 
@@ -37,3 +38,30 @@ def test_boundary_nodes_data_3d():
         nph.euclidean_norm_numba(setting.boundary_normals),
         np.ones(len(setting.boundary_normals)),
     )
+
+
+def test_remove_unconnected_nodes():
+    # Arrange
+    nodes = np.array(
+        [
+            [0.1, 1.2],
+            [1.1, 1.2],
+            [2.1, 1.2],
+            [3.1, 1.2],
+            [4.1, 1.2],
+            [5.1, 1.2],
+            [6.1, 1.2],
+        ]
+    )
+    elements = np.array([[4, 2], [2, 5], [4, 5]])
+
+    # Act
+    cleaned_nodes, cleaned_elements = setting_mesh.remove_unconnected_nodes_numba(
+        nodes, elements
+    )
+
+    # Assert
+    expected_nodes = np.array([[2.1, 1.2], [4.1, 1.2], [5.1, 1.2]])
+    expected_elements = np.array([[1, 0], [0, 2], [1, 2]])
+    np.testing.assert_array_equal(expected_nodes, cleaned_nodes)
+    np.testing.assert_array_equal(expected_elements, cleaned_elements)

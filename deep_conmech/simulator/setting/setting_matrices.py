@@ -34,7 +34,6 @@ class SettingMatrices(SettingMesh):
         ze=config.ZE,
         density=config.DENS,
         time_step=config.TIMESTEP,
-        reorganize_boundaries=None,
         with_schur_complement_matrices=True,
     ):
         super().__init__(
@@ -44,7 +43,7 @@ class SettingMatrices(SettingMesh):
             scale_x,
             scale_y,
             is_adaptive,
-            create_in_subprocess,
+            create_in_subprocess
         )
         self.mu = mu
         self.la = la
@@ -52,11 +51,6 @@ class SettingMatrices(SettingMesh):
         self.ze = ze
         self.density = density
         self.time_step = time_step
-
-        self.boundaries = None
-        self.independent_nodes_count = self.nodes_count
-        if reorganize_boundaries is not None:
-            reorganize_boundaries()
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.reinitialize_matrices()
