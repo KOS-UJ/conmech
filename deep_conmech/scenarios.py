@@ -307,7 +307,7 @@ all_train = [
     polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
 ]
 
-all_print = [
+all_validation = [
     polygon_two(scale=config.VALIDATION_SCALE, is_adaptive=False),
     circle_slope(scale=config.VALIDATION_SCALE, is_adaptive=False),
     circle_right(scale=config.VALIDATION_SCALE, is_adaptive=False),
@@ -318,7 +318,7 @@ all_print = [
     polygon_stay(scale=config.VALIDATION_SCALE, is_adaptive=False),
 ]
 
-all_validation = [
+all_print= [
     polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_right(scale=config.PRINT_SCALE, is_adaptive=False),

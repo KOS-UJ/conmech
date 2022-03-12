@@ -1,7 +1,4 @@
 from argparse import ArgumentError
-
-from sqlalchemy import true
-
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
