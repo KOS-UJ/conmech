@@ -23,7 +23,7 @@ SIMULATOR_SCALE = 1.0
 MESH_DENSITY = 16
 ADAPTIVE_MESH = True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
-SIMULATE_DIRTY_DATA = False # True
+SIMULATE_DIRTY_DATA = False  # True
 
 TIMESTEP = 0.01
 
@@ -73,7 +73,7 @@ TOTAL_MEMORY_LIMIT_GB = 29.0
 
 ############
 
-DROPOUT_RATE = 0.0# 0.1  # 0.05
+DROPOUT_RATE = 0.25  # 0.1  # 0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0
 

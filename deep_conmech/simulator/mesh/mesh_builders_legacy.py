@@ -3,7 +3,7 @@ from numba import njit
 from conmech.helpers import nph
 
 
-#@njit
+@njit
 def get_cross_points_legacy_ordered_numba(
     points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
@@ -35,10 +35,10 @@ def get_cross_points_legacy_ordered_numba(
         points[index] = np.array((0.0, j * edge_len_y))
         index += 1
 
-    points += np.array(left_bottom_point)
+    points += left_bottom_point
 
 
-#@njit
+@njit
 def get_cross_cells_numba(
     points, cells, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
@@ -46,9 +46,8 @@ def get_cross_cells_numba(
     index = 0
     for i in range(size_x):
         for j in range(size_y):
-            left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + np.array(
-                left_bottom_point
-            )
+            left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_point
+            
 
             lb = nph.get_point_index_numba(left_bottom, points)
             rb = nph.get_point_index_numba(
