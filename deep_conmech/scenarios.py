@@ -1,11 +1,8 @@
 import numba
 import numpy as np
 from conmech.helpers import nph
+
 from deep_conmech.common import config
-
-
-
-
 
 ####################################
 
@@ -29,6 +26,7 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
 ##################
+
 
 def f_slide(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
@@ -131,8 +129,8 @@ def f_drag(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
 
 
-
 ####################################
+
 
 def f_push_3d(ip, mp, t, scale_x, scale_y):
     return np.array([0.05, 0.05, 0.05])
@@ -144,6 +142,7 @@ def f_rotate_3d(ip, mp, t, scale_x, scale_y):
         scale = ip[1] * ip[2]
         return scale * np.array([0.1, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
+
 
 ####################################
 
@@ -169,7 +168,7 @@ class Scenario:
         self.forces_function = forces_function
         self.obstacles = obstacles
         self.is_adaptive = is_adaptive
-        self.dim=dim
+        self.dim = dim
         self.duration = duration
         self.is_randomized = is_randomized
 
@@ -294,53 +293,32 @@ def cross_slope(scale, is_adaptive):
     )
 
 
+def get_data(scale, is_adaptive):
+    return [
+        polygon_two(scale, is_adaptive),
+        circle_slope(scale, is_adaptive),
+        circle_right(scale, is_adaptive),
+        circle_left(scale, is_adaptive),
+        polygon_left(scale, is_adaptive),
+        circle_rotate(scale, is_adaptive),
+        polygon_rotate(scale, is_adaptive),
+        polygon_stay(scale, is_adaptive),
+    ]
 
-#polygon_two - obstacles not serializing
-all_train = [
-    polygon_two(scale=config.TRAIN_SCALE, is_adaptive=True),
-    circle_slope(scale=config.TRAIN_SCALE, is_adaptive=True),
-    circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
-    circle_left(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_left(scale=config.PRINT_SCALE, is_adaptive=True),
-    circle_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_rotate(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_stay(scale=config.TRAIN_SCALE, is_adaptive=True),
-]
 
-all_validation = [
-    polygon_two(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    circle_slope(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    circle_right(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    circle_left(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    polygon_left(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    circle_rotate(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    polygon_rotate(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    polygon_stay(scale=config.VALIDATION_SCALE, is_adaptive=False),
-]
-
-all_print= [
-    polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_right(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_left(scale=config.PRINT_SCALE, is_adaptive=False),
-    circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
-    polygon_stay(scale=config.PRINT_SCALE, is_adaptive=False),
+# polygon_two - obstacles not serializing
+all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=True)
+all_validation = get_data(scale=config.VALIDATION_SCALE, is_adaptive=False)
+all_print = [
+    *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
+    *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False),
 ]
 
 all_simulator = [
     circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False)
+    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False),
 ]
 
 
-scenario_3d = Scenario(
-        "scenario_3d",
-        m_cube_3d,
-        3,
-        1,
-        f_rotate_3d,
-        o_3d * 1,
-        False,
-    )
+scenario_3d = Scenario("m_cube_3d", m_cube_3d, 7, 1, f_rotate_3d, o_3d * 1, False,)
+

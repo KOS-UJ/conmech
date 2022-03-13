@@ -303,11 +303,6 @@ class SettingMesh:
         )
 
         self.reorganize_boundaries()
-        (
-            self.boundary_faces,
-            self.boundary_nodes_indices,
-            self.boundary_internal_indices,
-        ) = get_boundary_faces(self.cells)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -325,6 +320,16 @@ class SettingMesh:
     def reorganize_boundaries(self):
         self.boundaries = None
         self.independent_nodes_count = self.nodes_count
+        
+        (
+            self.boundary_faces,
+            self.boundary_nodes_indices,
+            self.boundary_internal_indices,
+        ) = get_boundary_faces(self.cells)
+
+        if not np.array_equal(self.boundary_nodes_indices, range(self.boundary_nodes_count)):
+            raise ArgumentError('Bad boundary ordering')
+
 
     def set_a_old(self, a):
         self.a_old = a

@@ -30,6 +30,10 @@ if __name__ == "__main__":
     main()
 
 
+
+# teach using a instead of L2
+# DO NOT randomize boundary
+
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
 
 

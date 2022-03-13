@@ -23,7 +23,7 @@ SIMULATOR_SCALE = 1.0
 MESH_DENSITY = 16
 ADAPTIVE_MESH = True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
-SIMULATE_DIRTY_DATA = False  # True
+SIMULATE_DIRTY_DATA = True
 
 TIMESTEP = 0.01
 
@@ -54,9 +54,8 @@ PRINT_DATA_CUTOFF = 1
 ############
 
 VALIDATE_AT_EPOCHS = 20
-DRAW_AT_MINUTES = 60  #!#
+DRAW_AT_MINUTES = 90  #!#
 PRINT_SKIP = 0.1
-DRAW_DETAILED = True
 
 
 BATCH_SIZE = 128  #!#
@@ -73,11 +72,11 @@ TOTAL_MEMORY_LIMIT_GB = 29.0
 
 ############
 
-DROPOUT_RATE = 0.25  # 0.1  # 0.05
+DROPOUT_RATE = 0.2  # 0.1  # 0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0
 
-ATTENTION_HEADS = None  # 1  # None 1 3 5
+ATTENTION_HEADS = 1  # 1  # None 1 3 5
 
 INITIAL_LR = 1e-4
 LR_GAMMA = 1.0  # 0.999

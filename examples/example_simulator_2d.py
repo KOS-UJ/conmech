@@ -16,9 +16,11 @@ def main():
             scenario,
             path,
             simulate_dirty_data=config.SIMULATE_DIRTY_DATA,
-            print_base=False,
+            draw_base=False,
+            draw_detailed=True,
             description="Printing simulator 2D",
         )
+
 
 if __name__ == "__main__":
     main()

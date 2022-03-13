@@ -1,10 +1,11 @@
 import time
-from deep_conmech.common.plotter.plotter_2d import Plotter
+
+from deep_conmech.common import config, mapper
 from deep_conmech.common.plotter import plotter_3d
-from deep_conmech.common import mapper, config
+from deep_conmech.common.plotter.plotter_2d import Plotter
+from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.model import *
 from deep_conmech.simulator.setting.setting_forces import *
-from deep_conmech.graph.helpers import thh
 
 
 def print_setting(setting, filename, catalog):
@@ -38,7 +39,7 @@ def print_dataset(dataset, cutoff, timestamp, description):
 
 
 def print_one_dynamic(
-    solve_function, scenario, catalog, simulate_dirty_data, print_base, description
+    solve_function, scenario, catalog, simulate_dirty_data, draw_base, draw_detailed, description
 ):
     plotter = Plotter()
     all_images_paths = []
@@ -49,13 +50,14 @@ def print_one_dynamic(
         time,
         setting,
         f"output/{catalog}/{scenario.id} {int(time * 100)}.{extension}",
-        base_setting if print_base else None,
+        base_setting if draw_base else None,
+        draw_detailed,
         all_images_paths,
         extension,
     )
 
     mapper.map_time(
-        print_base,
+        draw_base,
         _print_at_interval,
         config.EPISODE_STEPS,
         solve_function,
@@ -65,21 +67,21 @@ def print_one_dynamic(
     )
 
     plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} ANIMATION.gif", all_images_paths
+        f"output/{catalog}/{scenario.id} scale:{scenario.scale} ANIMATION.gif", all_images_paths
     )
 
 
-def print_at_interval(time, setting, path, base_setting, all_images_paths, extension):
+def print_at_interval(time, setting, path, base_setting, draw_detailed, all_images_paths, extension):
     if thh.skip(time, config.PRINT_SKIP):
-        print_setting_internal(setting, path, base_setting, extension, time)
+        print_setting_internal(setting, path, base_setting, extension, time, draw_detailed)
         all_images_paths.append(path)
 
 
-def print_setting_internal(setting, path, base_setting, extension, time):
+def print_setting_internal(setting, path, base_setting, extension, time, draw_detailed):
     if setting.dim == 2:
         plotter = Plotter()
         ax = plotter.get_one_ax()
-        plotter.draw_setting_ax(setting, ax, base_setting, time)
+        plotter.draw_setting_ax(setting, ax, base_setting, time, draw_detailed)
         plotter.plt_save(path, extension)
     else:
         plotter_3d.plot_frame(

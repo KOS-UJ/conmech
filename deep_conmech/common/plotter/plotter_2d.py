@@ -37,7 +37,7 @@ class Plotter:
         ax = fig.add_subplot(1, 1, 1, facecolor="none")
         return ax
 
-    def draw_setting_ax(self, setting, ax, base_setting, time):
+    def draw_setting_ax(self, setting, ax, base_setting, time, draw_detailed=True):
         ax.set_aspect("equal", "box")
         scale = setting.scale_x
 
@@ -51,19 +51,20 @@ class Plotter:
             self.draw_base_displaced(base_setting, scale, ax)
         self.description_offset = np.array([-0.1, -1.1]) * scale
 
-        if config.DRAW_DETAILED:  # detailed:
-            self.draw_parameters(time, setting, scale, x_max, y_max, ax)
-            # self.draw_angles(setting, ax)
-            position = np.array([-1.5, -1.5]) * scale
+        self.draw_parameters(time, setting, scale, x_max, y_max, ax)
+        # self.draw_angles(setting, ax)
+
+        position = np.array([-1.5, -1.5]) * scale
+        self.draw_forces(setting, position, ax)
+        if draw_detailed:  # detailed:
+            position[0] += 2.5 * scale
             if setting.obstacles is not None:
                 self.draw_obstacle_resistance_normalized(setting, position, ax)
                 position[0] += 2.5 * scale
             # self.draw_boundary_faces_normals(setting, position, ax)
             # position[0] += 2.5 * scale
-            self.draw_boundary_normals(setting, position, ax)
-            position[0] += 2.5 * scale
-            self.draw_forces(setting, position, ax)
-            position[0] += 2.5 * scale
+            #self.draw_boundary_normals(setting, position, ax)
+            #position[0] += 2.5 * scale
             self.draw_input_u(setting, position, ax)
             position[0] += 2.5 * scale
             self.draw_input_v(setting, position, ax)
@@ -294,7 +295,7 @@ class Plotter:
             bbox_inches="tight",
             pad_inches=0.0,
             format=extension,
-            dpi=1000,  # 800 1200,
+            dpi=600,  # 800 1200,
         )
         plt.close()
 

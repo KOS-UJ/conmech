@@ -38,7 +38,12 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-        self, train_dataset, all_val_datasets, print_scenarios, nodes_statistics, edges_statistics
+        self,
+        train_dataset,
+        all_val_datasets,
+        print_scenarios,
+        nodes_statistics,
+        edges_statistics,
     ):
         self.train_dataset = train_dataset
         self.all_val_datasets = all_val_datasets
@@ -56,7 +61,9 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet(self.dim, nodes_statistics, edges_statistics).to(thh.device)
+        self.net = CustomGraphNet(self.dim, nodes_statistics, edges_statistics).to(
+            thh.device
+        )
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -116,7 +123,6 @@ class GraphModelDynamic:
         self.net.eval()
 
     ################
-
 
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
@@ -331,16 +337,19 @@ class GraphModelDynamic:
 
     def print_raport(self):
         path = f"GRAPH - {thh.CURRENT_TIME}/{thh.get_timestamp()} - RESULT"
+        start = time.time()
         for scenario in self.print_scenarios:
-
             plotter_mapper.print_one_dynamic(
                 lambda setting: self.solve(setting, print_time=False),
                 scenario,
                 path,
                 simulate_dirty_data=False,
-                print_base=False,  #######################
+                draw_base=False,  #######################
+                draw_detailed=False,
                 description="Printing raport",
             )
+
+        print(f"Printing time: {int((time.time() - start)/60)} min")
 
     """
     def validate_rollout(self, examples_seen):

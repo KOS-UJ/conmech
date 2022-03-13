@@ -12,7 +12,6 @@ from deep_conmech.common.plotter import plotter_mapper
 catalog = f"output/3D - {thh.CURRENT_TIME}"
 
 
-
 def main():
     path = f"SIMULATOR 3D - {thh.CURRENT_TIME}"
 
@@ -21,7 +20,8 @@ def main():
         scenarios.scenario_3d,
         path,
         simulate_dirty_data=config.SIMULATE_DIRTY_DATA,
-        print_base=False,
+        draw_base=False,
+        draw_detailed=True,
         description="Printing simulator 3D",
     )
 
