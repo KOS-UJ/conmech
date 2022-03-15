@@ -334,6 +334,7 @@ class TDynamic(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = TemperatureState(self.mesh)
+        state.temperature = np.full_like(state.temperature, 0.)  # TODO #50
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)
@@ -341,6 +342,7 @@ class TDynamic(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
+        self.step_solver.t_vector = solution_t
         for n in output_step:
             for i in range(n):
                 self.step_solver.currentTime += self.step_solver.time_step

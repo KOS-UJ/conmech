@@ -9,7 +9,7 @@ from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
 
 
-@njit  # (parallel=True)
+@njit
 def get_edges_features_matrix_2d_numba(elements, nodes):
     ELEMENT_NODES_COUNT = 3
     CONNECTED_EDGES_COUNT = 2
@@ -35,7 +35,8 @@ def get_edges_features_matrix_2d_numba(elements, nodes):
                 j_dPhX, j_dPhY, _ = get_integral_parts_numba(element_points, j)
 
                 volume = (i != j) * (int_Ph / CONNECTED_EDGES_COUNT)
-                # divide by edge count - info about each triangle is "sent" to node via all connected edges
+                # divide by edge count
+                # - info about each triangle is "sent" to node via all connected edges
                 # (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
                 u = (1 + (i == j)) / 12.0
                 # in 3D: divide by 10 or 20, in 2D: divide by 6 or 12
@@ -93,10 +94,6 @@ def denominator_numba(x_i, x_j1, x_j2):
     )
 
 
-######################################
-
-
-
 def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
     X11 = (2 * MU + LA) * W11 + MU * W22
     X22 = MU * W11 + (2 * MU + LA) * W22
@@ -110,10 +107,7 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z], [Z, U]])
 
 
-def get_matrices(
-    edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind
-):
-    #slice_ind = slice(0, independent_nodes_count)
+def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind):
 
     VOL = edges_features_matrix[0]
 
@@ -129,17 +123,7 @@ def get_matrices(
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step
 
-    """
-    k11 = 0.5
-    k12 = k21 = 0.5
-    k22 = 0.5
-    """
-
-    c11 = 1.5
-    c12 = c21 = 1.5
-    c22 = 1.5
-
-    c11 = c22 = 0.5
+    c11 = c22 = -0.5
     c12 = c21 = 0
 
 
