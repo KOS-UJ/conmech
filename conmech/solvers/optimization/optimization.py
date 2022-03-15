@@ -58,7 +58,6 @@ class Optimization(Solver):
         self,
         initial_guess: np.ndarray,
         *,
-        temperature=None,
         fixed_point_abs_tol: float = math.inf,
         **kwargs
     ) -> np.ndarray:
@@ -75,7 +74,6 @@ class Optimization(Solver):
                     self.mesh.boundaries.contact,
                     self.point_relations,
                     self.point_forces,
-                    temperature,
                 ),
                 method="BFGS",
                 options={"disp": True, "maxiter": len(initial_guess) * 1e5},
@@ -90,8 +88,8 @@ class Optimization(Solver):
         loss_args = (
             self.mesh.initial_nodes,
             self.mesh.boundaries.contact,
-            self.T,
-            self.Q,
+            self.T,  # TODO #48
+            self.Q,  # TODO #48
             velocity,
         )
         # TODO #33

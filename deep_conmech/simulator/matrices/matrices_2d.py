@@ -91,10 +91,6 @@ def denominator_numba(x_i, x_j1, x_j2):
     )
 
 
-######################################
-
-
-
 def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
     X11 = (2 * MU + LA) * W11 + MU * W22
     X22 = MU * W11 + (2 * MU + LA) * W22
@@ -108,10 +104,7 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z], [Z, U]])
 
 
-def get_matrices(
-    edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind
-):
-    #slice_ind = slice(0, independent_nodes_count)
+def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind):
 
     VOL = edges_features_matrix[0]
 
@@ -127,17 +120,7 @@ def get_matrices(
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step
 
-    """
-    k11 = 0.5
-    k12 = k21 = 0.5
-    k22 = 0.5
-    """
-
-    c11 = 1.5
-    c12 = c21 = 1.5
-    c22 = 1.5
-
-    c11 = c22 = 0.5
+    c11 = c22 = -0.5
     c12 = c21 = 0
 
 

@@ -12,7 +12,7 @@ from examples.p_slope_contact_law import make_slope_contact_law
 
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-    # @staticmethod
+    # @staticmethod  # TODO # 48
     # def g(t):
     #     return 10.7 + t * 0.02
     # return 0.5 + t * 0.01
@@ -26,20 +26,18 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_tau(uN, t):
-        # return 0
         g_t = 10.7 + t * 0.02
         if uN > g_t:
             return 10.0 * (uN - g_t)
         return 0
 
-    #
-    # def jT(self, vTx, vTy):
+    # def jT(self, vTx, vTy):  # TODO # 48
     #     # return np.log(np.linalg.norm(vTx, vTy)+1)
     #     return np.linalg.norm(vTx, vTy)
 
     @staticmethod
-    def h_temp(vTnorm):
-        return 0.1 * vTnorm
+    def h_temp(u_tau):  # potential  # TODO # 48
+        return 0.1 * 0.5 * u_tau ** 2
 
 
 @dataclass()
@@ -65,11 +63,11 @@ class TDynamicSetup(Dynamic):
     def friction_bound(u_nu):
         return 0
 
-    @staticmethod
+    @staticmethod  # TODO #49
     def is_contact(x, y):
         return y == 0
 
-    @staticmethod
+    @staticmethod  # TODO #49
     def is_dirichlet(x, y):
         return x == 0
 
