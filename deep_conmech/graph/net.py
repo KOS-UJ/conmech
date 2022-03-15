@@ -1,12 +1,11 @@
 import torch
-from deep_conmech.common import config
-from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.setting.setting_input import SettingInput
 from torch import nn
 from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
+from deep_conmech.common import config
+from deep_conmech.graph.helpers import thh
 
 # TODO: move
 ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
@@ -92,30 +91,15 @@ class ResidualBlock(Block):
         return output
 
 
-class DataNorm(nn.Module):
-    def __init__(self, in_channels, normalization_statistics):
-        super().__init__()
-        self.in_channels = in_channels
-        self.x_mean = normalization_statistics.data_mean.to(thh.device)
-        self.x_std = normalization_statistics.data_std.to(thh.device)
-
-    def forward(self, x):
-        output = (x - self.x_mean) / self.x_std
-        return output
-
-
 class ForwardNet(nn.Module):
     def __init__(
-        self, input_dim, layers_count, output_linear_dim, normalization_statistics=None
+        self, input_dim, layers_count, output_linear_dim, input_normalization=False,
     ):
         super().__init__()
 
         layers = []
-        if (
-            normalization_statistics is not None
-        ):  ###########################################
-            # layers.append(nn.BatchNorm1d(input_dim))
-            layers.append(DataNorm(input_dim, normalization_statistics))
+        if input_normalization:
+            layers.append(nn.BatchNorm1d(input_dim))
 
         layers.append(
             BasicBlock(
@@ -245,14 +229,14 @@ class ProcessorLayer(MessagePassing):
             layers_count=config.PROC_LAYER_COUNT,
             output_linear_dim=config.LATENT_DIM,
         )
-        self.node_processor = ForwardNet(
+        self.vertex_processor = ForwardNet(
             input_dim=config.LATENT_DIM * 2,
             layers_count=config.PROC_LAYER_COUNT,
             output_linear_dim=config.LATENT_DIM,
         )
 
         # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
-        # self.node_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
+        # self.vertex_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
         self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
         self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS)
         self.epsilon = Parameter(torch.Tensor(1))
@@ -261,16 +245,16 @@ class ProcessorLayer(MessagePassing):
         # self.bias = Parameter(torch.Tensor(out_channels))
         # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
 
-    def forward(self, batch, node_latents, edge_latents):
+    def forward(self, batch, vertex_latents, edge_latents):
         self.new_edge_latents = None
         return self.propagate(
             edge_index=batch.edge_index,
-            node_latents=node_latents,
+            vertex_latents=vertex_latents,
             edge_latents=edge_latents,
         )
 
-    def message(self, node_latents_i, node_latents_j, edge_latents, index):
-        edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
+    def message(self, vertex_latents_i, vertex_latents_j, edge_latents, index):
+        edge_inputs = torch.hstack((vertex_latents_i, vertex_latents_j, edge_latents))
         self.new_edge_latents = edge_latents + self.layer_norm(
             self.edge_processor(edge_inputs)
         )
@@ -283,33 +267,33 @@ class ProcessorLayer(MessagePassing):
         aggregated_new_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
         return aggregated_new_edge_latents
 
-    def update(self, aggregated_new_edge_latents, node_latents):
-        # node_inputs = aggregated_new_edge_latents
-        # node_inputs = (
-        #    (1 + self.epsilon) * node_latents
+    def update(self, aggregated_new_edge_latents, vertex_latents):
+        # vertex_inputs = aggregated_new_edge_latents
+        # vertex_inputs = (
+        #    (1 + self.epsilon) * vertex_latents
         # ) + aggregated_new_edge_latents
-        node_inputs = torch.hstack((node_latents, aggregated_new_edge_latents))
-        new_node_latents = node_latents + self.layer_norm(
-            self.node_processor(node_inputs)
+        vertex_inputs = torch.hstack((vertex_latents, aggregated_new_edge_latents))
+        new_vertex_latents = vertex_latents + self.layer_norm(
+            self.vertex_processor(vertex_inputs)
         )
-        return new_node_latents, self.new_edge_latents
+        return new_vertex_latents, self.new_edge_latents
 
 
 class CustomGraphNet(nn.Module):  # SAMPLE
-    def __init__(self, output_dim, nodes_statistics, edges_statistics):
+    def __init__(self):
         super().__init__()
 
-        self.node_encoder = ForwardNet(
-            input_dim=SettingInput.nodes_data_dim(),
+        self.vector_encoder = ForwardNet(
+            input_dim=config.VERTEX_DATA_DIM,
             layers_count=config.ENC_LAYER_COUNT,
+            input_normalization=True,
             output_linear_dim=config.LATENT_DIM,
-            normalization_statistics=nodes_statistics,
         )
         self.edge_encoder = ForwardNet(
-            input_dim=SettingInput.edges_data_dim(),
+            input_dim=config.EDGE_DATA_DIM,
             layers_count=config.ENC_LAYER_COUNT,
+            input_normalization=True,
             output_linear_dim=config.LATENT_DIM,
-            normalization_statistics=edges_statistics,
         )
         self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
 
@@ -322,10 +306,10 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         self.decoder = ForwardNet(
             input_dim=config.LATENT_DIM,
             layers_count=config.DEC_LAYER_COUNT,
-            output_linear_dim=output_dim,
+            output_linear_dim=config.DIM,
         )
         """
-        self.node_encoder = MLP(
+        self.vector_encoder = MLP(
             input_dim=config.VERTEX_DATA_DIM,
             input_normalization=True,  ########################
         )
@@ -335,24 +319,24 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         )
         self.decoder = MLP(
             input_dim=config.LATENT_DIM,
-            output_linear_dim=dim,
+            output_linear_dim=config.DIM,
             output_bias=False
         )
         """
 
     def forward(self, batch):
-        node_input = batch.x  # position "pos" will not generalize
+        vertex_input = batch.x  # position "pos" will not generalize
         edge_input = batch.edge_attr
 
-        node_latents = self.layer_norm(self.node_encoder(node_input))
+        vertex_latents = self.layer_norm(self.vector_encoder(vertex_input))
         edge_latents = self.layer_norm(self.edge_encoder(edge_input))
 
         for processor_layer in self.processor_layers:
-            node_latents, edge_latents = processor_layer(
-                batch, node_latents, edge_latents
+            vertex_latents, edge_latents = processor_layer(
+                batch, vertex_latents, edge_latents
             )
 
-        output = self.decoder(node_latents)
+        output = self.decoder(vertex_latents)
         return output
 
 

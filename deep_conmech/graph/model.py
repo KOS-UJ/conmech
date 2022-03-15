@@ -7,10 +7,10 @@ from deep_conmech.common import *
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
-from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard import SummaryWriter
+from deep_conmech.graph.helpers import thh
 
 start = time.time()
 
@@ -21,12 +21,11 @@ def get_writer():
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
-| l2l {config.L2_LOSS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \
-| vpes {config.EPISODE_STEPS} \
+| vpes {config.VAL_PRINT_EPISODE_STEPS} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
-| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
+| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.BATCHES_IN_EPOCH} \
 | ld {config.LATENT_DIM} \
 | lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
 | mp {config.MESSAGE_PASSES}"
@@ -39,22 +38,14 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-        self,
-        train_dataset,
-        all_val_datasets,
-        print_scenarios,
-        nodes_statistics,
-        edges_statistics,
+        self, train_dataset, all_val_datasets, print_scenarios,
     ):
-        self.train_dataset = train_dataset
-        self.all_val_datasets = all_val_datasets
-        self.print_scenarios = print_scenarios
-        self.dim = train_dataset.dim  # TODO: Check validation datasets
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
             for dataset in all_val_datasets
         ]
+        self.print_scenarios = print_scenarios
         self.writer = get_writer()
         self.loss_labels = [
             "Main",
@@ -62,9 +53,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet(self.dim, nodes_statistics, edges_statistics).to(
-            thh.device
-        )
+        self.net = CustomGraphNet().to(thh.device)
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -86,8 +75,11 @@ class GraphModelDynamic:
     def boundary_nodes_counts(self, batch):
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
-    def get_split(self, batch, index, dim, graph_sizes):
-        value = batch.x[:, index * dim : (index + 1) * dim]
+    def boundary_edges_counts(self, batch):
+        return thh.to_np_long(batch.boundary_edges_count).tolist()
+
+    def get_split(self, batch, index, graph_sizes):
+        value = batch.x[:, index * config.DIM : (index + 1) * config.DIM]
         value_split = value.split(graph_sizes)
         return value_split
 
@@ -129,6 +121,7 @@ class GraphModelDynamic:
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         examples_seen = 0
+
         start_time = time.time()
         epoch = 0
         while True:
@@ -197,11 +190,14 @@ class GraphModelDynamic:
     #################
 
     def E(self, batch):
-        # graph_couts = [1 for i in range(batch.num_graphs)]
+        graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        dim_graph_sizes = [size * self.dim for size in graph_sizes]
-        dim_dim_graph_sizes = [(size * self.dim) ** self.dim for size in graph_sizes]
+        boundary_edges_counts = self.boundary_edges_counts(batch)
+        dim_graph_sizes = [size * config.DIM for size in graph_sizes]
+        dim_dim_graph_sizes = [
+            (size * config.DIM) ** config.DIM for size in graph_sizes
+        ]
 
         loss = 0.0
         loss_array = np.zeros([3])
@@ -215,32 +211,36 @@ class GraphModelDynamic:
         normalized_boundary_v_old_split = batch.normalized_boundary_v_old.split(
             boundary_nodes_counts
         )
-        normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
+        normalized_boundary_points_split = batch.normalized_boundary_points.split(
             boundary_nodes_counts
         )
-        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(
-            boundary_nodes_counts
+        boundary_edges_split = batch.boundary_edges.split(boundary_edges_counts)
+        normalized_closest_obstacle_normals_split = batch.normalized_closest_obstacle_normals.split(
+            boundary_edges_counts
         )
-
-        normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_obstacle_normals_split = batch.normalized_boundary_obstacle_normals.split(
-            boundary_nodes_counts
-        )
-        boundary_nodes_volume_split = batch.boundary_nodes_volume.split(
-            boundary_nodes_counts
+        normalized_closest_obstacle_origins_split = batch.normalized_closest_obstacle_origins.split(
+            boundary_edges_counts
         )
 
-        if hasattr(batch, "exact_normalized_a"):
-            exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
+        if hasattr(batch, "exact_normalized_a_torch"):
+            exact_normalized_a_split = batch.exact_normalized_a_torch.split(graph_sizes)
 
         # dataset = StepDataset(batch.num_graphs)
         for i in range(batch.num_graphs):
-            C_side_len = graph_sizes[i] * self.dim
+            C_side_len = graph_sizes[i] * config.DIM
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]
+            #
+            normalized_boundary_v_old = normalized_boundary_v_old_split[i]
+            normalized_boundary_points = normalized_boundary_points_split[i]
+            boundary_edges = boundary_edges_split[i]
+            normalized_closest_obstacle_normals = normalized_closest_obstacle_normals_split[
+                i
+            ]
+            normalized_closest_obstacle_origins = normalized_closest_obstacle_origins_split[
+                i
+            ]
 
             predicted_normalized_a = predicted_normalized_a_split[i]
             # + setting.predicted_normalized_a_mean_cuda
@@ -250,26 +250,19 @@ class GraphModelDynamic:
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction_cuda(
                 predicted_normalized_a,
-                normalized_a_correction,
                 C,
                 normalized_E,
-                normalized_boundary_v_old_split[i],
-                normalized_boundary_nodes_split[i],
-                normalized_boundary_normals_split[i],
-                normalized_boundary_obstacle_nodes_split[i],
-                normalized_boundary_obstacle_normals_split[i],
-                boundary_nodes_volume_split[i],
+                normalized_boundary_v_old,
+                normalized_boundary_points,
+                boundary_edges,
+                normalized_closest_obstacle_normals,
+                normalized_closest_obstacle_origins,
+                normalized_a_correction,
             )
 
-            ######################
-            if config.L2_LOSS:
-                loss += predicted_normalized_L2
-            else:
-                exact_normalized_a = exact_normalized_a_split[i]
-                loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
-            ######################
+            loss += predicted_normalized_L2
 
-            if hasattr(batch, "exact_normalized_a"):
+            if hasattr(batch, "exact_normalized_a_torch"):
                 exact_normalized_a = exact_normalized_a_split[i]
                 if exact_normalized_a is not None:
                     exact_normalized_L2 = setting_input.L2_normalized_correction_cuda(
@@ -344,26 +337,23 @@ class GraphModelDynamic:
 
     def print_raport(self):
         path = f"GRAPH - {thh.CURRENT_TIME}/{thh.get_timestamp()} - RESULT"
-        start = time.time()
         for scenario in self.print_scenarios:
+
             plotter_mapper.print_one_dynamic(
                 lambda setting: self.solve(setting, print_time=False),
                 scenario,
                 path,
                 simulate_dirty_data=False,
-                draw_base=False,  #######################
-                draw_detailed=False,
+                print_base=False,  #######################
                 description="Printing raport",
             )
-
-        print(f"Printing time: {int((time.time() - start)/60)} min")
 
     """
     def validate_rollout(self, examples_seen):
         for forces_function in self.rollout_forces_functions:
             error_result = ErrorResult()
 
-            episode_steps = config.EPISODE_STEPS
+            episode_steps = config.VAL_PRINT_EPISODE_STEPS
             _validate = lambda time, setting, base_setting, a, base_a: self.calculate_error(
                 setting, base_setting, a, base_a, error_result, episode_steps
             )

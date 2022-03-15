@@ -21,7 +21,7 @@ def bigger_or_zero(data):
     return data > -1e-05
 
 
-#@njit
+# @njit
 def approximate_one(new_point, old_points, old_values, old_cells):
     closest_cell = 0
     min_penality = None

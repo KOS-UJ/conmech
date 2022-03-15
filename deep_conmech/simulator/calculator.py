@@ -3,9 +3,10 @@ from argparse import ArgumentError
 
 import numpy as np
 import scipy
-from conmech.helpers import nph
-from deep_conmech.common import config
 from scipy import optimize
+
+from deep_conmech.common import config
+from conmech.helpers import nph
 
 
 class Calculator:
@@ -42,7 +43,7 @@ class Calculator:
     def solve_normalized_function(setting):
         normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
-        return nph.unstack(normalized_a_vector, setting.dim)
+        return nph.unstack(normalized_a_vector)
 
         """
         base (BFGS) - 178 / 1854
@@ -62,38 +63,34 @@ class Calculator:
         """
 
     @staticmethod
-    def minimize(function, initial_vector):
-        return scipy.optimize.minimize(
-            function, initial_vector, method="L-BFGS-B",  # , options={"disp": True}
-        ).x
-
-    @staticmethod
     def solve_normalized_optimization(setting, initial_boundary_vector=None):
         if initial_boundary_vector is None:
             initial_boundary_vector = np.zeros(
-                setting.boundary_nodes_count * setting.dim
+                setting.boundary_nodes_count * config.DIM
             )
 
         tstart = time.time()
-        cost_function = setting.get_normalized_L2_obstacle_np()
-        normalized_boundary_a_vector_np = Calculator.minimize(
-            cost_function, initial_boundary_vector
-        ) 
+        normalized_boundary_a_vector_np = scipy.optimize.minimize(
+            setting.normalized_L2_obstacle_np,
+            initial_boundary_vector,
+            method="L-BFGS-B",  # , options={"disp": True}
+        ).x
         t_np = time.time() - tstart
-        '''
+        """
         tstart = time.time()
-        normalized_boundary_a_vector_nvt = Calculator.minimize(
-            setting.normalized_L2_obstacle_nvt, initial_boundary_vector
-        ) 
+        normalized_boundary_a_vector_nvt = scipy.optimize.minimize(
+            setting.normalized_L2_obstacle_nvt,
+            initial_boundary_vector,  # , options={"disp": True}
+        ).x
         t_nvt = time.time() - tstart
-        '''
-        
+        """
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
+
         normalized_a_vector = Calculator.get_normalized_a_vector(
             setting, setting.normalized_Ei, normalized_boundary_a_vector
         )
 
-        return nph.unstack(normalized_a_vector, setting.dim)
+        return nph.unstack(normalized_a_vector)
 
     @staticmethod
     def clean(setting, normalized_a):
@@ -110,10 +107,7 @@ class Calculator:
         )
 
         normalized_a = np.vstack(
-            (
-                nph.unstack(normalized_at_vector, setting.dim),
-                nph.unstack(normalized_ai_vector, setting.dim),
-            )
+            (nph.unstack(normalized_at_vector), nph.unstack(normalized_ai_vector),)
         )
         normalized_a_vector = nph.stack(normalized_a)
         return normalized_a_vector

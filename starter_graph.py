@@ -1,7 +1,7 @@
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.model import GraphModelDynamic
-import deep_conmech.scenarios as scenarios
+import deep_conmech.common.examples as examples
 from deep_conmech.graph.helpers import thh
 
 
@@ -11,14 +11,13 @@ def main():
 
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
-    train_dataset = TrainingSyntheticDatasetDynamic(dim=2)
-    #train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
+    # train_dataset = TrainingSyntheticDatasetDynamic()
+    train_dataset = TrainingScenariosDatasetDynamic(examples.all_train)
     all_val_datasets = [
-        ValidationScenarioDatasetDynamic(scenario) for scenario in scenarios.all_validation
+        ValidationDatasetDynamic(scenario) for scenario in examples.all_print
     ]
-    nodes_statistics, edges_statistics = train_dataset.get_statistics()
-    
-    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, nodes_statistics, edges_statistics)
+
+    model = GraphModelDynamic(train_dataset, all_val_datasets, examples.all_print)
     if path is not None:
         model.load(path)
         model.print_raport()
@@ -29,9 +28,6 @@ def main():
 if __name__ == "__main__":
     main()
 
-
-
-# change names: base settings to body and setting obstacle to scene
 
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
 
@@ -56,6 +52,11 @@ if __name__ == "__main__":
 # podawac v wymnozone przez ts
 
 # wyswietlac dane < cutoff w getitem z nowymi randomizacjami
+
+# porównać uczenie za pomocą funkcji energii i RMSE
+
+# new dataloader that applies normalization based on dataset and randomization
+# print dataset statistics (min mean max node number)
 
 
 # print data from folder

@@ -1,9 +1,14 @@
-import torch
-from deep_conmech.graph.helpers import thh
 from deep_conmech.simulator.setting.setting_obstacles import *
+from deep_conmech.graph.helpers import thh
 
 
-class SettingTorch(SettingObstacles):
+def L2_torch(argument, C, E):
+    first = 0.5 * (C @ argument) - E
+    value = first.reshape(-1) @ argument
+    return value
+
+
+class SettingTorch(SettingObstacle):
     def __init__(
         self,
         mesh_type,
@@ -25,11 +30,6 @@ class SettingTorch(SettingObstacles):
         )
         self.exact_normalized_a_torch = None  # todo: clear on change
 
-    def complete_boundary_data_with_zeros(self, data):
-        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
-        completed_data[self.boundary_nodes_indices] = data
-        return completed_data
-
     @property
     def AREA_torch(self):
         return thh.to_torch_double(self.AREA)
@@ -45,6 +45,10 @@ class SettingTorch(SettingObstacles):
     @property
     def C_torch(self):
         return thh.to_torch_double(self.C)
+
+    @property
+    def contiguous_edges_torch(self):
+        return thh.to_torch_long(self.edges).t().contiguous()
 
     @property
     def initial_nodes_torch(self):
@@ -83,42 +87,32 @@ class SettingTorch(SettingObstacles):
         return thh.to_torch_long(self.boundary_nodes_count)
 
     @property
-    def boundary_faces_count_torch(self):
-        return thh.to_torch_long(self.boundary_faces_count)
+    def boundary_edges_count_torch(self):
+        return thh.to_torch_long(self.boundary_edges_count)
 
     @property
-    def boundary_faces_torch(self):
-        return thh.to_torch_long(self.boundary_faces)
+    def boundary_edges_torch(self):
+        return thh.to_torch_long(self.boundary_edges)
 
     @property
     def normalized_boundary_v_old_torch(self):
         return thh.to_torch_double(self.normalized_boundary_v_old)
 
     @property
-    def normalized_boundary_nodes_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_nodes)
+    def normalized_boundary_points_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_points)
 
     @property
-    def normalized_boundary_normals_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_normals)
+    def normalized_closest_obstacle_normals_torch(self):
+        return thh.to_torch_double(self.normalized_closest_obstacle_normals)
 
     @property
-    def normalized_boundary_obstacle_nodes_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
+    def normalized_closest_obstacle_origins_torch(self):
+        return thh.to_torch_double(self.normalized_closest_obstacle_origins)
 
     @property
-    def normalized_boundary_obstacle_penetration_vectors_torch(self):
-        return thh.to_torch_double(
-            self.normalized_boundary_obstacle_penetration_vectors
-        )
-
-    @property
-    def normalized_boundary_obstacle_normals_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
-
-    @property
-    def boundary_nodes_volume_torch(self):
-        return thh.to_torch_double(self.boundary_nodes_volume)
+    def angle_torch(self):
+        return thh.to_torch_double(self.angle)
 
     @property
     def normalized_E_torch(self):

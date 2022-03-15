@@ -1,16 +1,88 @@
 import torch
 from deep_conmech.common import *
-from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import *
+from deep_conmech.graph.setting.setting_randomized import L2_normalized_cuda
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.data import Data
+from deep_conmech.graph.helpers import thh
+
+
+def obstacle_resistance_potential_normal_torch(normal_displacement):
+    value = config.OBSTACLE_HARDNESS * 2.0 * normal_displacement ** 2
+    return (normal_displacement > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
+
+
+def obstacle_resistance_potential_tangential_torch(
+    normal_displacement, tangential_velocity
+):
+    value = config.OBSTACLE_FRICTION * thh.euclidean_norm_torch(tangential_velocity)
+    return (normal_displacement > 0) * value * ((1.0 / config.TIMESTEP))
+
+
+def integrate_torch(
+    nodes, v, edges, closest_obstacle_normals, closest_obstacle_origins
+):
+    normals = -closest_obstacle_normals
+
+    edge_node = nodes[edges]
+    edge_v = v[edges]
+
+    middle_node = torch.mean(edge_node, axis=1)
+    middle_v = torch.mean(edge_v, axis=1)
+
+    middle_node_normal = nph.elementwise_dot(
+        middle_node - closest_obstacle_origins, normals
+    )
+    middle_v_normal = nph.elementwise_dot(middle_v, normals)
+
+    middle_v_tangential = middle_v - (middle_v_normal.reshape(-1, 1) * normals)
+
+    edge_lengths = thh.euclidean_norm_torch(edge_node[:, 0] - edge_node[:, 1])
+    resistance_normal = obstacle_resistance_potential_normal_torch(middle_node_normal)
+    resistance_tangential = obstacle_resistance_potential_tangential_torch(
+        middle_node_normal, middle_v_tangential
+    )
+    result = torch.sum(edge_lengths * (resistance_normal + resistance_tangential))
+    return result * 0.5  # edges present twice
 
 
 def L2_normalized_obstacle_correction_cuda(
-    cleaned_a, a_correction, *args,
+    cleaned_normalized_a,
+    C,
+    normalized_E,
+    normalized_boundary_v_old,
+    normalized_boundary_points,
+    boundary_edges,
+    normalized_closest_obstacle_normals,
+    normalized_closest_obstacle_origins,
+    normalized_a_correction=None,
 ):
-    a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return L2_obstacle(a, *args)
+    if normalized_a_correction is not None:
+        normalized_a = cleaned_normalized_a - normalized_a_correction
+    else:
+        normalized_a = cleaned_normalized_a
+
+    internal = L2_normalized_cuda(normalized_a, C, normalized_E)
+
+    boundary_nodes_count = normalized_boundary_v_old.shape[0]
+    normalized_boundary_a = normalized_a[:boundary_nodes_count, :]
+
+    normalized_boundary_v_new = (
+        normalized_boundary_v_old + config.TIMESTEP * normalized_boundary_a
+    )
+    normalized_boundary_points_new = (
+        normalized_boundary_points + config.TIMESTEP * normalized_boundary_v_new
+    )
+
+    boundary_integral = integrate_torch(
+        normalized_boundary_points_new,
+        normalized_boundary_v_new,
+        boundary_edges,
+        normalized_closest_obstacle_normals,
+        normalized_closest_obstacle_origins,
+    )
+
+    return internal + boundary_integral
 
 
 #################################
@@ -30,12 +102,12 @@ def get_edges_data(
     u_old,
     v_old,
     forces,
-    boundary_faces_count,
+    boundary_edges_count,
     obstacle_normal,
-    boundary_obstacle_penetration,
+    boundary_centers_penetration_scale,
 ):  # , forces
     edges_number = edges.shape[0]
-    edges_data = np.zeros((edges_number, 12))
+    edges_data = np.zeros((edges_number, config.EDGE_DATA_DIM))
     for e in range(edges_number):
         i = edges[e, 0]
         j = edges[e, 1]
@@ -44,6 +116,13 @@ def get_edges_data(
         set_diff(u_old, 3, edges_data[e], i, j)
         set_diff(v_old, 6, edges_data[e], i, j)
         set_diff(forces, 9, edges_data[e], i, j)
+        if e < boundary_edges_count:
+            penetration = boundary_centers_penetration_scale[e].item()
+            if penetration > 0:
+                edges_data[e, 12:14] = obstacle_normal
+                edges_data[e, 14] = penetration
+            edges_data[e, 15] = 1.0
+
     return edges_data
 
 
@@ -55,23 +134,22 @@ def L2_obstacle_nvt(
     C_boundary,
     E_boundary,
     boundary_v_old,
-    boundary_nodes,
-    boundary_normals,
-    boundary_obstacle_nodes,
-    boundary_obstacle_normals,
-    boundary_nodes_volume,
+    boundary_points,
+    boundary_edges,
+    closest_obstacle_normals,
+    closest_obstacle_origins,
 ):  # np via torch
+
     value_torch = L2_normalized_obstacle_correction_cuda(
         thh.to_torch_double(boundary_a).to(thh.device),
-        None,
         thh.to_torch_double(C_boundary).to(thh.device),
         thh.to_torch_double(E_boundary).to(thh.device),
         thh.to_torch_double(boundary_v_old).to(thh.device),
-        thh.to_torch_double(boundary_nodes).to(thh.device),
-        thh.to_torch_long(boundary_normals).to(thh.device),
-        thh.to_torch_double(boundary_obstacle_nodes).to(thh.device),
-        thh.to_torch_double(boundary_obstacle_normals).to(thh.device),
-        thh.to_torch_double(boundary_nodes_volume).to(thh.device),
+        thh.to_torch_double(boundary_points).to(thh.device),
+        thh.to_torch_long(boundary_edges).to(thh.device),
+        thh.to_torch_double(closest_obstacle_normals).to(thh.device),
+        thh.to_torch_double(closest_obstacle_origins).to(thh.device),
+        None,
     )
     value = thh.to_np_double(value_torch)
     return value  # .item()
@@ -98,99 +176,57 @@ class SettingInput(SettingRandomized):
             create_in_subprocess,
         )
 
-    @staticmethod
-    def edges_data_dim():
-        return 12
-        
-    @staticmethod
-    def get_edges_data_description(dim):
-        desc = []
-        for attr in ["initial_nodes", "u_old", "v_old", "forces"]:
-            for i in range(dim):
-                desc.append(f"{attr}_{i}")
-            desc.append(f"{attr}_norm")
-
-        return desc
-
-
-    def get_edges_data_torch(self, edges):
+    @property
+    def edges_data_torch(self):
         edges_data = get_edges_data(
-            edges,
+            self.edges,
             self.normalized_initial_nodes,
             self.input_u_old,
             self.input_v_old,
             self.input_forces,
-            self.boundary_faces_count,
+            self.boundary_edges_count,
             self.normalized_obstacle_normal,
-            self.boundary_obstacle_penetration,
+            self.boundary_centers_penetration_scale,
         )
         return thh.to_torch_double(edges_data)
 
+    def get_data_with_norm(self, data):
+        return torch.hstack((data, torch.linalg.norm(data, keepdim=True, dim=1)))
 
-    @staticmethod
-    def nodes_data_dim():
-        return 10
-
-    @staticmethod
-    def get_nodes_data_description(dim):
-        desc = []
-        for attr in ["forces", "boundary_penetration", "boundary_normals"]:
-            for i in range(dim):
-                desc.append(f"{attr}_{i}")
-            desc.append(f"{attr}_norm")
-
-        for attr in ["boundary_volume"]:
-            desc.append(attr)
-        return desc
-
-
-    def get_nodes_data(self):
-        boundary_penetration = self.complete_boundary_data_with_zeros(
-            self.normalized_boundary_obstacle_penetration_vectors_torch
-        )
-        boundary_normals = self.complete_boundary_data_with_zeros(
-            self.normalized_boundary_normals_torch
-        )
-        boundary_volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
-
-        nodes_data = torch.hstack(
+    @property
+    def x(self):
+        # data = torch.ones(self.nodes_count, 1)
+        data = torch.hstack(
             (
-                thh.append_euclidean_norm(self.input_forces_torch),
-                # thh.append_euclidean_norm(self.input_u_old_torch),
-                # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
-                thh.append_euclidean_norm(boundary_penetration),
-                thh.append_euclidean_norm(boundary_normals),
-                boundary_volume
+                self.get_data_with_norm(self.input_forces_torch),
+                # self.get_data_with_norm(self.input_u_old_torch),
+                # self.get_data_with_norm(self.input_v_old_torch)
             )
         )
-        return nodes_data
-
-
-
+        return data
 
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
-        # Do not use "face" in name (probably reserved in PyG)
-        directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
+
         data = Data(
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
-            x=thh.set_precision(self.get_nodes_data()),
-            edge_index=thh.get_contiguous_torch(directional_edges),
-            edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
-            setting_index=setting_index,
-            normalized_a_correction=self.normalized_a_correction_torch,
+            x=thh.set_precision(self.x),
+            edge_index=self.contiguous_edges_torch,
+            edge_attr=thh.set_precision(self.edges_data_torch),
             reshaped_C=self.C_torch.reshape(-1, 1),
             normalized_E=self.normalized_E_torch,
-            exact_normalized_a=exact_normalized_a_torch,
-            normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
-            normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
-            normalized_boundary_normals=self.normalized_boundary_normals_torch,
-            normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
-            normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
-            boundary_nodes_volume=self.boundary_nodes_volume_torch,
+            normalized_a_correction=self.normalized_a_correction_torch,
+            setting_index=setting_index,
+            exact_normalized_a_torch=exact_normalized_a_torch,
             boundary_nodes_count=self.boundary_nodes_count_torch,
+            boundary_edges_count=self.boundary_edges_count_torch,
+            normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
+            normalized_boundary_points=self.normalized_boundary_points_torch,
+            boundary_edges=self.boundary_edges_torch,
+            normalized_closest_obstacle_normals=self.normalized_closest_obstacle_normals_torch,
+            normalized_closest_obstacle_origins=self.normalized_closest_obstacle_origins_torch
             # pin_memory=True,
             # num_workers=1
         )
@@ -208,14 +244,13 @@ class SettingInput(SettingRandomized):
 
     def normalized_L2_obstacle_nvt(self, normalized_boundary_a_vector):
         return L2_obstacle_nvt(
-            nph.unstack(normalized_boundary_a_vector, self.dim),
+            thh.unstack(normalized_boundary_a_vector),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
-            self.normalized_boundary_nodes,
-            self.normalized_boundary_normals,
-            self.normalized_boundary_obstacle_nodes,
-            self.normalized_boundary_obstacle_normals,
-            self.boundary_nodes_volume,
+            self.normalized_boundary_points,
+            self.boundary_edges,
+            self.normalized_closest_obstacle_normals,
+            self.normalized_closest_obstacle_origins,
         )
 

@@ -11,6 +11,7 @@ from conmech.vertex_utils import length
 
 
 class Forces:
+
     def __init__(self, mesh, inter_forces: Callable, outer_forces: Callable):
         self.inter_forces = inter_forces
         self.outer_forces = outer_forces
@@ -22,8 +23,9 @@ class Forces:
     def F_vector(self):
         return nph.stack_column(self.F).reshape(-1)
 
+
     def setF(self):
-        # f0 = np.array([self.f0(p) for p in self.mesh.moved_nodes])
+        # f0 = np.array([self.f0(p) for p in self.mesh.moved_points])
         # F = self.mesh.AREA @ f0
 
         F = np.zeros([self.mesh.nodes_count, 2])
@@ -39,9 +41,15 @@ class Forces:
 
             f_mean = (f0 + f1 + f2) / 3  # TODO
 
-            F[element[0]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
-            F[element[1]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
-            F[element[2]] += f_mean / 3 * self.mesh.element_initial_volume[element_id]
+            F[element[0]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
+            F[element[1]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
+            F[element[2]] += (
+                f_mean / 3 * self.mesh.element_initial_area[element_id]
+            )
 
         # np.allclose(self.F2,  self.F)
 
@@ -54,11 +62,13 @@ class Forces:
                 edge_length = length(
                     self.mesh.initial_nodes[v0], self.mesh.initial_nodes[v1]
                 )
-                v_mid = (self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]) / 2
+                v_mid = (
+                                self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]
+                ) / 2
 
                 f_neumann = self.outer_forces(*v_mid) * edge_length / 2
 
                 F[v0] += f_neumann
                 F[v1] += f_neumann
 
-        self.F = F[: self.mesh.independent_nodes_count, :]
+        self.F = F[:self.mesh.independent_nodes_count, :]

@@ -60,7 +60,7 @@ def map_time(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = thh.get_tqdm(range(episode_steps), f"{description} - {scenario.id} scale:{scenario.scale}")
+    time_tqdm = thh.get_tqdm(range(episode_steps), f"{description} - {scenario.id}")
     for time_step in time_tqdm:
         current_time = (time_step + 1) * config.TIMESTEP
 

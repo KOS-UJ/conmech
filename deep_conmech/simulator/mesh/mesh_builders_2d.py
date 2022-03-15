@@ -1,5 +1,4 @@
 from ctypes import ArgumentError
-
 # import dmsh
 # import optimesh
 import meshzoo
@@ -11,10 +10,11 @@ from deep_conmech.simulator.mesh import mesh_builders_legacy
 from deep_conmech.simulator.mesh.mesh_builders_helpers import *
 
 
+
 def get_meshzoo_rectangle(mesh_density, scale_x, scale_y):
     points, cells = meshzoo.rectangle_tri(
-        np.linspace(0.0, scale_x, int(mesh_density) + 1),
-        np.linspace(0.0, scale_y, int(mesh_density) + 1),
+        np.linspace(0., scale_x, int(mesh_density) + 1),
+        np.linspace(0., scale_y, int(mesh_density) + 1),
         variant="zigzag",
     )
     return points, cells
@@ -34,13 +34,9 @@ def get_dmsh_rectangle(mesh_density, corners):
         points_initial, cells_initial, "CVT (full)", 1.0e-10, 100
     )
 
-
 ###############################
 
-
-def get_pygmsh_elements_and_nodes(
-    mesh_type, mesh_density, scale_x, scale_y, is_adaptive
-):
+def get_pygmsh_elements_and_nodes(mesh_type, mesh_density, scale_x, scale_y, is_adaptive):
     with pygmsh.geo.Geometry() as geom:
         if "rectangle" in mesh_type:
             poly = geom.add_polygon(
@@ -79,10 +75,10 @@ def get_pygmsh_elements_and_nodes(
 
         set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive)
         nodes, elements = get_nodes_and_elements(geom, 2)
-        # boundary_faces = geom_mesh.cells[0].data.astype("long").copy()
+        # boundary_edges = geom_mesh.cells[0].data.astype("long").copy()
 
-    #present_nodes = [i in elements for i in range(len(nodes))]
-
-    return nodes, elements  # , boundary_faces  # not in with
+    return nodes, elements  # , boundary_edges  # not in with
     # mesh.write("out.vtk")
+
+
 

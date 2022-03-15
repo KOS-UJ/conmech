@@ -1,9 +1,12 @@
 # NumPy Helpers
+import math
 from ctypes import ArgumentError
 
 import numba
 import numpy as np
 from numba import njit
+
+DIM = 2
 
 
 def stack(data):
@@ -12,16 +15,14 @@ def stack(data):
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
-    
-stack_column_numba = numba.njit(stack_column)
 
 
-def unstack(data, dim):
+def unstack(data, dim = DIM):
     return data.reshape(-1, dim, order="F")
 
 
-def elementwise_dot(x, y, keepdims=False):
-    return (x * y).sum(axis=1, keepdims=keepdims)
+def elementwise_dot(x, y):
+    return (x * y).sum(axis=1)
 
 
 def get_occurances(data):
@@ -31,25 +32,17 @@ def get_occurances(data):
 ###################
 
 
-def euclidean_norm(vector):
-    data = (vector ** 2).sum(axis=-1)
-    if isinstance(data, np.ndarray):
-        return np.sqrt(data)
-    return data.sqrt()
-    # return np.linalg.norm(vector, axis=-1)
-    # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
-
 @njit
 def euclidean_norm_numba(vector):
-    data = (vector ** 2).sum(axis=-1)
-    return np.sqrt(data)
+    norm = np.sqrt((vector ** 2).sum(axis=-1))
+    return norm if vector.ndim == 1 else norm.reshape(-1, 1)
+    # return np.linalg.norm(vector, axis=-1)
+    # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
 
 
 @njit
 def normalize_euclidean_numba(data):
-    norm = euclidean_norm_numba(data)
-    reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
-    return data / reshaped_norm
+    return data / euclidean_norm_numba(data)
 
 
 ###################
@@ -123,6 +116,10 @@ def max_numba(corners):
 # TODO : use slice instead of int
 
 
+@njit
+def stack_column_numba(data):
+    return data.T.flatten().reshape(-1, 1)
+
 
 @njit
 def get_point_index_numba(point, points):
@@ -132,19 +129,19 @@ def get_point_index_numba(point, points):
     raise ArgumentError
 
 
-def get_random_normal(dim, nodes_count, scale):
+def get_random_normal(count, scale):
     # noise = np.random.uniform(low=-scale, high=scale, size=shape)
-    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[nodes_count, dim])
+    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[count, DIM])
     return noise
 
 
 @njit
-def get_random_normal_circle_numba(dim, nodes_count, scale):
-    result = np.zeros((nodes_count, dim))
-    for i in range(nodes_count):
-        alpha = 2 * np.pi * np.random.uniform(0,1)#low=0, high=1)
+def get_random_normal_circle_numba(count, scale):
+    result = np.zeros((count, DIM))
+    for i in range(count):
+        alpha = 2 * math.pi * np.random.uniform(low=0, high=1)
         r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
-        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
+        result[i] = [r * math.cos(alpha), r * math.sin(alpha)]
     return result
 
 
