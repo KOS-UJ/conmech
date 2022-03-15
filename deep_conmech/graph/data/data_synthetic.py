@@ -133,10 +133,14 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         setting.set_v_old(v_old)
         setting.prepare(forces)
 
+        add_label = False
         # if Calculator.is_fast():
-        normalized_a = Calculator.solve_normalized(setting)
-        exact_normalized_a_torch = thh.to_torch_double(normalized_a)
-
+        if add_label:
+            normalized_a = Calculator.solve_normalized(setting)
+            exact_normalized_a_torch = thh.to_torch_double(normalized_a)
+        else:
+            exact_normalized_a_torch = None
+            
         # data = setting.get_data(index, exact_normalized_a_torch)
         return setting, exact_normalized_a_torch  # data, setting
 

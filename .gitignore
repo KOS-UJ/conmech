@@ -12,7 +12,9 @@ events.*
 *.tfrecord
 *.pkl
 *.json
-DATA/*
+
+data/*
+output/*
 
 ##########
 

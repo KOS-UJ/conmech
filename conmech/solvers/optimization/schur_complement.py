@@ -5,6 +5,8 @@ import math
 from typing import Tuple
 
 import numpy as np
+
+from conmech.forces import Forces
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 from conmech.helpers import nph
@@ -125,17 +127,12 @@ class SchurComplement(Optimization):
         self,
         initial_guess: np.ndarray,
         *,
-        temperature=None,
         fixed_point_abs_tol: float = math.inf,
         **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
-        truncated_temperature = None
-        if temperature is not None:
-            truncated_temperature = temperature[self.contact_ids]
         solution_contact = super().solve(
             truncated_initial_guess,
-            temperature=truncated_temperature,
             fixed_point_abs_tol=fixed_point_abs_tol,
             **kwargs
         )
@@ -276,6 +273,16 @@ class Dynamic(Quasistatic):
         _point_temperature = T_contact_x_contact - _point_temperature
         self._point_temperature = np.asarray(_point_temperature)
 
+        # TODO #50
+        # def inner_forces(x, y):
+        #     return 0.1 * (1.25 - abs(x - 1.25) + 0.5 - abs(y - 0.5))
+        #
+        # def outer_forces(x, y):
+        #     return 0
+        #
+        # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
+        # self.inner_temperature.setF()
+
         self.Q_free, self.Q = self.recalculate_temperature()
 
     @property
@@ -294,7 +301,7 @@ class Dynamic(Quasistatic):
         C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
         C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
 
-        X +=  np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Probably -1 * 
+        X += np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Check if not -1 * 
 
         return self.forces.F + X
 
@@ -326,7 +333,8 @@ class Dynamic(Quasistatic):
             )
         )
 
-        QBig = Q1 - C2Xv - C2Yv #TODO: Probably Q1 + C2Xv + C2Y
+        QBig = Q1 - C2Xv - C2Yv  #TODO: Check if not Q1 + C2Xv + C2Y
+        # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]
         Q_contact = QBig[self.contact_ids]
