@@ -5,6 +5,8 @@ import math
 from typing import Tuple
 
 import numpy as np
+
+from conmech.forces import Forces
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 from conmech.helpers import nph
@@ -111,12 +113,6 @@ class SchurComplement(Optimization):
                 [arrays[ind10][indices], arrays[ind11][indices]],
             ]
         )
-        # result = np.bmat(
-        #     [
-        #         [arrays[0, 0][indices[0]][:, indices[1]], arrays[0, 1][indices[0]][:, indices[1]]],
-        #         [arrays[1, 0][indices[0]][:, indices[1]], arrays[1, 1][indices[0]][:, indices[1]]],
-        #     ]
-        # )
         return result
 
     @property
@@ -131,17 +127,12 @@ class SchurComplement(Optimization):
         self,
         initial_guess: np.ndarray,
         *,
-        temperature=None,
         fixed_point_abs_tol: float = math.inf,
         **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
-        truncated_temperature = None
-        if temperature is not None:
-            truncated_temperature = temperature[self.contact_ids]
         solution_contact = super().solve(
             truncated_initial_guess,
-            temperature=truncated_temperature,
             fixed_point_abs_tol=fixed_point_abs_tol,
             **kwargs
         )
@@ -259,7 +250,9 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        T = (1 / self.time_step) * self.ACC[0, 0] + self.K
+        T = (1 / self.time_step) \
+            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
+            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
 
         # Tii
         T_free_x_free = T[self.free_ids, self.free_ids]
@@ -279,6 +272,16 @@ class Dynamic(Quasistatic):
         # Ttt - TtiTiiINVTit:
         _point_temperature = T_contact_x_contact - _point_temperature
         self._point_temperature = np.asarray(_point_temperature)
+
+        # TODO #50
+        # def inner_forces(x, y):
+        #     return 0.1 * (1.25 - abs(x - 1.25) + 0.5 - abs(y - 0.5))
+        #
+        # def outer_forces(x, y):
+        #     return 0
+        #
+        # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
+        # self.inner_temperature.setF()
 
         self.Q_free, self.Q = self.recalculate_temperature()
 
@@ -323,7 +326,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        Q1 = (1.0 / self.time_step) * np.squeeze(
+        Q1 = (1 / self.time_step) * np.squeeze(
             np.asarray(
                 self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
                 @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),
@@ -331,6 +334,7 @@ class Dynamic(Quasistatic):
         )
 
         QBig = Q1 - C2Xv - C2Yv
+        # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]
         Q_contact = QBig[self.contact_ids]

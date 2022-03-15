@@ -135,7 +135,7 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
         return cost
 
     @numba.njit()
-    def cost_functional(u_vector, u_vector_old, nodes, contact_boundaries, C, E, t_vector):
+    def cost_functional(u_vector, u_vector_old, nodes, contact_boundaries, C, E):
         ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundaries)
         result = (0.5 * np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector)
                   + ju)
@@ -147,12 +147,12 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
 
 def make_cost_functional_temperature(
         hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable] = None):
-    hn = njit(hn)
+    hn = njit(hn)  # TODO #48
     ht = njit(ht)
     h = numba.njit(h)
 
     @numba.njit()
-    def contact_cost_functional(temperature, u_vector, nodes, contact_boundaries):
+    def contact_cost_functional(u_vector, nodes, contact_boundaries):
         cost = 0
         offset = len(u_vector) // DIMENSION
 
@@ -165,7 +165,6 @@ def make_cost_functional_temperature(
 
                 # ASSUMING `u_vector` and `nodes` have the same order!
                 um = interpolate_point_between(n_id_0, n_id_1, u_vector)
-                tm = interpolate_point_between(n_id_0, n_id_1, temperature, dimension=1)
 
                 normal_vector = n_down(n_0, n_1)
 
@@ -175,13 +174,14 @@ def make_cost_functional_temperature(
                 if n_id_0 < offset and n_id_1 < offset:
                     # cost += edgeLength * (hn(uNmL, tmL)
                     #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-                    cost += length(n_0, n_1) * tm * h(np.linalg.norm(um_tangential))
+                    cost += length(n_0, n_1) * h(np.linalg.norm(um_tangential))
         return cost
 
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundaries, T, Q, u_vector):
-        # TODO #31
-        return 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
-               - contact_cost_functional(temp_vector, u_vector, nodes, contact_boundaries)
+        result = 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
+               - contact_cost_functional(u_vector, nodes, contact_boundaries)
+        result = np.asarray(result).ravel()
+        return result
 
     return cost_functional
