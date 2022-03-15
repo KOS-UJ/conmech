@@ -11,10 +11,10 @@ def main():
 
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
-    # train_dataset = TrainingSyntheticDatasetDynamic()
-    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
+    train_dataset = TrainingSyntheticDatasetDynamic(dim=2)
+    #train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
     all_val_datasets = [
-        ValidationDatasetDynamic(scenario) for scenario in scenarios.all_validation
+        ValidationScenarioDatasetDynamic(scenario) for scenario in scenarios.all_validation
     ]
     nodes_statistics, edges_statistics = train_dataset.get_statistics()
     
@@ -31,7 +31,6 @@ if __name__ == "__main__":
 
 
 
-# teach using a instead of L2
 # change names: base settings to body and setting obstacle to scene
 
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
@@ -57,11 +56,6 @@ if __name__ == "__main__":
 # podawac v wymnozone przez ts
 
 # wyswietlac dane < cutoff w getitem z nowymi randomizacjami
-
-# porównać uczenie za pomocą funkcji energii i RMSE
-
-# new dataloader that applies normalization based on dataset and randomization
-# print dataset statistics (min mean max node number)
 
 
 # print data from folder

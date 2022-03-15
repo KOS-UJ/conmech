@@ -49,7 +49,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
         if index in elements:
             index += 1
         else:
-            print(f"Index {index} not in elements - fixing")
+            #print(f"Index {index} not in elements - fixing")
             nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):

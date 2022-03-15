@@ -3,6 +3,7 @@ import numpy as np
 from conmech.helpers import nph
 
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_input import SettingInput
 
 ####################################
 
@@ -172,6 +173,20 @@ class Scenario:
         self.duration = duration
         self.is_randomized = is_randomized
 
+        
+    def get_setting(self):
+        setting = SettingInput(
+            mesh_type=self.mesh_type,
+            mesh_density_x=self.mesh_density,
+            mesh_density_y=self.mesh_density,
+            scale_x=self.scale,
+            scale_y=self.scale,
+            is_adaptive=self.is_adaptive,
+            create_in_subprocess=False,  ###################################
+        )
+        setting.set_obstacles(self.obstacles)
+        return setting
+
 
 def circle_slope(scale, is_adaptive):
     return Scenario(
@@ -291,6 +306,9 @@ def cross_slope(scale, is_adaptive):
         o_side * scale,
         is_adaptive,
     )
+
+
+
 
 
 def get_data(scale, is_adaptive):
