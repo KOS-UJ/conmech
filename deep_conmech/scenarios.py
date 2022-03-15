@@ -310,8 +310,12 @@ def get_data(scale, is_adaptive):
 all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=True)
 all_validation = get_data(scale=config.VALIDATION_SCALE, is_adaptive=False)
 all_print = [
-    *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
-    *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False),
+    # *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
+    # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False),
+    polygon_two(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_slope(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
+    circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
 ]
 
 all_simulator = [
@@ -320,5 +324,5 @@ all_simulator = [
 ]
 
 
-scenario_3d = Scenario("m_cube_3d", m_cube_3d, 7, 1, f_rotate_3d, o_3d * 1, False,)
+scenario_3d = Scenario("m_cube_3d", m_cube_3d, 2, 1, f_rotate_3d, o_3d * 1, False,)
 

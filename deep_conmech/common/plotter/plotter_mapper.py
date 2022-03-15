@@ -12,7 +12,7 @@ def print_setting(setting, filename, catalog):
     thh.create_folders(catalog)
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
-    print_setting_internal(setting, path, None, extension, 0)
+    print_setting_internal(setting, path, None, extension, 0, True)
 
 
 def print_dataset(dataset, cutoff, timestamp, description):

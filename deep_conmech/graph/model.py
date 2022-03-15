@@ -21,6 +21,7 @@ def get_writer():
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
+| l2l {config.L2_LOSS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \
 | vpes {config.EPISODE_STEPS} \
@@ -260,7 +261,13 @@ class GraphModelDynamic:
                 boundary_nodes_volume_split[i],
             )
 
-            loss += predicted_normalized_L2
+            ######################
+            if config.L2_LOSS:
+                loss += predicted_normalized_L2
+            else:
+                exact_normalized_a = exact_normalized_a_split[i]
+                loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
+            ######################
 
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]

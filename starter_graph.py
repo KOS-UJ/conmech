@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
 
 # teach using a instead of L2
-# DO NOT randomize boundary
+# change names: base settings to body and setting obstacle to scene
 
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
 
