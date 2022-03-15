@@ -9,6 +9,13 @@ events.*
 # VSCode
 .vscode/*
 
+*.tfrecord
+*.pkl
+*.json
+
+data/*
+output/*
+
 ##########
 
 # Byte-compiled / optimized / DLL files

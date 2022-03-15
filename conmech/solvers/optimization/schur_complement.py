@@ -218,7 +218,7 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.B @ self.u_vector.T)
+        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=2)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -293,15 +293,15 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * nph.unstack(self.B @ self.u_vector)
+        X = -1 * nph.unstack(self.B @ self.u_vector, dim=2)
 
-        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector)
+        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector, dim=2)
 
         C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
         C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
         C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
 
-        X += np.stack((C2XTemp, C2YTemp), axis=-1)
+        X += np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Check if not -1 * 
 
         return self.forces.F + X
 
@@ -333,7 +333,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        QBig = Q1 - C2Xv - C2Yv
+        QBig = Q1 - C2Xv - C2Yv  #TODO: Check if not Q1 + C2Xv + C2Y
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]

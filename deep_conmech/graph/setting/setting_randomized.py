@@ -13,13 +13,8 @@ def L2_normalized_correction_cuda(
     cleaned_normalized_a_cuda, C_cuda, normalized_E_cuda, normalized_a_correction_cuda
 ):
     normalized_a_cuda = cleaned_normalized_a_cuda - normalized_a_correction_cuda
-    return L2_normalized_cuda(normalized_a_cuda, C_cuda, normalized_E_cuda)
+    return L2_new(normalized_a_cuda, C_cuda, normalized_E_cuda)
 
-
-def L2_normalized_cuda(normalized_a_cuda, C_cuda, normalized_E_cuda):
-    normalized_a_vector_cuda = nph.stack_column(normalized_a_cuda)
-    value = L2_torch(normalized_a_vector_cuda.double(), C_cuda, normalized_E_cuda,)
-    return value
 
 
 class SettingRandomized(SettingTorch):
@@ -53,11 +48,14 @@ class SettingRandomized(SettingTorch):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.v_old_randomization = nph.get_random_normal(
-                self.nodes_count, config.V_IN_RANDOM_FACTOR
+                self.dim, self.nodes_count, config.V_IN_RANDOM_FACTOR
             )
             self.u_old_randomization = nph.get_random_normal(
-                self.nodes_count, config.U_IN_RANDOM_FACTOR
+                self.dim, self.nodes_count, config.U_IN_RANDOM_FACTOR
             )
+            # Do not randomize boundaries
+            self.v_old_randomization[self.boundary_nodes_indices] = 0
+            self.v_old_randomization[self.boundary_nodes_indices] = 0
         else:
             self.v_old_randomization = np.zeros_like(self.initial_nodes)
             self.u_old_randomization = np.zeros_like(self.initial_nodes)

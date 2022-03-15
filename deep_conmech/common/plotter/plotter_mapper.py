@@ -1,16 +1,18 @@
 import time
-from deep_conmech.common.plotter.plotter_basic import Plotter
-from deep_conmech.common import mapper, config
+
+from deep_conmech.common import config, mapper
+from deep_conmech.common.plotter import plotter_3d
+from deep_conmech.common.plotter.plotter_2d import Plotter
+from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.model import *
 from deep_conmech.simulator.setting.setting_forces import *
-from deep_conmech.graph.helpers import thh
 
 
 def print_setting(setting, filename, catalog):
     thh.create_folders(catalog)
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
-    print_setting_internal(setting, path, None, extension, 0)
+    print_setting_internal(setting, path, None, extension, 0, True)
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -25,7 +27,7 @@ def print_dataset(dataset, cutoff, timestamp, description):
         #    setting.set_forces(np.random.uniform(
         #        low= -config.FORCES_DATA_SCALE,
         #        high= config.FORCES_DATA_SCALE,
-        #        size=(setting.nodes_count, config.DIM)
+        #        size=(setting.nodes_count, dim)
         #    ))
         #    test_setting(setting)
         #    a = setting.calculate_normalized()
@@ -37,7 +39,7 @@ def print_dataset(dataset, cutoff, timestamp, description):
 
 
 def print_one_dynamic(
-    solve_function, scenario, catalog, simulate_dirty_data, print_base, description
+    solve_function, scenario, catalog, simulate_dirty_data, draw_base, draw_detailed, description
 ):
     plotter = Plotter()
     all_images_paths = []
@@ -48,15 +50,16 @@ def print_one_dynamic(
         time,
         setting,
         f"output/{catalog}/{scenario.id} {int(time * 100)}.{extension}",
-        base_setting if print_base else None,
+        base_setting if draw_base else None,
+        draw_detailed,
         all_images_paths,
         extension,
     )
 
     mapper.map_time(
-        print_base,
+        draw_base,
         _print_at_interval,
-        config.VAL_PRINT_EPISODE_STEPS,
+        config.EPISODE_STEPS,
         solve_function,
         scenario,
         simulate_dirty_data,
@@ -64,21 +67,42 @@ def print_one_dynamic(
     )
 
     plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} ANIMATION.gif", all_images_paths
+        f"output/{catalog}/{scenario.id} scale:{scenario.scale} ANIMATION.gif", all_images_paths
     )
 
 
-def print_at_interval(time, setting, path, base_setting, all_images_paths, extension):
+def print_at_interval(time, setting, path, base_setting, draw_detailed, all_images_paths, extension):
     if thh.skip(time, config.PRINT_SKIP):
-        print_setting_internal(setting, path, base_setting, extension, time)
+        print_setting_internal(setting, path, base_setting, extension, time, draw_detailed)
         all_images_paths.append(path)
 
 
-def print_setting_internal(setting, path, base_setting, extension, time):
+def print_setting_internal(setting, path, base_setting, extension, time, draw_detailed):
+    if setting.dim == 2:
+        plotter = Plotter()
+        ax = plotter.get_one_ax()
+        plotter.draw_setting_ax(setting, ax, base_setting, time, draw_detailed)
+        plotter.plt_save(path, extension)
+    else:
+        plotter_3d.plot_frame(
+            setting=setting,
+            normalized_data=[
+                setting.normalized_forces * 20,
+                setting.normalized_u_old,
+                setting.normalized_v_old,
+                setting.normalized_a_old,
+            ],
+            path=path,
+            extension=extension,
+        )
+        plotter_3d.plt_save(path, extension)
+
+
+def print_setting_test(setting):
     plotter = Plotter()
     ax = plotter.get_one_ax()
-    plotter.draw_setting_ax(setting, ax, base_setting, time)
-    plotter.plt_save(path, extension)
+    plotter.draw_displaced(setting, [0.0, 0.0], "orange", ax)
+    plotter.plt_save("./output/1.png", "png")
 
 
 ###############################
@@ -116,28 +140,7 @@ def print_steps(drawer, axs, row, time_steps, skip, force, get_a_function):
         a = get_a_function(setting)
         setting.iterate(a)
         if time % skip == 0:
-            drawer.draw_setting_ax(
-                setting, axs[row, int(i / skip)], time=time
-            )
-
-
-"""
-def draw_one_dynamic(self, model, description):
-    mesh = Mesh(mesh_type=config.MESH_TYPE, mesh_density=config.MESH_SIZE_PRINT)
-    setting = SolverDynamic(mesh)
-
-    force =thh.to_torch_float([config.DRAW_FORCE_ONE])
-    forces_at_time = torch.repeat_interleave(force, mesh.nodes_count, axis=0)
-
-    self.draw_mesh(mesh)
-
-    for i in range(100):
-        x = torch.hstack((forces_at_time, setting.u_old_torch, setting.v_old_torch))
-        v = self.predict(mesh, model, x)
-        setting.iterate(v)
-        if i % 20 == 0:
-            self.draw_mesh(mesh, description)
-"""
+            drawer.draw_setting_ax(setting, axs[row, int(i / skip)], time=time)
 
 
 ###############################
