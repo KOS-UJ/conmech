@@ -120,7 +120,7 @@ def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slic
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step
 
-    c11 = c22 = -0.5
+    c11 = c22 = 0.5
     c12 = c21 = 0
 
 
