@@ -1,4 +1,3 @@
-import glob
 import os
 import shutil
 import resource
@@ -6,7 +5,6 @@ import time
 from datetime import datetime
 
 import deep_conmech.common.config as config
-import numpy as np
 import psutil
 from tqdm import tqdm
 
