@@ -1,24 +1,30 @@
+import deep_conmech.scenarios as scenarios
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
-from deep_conmech.graph.model import GraphModelDynamic
-import deep_conmech.scenarios as scenarios
 from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.model import GraphModelDynamic
+from deep_conmech.graph.net import CustomGraphNet
+from conmech.helpers import helpers
 
 
 def main():
-    thh.set_memory_limit()
+    helpers.set_memory_limit()
     # torch.multiprocessing.set_start_method('spawn')
-
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
-    train_dataset = TrainingSyntheticDatasetDynamic(dim=2)
-    #train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train)
+
+    nodes_statistics, edges_statistics = None, None  # train_dataset.get_statistics()
+    net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
+
+    # train_dataset = TrainingSyntheticDatasetDynamic(dim=2)
+    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, Calculator.solve_all)
+    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all)
     all_val_datasets = [
-        ValidationScenarioDatasetDynamic(scenario) for scenario in scenarios.all_validation
+        ValidationScenarioDatasetDynamic(scenario)
+        for scenario in scenarios.all_validation
     ]
-    nodes_statistics, edges_statistics = train_dataset.get_statistics()
-    
-    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, nodes_statistics, edges_statistics)
+
+    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, net)
     if path is not None:
         model.load(path)
         model.print_raport()
@@ -28,7 +34,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 # change names: base settings to body and setting obstacle to scene

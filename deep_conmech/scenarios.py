@@ -325,7 +325,7 @@ def get_data(scale, is_adaptive):
 
 
 # polygon_two - obstacles not serializing
-all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=True)
+all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=config.ADAPTIVE_TRAINING_MESH)
 all_validation = get_data(scale=config.VALIDATION_SCALE, is_adaptive=False)
 all_print = [
     # *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
@@ -342,5 +342,13 @@ all_simulator = [
 ]
 
 
-scenario_3d = Scenario("m_cube_3d", m_cube_3d, 2, 1, f_rotate_3d, o_3d * 1, False,)
-
+scenario_3d = Scenario(
+        id="m_cube_3d",
+        mesh_type=m_cube_3d,
+        mesh_density=3, #4
+        scale=1,
+        forces_function=f_rotate_3d,
+        obstacles=o_3d,
+        is_adaptive=False,
+        dim=3
+    )

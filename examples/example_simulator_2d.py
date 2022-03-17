@@ -1,5 +1,6 @@
 from matplotlib.pyplot import draw
 
+from conmech.helpers import helpers
 from deep_conmech.graph.helpers import thh
 import deep_conmech.common.config as config
 import deep_conmech.scenarios as scenarios
@@ -9,7 +10,7 @@ from deep_conmech.simulator.calculator import Calculator
 
 def main():
     for scenario in scenarios.all_simulator:
-        path = f"SIMULATOR 2D - {thh.CURRENT_TIME}"
+        path = f"SIMULATOR 2D - {helpers.CURRENT_TIME}"
 
         plotter_mapper.print_one_dynamic(
             Calculator.solve,

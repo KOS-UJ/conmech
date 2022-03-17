@@ -27,6 +27,8 @@ def elementwise_dot(x, y, keepdims=False):
 def get_occurances(data):
     return np.array(list(set(data.flatten())))
 
+def skip(time, skip):
+    return np.allclose(time % skip, 0.0) or np.allclose(time % skip, skip)
 
 ###################
 

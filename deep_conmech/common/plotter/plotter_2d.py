@@ -16,7 +16,8 @@ class Plotter:
     # plt.axes.set_aspect("equal")
     # print(numba.cuda.gpus)
 
-    def draw_animation(self, path, all_images_paths):
+    @staticmethod
+    def draw_animation(path, all_images_paths):
 
         images = []
         for image_path in all_images_paths:

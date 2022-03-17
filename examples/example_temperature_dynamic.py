@@ -7,9 +7,7 @@ import numpy as np
 from conmech.problem_solver import TDynamic as TDynamicProblemSolver
 from conmech.problems import Dynamic
 from conmech.utils.drawer import Drawer
-
 from examples.p_slope_contact_law import make_slope_contact_law
-
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     # @staticmethod  # TODO # 48

@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def get_ax(fig, grid, angle, distance):
     ax = fig.add_subplot(grid, projection="3d", facecolor="none")  # none") #000000
-    ax.set_proj_type("ortho")
+    ax.set_proj_type("ortho") # "persp" "ortho"
     ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
     ax.dist = distance
 
@@ -25,9 +25,9 @@ def get_ax(fig, grid, angle, distance):
     ax.set_ylim(-1, aspect[1] - 1)
     ax.set_zlim(-1, aspect[2] - 1)
 
-    ax.set_xlabel("x", labelpad=0.05, color="w")
-    ax.set_ylabel("y", labelpad=0.05, color="w")
-    ax.set_zlabel("z", labelpad=0.05, color="w")
+    #ax.set_xlabel("x", labelpad=5, color="w")
+    #ax.set_ylabel("y", labelpad=1, color="w")
+    #ax.set_zlabel("z", labelpad=1, color="w")
 
     ticks = []  # np.arange(0, 2, 1)
     ax.set_xticks(ticks)
@@ -162,6 +162,7 @@ def plot_obstacles(ax, setting, color):
     normal = setting.obstacle_normals[0]
     
     # a plane is a*x+b*y+c*z+d=0
+    # z = (-d-ax-by) / c
     # [a,b,c] is the normal. Thus, we have to calculate
     # d and we're set
     d = -node.dot(normal)
@@ -172,8 +173,9 @@ def plot_obstacles(ax, setting, color):
     X, Y = np.meshgrid(x_rng, y_rng)
     Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
     col = (Z[0,:] > -1.2) & (Z[0,:] < 3.2)
+    mask = (Z > -1.2) * (Z < 3.2)
 
-    ax.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
+    ax.plot_surface(X* mask, Y* mask, Z* mask, color=color, alpha=alpha)
     
     '''
     node1 = np.array([-1.2, -1.2, -1.2])

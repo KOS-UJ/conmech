@@ -1,4 +1,4 @@
-import deep_conmech.graph.data.data_interpolation as data_interpolation
+import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 import numpy as np
 from conmech.helpers import mph
 from deep_conmech.common import config
@@ -11,10 +11,10 @@ from torch_geometric.loader import DataLoader
 
 
 def create_forces(setting):
-    if data_interpolation.decide(config.DATA_ZERO_FORCES):
+    if interpolation_helpers.decide(config.DATA_ZERO_FORCES):
         forces = np.zeros([setting.nodes_count, setting.dim])
     else:
-        forces = data_interpolation.interpolate_four(
+        forces = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
             config.FORCES_RANDOM_SCALE,
@@ -25,7 +25,7 @@ def create_forces(setting):
 
 
 def create_u_old(setting):
-    u_old = data_interpolation.interpolate_four(
+    u_old = interpolation_helpers.interpolate_four(
         setting.nodes_count,
         setting.initial_nodes,
         config.U_RANDOM_SCALE,
@@ -36,8 +36,8 @@ def create_u_old(setting):
 
 
 def create_v_old(setting):
-    if data_interpolation.decide(config.DATA_ROTATE_VELOCITY):
-        v_old = data_interpolation.interpolate_rotate(
+    if interpolation_helpers.decide(config.DATA_ROTATE_VELOCITY):
+        v_old = interpolation_helpers.interpolate_rotate(
             setting.nodes_count,
             setting.initial_nodes,
             config.V_RANDOM_SCALE,
@@ -45,7 +45,7 @@ def create_v_old(setting):
             setting.scale_y,
         )
     else:
-        v_old = data_interpolation.interpolate_four(
+        v_old = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
             config.V_RANDOM_SCALE,
@@ -64,7 +64,7 @@ def create_obstacles(setting):
 
 
 def create_mesh_type():
-    return data_interpolation.choose(
+    return interpolation_helpers.choose(
         ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]
     )
 
@@ -84,7 +84,7 @@ def get_base_setting(mesh_type):
         mesh_density_y=config.MESH_DENSITY,
         scale_x=config.TRAIN_SCALE,
         scale_y=config.TRAIN_SCALE,
-        is_adaptive=config.ADAPTIVE_MESH,
+        is_adaptive=config.ADAPTIVE_TRAINING_MESH,
         create_in_subprocess=False,
     )
 
@@ -94,28 +94,21 @@ def get_base_setting(mesh_type):
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
     def __init__(self, dim):
+        num_workers = config.GENERATION_WORKERS
+        data_count=config.SYNTHETIC_SOLVERS_COUNT
+
+        if data_count % num_workers != 0:
+            raise Exception("Cannot divide data generation work")
+        self.data_part_count = int(data_count / num_workers)
+
         super().__init__(
             dim=dim,
             relative_path="training_synthetic",
-            data_count=config.SYNTHETIC_SOLVERS_COUNT,
+            data_count=data_count,
             randomize_at_load=True,
+            num_workers=num_workers
         )
         self.initialize_data()
-
-    def generate_all_data(self):
-        num_workers = config.GENERATION_WORKERS
-        if self.data_count % num_workers != 0:
-            raise Exception("Cannot divide data generation work")
-        data_part_count = int(self.data_count / num_workers)
-
-        result = False
-        while result is False:
-            result = mph.run_processes(
-                self.generate_random_data_process, (self, data_part_count), num_workers,
-            )
-            if result is False:
-                print("Restarting data generation")
-        
 
 
     def generate_setting(self, index):
@@ -143,6 +136,34 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             
         # data = setting.get_data(index, exact_normalized_a_torch)
         return setting, exact_normalized_a_torch  # data, setting
+
+
+
+    def generate_data_process(self, num_workers, process_id):
+        assigned_data_range = get_process_data_range(process_id, self.data_part_count)
+
+        indices_to_do = get_and_check_indices_to_do(
+            assigned_data_range, self.path, process_id
+        )
+        if not indices_to_do:
+            return True
+
+        tqdm_description = (
+            f"Process {process_id} - generating {self.relative_path} data"
+        )
+        step_tqdm = thh.get_tqdm(
+            indices_to_do, desc=tqdm_description, position=process_id,
+        )
+        for index in step_tqdm:
+            if is_memory_overflow(step_tqdm, tqdm_description):
+                return False
+
+            setting, exact_normalized_a_torch = self.generate_setting(index)
+            self.save(setting, exact_normalized_a_torch, index)
+            self.check_and_print(len(indices_to_do), index, setting, step_tqdm, tqdm_description)
+
+        step_tqdm.set_description(f"{step_tqdm.desc} - done")
+        return True
 
 
 

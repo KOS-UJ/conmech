@@ -5,7 +5,7 @@ from ctypes import ArgumentError
 import meshzoo
 import numpy as np
 import pygmsh
-from deep_conmech.graph.data.data_interpolation import interpolate_point_numba
+from deep_conmech.graph.data.interpolation_helpers import interpolate_point_numba
 from conmech.helpers import nph
 from deep_conmech.simulator.mesh import mesh_builders_legacy
 from deep_conmech.simulator.mesh.mesh_builders_helpers import *

@@ -8,6 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from conmech.helpers import helpers
 
 
 class Drawer:
@@ -16,6 +17,11 @@ class Drawer:
         self.state = state
         self.mesh = state.mesh
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+
+    @staticmethod
+    def get_directory():
+        return f"./output/DRAWING {helpers.CURRENT_TIME}"
+
 
     def draw(self, temp_max=None, temp_min=None):
         f, ax = plt.subplots()
@@ -48,6 +54,25 @@ class Drawer:
         f.set_size_inches(self.mesh.scale_x * 12, self.mesh.scale_y * 10)
 
         plt.show()
+        self.save_plot()
+
+
+    def save_plot(self):
+        directory = Drawer.get_directory()
+        helpers.create_folders(directory)
+        extension = "png" # pdf
+        path = f"{directory}/{helpers.get_timestamp()}.{extension}"
+        plt.savefig(
+            path,
+            transparent=False,
+            bbox_inches="tight",
+            format=extension,
+            pad_inches=0.1,
+            dpi=800
+        )
+        plt.close()
+
+
 
     def draw_mesh(self, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()

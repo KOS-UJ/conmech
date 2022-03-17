@@ -78,16 +78,16 @@ class Calculator:
         cost_function = setting.get_normalized_L2_obstacle_np()
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_boundary_vector
-        ) 
+        )
         t_np = time.time() - tstart
-        '''
+        """
         tstart = time.time()
         normalized_boundary_a_vector_nvt = Calculator.minimize(
             setting.normalized_L2_obstacle_nvt, initial_boundary_vector
         ) 
         t_nvt = time.time() - tstart
-        '''
-        
+        """
+
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(
             setting, setting.normalized_Ei, normalized_boundary_a_vector
@@ -97,7 +97,11 @@ class Calculator:
 
     @staticmethod
     def clean(setting, normalized_a):
-        return normalized_a + setting.normalized_a_correction
+        return (
+            normalized_a + setting.normalized_a_correction
+            if normalized_a is not None
+            else None
+        )
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):

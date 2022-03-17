@@ -3,6 +3,10 @@ from multiprocessing import Process, Queue
 
 
 def run_processes(function, function_args, num_workers):
+    if num_workers == 1:
+        args=function_args + (1, 0)
+        return function(*args)
+
     queue = Queue()
 
     processes = [

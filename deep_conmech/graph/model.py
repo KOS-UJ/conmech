@@ -1,8 +1,10 @@
+from re import A
 import time
 
 import deep_conmech.graph.setting.setting_input
 import numpy as np
 import torch
+from conmech.helpers import helpers
 from deep_conmech.common import *
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.data import data_base
@@ -17,13 +19,13 @@ start = time.time()
 
 def get_writer():
     return SummaryWriter(
-        f"./log/{thh.CURRENT_TIME} \
+        f"./log/{helpers.CURRENT_TIME} \
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
 | l2l {config.L2_LOSS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
-| md {config.MESH_DENSITY} ad {config.ADAPTIVE_MESH} \
+| md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
 | vpes {config.EPISODE_STEPS} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 | bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
@@ -43,8 +45,7 @@ class GraphModelDynamic:
         train_dataset,
         all_val_datasets,
         print_scenarios,
-        nodes_statistics,
-        edges_statistics,
+        net
     ):
         self.train_dataset = train_dataset
         self.all_val_datasets = all_val_datasets
@@ -62,9 +63,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
 
-        self.net = CustomGraphNet(self.dim, nodes_statistics, edges_statistics).to(
-            thh.device
-        )
+        self.net = net
         self.optimizer = torch.optim.Adam(
             self.net.parameters(), lr=config.INITIAL_LR,  # weight_decay=5e-4
         )
@@ -93,28 +92,16 @@ class GraphModelDynamic:
 
     ################
 
-    def solve(self, setting, print_time=False):
-        self.net.eval()
-        batch = setting.get_data().to(thh.device)
 
-        start = time.time()
-        normalized_a_cuda = self.net(
-            batch
-        )  # + setting.predicted_normalized_a_mean_cuda
-        if print_time:
-            print("Graph solve time: ", time.time() - start)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda)
-        a = setting.denormalize_rotate(normalized_a)
-        return a
 
     ################
 
     def save(self):
         print("Saving model")
-        timestamp = thh.get_timestamp()
-        catalog = f"output/GRAPH - {thh.CURRENT_TIME}"
-        thh.create_folders(catalog)
+        timestamp = helpers.get_timestamp()
+        catalog = f"output/GRAPH - {helpers.CURRENT_TIME}"
+        helpers.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         torch.save(self.net.state_dict(), path)
 
@@ -148,6 +135,7 @@ class GraphModelDynamic:
 
             if epoch % config.VALIDATE_AT_EPOCHS == 0:
                 self.epoch_raport(batch_tqdm, examples_seen, epoch)
+                self.train_dataset.update_data()
             # if epoch % config.VAL_ROLLOUT_AT_EPOCHS == 0:
             #    self.validate_rollout(examples_seen)
 
@@ -343,11 +331,11 @@ class GraphModelDynamic:
     #################
 
     def print_raport(self):
-        path = f"GRAPH - {thh.CURRENT_TIME}/{thh.get_timestamp()} - RESULT"
-        start = time.time()
+        path = f"GRAPH - {helpers.CURRENT_TIME}/{helpers.get_timestamp()} - RESULT"
+        start_time = time.time()
         for scenario in self.print_scenarios:
             plotter_mapper.print_one_dynamic(
-                lambda setting: self.solve(setting, print_time=False),
+                lambda setting: self.net.solve(setting, print_time=False),
                 scenario,
                 path,
                 simulate_dirty_data=False,
@@ -356,7 +344,7 @@ class GraphModelDynamic:
                 description="Printing raport",
             )
 
-        print(f"Printing time: {int((time.time() - start)/60)} min")
+        print(f"Printing time: {int((time.time() - start_time)/60)} min")
 
     """
     def validate_rollout(self, examples_seen):

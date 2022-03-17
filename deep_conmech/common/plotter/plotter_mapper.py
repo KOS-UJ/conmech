@@ -9,7 +9,7 @@ from deep_conmech.simulator.setting.setting_forces import *
 
 
 def print_setting(setting, filename, catalog):
-    thh.create_folders(catalog)
+    helpers.create_folders(catalog)
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
     print_setting_internal(setting, path, None, extension, 0, True)
@@ -44,7 +44,7 @@ def print_one_dynamic(
     plotter = Plotter()
     all_images_paths = []
     extension = "png"  # pdf
-    thh.create_folders(f"output/{catalog}")
+    helpers.create_folders(f"output/{catalog}")
 
     _print_at_interval = lambda time, setting, base_setting, a, base_a: print_at_interval(
         time,
@@ -66,13 +66,13 @@ def print_one_dynamic(
         description,
     )
 
-    plotter.draw_animation(
+    Plotter.draw_animation(
         f"output/{catalog}/{scenario.id} scale:{scenario.scale} ANIMATION.gif", all_images_paths
     )
 
 
 def print_at_interval(time, setting, path, base_setting, draw_detailed, all_images_paths, extension):
-    if thh.skip(time, config.PRINT_SKIP):
+    if nph.skip(time, config.PRINT_SKIP):
         print_setting_internal(setting, path, base_setting, extension, time, draw_detailed)
         all_images_paths.append(path)
 

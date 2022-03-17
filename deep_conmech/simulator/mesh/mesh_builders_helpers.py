@@ -1,5 +1,5 @@
 import numpy as np
-from deep_conmech.graph.data.data_interpolation import interpolate_point_numba
+from deep_conmech.graph.data.interpolation_helpers import interpolate_point_numba
 from numba import njit
 
 

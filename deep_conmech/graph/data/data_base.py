@@ -2,12 +2,14 @@ import copy
 import re
 from os import listdir
 from os.path import isfile, join
+from conmech.helpers import mph
 
 import deep_conmech.common.config as config
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import numpy as np
 import pandas as pd
 import torch
+from conmech.helpers import helpers
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
@@ -49,7 +51,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 
 
 def is_memory_overflow(step_tqdm, tqdm_description):
-    memory_usage = thh.get_used_memory_gb()
+    memory_usage = helpers.get_used_memory_gb()
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
@@ -68,17 +70,17 @@ def get_indices(path):
     indices = [int(re.sub("[^0-9]", "", filename)) for filename in filenames]
     return indices
 
+
 def get_indices_to_do(data_range, path):
     indices_done = get_indices(path)
     indices_to_do = list(set(data_range) - set(indices_done))
     return indices_to_do
 
+
 def get_and_check_indices_to_do(data_range, path, process_id):
     indices_to_do = get_indices_to_do(data_range, path)
     if not indices_to_do:
-        thh.get_tqdm(
-            range(1), desc=f"Process {process_id} - done", position=process_id
-        )
+        thh.get_tqdm(range(1), desc=f"Process {process_id} - done", position=process_id)
     return indices_to_do
 
 
@@ -102,14 +104,13 @@ class DatasetStatistics:
 
 
 class BaseDatasetDynamic:
-    def __init__(self, dim, relative_path, data_count, randomize_at_load):
+    def __init__(self, dim, relative_path, data_count, randomize_at_load, num_workers):
         self.dim = dim
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        thh.create_folders(self.path)
-        thh.create_folders(self.data_path)
-        thh.create_folders(self.images_path)
+        self.num_workers = num_workers
+
 
     def get_statistics(self):
         dataloader = get_train_dataloader(self)
@@ -131,8 +132,40 @@ class BaseDatasetDynamic:
 
         return DatasetStatistics(nodes_data), DatasetStatistics(edges_data)
 
-    def generate_all_data(self):
+
+    def update_data(self):
         pass
+
+    def clear_and_initialize_data(self):
+        print(f"Clearing {self.relative_path} data")
+        helpers.clear_folder(self.images_path)
+        helpers.clear_folder(self.data_path)
+        helpers.clear_folder(self.path)
+        self.initialize_data()
+
+    def initialize_data(self):
+        helpers.create_folders(self.path)
+        helpers.create_folders(self.data_path)
+        helpers.create_folders(self.images_path)
+
+        indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
+        if not indices_to_do:
+            print(f"Taking prepared {self.relative_path} data")
+            return
+
+        #print(f"Missing {self.relative_path} data")
+        result = False
+        while result is False:
+            result = mph.run_processes(
+                self.generate_data_process, (), self.num_workers,
+            )
+            if result is False:
+                print("Restarting data generation")
+
+
+    def generate_data_process(self, num_workers, process_id):
+        pass
+
 
     @property
     def path(self):
@@ -170,21 +203,21 @@ class BaseDatasetDynamic:
 
         setting.exact_normalized_a_torch = None
         data = setting.get_data(
-            f"{thh.get_timestamp()} - {index}", exact_normalized_a_torch
+            f"{helpers.get_timestamp()} - {index}", exact_normalized_a_torch
         )
         return data
 
     def check_and_print(
-        self, start_index, current_index, setting, step_tqdm, tqdm_description
+        self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
         cutoff = config.PRINT_DATA_CUTOFF
-        relative_index = current_index - start_index
-        if relative_index < cutoff:
+        relative_index = current_index % int(data_count * cutoff)
+        if relative_index == 0:
             step_tqdm.set_description(
-                f"{tqdm_description} - printing data {current_index} ({relative_index+1}/{cutoff})"
+                f"{tqdm_description} - printing data {current_index}"
             )
             plotter_mapper.print_setting(setting, current_index, self.images_path)
-        if current_index == cutoff:
+        if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
     def __getitem__(self, index):
@@ -193,97 +226,7 @@ class BaseDatasetDynamic:
     def __len__(self):
         return self.data_count
 
-    def initialize_data(self):
-        thh.create_folders(self.path)
-        indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
-        # current_data_count = 0 if len(indices) < 1 else max(indices) + 1
-        if not indices_to_do:
-            print(f"Taking prepared {self.relative_path} data")
-        else:
-            print(f"Missing {self.relative_path} data")
-            self.generate_all_data()
 
+   
 
-
-    def generate_setting(self, index):
-        return None, None
-
-    def generate_random_data_process(self, dataset, data_part_count, queue, process_id):
-        assigned_data_range = get_process_data_range(process_id, data_part_count)
-
-        indices_to_do = get_and_check_indices_to_do(assigned_data_range, dataset.path, process_id)
-        if not indices_to_do:
-            return True
-
-        tqdm_description = (
-            f"Process {process_id} - generating {dataset.relative_path} data"
-        )
-        step_tqdm = thh.get_tqdm(
-            indices_to_do, desc=tqdm_description, position=process_id,
-        )
-        for index in step_tqdm:
-            if is_memory_overflow(step_tqdm, tqdm_description):
-                return False
-
-            setting, exact_normalized_a_torch = self.generate_setting(index)
-            dataset.save(setting, exact_normalized_a_torch, index)
-            dataset.check_and_print(0, index, setting, step_tqdm, tqdm_description)
-
-        step_tqdm.set_description(f"{step_tqdm.desc} - done")
-        return True
-
-
-
-    def generate_scenario_data_process(
-        self, dataset, all_scenarios, num_workers, process_id
-    ):
-        assigned_scenarios = get_assigned_scenarios(
-            all_scenarios, num_workers, process_id
-        )
-        data_count = config.EPISODE_STEPS * len(assigned_scenarios)
-
-        start_index = process_id * data_count
-        stop_index = start_index + data_count
-        assigned_data_range = range(start_index, stop_index)
-
-        indices_to_do = get_and_check_indices_to_do(assigned_data_range, dataset.path, process_id)
-        if not indices_to_do:
-            return True
-
-        current_index = start_index
-        for scenario in assigned_scenarios:
-            scenario_start_index = current_index
-            tqdm_description = f"Process {process_id}: Generating {dataset.relative_path} {scenario.id} data"
-            step_tqdm = thh.get_tqdm(
-                range(1, config.EPISODE_STEPS + 1), tqdm_description, process_id,
-            )
-
-            setting = scenario.get_setting()
-            for ts in step_tqdm:
-                if is_memory_overflow(step_tqdm, tqdm_description):
-                    return False
-
-                current_time = ts * config.TIMESTEP
-                forces = setting.get_forces_by_function(
-                    scenario.forces_function, current_time
-                )
-                setting.prepare(forces)
-
-                a, normalized_a = Calculator.solve_all(setting)
-                exact_normalized_a_torch = thh.to_torch_double(normalized_a)
-
-                dataset.save(setting, exact_normalized_a_torch, current_index)
-                dataset.check_and_print(
-                    scenario_start_index,
-                    current_index,
-                    setting,
-                    step_tqdm,
-                    tqdm_description,
-                )
-
-                # setting = setting.get_copy()
-                setting.iterate_self(a)
-                current_index += 1
-
-        step_tqdm.set_description(f"{step_tqdm.desc} - done")
-        return True
+####################
