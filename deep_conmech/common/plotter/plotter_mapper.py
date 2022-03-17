@@ -41,7 +41,6 @@ def print_dataset(dataset, cutoff, timestamp, description):
 def print_one_dynamic(
     solve_function, scenario, catalog, simulate_dirty_data, draw_base, draw_detailed, description
 ):
-    plotter = Plotter()
     all_images_paths = []
     extension = "png"  # pdf
     helpers.create_folders(f"output/{catalog}")
@@ -59,7 +58,6 @@ def print_one_dynamic(
     mapper.map_time(
         draw_base,
         _print_at_interval,
-        config.EPISODE_STEPS,
         solve_function,
         scenario,
         simulate_dirty_data,
@@ -67,7 +65,7 @@ def print_one_dynamic(
     )
 
     Plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} scale:{scenario.scale} ANIMATION.gif", all_images_paths
+        f"output/{catalog}/{scenario.id} scale_{scenario.scale} ANIMATION.gif", all_images_paths
     )
 
 

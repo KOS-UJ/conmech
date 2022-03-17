@@ -9,7 +9,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def get_ax(fig, grid, angle, distance):
     ax = fig.add_subplot(grid, projection="3d", facecolor="none")  # none") #000000
-    ax.set_proj_type("ortho") # "persp" "ortho"
+    ax.set_proj_type("ortho")
     ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
     ax.dist = distance
 
@@ -25,18 +25,18 @@ def get_ax(fig, grid, angle, distance):
     ax.set_ylim(-1, aspect[1] - 1)
     ax.set_zlim(-1, aspect[2] - 1)
 
-    #ax.set_xlabel("x", labelpad=5, color="w")
-    #ax.set_ylabel("y", labelpad=1, color="w")
-    #ax.set_zlabel("z", labelpad=1, color="w")
+    #ax.set_xlabel("x", labelpad=0.05, color="w")
+    #ax.set_ylabel("y", labelpad=0.05, color="w")
+    #ax.set_zlabel("z", labelpad=0.05, color="w")
 
     ticks = []  # np.arange(0, 2, 1)
     ax.set_xticks(ticks)
     ax.set_yticks(ticks)
     ax.set_zticks(ticks)
 
-    ax.tick_params(axis="x", colors="w")
-    ax.tick_params(axis="y", colors="w")
-    ax.tick_params(axis="z", colors="w")
+    #ax.tick_params(axis="x", colors="w")
+    #ax.tick_params(axis="y", colors="w")
+    #ax.tick_params(axis="z", colors="w")
 
     ax.w_xaxis.line.set_color("w")
     ax.w_yaxis.line.set_color("w")
@@ -169,37 +169,14 @@ def plot_obstacles(ax, setting, color):
 
     x_rng = np.arange(-1.2, 11.2, 0.2)
     y_rng = np.arange(-1.2, 3.2, 0.2)
-    #z_rng = np.arange(-1.2, 3.2, 0.2)
+
     X, Y = np.meshgrid(x_rng, y_rng)
     Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
     col = (Z[0,:] > -1.2) & (Z[0,:] < 3.2)
     mask = (Z > -1.2) * (Z < 3.2)
 
     ax.plot_surface(X* mask, Y* mask, Z* mask, color=color, alpha=alpha)
-    
-    '''
-    node1 = np.array([-1.2, -1.2, -1.2])
-    node2 = np.array([-1.2, 3.2, 3.2])
-    node3 = np.array([11.2, -1.2, -1.2])
-    node4 = np.array([11.2, 3.2, 3.2])
-
-    node1 = node1 - node1 @ normal
-    node2 = node2 - node2 @ normal
-    node3 = node3 - node3 @ normal
-    node4 = node4 - node4 @ normal
-    
-    nodes = np.array([
-    [node, node1, node2], 
-    [node, node2, node3], 
-    [node, node3, node4], 
-    #[node, node4, node1]
-    ])
-    ax.add_collection3d(
-        Poly3DCollection(
-            nodes, edgecolors=color, linewidths=0.1, facecolors=color, alpha=0.2,
-        )
-    )
-    '''
+    #ax.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
 
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 

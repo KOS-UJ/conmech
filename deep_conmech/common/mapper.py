@@ -42,31 +42,29 @@ def get_base_setting(scenario):
 def map_time(
     compare_with_base_setting,
     operation,
-    episode_steps,
     solve_function,
     scenario,
     simulate_dirty_data,
     description,
 ):
-    print("-----")
     setting = get_setting(scenario, simulate_dirty_data)
     if compare_with_base_setting:
         base_setting = get_base_setting(scenario)
     else:
         base_setting = None
         base_a = None
-    max_data = thh.MaxData(scenario.id, episode_steps)
+    #max_data = thh.MaxData(scenario.id, episode_steps)
 
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = thh.get_tqdm(range(episode_steps), f"{description} - {scenario.id} scale:{scenario.scale}")
+    time_tqdm = thh.get_tqdm(range(scenario.episode_steps), f"{description} - {scenario.id} scale_{scenario.scale}")
     for time_step in time_tqdm:
         current_time = (time_step + 1) * config.TIMESTEP
 
         forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)
-        max_data.set(setting, time_step)
+        #max_data.set(setting, time_step)
 
         start_time = time.time()
         a = solve_function(setting)

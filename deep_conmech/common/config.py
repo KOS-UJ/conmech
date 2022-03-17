@@ -1,11 +1,10 @@
-# Standardize data! (from -1 to 1)
 DIM = 2
 
 DENS = 0.01
-MU = 0.01
-LA = 0.01
-TH = 0.01
-ZE = 0.01
+MU = 0.1
+LA = 0.1
+TH = 0.1
+ZE = 0.1
 
 OBSTACLE_HARDNESS = 0.04
 OBSTACLE_FRICTION = 0.004
@@ -23,7 +22,7 @@ SIMULATOR_SCALE = 1.0
 MESH_DENSITY = 16
 ADAPTIVE_TRAINING_MESH = False  #!# True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
-SIMULATE_DIRTY_DATA = True
+SIMULATE_DIRTY_DATA = False
 
 TIMESTEP = 0.01
 
@@ -55,7 +54,7 @@ PRINT_DATA_CUTOFF = 0.1
 
 VALIDATE_AT_EPOCHS = 20
 DRAW_AT_MINUTES = 60  #!#
-PRINT_SKIP = 0.2
+PRINT_SKIP = 0.2 # 0.1
 
 L2_LOSS = True  #!#
 BATCH_SIZE = 128  #!#

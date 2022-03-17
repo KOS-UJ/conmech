@@ -85,3 +85,10 @@ class MaxData:
         print(
             f"max norms -{self.description} | f: {float(torch.max(self.max_forces)):.4f} | u: {float(torch.max(self.max_u)):.4f} | v: {float(torch.max(self.max_v))}"
         )
+
+#####
+
+def print_pandas(data):
+    name = f"{data=}".split("=")[0]
+    print(f">>> {name} <<<")
+    print(pandas.DataFrame(data).round(4))

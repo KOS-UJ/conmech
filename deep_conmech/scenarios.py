@@ -8,6 +8,7 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 ####################################
 
 m_rectangle = "pygmsh_rectangle"
+m_spline = "pygmsh_spline"
 m_circle = "pygmsh_circle"
 m_polygon = "pygmsh_polygon"
 
@@ -27,6 +28,11 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
 ##################
+
+
+def f_fall(ip, mp, t, scale_x, scale_y):
+    force = np.array([0.2, -0.1])
+    return force
 
 
 def f_slide(ip, mp, t, scale_x, scale_y):
@@ -158,6 +164,7 @@ class Scenario:
         forces_function,
         obstacles,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS,
         dim=2,
         duration=None,
         is_randomized=None,
@@ -166,14 +173,17 @@ class Scenario:
         self.mesh_type = mesh_type
         self.mesh_density = mesh_density
         self.scale = scale
-        self.forces_function = forces_function
+        if isinstance(forces_function, np.ndarray):
+            self.forces_function = lambda ip, mp, t, scale_x, scale_y : forces_function
+        else:
+            self.forces_function = forces_function
         self.obstacles = obstacles
         self.is_adaptive = is_adaptive
+        self.episode_steps = episode_steps
         self.dim = dim
         self.duration = duration
         self.is_randomized = is_randomized
 
-        
     def get_setting(self):
         setting = SettingInput(
             mesh_type=self.mesh_type,
@@ -200,10 +210,10 @@ def circle_slope(scale, is_adaptive):
     )
 
 
-def circle_right(scale, is_adaptive):
+def spline_right(scale, is_adaptive):
     return Scenario(
-        "circle_right",
-        m_circle,
+        "spline_right",
+        m_spline,
         config.MESH_DENSITY,
         scale,
         f_accelerate_slow_right,
@@ -308,14 +318,11 @@ def cross_slope(scale, is_adaptive):
     )
 
 
-
-
-
 def get_data(scale, is_adaptive):
     return [
         polygon_two(scale, is_adaptive),
         circle_slope(scale, is_adaptive),
-        circle_right(scale, is_adaptive),
+        spline_right(scale, is_adaptive),
         circle_left(scale, is_adaptive),
         polygon_left(scale, is_adaptive),
         circle_rotate(scale, is_adaptive),
@@ -324,9 +331,11 @@ def get_data(scale, is_adaptive):
     ]
 
 
-# polygon_two - obstacles not serializing
-all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=config.ADAPTIVE_TRAINING_MESH)
+
+all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=True)
+
 all_validation = get_data(scale=config.VALIDATION_SCALE, is_adaptive=False)
+
 all_print = [
     # *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
     # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False),
@@ -335,20 +344,3 @@ all_print = [
     circle_left(scale=config.PRINT_SCALE, is_adaptive=False),
     circle_rotate(scale=config.PRINT_SCALE, is_adaptive=False),
 ]
-
-all_simulator = [
-    circle_right(scale=config.TRAIN_SCALE, is_adaptive=True),
-    polygon_two(scale=config.SIMULATOR_SCALE, is_adaptive=False),
-]
-
-
-scenario_3d = Scenario(
-        id="m_cube_3d",
-        mesh_type=m_cube_3d,
-        mesh_density=3, #4
-        scale=1,
-        forces_function=f_rotate_3d,
-        obstacles=o_3d,
-        is_adaptive=False,
-        dim=3
-    )

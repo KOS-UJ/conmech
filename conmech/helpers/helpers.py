@@ -7,7 +7,6 @@ from datetime import datetime
 
 import deep_conmech.common.config as config
 import numpy as np
-import pandas
 import psutil
 from tqdm import tqdm
 
@@ -24,12 +23,6 @@ CURRENT_TIME = datetime.now().strftime("%d-%H.%M.%S")
 
 def get_tqdm(iterable, desc=None, position=None):
     return tqdm(iterable, desc=desc, position=position, ascii=True)
-
-
-def print_pandas(data):
-    name = f"{data=}".split("=")[0]
-    print(f">>> {name} <<<")
-    print(pandas.DataFrame(data).round(4))
 
 
 def get_used_memory_gb():

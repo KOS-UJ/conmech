@@ -64,7 +64,7 @@ class Calculator:
     @staticmethod
     def minimize(function, initial_vector):
         return scipy.optimize.minimize(
-            function, initial_vector, method="L-BFGS-B",  # , options={"disp": True}
+            function, initial_vector, method="BFGS", options={"disp": True}
         ).x
 
     @staticmethod
@@ -80,13 +80,13 @@ class Calculator:
             cost_function, initial_boundary_vector
         )
         t_np = time.time() - tstart
-        """
+        '''
         tstart = time.time()
         normalized_boundary_a_vector_nvt = Calculator.minimize(
             setting.normalized_L2_obstacle_nvt, initial_boundary_vector
         ) 
         t_nvt = time.time() - tstart
-        """
+        '''
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(

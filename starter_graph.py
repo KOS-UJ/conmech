@@ -36,6 +36,9 @@ if __name__ == "__main__":
     main()
 
 
+
+# add friction and normal response (separately or together) to 2d and 3d
+
 # change names: base settings to body and setting obstacle to scene
 
 # we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)

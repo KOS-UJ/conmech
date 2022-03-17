@@ -8,7 +8,7 @@ from numba import njit
 
 
 def obstacle_resistance_potential_normal(penetration):
-    value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
+    value = config.OBSTACLE_HARDNESS * 0.5 * penetration ** 2
     return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
 
 
@@ -18,7 +18,7 @@ obstacle_resistance_potential_normal_numba = numba.njit(
 
 
 def obstacle_resistance_potential_tangential(penetration, tangential_velocity):
-    value = config.OBSTACLE_FRICTION * nph.euclidean_norm(tangential_velocity)
+    value = config.OBSTACLE_FRICTION * nph.euclidean_norm_numba(tangential_velocity)
     return (penetration > 0) * value * ((1.0 / config.TIMESTEP))
 
 
@@ -34,7 +34,7 @@ def integrate(
         nodes - obstacle_nodes, obstacle_nodes_normals,
     )
 
-    node_v_normal = nph.elementwise_dot(v, obstacle_nodes_normals, keepdims=True)
+    node_v_normal = nph.elementwise_dot(v, nodes_normals, keepdims=True) # obstacle_nodes_normals
     node_v_tangential = v - (node_v_normal * nodes_normals)
 
     resistance_normal = obstacle_resistance_potential_normal(node_penetration)
@@ -63,7 +63,7 @@ def integrate_numba(
             node_penetration, node_v_tangential
         )
 
-        result += nodes_volume[i] * (resistance_normal + resistance_tangential)
+        result += nodes_volume[i].item() * (resistance_normal + resistance_tangential)
     return result
 
 
@@ -112,7 +112,8 @@ def L2_obstacle(
         boundary_nodes_volume,
     )
 
-    boundary_integral = integrate_numba(*args) if a is np.array else integrate(*args)
+    is_numpy = type(a) is np.ndarray
+    boundary_integral = integrate_numba(*args) if is_numpy else integrate(*args)
     return value + boundary_integral
 
 
@@ -139,6 +140,37 @@ class SettingObstacles(SettingForces):
         self.obstacles = None
         self.clear()
 
+
+
+    @property
+    def boundary_penetration(self):
+        return (-1) * nph.elementwise_dot(
+            self.boundary_nodes - self.boundary_obstacle_nodes, self.boundary_obstacle_normals,
+        )
+
+    @property
+    def resistance_normal(self):
+        resistance_normal = obstacle_resistance_potential_normal(self.boundary_penetration)
+        return resistance_normal.reshape(-1,1)
+        
+    @property
+    def normalized_boundary_v_tangential(self):
+        return self.normalize_rotate(self.boundary_v_tangential)
+
+    
+    @property
+    def boundary_v_tangential(self):
+        boundary_v_normal = nph.elementwise_dot(self.boundary_v_old, self.boundary_normals, keepdims=True) # obstacle_nodes_normals
+        boundary_v_tangential = self.boundary_v_old - (boundary_v_normal * self.boundary_normals)
+        return boundary_v_tangential
+
+    @property
+    def resistance_tangential(self):
+        resistance_tangential = obstacle_resistance_potential_tangential(
+            self.boundary_penetration, self.boundary_v_tangential
+        )
+        return resistance_tangential.reshape(-1,1)
+        
     def prepare(self, forces):
         super().prepare(forces)
         self.boundary_obstacle_indices = get_closest_obstacle_to_boundary_numba(
@@ -223,6 +255,10 @@ class SettingObstacles(SettingForces):
             self.normalized_boundary_obstacle_normals,
             self.boundary_nodes_volume,
         )
+
+    @property
+    def boundary_v_old(self):
+        return self.v_old[: self.boundary_nodes_count, :]
 
     @property
     def normalized_boundary_v_old(self):
