@@ -16,8 +16,8 @@ def main():
     net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
 
     # train_dataset = TrainingSyntheticDatasetDynamic(dim=2)
-    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, Calculator.solve_all)
-    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all)
+    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, Calculator.solve_all)
+    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
     all_val_datasets = [
         ValidationScenarioDatasetDynamic(scenario)
         for scenario in scenarios.all_validation

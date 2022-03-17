@@ -85,28 +85,6 @@ def f_obstacle(ip, mp, t, scale_x, scale_y):
     return force
 
 
-def f_tug_and_rotate(ip, mp, t, scale_x, scale_y):
-    min = nph.min(corners)
-    max = nph.max(corners)
-    force = np.array([0.0, 0.0])
-    rotate_scalar = 0.4
-    tug_scalar = 0.8
-
-    if t <= 0.1:
-        y_scaled = (ip[1] - min[1]) / nph.len_y(min, max)
-        force += y_scaled * np.array([rotate_scalar, 0.0])
-
-    if t <= 1.0:
-        if ip[0] == min[0]:
-            force += np.array([-tug_scalar, 0.0])
-        if ip[0] == max[0]:
-            force += np.array([tug_scalar, 0.0])
-        if ip[1] == max[1]:
-            force += np.array([0.0, tug_scalar])
-        if ip[1] == min[1]:
-            force += np.array([0.0, -tug_scalar])
-    return force
-
 
 def f_stay(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
@@ -127,13 +105,6 @@ def f_random(ip, mp, t, scale_x, scale_y):
     scale = config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
     return force
-
-
-def f_drag(ip, mp, t, scale_x, scale_y):
-    max = nph.max(corners)
-    if t <= 0.1 and ip[1] == max[1]:
-        return np.array([1.0, 0.0])
-    return np.array([0.0, 0.0])
 
 
 ####################################
@@ -158,29 +129,29 @@ class Scenario:
     def __init__(
         self,
         id,
+        dim,
         mesh_type,
         mesh_density,
         scale,
         forces_function,
         obstacles,
         is_adaptive,
-        episode_steps=config.EPISODE_STEPS,
-        dim=2,
+        episode_steps,
         duration=None,
         is_randomized=None,
     ):
         self.id = id
+        self.dim = dim
         self.mesh_type = mesh_type
         self.mesh_density = mesh_density
         self.scale = scale
         if isinstance(forces_function, np.ndarray):
-            self.forces_function = lambda ip, mp, t, scale_x, scale_y : forces_function
+            self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
         else:
             self.forces_function = forces_function
         self.obstacles = obstacles
         self.is_adaptive = is_adaptive
         self.episode_steps = episode_steps
-        self.dim = dim
         self.duration = duration
         self.is_randomized = is_randomized
 
@@ -201,120 +172,126 @@ class Scenario:
 def circle_slope(scale, is_adaptive):
     return Scenario(
         "circle_slope",
+        2,
         m_circle,
         config.MESH_DENSITY,
         scale,
         f_accelerate_slow_right,
         o_slope * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def spline_right(scale, is_adaptive):
     return Scenario(
         "spline_right",
+        2,
         m_spline,
         config.MESH_DENSITY,
         scale,
         f_accelerate_slow_right,
         o_front * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def circle_left(scale, is_adaptive):
     return Scenario(
         "circle_left",
+        2,
         m_circle,
         config.MESH_DENSITY,
         scale,
         f_accelerate_slow_left,
         o_back * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def polygon_left(scale, is_adaptive):
     return Scenario(
         "polygon_left",
+        2,
         m_polygon,
         config.MESH_DENSITY,
         scale,
         f_accelerate_slow_left,
         o_back * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def polygon_slope(scale, is_adaptive):
     return Scenario(
         "polygon_slope",
+        2,
         m_polygon,
         config.MESH_DENSITY,
         scale,
         f_slide,
         o_slope * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def circle_rotate(scale, is_adaptive):
     return Scenario(
         "circle_rotate",
+        2,
         m_circle,
         config.MESH_DENSITY,
         scale,
         f_rotate,
         o_side * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def polygon_rotate(scale, is_adaptive):
     return Scenario(
         "polygon_rotate",
+        2,
         m_polygon,
         config.MESH_DENSITY,
         scale,
         f_rotate,
         o_side * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def polygon_stay(scale, is_adaptive):
     return Scenario(
         "polygon_stay",
+        2,
         m_polygon,
         config.MESH_DENSITY,
         scale,
         f_stay,
         o_side * scale,
         is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
 def polygon_two(scale, is_adaptive):
     return Scenario(
         "polygon_two",
+        2,
         m_polygon,
         config.MESH_DENSITY,
         scale,
         f_slide,
         o_two * scale,
         is_adaptive,
-    )
-
-
-def cross_slope(scale, is_adaptive):
-    return Scenario(
-        "cross_slope",
-        m_cross,
-        config.MESH_DENSITY,
-        scale,
-        f_slide,
-        o_side * scale,
-        is_adaptive,
+        episode_steps=config.EPISODE_STEPS
     )
 
 
@@ -331,8 +308,9 @@ def get_data(scale, is_adaptive):
     ]
 
 
-
-all_train = get_data(scale=config.TRAIN_SCALE, is_adaptive=True)
+all_train = get_data(
+    scale=config.TRAIN_SCALE, is_adaptive=config.ADAPTIVE_TRAINING_MESH
+)
 
 all_validation = get_data(scale=config.VALIDATION_SCALE, is_adaptive=False)
 

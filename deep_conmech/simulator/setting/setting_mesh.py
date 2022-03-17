@@ -413,7 +413,7 @@ class SettingMesh:
         )
 
     def normalize_rotate(self, vectors):
-        return nph.get_in_base(vectors, self.moved_base)
+        return nph.get_in_base(vectors, self.moved_base) if config.NORMALIZE_ROTATE else vectors
 
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))

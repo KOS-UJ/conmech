@@ -151,7 +151,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         tqdm_description = (
             f"Process {process_id} - generating {self.relative_path} data"
         )
-        step_tqdm = thh.get_tqdm(
+        step_tqdm = cmh.get_tqdm(
             indices_to_do, desc=tqdm_description, position=process_id,
         )
         for index in step_tqdm:

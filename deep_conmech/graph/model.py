@@ -122,7 +122,7 @@ class GraphModelDynamic:
             epoch += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            batch_tqdm = thh.get_tqdm(self.train_dataloader, desc="Batch")
+            batch_tqdm = cmh.get_tqdm(self.train_dataloader, desc="Batch")
             for batch_number, batch in enumerate(batch_tqdm):
 
                 train_loss, train_loss_array = self.train_step(batch)
@@ -311,7 +311,7 @@ class GraphModelDynamic:
             labels_count = len(self.loss_labels)
             mean_loss_array = np.zeros([labels_count])
 
-            batch_tqdm = thh.get_tqdm(dataloader, desc=dataset.relative_path)
+            batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
             for _, batch in enumerate(batch_tqdm):
                 mean_loss_array += self.test_step(batch)
             mean_loss_array = mean_loss_array / len(dataloader)

@@ -3,8 +3,7 @@ import time
 from deep_conmech.common import config, mapper
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.common.plotter.plotter_2d import Plotter
-from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.model import *
+from conmech.helpers import cmh
 from deep_conmech.simulator.setting.setting_forces import *
 
 
@@ -13,26 +12,6 @@ def print_setting(setting, filename, catalog):
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
     print_setting_internal(setting, path, None, extension, 0, True)
-
-
-def print_dataset(dataset, cutoff, timestamp, description):
-    print(f"Printing dataset {description}...")
-    dataloader = get_print_dataloader(dataset)
-    batch = next(iter(dataloader))
-    iterations = np.min([len(batch), cutoff])
-    for i in range(iterations):
-        print_setting(batch.setting[i], i, timestamp, description)
-
-        # for _ in range(100):
-        #    setting.set_forces(np.random.uniform(
-        #        low= -config.FORCES_DATA_SCALE,
-        #        high= config.FORCES_DATA_SCALE,
-        #        size=(setting.nodes_count, dim)
-        #    ))
-        #    test_setting(setting)
-        #    a = setting.calculate_normalized()
-        #    setting.iterate(a)
-        # break
 
 
 ############################

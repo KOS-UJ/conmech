@@ -1,12 +1,9 @@
 import time
 
 from deep_conmech.common import config
-from conmech.helpers import nph
-from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.model import *
 from deep_conmech.graph.setting.setting_input import *
 from deep_conmech.simulator.calculator import Calculator
-
+from conmech.helpers import cmh
 import deep_conmech.common.config as config
 
 
@@ -59,6 +56,7 @@ def map_time(
     comparison_time = 0
 
     time_tqdm = cmh.get_tqdm(range(scenario.episode_steps), f"{description} - {scenario.id} scale_{scenario.scale}")
+    initial_vector = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * config.TIMESTEP
 
@@ -67,7 +65,8 @@ def map_time(
         #max_data.set(setting, time_step)
 
         start_time = time.time()
-        a = solve_function(setting)
+        a = solve_function(setting, initial_vector=initial_vector)
+        initial_vector = nph.stack_column(a[setting.boundary_nodes_indices])
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:

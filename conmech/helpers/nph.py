@@ -59,6 +59,7 @@ def normalize_euclidean_numba(data):
 ###################
 
 
+
 def get_tangential_2d(normal):
     return np.array((normal[..., 1], -normal[..., 0])).T
 

@@ -5,6 +5,7 @@ import numpy as np
 import scipy
 from conmech.helpers import nph
 from deep_conmech.common import config
+from scipy import optimize
 
 
 class Calculator:
@@ -44,6 +45,7 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dim)
 
         """
+        time used
         base (BFGS) - 178 / 1854
         Nelder-Mead - 883
         CG - 96 / 1458.23
@@ -63,7 +65,7 @@ class Calculator:
     @staticmethod
     def minimize(function, initial_vector):
         return scipy.optimize.minimize(
-            function, initial_vector, method="BFGS", # options={"disp": True}
+            function, initial_vector, method="POWELL", options={"disp": True, "xtol":1e-8}
         ).x
 
     @staticmethod
@@ -72,7 +74,7 @@ class Calculator:
             initial_boundary_vector = np.zeros(
                 setting.boundary_nodes_count * setting.dim
             )
-
+        
         tstart = time.time()
         cost_function = setting.get_normalized_L2_obstacle_np()
         normalized_boundary_a_vector_np = Calculator.minimize(

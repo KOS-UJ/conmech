@@ -17,6 +17,31 @@ from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
 
 
+
+
+
+
+def print_dataset(dataset, cutoff, timestamp, description):
+    print(f"Printing dataset {description}...")
+    dataloader = get_print_dataloader(dataset)
+    batch = next(iter(dataloader))
+    iterations = np.min([len(batch), cutoff])
+    for i in range(iterations):
+        plotter_mapper.print_setting(batch.setting[i], i, timestamp, description)
+
+        # for _ in range(100):
+        #    setting.set_forces(np.random.uniform(
+        #        low= -config.FORCES_DATA_SCALE,
+        #        high= config.FORCES_DATA_SCALE,
+        #        size=(setting.nodes_count, dim)
+        #    ))
+        #    test_setting(setting)
+        #    a = setting.calculate_normalized()
+        #    setting.iterate(a)
+        # break
+
+
+
 def get_print_dataloader(dataset):
     return get_dataloader(dataset, config.BATCH_SIZE, num_workers=0, shuffle=False)
 

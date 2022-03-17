@@ -1,13 +1,13 @@
-DIM = 2
+DENS = 1.0
+MU = 4.0
+LA = 4.0
+TH = 4.0
+ZE = 4.0
 
-DENS = 0.01
-MU = 0.1
-LA = 0.1
-TH = 0.1
-ZE = 0.1
+OBSTACLE_HARDNESS = 0.
+OBSTACLE_FRICTION = 40.
 
-OBSTACLE_HARDNESS = 0.04
-OBSTACLE_FRICTION = 0.004
+TIMESTEP = 0.01
 
 NORMALIZE_ROTATE = True
 ############
@@ -23,8 +23,6 @@ MESH_DENSITY = 16
 ADAPTIVE_TRAINING_MESH = False  #!# True
 CALCULATOR_MODE = "optimization"  # "function" # "optimization"
 SIMULATE_DIRTY_DATA = False
-
-TIMESTEP = 0.01
 
 ############
 
@@ -42,7 +40,7 @@ V_IN_RANDOM_FACTOR = 0.005 * V_RANDOM_SCALE
 
 ############
 
-FINAL_TIME = 4.0  #!# 8 4
+FINAL_TIME = 2.0  #!# 8 4
 EPISODE_STEPS = int(FINAL_TIME / TIMESTEP)
 
 ############

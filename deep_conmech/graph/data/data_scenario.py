@@ -1,3 +1,4 @@
+from turtle import up
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
@@ -60,7 +61,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
         data_count = len(assigned_scenarios) * self.episode_steps
         tqdm_description = f"Process {process_id}"
-        step_tqdm = thh.get_tqdm(range(data_count), tqdm_description, process_id)
+        step_tqdm = cmh.get_tqdm(range(data_count), tqdm_description, process_id)
         for index in step_tqdm:
             ts = (index % self.episode_steps) + 1
             current_time = ts * config.TIMESTEP
@@ -99,9 +100,10 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, base_scenarios, solve_function, repetitions=1):
+    def __init__(self, base_scenarios, solve_function, update_data=False, repetitions=1):
         episode_steps = config.EPISODE_STEPS
         num_workers = 1  # config.GENERATION_WORKERS
+        self.update_data=update_data
         super().__init__(
             base_scenarios,
             episode_steps,
@@ -112,7 +114,8 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
         )
 
     def update_data(self):
-        self.clear_and_initialize_data()
+        if self.update_data:
+            self.clear_and_initialize_data()
 
 
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):

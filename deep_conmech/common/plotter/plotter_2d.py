@@ -55,7 +55,7 @@ class Plotter:
         # self.draw_angles(setting, ax)
 
         position = np.array([-1.8, -2.2]) * scale
-        shift = 3.5 * scale
+        shift = 2.5 * scale
         self.draw_forces(setting, position, ax)
         if draw_detailed:  # detailed:
             position[0] += shift
@@ -64,8 +64,8 @@ class Plotter:
                 position[0] += shift
             # self.draw_boundary_faces_normals(setting, position, ax)
             # position[0] += shift
-            self.draw_boundary_normals(setting, position, ax)
-            position[0] += shift
+            #self.draw_boundary_normals(setting, position, ax)
+            #position[0] += shift
 
             self.draw_boundary_resistance_normal(setting, position, ax)
             position[0] += shift
@@ -154,7 +154,8 @@ class Plotter:
 
     def draw_boundary_resistance_normal(self, setting, position, ax):
         self.draw_additional_setting("RES_N", setting, position, ax)
-        data = setting.normalized_boundary_normals * setting.resistance_normal * (-1)
+        # normalized_boundary_normals
+        data = setting.normalized_boundary_obstacle_normals * setting.resistance_normal / 100
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
             data,
@@ -163,7 +164,8 @@ class Plotter:
 
     def draw_boundary_resistance_tangential(self, setting, position, ax):
         self.draw_additional_setting("RES_T", setting, position, ax)
-        data = setting.normalized_boundary_normals * setting.resistance_tangential * (-1)
+        # normalized_boundary_normals
+        data = setting.normalized_boundary_obstacle_normals * setting.resistance_tangential / 100
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
             data,
