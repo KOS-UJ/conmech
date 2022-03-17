@@ -1,3 +1,6 @@
+'''
+conmech helpers
+'''
 import os
 import shutil
 import time

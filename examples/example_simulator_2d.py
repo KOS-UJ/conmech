@@ -1,5 +1,5 @@
 from matplotlib.pyplot import draw
-from conmech.helpers import helpers
+from conmech.helpers import cmh
 from deep_conmech.graph.helpers import thh
 import deep_conmech.common.config as config
 import deep_conmech.scenarios as scenarios
@@ -9,7 +9,7 @@ from deep_conmech.scenarios import *
 
 
 def main():
-    path = f"SIMULATOR 2D - {helpers.CURRENT_TIME}"
+    path = f"SIMULATOR 2D - {cmh.CURRENT_TIME}"
 
     scenario = Scenario(
         id="scenario_test",

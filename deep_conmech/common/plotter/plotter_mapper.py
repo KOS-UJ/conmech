@@ -9,7 +9,7 @@ from deep_conmech.simulator.setting.setting_forces import *
 
 
 def print_setting(setting, filename, catalog):
-    helpers.create_folders(catalog)
+    cmh.create_folders(catalog)
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
     print_setting_internal(setting, path, None, extension, 0, True)
@@ -43,7 +43,7 @@ def print_one_dynamic(
 ):
     all_images_paths = []
     extension = "png"  # pdf
-    helpers.create_folders(f"output/{catalog}")
+    cmh.create_folders(f"output/{catalog}")
 
     _print_at_interval = lambda time, setting, base_setting, a, base_a: print_at_interval(
         time,

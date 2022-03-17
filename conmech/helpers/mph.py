@@ -1,4 +1,6 @@
-
+'''
+multiprocessing helpers
+'''
 from multiprocessing import Process, Queue
 
 

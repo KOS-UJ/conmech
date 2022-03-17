@@ -1,13 +1,13 @@
 import deep_conmech.scenarios as scenarios
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
-from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.helpers import thh, dch
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 
 
 def main():
-    thh.set_memory_limit()
+    dch.set_memory_limit()
     # torch.multiprocessing.set_start_method('spawn')
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None

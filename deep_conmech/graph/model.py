@@ -4,7 +4,7 @@ import time
 import deep_conmech.graph.setting.setting_input
 import numpy as np
 import torch
-from conmech.helpers import helpers
+from conmech.helpers import cmh
 from deep_conmech.common import *
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.data import data_base
@@ -19,7 +19,7 @@ start = time.time()
 
 def get_writer():
     return SummaryWriter(
-        f"./log/{helpers.CURRENT_TIME} \
+        f"./log/{cmh.CURRENT_TIME} \
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
@@ -99,9 +99,9 @@ class GraphModelDynamic:
 
     def save(self):
         print("Saving model")
-        timestamp = helpers.get_timestamp()
-        catalog = f"output/GRAPH - {helpers.CURRENT_TIME}"
-        helpers.create_folders(catalog)
+        timestamp = cmh.get_timestamp()
+        catalog = f"output/GRAPH - {cmh.CURRENT_TIME}"
+        cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         torch.save(self.net.state_dict(), path)
 
@@ -331,7 +331,7 @@ class GraphModelDynamic:
     #################
 
     def print_raport(self):
-        path = f"GRAPH - {helpers.CURRENT_TIME}/{helpers.get_timestamp()} - RESULT"
+        path = f"GRAPH - {cmh.CURRENT_TIME}/{cmh.get_timestamp()} - RESULT"
         start_time = time.time()
         for scenario in self.print_scenarios:
             plotter_mapper.print_one_dynamic(

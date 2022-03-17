@@ -1,4 +1,6 @@
-# NumPy Helpers
+'''
+numpy helpers
+'''
 from ctypes import ArgumentError
 
 import numba

@@ -9,8 +9,8 @@ import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import numpy as np
 import pandas as pd
 import torch
-from conmech.helpers import helpers
-from deep_conmech.graph.helpers import thh
+from conmech.helpers import cmh
+from deep_conmech.graph.helpers import thh, dch
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
@@ -51,7 +51,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 
 
 def is_memory_overflow(step_tqdm, tqdm_description):
-    memory_usage = thh.get_used_memory_gb()
+    memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
@@ -138,15 +138,15 @@ class BaseDatasetDynamic:
 
     def clear_and_initialize_data(self):
         print(f"Clearing {self.relative_path} data")
-        helpers.clear_folder(self.images_path)
-        helpers.clear_folder(self.data_path)
-        helpers.clear_folder(self.path)
+        cmh.clear_folder(self.images_path)
+        cmh.clear_folder(self.data_path)
+        cmh.clear_folder(self.path)
         self.initialize_data()
 
     def initialize_data(self):
-        helpers.create_folders(self.path)
-        helpers.create_folders(self.data_path)
-        helpers.create_folders(self.images_path)
+        cmh.create_folders(self.path)
+        cmh.create_folders(self.data_path)
+        cmh.create_folders(self.images_path)
 
         indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
         if not indices_to_do:
@@ -203,7 +203,7 @@ class BaseDatasetDynamic:
 
         setting.exact_normalized_a_torch = None
         data = setting.get_data(
-            f"{helpers.get_timestamp()} - {index}", exact_normalized_a_torch
+            f"{cmh.get_timestamp()} - {index}", exact_normalized_a_torch
         )
         return data
 

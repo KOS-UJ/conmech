@@ -5,7 +5,6 @@ import numpy as np
 import scipy
 from conmech.helpers import nph
 from deep_conmech.common import config
-from scipy import optimize
 
 
 class Calculator:
@@ -64,7 +63,7 @@ class Calculator:
     @staticmethod
     def minimize(function, initial_vector):
         return scipy.optimize.minimize(
-            function, initial_vector, method="BFGS", options={"disp": True}
+            function, initial_vector, method="BFGS", # options={"disp": True}
         ).x
 
     @staticmethod

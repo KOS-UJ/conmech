@@ -8,7 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from conmech.helpers import helpers
+from conmech.helpers import cmh
 
 
 class Drawer:
@@ -20,7 +20,7 @@ class Drawer:
 
     @staticmethod
     def get_directory():
-        return f"./output/DRAWING {helpers.CURRENT_TIME}"
+        return f"./output/DRAWING {cmh.CURRENT_TIME}"
 
 
     def draw(self, temp_max=None, temp_min=None):
@@ -59,9 +59,9 @@ class Drawer:
 
     def save_plot(self):
         directory = Drawer.get_directory()
-        helpers.create_folders(directory)
+        cmh.create_folders(directory)
         extension = "png" # pdf
-        path = f"{directory}/{helpers.get_timestamp()}.{extension}"
+        path = f"{directory}/{cmh.get_timestamp()}.{extension}"
         plt.savefig(
             path,
             transparent=False,
