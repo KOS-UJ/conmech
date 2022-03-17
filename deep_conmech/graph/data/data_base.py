@@ -51,7 +51,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 
 
 def is_memory_overflow(step_tqdm, tqdm_description):
-    memory_usage = helpers.get_used_memory_gb()
+    memory_usage = thh.get_used_memory_gb()
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )

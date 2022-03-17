@@ -1,9 +1,5 @@
 import os
 import resource
-import time
-from ctypes import ArgumentError
-from datetime import datetime
-
 import deep_conmech.common.config as config
 import numpy as np
 import pandas
@@ -11,10 +7,8 @@ import psutil
 import torch
 from tqdm import tqdm
 
-# np.random.seed(42)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 
 # torch.autograd.set_detect_anomaly(True)
 print(f"Running using {device}")
@@ -26,15 +20,15 @@ def cuda_launch_blocking():
 
 
 def set_precision(data):
-    return data.float()  # float
+    return data.float()
 
 
 def to_torch_double(data):
-    return torch.tensor(data, dtype=torch.float64)  # .to(device)
+    return torch.tensor(data, dtype=torch.float64)
 
 
 def to_torch_long(data):
-    return torch.tensor(data, dtype=torch.long)  # .to(device)
+    return torch.tensor(data, dtype=torch.long)
 
 
 def to_np_double(data):
@@ -92,3 +86,14 @@ def print_pandas(data):
     name = f"{data=}".split("=")[0]
     print(f">>> {name} <<<")
     print(pandas.DataFrame(data).round(4))
+
+
+def get_used_memory_gb():
+    return psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3
+
+def set_memory_limit():
+    rsrc = resource.RLIMIT_DATA
+    soft, hard = resource.getrlimit(rsrc)
+    soft_limit = config.TOTAL_MEMORY_LIMIT_GB * (1024 ** 3)  # (b -> kb -> mb -> gb)
+    resource.setrlimit(rsrc, (soft_limit, hard))
+
