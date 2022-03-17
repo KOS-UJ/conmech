@@ -13,7 +13,7 @@ from tests.examples_regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(params=[  # TODO #28
-    # "global optimization",  TODO #29
+    "global optimization",
     "schur"
 ])
 def solving_method(request):

@@ -138,7 +138,6 @@ class SchurComplement(Optimization):
         )
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
-        self.iterate(solution)
         return solution
 
     def solve_t(self, temperature, velocity) -> np.ndarray:
@@ -155,7 +154,6 @@ class SchurComplement(Optimization):
         _result = np.concatenate((solution_contact, solution_free))
         solution = np.squeeze(np.asarray(_result))
 
-        self.t_vector = solution
         return solution
 
     def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
@@ -333,7 +331,7 @@ class Dynamic(Quasistatic):
             )
         )
 
-        QBig = Q1 - C2Xv - C2Yv  #TODO: Check if not Q1 + C2Xv + C2Y
+        QBig = Q1 - C2Xv - C2Yv
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]

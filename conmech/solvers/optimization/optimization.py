@@ -2,7 +2,6 @@
 Created at 18.02.2021
 """
 import math
-from typing import Optional
 
 import scipy.optimize
 import numpy as np
