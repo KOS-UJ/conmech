@@ -14,7 +14,7 @@ from tests.examples_regression.std_boundary import standard_boundary_nodes
 
 @pytest.fixture(
     params=[  # TODO #28
-        # "global optimization",  # TODO #29
+        "global optimization",
         "schur"
     ]
 )
@@ -193,7 +193,6 @@ def test_global_optimization_solver(
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
-    print(repr(displacement[std_ids]))
 
     np.testing.assert_array_almost_equal(
         displacement[std_ids], expected_displacement_vector, decimal=3

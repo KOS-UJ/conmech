@@ -120,9 +120,6 @@ class ProblemSolver:
                 state.set_velocity(
                     solution, update_displacement=True, t=self.step_solver.currentTime
                 )
-                #################### ADDED
-                # self.step_solver.iterate(solution)
-                ####################
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
@@ -136,6 +133,7 @@ class ProblemSolver:
         while quality < validator.error_tolerance and bool(fuse):
             fuse -= 1
             solution = solver.solve(solution, **kwargs)
+            solver.iterate(solution)
             quality = validator.check_quality(state, solution, quality)
             iteration += 1
             self.print_iteration_info(
@@ -161,6 +159,7 @@ class ProblemSolver:
                 verbose=verbose,
             )
             solution_t = solver.solve_t(solution_t, solution)
+            solver.t_vector = solution_t
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
@@ -360,6 +359,7 @@ class TDynamic(ProblemSolver):
                         t=self.step_solver.currentTime,
                     )
                     state.set_temperature(solution_t)
+                    # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
             results.append(state.copy())
