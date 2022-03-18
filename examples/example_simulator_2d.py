@@ -11,8 +11,19 @@ from deep_conmech.scenarios import *
 def main():
     path = f"SIMULATOR 2D - {cmh.CURRENT_TIME}"
 
-    scenario = Scenario(
-        id="scenario",
+    scenario1 = Scenario(
+        id="scenario1",
+        dim=2,
+        mesh_type=scenarios.m_circle,
+        mesh_density=5,
+        scale=1,
+        forces_function=np.array([2., -0.5]),
+        obstacles=np.array([[[0., 1.0]], [[0.0, 0.05]]]),
+        is_adaptive=False,
+        episode_steps=200
+    )
+    scenario2 = Scenario(
+        id="scenario2",
         dim=2,
         mesh_type=scenarios.m_rectangle,
         mesh_density=16,
@@ -22,7 +33,9 @@ def main():
         is_adaptive=False,
         episode_steps=200
     )
-    #remove dim ftom Scenario
+    # bchange name boundary to contact
+    #if step does not cause penetration, use fsolve, otherwise return and use
+    #remove dim from Scenario
     #standardize episode steps
     # turn off normalization
     # check different time steps (and mesh sizes)
@@ -30,7 +43,7 @@ def main():
     # standardize boundary indices and initial_vector
     plotter_mapper.print_one_dynamic(
         Calculator.solve,
-        scenario,
+        scenario2,
         path,
         simulate_dirty_data=config.SIMULATE_DIRTY_DATA,
         draw_base=False,

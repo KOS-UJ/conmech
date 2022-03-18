@@ -49,7 +49,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
         if index in elements:
             index += 1
         else:
-            #print(f"Index {index} not in elements - fixing")
+            # print(f"Index {index} not in elements - fixing")
             nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
@@ -115,12 +115,25 @@ def extract_unique_elements(elements, opposing_indices):
     return elements[unique_indices], opposing_indices[unique_indices]
 
 
-def get_boundary_faces(elements):
+def get_boundary_faces(nodes, elements):
     elements.sort(axis=1)
     faces, opposing_indices = list_all_faces_numba(sorted_elements=elements)
     boundary_faces, boundary_internal_indices = extract_unique_elements(
         faces, opposing_indices
     )
+    '''
+    boundary_faces_start, boundary_internal_indices_start = extract_unique_elements(
+        faces, opposing_indices
+    )
+    mask = [
+        i
+        for i in range(len(boundary_faces_start))
+        if np.all(nodes[boundary_faces_start[i]][:, 1] == 0)
+    ]
+
+    boundary_faces = boundary_faces_start[mask]
+    boundary_internal_indices = boundary_internal_indices_start[mask]
+    '''
     boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
     return boundary_faces, boundary_nodes_indices, boundary_internal_indices
 
@@ -129,7 +142,7 @@ def clean_mesh(nodes, elements):
     # TODO: Move also boundary edges and faces (?)
     nodes, elements = remove_unconnected_nodes_numba(nodes, elements)
 
-    _, boundary_indices, _ = get_boundary_faces(elements)
+    _, boundary_indices, _ = get_boundary_faces(nodes, elements)
     nodes, elements, boundary_nodes_count = move_boundary_nodes_to_start_numba(
         nodes, elements, boundary_indices
     )
@@ -320,16 +333,17 @@ class SettingMesh:
     def reorganize_boundaries(self):
         self.boundaries = None
         self.independent_nodes_count = self.nodes_count
-        
+
         (
             self.boundary_faces,
             self.boundary_nodes_indices,
             self.boundary_internal_indices,
-        ) = get_boundary_faces(self.cells)
+        ) = get_boundary_faces(self.initial_nodes, self.cells)
 
-        if not np.array_equal(self.boundary_nodes_indices, range(self.boundary_nodes_count)):
-            raise ArgumentError('Bad boundary ordering')
-
+        if not np.array_equal(
+            self.boundary_nodes_indices, range(self.boundary_nodes_count)
+        ):
+            raise ArgumentError("Bad boundary ordering")
 
     def set_a_old(self, a):
         self.a_old = a
@@ -392,7 +406,7 @@ class SettingMesh:
 
     @property
     def normalized_v_old(self):
-        return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))
+        return self.normalize_rotate(self.v_old) ########### TODO: problem with boundary friction low using - np.mean(self.v_old, axis=0))
 
     @property
     def normalized_u_old(self):
@@ -413,7 +427,11 @@ class SettingMesh:
         )
 
     def normalize_rotate(self, vectors):
-        return nph.get_in_base(vectors, self.moved_base) if config.NORMALIZE_ROTATE else vectors
+        return (
+            nph.get_in_base(vectors, self.moved_base)
+            if config.NORMALIZE_ROTATE
+            else vectors
+        )
 
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))

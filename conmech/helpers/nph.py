@@ -53,7 +53,7 @@ def euclidean_norm_numba(vector):
 def normalize_euclidean_numba(data):
     norm = euclidean_norm_numba(data)
     reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
-    return data / reshaped_norm
+    return data / (reshaped_norm + 0.00001)
 
 
 ###################
