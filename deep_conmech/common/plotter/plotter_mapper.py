@@ -18,7 +18,13 @@ def print_setting(setting, filename, catalog):
 
 
 def print_one_dynamic(
-    solve_function, scenario, catalog, simulate_dirty_data, draw_base, draw_detailed, description
+    solve_function,
+    scenario,
+    catalog,
+    simulate_dirty_data,
+    draw_base,
+    draw_detailed,
+    description,
 ):
     all_images_paths = []
     extension = "png"  # pdf
@@ -44,13 +50,18 @@ def print_one_dynamic(
     )
 
     Plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} scale_{scenario.scale} ANIMATION.gif", all_images_paths
+        f"output/{catalog}/{scenario.id} scale_{scenario.scale} ANIMATION.gif",
+        all_images_paths,
     )
 
 
-def print_at_interval(time, setting, path, base_setting, draw_detailed, all_images_paths, extension):
+def print_at_interval(
+    time, setting, path, base_setting, draw_detailed, all_images_paths, extension
+):
     if nph.skip(time, config.PRINT_SKIP):
-        print_setting_internal(setting, path, base_setting, extension, time, draw_detailed)
+        print_setting_internal(
+            setting, path, base_setting, extension, time, draw_detailed
+        )
         all_images_paths.append(path)
 
 
@@ -129,7 +140,7 @@ def print_test():
     # Assert
     # np.around(np.mean(mesh.features[:,:,0], axis=1),4) = 0
     # np.around(np.mean(mesh.features[:,:,1], axis=1),4) = 0
-    plotter.draw_data_triangles(mesh, mesh.cells_points, mesh.features[:, :, 0:2])
+    plotter.draw_data_triangles(mesh, mesh.elements_points, mesh.features[:, :, 0:2])
     plotter.draw_colors_triangles(mesh, mesh.features)
     plotter.draw_data_edges(mesh, mesh.edges_points, mesh.edges_features[:, 0:2])
 

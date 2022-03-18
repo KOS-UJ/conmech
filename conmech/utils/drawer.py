@@ -76,7 +76,7 @@ class Drawer:
 
     def draw_mesh(self, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()
-        for i, j, k in self.mesh.cells:
+        for i, j, k in self.mesh.elements:
             graph.add_edge(i, j)
             graph.add_edge(i, k)
             graph.add_edge(j, k)
@@ -97,7 +97,7 @@ class Drawer:
         y = self.state.displaced_points[:, 1]
 
         n_layers = 100
-        ax.tricontourf(x, y, self.mesh.cells, field, n_layers, cmap=plt.cm.magma,
+        ax.tricontourf(x, y, self.mesh.elements, field, n_layers, cmap=plt.cm.magma,
                              vmin=v_min, vmax=v_max)
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])

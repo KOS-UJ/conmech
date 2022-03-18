@@ -51,7 +51,7 @@ def generate_test_suits():
     @dataclass()
     class DynamicSetup(Dynamic):
         grid_height: ... = 1
-        cells_number: ... = (2, 5)
+        elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
         th_coef: ... = 4
@@ -72,12 +72,12 @@ def generate_test_suits():
             return 0
 
         @staticmethod
-        def is_contact(x, y):
-            return y == 0
+        def is_contact(x):
+            return x[1] == 0
 
         @staticmethod
-        def is_dirichlet(x, y):
-            return x == 0
+        def is_dirichlet(x):
+            return x[0] == 0
 
     setup_m02_m02 = DynamicSetup()
 
@@ -158,7 +158,7 @@ def generate_test_suits():
     @dataclass()
     class DynamicSetup(Dynamic):
         grid_height: ... = 1.37
-        cells_number: ... = (2, 5)
+        elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
         la_coef: ... = 3.33
         th_coef: ... = 2.11
@@ -179,12 +179,12 @@ def generate_test_suits():
             return 0.0
 
         @staticmethod
-        def is_contact(x, y):
-            return y == 0
+        def is_contact(x):
+            return x[1] == 0
 
         @staticmethod
-        def is_dirichlet(x, y):
-            return x == 0
+        def is_dirichlet(x):
+            return x[0] == 0
 
     setup_var = DynamicSetup()
     expected_displacement_vector_var = np.asarray([
@@ -221,7 +221,7 @@ def test_global_optimization_solver(
     runner = TDynamicProblem(setup, solving_method)
     results = runner.solve(n_steps=32)
 
-    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.cells)
+    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
     displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
     temperature = np.zeros(len(results[-1].mesh.initial_nodes))
     temperature[:len(results[-1].temperature)] = results[-1].temperature

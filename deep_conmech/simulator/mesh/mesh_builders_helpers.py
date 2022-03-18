@@ -28,11 +28,12 @@ def set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive):
     else:
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
 
-        
+
 def normalize_nodes(nodes):
     nodes = nodes - np.min(nodes, axis=0)
     nodes = nodes / np.max(nodes, axis=0)
     return nodes
+
 
 def get_nodes_and_elements(geom, dim):
     geom_mesh = geom.generate_mesh()

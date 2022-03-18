@@ -42,8 +42,8 @@ class Boundaries:
 
 
 def get_boundaries(
-        is_contact: Callable[[float, float], bool],
-        is_dirichlet: Callable[[float, float], bool],
+        is_contact: Callable[np.ndarray, bool],
+        is_dirichlet: Callable[np.ndarray, bool],
         boundaries: List[np.ndarray],
         vertices: np.ndarray
 ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
@@ -69,9 +69,9 @@ def get_condition_boundaries(
         first_id = None
         i = 0
         while i < len(boundary):
-            if predicate(*vertices[boundary[i]]):
+            if predicate(vertices[boundary[i]]):
                 condition_boundary = []
-                while i < len(boundary) and predicate(*vertices[boundary[i]]):
+                while i < len(boundary) and predicate(vertices[boundary[i]]):
                     condition_boundary.append(boundary[i])
                     i += 1
 
@@ -112,13 +112,13 @@ def get_condition_boundaries_neumann(
         vertices: np.ndarray
 ) -> List[np.ndarray]:
     def boundary_change(prev: int, curr: int):
-        return predicate_0(*vertices[prev]) and not predicate_0(*vertices[curr])\
-            and not predicate_1(*vertices[prev]) \
-            or predicate_1(*vertices[prev]) and not predicate_1(*vertices[curr]) \
-            and not predicate_0(*vertices[prev])
+        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr])\
+            and not predicate_1(vertices[prev]) \
+            or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
+            and not predicate_0(vertices[prev])
 
     def no_conditions(curr: int):
-        return not predicate_0(*vertices[curr]) and not predicate_1(*vertices[curr])
+        return not predicate_0(vertices[curr]) and not predicate_1(vertices[curr])
 
     condition_boundaries = []
     for boundary in boundaries:
@@ -222,5 +222,5 @@ def reorder(vertices: np.ndarray, elements: np.ndarray, boundaries, predicate, t
 def apply_predicates(vertices, boundary_vertices, value_pred, ascending):
     result = np.full(len(vertices), not ascending, dtype=bool)
     for i in boundary_vertices:
-        result[i] = ascending == value_pred(*vertices[i])
+        result[i] = ascending == value_pred(vertices[i])
     return result

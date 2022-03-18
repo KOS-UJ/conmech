@@ -16,7 +16,6 @@ def L2_normalized_correction_cuda(
     return L2_new(normalized_a_cuda, C_cuda, normalized_E_cuda)
 
 
-
 class SettingRandomized(SettingTorch):
     def __init__(
         self,
@@ -156,7 +155,7 @@ class SettingRandomized(SettingTorch):
 
     def remesh_self(self):
         old_initial_nodes = self.initial_nodes.copy()
-        old_cells = self.cells.copy()
+        old_elements = self.elements.copy()
         u_old = self.u_old.copy()
         v_old = self.v_old.copy()
         a_old = self.a_old.copy()
@@ -164,13 +163,13 @@ class SettingRandomized(SettingTorch):
         self.remesh()
 
         u = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, u_old, old_cells
+            self.initial_nodes, old_initial_nodes, u_old, old_elements
         )
         v = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, v_old, old_cells
+            self.initial_nodes, old_initial_nodes, v_old, old_elements
         )
         a = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, a_old, old_cells
+            self.initial_nodes, old_initial_nodes, a_old, old_elements
         )
 
         self.set_u_old(u)

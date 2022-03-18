@@ -18,7 +18,7 @@ def main():
         mesh_density=5,
         scale=1,
         forces_function=np.array([2., -0.5]),
-        obstacles=np.array([[[0., 1.0]], [[0.0, 0.05]]]),
+        obstacles=np.array([[[0., 1.0]], [[0.0, 0.0]]]),
         is_adaptive=False,
         episode_steps=200
     )
@@ -26,17 +26,17 @@ def main():
         id="scenario2",
         dim=2,
         mesh_type=scenarios.m_rectangle,
-        mesh_density=16,
+        mesh_density=8,
         scale=1,
-        forces_function=np.array([0.5, 0.0]),
-        obstacles=np.array([[[0., 1.0]], [[0.0, 0.01]]]),
+        forces_function=np.array([2.0, -0.5]),
+        obstacles=np.array([[[0., 1.0]], [[0.0, 0.0]]]),
         is_adaptive=False,
         episode_steps=200
     )
-    # bchange name boundary to contact
-    #if step does not cause penetration, use fsolve, otherwise return and use
-    #remove dim from Scenario
-    #standardize episode steps
+    # change name boundary to contact
+    # if step does not cause penetration, use fsolve, otherwise return and use
+    # remove dim from Scenario
+    # standardize episode steps
     # turn off normalization
     # check different time steps (and mesh sizes)
     # use boundary normals instead of obstacle (?)

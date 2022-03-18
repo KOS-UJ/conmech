@@ -28,12 +28,12 @@ class ProblemSolver:
         ze_coef = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
 
-        grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
+        grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
         self.mesh = MeshFeatures(
             mesh_type="cross",
-            mesh_density_x=setup.cells_number[1],
-            mesh_density_y=setup.cells_number[0],
+            mesh_density_x=setup.elements_number[1],
+            mesh_density_y=setup.elements_number[0],
             scale_x=float(grid_width),
             scale_y=float(setup.grid_height),
             is_adaptive=False,

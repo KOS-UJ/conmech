@@ -28,7 +28,7 @@ class Plotter:
         imageio.mimsave(path, images, **args)
 
         for image_path in all_images_paths:
-             os.remove(image_path)
+            os.remove(image_path)
 
     ###########################
 
@@ -64,8 +64,8 @@ class Plotter:
                 position[0] += shift
             # self.draw_boundary_faces_normals(setting, position, ax)
             # position[0] += shift
-            #self.draw_boundary_normals(setting, position, ax)
-            #position[0] += shift
+            # self.draw_boundary_normals(setting, position, ax)
+            # position[0] += shift
 
             self.draw_boundary_resistance_normal(setting, position, ax)
             position[0] += shift
@@ -139,37 +139,37 @@ class Plotter:
             ax,
         )
 
-
-
-
-
     def draw_boundary_v_tangential(self, setting, position, ax):
         self.draw_additional_setting("V_TNG", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
-            setting.normalized_boundary_v_tangential * (setting.boundary_penetration.reshape(-1,1)>0),
+            setting.normalized_boundary_v_tangential
+            * (setting.boundary_penetration.reshape(-1, 1) > 0),
             ax,
         )
-
 
     def draw_boundary_resistance_normal(self, setting, position, ax):
         self.draw_additional_setting("RES_N", setting, position, ax)
         # normalized_boundary_normals
-        data = setting.normalized_boundary_obstacle_normals * setting.resistance_normal / 100
+        data = (
+            setting.normalized_boundary_obstacle_normals
+            * setting.resistance_normal
+            / 100
+        )
         self.draw_arrows(
-            setting.normalized_boundary_nodes + position,
-            data,
-            ax,
+            setting.normalized_boundary_nodes + position, data, ax,
         )
 
     def draw_boundary_resistance_tangential(self, setting, position, ax):
         self.draw_additional_setting("RES_T", setting, position, ax)
         # normalized_boundary_normals
-        data = setting.normalized_boundary_obstacle_normals * setting.resistance_tangential / 100
+        data = (
+            setting.normalized_boundary_obstacle_normals
+            * setting.resistance_tangential
+            / 100
+        )
         self.draw_arrows(
-            setting.normalized_boundary_nodes + position,
-            data,
-            ax,
+            setting.normalized_boundary_nodes + position, data, ax,
         )
 
     def draw_rectangle(self, ax, position, scale_x, scale_y):
@@ -326,7 +326,7 @@ class Plotter:
             )
         )
         ax.triplot(
-            points[:, 0], points[:, 1], setting.cells, color=color, linewidth=0.1
+            points[:, 0], points[:, 1], setting.elements, color=color, linewidth=0.1
         )
 
     def plt_save(self, path, extension):
@@ -388,14 +388,14 @@ class Plotter:
     ###################
 
     def draw_colors_triangles(self, mesh, data):
-        vertices_number = mesh.cells_points.shape[1]
-        centers = np.sum(mesh.cells_points, axis=1) / vertices_number
+        vertices_number = mesh.elements_points.shape[1]
+        centers = np.sum(mesh.elements_points, axis=1) / vertices_number
 
         colors = np.array([(x - 0.5) ** 2 + (y - 0.5) ** 2 for x, y in centers])
         plt.tripcolor(
             mesh.moved_nodes[:, 0],
             mesh.moved_nodes[:, 1],
-            mesh.cells,
+            mesh.elements,
             facecolors=colors,
             edgecolors="k",
         )
@@ -472,8 +472,8 @@ def draw_mesh_density(id):
         self.plt_save(f"draw_one {description}")
 
     def draw_nine(self, model, description):
-        # dmsh.helpers.show(X, cells, geo)
-        # meshio.Mesh(X, {"triangle": cells}).write("circle.vtk")
+        # dmsh.helpers.show(X, elements, geo)
+        # meshio.Mesh(X, {"triangle": elements}).write("circle.vtk")
         # print("Drawing")
 
         unit = config.DRAW_FORCE_UNIT
@@ -503,7 +503,7 @@ def draw_mesh_density(id):
         u = self.predict(mesh, model, X)
         points = mesh.moved_nodes + u
         ax.triplot(
-            points[:, 0], points[:, 1], mesh.cells, color="tab:orange",
+            points[:, 0], points[:, 1], mesh.elements, color="tab:orange",
         )
 
     def get_x_draw_torch(self, force, mesh):

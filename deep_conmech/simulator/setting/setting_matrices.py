@@ -28,27 +28,31 @@ class SettingMatrices(SettingMesh):
         scale_y=None,
         is_adaptive=False,
         create_in_subprocess=False,
-        mu=config.MU,
-        la=config.LA,
-        th=config.TH,
-        ze=config.ZE,
+        mu_coef=config.MU,
+        la_coef=config.LA,
+        th_coef=config.TH,
+        ze_coef=config.ZE,
         density=config.DENS,
         time_step=config.TIMESTEP,
+        is_dirichlet=(lambda _: False),
+        is_contact=(lambda _: True),
         with_schur_complement_matrices=True,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess
+            mesh_type=mesh_type,
+            mesh_density_x=mesh_density_x,
+            mesh_density_y=mesh_density_y,
+            scale_x=scale_x,
+            scale_y=scale_y,
+            is_adaptive=is_adaptive,
+            create_in_subprocess=create_in_subprocess,
+            is_dirichlet=is_dirichlet,
+            is_contact=is_contact,
         )
-        self.mu = mu
-        self.la = la
-        self.th = th
-        self.ze = ze
+        self.mu = mu_coef
+        self.la = la_coef
+        self.th = th_coef
+        self.ze = ze_coef
         self.density = density
         self.time_step = time_step
         self.with_schur_complement_matrices = with_schur_complement_matrices
@@ -76,7 +80,7 @@ class SettingMatrices(SettingMesh):
         (
             edges_features_matrix,
             self.element_initial_volume,
-        ) = get_edges_features_matrix(self.cells, self.normalized_points)
+        ) = get_edges_features_matrix(self.elements, self.normalized_points)
 
         # edges_features = get_edges_features_list(
         #    self.edges_number, edges_features_matrix
@@ -112,22 +116,26 @@ class SettingMatrices(SettingMesh):
         i = p - t
 
         C_split = np.array(
-            np.split(
-                np.array(np.split(self.C, self.dim, axis=-1)), self.dim, axis=1
-            )
+            np.split(np.array(np.split(self.C, self.dim, axis=-1)), self.dim, axis=1)
         )
-        Ctt = np.moveaxis(C_split[..., :t, :t], 1, 2).reshape(self.dim * t, self.dim * t)
-        self.Cti = np.moveaxis(C_split[..., :t, t:], 1, 2).reshape(self.dim * t, self.dim * i)
-        self.Cit = np.moveaxis(C_split[..., t:, :t], 1, 2).reshape(self.dim * i, self.dim * t)
-        Cii = np.moveaxis(C_split[..., t:, t:], 1, 2).reshape(self.dim * i, self.dim * i)
+        Ctt = np.moveaxis(C_split[..., :t, :t], 1, 2).reshape(
+            self.dim * t, self.dim * t
+        )
+        self.Cti = np.moveaxis(C_split[..., :t, t:], 1, 2).reshape(
+            self.dim * t, self.dim * i
+        )
+        self.Cit = np.moveaxis(C_split[..., t:, :t], 1, 2).reshape(
+            self.dim * i, self.dim * t
+        )
+        Cii = np.moveaxis(C_split[..., t:, t:], 1, 2).reshape(
+            self.dim * i, self.dim * i
+        )
 
         self.CiiINV = np.linalg.inv(Cii)
         CiiINVCit = self.CiiINV @ self.Cit
         CtiCiiINVCit = self.Cti @ CiiINVCit
 
         self.C_boundary = Ctt - CtiCiiINVCit
-
-
 
     def clear_save(self):
         self.element_initial_volume = None

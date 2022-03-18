@@ -14,7 +14,7 @@ from conmech.utils.drawer import Drawer
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1.0
-    cells_number: ... = (2, 5)
+    elements_number: ... = (2, 5)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
@@ -32,12 +32,12 @@ class StaticSetup(Static):
         return 0
 
     @staticmethod
-    def is_contact(x, y):
-        return y == 0
+    def is_contact(x):
+        return x[1] == 0
 
     @staticmethod
-    def is_dirichlet(x, y):
-        return x == 0
+    def is_dirichlet(x):
+        return x[0] == 0
 
 
 if __name__ == "__main__":

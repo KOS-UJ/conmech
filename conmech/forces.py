@@ -28,7 +28,7 @@ class Forces:
 
         F = np.zeros([self.mesh.nodes_count, 2])
 
-        for element_id, element in enumerate(self.mesh.cells):
+        for element_id, element in enumerate(self.mesh.elements):
             p0 = self.mesh.initial_nodes[element[0]]
             p1 = self.mesh.initial_nodes[element[1]]
             p2 = self.mesh.initial_nodes[element[2]]

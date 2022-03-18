@@ -13,14 +13,14 @@ from numba import njit
 
 
 @njit  # (parallel=True)
-def get_edges_matrix(nodes_count, cells):
+def get_edges_matrix(nodes_count, elements):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
-    cell_vertices_number = len(cells[0])
-    for cell in cells:  # TODO: prange?
-        for i in range(cell_vertices_number):
-            for j in range(cell_vertices_number):
+    element_vertices_number = len(elements[0])
+    for element in elements:  # TODO: prange?
+        for i in range(element_vertices_number):
+            for j in range(element_vertices_number):
                 if i != j:
-                    edges_matrix[cell[i], cell[j]] += 1.0
+                    edges_matrix[element[i], element[j]] += 1.0
     return edges_matrix
 
 
@@ -98,9 +98,7 @@ def list_all_faces_numba(sorted_elements):
     opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
     i = 0
     for j in range(element_size):
-        faces[i : i + elements_count, :j] = sorted_elements[
-            :, :j
-        ]  # ignoring j-th column
+        faces[i : i + elements_count, :j] = sorted_elements[:, :j]
         faces[i : i + elements_count, j:dim] = sorted_elements[:, j + 1 : element_size]
         opposing_indices[i : i + elements_count] = sorted_elements[:, j]
         i += elements_count
@@ -115,34 +113,39 @@ def extract_unique_elements(elements, opposing_indices):
     return elements[unique_indices], opposing_indices[unique_indices]
 
 
-def get_boundary_faces(nodes, elements):
+def make_get_contact_mask_numba(is_contact):
+    @njit
+    def get_contact_mask_numba(nodes, boundary_faces):
+        return np.array(
+            [
+                i
+                for i in range(len(boundary_faces))
+                if np.all(
+                    np.array([is_contact(node) for node in nodes[boundary_faces[i]]])
+                )
+            ]
+        )
+
+    return get_contact_mask_numba
+
+
+def get_boundary_faces(nodes, elements, is_contact):
     elements.sort(axis=1)
     faces, opposing_indices = list_all_faces_numba(sorted_elements=elements)
     boundary_faces, boundary_internal_indices = extract_unique_elements(
         faces, opposing_indices
     )
-    '''
-    boundary_faces_start, boundary_internal_indices_start = extract_unique_elements(
-        faces, opposing_indices
-    )
-    mask = [
-        i
-        for i in range(len(boundary_faces_start))
-        if np.all(nodes[boundary_faces_start[i]][:, 1] == 0)
-    ]
+    #get_contact_mask_numba = make_get_contact_mask_numba(njit(is_contact))
+    #mask = get_contact_mask_numba(nodes, boundary_faces)
 
-    boundary_faces = boundary_faces_start[mask]
-    boundary_internal_indices = boundary_internal_indices_start[mask]
-    '''
-    boundary_nodes_indices = np.unique(boundary_faces.flatten(), axis=0)
-    return boundary_faces, boundary_nodes_indices, boundary_internal_indices
+    contact_faces = boundary_faces#[mask]
+    contact_internal_indices = boundary_internal_indices#[mask]
+    contact_nodes_indices = np.unique(contact_faces.flatten(), axis=0)
+    return contact_faces, contact_nodes_indices, contact_internal_indices
 
 
-def clean_mesh(nodes, elements):
-    # TODO: Move also boundary edges and faces (?)
-    nodes, elements = remove_unconnected_nodes_numba(nodes, elements)
-
-    _, boundary_indices, _ = get_boundary_faces(nodes, elements)
+def reorder_boundary_nodes(nodes, elements, is_contact):
+    _, boundary_indices, _ = get_boundary_faces(nodes, elements, is_contact)
     nodes, elements, boundary_nodes_count = move_boundary_nodes_to_start_numba(
         nodes, elements, boundary_indices
     )
@@ -159,7 +162,6 @@ def get_closest_to_axis_numba(nodes, variable):
     nodes_count = len(nodes)
     for i in range(nodes_count):
         for j in range(i + 1, nodes_count):
-            # dist = np.abs(nodes[i, variable] - nodes[j, variable])
             error = nph.euclidean_norm_numba(
                 np.delete(nodes[i], variable) - np.delete(nodes[j], variable)
             )
@@ -255,10 +257,6 @@ def get_boundary_nodes_data_numba(
     boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for i in range(boundary_nodes_count):
-        # mask = np.bitwise_or.reduce(boundary_faces == i, axis=1) (or np.any)
-        # node_faces = boundary_faces[mask]
-        # face_nodes = moved_nodes[boundary_faces[mask]]
-
         node_faces_count = 0
         for j in range(len(boundary_faces)):
             if np.any(boundary_faces[j] == i):
@@ -287,6 +285,8 @@ class SettingMesh:
         scale_y=None,
         is_adaptive=False,
         create_in_subprocess=False,
+        is_dirichlet=(lambda _: False),
+        is_contact=(lambda _: True),
     ):
         self.mesh_density_x = mesh_density_x
         self.mesh_density_y = mesh_density_y
@@ -295,6 +295,8 @@ class SettingMesh:
         self.scale_y = scale_y
         self.is_adaptive = is_adaptive
         self.create_in_subprocess = create_in_subprocess
+        self.is_dirichlet = is_dirichlet
+        self.is_contact = is_contact
 
         self.set_mesh()
 
@@ -302,7 +304,7 @@ class SettingMesh:
         self.set_mesh()
 
     def set_mesh(self):
-        unordered_nodes, unordered_elements = mesh_builders.build_mesh(
+        input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_type=self.mesh_type,
             mesh_density_x=self.mesh_density_x,
             mesh_density_y=self.mesh_density_y,
@@ -311,17 +313,15 @@ class SettingMesh:
             is_adaptive=self.is_adaptive,
             create_in_subprocess=self.create_in_subprocess,
         )
-        (self.initial_nodes, self.cells, self.boundary_nodes_count) = clean_mesh(
-            unordered_nodes, unordered_elements
-        )
+        unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(input_nodes, input_elements)
 
-        self.reorganize_boundaries()
+        self.reorganize_boundaries(unordered_nodes, unordered_elements)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
         )
 
-        self.edges_matrix = get_edges_matrix(self.nodes_count, self.cells)
+        self.edges_matrix = get_edges_matrix(self.nodes_count, self.elements)
         self.edges = get_edges_list_numba(self.edges_matrix)
 
         self.u_old = np.zeros_like(self.initial_nodes)
@@ -330,20 +330,24 @@ class SettingMesh:
 
         self.clear()
 
-    def reorganize_boundaries(self):
-        self.boundaries = None
-        self.independent_nodes_count = self.nodes_count
-
+    def reorganize_boundaries(self, unordered_nodes, unordered_elements):
+        (self.initial_nodes, self.elements, self.boundary_nodes_count) = reorder_boundary_nodes(
+            unordered_nodes, unordered_elements, self.is_contact
+        )
         (
             self.boundary_faces,
             self.boundary_nodes_indices,
             self.boundary_internal_indices,
-        ) = get_boundary_faces(self.initial_nodes, self.cells)
+        ) = get_boundary_faces(self.initial_nodes, self.elements, self.is_contact)
 
         if not np.array_equal(
             self.boundary_nodes_indices, range(self.boundary_nodes_count)
         ):
             raise ArgumentError("Bad boundary ordering")
+
+        self.boundaries = None
+        self.independent_nodes_count = self.nodes_count
+
 
     def set_a_old(self, a):
         self.a_old = a
@@ -406,7 +410,9 @@ class SettingMesh:
 
     @property
     def normalized_v_old(self):
-        return self.normalize_rotate(self.v_old) ########### TODO: problem with boundary friction low using - np.mean(self.v_old, axis=0))
+        return self.normalize_rotate(
+            self.v_old
+        )  ########### TODO: problem with boundary friction low using "- np.mean(self.v_old, axis=0))""
 
     @property
     def normalized_u_old(self):
@@ -445,8 +451,8 @@ class SettingMesh:
         return self.normalized_points[self.edges]
 
     @property
-    def cells_normalized_points(self):
-        return self.normalized_points[self.cells]
+    def elements_normalized_points(self):
+        return self.normalized_points[self.elements]
 
     @property
     def nodes_count(self):

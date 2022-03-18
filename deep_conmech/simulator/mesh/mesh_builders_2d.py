@@ -5,19 +5,17 @@ from ctypes import ArgumentError
 import meshzoo
 import numpy as np
 import pygmsh
-from deep_conmech.graph.data.interpolation_helpers import interpolate_point_numba
 from conmech.helpers import nph
-from deep_conmech.simulator.mesh import mesh_builders_legacy
 from deep_conmech.simulator.mesh.mesh_builders_helpers import *
 
 
 def get_meshzoo_rectangle(mesh_density, scale_x, scale_y):
-    points, cells = meshzoo.rectangle_tri(
+    points, elements = meshzoo.rectangle_tri(
         np.linspace(0.0, scale_x, int(mesh_density) + 1),
         np.linspace(0.0, scale_y, int(mesh_density) + 1),
         variant="zigzag",
     )
-    return points, cells
+    return points, elements
 
 
 def get_dmsh_rectangle(mesh_density, corners):
@@ -29,9 +27,9 @@ def get_dmsh_rectangle(mesh_density, corners):
     def edge_size(x):
         return mesh_density  # + 0.1 * path.dist(x)
 
-    points_initial, cells_initial = dmsh.generate(geo, edge_size, tol=1.0e-10)
-    return optimesh.optimize_points_cells(
-        points_initial, cells_initial, "CVT (full)", 1.0e-10, 100
+    points_initial, elements_initial = dmsh.generate(geo, edge_size, tol=1.0e-10)
+    return optimesh.optimize_points_elements(
+        points_initial, elements_initial, "CVT (full)", 1.0e-10, 100
     )
 
 
@@ -81,7 +79,7 @@ def get_pygmsh_elements_and_nodes(
         nodes, elements = get_nodes_and_elements(geom, 2)
         # boundary_faces = geom_mesh.cells[0].data.astype("long").copy()
 
-    #present_nodes = [i in elements for i in range(len(nodes))]
+    # present_nodes = [i in elements for i in range(len(nodes))]
 
     return nodes, elements  # , boundary_faces  # not in with
     # mesh.write("out.vtk")
