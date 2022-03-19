@@ -45,15 +45,6 @@ def main():
             time_data=TimeData(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]])
-        ),
-        Scenario(
-            "circle_rotate",
-            MeshData(dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[5]),
-            body_coeff=scenarios.body_coeff,
-            obstacle_coeff=scenarios.obstacle_coeff,
-            time_data=TimeData(final_time=4.0),
-            forces_function=f_rotate,
-            obstacles=scenarios.o_side
         )
     ]
     # change name boundary to contact
