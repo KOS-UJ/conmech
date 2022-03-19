@@ -42,8 +42,8 @@ class Boundaries:
 
 
 def get_boundaries(
-        is_contact: Callable[np.ndarray, bool],
-        is_dirichlet: Callable[np.ndarray, bool],
+        is_contact: Callable[[np.ndarray], bool],
+        is_dirichlet: Callable[[np.ndarray], bool],
         boundaries: List[np.ndarray],
         vertices: np.ndarray
 ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:

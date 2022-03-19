@@ -69,25 +69,29 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve_normalized_optimization(setting, initial_boundary_vector=None):
-        if initial_boundary_vector is None:
+    def solve_normalized_optimization(setting, initial_boundary=None):
+        if initial_boundary is None:
             initial_boundary_vector = np.zeros(
                 setting.boundary_nodes_count * setting.dim
             )
-        
+        else:
+            initial_boundary_vector = nph.stack_column(
+                initial_boundary[setting.boundary_nodes_indices]
+            )
+
         tstart = time.time()
         cost_function = setting.get_normalized_L2_obstacle_np()
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_boundary_vector
         )
         t_np = time.time() - tstart
-        '''
+        """
         tstart = time.time()
         normalized_boundary_a_vector_nvt = Calculator.minimize(
             setting.normalized_L2_obstacle_nvt, initial_boundary_vector
         ) 
         t_nvt = time.time() - tstart
-        '''
+        """
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(

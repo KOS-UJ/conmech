@@ -40,13 +40,7 @@ class ErrorResult:
 
 
 class GraphModelDynamic:
-    def __init__(
-        self,
-        train_dataset,
-        all_val_datasets,
-        print_scenarios,
-        net
-    ):
+    def __init__(self, train_dataset, all_val_datasets, print_scenarios, net):
         self.train_dataset = train_dataset
         self.all_val_datasets = all_val_datasets
         self.print_scenarios = print_scenarios
@@ -91,9 +85,6 @@ class GraphModelDynamic:
         return value_split
 
     ################
-
-
-
 
     ################
 
@@ -232,11 +223,11 @@ class GraphModelDynamic:
 
             predicted_normalized_a = predicted_normalized_a_split[i]
             # + setting.predicted_normalized_a_mean_cuda
-            # predicted_normalized_L2 = setting_input.L2_normalized_correction_cuda(
+            # predicted_normalized_L2 = setting_input.L2_normalized_correction(
             #    predicted_normalized_a, C, normalized_E, normalized_a_correction
             # )
 
-            predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction_cuda(
+            predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                 predicted_normalized_a,
                 normalized_a_correction,
                 C,
@@ -247,6 +238,7 @@ class GraphModelDynamic:
                 normalized_boundary_obstacle_nodes_split[i],
                 normalized_boundary_obstacle_normals_split[i],
                 boundary_nodes_volume_split[i],
+                # scenarios.obstacle_coefficients
             )
 
             ######################
@@ -260,7 +252,7 @@ class GraphModelDynamic:
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
                 if exact_normalized_a is not None:
-                    exact_normalized_L2 = setting_input.L2_normalized_correction_cuda(
+                    exact_normalized_L2 = setting_input.L2_normalized_correction(
                         exact_normalized_a, C, normalized_E, normalized_a_correction
                     )
                     loss_array[1] += float(
@@ -268,7 +260,7 @@ class GraphModelDynamic:
                         / torch.abs(exact_normalized_L2)
                     )
 
-                    # no_acc_normalized_L2 = setting_input.L2_normalized_correction_cuda(
+                    # no_acc_normalized_L2 = setting_input.L2_normalized_correction(
                     #    torch.zeros_like(predicted_normalized_a), C, normalized_E, normalized_a_correction
                     # )
                     # loss_array[2] += float(

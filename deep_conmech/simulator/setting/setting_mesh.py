@@ -61,7 +61,10 @@ def remove_unconnected_nodes_numba(nodes, elements):
 
 @njit
 def move_boundary_nodes_to_start_numba(
-    unordered_points, unordered_elements, unordered_boundary_indices
+    unordered_points,
+    unordered_elements,
+    unordered_boundary_indices,
+    unordered_contact_indices,
 ):
     nodes_count = len(unordered_points)
     boundary_nodes_count = len(unordered_boundary_indices)
@@ -135,19 +138,22 @@ def get_boundary_faces(nodes, elements, is_contact):
     boundary_faces, boundary_internal_indices = extract_unique_elements(
         faces, opposing_indices
     )
-    #get_contact_mask_numba = make_get_contact_mask_numba(njit(is_contact))
-    #mask = get_contact_mask_numba(nodes, boundary_faces)
+    boundary_indices = np.unique(boundary_faces.flatten(), axis=0)
 
-    contact_faces = boundary_faces#[mask]
-    contact_internal_indices = boundary_internal_indices#[mask]
-    contact_nodes_indices = np.unique(contact_faces.flatten(), axis=0)
-    return contact_faces, contact_nodes_indices, contact_internal_indices
+    get_contact_mask_numba = make_get_contact_mask_numba(njit(is_contact))
+    mask = get_contact_mask_numba(nodes, boundary_faces)
+    contact_faces = boundary_faces[mask]
+    contact_indices = np.unique(contact_faces.flatten(), axis=0)
+
+    return boundary_faces, boundary_indices, contact_indices, boundary_internal_indices
 
 
 def reorder_boundary_nodes(nodes, elements, is_contact):
-    _, boundary_indices, _ = get_boundary_faces(nodes, elements, is_contact)
+    _, boundary_indices, contact_indices, _ = get_boundary_faces(
+        nodes, elements, is_contact
+    )
     nodes, elements, boundary_nodes_count = move_boundary_nodes_to_start_numba(
-        nodes, elements, boundary_indices
+        nodes, elements, boundary_indices, contact_indices
     )
     return nodes, elements, boundary_nodes_count
 
@@ -278,25 +284,15 @@ def get_boundary_nodes_data_numba(
 class SettingMesh:
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
-        create_in_subprocess=False,
+        mesh_data,
         is_dirichlet=(lambda _: False),
         is_contact=(lambda _: True),
+        create_in_subprocess=False,
     ):
-        self.mesh_density_x = mesh_density_x
-        self.mesh_density_y = mesh_density_y
-        self.mesh_type = mesh_type
-        self.scale_x = scale_x
-        self.scale_y = scale_y
-        self.is_adaptive = is_adaptive
-        self.create_in_subprocess = create_in_subprocess
+        self.mesh_data = mesh_data
         self.is_dirichlet = is_dirichlet
         self.is_contact = is_contact
+        self.create_in_subprocess = create_in_subprocess
 
         self.set_mesh()
 
@@ -305,15 +301,11 @@ class SettingMesh:
 
     def set_mesh(self):
         input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_type=self.mesh_type,
-            mesh_density_x=self.mesh_density_x,
-            mesh_density_y=self.mesh_density_y,
-            scale_x=self.scale_x,
-            scale_y=self.scale_y,
-            is_adaptive=self.is_adaptive,
-            create_in_subprocess=self.create_in_subprocess,
+            mesh_data=self.mesh_data, create_in_subprocess=self.create_in_subprocess,
         )
-        unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(input_nodes, input_elements)
+        unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
+            input_nodes, input_elements
+        )
 
         self.reorganize_boundaries(unordered_nodes, unordered_elements)
 
@@ -331,12 +323,15 @@ class SettingMesh:
         self.clear()
 
     def reorganize_boundaries(self, unordered_nodes, unordered_elements):
-        (self.initial_nodes, self.elements, self.boundary_nodes_count) = reorder_boundary_nodes(
-            unordered_nodes, unordered_elements, self.is_contact
-        )
+        (
+            self.initial_nodes,
+            self.elements,
+            self.boundary_nodes_count,
+        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, self.is_contact)
         (
             self.boundary_faces,
             self.boundary_nodes_indices,
+            self.contact_nodes_indices,
             self.boundary_internal_indices,
         ) = get_boundary_faces(self.initial_nodes, self.elements, self.is_contact)
 
@@ -347,7 +342,6 @@ class SettingMesh:
 
         self.boundaries = None
         self.independent_nodes_count = self.nodes_count
-
 
     def set_a_old(self, a):
         self.a_old = a

@@ -79,29 +79,16 @@ def L2_obstacle_nvt(
 
 class SettingInput(SettingRandomized):
     def __init__(
-        self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        self, mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
         )
 
     @staticmethod
     def edges_data_dim():
         return 12
-        
+
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
@@ -111,7 +98,6 @@ class SettingInput(SettingRandomized):
             desc.append(f"{attr}_norm")
 
         return desc
-
 
     def get_edges_data_torch(self, edges):
         edges_data = get_edges_data(
@@ -125,7 +111,6 @@ class SettingInput(SettingRandomized):
             self.boundary_obstacle_penetration,
         )
         return thh.to_torch_double(edges_data)
-
 
     @staticmethod
     def nodes_data_dim():
@@ -143,7 +128,6 @@ class SettingInput(SettingRandomized):
             desc.append(attr)
         return desc
 
-
     def get_nodes_data(self):
         boundary_penetration = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_obstacle_penetration_vectors_torch
@@ -151,7 +135,9 @@ class SettingInput(SettingRandomized):
         boundary_normals = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_normals_torch
         )
-        boundary_volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
+        boundary_volume = self.complete_boundary_data_with_zeros(
+            self.boundary_nodes_volume_torch
+        )
 
         nodes_data = torch.hstack(
             (
@@ -160,13 +146,10 @@ class SettingInput(SettingRandomized):
                 # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
-                boundary_volume
+                boundary_volume,
             )
         )
         return nodes_data
-
-
-
 
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(

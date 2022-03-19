@@ -1,40 +1,27 @@
 import copy
 
 import deep_conmech.simulator.mesh.remesher as remesher
-from deep_conmech.common import *
-from deep_conmech.graph.setting.setting_torch import *
 from deep_conmech.simulator.setting.setting_forces import *
 from conmech.helpers import nph
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.common import config
 
 
 # MIN AT
 # a = a_cleaned - ((v_old - randomized_v_old) / config.TIMESTEP
-def L2_normalized_correction_cuda(
-    cleaned_normalized_a_cuda, C_cuda, normalized_E_cuda, normalized_a_correction_cuda
+def L2_normalized_correction(
+    cleaned_normalized_a, C, normalized_E, normalized_a_correction
 ):
-    normalized_a_cuda = cleaned_normalized_a_cuda - normalized_a_correction_cuda
-    return L2_new(normalized_a_cuda, C_cuda, normalized_E_cuda)
+    normalized_a = cleaned_normalized_a - normalized_a_correction
+    return L2_new(normalized_a, C, normalized_E)
 
 
-class SettingRandomized(SettingTorch):
+class SettingRandomized(SettingObstacles):
     def __init__(
-        self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        self, mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
         )
         self.set_randomization(False)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
@@ -84,32 +71,12 @@ class SettingRandomized(SettingTorch):
         return self.normalized_u_old + self.normalized_u_old_randomization
 
     @property
-    def input_u_old_torch(self):
-        return thh.to_torch_double(self.input_u_old)
-
-    @property
-    def input_v_old_torch(self):
-        return thh.to_torch_double(self.input_v_old)
-
-    @property
     def normalized_forces_mean(self):
         return np.mean(self.normalized_forces, axis=0)
 
     @property
-    def normalized_forces_mean_torch(self):
-        return thh.to_torch_double(self.normalized_forces_mean)
-
-    @property
-    def predicted_normalized_a_mean_cuda(self):
-        return self.normalized_forces_mean_torch.to(thh.device) * config.DENS
-
-    @property
     def input_forces(self):
         return self.normalized_forces  # - self.normalized_forces_mean
-
-    @property
-    def input_forces_torch(self):
-        return thh.to_torch_double(self.input_forces)
 
     @property
     def a_correction(self):
@@ -124,10 +91,6 @@ class SettingRandomized(SettingTorch):
     @property
     def normalized_a_correction(self):
         return self.normalize_rotate(self.a_correction)
-
-    @property
-    def normalized_a_correction_torch(self):
-        return thh.to_torch_double(self.normalized_a_correction)
 
     def make_dirty(self):
         self.v_old = self.randomized_v_old

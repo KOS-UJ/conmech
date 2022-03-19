@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from conmech.dataclass.mesh_data import MeshData
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.mesh import mesh_builders
 
@@ -10,8 +11,8 @@ def test_matrices_2d_integrals():
     scale_y = 3
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_type="meshzoo_rectangle", mesh_density_x=3, scale_x=scale_x, scale_y=scale_y
-    )      
+        mesh_data=MeshData(mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y])
+    )
     edges_features_matrix, element_initial_volume = matrices_2d.get_edges_features_matrix_numba(
         elements, initial_nodes
     )
@@ -37,7 +38,7 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_type="meshzoo_cube_3d", mesh_density_x=3
+        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1])
     )      
     edges_features_matrix, element_initial_volume = matrices_3d.get_edges_features_matrix_numba(
         elements, initial_nodes

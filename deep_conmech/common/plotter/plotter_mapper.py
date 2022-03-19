@@ -50,7 +50,7 @@ def print_one_dynamic(
     )
 
     Plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} scale_{scenario.scale} ANIMATION.gif",
+        f"output/{catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
         all_images_paths,
     )
 

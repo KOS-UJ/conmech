@@ -15,7 +15,7 @@ def L2_new(a, C, E):
 
 @njit
 def get_forces_by_function_numba(
-    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, current_time
+    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, scale_z, current_time
 ):
     forces = np.zeros_like(initial_nodes, dtype=numba.double)
     for i in range(len(initial_nodes)):
@@ -28,21 +28,13 @@ def get_forces_by_function_numba(
 class SettingForces(SettingMatrices):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
+        mesh_data,
+        coefficients,
         create_in_subprocess=False,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
+            mesh_data,
+            coefficients,
             create_in_subprocess,
         )
         self.forces = None
@@ -52,8 +44,9 @@ class SettingForces(SettingMatrices):
             numba.njit(forces_function),
             self.initial_nodes,
             self.moved_nodes,
-            self.scale_x,
-            self.scale_y,
+            self.mesh_data.scale_x,
+            self.mesh_data.scale_y,
+            self.mesh_data.scale_z,
             current_time,
         )
 

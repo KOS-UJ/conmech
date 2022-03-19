@@ -1,34 +1,49 @@
 import torch
 from deep_conmech.graph.helpers import thh
-from deep_conmech.simulator.setting.setting_obstacles import *
+from deep_conmech.graph.setting import SettingRandomized
 
 
-class SettingTorch(SettingObstacles):
+class SettingTorch(SettingRandomized):
     def __init__(
-        self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        self, mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
         )
         self.exact_normalized_a_torch = None  # todo: clear on change
 
     def complete_boundary_data_with_zeros(self, data):
-        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data = torch.zeros(
+            (self.nodes_count, data.shape[1]), dtype=data.dtype
+        )
         completed_data[self.boundary_nodes_indices] = data
         return completed_data
+
+    @property
+    def input_u_old_torch(self):
+        return thh.to_torch_double(self.input_u_old)
+
+    @property
+    def input_v_old_torch(self):
+        return thh.to_torch_double(self.input_v_old)
+
+    @property
+    def normalized_forces_mean_torch(self):
+        return thh.to_torch_double(self.normalized_forces_mean)
+
+    @property
+    def predicted_normalized_a_mean_cuda(self):
+        return (
+            self.normalized_forces_mean_torch.to(thh.device) * self.coefficients.density
+        )
+
+    @property
+    def input_forces_torch(self):
+        return thh.to_torch_double(self.input_forces)
+
+    @property
+    def normalized_a_correction_torch(self):
+        return thh.to_torch_double(self.normalized_a_correction)
 
     @property
     def AREA_torch(self):

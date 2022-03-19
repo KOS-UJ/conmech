@@ -175,16 +175,16 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def get_matrices(edges_features_matrix, MU, LA, TH, ZE, density, time_step, slice_ind):
+def get_matrices(edges_features_matrix, coefficients, time_step, slice_ind):
     VOL = edges_features_matrix[0]
     U = edges_features_matrix[1][slice_ind, slice_ind]
 
     ALL_V = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(2, 5)]
     ALL_W = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(5, 14)]
 
-    A = calculate_constitutive_matrices(*ALL_W, TH, ZE)
-    B = calculate_constitutive_matrices(*ALL_W, MU, LA)
-    ACC = create_acceleration(U, density)
+    A = calculate_constitutive_matrices(*ALL_W, coefficients.theta, coefficients.zeta)
+    B = calculate_constitutive_matrices(*ALL_W, coefficients.mu, coefficients.lambda_)
+    ACC = create_acceleration(U, coefficients.density)
 
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step

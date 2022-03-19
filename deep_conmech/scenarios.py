@@ -1,9 +1,15 @@
-import numba
 import numpy as np
-from conmech.helpers import nph
+from conmech.dataclass.body_coefficients import BodyCoefficients
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.obstacle_coefficients import ObstacleCoefficients
 
 from deep_conmech.common import config
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+
+####################################
+
+coefficients = BodyCoefficients(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0)
+obstacle_coefficients = ObstacleCoefficients(hardness=100.0, friction=10.0)
 
 ####################################
 
@@ -85,7 +91,6 @@ def f_obstacle(ip, mp, t, scale_x, scale_y):
     return force
 
 
-
 def f_stay(ip, mp, t, scale_x, scale_y):
     return np.array([0.0, 0.0])
 
@@ -129,42 +134,36 @@ class Scenario:
     def __init__(
         self,
         id,
-        dim,
-        mesh_type,
-        mesh_density,
-        scale,
+        mesh_data,
+        coefficients,
+        obstacle_coefficients,
         forces_function,
         obstacles,
-        is_adaptive,
         episode_steps,
         duration=None,
         is_randomized=None,
     ):
         self.id = id
-        self.dim = dim
-        self.mesh_type = mesh_type
-        self.mesh_density = mesh_density
-        self.scale = scale
+        self.mesh_data = mesh_data
+        self.coefficients = coefficients
+        self.obstacle_coefficients = obstacle_coefficients
+        self.obstacles = obstacles
+        self.episode_steps = episode_steps
+        self.duration = duration
+        self.is_randomized = is_randomized
         if isinstance(forces_function, np.ndarray):
             self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
         else:
             self.forces_function = forces_function
-        self.obstacles = obstacles
-        self.is_adaptive = is_adaptive
-        self.episode_steps = episode_steps
-        self.duration = duration
-        self.is_randomized = is_randomized
 
-    def get_setting(self):
-        setting = SettingInput(
-            mesh_type=self.mesh_type,
-            mesh_density_x=self.mesh_density,
-            mesh_density_y=self.mesh_density,
-            scale_x=self.scale,
-            scale_y=self.scale,
-            is_adaptive=self.is_adaptive,
-            create_in_subprocess=False,  ###################################
+    def get_setting(self, randomize, create_in_subprocess=False):
+        setting = SettingRandomized(
+            mesh_data=self.mesh_data,
+            coefficients=self.coefficients,
+            obstacle_coefficients=self.obstacle_coefficients,
+            create_in_subprocess=create_in_subprocess,
         )
+        setting.set_randomization(randomize)
         setting.set_obstacles(self.obstacles)
         return setting
 
@@ -172,126 +171,162 @@ class Scenario:
 def circle_slope(scale, is_adaptive):
     return Scenario(
         "circle_slope",
-        2,
-        m_circle,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_circle,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_accelerate_slow_right,
         o_slope * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def spline_right(scale, is_adaptive):
     return Scenario(
         "spline_right",
-        2,
-        m_spline,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_spline,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_accelerate_slow_right,
         o_front * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def circle_left(scale, is_adaptive):
     return Scenario(
         "circle_left",
-        2,
-        m_circle,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_circle,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_accelerate_slow_left,
         o_back * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def polygon_left(scale, is_adaptive):
     return Scenario(
         "polygon_left",
-        2,
-        m_polygon,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_polygon,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_accelerate_slow_left,
         o_back * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def polygon_slope(scale, is_adaptive):
     return Scenario(
         "polygon_slope",
-        2,
-        m_polygon,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_polygon,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_slide,
         o_slope * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def circle_rotate(scale, is_adaptive):
     return Scenario(
         "circle_rotate",
-        2,
-        m_circle,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_circle,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_rotate,
         o_side * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def polygon_rotate(scale, is_adaptive):
     return Scenario(
         "polygon_rotate",
-        2,
-        m_polygon,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_polygon,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_rotate,
         o_side * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def polygon_stay(scale, is_adaptive):
     return Scenario(
         "polygon_stay",
-        2,
-        m_polygon,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_polygon,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_stay,
         o_side * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 
 def polygon_two(scale, is_adaptive):
     return Scenario(
         "polygon_two",
-        2,
-        m_polygon,
-        config.MESH_DENSITY,
-        scale,
+        MeshData(
+            dimension=2,
+            mesh_type=m_polygon,
+            scale=[scale],
+            mesh_density=[config.MESH_DENSITY],
+            is_adaptive=is_adaptive,
+        ),
+        coefficients,
+        obstacle_coefficients,
         f_slide,
         o_two * scale,
-        is_adaptive,
-        episode_steps=config.EPISODE_STEPS
+        episode_steps=config.EPISODE_STEPS,
     )
 
 

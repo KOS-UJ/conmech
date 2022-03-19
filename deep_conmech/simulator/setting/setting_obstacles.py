@@ -1,4 +1,5 @@
 import numpy as np
+from conmech.dataclass.obstacle_coefficients import ObstacleCoefficients
 from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
@@ -18,10 +19,10 @@ def get_tangential(vector, normal):
     return tangential_vector
 
 @njit
-def get_normal_tangential_numba(vector, normal):
+def get_tangential_numba(vector, normal):
     normal_vector = vector @ normal
     tangential_vector = vector - (normal_vector * normal)
-    return normal_vector, tangential_vector
+    return tangential_vector
 
 
 ####
@@ -34,10 +35,10 @@ def get_node_penetration_numba(nodes, obstacle_nodes, obstacle_nodes_normals):
 
 ####
 
-def obstacle_resistance_potential_normal(penetration):
+def obstacle_resistance_potential_normal(penetration, hardness):
     return (
         (penetration > 0)
-        * config.OBSTACLE_HARDNESS
+        * hardness
         * 0.5
         * (penetration ** 2)
         * ((1.0 / config.TIMESTEP) ** 2)
@@ -52,22 +53,24 @@ obstacle_resistance_potential_normal_numba = numba.njit(
 def obstacle_resistance_potential_tangential_internal(
     penetration,
     tangential_velocity,
+    friction,
     norm=nph.euclidean_norm_numba,
 ):
     return (
         (penetration > 0)
-        * config.OBSTACLE_FRICTION
+        * friction
         * norm(tangential_velocity)
         * (1.0 / config.TIMESTEP)
     )
 
 
 def obstacle_resistance_potential_tangential(
-    penetration, tangential_velocity
+    penetration, tangential_velocity, friction
 ):
     return obstacle_resistance_potential_tangential_internal(
         penetration,
         tangential_velocity,
+        friction,
         norm=nph.euclidean_norm
     )
 
@@ -84,6 +87,8 @@ def integrate(
     obstacle_nodes_normals,
     v,
     nodes_volume,
+    hardness,
+    friction
 ):
     penetration = get_node_penetration(
         nodes, obstacle_nodes, obstacle_nodes_normals
@@ -92,12 +97,12 @@ def integrate(
     v_tangential = get_tangential(v, nodes_normals)
 
     resistance_normal = obstacle_resistance_potential_normal(
-        penetration
+        penetration, hardness
     )
     resistance_tangential = obstacle_resistance_potential_tangential(
-        penetration, v_tangential
+        penetration, v_tangential, friction
     )
-    result = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
+    result = (nodes_volume.flatten() * (resistance_normal + resistance_tangential)).sum()
     return result
 
 
@@ -109,6 +114,8 @@ def integrate_numba(
     obstacle_nodes_normals,
     v,
     nodes_volume,
+    hardness,
+    friction
 ):
     result = 0.0
     for i in range(len(nodes)):
@@ -116,13 +123,13 @@ def integrate_numba(
             nodes[i], obstacle_nodes[i], obstacle_nodes_normals[i]
         )
 
-        v_tangential = get_tangential(v[i], nodes_normals[i])
+        v_tangential = get_tangential_numba(v[i], nodes_normals[i])
 
         resistance_normal = obstacle_resistance_potential_normal_numba(
-            penetration
+            penetration, hardness
         )
         resistance_tangential = obstacle_resistance_potential_tangential_numba(
-            penetration, v_tangential
+            penetration, v_tangential, friction
         )
 
         result += nodes_volume[i].item() * (resistance_normal + resistance_tangential)
@@ -138,6 +145,7 @@ def L2_obstacle(
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
     boundary_nodes_volume,
+    obstacle_coefficients : ObstacleCoefficients
 ):
     value = L2_new(a, C, E)
 
@@ -154,6 +162,8 @@ def L2_obstacle(
         boundary_obstacle_normals,
         boundary_v_new,
         boundary_nodes_volume,
+        obstacle_coefficients.hardness,
+        obstacle_coefficients.friction
     )
 
     is_numpy = isinstance(a, np.ndarray)
@@ -174,23 +184,17 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 class SettingObstacles(SettingForces):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
+        mesh_data,
+        coefficients,
+        obstacle_coefficients : ObstacleCoefficients,
         create_in_subprocess=False,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
+            mesh_data,
+            coefficients,
             create_in_subprocess,
         )
+        self.obstacle_coefficients = obstacle_coefficients
         self.obstacles = None
         self.clear()
 
@@ -233,13 +237,13 @@ class SettingObstacles(SettingForces):
     @property
     def resistance_normal(self):
         return obstacle_resistance_potential_normal(
-            self.boundary_penetration
+            self.boundary_penetration, self.obstacle_coefficients.hardness
         ).reshape(-1, 1)
 
     @property
     def resistance_tangential(self):
         return obstacle_resistance_potential_tangential(
-            self.boundary_penetration, self.boundary_v_tangential
+            self.boundary_penetration, self.boundary_v_tangential, self.obstacle_coefficients.friction
         ).reshape(-1, 1)
 
 
@@ -313,6 +317,7 @@ class SettingObstacles(SettingForces):
             self.normalized_boundary_obstacle_nodes,
             self.normalized_boundary_obstacle_normals,
             self.boundary_nodes_volume,
+            self.obstacle_coefficients
         )
 
     @property

@@ -17,16 +17,16 @@ def random_corner_mesh_size(mesh_density):
 
 
 # CORNERS left, bottom, right, top
-def set_mesh_size(geom, mesh_density, scale_x, scale_y, is_adaptive):
-    if is_adaptive:
-        corner_mesh_size = random_corner_mesh_size(mesh_density)
+def set_mesh_size(geom, mesh_data):
+    if mesh_data.is_adaptive:
+        corner_mesh_size = random_corner_mesh_size(mesh_data.mesh_density_x)
         geom.set_mesh_size_callback(
             lambda dim, tag, x, y, z: interpolate_point_numba(
-                np.array([x, y]), corner_mesh_size, scale_x, scale_y
+                np.array([x, y]), corner_mesh_size, mesh_data.scale_x, mesh_data.scale_y
             )
         )
     else:
-        geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
+        geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_data.mesh_density_x)
 
 
 def normalize_nodes(nodes):

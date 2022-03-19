@@ -2,6 +2,7 @@ import deep_conmech.common.config as config
 import numpy as np
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from conmech.dataclass.body_coefficients import BodyCoefficients
 from numba import njit
 
 
@@ -21,39 +22,21 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class SettingMatrices(SettingMesh):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
-        create_in_subprocess=False,
-        mu_coef=config.MU,
-        la_coef=config.LA,
-        th_coef=config.TH,
-        ze_coef=config.ZE,
-        density=config.DENS,
+        mesh_data,
+        coefficients: BodyCoefficients,
         time_step=config.TIMESTEP,
         is_dirichlet=(lambda _: False),
         is_contact=(lambda _: True),
         with_schur_complement_matrices=True,
+        create_in_subprocess=False,
     ):
         super().__init__(
-            mesh_type=mesh_type,
-            mesh_density_x=mesh_density_x,
-            mesh_density_y=mesh_density_y,
-            scale_x=scale_x,
-            scale_y=scale_y,
-            is_adaptive=is_adaptive,
-            create_in_subprocess=create_in_subprocess,
+            mesh_data=mesh_data,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
+            create_in_subprocess=create_in_subprocess
         )
-        self.mu = mu_coef
-        self.la = la_coef
-        self.th = th_coef
-        self.ze = ze_coef
-        self.density = density
+        self.coefficients = coefficients
         self.time_step = time_step
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
@@ -98,11 +81,7 @@ class SettingMatrices(SettingMesh):
             self.C2Y,
         ) = get_matrices(
             edges_features_matrix,
-            self.mu,
-            self.la,
-            self.th,
-            self.ze,
-            self.density,
+            self.coefficients,
             self.time_step,
             slice_ind,
         )

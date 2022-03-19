@@ -39,7 +39,7 @@ class Plotter:
 
     def draw_setting_ax(self, setting, ax, base_setting, time, draw_detailed=True):
         ax.set_aspect("equal", "box")
-        scale = setting.scale_x
+        scale = setting.mesh_data.scale_x
 
         x_max = 20.0 * scale
         y_max = 4.0 * scale
@@ -220,7 +220,7 @@ class Plotter:
             )
 
     def draw_displaced(self, setting, position, color, ax):
-        self.draw_rectangle(ax, position, setting.scale_x, setting.scale_y)
+        self.draw_rectangle(ax, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
         self.draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", ax)
         # self.draw_data("P", obstacle_forces, setting, [7.5, -1.5], ax)
 

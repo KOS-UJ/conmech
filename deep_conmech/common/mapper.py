@@ -1,39 +1,9 @@
 import time
 
 from deep_conmech.common import config
-from deep_conmech.graph.setting.setting_input import *
 from deep_conmech.simulator.calculator import Calculator
-from conmech.helpers import cmh
-import deep_conmech.common.config as config
-
-
-def get_setting(scenario, simulate_dirty_data):
-    setting = SettingInput(
-        mesh_type=scenario.mesh_type,
-        mesh_density_x=scenario.mesh_density,
-        mesh_density_y=scenario.mesh_density,
-        scale_x=scenario.scale,
-        scale_y=scenario.scale,
-        is_adaptive=scenario.is_adaptive,
-        create_in_subprocess=True,
-    )
-    setting.set_randomization(simulate_dirty_data)
-    setting.set_obstacles(scenario.obstacles)
-    return setting
-
-
-def get_base_setting(scenario):
-    setting = SettingInput(
-        mesh_type=scenario.mesh_type,
-        mesh_density_x=scenario.mesh_density,
-        mesh_density_y=scenario.mesh_density,
-        scale_x=scenario.scale,
-        scale_y=scenario.scale,
-        is_adaptive=scenario.is_adaptive,
-        create_in_subprocess=True,
-    )
-    setting.set_obstacles(scenario.obstacles)
-    return setting
+from conmech.helpers import cmh, nph
+from deep_conmech.common import config
 
 
 def map_time(
@@ -44,9 +14,9 @@ def map_time(
     simulate_dirty_data,
     description,
 ):
-    setting = get_setting(scenario, simulate_dirty_data)
+    setting = scenario.get_setting(randomize=simulate_dirty_data, create_in_subprocess=True)
     if compare_with_base_setting:
-        base_setting = get_base_setting(scenario)
+        base_setting = scenario.get_setting(randomize=False, create_in_subprocess=True)
     else:
         base_setting = None
         base_a = None
@@ -55,8 +25,8 @@ def map_time(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = cmh.get_tqdm(range(scenario.episode_steps), f"{description} - {scenario.id} scale_{scenario.scale}")
-    initial_vector = None
+    time_tqdm = cmh.get_tqdm(range(scenario.episode_steps), f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}")
+    a = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * config.TIMESTEP
 
@@ -65,8 +35,7 @@ def map_time(
         #max_data.set(setting, time_step)
 
         start_time = time.time()
-        a = solve_function(setting, initial_vector=initial_vector)
-        initial_vector = nph.stack_column(a[setting.boundary_nodes_indices])
+        a = solve_function(setting, initial_vector=a)
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
