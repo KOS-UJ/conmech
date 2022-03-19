@@ -12,7 +12,7 @@ SIMULATOR_SCALE = 1.0
 
 MESH_DENSITY = 16
 ADAPTIVE_TRAINING_MESH = False  #!# True
-CALCULATOR_MODE = "optimization"  # "function" # "optimization"
+CALCULATOR_MODE = "function"  # "function" # "optimization"
 SIMULATE_DIRTY_DATA = False
 
 ############

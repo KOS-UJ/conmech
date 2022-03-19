@@ -17,7 +17,7 @@ class Direct(Solver):
         grid,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -26,7 +26,7 @@ class Direct(Solver):
             grid,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
@@ -49,7 +49,7 @@ class Direct(Solver):
                 self.mesh.initial_nodes,
                 self.mesh.boundaries.contact,
                 self.B,
-                self.forces.F_vector
+                self.forces.F_vector,
             ),
         )
         return np.asarray(result)

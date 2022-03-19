@@ -3,9 +3,9 @@ from typing import Optional
 
 
 @dataclass
-class BodyCoefficients:
+class BodyCoeff:
     mu: float
     lambda_: float
     theta: Optional[float] = None
     zeta: Optional[float] = None
-    density: float = 1.
+    mass_density: float = 1.0

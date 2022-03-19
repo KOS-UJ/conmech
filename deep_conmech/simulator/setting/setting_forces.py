@@ -5,7 +5,6 @@ from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from numba import njit
 
 
-
 def L2_new(a, C, E):
     a_vector = nph.stack_column(a)
     first = 0.5 * (C @ a_vector) - E
@@ -27,15 +26,10 @@ def get_forces_by_function_numba(
 
 class SettingForces(SettingMatrices):
     def __init__(
-        self,
-        mesh_data,
-        coefficients,
-        create_in_subprocess=False,
+        self, mesh_data, body_coeff, create_in_subprocess=False,
     ):
         super().__init__(
-            mesh_data,
-            coefficients,
-            create_in_subprocess,
+            mesh_data, body_coeff, create_in_subprocess,
         )
         self.forces = None
 

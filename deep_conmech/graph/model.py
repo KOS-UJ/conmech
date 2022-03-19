@@ -238,7 +238,7 @@ class GraphModelDynamic:
                 normalized_boundary_obstacle_nodes_split[i],
                 normalized_boundary_obstacle_normals_split[i],
                 boundary_nodes_volume_split[i],
-                # scenarios.obstacle_coefficients
+                # scenarios.obstacle_coeff
             )
 
             ######################

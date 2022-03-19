@@ -11,8 +11,8 @@ from deep_conmech.simulator.mesh.mesh_builders_helpers import *
 
 def get_meshzoo_rectangle(mesh_data):
     points, elements = meshzoo.rectangle_tri(
-        np.linspace(0.0, mesh_data.scale_x, int(mesh_data.mesh_density) + 1),
-        np.linspace(0.0, mesh_data.scale_y, int(mesh_data.mesh_density) + 1),
+        np.linspace(0.0, mesh_data.scale_x, int(mesh_data.mesh_density_x) + 1),
+        np.linspace(0.0, mesh_data.scale_y, int(mesh_data.mesh_density_y) + 1),
         variant="zigzag",
     )
     return points, elements

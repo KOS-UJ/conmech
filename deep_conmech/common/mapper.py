@@ -25,7 +25,7 @@ def map_time(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = cmh.get_tqdm(range(scenario.episode_steps), f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}")
+    time_tqdm = cmh.get_tqdm(range(scenario.time_data.episode_steps), f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}")
     a = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * config.TIMESTEP

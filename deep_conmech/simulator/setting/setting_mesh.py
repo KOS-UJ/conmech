@@ -5,7 +5,6 @@ import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.helpers import nph
-from deep_conmech.simulator.matrices import matrices_2d
 from numba import njit
 
 # import os, sys

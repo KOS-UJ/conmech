@@ -6,6 +6,7 @@ ELEMENT_NODES_COUNT = 4
 CONNECTED_EDGES_COUNT = 3
 INT_PH = 1 / ELEMENT_NODES_COUNT
 
+
 @njit  # (parallel=True)
 def get_edges_features_matrix_numba(elements, nodes):
     # mean value of of phi over the element (in 2D: 1/3, in 3D: 1/4)
@@ -175,16 +176,16 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def get_matrices(edges_features_matrix, coefficients, time_step, slice_ind):
+def get_matrices(edges_features_matrix, body_coeff, time_step, slice_ind):
     VOL = edges_features_matrix[0]
     U = edges_features_matrix[1][slice_ind, slice_ind]
 
     ALL_V = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(2, 5)]
     ALL_W = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(5, 14)]
 
-    A = calculate_constitutive_matrices(*ALL_W, coefficients.theta, coefficients.zeta)
-    B = calculate_constitutive_matrices(*ALL_W, coefficients.mu, coefficients.lambda_)
-    ACC = create_acceleration(U, coefficients.density)
+    A = calculate_constitutive_matrices(*ALL_W, body_coeff.theta, body_coeff.zeta)
+    B = calculate_constitutive_matrices(*ALL_W, body_coeff.mu, body_coeff.lambda_)
+    ACC = create_acceleration(U, body_coeff.mass_density)
 
     A_plus_B_times_ts = A + B * time_step
     C = ACC + A_plus_B_times_ts * time_step
@@ -192,5 +193,5 @@ def get_matrices(edges_features_matrix, coefficients, time_step, slice_ind):
     K = None
     C2X = None
     C2Y = None
-    
+
     return C, B, VOL, A_plus_B_times_ts, A, ACC, K, C2X, C2Y

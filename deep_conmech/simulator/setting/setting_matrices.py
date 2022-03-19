@@ -2,7 +2,7 @@ import deep_conmech.common.config as config
 import numpy as np
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
-from conmech.dataclass.body_coefficients import BodyCoefficients
+from conmech.dataclass.body_coeff import BodyCoeff
 from numba import njit
 
 
@@ -23,7 +23,7 @@ class SettingMatrices(SettingMesh):
     def __init__(
         self,
         mesh_data,
-        coefficients: BodyCoefficients,
+        body_coeff: BodyCoeff,
         time_step=config.TIMESTEP,
         is_dirichlet=(lambda _: False),
         is_contact=(lambda _: True),
@@ -34,9 +34,9 @@ class SettingMatrices(SettingMesh):
             mesh_data=mesh_data,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
-            create_in_subprocess=create_in_subprocess
+            create_in_subprocess=create_in_subprocess,
         )
-        self.coefficients = coefficients
+        self.body_coeff = body_coeff
         self.time_step = time_step
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
@@ -80,10 +80,7 @@ class SettingMatrices(SettingMesh):
             self.C2X,
             self.C2Y,
         ) = get_matrices(
-            edges_features_matrix,
-            self.coefficients,
-            self.time_step,
-            slice_ind,
+            edges_features_matrix, self.body_coeff, self.time_step, slice_ind,
         )
 
         if self.with_schur_complement_matrices:

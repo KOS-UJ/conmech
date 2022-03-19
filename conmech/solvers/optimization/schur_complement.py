@@ -18,7 +18,7 @@ class SchurComplement(Optimization):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -27,7 +27,7 @@ class SchurComplement(Optimization):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
@@ -132,9 +132,7 @@ class SchurComplement(Optimization):
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         solution_contact = super().solve(
-            truncated_initial_guess,
-            fixed_point_abs_tol=fixed_point_abs_tol,
-            **kwargs
+            truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
@@ -196,7 +194,7 @@ class Quasistatic(SchurComplement):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -206,7 +204,7 @@ class Quasistatic(SchurComplement):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
@@ -230,7 +228,7 @@ class Dynamic(Quasistatic):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -242,15 +240,21 @@ class Dynamic(Quasistatic):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        T = (1 / self.time_step) \
-            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
-            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
+        T = (
+            (1 / self.time_step)
+            * self.ACC[
+                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+            ]
+            + self.K[
+                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+            ]
+        )
 
         # Tii
         T_free_x_free = T[self.free_ids, self.free_ids]
@@ -296,10 +300,20 @@ class Dynamic(Quasistatic):
         X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector, dim=2)
 
         C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-        C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
-        C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
+        C2XTemp = np.squeeze(
+            np.dot(
+                np.transpose(C2X),
+                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
+            )
+        )
+        C2YTemp = np.squeeze(
+            np.dot(
+                np.transpose(C2Y),
+                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
+            )
+        )
 
-        X += np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Check if not -1 * 
+        X += np.stack((C2XTemp, C2YTemp), axis=-1)  # TODO: Check if not -1 *
 
         return self.forces.F + X
 
@@ -313,21 +327,26 @@ class Dynamic(Quasistatic):
 
         C2Xv = np.squeeze(
             np.asarray(
-                C2X @ self.v_vector[0: self.mesh.independent_nodes_count].transpose(),
+                C2X @ self.v_vector[0 : self.mesh.independent_nodes_count].transpose(),
             )
         )
         C2Yv = np.squeeze(
             np.asarray(
-                C2Y @ self.v_vector[
-                    self.mesh.independent_nodes_count: 2 * self.mesh.independent_nodes_count
+                C2Y
+                @ self.v_vector[
+                    self.mesh.independent_nodes_count : 2
+                    * self.mesh.independent_nodes_count
                 ].transpose()
             )
         )
 
         Q1 = (1 / self.time_step) * np.squeeze(
             np.asarray(
-                self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
-                @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),
+                self.ACC[
+                    : self.mesh.independent_nodes_count,
+                    : self.mesh.independent_nodes_count,
+                ]
+                @ self.t_vector[: self.mesh.independent_nodes_count].transpose(),
             )
         )
 

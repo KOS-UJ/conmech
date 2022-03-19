@@ -1,15 +1,55 @@
 import numpy as np
-from conmech.dataclass.body_coefficients import BodyCoefficients
+from conmech.dataclass.body_coeff import BodyCoeff
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_coefficients import ObstacleCoefficients
+from conmech.dataclass.obstacle_coeff import ObstacleCoeff
+from conmech.dataclass.time_data import TimeData
 
 from deep_conmech.common import config
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
+
+class Scenario:
+    def __init__(
+        self,
+        id,
+        mesh_data: MeshData,
+        body_coeff: BodyCoeff,
+        obstacle_coeff: ObstacleCoeff,
+        time_data: TimeData,
+        forces_function,
+        obstacles,
+        is_randomized=None,
+    ):
+        self.id = id
+        self.mesh_data = mesh_data
+        self.body_coeff = body_coeff
+        self.obstacle_coeff = obstacle_coeff
+        self.time_data = time_data
+        self.obstacles = obstacles * mesh_data.scale_x
+        self.is_randomized = is_randomized
+        if isinstance(forces_function, np.ndarray):
+            self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
+        else:
+            self.forces_function = forces_function
+
+    def get_setting(self, randomize, create_in_subprocess=False):
+        setting = SettingRandomized(
+            mesh_data=self.mesh_data,
+            body_coeff=self.body_coeff,
+            obstacle_coeff=self.obstacle_coeff,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(self.obstacles)
+        return setting
+
+
 ####################################
 
-coefficients = BodyCoefficients(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0)
-obstacle_coefficients = ObstacleCoefficients(hardness=100.0, friction=10.0)
+body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0)
+obstacle_coeff = ObstacleCoeff(hardness=100.0, friction=10.0)
+
+time_data = TimeData(time_step=0.01, final_time=4.0)
 
 ####################################
 
@@ -97,8 +137,8 @@ def f_stay(ip, mp, t, scale_x, scale_y):
 
 # def get_f_rotate(t_cutoff = 0.1, force_cutoff=0.5):
 def f_rotate(ip, mp, t, scale_x, scale_y):
-    t_cutoff = 0.1
-    force_cutoff = 0.5
+    t_cutoff = 0.5
+    force_cutoff = 10.0
     if t <= t_cutoff:
         y_scaled = ip[1] / scale_y
         # y_scaled = 2*y_scaled - 1.
@@ -130,59 +170,22 @@ def f_rotate_3d(ip, mp, t, scale_x, scale_y):
 ####################################
 
 
-class Scenario:
-    def __init__(
-        self,
-        id,
-        mesh_data,
-        coefficients,
-        obstacle_coefficients,
-        forces_function,
-        obstacles,
-        episode_steps,
-        duration=None,
-        is_randomized=None,
-    ):
-        self.id = id
-        self.mesh_data = mesh_data
-        self.coefficients = coefficients
-        self.obstacle_coefficients = obstacle_coefficients
-        self.obstacles = obstacles
-        self.episode_steps = episode_steps
-        self.duration = duration
-        self.is_randomized = is_randomized
-        if isinstance(forces_function, np.ndarray):
-            self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
-        else:
-            self.forces_function = forces_function
-
-    def get_setting(self, randomize, create_in_subprocess=False):
-        setting = SettingRandomized(
-            mesh_data=self.mesh_data,
-            coefficients=self.coefficients,
-            obstacle_coefficients=self.obstacle_coefficients,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_randomization(randomize)
-        setting.set_obstacles(self.obstacles)
-        return setting
-
 
 def circle_slope(scale, is_adaptive):
     return Scenario(
-        "circle_slope",
-        MeshData(
+        id="circle_slope",
+        mesh_data=MeshData(
             dimension=2,
             mesh_type=m_circle,
             scale=[scale],
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
-        f_accelerate_slow_right,
-        o_slope * scale,
-        episode_steps=config.EPISODE_STEPS,
+        body_coeff=body_coeff,
+        obstacle_coeff=obstacle_coeff,
+        time_data=time_data,
+        forces_function=f_accelerate_slow_right,
+        obstacles=o_slope,
     )
 
 
@@ -196,11 +199,11 @@ def spline_right(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_accelerate_slow_right,
-        o_front * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_front
     )
 
 
@@ -214,11 +217,11 @@ def circle_left(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_accelerate_slow_left,
-        o_back * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_back * scale
     )
 
 
@@ -232,11 +235,11 @@ def polygon_left(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_accelerate_slow_left,
         o_back * scale,
-        episode_steps=config.EPISODE_STEPS,
     )
 
 
@@ -250,11 +253,11 @@ def polygon_slope(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_slide,
-        o_slope * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_slope
     )
 
 
@@ -268,11 +271,11 @@ def circle_rotate(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_rotate,
-        o_side * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_side
     )
 
 
@@ -286,11 +289,11 @@ def polygon_rotate(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_rotate,
-        o_side * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_side
     )
 
 
@@ -304,11 +307,11 @@ def polygon_stay(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_stay,
-        o_side * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_side
     )
 
 
@@ -322,11 +325,11 @@ def polygon_two(scale, is_adaptive):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        coefficients,
-        obstacle_coefficients,
+        body_coeff,
+        obstacle_coeff,
+        time_data,
         f_slide,
-        o_two * scale,
-        episode_steps=config.EPISODE_STEPS,
+        o_two
     )
 
 

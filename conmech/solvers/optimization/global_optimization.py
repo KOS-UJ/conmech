@@ -14,7 +14,7 @@ class Global(Optimization):
         grid,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -23,7 +23,7 @@ class Global(Optimization):
             grid,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
@@ -68,7 +68,7 @@ class Quasistatic(Global):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -78,7 +78,7 @@ class Quasistatic(Global):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
@@ -102,7 +102,7 @@ class Dynamic(Quasistatic):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_coeff,
         time_step,
         contact_law,
         friction_bound,
@@ -114,15 +114,21 @@ class Dynamic(Quasistatic):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        self._point_temperature = (1 / self.time_step) \
-            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
-            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
+        self._point_temperature = (
+            (1 / self.time_step)
+            * self.ACC[
+                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+            ]
+            + self.K[
+                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+            ]
+        )
 
         self.Q = self.recalculate_temperature()
 
@@ -139,8 +145,18 @@ class Dynamic(Quasistatic):
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
         C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-        C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
-        C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
+        C2XTemp = np.squeeze(
+            np.dot(
+                np.transpose(C2X),
+                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
+            )
+        )
+        C2YTemp = np.squeeze(
+            np.dot(
+                np.transpose(C2Y),
+                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
+            )
+        )
 
         C2 = np.concatenate((C2XTemp, C2YTemp))
         X += C2
@@ -157,21 +173,26 @@ class Dynamic(Quasistatic):
 
         C2Xv = np.squeeze(
             np.asarray(
-                C2X @ self.v_vector[0: self.mesh.independent_nodes_count].transpose(),
+                C2X @ self.v_vector[0 : self.mesh.independent_nodes_count].transpose(),
             )
         )
         C2Yv = np.squeeze(
             np.asarray(
-                C2Y @ self.v_vector[
-                    self.mesh.independent_nodes_count: 2 * self.mesh.independent_nodes_count
+                C2Y
+                @ self.v_vector[
+                    self.mesh.independent_nodes_count : 2
+                    * self.mesh.independent_nodes_count
                 ].transpose()
             )
         )
 
         Q1 = (1 / self.time_step) * np.squeeze(
             np.asarray(
-                self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
-                @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),
+                self.ACC[
+                    : self.mesh.independent_nodes_count,
+                    : self.mesh.independent_nodes_count,
+                ]
+                @ self.t_vector[: self.mesh.independent_nodes_count].transpose(),
             )
         )
 

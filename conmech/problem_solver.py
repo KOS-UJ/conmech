@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from conmech.dataclass.body_coefficients import BodyCoefficients
+from conmech.dataclass.body_coeff import BodyCoeff
 from conmech.dataclass.mesh_data import MeshData
 from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
@@ -25,9 +25,9 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        coefficients = BodyCoefficients(mu=setup.mu_coef, lambda_=setup.la_coef)
-        coefficients.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
-        coefficients.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
+        body_coeff = BodyCoeff(mu=setup.mu_coef, lambda_=setup.la_coef)
+        body_coeff.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
+        body_coeff.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
 
         grid_width = (
@@ -38,9 +38,9 @@ class ProblemSolver:
             mesh_data=MeshData(
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
-                scale=[float(grid_width), float(setup.grid_height)]
+                scale=[float(grid_width), float(setup.grid_height)],
             ),
-            coefficients=coefficients,
+            body_coeff=body_coeff,
             time_step=time_step,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
@@ -65,11 +65,9 @@ class ProblemSolver:
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
-            coefficients = BodyCoefficients(
-                mu=self.setup.mu_coef, lambda_=self.setup.la_coef
-            )
+            body_coeff = BodyCoeff(mu=self.setup.mu_coef, lambda_=self.setup.la_coef)
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            coefficients = BodyCoefficients(
+            body_coeff = BodyCoeff(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
                 theta=self.setup.th_coef,
@@ -83,7 +81,7 @@ class ProblemSolver:
             self.mesh,
             self.setup.inner_forces,
             self.setup.outer_forces,
-            coefficients,
+            body_coeff,
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,

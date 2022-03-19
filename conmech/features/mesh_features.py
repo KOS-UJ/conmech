@@ -8,14 +8,14 @@ class MeshFeatures(SettingMatrices):
     def __init__(
         self,
         mesh_data,
-        coefficients,
+        body_coeff,
         time_step,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
         super().__init__(
             mesh_data,
-            coefficients,
+            body_coeff,
             create_in_subprocess=False,
             time_step=time_step,
             is_dirichlet=is_dirichlet,

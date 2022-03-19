@@ -18,10 +18,10 @@ def L2_normalized_correction(
 
 class SettingRandomized(SettingObstacles):
     def __init__(
-        self, mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
+        self, mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
     ):
         super().__init__(
-            mesh_data, coefficients, obstacle_coefficients, create_in_subprocess,
+            mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
         )
         self.set_randomization(False)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
