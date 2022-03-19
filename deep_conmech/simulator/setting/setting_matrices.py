@@ -1,9 +1,12 @@
-from conmech.dataclass.time_data import TimeData
+from typing import Callable
+
 import deep_conmech.common.config as config
 import numpy as np
+from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.time_data import TimeData
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
-from conmech.dataclass.body_coeff import BodyCoeff
 from numba import njit
 
 
@@ -23,13 +26,13 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class SettingMatrices(SettingMesh):
     def __init__(
         self,
-        mesh_data,
+        mesh_data: MeshData,
         body_coeff: BodyCoeff,
         time_data: TimeData,
-        is_dirichlet=(lambda _: False),
-        is_contact=(lambda _: True),
-        with_schur_complement_matrices=True,
-        create_in_subprocess=False,
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        with_schur_complement_matrices: bool = True,
+        create_in_subprocess: bool =False,
     ):
         super().__init__(
             mesh_data=mesh_data,

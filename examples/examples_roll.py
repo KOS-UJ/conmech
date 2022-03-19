@@ -7,20 +7,19 @@ from deep_conmech.simulator.calculator import Calculator
 
 
 def main():
-    path = f"SIMULATOR 2D - {cmh.CURRENT_TIME}"
+    path = f"EXAMPLES ROLL - {cmh.CURRENT_TIME}"
 
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",
             mesh_data=MeshData(
-                dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[5]
+                dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[8]
             ),
             body_coeff=scenarios.body_coeff,
             obstacle_coeff=scenarios.obstacle_coeff,
-            time_data=TimeData(final_time=2.0),
+            time_data=TimeData(final_time=8.0),
             forces_function=np.array([0.0, -0.5]),
-            obstacles=np.array([[[0.7, 1.0]], [[0.0, -0.01]]])
-            # obstacles=np.array([[[0.7, 1.0], [-0.5, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),
+            obstacles=np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),
         ),
         Scenario(
             id="circle_flat_roll",
@@ -29,7 +28,7 @@ def main():
             ),
             body_coeff=scenarios.body_coeff,
             obstacle_coeff=scenarios.obstacle_coeff,
-            time_data=TimeData(final_time=2.0),
+            time_data=TimeData(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]])
         ),
@@ -39,20 +38,20 @@ def main():
                 dimension=2,
                 mesh_type=scenarios.m_rectangle,
                 scale=[1],
-                mesh_density=[8],
+                mesh_density=[5],
             ),
             body_coeff=scenarios.body_coeff,
             obstacle_coeff=scenarios.obstacle_coeff,
-            time_data=TimeData(final_time=2.0),
+            time_data=TimeData(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]])
         ),
         Scenario(
             "circle_rotate",
-            MeshData(dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[4]),
+            MeshData(dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[5]),
             body_coeff=scenarios.body_coeff,
             obstacle_coeff=scenarios.obstacle_coeff,
-            time_data=time_data,
+            time_data=TimeData(final_time=4.0),
             forces_function=f_rotate,
             obstacles=scenarios.o_side
         )
@@ -70,10 +69,10 @@ def main():
             Calculator.solve,
             scenario,
             path,
-            simulate_dirty_data=config.SIMULATE_DIRTY_DATA,
+            simulate_dirty_data=False,
             draw_base=False,
             draw_detailed=True,
-            description=f"Printing simulator 2D",
+            description="Printing",
         )
 
 

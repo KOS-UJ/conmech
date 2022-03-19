@@ -150,9 +150,8 @@ class Plotter:
 
     def draw_boundary_resistance_normal(self, setting, position, ax):
         self.draw_additional_setting("RES_N", setting, position, ax)
-        # normalized_boundary_normals
         data = (
-            setting.normalized_boundary_obstacle_normals
+            setting.normalized_boundary_normals
             * setting.resistance_normal
             / 100
         )
@@ -162,9 +161,8 @@ class Plotter:
 
     def draw_boundary_resistance_tangential(self, setting, position, ax):
         self.draw_additional_setting("RES_T", setting, position, ax)
-        # normalized_boundary_normals
         data = (
-            setting.normalized_boundary_obstacle_normals
+            setting.normalized_boundary_normals
             * setting.resistance_tangential
             / 100
         )
@@ -220,7 +218,7 @@ class Plotter:
             )
 
     def draw_displaced(self, setting, position, color, ax):
-        self.draw_rectangle(ax, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
+        #self.draw_rectangle(ax, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
         self.draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", ax)
         # self.draw_data("P", obstacle_forces, setting, [7.5, -1.5], ax)
 
@@ -261,13 +259,13 @@ class Plotter:
     def draw_parameters(self, time, setting, scale, x_max, y_max, ax):
         ax.annotate(
             f"time: {str(round(time, 1))}",
-            xy=(x_max - 1.8 * scale, y_max - 0.3 * scale),
+            xy=(x_max - 2.0 * scale, y_max - 0.9 * scale),
             color="w",
             fontsize=5,
         )
         ax.annotate(
             f"nodes: {str(setting.nodes_count)}",
-            xy=(x_max - 1.8 * scale, y_max - 0.6 * scale),
+            xy=(x_max - 2.0 * scale, y_max - 1.2 * scale),
             color="w",
             fontsize=5,
         )

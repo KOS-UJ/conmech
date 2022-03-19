@@ -49,7 +49,7 @@ class Scenario:
 
 body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
 #body_coeff = BodyCoeff(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
-obstacle_coeff = ObstacleCoeff(hardness=100.0, friction=10.0)
+obstacle_coeff = ObstacleCoeff(hardness=100.0, friction=5.0)
 
 time_data = TimeData(time_step=0.01, final_time=4.0)
 

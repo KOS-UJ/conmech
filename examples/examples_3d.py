@@ -8,7 +8,7 @@ from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.scenarios import *
 
 def main():
-    path = f"SIMULATOR 3D - {cmh.CURRENT_TIME}"
+    path = f"EXAMPLES 3D - {cmh.CURRENT_TIME}"
         
     scenario = Scenario(
         id="scenario_3d",

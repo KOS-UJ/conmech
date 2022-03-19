@@ -1,9 +1,11 @@
 from argparse import ArgumentError
+from typing import Callable
 
 import deep_conmech.common.config as config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
+from conmech.dataclass.mesh_data import MeshData
 from conmech.helpers import nph
 from numba import njit
 
@@ -63,7 +65,7 @@ def move_boundary_nodes_to_start_numba(
     unordered_points,
     unordered_elements,
     unordered_boundary_indices,
-    unordered_contact_indices,
+    unordered_contact_indices, #TODO: move to the top
 ):
     nodes_count = len(unordered_points)
     boundary_nodes_count = len(unordered_boundary_indices)
@@ -283,10 +285,10 @@ def get_boundary_nodes_data_numba(
 class SettingMesh:
     def __init__(
         self,
-        mesh_data,
-        is_dirichlet=(lambda _: False),
-        is_contact=(lambda _: True),
-        create_in_subprocess=False,
+        mesh_data: MeshData,
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        create_in_subprocess: bool = False,
     ):
         self.mesh_data = mesh_data
         self.is_dirichlet = is_dirichlet

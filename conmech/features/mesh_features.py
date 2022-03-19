@@ -1,5 +1,8 @@
 from typing import Callable
 
+from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.time_data import TimeData
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 
@@ -7,20 +10,20 @@ from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 class MeshFeatures(SettingMatrices):
     def __init__(
         self,
-        mesh_data,
-        body_coeff,
-        time_step,
+        mesh_data: MeshData,
+        body_coeff: BodyCoeff,
+        time_data: TimeData,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
         super().__init__(
-            mesh_data,
-            body_coeff,
-            create_in_subprocess=False,
-            time_step=time_step,
+            mesh_data=mesh_data,
+            body_coeff=body_coeff,
+            time_data=time_data,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             with_schur_complement_matrices=False,
+            create_in_subprocess=False,
         )
 
     def reorganize_boundaries(self, unordered_nodes, unordered_elements):

@@ -30,10 +30,7 @@ def get_edges_data(
     u_old,
     v_old,
     forces,
-    boundary_faces_count,
-    obstacle_normal,
-    boundary_obstacle_penetration,
-):  # , forces
+):
     edges_number = edges.shape[0]
     edges_data = np.zeros((edges_number, 12))
     for e in range(edges_number):
@@ -105,10 +102,7 @@ class SettingInput(SettingRandomized):
             self.normalized_initial_nodes,
             self.input_u_old,
             self.input_v_old,
-            self.input_forces,
-            self.boundary_faces_count,
-            self.normalized_obstacle_normal,
-            self.boundary_obstacle_penetration,
+            self.input_forces
         )
         return thh.to_torch_double(edges_data)
 
