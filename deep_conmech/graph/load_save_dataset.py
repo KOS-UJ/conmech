@@ -9,44 +9,8 @@ import tensorflow.compat.v1 as tf
 tf.enable_eager_execution()
 
 
-class NodeType(enum.IntEnum):
-    NORMAL = 0
-    OBSTACLE = 1
-    AIRFOIL = 2
-    HANDLE = 3
-    INFLOW = 4
-    OUTFLOW = 5
-    WALL_BOUNDARY = 6
-    SIZE = 9
 
-
-######################
-
-
-def to_bytes(array):
-    return _bytes_feature(array.tobytes())
-
-
-def _bytes_feature(value):
-    if isinstance(value, type(tf.constant(0))):
-        value = value.numpy()
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
-def _float_feature(value):
-    return tf.train.Feature(float_list=tf.train.FloatList(value=[value]))
-
-
-def _int64_feature(value):
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-
-def serialize_array(array):
-    return tf.io.serialize_tensor(array)
-
-
-#################################
-
+#########
 
 def _parse(proto, meta):
     feature_lists = {k: tf.io.VarLenFeature(tf.string) for k in meta["field_names"]}
@@ -74,7 +38,6 @@ def write_data_to_tf(data, datapath):
     writer.write(out.SerializeToString())
 
     writer.close()
-    print("Wrote data to TFRecord")
 
 
 def save_meta(path, meta):
@@ -86,6 +49,10 @@ def load_meta(path):
     with open(os.path.join(path, "meta.json"), "r") as file:
         meta = json.loads(file.read())
     return meta
+
+
+def to_bytes(array):
+    return  tf.train.Feature(bytes_list=tf.train.BytesList(value=[array.tobytes()]))
 
 def to_dict(type, array):
     return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
@@ -142,69 +109,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-################################3
-
-
-image_small_shape = (250, 250, 3)
-number_of_images_small = 100
-
-images_small = np.random.randint(
-    low=0, high=256, size=(number_of_images_small, *image_small_shape), dtype=np.int16
-)
-print(images_small.shape)
-
-labels_small = np.random.randint(low=0, high=5, size=(number_of_images_small))  ###, 1))
-print(labels_small.shape)
-print(labels_small[:10])
-
-
-FILEPATH = "./data/conmech/train.tfrecord"
-
-
-count = write_images_to_tfr_short(images_small, labels_small, filepath=FILEPATH)
-
-
-#####
-
-
-def parse_tfr_element(element):
-    # use the same structure as above; it's kinda an outline of the structure we now want to create
-    data = {
-        "height": tf.io.FixedLenFeature([], tf.int64),
-        "width": tf.io.FixedLenFeature([], tf.int64),
-        "label": tf.io.FixedLenFeature([], tf.int64),
-        "raw_image": tf.io.FixedLenFeature([], tf.string),
-        "depth": tf.io.FixedLenFeature([], tf.int64),
-    }
-
-    content = tf.io.parse_single_example(element, data)
-    height = content["height"]
-    width = content["width"]
-    depth = content["depth"]
-    label = content["label"]
-    raw_image = content["raw_image"]
-
-    # get our 'feature'-- our image -- and reshape it appropriately
-    feature = tf.io.parse_tensor(raw_image, out_type=tf.int16)
-    feature = tf.reshape(feature, shape=[height, width, depth])
-    return (feature, label)
-
-
-def get_dataset_small(filepath):
-    # create the dataset
-    dataset = tf.data.TFRecordDataset(filepath)
-
-    # pass every single feature through our mapping function
-    dataset = dataset.map(parse_tfr_element)
-
-    return dataset
-
-
-dataset_small = get_dataset_small(FILEPATH)
-
-for sample in dataset_small.take(1):
-    print(sample[0].shape)
-    print(sample[1].shape)
-

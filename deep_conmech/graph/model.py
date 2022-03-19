@@ -1,16 +1,15 @@
-from re import A
 import time
+from re import A
 
-import deep_conmech.graph.setting.setting_input
 import numpy as np
 import torch
 from conmech.helpers import cmh
+from deep_conmech import scenarios
 from deep_conmech.common import *
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard import SummaryWriter
 
@@ -33,7 +32,9 @@ def get_writer():
 | mp {config.MESSAGE_PASSES}"
     )
 
-#| vpes {config.EPISODE_STEPS} \
+
+# | vpes {config.EPISODE_STEPS} \
+
 
 class ErrorResult:
     value = 0
@@ -44,7 +45,7 @@ class GraphModelDynamic:
         self.train_dataset = train_dataset
         self.all_val_datasets = all_val_datasets
         self.print_scenarios = print_scenarios
-        self.dim = train_dataset.dim  # TODO: Check validation datasets
+        self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
@@ -228,17 +229,18 @@ class GraphModelDynamic:
             # )
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
-                predicted_normalized_a,
-                normalized_a_correction,
-                C,
-                normalized_E,
-                normalized_boundary_v_old_split[i],
-                normalized_boundary_nodes_split[i],
-                normalized_boundary_normals_split[i],
-                normalized_boundary_obstacle_nodes_split[i],
-                normalized_boundary_obstacle_normals_split[i],
-                boundary_nodes_volume_split[i],
-                # scenarios.obstacle_coeff
+                cleaned_a=predicted_normalized_a,
+                a_correction=normalized_a_correction,
+                C=C,
+                E=normalized_E,
+                boundary_v_old=normalized_boundary_v_old_split[i],
+                boundary_nodes=normalized_boundary_nodes_split[i],
+                boundary_normals=normalized_boundary_normals_split[i],
+                boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
+                boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
+                boundary_nodes_volume=boundary_nodes_volume_split[i],
+                obstacle_coeff=scenarios.obstacle_coeff,  # TODO: generalize
+                time_step=0.01,  # TODO: generalize
             )
 
             ######################

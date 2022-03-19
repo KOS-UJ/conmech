@@ -2,23 +2,19 @@ import copy
 import re
 from os import listdir
 from os.path import isfile, join
-from conmech.helpers import mph
 
 import deep_conmech.common.config as config
 import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import numpy as np
 import pandas as pd
 import torch
-from conmech.helpers import cmh
-from deep_conmech.graph.helpers import thh, dch
+from conmech.helpers import cmh, mph
+from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
-
-
-
-
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -129,12 +125,25 @@ class DatasetStatistics:
 
 
 class BaseDatasetDynamic:
-    def __init__(self, dim, relative_path, data_count, randomize_at_load, num_workers):
-        self.dim = dim
+    def __init__(self, dimension, relative_path, data_count, randomize_at_load, num_workers):
+        self.dimension = dimension
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
+
+    def get_setting_input(self, scenario: Scenario):
+        setting = SettingInput(
+            mesh_data=scenario.mesh_data,
+            body_coeff=scenario.body_coeff,
+            obstacle_coeff=scenario.obstacle_coeff,
+            time_data=scenario.time_data,
+            create_in_subprocess=False, #####
+        )
+        setting.set_randomization(False)
+        setting.set_obstacles(scenario.obstacles)
+        return setting
+
 
 
     def get_statistics(self):
@@ -250,8 +259,3 @@ class BaseDatasetDynamic:
 
     def __len__(self):
         return self.data_count
-
-
-   
-
-####################

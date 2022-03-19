@@ -51,9 +51,7 @@ def main():
     # ball falling from staircase
     # if step does not cause penetration, use fsolve, otherwise return and use
     # remove dim from Scenario
-    # standardize episode steps
     # check different time steps (and mesh sizes)
-    # use boundary normals instead of obstacle (?)
     # standardize boundary indices and initial_vector
     for scenario in all_scenarios:
         plotter_mapper.print_one_dynamic(
@@ -69,4 +67,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

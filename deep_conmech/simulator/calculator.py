@@ -65,7 +65,7 @@ class Calculator:
     @staticmethod
     def minimize(function, initial_vector):
         return scipy.optimize.minimize(
-            function, initial_vector, method="POWELL" #, options={"disp": True}
+            function, initial_vector, method="L-BFGS-B" #, POWELL options={"disp": True}
         ).x
 
     @staticmethod

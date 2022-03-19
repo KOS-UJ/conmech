@@ -1,6 +1,6 @@
-'''
+"""
 numpy helpers
-'''
+"""
 from ctypes import ArgumentError
 
 import numba
@@ -14,7 +14,8 @@ def stack(data):
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
-    
+
+
 stack_column_numba = numba.njit(stack_column)
 
 
@@ -29,19 +30,22 @@ def elementwise_dot(x, y, keepdims=False):
 def get_occurances(data):
     return np.array(list(set(data.flatten())))
 
+
 def skip(time, skip):
     return np.allclose(time % skip, 0.0) or np.allclose(time % skip, skip)
+
 
 ###################
 
 
-def euclidean_norm(vector):
-    data = (vector ** 2).sum(axis=-1)
+def euclidean_norm(vector, keepdims=False):
+    data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
     if isinstance(data, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
     # return np.linalg.norm(vector, axis=-1)
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
+
 
 @njit
 def euclidean_norm_numba(vector):
@@ -56,8 +60,29 @@ def normalize_euclidean_numba(data):
     return data / reshaped_norm
 
 
-###################
+def get_normal(vector, normal):
+    return elementwise_dot(vector, normal, keepdims=True)
 
+
+def get_normal_tangential(vector, normal):
+    normal_vector = get_normal(vector, normal)
+    tangential_vector = vector - (normal_vector * normal)
+    return normal_vector, tangential_vector
+
+
+def get_tangential(vector, normal):
+    _, tangential_vector = get_normal_tangential(vector, normal)
+    return tangential_vector
+
+
+@njit
+def get_tangential_numba(vector, normal):
+    normal_vector = vector @ normal
+    tangential_vector = vector - (normal_vector * normal)
+    return tangential_vector
+
+
+###################
 
 
 def get_tangential_2d(normal):
@@ -72,7 +97,9 @@ def complete_base(base_seed, closest_seed_index=0):
     elif dim == 3:
         rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
         unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
-        unnormalized_base = np.roll(unnormalized_rolled_base, closest_seed_index, axis=0)
+        unnormalized_base = np.roll(
+            unnormalized_rolled_base, closest_seed_index, axis=0
+        )
     else:
         raise ArgumentError()
     base = normalize_euclidean_numba(unnormalized_base)
@@ -81,11 +108,11 @@ def complete_base(base_seed, closest_seed_index=0):
 
 def orthogonalize_gram_schmidt(vectors):
     # Gramm-schmidt orthog.
-    b0 =  vectors[0]
+    b0 = vectors[0]
     if len(vectors) == 1:
         return np.array((b0))
 
-    b1 =  vectors[1] - (vectors[1] @ b0) * b0
+    b1 = vectors[1] - (vectors[1] @ b0) * b0
     if len(vectors) == 2:
         return np.array((b0, b1))
 
@@ -128,7 +155,6 @@ def max_numba(corners):
 # TODO : use slice instead of int
 
 
-
 @njit
 def get_point_index_numba(point, points):
     for i in range(len(points)):
@@ -147,7 +173,7 @@ def get_random_normal(dim, nodes_count, scale):
 def get_random_normal_circle_numba(dim, nodes_count, scale):
     result = np.zeros((nodes_count, dim))
     for i in range(nodes_count):
-        alpha = 2 * np.pi * np.random.uniform(0,1)#low=0, high=1)
+        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
         r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
         result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
     return result

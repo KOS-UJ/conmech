@@ -124,10 +124,10 @@ class Plotter:
     def draw_obstacle_resistance_normalized(self, setting, position, ax):
         self.draw_normalized_obstacles(setting, position, ax)
 
-        self.draw_additional_setting("O", setting, position, ax)
+        self.draw_additional_setting("P", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
-            setting.normalized_boundary_obstacle_penetration_vectors,
+            setting.normalized_boundary_penetration,
             ax,
         )
 
@@ -143,29 +143,20 @@ class Plotter:
         self.draw_additional_setting("V_TNG", setting, position, ax)
         self.draw_arrows(
             setting.normalized_boundary_nodes + position,
-            setting.normalized_boundary_v_tangential
-            * (setting.boundary_penetration.reshape(-1, 1) > 0),
+            setting.normalized_boundary_v_tangential,
             ax,
         )
 
     def draw_boundary_resistance_normal(self, setting, position, ax):
         self.draw_additional_setting("RES_N", setting, position, ax)
-        data = (
-            setting.normalized_boundary_normals
-            * setting.resistance_normal
-            / 100
-        )
+        data = setting.normalized_boundary_normals * setting.resistance_normal / 100
         self.draw_arrows(
             setting.normalized_boundary_nodes + position, data, ax,
         )
 
     def draw_boundary_resistance_tangential(self, setting, position, ax):
         self.draw_additional_setting("RES_T", setting, position, ax)
-        data = (
-            setting.normalized_boundary_normals
-            * setting.resistance_tangential
-            / 100
-        )
+        data = setting.normalized_boundary_normals * setting.resistance_tangential / 100
         self.draw_arrows(
             setting.normalized_boundary_nodes + position, data, ax,
         )
@@ -218,7 +209,7 @@ class Plotter:
             )
 
     def draw_displaced(self, setting, position, color, ax):
-        #self.draw_rectangle(ax, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
+        # self.draw_rectangle(ax, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
         self.draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", ax)
         # self.draw_data("P", obstacle_forces, setting, [7.5, -1.5], ax)
 
@@ -237,7 +228,11 @@ class Plotter:
 
     def draw_a(self, setting, position, ax):
         return self.draw_data(
-            "A * ts", setting.normalized_a_old * setting.time_step, setting, position, ax
+            "A * ts",
+            setting.normalized_a_old * setting.time_step,
+            setting,
+            position,
+            ax,
         )
 
     def draw_data(self, annotation, data, setting, position, ax):

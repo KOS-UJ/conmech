@@ -1,8 +1,12 @@
+from argparse import ArgumentError
 from turtle import up
+from typing import List
+
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
 
@@ -10,29 +14,28 @@ from deep_conmech.simulator.setting.setting_forces import *
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
         self,
-        base_scenarios,
-        episode_steps,
+        base_scenarios: List[Scenario],
         solve_function,
         relative_path,
         num_workers,
-        repetitions=1
+        repetitions=1,
     ):
-        dim = base_scenarios[0].dim  # TODO: Check other
+        dimensions = set([s.mesh_data.dimension for s in base_scenarios])
+        if len(dimensions) != 1:
+            raise ArgumentError("Incorrect data")
+        dimension = dimensions.pop()
         self.all_scenarios = base_scenarios * repetitions
         self.solve_function = solve_function
         self.repetitions = repetitions
-        self.episode_steps = episode_steps
 
-        data_count = self.episode_steps * len(
-            self.all_scenarios
-        )  # 10  # config.EPISODE_STEPS
+        data_count = np.sum([s.time_data.episode_steps for s in self.all_scenarios])
 
         super().__init__(
-            dim,
+            dimension,
             relative_path=relative_path,
             data_count=data_count,
             randomize_at_load=True,
-            num_workers=num_workers
+            num_workers=num_workers,
         )
         self.initialize_data()
 
@@ -40,10 +43,9 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         assigned_scenarios = get_assigned_scenarios(
             self.all_scenarios, num_workers, process_id
         )
-        data_count = self.episode_steps * len(assigned_scenarios)
 
-        start_index = process_id * data_count
-        stop_index = start_index + data_count
+        start_index = process_id * self.data_count
+        stop_index = start_index + self.data_count
         assigned_data_range = range(start_index, stop_index)
 
         indices_to_do = get_and_check_indices_to_do(
@@ -55,24 +57,25 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         return self.generate_scenario_data(assigned_scenarios, start_index, process_id)
 
     def generate_scenario_data(
-        self, assigned_scenarios, start_index=0, process_id=1,
+        self, assigned_scenarios: List[Scenario], start_index=0, process_id=1,
     ):
         current_index = start_index
-
-        data_count = len(assigned_scenarios) * self.episode_steps
         tqdm_description = f"Process {process_id}"
-        step_tqdm = cmh.get_tqdm(range(data_count), tqdm_description, process_id)
+        step_tqdm = cmh.get_tqdm(range(self.data_count), tqdm_description, process_id)
+        scenario = assigned_scenarios[0]
         for index in step_tqdm:
-            ts = (index % self.episode_steps) + 1
+            ts = (index % scenario.time_data.episode_steps) + 1
             if ts == 1:
-                scenario = assigned_scenarios[int(index/self.episode_steps)]
-                setting = scenario.get_setting()
+                scenario = assigned_scenarios[
+                    int(index / scenario.time_data.episode_steps)
+                ]
+                setting = self.get_setting_input(scenario)
 
                 tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
                 step_tqdm.set_description(tqdm_description)
             if is_memory_overflow(step_tqdm, tqdm_description):
                 return False
-            
+
             current_time = ts * setting.time_step
             forces = setting.get_forces_by_function(
                 scenario.forces_function, current_time
@@ -84,11 +87,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
             self.save(setting, exact_normalized_a_torch, current_index)
             self.check_and_print(
-                data_count,
-                current_index,
-                setting,
-                step_tqdm,
-                tqdm_description,
+                self.data_count, current_index, setting, step_tqdm, tqdm_description,
             )
 
             # setting = setting.get_copy()
@@ -100,33 +99,30 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, base_scenarios, solve_function, update_data=False, repetitions=1):
-        episode_steps = config.TRAIN_VAL_EPISODE_STEPS
-        num_workers = 1  # config.GENERATION_WORKERS
-        self.update_data=update_data
+    def __init__(
+        self, base_scenarios, solve_function, perform_data_update=False, repetitions=1
+    ):
+        self.perform_data_update = perform_data_update
         super().__init__(
             base_scenarios,
-            episode_steps,
             solve_function,
             relative_path="training_scenarios",
-            num_workers=num_workers,
+            num_workers=config.GENERATION_WORKERS,
             repetitions=repetitions,
         )
 
     def update_data(self):
-        if self.update_data:
+        if self.perform_data_update:
             self.clear_and_initialize_data()
 
 
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(self, scenario):
-        num_workers = 1 #config.GENERATION_WORKERS
         super().__init__(
             base_scenarios=[scenario],
-            episode_steps=config.TRAIN_VAL_EPISODE_STEPS,
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
             repetitions=1,
-            num_workers=num_workers
+            num_workers=config.GENERATION_WORKERS,
         )
-        
+

@@ -1,9 +1,26 @@
 import time
 
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.calculator import Calculator
 from conmech.helpers import cmh, nph
 from deep_conmech.common import config
+
+
+
+
+def get_randomized_setting(scenario, randomize=False, create_in_subprocess=False):
+    setting = SettingRandomized(
+        mesh_data=scenario.mesh_data,
+        body_coeff=scenario.body_coeff,
+        obstacle_coeff=scenario.obstacle_coeff,
+        time_data=scenario.time_data,
+        create_in_subprocess=create_in_subprocess,
+    )
+    setting.set_randomization(randomize)
+    setting.set_obstacles(scenario.obstacles)
+    return setting
+
 
 
 def map_time(
@@ -14,9 +31,9 @@ def map_time(
     simulate_dirty_data,
     description,
 ):
-    setting = scenario.get_setting(randomize=simulate_dirty_data, create_in_subprocess=True)
+    setting = get_randomized_setting(scenario, randomize=simulate_dirty_data, create_in_subprocess=True)
     if compare_with_base_setting:
-        base_setting = scenario.get_setting(randomize=False, create_in_subprocess=True)
+        base_setting = get_randomized_setting(scenario, randomize=False, create_in_subprocess=True)
     else:
         base_setting = None
         base_a = None

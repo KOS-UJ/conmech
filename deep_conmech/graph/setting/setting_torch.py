@@ -1,7 +1,6 @@
 import torch
 from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.setting import SettingRandomized
-
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 class SettingTorch(SettingRandomized):
     def __init__(
@@ -10,7 +9,7 @@ class SettingTorch(SettingRandomized):
         super().__init__(
             mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
         )
-        self.exact_normalized_a_torch = None  # todo: clear on change
+        self.exact_normalized_a_torch = None  #TODO: clear on change
 
     def complete_boundary_data_with_zeros(self, data):
         completed_data = torch.zeros(
@@ -34,7 +33,8 @@ class SettingTorch(SettingRandomized):
     @property
     def predicted_normalized_a_mean_cuda(self):
         return (
-            self.normalized_forces_mean_torch.to(thh.device) * self.body_coeff.mass_density
+            self.normalized_forces_mean_torch.to(thh.device)
+            * self.body_coeff.mass_density
         )
 
     @property
@@ -122,14 +122,16 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
 
     @property
-    def normalized_boundary_obstacle_penetration_vectors_torch(self):
-        return thh.to_torch_double(
-            self.normalized_boundary_obstacle_penetration_vectors
-        )
+    def normalized_boundary_penetration_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_penetration)
 
     @property
     def normalized_boundary_obstacle_normals_torch(self):
         return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
+
+    @property
+    def normalized_boundary_v_tangential_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_v_tangential)
 
     @property
     def boundary_nodes_volume_torch(self):

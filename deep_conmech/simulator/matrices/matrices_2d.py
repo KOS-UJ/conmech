@@ -128,6 +128,9 @@ def get_matrices(edges_features_matrix, body_coeff, time_step, slice_ind):
     
     C2X = c11 * V1 + c21 * V2
     C2Y = c12 * V1 + c22 * V2
+    
+    Z = np.zeros_like(C2X)
+    C2 = np.block([[C2X, Z], [Z, C2Y]])
 
     """
     # T = (1.0 / TIMESTEP) * k11 * W11 + k12 * W12 + k21 * W21 + k22 * W22

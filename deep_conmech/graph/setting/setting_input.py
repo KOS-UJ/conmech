@@ -2,15 +2,40 @@ import torch
 from deep_conmech.common import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import *
+from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from torch_geometric.data import Data
 
 
-def L2_normalized_obstacle_correction_cuda(
-    cleaned_a, a_correction, *args,
+def L2_normalized_obstacle_correction(
+    cleaned_a,
+    a_correction,
+    C,
+    E,
+    boundary_v_old,
+    boundary_nodes,
+    boundary_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    boundary_nodes_volume,
+    obstacle_coeff,
+    time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return L2_obstacle(a, *args)
+    return L2_obstacle(
+        a=a,
+        C=C,
+        E=E,
+        boundary_v_old=boundary_v_old,
+        boundary_nodes=boundary_nodes,
+        boundary_normals=boundary_normals,
+        boundary_obstacle_nodes=boundary_obstacle_nodes,
+        boundary_obstacle_normals=boundary_obstacle_normals,
+        boundary_nodes_volume=boundary_nodes_volume,
+        obstacle_coeff=obstacle_coeff,
+        time_step=time_step,
+    )
 
 
 #################################
@@ -25,11 +50,7 @@ def set_diff(data, position, row, i, j):
 
 @njit  # (parallel=True)
 def get_edges_data(
-    edges,
-    initial_nodes,
-    u_old,
-    v_old,
-    forces,
+    edges, initial_nodes, u_old, v_old, forces,
 ):
     edges_number = edges.shape[0]
     edges_data = np.zeros((edges_number, 12))
@@ -74,12 +95,17 @@ def L2_obstacle_nvt(
     return value  # .item()
 
 
-class SettingInput(SettingRandomized):
+class SettingInput(SettingTorch):
     def __init__(
-        self, mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+        self,
+        mesh_data: MeshData,
+        body_coeff: BodyCoeff,
+        obstacle_coeff: ObstacleCoeff,
+        time_data: TimeData,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+            mesh_data, body_coeff, obstacle_coeff, time_data, create_in_subprocess,
         )
 
     @staticmethod
@@ -102,13 +128,13 @@ class SettingInput(SettingRandomized):
             self.normalized_initial_nodes,
             self.input_u_old,
             self.input_v_old,
-            self.input_forces
+            self.input_forces,
         )
         return thh.to_torch_double(edges_data)
 
     @staticmethod
     def nodes_data_dim():
-        return 10
+        return 13
 
     @staticmethod
     def get_nodes_data_description(dim):
@@ -124,10 +150,13 @@ class SettingInput(SettingRandomized):
 
     def get_nodes_data(self):
         boundary_penetration = self.complete_boundary_data_with_zeros(
-            self.normalized_boundary_obstacle_penetration_vectors_torch
+            self.normalized_boundary_penetration_torch
         )
         boundary_normals = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_normals_torch
+        )
+        boundary_v_tangential = self.complete_boundary_data_with_zeros(
+            self.normalized_boundary_v_tangential_torch
         )
         boundary_volume = self.complete_boundary_data_with_zeros(
             self.boundary_nodes_volume_torch
@@ -137,9 +166,10 @@ class SettingInput(SettingRandomized):
             (
                 thh.append_euclidean_norm(self.input_forces_torch),
                 # thh.append_euclidean_norm(self.input_u_old_torch),
-                # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
+                # thh.append_euclidean_norm(self.input_v_old_torch)
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
+                thh.append_euclidean_norm(boundary_v_tangential),
                 boundary_volume,
             )
         )

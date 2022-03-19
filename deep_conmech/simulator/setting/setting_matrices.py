@@ -122,6 +122,9 @@ class SettingMatrices(SettingMesh):
         self.C_boundary = Ctt - CtiCiiINVCit
 
     def clear_save(self):
+        self.is_contact = None
+        self.is_dirichlet = None
+        
         self.element_initial_volume = None
         self.A = None
         self.ACC = None
