@@ -37,6 +37,7 @@ class Scenario:
             mesh_data=self.mesh_data,
             body_coeff=self.body_coeff,
             obstacle_coeff=self.obstacle_coeff,
+            time_data=self.time_data,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
@@ -46,7 +47,8 @@ class Scenario:
 
 ####################################
 
-body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0)
+body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
+#body_coeff = BodyCoeff(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 obstacle_coeff = ObstacleCoeff(hardness=100.0, friction=10.0)
 
 time_data = TimeData(time_step=0.01, final_time=4.0)
@@ -137,8 +139,8 @@ def f_stay(ip, mp, t, scale_x, scale_y):
 
 # def get_f_rotate(t_cutoff = 0.1, force_cutoff=0.5):
 def f_rotate(ip, mp, t, scale_x, scale_y):
-    t_cutoff = 0.5
-    force_cutoff = 10.0
+    t_cutoff = 0.1
+    force_cutoff = 0.5
     if t <= t_cutoff:
         y_scaled = ip[1] / scale_y
         # y_scaled = 2*y_scaled - 1.

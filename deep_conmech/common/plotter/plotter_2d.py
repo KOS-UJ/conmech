@@ -239,7 +239,7 @@ class Plotter:
 
     def draw_a(self, setting, position, ax):
         return self.draw_data(
-            "A * ts", setting.normalized_a_old * config.TIMESTEP, setting, position, ax
+            "A * ts", setting.normalized_a_old * setting.time_step, setting, position, ax
         )
 
     def draw_data(self, annotation, data, setting, position, ax):

@@ -26,10 +26,13 @@ def get_forces_by_function_numba(
 
 class SettingForces(SettingMatrices):
     def __init__(
-        self, mesh_data, body_coeff, create_in_subprocess=False,
+        self, mesh_data, body_coeff, time_data, create_in_subprocess,
     ):
         super().__init__(
-            mesh_data, body_coeff, create_in_subprocess,
+            mesh_data=mesh_data,
+            body_coeff=body_coeff,
+            time_data=time_data,
+            create_in_subprocess=create_in_subprocess
         )
         self.forces = None
 

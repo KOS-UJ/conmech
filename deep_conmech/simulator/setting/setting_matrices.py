@@ -1,3 +1,4 @@
+from conmech.dataclass.time_data import TimeData
 import deep_conmech.common.config as config
 import numpy as np
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
@@ -24,7 +25,7 @@ class SettingMatrices(SettingMesh):
         self,
         mesh_data,
         body_coeff: BodyCoeff,
-        time_step=config.TIMESTEP,
+        time_data: TimeData,
         is_dirichlet=(lambda _: False),
         is_contact=(lambda _: True),
         with_schur_complement_matrices=True,
@@ -37,7 +38,7 @@ class SettingMatrices(SettingMesh):
             create_in_subprocess=create_in_subprocess,
         )
         self.body_coeff = body_coeff
-        self.time_step = time_step
+        self.time_data = time_data
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.reinitialize_matrices()
@@ -45,6 +46,10 @@ class SettingMatrices(SettingMesh):
     def remesh(self):
         super().remesh()
         self.reinitialize_matrices()
+
+    @property
+    def time_step(self):
+        return self.time_data.time_step
 
     def reinitialize_matrices(self):
 

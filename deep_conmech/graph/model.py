@@ -26,7 +26,6 @@ def get_writer():
 | l2l {config.L2_LOSS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
-| vpes {config.EPISODE_STEPS} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 | bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
 | ld {config.LATENT_DIM} \
@@ -34,6 +33,7 @@ def get_writer():
 | mp {config.MESSAGE_PASSES}"
     )
 
+#| vpes {config.EPISODE_STEPS} \
 
 class ErrorResult:
     value = 0

@@ -28,7 +28,7 @@ def map_time(
     time_tqdm = cmh.get_tqdm(range(scenario.time_data.episode_steps), f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}")
     a = None
     for time_step in time_tqdm:
-        current_time = (time_step + 1) * config.TIMESTEP
+        current_time = (time_step + 1) * setting.time_step
 
         forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)

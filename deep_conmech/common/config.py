@@ -1,9 +1,5 @@
-TIMESTEP = 0.01
-
 NORMALIZE_ROTATE = True
 ############
-
-# "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
 
 TRAIN_SCALE = 1.0
 VALIDATION_SCALE = 1.0
@@ -12,7 +8,7 @@ SIMULATOR_SCALE = 1.0
 
 MESH_DENSITY = 16
 ADAPTIVE_TRAINING_MESH = False  #!# True
-CALCULATOR_MODE = "function"  # "function" # "optimization"
+CALCULATOR_MODE = "optimization"  # "function" # "optimization"
 SIMULATE_DIRTY_DATA = False
 
 ############
@@ -28,11 +24,6 @@ DATA_ROTATE_VELOCITY = 0.5
 U_NOISE_GAMMA = 0.1
 U_IN_RANDOM_FACTOR = 0.005 * U_RANDOM_SCALE
 V_IN_RANDOM_FACTOR = 0.005 * V_RANDOM_SCALE
-
-############
-
-FINAL_TIME = 2.0  #!# 8 4
-EPISODE_STEPS = int(FINAL_TIME / TIMESTEP)
 
 ############
 

@@ -1,14 +1,18 @@
 import copy
+from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.obstacle_coeff import ObstacleCoeff
+from conmech.dataclass.time_data import TimeData
 
 import deep_conmech.simulator.mesh.remesher as remesher
-from deep_conmech.simulator.setting.setting_forces import *
 from conmech.helpers import nph
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.common import config
+from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 # MIN AT
-# a = a_cleaned - ((v_old - randomized_v_old) / config.TIMESTEP
+# a = a_cleaned - ((v_old - randomized_v_old) / time_step
 def L2_normalized_correction(
     cleaned_normalized_a, C, normalized_E, normalized_a_correction
 ):
@@ -18,10 +22,19 @@ def L2_normalized_correction(
 
 class SettingRandomized(SettingObstacles):
     def __init__(
-        self, mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+        self,
+        mesh_data: MeshData,
+        body_coeff: BodyCoeff,
+        obstacle_coeff: ObstacleCoeff,
+        time_data: TimeData,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+            mesh_data=mesh_data,
+            body_coeff=body_coeff,
+            obstacle_coeff=obstacle_coeff,
+            time_data=time_data,
+            create_in_subprocess=create_in_subprocess,
         )
         self.set_randomization(False)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
@@ -81,10 +94,10 @@ class SettingRandomized(SettingObstacles):
     @property
     def a_correction(self):
         u_correction = config.U_NOISE_GAMMA * (
-            self.u_old_randomization / (config.TIMESTEP * config.TIMESTEP)
+            self.u_old_randomization / (self.time_step **2)
         )
         v_correction = (
-            (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / config.TIMESTEP
+            (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 
@@ -105,8 +118,8 @@ class SettingRandomized(SettingObstacles):
         return setting
 
     def iterate_self(self, a, randomized_inputs=False):
-        v = self.v_old + config.TIMESTEP * a
-        u = self.u_old + config.TIMESTEP * v
+        v = self.v_old + self.time_step * a
+        u = self.u_old + self.time_step * v
 
         self.set_randomization(randomized_inputs)
         self.set_u_old(u)

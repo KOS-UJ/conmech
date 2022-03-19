@@ -64,7 +64,6 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         step_tqdm = cmh.get_tqdm(range(data_count), tqdm_description, process_id)
         for index in step_tqdm:
             ts = (index % self.episode_steps) + 1
-            current_time = ts * config.TIMESTEP
             if ts == 1:
                 scenario = assigned_scenarios[int(index/self.episode_steps)]
                 setting = scenario.get_setting()
@@ -74,6 +73,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             if is_memory_overflow(step_tqdm, tqdm_description):
                 return False
             
+            current_time = ts * setting.time_step
             forces = setting.get_forces_by_function(
                 scenario.forces_function, current_time
             )
@@ -101,7 +101,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(self, base_scenarios, solve_function, update_data=False, repetitions=1):
-        episode_steps = config.EPISODE_STEPS
+        episode_steps = config.TRAIN_VAL_EPISODE_STEPS
         num_workers = 1  # config.GENERATION_WORKERS
         self.update_data=update_data
         super().__init__(
@@ -123,7 +123,7 @@ class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
         num_workers = 1 #config.GENERATION_WORKERS
         super().__init__(
             base_scenarios=[scenario],
-            episode_steps=config.EPISODE_STEPS,
+            episode_steps=config.TRAIN_VAL_EPISODE_STEPS,
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
             repetitions=1,

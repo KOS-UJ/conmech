@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
-
-from torch import meshgrid
+from typing import List
 
 @dataclass
 class MeshData:
