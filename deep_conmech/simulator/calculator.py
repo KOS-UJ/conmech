@@ -6,6 +6,7 @@ import scipy
 from conmech.helpers import nph
 from deep_conmech.common import config
 from scipy import optimize
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 class Calculator:
@@ -21,25 +22,18 @@ class Calculator:
         cleaned_a, _ = Calculator.solve_all(setting, initial_vector)
         return cleaned_a
 
-    @staticmethod
-    def mode():
-        return config.CALCULATOR_MODE
-
-    @staticmethod
-    def is_fast():
-        return config.CALCULATOR_MODE == "function"
 
     @staticmethod
     def solve_normalized(setting, initial_vector=None):
-        if config.CALCULATOR_MODE == "function":
-            return Calculator.solve_normalized_function(setting)
-        elif config.CALCULATOR_MODE == "optimization":
+        #TODO: repeat with optimization if colision in this round
+        if(setting.is_coliding):
             return Calculator.solve_normalized_optimization(setting, initial_vector)
         else:
-            raise ArgumentError
+            return Calculator.solve_normalized_function(setting, initial_vector)
+
 
     @staticmethod
-    def solve_normalized_function(setting):
+    def solve_normalized_function(setting, initial_vector):
         normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
         return nph.unstack(normalized_a_vector, setting.dim)

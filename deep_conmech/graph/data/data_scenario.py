@@ -14,30 +14,31 @@ from deep_conmech.simulator.setting.setting_forces import *
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
         self,
-        base_scenarios: List[Scenario],
+        all_scenarios: List[Scenario],
         solve_function,
         relative_path,
         num_workers,
-        repetitions=1,
     ):
-        dimensions = set([s.mesh_data.dimension for s in base_scenarios])
-        if len(dimensions) != 1:
-            raise ArgumentError("Incorrect data")
-        dimension = dimensions.pop()
-        self.all_scenarios = base_scenarios * repetitions
+        self.all_scenarios = all_scenarios
         self.solve_function = solve_function
-        self.repetitions = repetitions
-
-        data_count = np.sum([s.time_data.episode_steps for s in self.all_scenarios])
 
         super().__init__(
-            dimension,
+            self.check_and_get_dimension(all_scenarios),
             relative_path=relative_path,
-            data_count=data_count,
+            data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
             num_workers=num_workers,
         )
         self.initialize_data()
+
+    def check_and_get_dimension(self, scenarios):
+        dimensions = set([s.mesh_data.dimension for s in scenarios])
+        if len(dimensions) != 1:
+            raise ArgumentError("Incorrect data")
+        return dimensions.pop()
+
+    def get_data_count(self, scenarios):
+        return np.sum([s.time_data.episode_steps for s in scenarios])
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(
@@ -61,14 +62,16 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
     ):
         current_index = start_index
         tqdm_description = f"Process {process_id}"
-        step_tqdm = cmh.get_tqdm(range(self.data_count), tqdm_description, process_id)
+        assigned_data_count = self.get_data_count(assigned_scenarios)
+        step_tqdm = cmh.get_tqdm(
+            range(assigned_data_count), tqdm_description, process_id
+        )
         scenario = assigned_scenarios[0]
         for index in step_tqdm:
-            ts = (index % scenario.time_data.episode_steps) + 1
+            episode_steps = scenario.time_data.episode_steps
+            ts = (index % episode_steps) + 1
             if ts == 1:
-                scenario = assigned_scenarios[
-                    int(index / scenario.time_data.episode_steps)
-                ]
+                scenario = assigned_scenarios[int(index / episode_steps)]
                 setting = self.get_setting_input(scenario)
 
                 tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
@@ -100,7 +103,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(
-        self, base_scenarios, solve_function, perform_data_update=False, repetitions=1
+        self, base_scenarios, solve_function, perform_data_update=False
     ):
         self.perform_data_update = perform_data_update
         super().__init__(
@@ -108,7 +111,6 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
             solve_function,
             relative_path="training_scenarios",
             num_workers=config.GENERATION_WORKERS,
-            repetitions=repetitions,
         )
 
     def update_data(self):
@@ -122,7 +124,5 @@ class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
             base_scenarios=[scenario],
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
-            repetitions=1,
-            num_workers=config.GENERATION_WORKERS,
+            num_workers=1 ### 
         )
-

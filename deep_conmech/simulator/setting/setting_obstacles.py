@@ -88,7 +88,7 @@ def integrate(
     return result
 
 
-#@njit
+@njit
 def integrate_numba(
     nodes,
     nodes_normals,
@@ -333,3 +333,7 @@ class SettingObstacles(SettingForces):
             self.obstacle_coeff.friction,
             self.time_step,
         )
+
+    @property
+    def is_coliding(self):
+        return np.any(self.boundary_penetration_norm > 0)

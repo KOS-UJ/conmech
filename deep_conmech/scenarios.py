@@ -32,6 +32,7 @@ class Scenario:
         else:
             self.forces_function = forces_function
 
+
 ####################################
 
 body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
@@ -57,7 +58,7 @@ o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
 o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
 o_slope = np.array([[[-1.0, -2.0]], [[4.0, 0.0]]])
 o_side = np.array([[[0.0, 1.0]], [[0.0, -3.0]]])
-o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[3.0, 1.0], [4.0, 0.0]]])
+o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[2.0, 1.0], [3.0, 0.0]]])
 
 
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
@@ -72,8 +73,8 @@ def f_fall(ip, mp, t, scale_x, scale_y):
 
 def f_slide(ip, mp, t, scale_x, scale_y):
     force = np.array([0.0, 0.0])
-    if t <= 0.1:
-        force = np.array([2.0, 0.0])
+    if t <= 0.5:
+        force = np.array([4.0, 0.0])
     return force
 
 
@@ -83,12 +84,12 @@ def f_accelerate_fast(ip, mp, t, scale_x, scale_y):
 
 
 def f_accelerate_slow_right(ip, mp, t, scale_x, scale_y):
-    force = np.array([0.1, 0.0])
+    force = np.array([0.5, 0.0])
     return force
 
 
 def f_accelerate_slow_left(ip, mp, t, scale_x, scale_y):
-    force = np.array([-0.1, 0.0])
+    force = np.array([-0.5, 0.0])
     return force
 
 
@@ -114,13 +115,13 @@ def f_random(ip, mp, t, scale_x, scale_y):
 
 
 def f_push_3d(ip, mp, t, scale_x, scale_y):
-    return np.array([0.5, 0.5, 0.5])
+    return np.array([1.0, 1.0, 1.0])
 
 
 def f_rotate_3d(ip, mp, t, scale_x, scale_y):
     if t <= 0.5:
         scale = ip[1] * ip[2]
-        return scale * np.array([1.0, 0.0, 0.0])
+        return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
 
 
@@ -140,7 +141,7 @@ def circle_slope(scale, is_adaptive, final_time):
         body_coeff=body_coeff,
         obstacle_coeff=obstacle_coeff,
         time_data=TimeData(final_time=final_time),
-        forces_function=f_accelerate_slow_right,
+        forces_function=f_slide,
         obstacles=o_slope,
     )
 
@@ -296,8 +297,8 @@ def get_data(scale, is_adaptive, final_time):
     return [
         polygon_two(scale, is_adaptive, final_time),
         circle_slope(scale, is_adaptive, final_time),
-        # spline_right(scale, is_adaptive, final_time),
-        # circle_left(scale, is_adaptive, final_time),
+        spline_right(scale, is_adaptive, final_time),
+        circle_left(scale, is_adaptive, final_time),
         # polygon_left(scale, is_adaptive, final_time),
         # circle_rotate(scale, is_adaptive, final_time),
         # polygon_rotate(scale, is_adaptive, final_time),
@@ -308,23 +309,20 @@ def get_data(scale, is_adaptive, final_time):
 all_train = get_data(
     scale=config.TRAIN_SCALE,
     is_adaptive=config.ADAPTIVE_TRAINING_MESH,
-    final_time=config.FINAL_TRAINING_TIME,
+    final_time=config.FINAL_TIME,
 )
 
 all_validation = get_data(
-    scale=config.VALIDATION_SCALE,
-    is_adaptive=False,
-    final_time=config.FINAL_TRAINING_TIME,
+    scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME,
 )
 
 print_args = dict(
-    scale=config.PRINT_SCALE, is_adaptive=False, final_time=config.FINAL_TRAINING_TIME
+    scale=config.PRINT_SCALE, is_adaptive=False, final_time=config.FINAL_TIME
 )
 all_print = [
-    # *get_data(scale=config.PRINT_SCALE, is_adaptive=False),
-    # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False),
-    polygon_two(**print_args),
-    circle_slope(**print_args),
-    circle_left(**print_args),
-    circle_rotate(**print_args),
+    *get_data(
+        scale=config.PRINT_SCALE, is_adaptive=False, final_time=config.FINAL_TIME
+    ),
+    # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
+    # polygon_two(**print_args),
 ]

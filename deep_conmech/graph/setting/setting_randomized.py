@@ -11,15 +11,6 @@ from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
-# MIN AT
-# a = a_cleaned - ((v_old - randomized_v_old) / time_step
-def L2_normalized_correction(
-    cleaned_normalized_a, C, normalized_E, normalized_a_correction
-):
-    normalized_a = cleaned_normalized_a - normalized_a_correction
-    return L2_new(normalized_a, C, normalized_E)
-
-
 class SettingRandomized(SettingObstacles):
     def __init__(
         self,

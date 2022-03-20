@@ -2,14 +2,19 @@ import torch
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
+
 class SettingTorch(SettingRandomized):
     def __init__(
-        self, mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+        self, mesh_data, body_coeff, obstacle_coeff, time_data, create_in_subprocess,
     ):
         super().__init__(
-            mesh_data, body_coeff, obstacle_coeff, create_in_subprocess,
+            mesh_data=mesh_data,
+            body_coeff=body_coeff,
+            obstacle_coeff=obstacle_coeff,
+            time_data=time_data,
+            create_in_subprocess=create_in_subprocess,
         )
-        self.exact_normalized_a_torch = None  #TODO: clear on change
+        self.exact_normalized_a_torch = None  # TODO: clear on change
 
     def complete_boundary_data_with_zeros(self, data):
         completed_data = torch.zeros(

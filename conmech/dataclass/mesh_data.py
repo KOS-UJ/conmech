@@ -36,4 +36,3 @@ class MeshData:
     @property
     def mesh_density_z(self) -> float:
         return self.get_modulo(self.mesh_density, 2)
-

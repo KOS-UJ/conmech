@@ -344,6 +344,10 @@ class SettingMesh:
         self.boundaries = None
         self.independent_nodes_count = self.nodes_count
 
+    @property
+    def dimension(self):
+        return self.mesh_data.dimension
+        
     def set_a_old(self, a):
         self.a_old = a
 

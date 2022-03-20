@@ -5,11 +5,10 @@ import math
 from typing import Tuple
 
 import numpy as np
-
 from conmech.forces import Forces
+from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
-from conmech.helpers import nph
 
 
 class SchurComplement(Optimization):
@@ -233,7 +232,9 @@ class Dynamic(Quasistatic):
         contact_law,
         friction_bound,
     ):
+        self.dim = mesh.dimension
         self.ACC = mesh.ACC
+        self.C2T = mesh.C2T
         self.K = mesh.K
         self.t_vector = np.zeros(mesh.independent_nodes_count)
         super().__init__(
@@ -295,27 +296,13 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * nph.unstack(self.B @ self.u_vector, dim=2)
+        X = -1 * self.B @ self.u_vector
 
-        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector, dim=2)
+        X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-        C2XTemp = np.squeeze(
-            np.dot(
-                np.transpose(C2X),
-                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-        C2YTemp = np.squeeze(
-            np.dot(
-                np.transpose(C2Y),
-                self.t_vector[0 : self.mesh.independent_nodes_count].transpose(),
-            )
-        )
+        X += np.tile(self.t_vector, self.dim) @ self.C2T  # TODO: Check if not -1 *
 
-        X += np.stack((C2XTemp, C2YTemp), axis=-1)  # TODO: Check if not -1 *
-
-        return self.forces.F + X
+        return self.forces.F + nph.unstack(X, dim=2)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)

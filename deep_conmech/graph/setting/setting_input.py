@@ -79,7 +79,7 @@ def L2_obstacle_nvt(
     boundary_obstacle_normals,
     boundary_nodes_volume,
 ):  # np via torch
-    value_torch = L2_normalized_obstacle_correction_cuda(
+    value_torch = L2_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device),
         None,
         thh.to_torch_double(C_boundary).to(thh.device),
@@ -102,10 +102,14 @@ class SettingInput(SettingTorch):
         body_coeff: BodyCoeff,
         obstacle_coeff: ObstacleCoeff,
         time_data: TimeData,
-        create_in_subprocess,
+        create_in_subprocess: bool,
     ):
         super().__init__(
-            mesh_data, body_coeff, obstacle_coeff, time_data, create_in_subprocess,
+            mesh_data=mesh_data,
+            body_coeff=body_coeff,
+            obstacle_coeff=obstacle_coeff,
+            time_data=time_data,
+            create_in_subprocess=create_in_subprocess,
         )
 
     @staticmethod

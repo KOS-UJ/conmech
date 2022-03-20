@@ -1,6 +1,8 @@
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 import numpy as np
-from conmech.helpers import mph
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.time_data import TimeData
+from deep_conmech import scenarios
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
@@ -18,8 +20,8 @@ def create_forces(setting):
             setting.nodes_count,
             setting.initial_nodes,
             config.FORCES_RANDOM_SCALE,
-            setting.scale_x,
-            setting.scale_y,
+            setting.mesh_data.scale_x,
+            setting.mesh_data.scale_y,
         )
     return forces
 
@@ -29,8 +31,8 @@ def create_u_old(setting):
         setting.nodes_count,
         setting.initial_nodes,
         config.U_RANDOM_SCALE,
-        setting.scale_x,
-        setting.scale_y,
+        setting.mesh_data.scale_x,
+        setting.mesh_data.scale_y,
     )
     return u_old
 
@@ -41,16 +43,16 @@ def create_v_old(setting):
             setting.nodes_count,
             setting.initial_nodes,
             config.V_RANDOM_SCALE,
-            setting.scale_x,
-            setting.scale_y,
+            setting.mesh_data.scale_x,
+            setting.mesh_data.scale_y,
         )
     else:
         v_old = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
             config.V_RANDOM_SCALE,
-            setting.scale_x,
-            setting.scale_y,
+            setting.mesh_data.scale_x,
+            setting.mesh_data.scale_y,
         )
     return v_old
 
@@ -79,37 +81,36 @@ def create_obstacles(setting):
 
 def get_base_setting(mesh_type):
     return SettingInput(
-        mesh_type=mesh_type,
-        mesh_density_x=config.MESH_DENSITY,
-        mesh_density_y=config.MESH_DENSITY,
-        scale_x=config.TRAIN_SCALE,
-        scale_y=config.TRAIN_SCALE,
-        is_adaptive=config.ADAPTIVE_TRAINING_MESH,
+        mesh_data=MeshData(
+            mesh_type=mesh_type,
+            mesh_density=[config.MESH_DENSITY],
+            scale=[config.TRAIN_SCALE],
+            is_adaptive=config.ADAPTIVE_TRAINING_MESH,
+        ),
+        body_coeff=scenarios.body_coeff,
+        obstacle_coeff=scenarios.obstacle_coeff,
+        time_data=TimeData(final_time=config.FINAL_TIME),
         create_in_subprocess=False,
     )
 
 
-
-
-
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
-    def __init__(self, dim):
+    def __init__(self, dimension):
         num_workers = config.GENERATION_WORKERS
-        data_count=config.SYNTHETIC_SOLVERS_COUNT
+        data_count = config.SYNTHETIC_SOLVERS_COUNT
 
         if data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
         self.data_part_count = int(data_count / num_workers)
 
         super().__init__(
-            dim=dim,
+            dimension=dimension,
             relative_path="training_synthetic",
             data_count=data_count,
             randomize_at_load=True,
-            num_workers=num_workers
+            num_workers=num_workers,
         )
         self.initialize_data()
-
 
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
@@ -127,17 +128,14 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         setting.prepare(forces)
 
         add_label = False
-        # if Calculator.is_fast():
         if add_label:
             normalized_a = Calculator.solve_normalized(setting)
             exact_normalized_a_torch = thh.to_torch_double(normalized_a)
         else:
             exact_normalized_a_torch = None
-            
+
         # data = setting.get_data(index, exact_normalized_a_torch)
         return setting, exact_normalized_a_torch  # data, setting
-
-
 
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = get_process_data_range(process_id, self.data_part_count)
@@ -160,14 +158,12 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
             setting, exact_normalized_a_torch = self.generate_setting(index)
             self.save(setting, exact_normalized_a_torch, index)
-            self.check_and_print(len(indices_to_do), index, setting, step_tqdm, tqdm_description)
+            self.check_and_print(
+                len(indices_to_do), index, setting, step_tqdm, tqdm_description
+            )
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True
-
-
-
-
 
 
 class StepDataset:

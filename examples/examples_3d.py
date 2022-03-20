@@ -17,7 +17,7 @@ def main():
         ),
         body_coeff=body_coeff,
         obstacle_coeff=obstacle_coeff,
-        time_data=TimeData(final_time=8.0),
+        time_data=TimeData(final_time=4.0),
         forces_function=f_rotate_3d,
         obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
     )

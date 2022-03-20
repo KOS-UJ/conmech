@@ -87,6 +87,7 @@ class SettingMatrices(SettingMesh):
             self.K,
             self.C2X,
             self.C2Y,
+            self.C2T
         ) = get_matrices(
             edges_features_matrix, self.body_coeff, self.time_step, slice_ind,
         )
@@ -129,6 +130,9 @@ class SettingMatrices(SettingMesh):
         self.A = None
         self.ACC = None
         self.K = None
+        self.C2X = None
+        self.C2Y = None
+        self.C2T = None
 
         self.B = None
         self.AREA = None

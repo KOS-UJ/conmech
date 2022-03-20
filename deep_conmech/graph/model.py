@@ -224,12 +224,12 @@ class GraphModelDynamic:
 
             predicted_normalized_a = predicted_normalized_a_split[i]
             # + setting.predicted_normalized_a_mean_cuda
-            # predicted_normalized_L2 = setting_input.L2_normalized_correction(
+            # predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
             #    predicted_normalized_a, C, normalized_E, normalized_a_correction
             # )
 
-            predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
-                cleaned_a=predicted_normalized_a,
+
+            L2_args = dict(
                 a_correction=normalized_a_correction,
                 C=C,
                 E=normalized_E,
@@ -243,6 +243,11 @@ class GraphModelDynamic:
                 time_step=0.01,  # TODO: generalize
             )
 
+
+            predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
+                cleaned_a=predicted_normalized_a, **L2_args
+            )
+
             ######################
             if config.L2_LOSS:
                 loss += predicted_normalized_L2
@@ -254,15 +259,15 @@ class GraphModelDynamic:
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
                 if exact_normalized_a is not None:
-                    exact_normalized_L2 = setting_input.L2_normalized_correction(
-                        exact_normalized_a, C, normalized_E, normalized_a_correction
+                    exact_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
+                        cleaned_a=exact_normalized_a,  **L2_args
                     )
                     loss_array[1] += float(
                         (predicted_normalized_L2 - exact_normalized_L2)
                         / torch.abs(exact_normalized_L2)
                     )
 
-                    # no_acc_normalized_L2 = setting_input.L2_normalized_correction(
+                    # no_acc_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                     #    torch.zeros_like(predicted_normalized_a), C, normalized_E, normalized_a_correction
                     # )
                     # loss_array[2] += float(
