@@ -24,7 +24,7 @@ class Forces:
 
     def setF(self):
         # f0 = np.array([self.f0(p) for p in self.mesh.moved_nodes])
-        # F = self.mesh.AREA @ f0
+        # F = self.mesh.VOL @ f0
 
         F = np.zeros([self.mesh.nodes_count, 2])
 

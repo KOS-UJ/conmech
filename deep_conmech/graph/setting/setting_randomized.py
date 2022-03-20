@@ -9,6 +9,7 @@ from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.scenarios import Scenario
 
 
 class SettingRandomized(SettingObstacles):
@@ -142,3 +143,19 @@ class SettingRandomized(SettingObstacles):
         self.set_u_old(u)
         self.set_v_old(v)
         self.set_a_old(a)
+
+
+    @staticmethod
+    def get_setting(
+        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
+    ):
+        setting = SettingRandomized(
+            mesh_data=scenario.mesh_data,
+            body_coeff=scenario.body_coeff,
+            obstacle_coeff=scenario.obstacle_coeff,
+            time_data=scenario.time_data,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(scenario.obstacles)
+        return setting

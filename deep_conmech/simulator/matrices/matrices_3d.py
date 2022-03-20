@@ -176,7 +176,7 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def get_matrices(edges_features_matrix, body_coeff, time_step, slice_ind):
+def get_matrices(edges_features_matrix, body_coeff, slice_ind):
     VOL = edges_features_matrix[0]
     U = edges_features_matrix[1][slice_ind, slice_ind]
 
@@ -187,11 +187,7 @@ def get_matrices(edges_features_matrix, body_coeff, time_step, slice_ind):
     B = calculate_constitutive_matrices(*ALL_W, body_coeff.mu, body_coeff.lambda_)
     ACC = create_acceleration(U, body_coeff.mass_density)
 
-    A_plus_B_times_ts = A + B * time_step
-    C = ACC + A_plus_B_times_ts * time_step
-
+    C2T = None
     K = None
-    C2X = None
-    C2Y = None
 
-    return C, B, VOL, A_plus_B_times_ts, A, ACC, K, C2X, C2Y
+    return VOL, ACC, A, B, C2T, K

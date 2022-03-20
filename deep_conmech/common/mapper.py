@@ -1,26 +1,7 @@
 import time
 
-from deep_conmech.common import config
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from conmech.helpers import cmh
 from deep_conmech.simulator.calculator import Calculator
-from conmech.helpers import cmh, nph
-from deep_conmech.common import config
-
-
-
-
-def get_randomized_setting(scenario, randomize=False, create_in_subprocess=False):
-    setting = SettingRandomized(
-        mesh_data=scenario.mesh_data,
-        body_coeff=scenario.body_coeff,
-        obstacle_coeff=scenario.obstacle_coeff,
-        time_data=scenario.time_data,
-        create_in_subprocess=create_in_subprocess,
-    )
-    setting.set_randomization(randomize)
-    setting.set_obstacles(scenario.obstacles)
-    return setting
-
 
 
 def map_time(
@@ -28,28 +9,36 @@ def map_time(
     operation,
     solve_function,
     scenario,
+    get_setting_function,
     simulate_dirty_data,
     description,
 ):
-    setting = get_randomized_setting(scenario, randomize=simulate_dirty_data, create_in_subprocess=True)
+    setting = get_setting_function(
+        scenario, randomize=simulate_dirty_data, create_in_subprocess=True
+    )
     if compare_with_base_setting:
-        base_setting = get_randomized_setting(scenario, randomize=False, create_in_subprocess=True)
+        base_setting = get_setting_function(
+            scenario, randomize=False, create_in_subprocess=True
+        )
     else:
         base_setting = None
         base_a = None
-    #max_data = thh.MaxData(scenario.id, episode_steps)
+    # max_data = thh.MaxData(scenario.id, episode_steps)
 
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = cmh.get_tqdm(range(scenario.time_data.episode_steps), f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}")
+    time_tqdm = cmh.get_tqdm(
+        range(scenario.time_data.episode_steps),
+        f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}",
+    )
     a = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
         forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)
-        #max_data.set(setting, time_step)
+        # max_data.set(setting, time_step)
 
         start_time = time.time()
         a = solve_function(setting, initial_vector=a)

@@ -3,6 +3,7 @@ Created 22.02.2021
 """
 
 import numpy as np
+from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -110,7 +111,8 @@ class Dynamic(Quasistatic):
         self.ACC = mesh.ACC
         self.K = mesh.K
         self.C2T = mesh.C2T
-        self.t_vector = np.zeros(mesh.independent_nodes_count)
+        self.ind = mesh.independent_nodes_count
+        self.t_vector = np.zeros(self.ind)
         super().__init__(
             mesh,
             inner_forces,
@@ -121,15 +123,9 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        self._point_temperature = (
-            (1 / self.time_step)
-            * self.mesh.ACC[
-                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
-            ]
-            + self.K[
-                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
-            ]
-        )
+        self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
+            : self.ind, : self.ind
+        ] + self.K[: self.ind, : self.ind]
 
         self.Q = self.recalculate_temperature()
 
@@ -144,11 +140,10 @@ class Dynamic(Quasistatic):
         X = -1 * self.B @ self.u_vector
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
-        
-        X += np.tile(self.t_vector, self.dim) @ self.C2T
-        
-        return self.forces.F_vector + X
 
+        X += np.tile(self.t_vector, self.dim) @ self.C2T
+
+        return self.forces.F_vector + X
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -156,14 +151,8 @@ class Dynamic(Quasistatic):
         self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
+        X = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
 
-        ind = self.mesh.independent_nodes_count
-        C2Xv = C2X @ self.v_vector[0:ind]
-        C2Yv = C2Y @ self.v_vector[ind : 2 * ind]
+        X += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
 
-        Q1 = (1 / self.time_step) * self.ACC[:ind, :ind] @ self.t_vector
-
-        QBig = Q1 - C2Xv - C2Yv
-
-        return QBig
+        return X

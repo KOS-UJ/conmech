@@ -23,6 +23,10 @@ def unstack(data, dim):
     return data.reshape(-1, dim, order="F")
 
 
+def unstack_and_sum_columns(data, dim):
+    return np.sum(unstack(data, dim), axis=1)
+
+
 def elementwise_dot(x, y, keepdims=False):
     return (x * y).sum(axis=1, keepdims=keepdims)
 

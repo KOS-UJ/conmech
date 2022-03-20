@@ -23,3 +23,4 @@ def set_memory_limit():
     soft_limit = config.TOTAL_MEMORY_LIMIT_GB * (1024 ** 3)  # (b -> kb -> mb -> gb)
     resource.setrlimit(rsrc, (soft_limit, hard))
 
+

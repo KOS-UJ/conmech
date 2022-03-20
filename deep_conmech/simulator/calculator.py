@@ -1,36 +1,41 @@
 import time
 from argparse import ArgumentError
+from typing import Callable, Optional
 
 import numpy as np
 import scipy
 from conmech.helpers import nph
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from scipy import optimize
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 class Calculator:
     @staticmethod
-    def solve_all(setting, initial_vector=None):
+    def solve_all(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         normalized_a = Calculator.solve_normalized(setting, initial_vector)
         normalized_cleaned_a = Calculator.clean(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
-    def solve(setting, initial_vector=None):
+    def solve(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_vector)
         return cleaned_a
 
-
     @staticmethod
-    def solve_normalized(setting, initial_vector=None):
-        #TODO: repeat with optimization if colision in this round
-        if(setting.is_coliding):
+    def solve_normalized(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        # TODO: repeat with optimization if colision in this round
+        if setting.is_coliding:
             return Calculator.solve_normalized_optimization(setting, initial_vector)
         else:
             return Calculator.solve_normalized_function(setting, initial_vector)
-
 
     @staticmethod
     def solve_normalized_function(setting, initial_vector):
@@ -57,9 +62,11 @@ class Calculator:
         """
 
     @staticmethod
-    def minimize(function, initial_vector):
+    def minimize(function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray) -> np.ndarray:
         return scipy.optimize.minimize(
-            function, initial_vector, method="L-BFGS-B" #, POWELL options={"disp": True}
+            function,
+            initial_vector,
+            method="L-BFGS-B",  # , POWELL options={"disp": True}
         ).x
 
     @staticmethod

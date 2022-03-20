@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 from conmech.dataclass.body_coeff import BodyCoeff
@@ -7,7 +7,6 @@ from conmech.dataclass.obstacle_coeff import ObstacleCoeff
 from conmech.dataclass.time_data import TimeData
 
 from deep_conmech.common import config
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 
 class Scenario:
@@ -18,7 +17,7 @@ class Scenario:
         body_coeff: BodyCoeff,
         obstacle_coeff: ObstacleCoeff,
         time_data: TimeData,
-        forces_function: Callable,
+        forces_function: Union[Callable, np.ndarray],
         obstacles: np.ndarray,
     ):
         self.id = id

@@ -334,8 +334,9 @@ class GraphModelDynamic:
         start_time = time.time()
         for scenario in self.print_scenarios:
             plotter_mapper.print_one_dynamic(
-                lambda setting: self.net.solve(setting, print_time=False),
+                self.net.solve,
                 scenario,
+                SettingInput.get_setting,
                 path,
                 simulate_dirty_data=False,
                 draw_base=False,  #######################

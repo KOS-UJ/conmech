@@ -10,7 +10,7 @@ PRINT_SCALE = 1.0
 FINAL_TIME = 2.0 if TEST else 8
 
 
-MESH_DENSITY = 4 if TEST else 8 # 16
+MESH_DENSITY = 4 if TEST else 16
 ADAPTIVE_TRAINING_MESH = False  #!# True
 
 ############

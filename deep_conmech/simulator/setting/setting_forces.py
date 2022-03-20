@@ -32,7 +32,7 @@ class SettingForces(SettingMatrices):
             mesh_data=mesh_data,
             body_coeff=body_coeff,
             time_data=time_data,
-            create_in_subprocess=create_in_subprocess
+            create_in_subprocess=create_in_subprocess,
         )
         self.forces = None
 
@@ -91,13 +91,13 @@ class SettingForces(SettingMatrices):
             self.normalized_forces,
             self.normalized_u_old,
             self.normalized_v_old,
-            self.AREA,
+            self.VOL,
             self.A_plus_B_times_ts,
             self.B,
         )
 
-    def get_E(self, forces, u_old, v_old, AREA, A_plus_B_times_ts, B):
-        F_vector = nph.stack_column(AREA @ forces)
+    def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B):
+        F_vector = nph.stack_column(VOL @ forces)
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 

@@ -20,6 +20,7 @@ def print_setting(setting, filename, catalog):
 def print_one_dynamic(
     solve_function,
     scenario,
+    get_setting_function,
     catalog,
     simulate_dirty_data,
     draw_base,
@@ -45,6 +46,7 @@ def print_one_dynamic(
         _print_at_interval,
         solve_function,
         scenario,
+        get_setting_function,
         simulate_dirty_data,
         description,
     )

@@ -5,7 +5,6 @@ from typing import List
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_forces import *
@@ -44,9 +43,11 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         assigned_scenarios = get_assigned_scenarios(
             self.all_scenarios, num_workers, process_id
         )
+        #TODO: Will not work for nonequal assigned_data_counts
+        assigned_data_count = self.get_data_count(assigned_scenarios)
 
-        start_index = process_id * self.data_count
-        stop_index = start_index + self.data_count
+        start_index = process_id * assigned_data_count
+        stop_index = start_index + assigned_data_count
         assigned_data_range = range(start_index, stop_index)
 
         indices_to_do = get_and_check_indices_to_do(
@@ -103,12 +104,12 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(
-        self, base_scenarios, solve_function, perform_data_update=False
+        self, all_scenarios, solve_function, perform_data_update=False
     ):
         self.perform_data_update = perform_data_update
         super().__init__(
-            base_scenarios,
-            solve_function,
+            all_scenarios=all_scenarios,
+            solve_function=solve_function,
             relative_path="training_scenarios",
             num_workers=config.GENERATION_WORKERS,
         )
@@ -121,7 +122,7 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(self, scenario):
         super().__init__(
-            base_scenarios=[scenario],
+            all_scenarios=[scenario],
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
             num_workers=1 ### 

@@ -199,6 +199,7 @@ class Quasistatic(SchurComplement):
         friction_bound,
     ):
         self.A = mesh.A
+        self.dim=mesh.dimension
         super().__init__(
             mesh,
             inner_forces,
@@ -213,7 +214,7 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=2)
+        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -236,7 +237,8 @@ class Dynamic(Quasistatic):
         self.ACC = mesh.ACC
         self.C2T = mesh.C2T
         self.K = mesh.K
-        self.t_vector = np.zeros(mesh.independent_nodes_count)
+        self.ind = mesh.independent_nodes_count
+        self.t_vector = np.zeros(self.ind)
         super().__init__(
             mesh,
             inner_forces,
@@ -250,10 +252,10 @@ class Dynamic(Quasistatic):
         T = (
             (1 / self.time_step)
             * self.ACC[
-                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+                : self.ind, : self.ind
             ]
             + self.K[
-                : self.mesh.independent_nodes_count, : self.mesh.independent_nodes_count
+                : self.ind, : self.ind
             ]
         )
 
@@ -302,42 +304,17 @@ class Dynamic(Quasistatic):
 
         X += np.tile(self.t_vector, self.dim) @ self.C2T  # TODO: Check if not -1 *
 
-        return self.forces.F + nph.unstack(X, dim=2)
+        return self.forces.F + nph.unstack(X, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
         self.forces_free, self._point_forces = self.recalculate_forces()
         self.Q_free, self.Q = self.recalculate_temperature()
 
-    def recalculate_temperature(self):
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
+    def recalculate_temperature(self):        
+        QBig = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
 
-        C2Xv = np.squeeze(
-            np.asarray(
-                C2X @ self.v_vector[0 : self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-        C2Yv = np.squeeze(
-            np.asarray(
-                C2Y
-                @ self.v_vector[
-                    self.mesh.independent_nodes_count : 2
-                    * self.mesh.independent_nodes_count
-                ].transpose()
-            )
-        )
-
-        Q1 = (1 / self.time_step) * np.squeeze(
-            np.asarray(
-                self.ACC[
-                    : self.mesh.independent_nodes_count,
-                    : self.mesh.independent_nodes_count,
-                ]
-                @ self.t_vector[: self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-
-        QBig = Q1 - C2Xv - C2Yv
+        QBig += (1 / self.time_step) * self.ACC[:self.ind, :self.ind] @ self.t_vector
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]

@@ -51,8 +51,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_a_correction)
 
     @property
-    def AREA_torch(self):
-        return thh.to_torch_double(self.AREA)
+    def VOL_torch(self):
+        return thh.to_torch_double(self.VOL)
 
     @property
     def B_torch(self):

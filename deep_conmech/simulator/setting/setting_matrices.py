@@ -32,7 +32,7 @@ class SettingMatrices(SettingMesh):
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         with_schur_complement_matrices: bool = True,
-        create_in_subprocess: bool =False,
+        create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -77,25 +77,17 @@ class SettingMatrices(SettingMesh):
         #    self.edges_number, edges_features_matrix
         # )
         slice_ind = slice(0, self.independent_nodes_count)
-        (
-            self.C,
-            self.B,
-            self.AREA,
-            self.A_plus_B_times_ts,
-            self.A,
-            self.ACC,
-            self.K,
-            self.C2X,
-            self.C2Y,
-            self.C2T
-        ) = get_matrices(
-            edges_features_matrix, self.body_coeff, self.time_step, slice_ind,
+        (self.VOL, self.ACC, self.A, self.B, self.C2T, self.K) = get_matrices(
+            edges_features_matrix, self.body_coeff, slice_ind,
         )
 
         if self.with_schur_complement_matrices:
             self.calculate_schur_complement_matrices()
 
     def calculate_schur_complement_matrices(self):
+        self.A_plus_B_times_ts = self.A + self.B * self.time_step
+        self.C = self.ACC + self.A_plus_B_times_ts * self.time_step
+
         p = self.independent_nodes_count
         t = self.boundary_nodes_count
         i = p - t
@@ -125,17 +117,15 @@ class SettingMatrices(SettingMesh):
     def clear_save(self):
         self.is_contact = None
         self.is_dirichlet = None
-        
+
         self.element_initial_volume = None
         self.A = None
         self.ACC = None
         self.K = None
-        self.C2X = None
-        self.C2Y = None
         self.C2T = None
 
         self.B = None
-        self.AREA = None
+        self.VOL = None
         self.A_plus_B_times_ts = None
         self.Cti = None
         self.Cit = None

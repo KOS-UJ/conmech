@@ -49,14 +49,13 @@ def main():
     ]
     # change name boundary to contact
     # ball falling from staircase
-    # if step does not cause penetration, use fsolve, otherwise return and use
-    # remove dim from Scenario
     # check different time steps (and mesh sizes)
     # standardize boundary indices and initial_vector
     for scenario in all_scenarios:
         plotter_mapper.print_one_dynamic(
             Calculator.solve,
             scenario,
+            SettingRandomized.get_setting,
             path,
             simulate_dirty_data=False,
             draw_base=False,
