@@ -32,23 +32,23 @@ def print_one_dynamic(
     cmh.create_folders(f"output/{catalog}")
 
     _print_at_interval = lambda time, setting, base_setting, a, base_a: print_at_interval(
-        time,
-        setting,
-        f"output/{catalog}/{scenario.id} {int(time * 100)}.{extension}",
-        base_setting if draw_base else None,
-        draw_detailed,
-        all_images_paths,
-        extension,
+        time=time,
+        setting=setting,
+        path=f"output/{catalog}/{scenario.id} {int(time * 100)}.{extension}",
+        base_setting=base_setting if draw_base else None,
+        draw_detailed=draw_detailed,
+        all_images_paths=all_images_paths,
+        extension=extension,
     )
 
     mapper.map_time(
-        draw_base,
-        _print_at_interval,
-        solve_function,
-        scenario,
-        get_setting_function,
-        simulate_dirty_data,
-        description,
+        compare_with_base_setting=draw_base,
+        operation=_print_at_interval,
+        solve_function=solve_function,
+        scenario=scenario,
+        get_setting_function=get_setting_function,
+        simulate_dirty_data=simulate_dirty_data,
+        description=description,
     )
 
     Plotter.draw_animation(
@@ -64,7 +64,8 @@ def print_at_interval(
         print_setting_internal(
             setting, path, base_setting, extension, time, draw_detailed
         )
-        all_images_paths.append(path)
+        if all_images_paths is not None:
+            all_images_paths.append(path)
 
 
 def print_setting_internal(setting, path, base_setting, extension, time, draw_detailed):

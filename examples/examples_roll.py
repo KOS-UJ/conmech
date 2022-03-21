@@ -1,5 +1,5 @@
-import deep_conmech.common.config as config
 import deep_conmech.scenarios as scenarios
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from conmech.helpers import cmh
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.scenarios import *

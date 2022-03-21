@@ -97,10 +97,10 @@ def f_stay(ip, mp, t, scale_x, scale_y):
 
 
 def f_rotate(ip, mp, t, scale_x, scale_y):
-    if t <= 0.1:
+    if t <= 0.5:
         y_scaled = ip[1] / scale_y
         # y_scaled = 2*y_scaled - 1.
-        return y_scaled * np.array([0.5, 0.0])
+        return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 

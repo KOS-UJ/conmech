@@ -144,7 +144,7 @@ class SettingInput(SettingTorch):
     @staticmethod
     def get_nodes_data_description(dim):
         desc = []
-        for attr in ["forces", "boundary_penetration", "boundary_normals"]:
+        for attr in ["forces", "boundary_penetration", "boundary_normals", "boundary_v_tangential"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

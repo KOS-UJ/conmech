@@ -65,7 +65,7 @@ def move_boundary_nodes_to_start_numba(
     unordered_points,
     unordered_elements,
     unordered_boundary_indices,
-    unordered_contact_indices, #TODO: move to the top
+    unordered_contact_indices,  # TODO: move to the top
 ):
     nodes_count = len(unordered_points)
     boundary_nodes_count = len(unordered_boundary_indices)
@@ -347,7 +347,7 @@ class SettingMesh:
     @property
     def dimension(self):
         return self.mesh_data.dimension
-        
+
     def set_a_old(self, a):
         self.a_old = a
 
@@ -408,10 +408,12 @@ class SettingMesh:
         return self.initial_nodes - self.mean_initial_nodes
 
     @property
+    def rotated_v_old(self):
+        return self.normalize_rotate(self.v_old)
+        
+    @property
     def normalized_v_old(self):
-        return self.normalize_rotate(
-            self.v_old
-        )  ########### TODO: problem with boundary friction low using "- np.mean(self.v_old, axis=0))""
+        return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))
 
     @property
     def normalized_u_old(self):

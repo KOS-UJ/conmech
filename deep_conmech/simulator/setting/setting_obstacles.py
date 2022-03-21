@@ -284,7 +284,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def normalized_boundary_v_old(self):
-        return self.normalized_v_old[self.boundary_nodes_indices]
+        return self.rotated_v_old[self.boundary_nodes_indices]
 
     @property
     def normalized_boundary_nodes(self):

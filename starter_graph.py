@@ -12,16 +12,18 @@ def main():
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
 
-    nodes_statistics, edges_statistics = None, None  # train_dataset.get_statistics()
+    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, Calculator.solve_all)
+    nodes_statistics, edges_statistics = train_dataset.get_statistics()
+    # nodes_statistics, edges_statistics = None, None
     net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
 
     #train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
-    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, Calculator.solve_all)
     # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
     all_val_datasets = [
         ValidationScenarioDatasetDynamic(scenario)
         for scenario in scenarios.all_validation
     ]
+    all_val_datasets[0].get_statistics()
 
     model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, net)
     if path is not None:

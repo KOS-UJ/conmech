@@ -1,5 +1,4 @@
 from argparse import ArgumentError
-from turtle import up
 from typing import List
 
 from deep_conmech.common import config
@@ -125,5 +124,5 @@ class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
             all_scenarios=[scenario],
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
-            num_workers=1 ### 
+            num_workers=1 ###
         )

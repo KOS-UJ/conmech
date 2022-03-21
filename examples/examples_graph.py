@@ -1,4 +1,3 @@
-import deep_conmech.common.config as config
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 import deep_conmech.scenarios as scenarios
 from conmech.helpers import cmh

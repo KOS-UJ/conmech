@@ -37,7 +37,6 @@ def print_dataset(dataset, cutoff, timestamp, description):
         # break
 
 
-
 def get_print_dataloader(dataset):
     return get_dataloader(dataset, config.BATCH_SIZE, num_workers=0, shuffle=False)
 
@@ -119,13 +118,21 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 
 
 class DatasetStatistics:
-    def __init__(self, data):
+    def __init__(self, data, descriprion):
+        self.pandas_data = pd.DataFrame(data.numpy())
+        self.pandas_data.columns = descriprion
+
         self.data_mean = torch.mean(data, axis=0)
         self.data_std = torch.std(data, axis=0)
 
+    def describe(self):
+        return self.pandas_data.describe()
+
 
 class BaseDatasetDynamic:
-    def __init__(self, dimension, relative_path, data_count, randomize_at_load, num_workers):
+    def __init__(
+        self, dimension, relative_path, data_count, randomize_at_load, num_workers
+    ):
         self.dimension = dimension
         self.relative_path = relative_path
         self.data_count = data_count
@@ -138,34 +145,25 @@ class BaseDatasetDynamic:
             body_coeff=scenario.body_coeff,
             obstacle_coeff=scenario.obstacle_coeff,
             time_data=scenario.time_data,
-            create_in_subprocess=False, #####
+            create_in_subprocess=False,  #####
         )
         setting.set_randomization(False)
         setting.set_obstacles(scenario.obstacles)
         return setting
-
-
 
     def get_statistics(self):
         dataloader = get_train_dataloader(self)
 
         nodes_data = torch.empty((0, SettingInput.nodes_data_dim()))
         edges_data = torch.empty((0, SettingInput.edges_data_dim()))
-        for data in thh.get_tqdm(dataloader, desc="Calculating dataset statistics"):
+        for data in cmh.get_tqdm(dataloader, desc="Calculating dataset statistics"):
             nodes_data = torch.cat((nodes_data, data.x))
             edges_data = torch.cat((edges_data, data.edge_attr))
 
-        pandas_nodes_data = pd.DataFrame(nodes_data.numpy())
-        pandas_nodes_data.columns = SettingInput.get_nodes_data_description(self.dim)
-
-        pandas_edges_data = pd.DataFrame(edges_data.numpy())
-        pandas_edges_data.columns = SettingInput.get_edges_data_description(self.dim)
-
-        # pandas_edges_data.describe()
-        # pandas_nodes_data.describe()
-
-        return DatasetStatistics(nodes_data), DatasetStatistics(edges_data)
-
+        return (
+            DatasetStatistics(nodes_data, SettingInput.get_nodes_data_description(self.dimension)),
+            DatasetStatistics(edges_data, SettingInput.get_edges_data_description(self.dimension)),
+        )
 
     def update_data(self):
         pass
@@ -187,7 +185,7 @@ class BaseDatasetDynamic:
             print(f"Taking prepared {self.relative_path} data")
             return
 
-        #print(f"Missing {self.relative_path} data")
+        # print(f"Missing {self.relative_path} data")
         result = False
         while result is False:
             result = mph.run_processes(
@@ -196,10 +194,8 @@ class BaseDatasetDynamic:
             if result is False:
                 print("Restarting data generation")
 
-
     def generate_data_process(self, num_workers, process_id):
         pass
-
 
     @property
     def path(self):

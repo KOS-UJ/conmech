@@ -87,8 +87,6 @@ class GraphModelDynamic:
 
     ################
 
-    ################
-
     def save(self):
         print("Saving model")
         timestamp = cmh.get_timestamp()
@@ -227,7 +225,6 @@ class GraphModelDynamic:
             # predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
             #    predicted_normalized_a, C, normalized_E, normalized_a_correction
             # )
-
 
             L2_args = dict(
                 a_correction=normalized_a_correction,
