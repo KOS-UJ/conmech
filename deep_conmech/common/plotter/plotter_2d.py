@@ -1,15 +1,14 @@
 import os
 import time
 
+import deep_conmech.common.config as config
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
+from deep_conmech.simulator.setting.setting_forces import *
 from matplotlib import cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
-
-import deep_conmech.common.config as config
-from deep_conmech.simulator.setting.setting_forces import *
 
 
 class Plotter:
@@ -37,21 +36,26 @@ class Plotter:
         ax = fig.add_subplot(1, 1, 1, facecolor="none")
         return ax
 
-    def draw_setting_ax(self, setting, ax, base_setting, time, draw_detailed=True):
+    def set_perspective(self, scale, ax):
         ax.set_aspect("equal", "box")
-        scale = setting.mesh_data.scale_x
 
         x_max = 20.0 * scale
         y_max = 4.0 * scale
         ax.set_xlim(-4 * scale, x_max)
         ax.set_ylim(-4 * scale, y_max)
 
+
+
+    def draw_setting_ax(self, setting, ax, base_setting, time, draw_detailed=True):
+        scale = setting.mesh_data.scale_x
+        self.set_perspective(scale, ax)
+
         self.draw_main_displaced(setting, ax)
         if base_setting is not None:
             self.draw_base_displaced(base_setting, scale, ax)
         self.description_offset = np.array([-0.1, -1.1]) * scale
 
-        self.draw_parameters(time, setting, scale, x_max, y_max, ax)
+        self.draw_parameters(time, setting, scale, ax)
         # self.draw_angles(setting, ax)
 
         position = np.array([-1.8, -2.2]) * scale
@@ -251,7 +255,10 @@ class Plotter:
     def draw_vertices_data(self, position, setting, ax):
         self.draw_data_vertices(setting, setting.normalized_u_old, position, ax)
 
-    def draw_parameters(self, time, setting, scale, x_max, y_max, ax):
+    def draw_parameters(self, time, setting, scale, ax):
+        x_max = ax.get_xlim()[1]
+        y_max = ax.get_ylim()[1]
+
         ax.annotate(
             f"time: {str(round(time, 1))}",
             xy=(x_max - 2.0 * scale, y_max - 0.9 * scale),
@@ -309,8 +316,8 @@ class Plotter:
                     zorder=2,
                 )
 
-    def draw_triplot(self, points, setting, color, ax):
-        boundary_nodes = points[setting.boundary_faces]
+    def draw_triplot(self, nodes, setting, color, ax):
+        boundary_nodes = nodes[setting.boundary_faces]
         ax.add_collection(
             collections.LineCollection(
                 boundary_nodes,
@@ -318,9 +325,10 @@ class Plotter:
                 linewidths=0.3,
             )
         )
-        ax.triplot(
-            points[:, 0], points[:, 1], setting.elements, color=color, linewidth=0.1
-        )
+        self.triplot(nodes, setting.elements, color, ax)
+
+    def triplot(self, nodes, elements, color, ax):
+        ax.triplot(nodes[:, 0], nodes[:, 1], elements, color=color, linewidth=0.1)
 
     def plt_save(self, path, extension):
         plt.savefig(

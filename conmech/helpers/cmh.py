@@ -38,3 +38,7 @@ def clear_folder(directory):
     if not os.path.exists(directory):
         return
     shutil.rmtree(directory)
+
+def recreate_folder(directory):
+    clear_folder(directory)
+    create_folder(directory)

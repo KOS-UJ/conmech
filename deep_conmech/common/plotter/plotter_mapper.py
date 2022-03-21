@@ -1,9 +1,10 @@
 import time
+from typing import Optional
 
+from conmech.helpers import cmh
 from deep_conmech.common import config, mapper
 from deep_conmech.common.plotter import plotter_3d
 from deep_conmech.common.plotter.plotter_2d import Plotter
-from conmech.helpers import cmh
 from deep_conmech.simulator.setting.setting_forces import *
 
 
@@ -58,9 +59,16 @@ def print_one_dynamic(
 
 
 def print_at_interval(
-    time, setting, path, base_setting, draw_detailed, all_images_paths, extension
+    time,
+    setting,
+    path,
+    base_setting,
+    draw_detailed,
+    all_images_paths,
+    extension,
+    skip: Optional[float] = config.PRINT_SKIP,
 ):
-    if nph.skip(time, config.PRINT_SKIP):
+    if nph.close_modulo(time, skip):
         print_setting_internal(
             setting, path, base_setting, extension, time, draw_detailed
         )
@@ -92,8 +100,18 @@ def print_setting_internal(setting, path, base_setting, extension, time, draw_de
 def print_setting_test(setting):
     plotter = Plotter()
     ax = plotter.get_one_ax()
+    plotter.set_perspective(scale=1, ax=ax)
     plotter.draw_displaced(setting, [0.0, 0.0], "orange", ax)
     plotter.plt_save("./output/1.png", "png")
+
+
+def print_simple_data(elements, nodes, path):
+    plotter = Plotter()
+    ax = plotter.get_one_ax()
+    plotter.set_perspective(scale=1, ax=ax)
+    plotter.triplot(nodes, elements, "orange", ax)
+    extension = path.split('.')[-1]
+    plotter.plt_save(path, extension)
 
 
 ###############################

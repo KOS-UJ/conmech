@@ -35,8 +35,10 @@ def get_occurances(data):
     return np.array(list(set(data.flatten())))
 
 
-def skip(time, skip):
-    return np.allclose(time % skip, 0.0) or np.allclose(time % skip, skip)
+def close_modulo(value, divider):
+    if divider is None:
+        return True
+    return np.allclose(value % divider, 0.0) or np.allclose(value % skip, divider)
 
 
 ###################
