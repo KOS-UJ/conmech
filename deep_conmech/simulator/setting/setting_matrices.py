@@ -4,7 +4,7 @@ import deep_conmech.common.config as config
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
@@ -28,7 +28,7 @@ class SettingMatrices(SettingMesh):
         self,
         mesh_data: MeshData,
         body_prop: BodyProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         with_schur_complement_matrices: bool = True,
@@ -41,7 +41,7 @@ class SettingMatrices(SettingMesh):
             create_in_subprocess=create_in_subprocess,
         )
         self.body_prop = body_prop
-        self.time_data = time_data
+        self.schedule = schedule
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.reinitialize_matrices()
@@ -52,7 +52,7 @@ class SettingMatrices(SettingMesh):
 
     @property
     def time_step(self):
-        return self.time_data.time_step
+        return self.schedule.time_step
 
     def reinitialize_matrices(self):
 

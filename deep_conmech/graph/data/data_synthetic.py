@@ -1,7 +1,7 @@
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 from deep_conmech import scenarios
 from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
@@ -89,7 +89,7 @@ def get_base_setting(mesh_type):
         ),
         body_prop=scenarios.body_prop,
         obstacle_prop=scenarios.obstacle_prop,
-        time_data=TimeData(final_time=config.FINAL_TIME),
+        schedule=Schedule(final_time=config.FINAL_TIME),
         create_in_subprocess=False,
     )
 

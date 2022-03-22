@@ -144,7 +144,7 @@ class BaseDatasetDynamic:
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
-            time_data=scenario.time_data,
+            schedule=scenario.schedule,
             create_in_subprocess=False,  #####
         )
         setting.set_randomization(False)

@@ -102,7 +102,8 @@ def simulate(scenario, directory):
 
     Plotter.draw_animation(
         f"{images_directory}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
-        all_images_paths, all_figs
+        all_images_paths,
+        all_figs,
     )
     return all_settings
 
@@ -159,7 +160,7 @@ def main():
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=2.0),
+        schedule=Schedule(final_time=2.0),
         forces_function=f_rotate,
         obstacles=o_side,
     )
@@ -188,13 +189,13 @@ def print_result(inputs, directory):
 
     all_images_paths = []
     for i in range(len(all_moved_nodes)):
-        time = (i+1)*0.01 #refactor
+        time = (i + 1) * 0.01  # refactor
         if time % config.PRINT_SKIP == 0:
             moved_nodes = all_moved_nodes[i]
             path = f"{images_directory}/loaded_result {i}.png"
             all_images_paths.append(path)
             plotter_mapper.print_simple_data(elements, moved_nodes, path)
-            
+
     Plotter.draw_animation(
         f"{images_directory}/loaded_result ANIMATION.gif", all_images_paths
     )

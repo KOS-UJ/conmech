@@ -29,7 +29,7 @@ def map_time(
     comparison_time = 0
 
     time_tqdm = cmh.get_tqdm(
-        range(scenario.time_data.episode_steps),
+        range(scenario.schedule.episode_steps),
         f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}",
     )
     a = None

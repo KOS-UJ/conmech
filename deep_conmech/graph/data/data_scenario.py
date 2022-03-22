@@ -11,11 +11,7 @@ from deep_conmech.simulator.setting.setting_forces import *
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
-        self,
-        all_scenarios: List[Scenario],
-        solve_function,
-        relative_path,
-        num_workers,
+        self, all_scenarios: List[Scenario], solve_function, relative_path, num_workers,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -36,13 +32,13 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         return dimensions.pop()
 
     def get_data_count(self, scenarios):
-        return np.sum([s.time_data.episode_steps for s in scenarios])
+        return np.sum([s.schedule.episode_steps for s in scenarios])
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(
             self.all_scenarios, num_workers, process_id
         )
-        #TODO: Will not work for nonequal assigned_data_counts
+        # TODO: Will not work for nonequal assigned_data_counts
         assigned_data_count = self.get_data_count(assigned_scenarios)
 
         start_index = process_id * assigned_data_count
@@ -68,7 +64,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         )
         scenario = assigned_scenarios[0]
         for index in step_tqdm:
-            episode_steps = scenario.time_data.episode_steps
+            episode_steps = scenario.schedule.episode_steps
             ts = (index % episode_steps) + 1
             if ts == 1:
                 scenario = assigned_scenarios[int(index / episode_steps)]
@@ -102,9 +98,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(
-        self, all_scenarios, solve_function, perform_data_update=False
-    ):
+    def __init__(self, all_scenarios, solve_function, perform_data_update=False):
         self.perform_data_update = perform_data_update
         super().__init__(
             all_scenarios=all_scenarios,
@@ -124,5 +118,5 @@ class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
             all_scenarios=[scenario],
             solve_function=Calculator.solve_all,
             relative_path=f"validation/{scenario.id}",
-            num_workers=1 ###
+            num_workers=1,  ###
         )

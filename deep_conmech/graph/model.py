@@ -53,10 +53,11 @@ class GraphModelDynamic:
         ]
         self.writer = get_writer()
         self.loss_labels = [
-            "Main",
+            "L2",
             "L2_diff",
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
+        self.labels_count = len(self.loss_labels)
         self.tqdm_loss_index = -1
 
         self.net = net
@@ -114,23 +115,26 @@ class GraphModelDynamic:
             # with profile(with_stack=True, profile_memory=True) as prof:
 
             batch_tqdm = cmh.get_tqdm(self.train_dataloader, desc="Batch")
-            for batch_number, batch in enumerate(batch_tqdm):
+            batch_count = len(batch_tqdm)
 
-                train_loss_array = self.train_step(batch)
+            total_loss_array = np.zeros(self.labels_count)
+            for batch_number, batch in enumerate(batch_tqdm):
+                total_loss_array += self.train_step(batch)
                 examples_seen += len(batch)
-                self.batch_raport(batch_tqdm, train_loss_array, examples_seen, epoch)
+
+                if(batch_number == batch_count - 1):
+                    total_loss_array /= batch_count
+                    self.training_raport(batch_tqdm, total_loss_array, examples_seen, epoch)
 
             self.scheduler.step()
 
             if epoch % config.VALIDATE_AT_EPOCHS == 0:
-                self.epoch_raport(batch_tqdm, examples_seen, epoch)
+                self.validation_raport(examples_seen, epoch)
                 self.train_dataset.update_data()
-            # if epoch % config.VAL_ROLLOUT_AT_EPOCHS == 0:
-            #    self.validate_rollout(examples_seen)
 
             time_enlapsed = time.time() - start_time
             if time_enlapsed > config.DRAW_AT_MINUTES * 60:
-                self.save()
+                # self.save()
                 self.print_raport()
                 start_time = time.time()
 
@@ -181,7 +185,7 @@ class GraphModelDynamic:
         dim_dim_graph_sizes = [(size * self.dim) ** self.dim for size in graph_sizes]
 
         loss = 0.0
-        loss_array = np.zeros([3])
+        loss_array = np.zeros(self.labels_count)
 
         batch_cuda = batch.to(thh.device)
         predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
@@ -263,7 +267,7 @@ class GraphModelDynamic:
 
     #################
 
-    def batch_raport(self, tqdm, loss_array, examples_seen, epoch):
+    def training_raport(self, tqdm, loss_array, examples_seen, epoch):
         tqdm.set_description(
             f"EPOCH: {epoch}, lr: {self.lr:.6f}, loss: {loss_array[self.tqdm_loss_index]:.4f}"
         )
@@ -275,31 +279,37 @@ class GraphModelDynamic:
                 f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
             )
 
-    def epoch_raport(self, tqdm, examples_seen, epoch):
+    def validation_raport(self, examples_seen, epoch):
+        total_loss_array = np.zeros(self.labels_count)
         for dataset, dataloader in self.all_val_data:
-            labels_count = len(self.loss_labels)
-            mean_loss_array = np.zeros([labels_count])
+            mean_loss_array = np.zeros(self.labels_count)
 
             batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
             # range(len()) -> enumerate
+
             for _, batch in enumerate(batch_tqdm):
-                loss_array = self.train_step(batch) #self.test_step(batch)
+                loss_array = self.train_step(batch)  # self.test_step(batch)
                 mean_loss_array += loss_array
                 batch_tqdm.set_description(
                     f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
                 )
             mean_loss_array = mean_loss_array / len(dataloader)
 
-            # tqdm.set_description(
-            #    f"EPOCH: {epoch}, lr: {self.lr:.6f}, {dataset.relative_path} val loss {mean_loss_array[0]:.4f}"
-            # )
-
-            for i in range(labels_count):
+            for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
                     mean_loss_array[i],
                     examples_seen,
                 )
+            total_loss_array += mean_loss_array
+
+        total_loss_array /= len(self.all_val_data)
+        for i in range(self.labels_count):
+            self.writer.add_scalar(
+                f"Loss/Validation/{self.loss_labels[i]}",
+                total_loss_array[i],
+                examples_seen,
+            )
         print("---")
 
     #################

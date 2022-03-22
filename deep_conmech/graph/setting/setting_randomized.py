@@ -2,7 +2,7 @@ import copy
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 
 import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.helpers import nph
@@ -18,14 +18,14 @@ class SettingRandomized(SettingObstacles):
         mesh_data: MeshData,
         body_prop: BodyProperties,
         obstacle_prop: ObstacleProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
-            time_data=time_data,
+            schedule=schedule,
             create_in_subprocess=create_in_subprocess,
         )
         self.set_randomization(False)
@@ -152,7 +152,7 @@ class SettingRandomized(SettingObstacles):
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
-            time_data=scenario.time_data,
+            schedule=scenario.schedule,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)

@@ -102,14 +102,14 @@ class SettingInput(SettingTorch):
         mesh_data: MeshData,
         body_prop: BodyProperties,
         obstacle_prop: ObstacleProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         create_in_subprocess: bool,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
-            time_data=time_data,
+            schedule=schedule,
             create_in_subprocess=create_in_subprocess,
         )
 
@@ -244,7 +244,7 @@ class SettingInput(SettingTorch):
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
-            time_data=scenario.time_data,
+            schedule=scenario.schedule,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)

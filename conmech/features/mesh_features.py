@@ -2,7 +2,7 @@ from typing import Callable
 
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 
@@ -12,14 +12,14 @@ class MeshFeatures(SettingMatrices):
         self,
         mesh_data: MeshData,
         body_prop: BodyProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
-            time_data=time_data,
+            schedule=schedule,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             with_schur_complement_matrices=False,

@@ -4,7 +4,7 @@ import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 
 from deep_conmech.common import config
 
@@ -16,7 +16,7 @@ class Scenario:
         mesh_data: MeshData,
         body_prop: BodyProperties,
         obstacle_prop: ObstacleProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacles: np.ndarray,
     ):
@@ -24,7 +24,7 @@ class Scenario:
         self.mesh_data = mesh_data
         self.body_prop = body_prop
         self.obstacle_prop = obstacle_prop
-        self.time_data = time_data
+        self.schedule = schedule
         self.obstacles = obstacles * mesh_data.scale_x
         if isinstance(forces_function, np.ndarray):
             self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
@@ -38,7 +38,7 @@ body_prop = BodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_densit
 # body_prop = BodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
-time_data = TimeData(time_step=0.01, final_time=4.0)
+schedule = Schedule(time_step=0.01, final_time=4.0)
 
 ####################################
 
@@ -139,7 +139,7 @@ def circle_slope(scale, is_adaptive, final_time):
         ),
         body_prop=body_prop,
         obstacle_prop=obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
     )
@@ -157,7 +157,7 @@ def spline_right(scale, is_adaptive, final_time):
         ),
         body_prop=body_prop,
         obstacle_prop=obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_right,
         obstacles=o_front,
     )
@@ -175,7 +175,7 @@ def circle_left(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back,
     )
@@ -193,7 +193,7 @@ def polygon_left(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back * scale,
     )
@@ -211,7 +211,7 @@ def polygon_slope(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
     )
@@ -229,7 +229,7 @@ def circle_rotate(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
     )
@@ -247,7 +247,7 @@ def polygon_rotate(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
     )
@@ -265,7 +265,7 @@ def polygon_stay(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_stay,
         obstacles=o_side,
     )
@@ -283,7 +283,7 @@ def polygon_two(scale, is_adaptive, final_time):
         ),
         body_prop,
         obstacle_prop,
-        time_data=TimeData(final_time=final_time),
+        schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_two,
     )
@@ -294,7 +294,8 @@ def polygon_two(scale, is_adaptive, final_time):
 
 def get_data(scale, is_adaptive, final_time):
     return [
-        polygon_two(scale, is_adaptive, final_time),
+        polygon_rotate(scale, is_adaptive, final_time),
+        # polygon_two(scale, is_adaptive, final_time),
         circle_slope(scale, is_adaptive, final_time),
         spline_right(scale, is_adaptive, final_time),
         circle_left(scale, is_adaptive, final_time),

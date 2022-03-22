@@ -2,7 +2,7 @@ import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
@@ -182,13 +182,13 @@ class SettingObstacles(SettingForces):
         mesh_data: MeshData,
         body_prop: BodyProperties,
         obstacle_prop: ObstacleProperties,
-        time_data: TimeData,
+        schedule: Schedule,
         create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
-            time_data=time_data,
+            schedule=schedule,
             create_in_subprocess=create_in_subprocess,
         )
         self.obstacle_prop = obstacle_prop

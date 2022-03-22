@@ -17,7 +17,7 @@ def main():
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            time_data=TimeData(final_time=8.0),
+            schedule=Schedule(final_time=8.0),
             forces_function=np.array([0.0, -0.5]),
             obstacles=np.array(
                 [[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]
@@ -30,7 +30,7 @@ def main():
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            time_data=TimeData(final_time=4.0),
+            schedule=Schedule(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
@@ -44,7 +44,7 @@ def main():
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            time_data=TimeData(final_time=4.0),
+            schedule=Schedule(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),

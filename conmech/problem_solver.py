@@ -7,7 +7,7 @@ import numpy as np
 
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.time_data import TimeData
+from conmech.dataclass.schedule import Schedule
 from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
@@ -44,7 +44,7 @@ class ProblemSolver:
                 scale=[float(grid_width), float(setup.grid_height)],
             ),
             body_prop=body_prop,
-            time_data=TimeData(time_step=time_step, final_time=0.0),
+            schedule=Schedule(time_step=time_step, final_time=0.0),
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
         )

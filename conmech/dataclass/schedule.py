@@ -3,7 +3,7 @@ from typing import Optional
 
 
 @dataclass
-class TimeData:
+class Schedule:
     final_time: float
     time_step: float = 0.01
 
