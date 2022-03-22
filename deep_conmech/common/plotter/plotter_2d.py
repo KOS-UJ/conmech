@@ -9,6 +9,7 @@ from deep_conmech.simulator.setting.setting_forces import *
 from matplotlib import cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
+from matplotlib import animation
 
 
 class Plotter:
@@ -16,8 +17,14 @@ class Plotter:
     # print(numba.cuda.gpus)
 
     @staticmethod
-    def draw_animation(path, all_images_paths):
+    def draw_animation(path, all_images_paths, all_figs=[]):
+        '''
+        def animate(num):
+            return all_figs[num]
 
+        ani = animation.FuncAnimation(all_figs[0], animate, frames=len(all_figs), interval=100)
+        ani.save(f"output/ANIMATION_NEW.gif", writer=None, fps=15)
+        '''
         images = []
         for image_path in all_images_paths:
             images.append(imageio.imread(image_path))
@@ -38,11 +45,9 @@ class Plotter:
 
     def set_perspective(self, scale, ax):
         ax.set_aspect("equal", "box")
-
-        x_max = 20.0 * scale
-        y_max = 4.0 * scale
-        ax.set_xlim(-4 * scale, x_max)
-        ax.set_ylim(-4 * scale, y_max)
+        padding = 4
+        ax.set_xlim(-padding * scale, 20 * scale)
+        ax.set_ylim(-padding * scale, padding * scale)
 
 
 

@@ -2,7 +2,7 @@ from typing import Callable
 
 import deep_conmech.common.config as config
 import numpy as np
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.time_data import TimeData
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
@@ -27,7 +27,7 @@ class SettingMatrices(SettingMesh):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
+        body_prop: BodyProperties,
         time_data: TimeData,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
@@ -40,7 +40,7 @@ class SettingMatrices(SettingMesh):
             is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
         )
-        self.body_coeff = body_coeff
+        self.body_prop = body_prop
         self.time_data = time_data
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
@@ -78,7 +78,7 @@ class SettingMatrices(SettingMesh):
         # )
         slice_ind = slice(0, self.independent_nodes_count)
         (self.VOL, self.ACC, self.A, self.B, self.C2T, self.K) = get_matrices(
-            edges_features_matrix, self.body_coeff, slice_ind,
+            edges_features_matrix, self.body_prop, slice_ind,
         )
 
         if self.with_schur_complement_matrices:

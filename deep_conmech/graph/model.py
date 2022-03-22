@@ -42,10 +42,10 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(self, train_dataset, all_val_datasets, print_scenarios, net):
-        self.train_dataset = train_dataset
         self.all_val_datasets = all_val_datasets
         self.print_scenarios = print_scenarios
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
+        self.train_dataset = train_dataset
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.all_val_data = [
             (dataset, data_base.get_valid_dataloader(dataset))
@@ -57,6 +57,7 @@ class GraphModelDynamic:
             "L2_diff",
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
+        self.tqdm_loss_index = -1
 
         self.net = net
         self.optimizer = torch.optim.Adam(
@@ -115,11 +116,9 @@ class GraphModelDynamic:
             batch_tqdm = cmh.get_tqdm(self.train_dataloader, desc="Batch")
             for batch_number, batch in enumerate(batch_tqdm):
 
-                train_loss, train_loss_array = self.train_step(batch)
+                train_loss_array = self.train_step(batch)
                 examples_seen += len(batch)
-                self.batch_raport(
-                    batch_tqdm, train_loss, train_loss_array, examples_seen, epoch
-                )
+                self.batch_raport(batch_tqdm, train_loss_array, examples_seen, epoch)
 
             self.scheduler.step()
 
@@ -139,9 +138,8 @@ class GraphModelDynamic:
 
     #################
 
-    def train_step(self, base_batch):
+    def train_step(self, batch):
         self.net.train()
-        batch = base_batch
 
         # for _ in range(config.TRAIN_ITERATIONS):
         self.net.zero_grad()
@@ -151,10 +149,11 @@ class GraphModelDynamic:
         # self.clip_gradients()
         self.optimizer.step()
 
-        return loss, loss_array_np
+        return loss_array_np
 
     def test_step(self, batch):
-        self.net.eval()
+        ###############self.net.eval()
+        self.net.train()
 
         # forward
         with torch.no_grad():  # with tc.set_grad_enabled(train):
@@ -219,12 +218,7 @@ class GraphModelDynamic:
             C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
             normalized_E = normalized_E_split[i]
             normalized_a_correction = normalized_a_correction_split[i]
-
             predicted_normalized_a = predicted_normalized_a_split[i]
-            # + setting.predicted_normalized_a_mean_cuda
-            # predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
-            #    predicted_normalized_a, C, normalized_E, normalized_a_correction
-            # )
 
             L2_args = dict(
                 a_correction=normalized_a_correction,
@@ -236,51 +230,32 @@ class GraphModelDynamic:
                 boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
                 boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
                 boundary_nodes_volume=boundary_nodes_volume_split[i],
-                obstacle_coeff=scenarios.obstacle_coeff,  # TODO: generalize
+                obstacle_prop=scenarios.obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
             )
-
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **L2_args
             )
 
-            ######################
             if config.L2_LOSS:
                 loss += predicted_normalized_L2
             else:
                 exact_normalized_a = exact_normalized_a_split[i]
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
-            ######################
 
+            loss_array[0] += predicted_normalized_L2
             if hasattr(batch, "exact_normalized_a"):
-                exact_normalized_a = exact_normalized_a_split[i]
-                if exact_normalized_a is not None:
-                    exact_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
-                        cleaned_a=exact_normalized_a,  **L2_args
-                    )
-                    loss_array[1] += float(
-                        (predicted_normalized_L2 - exact_normalized_L2)
-                        / torch.abs(exact_normalized_L2)
-                    )
-
-                    # no_acc_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
-                    #    torch.zeros_like(predicted_normalized_a), C, normalized_E, normalized_a_correction
-                    # )
-                    # loss_array[2] += float(
-                    #    (no_acc_normalized_L2 - exact_normalized_L2)
-                    #    / torch.abs(exact_normalized_L2)
-                    # )
-                    loss_array[2] += float(
-                        thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
-                    )
-
-                # new_setting = setting.iterate(helpers.to_np(a_predicted))
-                # new_setting.set_forces(copy.deepcopy(setting.forces))
-                # dataset.set(i, new_setting)
-
-            # new_batch = next(iter(dataset.get_dataloader()))
-        loss_array[0] = loss
+                exact_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
+                    cleaned_a=exact_normalized_a, **L2_args
+                )
+                loss_array[1] += float(
+                    (predicted_normalized_L2 - exact_normalized_L2)
+                    / torch.abs(exact_normalized_L2)
+                )
+                loss_array[2] += float(
+                    thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
+                )
 
         loss /= batch.num_graphs
         loss_array /= batch.num_graphs
@@ -288,10 +263,9 @@ class GraphModelDynamic:
 
     #################
 
-    def batch_raport(self, tqdm, loss, loss_array, examples_seen, epoch):
-        loss = float(loss)
+    def batch_raport(self, tqdm, loss_array, examples_seen, epoch):
         tqdm.set_description(
-            f"EPOCH: {epoch}, lr: {self.lr:.6f}, train loss: {loss:.4f}"
+            f"EPOCH: {epoch}, lr: {self.lr:.6f}, loss: {loss_array[self.tqdm_loss_index]:.4f}"
         )
         self.writer.add_scalar(
             "Loss/Training/LearningRate", self.lr, examples_seen,
@@ -303,13 +277,17 @@ class GraphModelDynamic:
 
     def epoch_raport(self, tqdm, examples_seen, epoch):
         for dataset, dataloader in self.all_val_data:
-            # print(f"Validating {dataset.relative_path} |", end='')
             labels_count = len(self.loss_labels)
             mean_loss_array = np.zeros([labels_count])
 
             batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
+            # range(len()) -> enumerate
             for _, batch in enumerate(batch_tqdm):
-                mean_loss_array += self.test_step(batch)
+                loss_array = self.train_step(batch) #self.test_step(batch)
+                mean_loss_array += loss_array
+                batch_tqdm.set_description(
+                    f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
+                )
             mean_loss_array = mean_loss_array / len(dataloader)
 
             # tqdm.set_description(

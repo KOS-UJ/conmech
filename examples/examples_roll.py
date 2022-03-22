@@ -15,22 +15,24 @@ def main():
             mesh_data=MeshData(
                 dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[8]
             ),
-            body_coeff=scenarios.body_coeff,
-            obstacle_coeff=scenarios.obstacle_coeff,
+            body_prop=scenarios.body_prop,
+            obstacle_prop=scenarios.obstacle_prop,
             time_data=TimeData(final_time=8.0),
             forces_function=np.array([0.0, -0.5]),
-            obstacles=np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),
+            obstacles=np.array(
+                [[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]
+            ),
         ),
         Scenario(
             id="circle_flat_roll",
             mesh_data=MeshData(
                 dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[5]
             ),
-            body_coeff=scenarios.body_coeff,
-            obstacle_coeff=scenarios.obstacle_coeff,
+            body_prop=scenarios.body_prop,
+            obstacle_prop=scenarios.obstacle_prop,
             time_data=TimeData(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
-            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]])
+            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
         Scenario(
             id="rectangle_flat_roll",
@@ -40,12 +42,12 @@ def main():
                 scale=[1],
                 mesh_density=[5],
             ),
-            body_coeff=scenarios.body_coeff,
-            obstacle_coeff=scenarios.obstacle_coeff,
+            body_prop=scenarios.body_prop,
+            obstacle_prop=scenarios.obstacle_prop,
             time_data=TimeData(final_time=4.0),
             forces_function=np.array([2.0, -0.5]),
-            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]])
-        )
+            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+        ),
     ]
     # change name boundary to contact
     # ball falling from staircase

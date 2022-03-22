@@ -66,7 +66,7 @@ class Calculator:
         return scipy.optimize.minimize(
             function,
             initial_vector,
-            method="L-BFGS-B",  # , POWELL options={"disp": True}
+            method="L-BFGS-B", # , POWELL L-BFGS-B options={"disp": True}
         ).x
 
     @staticmethod

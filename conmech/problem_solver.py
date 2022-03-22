@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.time_data import TimeData
 from conmech.features.mesh_features import MeshFeatures
@@ -26,11 +26,11 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_coeff = BodyCoeff(
+        body_prop = BodyProperties(
             mu=setup.mu_coef, lambda_=setup.la_coef, mass_density=1.0
         )
-        body_coeff.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
-        body_coeff.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
+        body_prop.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
+        body_prop.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
 
         grid_width = (
@@ -43,7 +43,7 @@ class ProblemSolver:
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],
             ),
-            body_coeff=body_coeff,
+            body_prop=body_prop,
             time_data=TimeData(time_step=time_step, final_time=0.0),
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
@@ -68,11 +68,11 @@ class ProblemSolver:
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
-            body_coeff = BodyCoeff(
+            body_prop = BodyProperties(
                 mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            body_coeff = BodyCoeff(
+            body_prop = BodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
                 theta=self.setup.th_coef,
@@ -87,7 +87,7 @@ class ProblemSolver:
             self.mesh,
             self.setup.inner_forces,
             self.setup.outer_forces,
-            body_coeff,
+            body_prop,
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,

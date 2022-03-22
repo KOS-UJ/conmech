@@ -23,7 +23,6 @@ def main():
         ValidationScenarioDatasetDynamic(scenario)
         for scenario in scenarios.all_validation
     ]
-    all_val_datasets[0].get_statistics()
 
     model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, net)
     if path is not None:

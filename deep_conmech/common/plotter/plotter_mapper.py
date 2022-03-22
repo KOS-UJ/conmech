@@ -1,3 +1,4 @@
+import copy
 import time
 from typing import Optional
 
@@ -29,6 +30,7 @@ def print_one_dynamic(
     description,
 ):
     all_images_paths = []
+    all_figs = []
     extension = "png"  # pdf
     cmh.create_folders(f"output/{catalog}")
 
@@ -39,6 +41,7 @@ def print_one_dynamic(
         base_setting=base_setting if draw_base else None,
         draw_detailed=draw_detailed,
         all_images_paths=all_images_paths,
+        all_figs=all_figs,
         extension=extension,
     )
 
@@ -55,6 +58,7 @@ def print_one_dynamic(
     Plotter.draw_animation(
         f"output/{catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
         all_images_paths,
+        all_figs
     )
 
 
@@ -65,15 +69,17 @@ def print_at_interval(
     base_setting,
     draw_detailed,
     all_images_paths,
+    all_figs,
     extension,
     skip: Optional[float] = config.PRINT_SKIP,
 ):
     if nph.close_modulo(time, skip):
-        print_setting_internal(
+        fig = print_setting_internal(
             setting, path, base_setting, extension, time, draw_detailed
         )
         if all_images_paths is not None:
             all_images_paths.append(path)
+            all_figs.append(copy.deepcopy(fig))
 
 
 def print_setting_internal(setting, path, base_setting, extension, time, draw_detailed):
@@ -82,8 +88,9 @@ def print_setting_internal(setting, path, base_setting, extension, time, draw_de
         ax = plotter.get_one_ax()
         plotter.draw_setting_ax(setting, ax, base_setting, time, draw_detailed)
         plotter.plt_save(path, extension)
+        return None
     else:
-        plotter_3d.plot_frame(
+        fig = plotter_3d.plot_frame(
             setting=setting,
             normalized_data=[
                 setting.normalized_forces * 20,
@@ -95,13 +102,14 @@ def print_setting_internal(setting, path, base_setting, extension, time, draw_de
             extension=extension,
         )
         plotter_3d.plt_save(path, extension)
+        return fig
 
 
 def print_setting_test(setting):
     plotter = Plotter()
     ax = plotter.get_one_ax()
     plotter.set_perspective(scale=1, ax=ax)
-    plotter.draw_displaced(setting, [0.0, 0.0], "orange", ax)
+    plotter.draw_displaced(setting, [0.0, 0.0], "tab:orange", ax)
     plotter.plt_save("./output/1.png", "png")
 
 
@@ -109,7 +117,7 @@ def print_simple_data(elements, nodes, path):
     plotter = Plotter()
     ax = plotter.get_one_ax()
     plotter.set_perspective(scale=1, ax=ax)
-    plotter.triplot(nodes, elements, "orange", ax)
+    plotter.triplot(nodes, elements, "tab:orange", ax)
     extension = path.split('.')[-1]
     plotter.plt_save(path, extension)
 

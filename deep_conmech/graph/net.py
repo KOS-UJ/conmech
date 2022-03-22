@@ -100,9 +100,11 @@ class DataNorm(nn.Module):
         self.in_channels = in_channels
         self.x_mean = normalization_statistics.data_mean.to(thh.device)
         self.x_std = normalization_statistics.data_std.to(thh.device)
+        self.mask = (self.x_std == 0)
 
     def forward(self, x):
         output = (x - self.x_mean) / self.x_std
+        output = torch.nan_to_num(output)
         return output
 
 

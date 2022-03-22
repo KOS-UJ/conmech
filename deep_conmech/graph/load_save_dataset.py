@@ -40,16 +40,8 @@ def _parse(proto, meta):
     return out
 
 
-def get_tf_data_path(directory):
-    return f"{directory}/train.tfrecord"
-
-
-def get_meta_path(directory):
-    return os.path.join(directory, "meta.json")
-
-
-def save_tf_data(data, directory):
-    writer = tf.io.TFRecordWriter(get_tf_data_path(directory))
+def save_tf_data(data, path: str):
+    writer = tf.io.TFRecordWriter(path)
 
     out = tf.train.Example(features=tf.train.Features(feature=data))
     writer.write(out.SerializeToString())
@@ -57,13 +49,13 @@ def save_tf_data(data, directory):
     writer.close()
 
 
-def save_meta(meta: dict, directory: str):
-    with open(get_meta_path(directory), "w") as file:
+def save_meta(meta: dict, path: str):
+    with open(path, "w") as file:
         json.dump(meta, file)
 
 
-def load_meta(directory: str):
-    with open(get_meta_path(directory), "r") as file:
+def load_meta(path: str):
+    with open(path, "r") as file:
         meta = json.loads(file.read())
     return meta
 
@@ -78,9 +70,10 @@ def to_dict(type, array):
 
 def simulate(scenario, directory):
     all_images_paths = []
+    all_figs = []
     all_settings = []
     extension = "png"
-    images_directory = f"{directory}/images"
+    images_directory = f"{directory}/saved_images"
     cmh.create_folders(images_directory)
 
     def save_example(time, setting, base_setting, a, base_a):
@@ -92,8 +85,9 @@ def simulate(scenario, directory):
             base_setting=None,
             draw_detailed=True,
             all_images_paths=all_images_paths,
+            all_figs=all_figs,
             extension=extension,
-            skip=None,
+            skip=config.PRINT_SKIP,
         )
 
     mapper.map_time(
@@ -108,7 +102,7 @@ def simulate(scenario, directory):
 
     Plotter.draw_animation(
         f"{images_directory}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
-        all_images_paths,
+        all_images_paths, all_figs
     )
     return all_settings
 
@@ -118,7 +112,12 @@ def prepare_data(all_settings):
 
     elements = base_setting.elements[np.newaxis, ...].astype("int32")
     initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
+    node_type = np.zeros(
+        (1, base_setting.nodes_count, 1), dtype="int32"
+    )  # TODO: Mask boundary points
+
     moved_nodes = np.array([s.moved_nodes for s in all_settings], dtype="float32")
+    forces = np.array([s.forces for s in all_settings], dtype="float32")
 
     meta = dict(
         simulator="conmech",
@@ -126,16 +125,20 @@ def prepare_data(all_settings):
         collision_radius=None,
         features=dict(
             cells=to_dict("static", elements),
+            node_type=to_dict("static", node_type),
             mesh_pos=to_dict("static", initial_nodes),
+            forces=to_dict("dynamic", forces),
             world_pos=to_dict("dynamic", moved_nodes),
         ),
-        field_names=["cells", "mesh_pos", "world_pos"],
+        field_names=["cells", "node_type", "mesh_pos", "forces", "world_pos"],
         trajectory_length=len(all_settings),
     )
 
     data = dict(
         cells=to_bytes(elements),
+        node_type=to_bytes(node_type),
         mesh_pos=to_bytes(initial_nodes),
+        forces=to_bytes(forces),
         world_pos=to_bytes(moved_nodes),
     )
 
@@ -143,7 +146,7 @@ def prepare_data(all_settings):
 
 
 def main():
-    directory = "datasets/data/conmech"  # "data/flag_simple"
+    directory = "/home/michal/Desktop/DATA/conmech"  # "data/flag_simple"
     cmh.recreate_folder(directory)
     scenario = Scenario(
         "polygon_rotate",
@@ -151,12 +154,12 @@ def main():
             dimension=2,
             mesh_type=m_polygon,
             scale=[1],
-            mesh_density=[3],
+            mesh_density=[8],
             is_adaptive=False,
         ),
-        body_coeff,
-        obstacle_coeff,
-        time_data=TimeData(final_time=0.2),
+        body_prop,
+        obstacle_prop,
+        time_data=TimeData(final_time=2.0),
         forces_function=f_rotate,
         obstacles=o_side,
     )
@@ -165,39 +168,42 @@ def main():
     all_settings = simulate(scenario, directory)
     meta, data = prepare_data(all_settings)
 
-    save_meta(meta, directory)
-    save_tf_data(data, directory)
+    meta_path = os.path.join(directory, "meta.json")
+    save_meta(meta, meta_path)
 
-    inputs = load_data(directory)
-    print_result(inputs, directory)
+    for mode in ["train", "test", "valid"]:
+        data_path = f"{directory}/{mode}.tfrecord"
+        save_tf_data(data, data_path)
+
+        inputs = load_data(meta_path, data_path)
+        print_result(inputs, directory)
 
 
 def print_result(inputs, directory):
-    images_directory = f"{directory}/result_images"
+    images_directory = f"{directory}/loaded_images"
     cmh.create_folders(images_directory)
 
     elements = inputs["cells"][0].numpy()
-    initial_nodes = inputs["mesh_pos"].numpy()
     all_moved_nodes = inputs["world_pos"].numpy()
-    
+
     all_images_paths = []
     for i in range(len(all_moved_nodes)):
-        moved_nodes = all_moved_nodes[i]
-        path = f"{images_directory}/loaded_result {i}.png"
-        all_images_paths.append(path)
-        plotter_mapper.print_simple_data(
-            elements, moved_nodes, path
-        )
+        time = (i+1)*0.01 #refactor
+        if time % config.PRINT_SKIP == 0:
+            moved_nodes = all_moved_nodes[i]
+            path = f"{images_directory}/loaded_result {i}.png"
+            all_images_paths.append(path)
+            plotter_mapper.print_simple_data(elements, moved_nodes, path)
+            
     Plotter.draw_animation(
-        f"{images_directory}/loaded_result ANIMATION.gif",
-        all_images_paths,
+        f"{images_directory}/loaded_result ANIMATION.gif", all_images_paths
     )
 
 
-def load_data(directory):
-    meta = load_meta(directory)
+def load_data(meta_path, data_path):
+    meta = load_meta(meta_path)
 
-    ds = tf.data.TFRecordDataset(get_tf_data_path(directory))
+    ds = tf.data.TFRecordDataset(data_path)
     parser = functools.partial(_parse, meta=meta)
     first_input = tf.data.make_one_shot_iterator(ds).get_next()
     result = parser(first_input)

@@ -3,7 +3,7 @@ from typing import Optional
 
 
 @dataclass
-class BodyCoeff:
+class BodyProperties:
     mass_density: float
     mu: float
     lambda_: float

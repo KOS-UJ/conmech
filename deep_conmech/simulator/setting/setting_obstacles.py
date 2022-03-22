@@ -1,7 +1,7 @@
 import numpy as np
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_coeff import ObstacleCoeff
+from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.time_data import TimeData
 from conmech.helpers import nph
 from deep_conmech.common import config
@@ -21,6 +21,7 @@ def get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals):
         nodes, obstacle_nodes, obstacle_nodes_normals, dot=nph.elementwise_dot
     ).reshape(-1, 1)
 
+
 get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
 
 
@@ -30,9 +31,11 @@ get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm ** 2) * ((1.0 / time_step) ** 2)
 
+
 obstacle_resistance_potential_normal_numba = numba.njit(
     obstacle_resistance_potential_normal
 )
+
 
 def obstacle_resistance_potential_tangential_internal(
     penetration_norm,
@@ -53,8 +56,13 @@ def obstacle_resistance_potential_tangential(
     penetration, tangential_velocity, friction, time_step
 ):
     return obstacle_resistance_potential_tangential_internal(
-        penetration, tangential_velocity, friction, time_step, norm=lambda x : nph.euclidean_norm(x, keepdims=True)
+        penetration,
+        tangential_velocity,
+        friction,
+        time_step,
+        norm=lambda x: nph.euclidean_norm(x, keepdims=True),
     )
+
 
 obstacle_resistance_potential_tangential_numba = numba.njit(
     obstacle_resistance_potential_tangential_internal
@@ -129,7 +137,7 @@ def L2_obstacle(
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
     boundary_nodes_volume: np.ndarray,
-    obstacle_coeff: ObstacleCoeff,
+    obstacle_prop: ObstacleProperties,
     time_step: float,
 ):
     value = L2_new(a, C, E)
@@ -147,8 +155,8 @@ def L2_obstacle(
         boundary_obstacle_normals,
         boundary_v_new,
         boundary_nodes_volume,
-        obstacle_coeff.hardness,
-        obstacle_coeff.friction,
+        obstacle_prop.hardness,
+        obstacle_prop.friction,
         time_step,
     )
 
@@ -172,18 +180,18 @@ class SettingObstacles(SettingForces):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
-        obstacle_coeff: ObstacleCoeff,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
         time_data: TimeData,
         create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
+            body_prop=body_prop,
             time_data=time_data,
             create_in_subprocess=create_in_subprocess,
         )
-        self.obstacle_coeff = obstacle_coeff
+        self.obstacle_prop = obstacle_prop
         self.obstacles = None
         self.clear()
 
@@ -212,7 +220,7 @@ class SettingObstacles(SettingForces):
             self.normalized_boundary_obstacle_nodes,
             self.normalized_boundary_obstacle_normals,
             self.boundary_nodes_volume,
-            self.obstacle_coeff,
+            self.obstacle_prop,
             self.time_step,
         )
 
@@ -307,8 +315,6 @@ class SettingObstacles(SettingForces):
     def normalized_boundary_penetration(self):
         return self.normalize_rotate(self.boundary_penetration)
 
-    #######
-
     @property
     def normalized_boundary_v_tangential(self):
         return nph.get_tangential(
@@ -322,7 +328,7 @@ class SettingObstacles(SettingForces):
     @property
     def resistance_normal(self):
         return obstacle_resistance_potential_normal(
-            self.boundary_penetration_norm, self.obstacle_coeff.hardness, self.time_step
+            self.boundary_penetration_norm, self.obstacle_prop.hardness, self.time_step
         )
 
     @property
@@ -330,7 +336,7 @@ class SettingObstacles(SettingForces):
         return obstacle_resistance_potential_tangential(
             self.boundary_penetration_norm,
             self.boundary_v_tangential,
-            self.obstacle_coeff.friction,
+            self.obstacle_prop.friction,
             self.time_step,
         )
 

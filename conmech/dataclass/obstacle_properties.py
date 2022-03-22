@@ -2,6 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class ObstacleCoeff:
+class ObstacleProperties:
     hardness: float
     friction: float

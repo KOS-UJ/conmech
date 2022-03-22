@@ -15,21 +15,32 @@ def main():
         Scenario(
             id="ball_roll",
             mesh_data=MeshData(
-                dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[4] # 8
+                dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[2]
             ),
-            body_coeff=body_coeff,
-            obstacle_coeff=obstacle_coeff,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            time_data=TimeData(final_time=0.5),
+            forces_function=np.array([0.0, 0.0, -0.5]),
+            obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
+        ),
+        Scenario(
+            id="ball_throw",
+            mesh_data=MeshData(
+                dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[4]
+            ),
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             time_data=TimeData(final_time=4.0),
             forces_function=f_rotate_3d,
             obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
         ),
         Scenario(
-            id="cube_roll",
+            id="cube_throw",
             mesh_data=MeshData(
                 dimension=3, mesh_type=m_cube_3d, scale=[1], mesh_density=[3]
             ),
-            body_coeff=body_coeff,
-            obstacle_coeff=obstacle_coeff,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             time_data=TimeData(final_time=4.0),
             forces_function=f_rotate_3d,
             obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),

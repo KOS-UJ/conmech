@@ -38,7 +38,7 @@ def get_occurances(data):
 def close_modulo(value, divider):
     if divider is None:
         return True
-    return np.allclose(value % divider, 0.0) or np.allclose(value % skip, divider)
+    return np.allclose(value % divider, 0.0) or np.allclose(value % divider, divider)
 
 
 ###################

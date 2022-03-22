@@ -5,12 +5,12 @@ from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 class SettingTorch(SettingRandomized):
     def __init__(
-        self, mesh_data, body_coeff, obstacle_coeff, time_data, create_in_subprocess,
+        self, mesh_data, body_prop, obstacle_prop, time_data, create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
-            obstacle_coeff=obstacle_coeff,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             time_data=time_data,
             create_in_subprocess=create_in_subprocess,
         )
@@ -39,7 +39,7 @@ class SettingTorch(SettingRandomized):
     def predicted_normalized_a_mean_cuda(self):
         return (
             self.normalized_forces_mean_torch.to(thh.device)
-            * self.body_coeff.mass_density
+            * self.body_prop.mass_density
         )
 
     @property

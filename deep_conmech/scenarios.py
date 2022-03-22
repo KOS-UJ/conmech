@@ -1,9 +1,9 @@
 from typing import Callable, Union
 
 import numpy as np
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_coeff import ObstacleCoeff
+from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.time_data import TimeData
 
 from deep_conmech.common import config
@@ -14,16 +14,16 @@ class Scenario:
         self,
         id: str,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
-        obstacle_coeff: ObstacleCoeff,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
         time_data: TimeData,
         forces_function: Union[Callable, np.ndarray],
         obstacles: np.ndarray,
     ):
         self.id = id
         self.mesh_data = mesh_data
-        self.body_coeff = body_coeff
-        self.obstacle_coeff = obstacle_coeff
+        self.body_prop = body_prop
+        self.obstacle_prop = obstacle_prop
         self.time_data = time_data
         self.obstacles = obstacles * mesh_data.scale_x
         if isinstance(forces_function, np.ndarray):
@@ -34,9 +34,9 @@ class Scenario:
 
 ####################################
 
-body_coeff = BodyCoeff(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
-# body_coeff = BodyCoeff(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
-obstacle_coeff = ObstacleCoeff(hardness=100.0, friction=5.0)
+body_prop = BodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
+# body_prop = BodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
+obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
 time_data = TimeData(time_step=0.01, final_time=4.0)
 
@@ -137,8 +137,8 @@ def circle_slope(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff=body_coeff,
-        obstacle_coeff=obstacle_coeff,
+        body_prop=body_prop,
+        obstacle_prop=obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
@@ -155,8 +155,8 @@ def spline_right(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff=body_coeff,
-        obstacle_coeff=obstacle_coeff,
+        body_prop=body_prop,
+        obstacle_prop=obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_accelerate_slow_right,
         obstacles=o_front,
@@ -173,8 +173,8 @@ def circle_left(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back,
@@ -191,8 +191,8 @@ def polygon_left(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back * scale,
@@ -209,8 +209,8 @@ def polygon_slope(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
@@ -227,8 +227,8 @@ def circle_rotate(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
@@ -245,8 +245,8 @@ def polygon_rotate(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
@@ -263,8 +263,8 @@ def polygon_stay(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_stay,
         obstacles=o_side,
@@ -281,8 +281,8 @@ def polygon_two(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_coeff,
-        obstacle_coeff,
+        body_prop,
+        obstacle_prop,
         time_data=TimeData(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_two,

@@ -13,12 +13,12 @@ class Solver:
         mesh,
         inner_forces,
         outer_forces,
-        body_coeff,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
-        self.body_coeff = body_coeff
+        self.body_prop = body_prop
         self.contact_law = contact_law
         self.friction_bound = friction_bound
 

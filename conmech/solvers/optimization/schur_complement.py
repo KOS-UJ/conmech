@@ -17,7 +17,7 @@ class SchurComplement(Optimization):
         mesh,
         inner_forces,
         outer_forces,
-        body_coeff,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
@@ -26,7 +26,7 @@ class SchurComplement(Optimization):
             mesh,
             inner_forces,
             outer_forces,
-            body_coeff,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -193,18 +193,18 @@ class Quasistatic(SchurComplement):
         mesh,
         inner_forces,
         outer_forces,
-        body_coeff,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
         self.A = mesh.A
-        self.dim=mesh.dimension
+        self.dim = mesh.dimension
         super().__init__(
             mesh,
             inner_forces,
             outer_forces,
-            body_coeff,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -228,7 +228,7 @@ class Dynamic(Quasistatic):
         mesh,
         inner_forces,
         outer_forces,
-        body_coeff,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
@@ -243,21 +243,15 @@ class Dynamic(Quasistatic):
             mesh,
             inner_forces,
             outer_forces,
-            body_coeff,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        T = (
-            (1 / self.time_step)
-            * self.ACC[
-                : self.ind, : self.ind
-            ]
-            + self.K[
-                : self.ind, : self.ind
-            ]
-        )
+        T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.K[
+            : self.ind, : self.ind
+        ]
 
         # Tii
         T_free_x_free = T[self.free_ids, self.free_ids]
@@ -311,10 +305,12 @@ class Dynamic(Quasistatic):
         self.forces_free, self._point_forces = self.recalculate_forces()
         self.Q_free, self.Q = self.recalculate_temperature()
 
-    def recalculate_temperature(self):        
-        QBig = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
+    def recalculate_temperature(self):
+        QBig = (-1) * nph.unstack_and_sum_columns(
+            self.C2T @ self.v_vector, dim=self.dim
+        )
 
-        QBig += (1 / self.time_step) * self.ACC[:self.ind, :self.ind] @ self.t_vector
+        QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]

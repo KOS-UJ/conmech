@@ -87,8 +87,8 @@ def get_base_setting(mesh_type):
             scale=[config.TRAIN_SCALE],
             is_adaptive=config.ADAPTIVE_TRAINING_MESH,
         ),
-        body_coeff=scenarios.body_coeff,
-        obstacle_coeff=scenarios.obstacle_coeff,
+        body_prop=scenarios.body_prop,
+        obstacle_prop=scenarios.obstacle_prop,
         time_data=TimeData(final_time=config.FINAL_TIME),
         create_in_subprocess=False,
     )

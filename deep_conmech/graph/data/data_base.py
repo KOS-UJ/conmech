@@ -142,8 +142,8 @@ class BaseDatasetDynamic:
     def get_setting_input(self, scenario: Scenario):
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
-            body_coeff=scenario.body_coeff,
-            obstacle_coeff=scenario.obstacle_coeff,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
             time_data=scenario.time_data,
             create_in_subprocess=False,  #####
         )
@@ -161,8 +161,12 @@ class BaseDatasetDynamic:
             edges_data = torch.cat((edges_data, data.edge_attr))
 
         return (
-            DatasetStatistics(nodes_data, SettingInput.get_nodes_data_description(self.dimension)),
-            DatasetStatistics(edges_data, SettingInput.get_edges_data_description(self.dimension)),
+            DatasetStatistics(
+                nodes_data, SettingInput.get_nodes_data_description(self.dimension)
+            ),
+            DatasetStatistics(
+                edges_data, SettingInput.get_edges_data_description(self.dimension)
+            ),
         )
 
     def update_data(self):

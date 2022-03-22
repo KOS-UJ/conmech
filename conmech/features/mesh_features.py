@@ -1,6 +1,6 @@
 from typing import Callable
 
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.time_data import TimeData
 from conmech.features.boundaries import Boundaries
@@ -11,14 +11,14 @@ class MeshFeatures(SettingMatrices):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
+        body_prop: BodyProperties,
         time_data: TimeData,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
+            body_prop=body_prop,
             time_data=time_data,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,

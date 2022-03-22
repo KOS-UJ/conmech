@@ -115,7 +115,7 @@ def calculate_temperature_K(W11, W12, W21, W22, K_coef):
     )
 
 
-def get_matrices(edges_features_matrix, body_coeff, slice_ind):
+def get_matrices(edges_features_matrix, body_prop, slice_ind):
 
     VOL = edges_features_matrix[0]
 
@@ -124,9 +124,9 @@ def get_matrices(edges_features_matrix, body_coeff, slice_ind):
     ALL_V = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(2, 4)]
     ALL_W = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(4, 8)]
 
-    A = calculate_constitutive_matrices(*ALL_W, body_coeff.theta, body_coeff.zeta)
-    B = calculate_constitutive_matrices(*ALL_W, body_coeff.mu, body_coeff.lambda_)
-    ACC = calculate_acceleration(U, body_coeff.mass_density)
+    A = calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
+    B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
+    ACC = calculate_acceleration(U, body_prop.mass_density)
 
     C_coeff = [[0.5, 0.0], [0.0, 0.5]]
     C2T = calculate_temperature_C(*ALL_V, C_coeff)

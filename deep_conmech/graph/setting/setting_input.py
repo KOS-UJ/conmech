@@ -20,7 +20,7 @@ def L2_normalized_obstacle_correction(
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
     boundary_nodes_volume,
-    obstacle_coeff,
+    obstacle_prop,
     time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
@@ -34,7 +34,7 @@ def L2_normalized_obstacle_correction(
         boundary_obstacle_nodes=boundary_obstacle_nodes,
         boundary_obstacle_normals=boundary_obstacle_normals,
         boundary_nodes_volume=boundary_nodes_volume,
-        obstacle_coeff=obstacle_coeff,
+        obstacle_prop=obstacle_prop,
         time_step=time_step,
     )
 
@@ -100,15 +100,15 @@ class SettingInput(SettingTorch):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
-        obstacle_coeff: ObstacleCoeff,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
         time_data: TimeData,
         create_in_subprocess: bool,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
-            obstacle_coeff=obstacle_coeff,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             time_data=time_data,
             create_in_subprocess=create_in_subprocess,
         )
@@ -144,7 +144,12 @@ class SettingInput(SettingTorch):
     @staticmethod
     def get_nodes_data_description(dim):
         desc = []
-        for attr in ["forces", "boundary_penetration", "boundary_normals", "boundary_v_tangential"]:
+        for attr in [
+            "forces",
+            "boundary_penetration",
+            "boundary_normals",
+            "boundary_v_tangential",
+        ]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
@@ -237,12 +242,11 @@ class SettingInput(SettingTorch):
     ):
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
-            body_coeff=scenario.body_coeff,
-            obstacle_coeff=scenario.obstacle_coeff,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
             time_data=scenario.time_data,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
         setting.set_obstacles(scenario.obstacles)
         return setting
-

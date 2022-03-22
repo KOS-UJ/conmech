@@ -1,7 +1,7 @@
 import copy
-from conmech.dataclass.body_coeff import BodyCoeff
+from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_coeff import ObstacleCoeff
+from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.time_data import TimeData
 
 import deep_conmech.simulator.mesh.remesher as remesher
@@ -16,15 +16,15 @@ class SettingRandomized(SettingObstacles):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_coeff: BodyCoeff,
-        obstacle_coeff: ObstacleCoeff,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
         time_data: TimeData,
         create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
-            obstacle_coeff=obstacle_coeff,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             time_data=time_data,
             create_in_subprocess=create_in_subprocess,
         )
@@ -86,7 +86,7 @@ class SettingRandomized(SettingObstacles):
     @property
     def a_correction(self):
         u_correction = config.U_NOISE_GAMMA * (
-            self.u_old_randomization / (self.time_step **2)
+            self.u_old_randomization / (self.time_step ** 2)
         )
         v_correction = (
             (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
@@ -144,15 +144,14 @@ class SettingRandomized(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
-
     @staticmethod
     def get_setting(
         scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
     ):
         setting = SettingRandomized(
             mesh_data=scenario.mesh_data,
-            body_coeff=scenario.body_coeff,
-            obstacle_coeff=scenario.obstacle_coeff,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
             time_data=scenario.time_data,
             create_in_subprocess=create_in_subprocess,
         )

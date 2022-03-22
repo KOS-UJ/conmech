@@ -74,6 +74,7 @@ def plot_frame(setting, normalized_data, path, extension):
     ax4 = get_ax(fig, grid[1, 1], angles[1, 1], distances[1, 1])
     ax4.set_position([1.0, 0.5, 0.4, 0.4])
     plot_subframe_lambda(ax4)
+    return fig
 
 
 def draw_base_arrows(ax, base):

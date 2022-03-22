@@ -26,11 +26,11 @@ def get_forces_by_function_numba(
 
 class SettingForces(SettingMatrices):
     def __init__(
-        self, mesh_data, body_coeff, time_data, create_in_subprocess,
+        self, mesh_data, body_prop, time_data, create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_coeff=body_coeff,
+            body_prop=body_prop,
             time_data=time_data,
             create_in_subprocess=create_in_subprocess,
         )
