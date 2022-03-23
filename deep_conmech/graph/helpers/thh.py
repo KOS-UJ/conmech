@@ -4,6 +4,7 @@ torch helpers
 import os
 import numpy as np
 import torch
+# print(numba.cuda.gpus)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

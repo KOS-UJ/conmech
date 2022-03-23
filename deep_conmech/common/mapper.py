@@ -1,18 +1,22 @@
 import time
+import copy
 
 from conmech.helpers import cmh
 from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.scenarios import Scenario
 
 
 def map_time(
     compare_with_base_setting,
-    operation,
     solve_function,
-    scenario,
+    scenario: Scenario,
     get_setting_function,
     simulate_dirty_data,
     description,
 ):
+    all_settings = []
+    all_base_settings = [] if compare_with_base_setting else None
+
     setting = get_setting_function(
         scenario, randomize=simulate_dirty_data, create_in_subprocess=True
     )
@@ -28,10 +32,7 @@ def map_time(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = cmh.get_tqdm(
-        range(scenario.schedule.episode_steps),
-        f"{description} - {scenario.id} scale_{scenario.mesh_data.scale_x}",
-    )
+    time_tqdm = scenario.get_tqdm(description)
     a = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
@@ -39,6 +40,9 @@ def map_time(
         forces = setting.get_forces_by_function(scenario.forces_function, current_time)
         setting.prepare(forces)
         # max_data.set(setting, time_step)
+        all_settings.append(copy.deepcopy(setting))
+        if compare_with_base_setting:
+            all_base_settings.append(copy.deepcopy(setting))
 
         start_time = time.time()
         a = solve_function(setting, initial_vector=a)
@@ -56,8 +60,6 @@ def map_time(
             base_a = Calculator.solve(base_setting)  ## save in setting
             comparison_time += time.time() - start_time
 
-        operation(current_time, setting, base_setting, a, base_a)
-
         setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
@@ -65,10 +67,11 @@ def map_time(
         # setting.remesh_self() ####################################################
 
     comparison_str = (
-        f" | Comparison {Calculator.mode()} time: {comparison_time}"
+        f" | Comparison time: {comparison_time}"
         if compare_with_base_setting
         else ""
     )
     print(f"    Solver time : {solver_time}{comparison_str}")
 
     # max_data.print()
+    return all_settings, all_base_settings

@@ -22,6 +22,7 @@ def get_writer():
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
+| ln {config.LAYER_NORM} \
 | l2l {config.L2_LOSS} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
@@ -92,7 +93,7 @@ class GraphModelDynamic:
     def save(self):
         print("Saving model")
         timestamp = cmh.get_timestamp()
-        catalog = f"output/GRAPH - {cmh.CURRENT_TIME}"
+        catalog = f"output/{cmh.CURRENT_TIME} - GRAPH"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         torch.save(self.net.state_dict(), path)
@@ -104,32 +105,49 @@ class GraphModelDynamic:
 
     ################
 
+    def get_epoch_description(self, epoch_number, loss_array=None):
+        loss_description = (
+            ""
+            if loss_array is None
+            else f", loss: {loss_array[self.tqdm_loss_index]:.4f}"
+        )
+        return f"EPOCH: {epoch_number}, lr: {self.lr:.6f}{loss_description}"
+
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         examples_seen = 0
         start_time = time.time()
-        epoch = 0
+        epoch_number = 0
         while True:
-            epoch += 1
+            epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            batch_tqdm = cmh.get_tqdm(self.train_dataloader, desc="Batch")
-            batch_count = len(batch_tqdm)
+            epoch_tqdm = cmh.get_tqdm(
+                self.train_dataloader, desc=self.get_epoch_description(epoch_number)
+            )
+            batch_count = len(epoch_tqdm)
 
             total_loss_array = np.zeros(self.labels_count)
-            for batch_number, batch in enumerate(batch_tqdm):
+            for batch_number, batch in enumerate(epoch_tqdm):
+                epoch_tqdm.set_description(
+                    self.get_epoch_description(
+                        epoch_number, total_loss_array / (batch_number + 1)
+                    )
+                )
                 total_loss_array += self.train_step(batch)
                 examples_seen += len(batch)
 
-                if(batch_number == batch_count - 1):
+                if batch_number == batch_count - 1:
                     total_loss_array /= batch_count
-                    self.training_raport(batch_tqdm, total_loss_array, examples_seen, epoch)
+                    self.training_raport(
+                        epoch_tqdm, total_loss_array, examples_seen, epoch_number
+                    )
 
             self.scheduler.step()
 
-            if epoch % config.VALIDATE_AT_EPOCHS == 0:
-                self.validation_raport(examples_seen, epoch)
+            if epoch_number % config.VALIDATE_AT_EPOCHS == 0:
+                self.validation_raport(examples_seen, epoch_number)
                 self.train_dataset.update_data()
 
             time_enlapsed = time.time() - start_time
@@ -174,6 +192,67 @@ class GraphModelDynamic:
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, config.GRADIENT_CLIP)
+
+    #################
+
+    def training_raport(self, tqdm, loss_array, examples_seen, epoch_number):
+        tqdm.set_description(self.get_epoch_description(epoch_number, loss_array))
+        self.writer.add_scalar(
+            "Loss/Training/LearningRate", self.lr, examples_seen,
+        )
+        for i in range(len(loss_array)):
+            self.writer.add_scalar(
+                f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
+            )
+
+    def validation_raport(self, examples_seen, epoch_number):
+        total_loss_array = np.zeros(self.labels_count)
+        for dataset, dataloader in self.all_val_data:
+            mean_loss_array = np.zeros(self.labels_count)
+
+            batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
+            # range(len()) -> enumerate
+
+            for _, batch in enumerate(batch_tqdm):
+                loss_array = self.test_step(batch)
+                mean_loss_array += loss_array
+                batch_tqdm.set_description(
+                    f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
+                )
+            mean_loss_array = mean_loss_array / len(dataloader)
+
+            for i in range(self.labels_count):
+                self.writer.add_scalar(
+                    f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
+                    mean_loss_array[i],
+                    examples_seen,
+                )
+            total_loss_array += mean_loss_array
+
+        total_loss_array /= len(self.all_val_data)
+        for i in range(self.labels_count):
+            self.writer.add_scalar(
+                f"Loss/Validation/{self.loss_labels[i]}",
+                total_loss_array[i],
+                examples_seen,
+            )
+        print("---")
+
+    def print_raport(self):
+        start_time = time.time()
+        for scenario in self.print_scenarios:
+            plotter_mapper.print_one_dynamic(
+                self.net.solve,
+                scenario,
+                SettingInput.get_setting,
+                catalog=f"GRAPH/{cmh.get_timestamp()} - RESULT",
+                simulate_dirty_data=False,
+                draw_base=False,  ###
+                draw_detailed=False,
+                description="Raport",
+            )
+
+        print(f"Printing time: {int((time.time() - start_time)/60)} min")
 
     #################
 
@@ -264,144 +343,3 @@ class GraphModelDynamic:
         loss /= batch.num_graphs
         loss_array /= batch.num_graphs
         return loss, loss_array, None  # new_batch
-
-    #################
-
-    def training_raport(self, tqdm, loss_array, examples_seen, epoch):
-        tqdm.set_description(
-            f"EPOCH: {epoch}, lr: {self.lr:.6f}, loss: {loss_array[self.tqdm_loss_index]:.4f}"
-        )
-        self.writer.add_scalar(
-            "Loss/Training/LearningRate", self.lr, examples_seen,
-        )
-        for i in range(len(loss_array)):
-            self.writer.add_scalar(
-                f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
-            )
-
-    def validation_raport(self, examples_seen, epoch):
-        total_loss_array = np.zeros(self.labels_count)
-        for dataset, dataloader in self.all_val_data:
-            mean_loss_array = np.zeros(self.labels_count)
-
-            batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
-            # range(len()) -> enumerate
-
-            for _, batch in enumerate(batch_tqdm):
-                loss_array = self.train_step(batch)  # self.test_step(batch)
-                mean_loss_array += loss_array
-                batch_tqdm.set_description(
-                    f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
-                )
-            mean_loss_array = mean_loss_array / len(dataloader)
-
-            for i in range(self.labels_count):
-                self.writer.add_scalar(
-                    f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
-                    mean_loss_array[i],
-                    examples_seen,
-                )
-            total_loss_array += mean_loss_array
-
-        total_loss_array /= len(self.all_val_data)
-        for i in range(self.labels_count):
-            self.writer.add_scalar(
-                f"Loss/Validation/{self.loss_labels[i]}",
-                total_loss_array[i],
-                examples_seen,
-            )
-        print("---")
-
-    #################
-
-    def print_raport(self):
-        path = f"GRAPH - {cmh.CURRENT_TIME}/{cmh.get_timestamp()} - RESULT"
-        start_time = time.time()
-        for scenario in self.print_scenarios:
-            plotter_mapper.print_one_dynamic(
-                self.net.solve,
-                scenario,
-                SettingInput.get_setting,
-                path,
-                simulate_dirty_data=False,
-                draw_base=False,  #######################
-                draw_detailed=False,
-                description="Printing raport",
-            )
-
-        print(f"Printing time: {int((time.time() - start_time)/60)} min")
-
-    """
-    def validate_rollout(self, examples_seen):
-        for forces_function in self.rollout_forces_functions:
-            error_result = ErrorResult()
-
-            episode_steps = config.EPISODE_STEPS
-            _validate = lambda time, setting, base_setting, a, base_a: self.calculate_error(
-                setting, base_setting, a, base_a, error_result, episode_steps
-            )
-
-            mapper.map_time(
-                True,
-                _validate,
-                config.TRAIN_CORNERS,
-                episode_steps,
-                lambda setting: self.solve(setting, print_time=False),
-                forces_function,
-                self.obstacles,
-                simulate_dirty_data=False,
-                description=f"Validating rollout - {forces_function.__name__}",
-                mesh_type=config.MESH_TYPE_VALIDATION,
-                mesh_density=config.MESH_DENSITY,
-            )
-
-            self.writer.add_scalar(
-                f"Loss/Validation/rollout {forces_function.__name__}",
-                error_result.value,
-                examples_seen,
-            )
-
-    def calculate_error(
-        self, setting, base_setting, a, base_a, error_result, episode_steps
-    ):
-        cleaned_normalized_a = setting.normalize_rotate(a)
-        function = setting.get_L2_full_normalized_correction_np()
-        predicted_normalized_L2 = function(cleaned_normalized_a) * 0. ##################################
-        error_result.value += float(predicted_normalized_L2 / episode_steps)
-    """
-
-
-#####################
-
-
-class GraphModelStatic(GraphModelDynamic):
-    def b(self, batch):
-        x = batch.pos
-        rx = (x[..., 0] - config.min[0]) / nph.len_x(corners)
-        ry = (x[..., 0] - config.min[0]) / nph.len_y(corners)
-        result = torch.stack((rx, ry), -1)
-        return result
-
-    def predict(self, batch):
-        psi = self.net(batch)
-        # b = self.b(batch)
-        # return torch.multiply(psi, b)
-        return psi
-
-    def E(self, batch):
-        graph_sizes = np.ediff1d(batch.ptr).tolist()
-        u = self.predict(batch)
-        u_split = u.split(graph_sizes)
-
-        # forces_split = self.get_split(batch, 0, graph_sizes)
-
-        loss_array = torch.zeros(batch.num_graphs)
-        for i in range(batch.num_graphs):
-            # forces_i = forces_split[i]
-            # forces_i =thh.to_torch_float([-0.1, 0.1])
-            forces_i = batch.setting[i].FORCES()
-            l2 = batch.setting[i].L2_torch(u_split[i], forces_i)
-            loss_array[i] = l2
-
-        loss = torch.mean(loss_array)
-        return loss

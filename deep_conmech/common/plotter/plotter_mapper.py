@@ -1,53 +1,27 @@
-import copy
-import time
-from typing import Optional
-
 from conmech.helpers import cmh
 from deep_conmech.common import config, mapper
-from deep_conmech.common.plotter import plotter_3d
-from deep_conmech.common.plotter.plotter_2d import Plotter
+from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
+from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
-
-
-def print_setting(setting, filename, catalog):
-    cmh.create_folders(catalog)
-    extension = "png"  # pdf
-    path = f"{catalog}/{filename}.{extension}"
-    print_setting_internal(setting, path, None, extension, 0, True)
-
-
-############################
 
 
 def print_one_dynamic(
     solve_function,
-    scenario,
+    scenario: Scenario,
     get_setting_function,
     catalog,
     simulate_dirty_data,
     draw_base,
     draw_detailed,
     description,
+    print_images=False
 ):
-    all_images_paths = []
-    all_figs = []
     extension = "png"  # pdf
-    cmh.create_folders(f"output/{catalog}")
+    final_catalog = f"{cmh.CURRENT_TIME}- {catalog}"
+    cmh.create_folders(f"output/{final_catalog}")
 
-    _print_at_interval = lambda time, setting, base_setting, a, base_a: print_at_interval(
-        time=time,
-        setting=setting,
-        path=f"output/{catalog}/{scenario.id} {int(time * 100)}.{extension}",
-        base_setting=base_setting if draw_base else None,
-        draw_detailed=draw_detailed,
-        all_images_paths=all_images_paths,
-        all_figs=all_figs,
-        extension=extension,
-    )
-
-    mapper.map_time(
+    all_settings, all_base_settings = mapper.map_time(
         compare_with_base_setting=draw_base,
-        operation=_print_at_interval,
         solve_function=solve_function,
         scenario=scenario,
         get_setting_function=get_setting_function,
@@ -55,123 +29,75 @@ def print_one_dynamic(
         description=description,
     )
 
-    Plotter.draw_animation(
-        f"output/{catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
-        all_images_paths,
-        all_figs
-    )
+    if print_images:
+        time_tqdm = scenario.get_tqdm(f"Printing {description}")
+        for i in time_tqdm:
+            current_time = (i + 1) * scenario.time_step
+            plot_at_interval(
+                current_time=current_time,
+                setting=all_settings[i],
+                path=f"output/{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
+                base_setting=all_base_settings[i]
+                if all_base_settings is not None
+                else None,
+                draw_detailed=draw_detailed,
+                extension=extension,
+            )
+
+    print("Generating animation...")
+    animation_path = f"output/{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
+    if scenario.dimension == 2:
+        plotter_2d.plot_animation(scenario, all_settings, animation_path)
+    else:
+        plotter_3d.plot_animation(scenario, all_settings, animation_path)
 
 
-def print_at_interval(
-    time,
+def plot_at_interval(
+    current_time,
     setting,
     path,
     base_setting,
     draw_detailed,
-    all_images_paths,
-    all_figs,
     extension,
-    skip: Optional[float] = config.PRINT_SKIP,
+    skip=config.PRINT_SKIP,
 ):
-    if nph.close_modulo(time, skip):
-        fig = print_setting_internal(
-            setting, path, base_setting, extension, time, draw_detailed
-        )
-        if all_images_paths is not None:
-            all_images_paths.append(path)
-            all_figs.append(copy.deepcopy(fig))
+    if skip is not None and nph.close_modulo(current_time, skip) == False:
+        return
 
-
-def print_setting_internal(setting, path, base_setting, extension, time, draw_detailed):
     if setting.dim == 2:
-        plotter = Plotter()
-        ax = plotter.get_one_ax()
-        plotter.draw_setting_ax(setting, ax, base_setting, time, draw_detailed)
-        plotter.plt_save(path, extension)
-        return None
+        fig = plotter_2d.get_fig()
+        axs = plotter_2d.get_axs(fig)
+        plotter_2d.plot_frame(setting, current_time, axs, draw_detailed, base_setting)
+        plotter_common.plt_save(path, extension)
     else:
-        fig = plotter_3d.plot_frame(
-            setting=setting,
-            normalized_data=[
-                setting.normalized_forces * 20,
-                setting.normalized_u_old,
-                setting.normalized_v_old,
-                setting.normalized_a_old,
-            ],
-            path=path,
-            extension=extension,
-        )
-        plotter_3d.plt_save(path, extension)
-        return fig
+        fig = plotter_3d.get_fig()
+        axs = plotter_3d.get_axs(fig)
+        plotter_3d.plot_frame(setting=setting, current_time=current_time, axs=axs)
+        plotter_common.plt_save(path, extension)
 
 
 def print_setting_test(setting):
-    plotter = Plotter()
-    ax = plotter.get_one_ax()
-    plotter.set_perspective(scale=1, ax=ax)
-    plotter.draw_displaced(setting, [0.0, 0.0], "tab:orange", ax)
-    plotter.plt_save("./output/1.png", "png")
+    fig = plotter_2d.get_fig()
+    axs = plotter_2d.get_axs(fig)
+    plotter_2d.set_perspective(scale=1, axs=axs)
+    plotter_2d.draw_displaced(setting, [0.0, 0.0], "tab:orange", axs)
+    plotter_common.plt_save("./output/1.png", "png")
 
 
 def print_simple_data(elements, nodes, path):
-    plotter = Plotter()
-    ax = plotter.get_one_ax()
-    plotter.set_perspective(scale=1, ax=ax)
-    plotter.triplot(nodes, elements, "tab:orange", ax)
-    extension = path.split('.')[-1]
-    plotter.plt_save(path, extension)
+    fig = plotter_2d.get_fig()
+    axs = plotter_2d.get_axs(fig)
+    plotter_2d.set_perspective(scale=1, axs=axs)
+    plotter_2d.triplot(nodes, elements, "tab:orange", axs)
+    extension = path.split(".")[-1]
+    plotter_common.plt_save(path, extension)
 
 
-###############################
+############################
 
-
-def print_multiple_dynamic(get_a_function, description=None):
-    plots = 4
-    time_steps = 5
-    skip = 10
-
-    plotter = Plotter()
-    axs = plotter.get_multiple_axs(plots, time_steps)
-    unit = config.DRAW_FORCE_UNIT
-
-    print_steps(plotter, axs, 0, time_steps, skip, [0.0, unit], get_a_function)
-    print_steps(plotter, axs, 1, time_steps, skip, [0.0, -unit], get_a_function)
-    print_steps(plotter, axs, 2, time_steps, skip, [unit, 0.0], get_a_function)
-    print_steps(plotter, axs, 3, time_steps, skip, [-unit, 0.0], get_a_function)
-
-    ts = time.time()
-    name = f"draw_mesh - {description} - {ts}"
-    # writer.add_figure(f"OUTPUT/{name}", plt.gcf())
-
-    plotter.plt_save(name)
-
-
-def print_steps(drawer, axs, row, time_steps, skip, force, get_a_function):
-    # TODO: Get data generated by Data
-    setting = SolverTorch(mesh_type=config.MESH_TYPE, mesh_density=config.MESH_DENSITY)
-
-    forces = np.repeat([force], setting.nodes_count, axis=0)
-    setting.set_forces(forces)
-
-    for time in range(time_steps * skip):
-        a = get_a_function(setting)
-        setting.iterate(a)
-        if time % skip == 0:
-            drawer.draw_setting_ax(setting, axs[row, int(i / skip)], time=time)
-
-
-###############################
-
-
-def print_test():
-    plotter = Plotter()
-    mesh = Mesh(mesh_type=config.MESH_TYPE, mesh_density=2)
-    # Assert
-    # np.around(np.mean(mesh.features[:,:,0], axis=1),4) = 0
-    # np.around(np.mean(mesh.features[:,:,1], axis=1),4) = 0
-    plotter.draw_data_triangles(mesh, mesh.elements_points, mesh.features[:, :, 0:2])
-    plotter.draw_colors_triangles(mesh, mesh.features)
-    plotter.draw_data_edges(mesh, mesh.edges_points, mesh.edges_features[:, 0:2])
-
-    # self.draw_data_edges(mesh, mesh.edges_points, mesh.W11)
+def print_setting(setting, filename, catalog):
+    cmh.create_folders(catalog)
+    extension = "png"  # pdf
+    path = f"{catalog}/{filename}.{extension}"
+    plot_at_interval(0, setting, path, None, True, extension)
 

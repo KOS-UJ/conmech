@@ -113,10 +113,10 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
 
 
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, scenario):
+    def __init__(self, all_scenarios, id):
         super().__init__(
-            all_scenarios=[scenario],
+            all_scenarios=all_scenarios,
             solve_function=Calculator.solve_all,
-            relative_path=f"validation/{scenario.id}",
+            relative_path=f"validation/{id}",
             num_workers=1,  ###
         )

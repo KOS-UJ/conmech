@@ -7,18 +7,16 @@ from deep_conmech.simulator.calculator import Calculator
 
 
 def main():
-    path = f"EXAMPLES GRAPH - {cmh.CURRENT_TIME}"
-
     for scenario in scenarios.all_print:
         plotter_mapper.print_one_dynamic(
             Calculator.solve,
             scenario,
             SettingRandomized.get_setting,
-            path,
+            catalog="EXAMPLES GRAPH",
             simulate_dirty_data=False,
             draw_base=False,
             draw_detailed=True,
-            description="Printing",
+            description="Examples graph",
         )
 
 

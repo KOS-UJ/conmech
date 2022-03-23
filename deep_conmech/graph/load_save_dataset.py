@@ -8,8 +8,8 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 from conmech.helpers import cmh
 from deep_conmech.common import config, mapper
-from deep_conmech.common.plotter import plotter_3d, plotter_mapper
-from deep_conmech.common.plotter.plotter_2d import Plotter
+from deep_conmech.common.plotter import plotter_mapper
+from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.calculator import Calculator
@@ -69,30 +69,12 @@ def to_dict(type, array):
 
 
 def simulate(scenario, directory):
-    all_images_paths = []
-    all_figs = []
-    all_settings = []
     extension = "png"
     images_directory = f"{directory}/saved_images"
     cmh.create_folders(images_directory)
 
-    def save_example(time, setting, base_setting, a, base_a):
-        all_settings.append(copy.deepcopy(setting))
-        plotter_mapper.print_at_interval(
-            time=time,
-            setting=setting,
-            path=f"{images_directory}/{scenario.id} {int(time * 100)}.{extension}",
-            base_setting=None,
-            draw_detailed=True,
-            all_images_paths=all_images_paths,
-            all_figs=all_figs,
-            extension=extension,
-            skip=config.PRINT_SKIP,
-        )
-
-    mapper.map_time(
+    all_settings, _ = mapper.map_time(
         compare_with_base_setting=False,
-        operation=save_example,
         solve_function=Calculator.solve,
         scenario=scenario,
         get_setting_function=SettingRandomized.get_setting,
@@ -100,10 +82,10 @@ def simulate(scenario, directory):
         description="Performing simulation",
     )
 
-    Plotter.draw_animation(
+    plotter_2d.plot_animation(
+        scenario,
+        all_settings,
         f"{images_directory}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
-        all_images_paths,
-        all_figs,
     )
     return all_settings
 
@@ -155,17 +137,16 @@ def main():
             dimension=2,
             mesh_type=m_polygon,
             scale=[1],
-            mesh_density=[8],
+            mesh_density=[4],
             is_adaptive=False,
         ),
         body_prop,
         obstacle_prop,
-        schedule=Schedule(final_time=2.0),
+        schedule=Schedule(final_time=0.5),
         forces_function=f_rotate,
         obstacles=o_side,
     )
 
-    # all_settings = []
     all_settings = simulate(scenario, directory)
     meta, data = prepare_data(all_settings)
 
@@ -195,10 +176,6 @@ def print_result(inputs, directory):
             path = f"{images_directory}/loaded_result {i}.png"
             all_images_paths.append(path)
             plotter_mapper.print_simple_data(elements, moved_nodes, path)
-
-    Plotter.draw_animation(
-        f"{images_directory}/loaded_result ANIMATION.gif", all_images_paths
-    )
 
 
 def load_data(meta_path, data_path):

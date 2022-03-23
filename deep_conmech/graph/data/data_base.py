@@ -250,7 +250,7 @@ class BaseDatasetDynamic:
             step_tqdm.set_description(
                 f"{tqdm_description} - printing data {current_index}"
             )
-            plotter_mapper.print_setting(setting, current_index, self.images_path)
+            ##################plotter_mapper.print_setting(setting, current_index, self.images_path)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 

@@ -5,6 +5,7 @@ from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers import cmh
 
 from deep_conmech.common import config
 
@@ -30,6 +31,23 @@ class Scenario:
             self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
         else:
             self.forces_function = forces_function
+
+    def get_tqdm(self, description):
+        return cmh.get_tqdm(
+            range(self.schedule.episode_steps),
+            f"{description} {self.id} scale_{self.mesh_data.scale_x}",
+        )
+
+    @property
+    def dimension(self):
+        return self.mesh_data.dimension
+
+    @property
+    def time_step(self):
+        return self.schedule.time_step
+    @property
+    def final_time(self):
+        return self.schedule.final_time
 
 
 ####################################

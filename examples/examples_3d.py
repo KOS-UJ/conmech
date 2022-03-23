@@ -9,17 +9,15 @@ from deep_conmech.simulator.mesh.mesh_builders_3d import *
 
 
 def main():
-    path = f"EXAMPLES 3D - {cmh.CURRENT_TIME}"
-
     all_scenarios = [
         Scenario(
             id="ball_roll",
             mesh_data=MeshData(
-                dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[2]
+                dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[4]
             ),
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
-            schedule=Schedule(final_time=0.5),
+            schedule=Schedule(final_time=4.0),
             forces_function=np.array([0.0, 0.0, -0.5]),
             obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
         ),
@@ -52,11 +50,11 @@ def main():
             Calculator.solve,
             scenario,
             SettingRandomized.get_setting,
-            path,
+            catalog="EXAMPLES 3D",
             simulate_dirty_data=False,
             draw_base=False,
             draw_detailed=True,
-            description="Printing simulator 3D",
+            description="Examples 3D",
         )
 
 

@@ -7,8 +7,6 @@ from deep_conmech.simulator.calculator import Calculator
 
 
 def main():
-    path = f"EXAMPLES ROLL - {cmh.CURRENT_TIME}"
-
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",
@@ -49,20 +47,17 @@ def main():
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
     ]
-    # change name boundary to contact
-    # ball falling from staircase
-    # check different time steps (and mesh sizes)
-    # standardize boundary indices and initial_vector
+    
     for scenario in all_scenarios:
         plotter_mapper.print_one_dynamic(
             Calculator.solve,
             scenario,
             SettingRandomized.get_setting,
-            path,
+            catalog="EXAMPLES ROLL",
             simulate_dirty_data=False,
             draw_base=False,
             draw_detailed=True,
-            description="Printing",
+            description="Examples roll",
         )
 
 
