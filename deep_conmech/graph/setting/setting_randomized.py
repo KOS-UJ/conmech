@@ -1,41 +1,32 @@
 import copy
+from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.obstacle_properties import ObstacleProperties
+from conmech.dataclass.schedule import Schedule
 
 import deep_conmech.simulator.mesh.remesher as remesher
-from deep_conmech.common import *
-from deep_conmech.graph.setting.setting_torch import *
-from deep_conmech.simulator.setting.setting_forces import *
 from conmech.helpers import nph
+from deep_conmech.common import config
+from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.scenarios import Scenario
 
 
-# MIN AT
-# a = a_cleaned - ((v_old - randomized_v_old) / config.TIMESTEP
-def L2_normalized_correction_cuda(
-    cleaned_normalized_a_cuda, C_cuda, normalized_E_cuda, normalized_a_correction_cuda
-):
-    normalized_a_cuda = cleaned_normalized_a_cuda - normalized_a_correction_cuda
-    return L2_new(normalized_a_cuda, C_cuda, normalized_E_cuda)
-
-
-
-class SettingRandomized(SettingTorch):
+class SettingRandomized(SettingObstacles):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
+        mesh_data: MeshData,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
         create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            create_in_subprocess=create_in_subprocess,
         )
         self.set_randomization(False)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
@@ -85,50 +76,26 @@ class SettingRandomized(SettingTorch):
         return self.normalized_u_old + self.normalized_u_old_randomization
 
     @property
-    def input_u_old_torch(self):
-        return thh.to_torch_double(self.input_u_old)
-
-    @property
-    def input_v_old_torch(self):
-        return thh.to_torch_double(self.input_v_old)
-
-    @property
     def normalized_forces_mean(self):
         return np.mean(self.normalized_forces, axis=0)
-
-    @property
-    def normalized_forces_mean_torch(self):
-        return thh.to_torch_double(self.normalized_forces_mean)
-
-    @property
-    def predicted_normalized_a_mean_cuda(self):
-        return self.normalized_forces_mean_torch.to(thh.device) * config.DENS
 
     @property
     def input_forces(self):
         return self.normalized_forces  # - self.normalized_forces_mean
 
     @property
-    def input_forces_torch(self):
-        return thh.to_torch_double(self.input_forces)
-
-    @property
     def a_correction(self):
         u_correction = config.U_NOISE_GAMMA * (
-            self.u_old_randomization / (config.TIMESTEP * config.TIMESTEP)
+            self.u_old_randomization / (self.time_step ** 2)
         )
         v_correction = (
-            (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / config.TIMESTEP
+            (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 
     @property
     def normalized_a_correction(self):
         return self.normalize_rotate(self.a_correction)
-
-    @property
-    def normalized_a_correction_torch(self):
-        return thh.to_torch_double(self.normalized_a_correction)
 
     def make_dirty(self):
         self.v_old = self.randomized_v_old
@@ -143,8 +110,8 @@ class SettingRandomized(SettingTorch):
         return setting
 
     def iterate_self(self, a, randomized_inputs=False):
-        v = self.v_old + config.TIMESTEP * a
-        u = self.u_old + config.TIMESTEP * v
+        v = self.v_old + self.time_step * a
+        u = self.u_old + self.time_step * v
 
         self.set_randomization(randomized_inputs)
         self.set_u_old(u)
@@ -156,7 +123,7 @@ class SettingRandomized(SettingTorch):
 
     def remesh_self(self):
         old_initial_nodes = self.initial_nodes.copy()
-        old_cells = self.cells.copy()
+        old_elements = self.elements.copy()
         u_old = self.u_old.copy()
         v_old = self.v_old.copy()
         a_old = self.a_old.copy()
@@ -164,15 +131,30 @@ class SettingRandomized(SettingTorch):
         self.remesh()
 
         u = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, u_old, old_cells
+            self.initial_nodes, old_initial_nodes, u_old, old_elements
         )
         v = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, v_old, old_cells
+            self.initial_nodes, old_initial_nodes, v_old, old_elements
         )
         a = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, a_old, old_cells
+            self.initial_nodes, old_initial_nodes, a_old, old_elements
         )
 
         self.set_u_old(u)
         self.set_v_old(v)
         self.set_a_old(a)
+
+    @staticmethod
+    def get_setting(
+        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
+    ):
+        setting = SettingRandomized(
+            mesh_data=scenario.mesh_data,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
+            schedule=scenario.schedule,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(scenario.obstacles)
+        return setting

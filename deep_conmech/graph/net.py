@@ -1,3 +1,5 @@
+import time
+
 import torch
 from deep_conmech.common import config
 from deep_conmech.graph.helpers import thh
@@ -38,7 +40,9 @@ class BasicBlock(Block):
         if activation:
             layers.append(activation)
 
-        layers.append(nn.Dropout(dropout_rate))
+        if dropout_rate:
+            layers.append(nn.Dropout(dropout_rate))
+
         self.blocks = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -53,13 +57,17 @@ class ResidualBlock(Block):
                 in_channels=channels, out_channels=channels, dropout_rate=dropout_rate,
             )
 
-            self.blocks = nn.Sequential(
-                nn.Linear(channels, channels),
-                # if batch_norm:  # check also after ReLU
-                #    layers.append(nn.BatchNorm1d(channels))
-                ACTIVATION,
-                nn.Dropout(dropout_rate),
-            )
+            layers = []
+            layers.append(nn.Linear(channels, channels))
+            # if batch_norm:  # check also after ReLU
+            #    layers.append(nn.BatchNorm1d(channels))
+
+            layers.append(ACTIVATION)
+
+            if dropout_rate:
+                layers.append(nn.Dropout(dropout_rate))
+
+            self.blocks = nn.Sequential(*layers)
 
         def forward(self, x):
             output = self.blocks(x)
@@ -92,15 +100,22 @@ class ResidualBlock(Block):
         return output
 
 
+class EmptyNorm(nn.Module):
+
+    def forward(self, x):
+        return x
+
 class DataNorm(nn.Module):
     def __init__(self, in_channels, normalization_statistics):
         super().__init__()
         self.in_channels = in_channels
         self.x_mean = normalization_statistics.data_mean.to(thh.device)
         self.x_std = normalization_statistics.data_std.to(thh.device)
+        self.mask = (self.x_std == 0)
 
     def forward(self, x):
         output = (x - self.x_mean) / self.x_std
+        output = torch.nan_to_num(output)
         return output
 
 
@@ -111,12 +126,12 @@ class ForwardNet(nn.Module):
         super().__init__()
 
         layers = []
-        if (
-            normalization_statistics is not None
-        ):  ###########################################
-            # layers.append(nn.BatchNorm1d(input_dim))
+        '''
+        if normalization_statistics is not None:
             layers.append(DataNorm(input_dim, normalization_statistics))
-
+        else:
+            layers.append(nn.BatchNorm1d(input_dim))
+        '''
         layers.append(
             BasicBlock(
                 in_channels=input_dim,
@@ -179,7 +194,7 @@ class MLP(nn.Module):
                     out_channels=config.LATENT_DIM,
                     bias=True,
                     activation=ACTIVATION,
-                    dropout_rate=DROPOUT_RATE,
+                    dropout_rate=config.DROPOUT_RATE,
                 )
             )
             in_channels = layers[-1].out_channels
@@ -253,7 +268,7 @@ class ProcessorLayer(MessagePassing):
 
         # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
         # self.node_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
-        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM)) if config.LAYER_NORM else EmptyNorm()
         self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS)
         self.epsilon = Parameter(torch.Tensor(1))
 
@@ -311,7 +326,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             output_linear_dim=config.LATENT_DIM,
             normalization_statistics=edges_statistics,
         )
-        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM)) if config.LAYER_NORM else EmptyNorm()
 
         self.processor_layers = []
         for _ in range(config.MESSAGE_PASSES):
@@ -324,21 +339,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             layers_count=config.DEC_LAYER_COUNT,
             output_linear_dim=output_dim,
         )
-        """
-        self.node_encoder = MLP(
-            input_dim=config.VERTEX_DATA_DIM,
-            input_normalization=True,  ########################
-        )
-        self.edge_encoder = MLP(
-            input_dim=config.EDGE_DATA_DIM,
-            input_normalization=True,  ########################
-        )
-        self.decoder = MLP(
-            input_dim=config.LATENT_DIM,
-            output_linear_dim=dim,
-            output_bias=False
-        )
-        """
+
 
     def forward(self, batch):
         node_input = batch.x  # position "pos" will not generalize
@@ -354,6 +355,25 @@ class CustomGraphNet(nn.Module):  # SAMPLE
 
         output = self.decoder(node_latents)
         return output
+
+    def solve_all(self, setting, print_time=False):
+        self.eval()
+        batch = setting.get_data().to(thh.device)
+
+        start = time.time()
+        normalized_a_cuda = self(
+            batch
+        )  # + setting.predicted_normalized_a_mean_cuda
+        if print_time:
+            print("Graph solve time: ", time.time() - start)
+
+        normalized_a = thh.to_np_double(normalized_a_cuda)
+        a = setting.denormalize_rotate(normalized_a)
+        return a, normalized_a
+
+    def solve(self, setting, initial_vector, print_time=False):
+        a, _ = self.solve_all(setting, print_time)
+        return a
 
 
 ############################

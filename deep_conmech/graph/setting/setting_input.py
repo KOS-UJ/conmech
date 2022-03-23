@@ -2,15 +2,41 @@ import torch
 from deep_conmech.common import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import *
+from deep_conmech.graph.setting.setting_torch import SettingTorch
+from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from torch_geometric.data import Data
 
 
-def L2_normalized_obstacle_correction_cuda(
-    cleaned_a, a_correction, *args,
+def L2_normalized_obstacle_correction(
+    cleaned_a,
+    a_correction,
+    C,
+    E,
+    boundary_v_old,
+    boundary_nodes,
+    boundary_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    boundary_nodes_volume,
+    obstacle_prop,
+    time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return L2_obstacle(a, *args)
+    return L2_obstacle(
+        a=a,
+        C=C,
+        E=E,
+        boundary_v_old=boundary_v_old,
+        boundary_nodes=boundary_nodes,
+        boundary_normals=boundary_normals,
+        boundary_obstacle_nodes=boundary_obstacle_nodes,
+        boundary_obstacle_normals=boundary_obstacle_normals,
+        boundary_nodes_volume=boundary_nodes_volume,
+        obstacle_prop=obstacle_prop,
+        time_step=time_step,
+    )
 
 
 #################################
@@ -25,15 +51,8 @@ def set_diff(data, position, row, i, j):
 
 @njit  # (parallel=True)
 def get_edges_data(
-    edges,
-    initial_nodes,
-    u_old,
-    v_old,
-    forces,
-    boundary_faces_count,
-    obstacle_normal,
-    boundary_obstacle_penetration,
-):  # , forces
+    edges, initial_nodes, u_old, v_old, forces,
+):
     edges_number = edges.shape[0]
     edges_data = np.zeros((edges_number, 12))
     for e in range(edges_number):
@@ -61,7 +80,7 @@ def L2_obstacle_nvt(
     boundary_obstacle_normals,
     boundary_nodes_volume,
 ):  # np via torch
-    value_torch = L2_normalized_obstacle_correction_cuda(
+    value_torch = L2_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device),
         None,
         thh.to_torch_double(C_boundary).to(thh.device),
@@ -77,31 +96,27 @@ def L2_obstacle_nvt(
     return value  # .item()
 
 
-class SettingInput(SettingRandomized):
+class SettingInput(SettingTorch):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        mesh_data: MeshData,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        create_in_subprocess: bool,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            create_in_subprocess=create_in_subprocess,
         )
 
     @staticmethod
     def edges_data_dim():
         return 12
-        
+
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
@@ -112,7 +127,6 @@ class SettingInput(SettingRandomized):
 
         return desc
 
-
     def get_edges_data_torch(self, edges):
         edges_data = get_edges_data(
             edges,
@@ -120,21 +134,22 @@ class SettingInput(SettingRandomized):
             self.input_u_old,
             self.input_v_old,
             self.input_forces,
-            self.boundary_faces_count,
-            self.normalized_obstacle_normal,
-            self.boundary_obstacle_penetration,
         )
         return thh.to_torch_double(edges_data)
 
-
     @staticmethod
     def nodes_data_dim():
-        return 10
+        return 13
 
     @staticmethod
     def get_nodes_data_description(dim):
         desc = []
-        for attr in ["forces", "boundary_penetration", "boundary_normals"]:
+        for attr in [
+            "forces",
+            "boundary_penetration",
+            "boundary_normals",
+            "boundary_v_tangential",
+        ]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
@@ -143,30 +158,32 @@ class SettingInput(SettingRandomized):
             desc.append(attr)
         return desc
 
-
     def get_nodes_data(self):
         boundary_penetration = self.complete_boundary_data_with_zeros(
-            self.normalized_boundary_obstacle_penetration_vectors_torch
+            self.normalized_boundary_penetration_torch
         )
         boundary_normals = self.complete_boundary_data_with_zeros(
             self.normalized_boundary_normals_torch
         )
-        boundary_volume = self.complete_boundary_data_with_zeros(self.boundary_nodes_volume_torch)
+        boundary_v_tangential = self.complete_boundary_data_with_zeros(
+            self.normalized_boundary_v_tangential_torch
+        )
+        boundary_volume = self.complete_boundary_data_with_zeros(
+            self.boundary_nodes_volume_torch
+        )
 
         nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.input_forces_torch),
                 # thh.append_euclidean_norm(self.input_u_old_torch),
-                # thh.append_euclidean_norm(self.input_v_old_torch) #TODO: Add v tangential?
+                # thh.append_euclidean_norm(self.input_v_old_torch)
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
-                boundary_volume
+                thh.append_euclidean_norm(boundary_v_tangential),
+                boundary_volume,
             )
         )
         return nodes_data
-
-
-
 
     def get_data(self, setting_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
@@ -219,3 +236,17 @@ class SettingInput(SettingRandomized):
             self.boundary_nodes_volume,
         )
 
+    @staticmethod
+    def get_setting(
+        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
+    ):
+        setting = SettingInput(
+            mesh_data=scenario.mesh_data,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
+            schedule=scenario.schedule,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(scenario.obstacles)
+        return setting

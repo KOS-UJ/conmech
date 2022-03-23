@@ -7,9 +7,7 @@ import numpy as np
 from conmech.problem_solver import TDynamic as TDynamicProblemSolver
 from conmech.problems import Dynamic
 from conmech.utils.drawer import Drawer
-
 from examples.p_slope_contact_law import make_slope_contact_law
-
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     # @staticmethod  # TODO # 48
@@ -43,7 +41,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 @dataclass()
 class TDynamicSetup(Dynamic):
     grid_height: ... = 1.0
-    cells_number: ... = (10, 25)
+    elements_number: ... = (10, 25)
     mu_coef: ... = 4
     la_coef: ... = 4
     th_coef: ... = 4
@@ -64,12 +62,12 @@ class TDynamicSetup(Dynamic):
         return 0
 
     @staticmethod  # TODO #49
-    def is_contact(x, y):
-        return y == 0
+    def is_contact(x):
+        return x[1] == 0
 
     @staticmethod  # TODO #49
-    def is_dirichlet(x, y):
-        return x == 0
+    def is_dirichlet(x):
+        return x[0] == 0
 
 
 if __name__ == "__main__":

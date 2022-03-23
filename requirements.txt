@@ -7,4 +7,5 @@ pytest
 meshzoo
 pygmsh
 gmsh
+tqdm
 networkx

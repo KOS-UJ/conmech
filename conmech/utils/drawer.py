@@ -8,6 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from conmech.helpers import cmh
 
 
 class Drawer:
@@ -16,6 +17,11 @@ class Drawer:
         self.state = state
         self.mesh = state.mesh
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+
+    @staticmethod
+    def get_directory():
+        return f"./output/DRAWING {cmh.CURRENT_TIME}"
+
 
     def draw(self, temp_max=None, temp_min=None):
         f, ax = plt.subplots()
@@ -45,13 +51,32 @@ class Drawer:
         plt.axis('on')
         ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        f.set_size_inches(self.mesh.scale_x * 12, self.mesh.scale_y * 10)
+        f.set_size_inches(self.mesh.mesh_data.scale_x * 12, self.mesh.mesh_data.scale_y * 10)
 
         plt.show()
+        self.save_plot()
+
+
+    def save_plot(self):
+        directory = Drawer.get_directory()
+        cmh.create_folders(directory)
+        extension = "png" # pdf
+        path = f"{directory}/{cmh.get_timestamp()}.{extension}"
+        plt.savefig(
+            path,
+            transparent=False,
+            bbox_inches="tight",
+            format=extension,
+            pad_inches=0.1,
+            dpi=800
+        )
+        plt.close()
+
+
 
     def draw_mesh(self, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()
-        for i, j, k in self.mesh.cells:
+        for i, j, k in self.mesh.elements:
             graph.add_edge(i, j)
             graph.add_edge(i, k)
             graph.add_edge(j, k)
@@ -72,7 +97,7 @@ class Drawer:
         y = self.state.displaced_points[:, 1]
 
         n_layers = 100
-        ax.tricontourf(x, y, self.mesh.cells, field, n_layers, cmap=plt.cm.magma,
+        ax.tricontourf(x, y, self.mesh.elements, field, n_layers, cmap=plt.cm.magma,
                              vmin=v_min, vmax=v_max)
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])

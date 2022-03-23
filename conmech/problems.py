@@ -30,7 +30,7 @@ class ContactLaw:
 class Problem:
     grid_height: float
 
-    cells_number: Union[
+    elements_number: Union[
         Tuple[int, int], Tuple[int, int, int]
     ]  # number of triangles per aside
 
@@ -52,11 +52,11 @@ class Problem:
         raise NotImplementedError()
 
     @staticmethod
-    def is_contact(x: float, y: float) -> bool:
+    def is_contact(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
     @staticmethod
-    def is_dirichlet(x: float, y: float) -> bool:
+    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
 
@@ -74,11 +74,11 @@ class Static(Problem):
         raise NotImplementedError()
 
     @staticmethod
-    def is_contact(x: float, y: float) -> bool:
+    def is_contact(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
     @staticmethod
-    def is_dirichlet(x: float, y: float) -> bool:
+    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
 
@@ -100,11 +100,11 @@ class Quasistatic(Problem):
         raise NotImplementedError()
 
     @staticmethod
-    def is_contact(x: float, y: float) -> bool:
+    def is_contact(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
     @staticmethod
-    def is_dirichlet(x: float, y: float) -> bool:
+    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
 
@@ -126,9 +126,9 @@ class Dynamic(Problem):
         raise NotImplementedError()
 
     @staticmethod
-    def is_contact(x: float, y: float) -> bool:
+    def is_contact(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
     @staticmethod
-    def is_dirichlet(x: float, y: float) -> bool:
+    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()

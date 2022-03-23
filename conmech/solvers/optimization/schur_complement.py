@@ -5,11 +5,10 @@ import math
 from typing import Tuple
 
 import numpy as np
-
 from conmech.forces import Forces
+from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
-from conmech.helpers import nph
 
 
 class SchurComplement(Optimization):
@@ -18,7 +17,7 @@ class SchurComplement(Optimization):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
@@ -27,7 +26,7 @@ class SchurComplement(Optimization):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -132,9 +131,7 @@ class SchurComplement(Optimization):
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         solution_contact = super().solve(
-            truncated_initial_guess,
-            fixed_point_abs_tol=fixed_point_abs_tol,
-            **kwargs
+            truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
         solution_free = self.complement_free_points(solution_contact)
         solution = self.merge(solution_contact, solution_free)
@@ -196,17 +193,18 @@ class Quasistatic(SchurComplement):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
         self.A = mesh.A
+        self.dim = mesh.dimension
         super().__init__(
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -216,7 +214,7 @@ class Quasistatic(SchurComplement):
         return self.A
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=2)
+        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -230,27 +228,30 @@ class Dynamic(Quasistatic):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
+        self.dim = mesh.dimension
         self.ACC = mesh.ACC
+        self.C2T = mesh.C2T
         self.K = mesh.K
-        self.t_vector = np.zeros(mesh.independent_nodes_count)
+        self.ind = mesh.independent_nodes_count
+        self.t_vector = np.zeros(self.ind)
         super().__init__(
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        T = (1 / self.time_step) \
-            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
-            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
+        T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.K[
+            : self.ind, : self.ind
+        ]
 
         # Tii
         T_free_x_free = T[self.free_ids, self.free_ids]
@@ -291,17 +292,13 @@ class Dynamic(Quasistatic):
         return self.A + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * nph.unstack(self.B @ self.u_vector, dim=2)
+        X = -1 * self.B @ self.u_vector
 
-        X += (1 / self.time_step) * nph.unstack(self.ACC @ self.v_vector, dim=2)
+        X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-        C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
-        C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
+        X += np.tile(self.t_vector, self.dim) @ self.C2T  # TODO: Check if not -1 *
 
-        X += np.stack((C2XTemp, C2YTemp), axis=-1) #TODO: Check if not -1 * 
-
-        return self.forces.F + X
+        return self.forces.F + nph.unstack(X, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -309,29 +306,11 @@ class Dynamic(Quasistatic):
         self.Q_free, self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-
-        C2Xv = np.squeeze(
-            np.asarray(
-                C2X @ self.v_vector[0: self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-        C2Yv = np.squeeze(
-            np.asarray(
-                C2Y @ self.v_vector[
-                    self.mesh.independent_nodes_count: 2 * self.mesh.independent_nodes_count
-                ].transpose()
-            )
+        QBig = (-1) * nph.unstack_and_sum_columns(
+            self.C2T @ self.v_vector, dim=self.dim
         )
 
-        Q1 = (1 / self.time_step) * np.squeeze(
-            np.asarray(
-                self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
-                @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-
-        QBig = Q1 - C2Xv - C2Yv
+        QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         Q_free = QBig[self.free_ids]

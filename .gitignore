@@ -13,7 +13,7 @@ events.*
 *.pkl
 *.json
 
-data/*
+datasets/*
 output/*
 
 ##########

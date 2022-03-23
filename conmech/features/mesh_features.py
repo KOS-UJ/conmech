@@ -1,7 +1,8 @@
 from typing import Callable
 
-import numpy as np
-import numba
+from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 
@@ -9,58 +10,40 @@ from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 class MeshFeatures(SettingMatrices):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        mu_coef,
-        la_coef,
-        th_coef,
-        ze_coef,
-        density,
-        time_step,
+        mesh_data: MeshData,
+        body_prop: BodyProperties,
+        schedule: Schedule,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
-        self.is_contact = is_contact
-        self.is_dirichlet = is_dirichlet
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            False,
-            mu_coef,
-            la_coef,
-            th_coef,
-            ze_coef,
-            density,
-            time_step,
-            False
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            schedule=schedule,
+            is_dirichlet=is_dirichlet,
+            is_contact=is_contact,
+            with_schur_complement_matrices=False,
+            create_in_subprocess=False,
         )
 
-    def reorganize_boundaries(self):
+    def reorganize_boundaries(self, unordered_nodes, unordered_elements):
         (
             self.boundaries,
             self.initial_nodes,
-            self.cells,
+            self.elements,
         ) = Boundaries.identify_boundaries_and_reorder_vertices(
-            self.initial_nodes, self.cells, self.is_contact, self.is_dirichlet
+            unordered_nodes, unordered_elements, self.is_contact, self.is_dirichlet
         )
 
         self.independent_nodes_count = len(self.initial_nodes)
         for vertex in reversed(self.initial_nodes):
-            if not self.is_dirichlet(*vertex):
+            if not self.is_dirichlet(vertex):
                 break
             self.independent_nodes_count -= 1
 
         self.contact_count = 0
         for vertex in self.initial_nodes:
-            if not self.is_contact(*vertex):
+            if not self.is_contact(vertex):
                 break
             self.contact_count += 1
 

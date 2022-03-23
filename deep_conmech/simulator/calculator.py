@@ -1,50 +1,50 @@
 import time
 from argparse import ArgumentError
+from typing import Callable, Optional
 
 import numpy as np
 import scipy
 from conmech.helpers import nph
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from scipy import optimize
 
 
 class Calculator:
     @staticmethod
-    def solve_all(setting, initial_vector=None):
+    def solve_all(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         normalized_a = Calculator.solve_normalized(setting, initial_vector)
         normalized_cleaned_a = Calculator.clean(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
-    def solve(setting, initial_vector=None):
+    def solve(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_vector)
         return cleaned_a
 
     @staticmethod
-    def mode():
-        return config.CALCULATOR_MODE
-
-    @staticmethod
-    def is_fast():
-        return config.CALCULATOR_MODE == "function"
-
-    @staticmethod
-    def solve_normalized(setting, initial_vector=None):
-        if config.CALCULATOR_MODE == "function":
-            return Calculator.solve_normalized_function(setting)
-        elif config.CALCULATOR_MODE == "optimization":
+    def solve_normalized(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        # TODO: repeat with optimization if colision in this round
+        if setting.is_coliding:
             return Calculator.solve_normalized_optimization(setting, initial_vector)
         else:
-            raise ArgumentError
+            return Calculator.solve_normalized_function(setting, initial_vector)
 
     @staticmethod
-    def solve_normalized_function(setting):
+    def solve_normalized_function(setting, initial_vector):
         normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
         return nph.unstack(normalized_a_vector, setting.dim)
 
         """
+        time used
         base (BFGS) - 178 / 1854
         Nelder-Mead - 883
         CG - 96 / 1458.23
@@ -62,32 +62,38 @@ class Calculator:
         """
 
     @staticmethod
-    def minimize(function, initial_vector):
+    def minimize(function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray) -> np.ndarray:
         return scipy.optimize.minimize(
-            function, initial_vector, method="L-BFGS-B",  # , options={"disp": True}
+            function,
+            initial_vector,
+            method="L-BFGS-B", # , POWELL L-BFGS-B options={"disp": True}
         ).x
 
     @staticmethod
-    def solve_normalized_optimization(setting, initial_boundary_vector=None):
-        if initial_boundary_vector is None:
+    def solve_normalized_optimization(setting, initial_boundary=None):
+        if initial_boundary is None:
             initial_boundary_vector = np.zeros(
                 setting.boundary_nodes_count * setting.dim
+            )
+        else:
+            initial_boundary_vector = nph.stack_column(
+                initial_boundary[setting.boundary_nodes_indices]
             )
 
         tstart = time.time()
         cost_function = setting.get_normalized_L2_obstacle_np()
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_boundary_vector
-        ) 
+        )
         t_np = time.time() - tstart
-        '''
+        """
         tstart = time.time()
         normalized_boundary_a_vector_nvt = Calculator.minimize(
             setting.normalized_L2_obstacle_nvt, initial_boundary_vector
         ) 
         t_nvt = time.time() - tstart
-        '''
-        
+        """
+
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(
             setting, setting.normalized_Ei, normalized_boundary_a_vector
@@ -97,7 +103,11 @@ class Calculator:
 
     @staticmethod
     def clean(setting, normalized_a):
-        return normalized_a + setting.normalized_a_correction
+        return (
+            normalized_a + setting.normalized_a_correction
+            if normalized_a is not None
+            else None
+        )
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):

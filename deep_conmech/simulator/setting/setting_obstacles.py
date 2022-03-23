@@ -1,15 +1,35 @@
-import time
-
 import numpy as np
+from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.obstacle_properties import ObstacleProperties
+from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
 
-def obstacle_resistance_potential_normal(penetration):
-    value = config.OBSTACLE_HARDNESS * 2.0 * penetration ** 2
-    return (penetration > 0) * value * ((1.0 / config.TIMESTEP) ** 2)
+def get_penetration_norm_internal(
+    nodes, obstacle_nodes, obstacle_nodes_normals, dot=np.dot
+):
+    projection = (-1) * dot((nodes - obstacle_nodes), obstacle_nodes_normals)
+    return (projection > 0) * projection
+
+
+def get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals):
+    return get_penetration_norm_internal(
+        nodes, obstacle_nodes, obstacle_nodes_normals, dot=nph.elementwise_dot
+    ).reshape(-1, 1)
+
+
+get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
+
+
+####
+
+
+def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
+    return hardness * 0.5 * (penetration_norm ** 2) * ((1.0 / time_step) ** 2)
 
 
 obstacle_resistance_potential_normal_numba = numba.njit(
@@ -17,29 +37,60 @@ obstacle_resistance_potential_normal_numba = numba.njit(
 )
 
 
-def obstacle_resistance_potential_tangential(penetration, tangential_velocity):
-    value = config.OBSTACLE_FRICTION * nph.euclidean_norm(tangential_velocity)
-    return (penetration > 0) * value * ((1.0 / config.TIMESTEP))
+def obstacle_resistance_potential_tangential_internal(
+    penetration_norm,
+    tangential_velocity,
+    friction,
+    time_step,
+    norm=nph.euclidean_norm_numba,
+):
+    return (
+        (penetration_norm > 0)
+        * friction
+        * norm(tangential_velocity)
+        * (1.0 / time_step)
+    )
+
+
+def obstacle_resistance_potential_tangential(
+    penetration, tangential_velocity, friction, time_step
+):
+    return obstacle_resistance_potential_tangential_internal(
+        penetration,
+        tangential_velocity,
+        friction,
+        time_step,
+        norm=lambda x: nph.euclidean_norm(x, keepdims=True),
+    )
 
 
 obstacle_resistance_potential_tangential_numba = numba.njit(
-    obstacle_resistance_potential_tangential
+    obstacle_resistance_potential_tangential_internal
 )
 
 
 def integrate(
-    nodes, nodes_normals, obstacle_nodes, obstacle_nodes_normals, v, nodes_volume
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    hardness,
+    friction,
+    time_step,
 ):
-    node_penetration = (-1) * nph.elementwise_dot(
-        nodes - obstacle_nodes, obstacle_nodes_normals,
+    penetration_norm = get_penetration_norm(
+        nodes, obstacle_nodes, obstacle_nodes_normals
     )
 
-    node_v_normal = nph.elementwise_dot(v, obstacle_nodes_normals, keepdims=True)
-    node_v_tangential = v - (node_v_normal * nodes_normals)
+    v_tangential = nph.get_tangential(v, nodes_normals)
 
-    resistance_normal = obstacle_resistance_potential_normal(node_penetration)
+    resistance_normal = obstacle_resistance_potential_normal(
+        penetration_norm, hardness, time_step
+    )
     resistance_tangential = obstacle_resistance_potential_tangential(
-        node_penetration, node_v_tangential
+        penetration_norm, v_tangential, friction, time_step
     )
     result = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return result
@@ -47,41 +98,33 @@ def integrate(
 
 @njit
 def integrate_numba(
-    nodes, nodes_normals, obstacle_nodes, obstacle_nodes_normals, v, nodes_volume
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    hardness,
+    friction,
+    time_step,
 ):
     result = 0.0
-    for i in range(len(nodes_normals)):
-        node_penetration = (
-            (-1) * (nodes[i] - obstacle_nodes[i]) @ obstacle_nodes_normals[i]
+    for i in range(len(nodes)):
+        penetration = get_penetration_norm_numba(
+            nodes[i], obstacle_nodes[i], obstacle_nodes_normals[i]
         )
 
-        node_v_normal = v[i] @ nodes_normals[i]
-        node_v_tangential = v[i] - (node_v_normal * nodes_normals[i])
+        v_tangential = nph.get_tangential_numba(v[i], nodes_normals[i])
 
-        resistance_normal = obstacle_resistance_potential_normal_numba(node_penetration)
+        resistance_normal = obstacle_resistance_potential_normal_numba(
+            penetration, hardness, time_step
+        )
         resistance_tangential = obstacle_resistance_potential_tangential_numba(
-            node_penetration, node_v_tangential
+            penetration, v_tangential, friction, time_step
         )
 
-        result += nodes_volume[i] * (resistance_normal + resistance_tangential)
+        result += nodes_volume[i].item() * (resistance_normal + resistance_tangential)
     return result
-
-
-@njit
-def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
-    boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
-
-    for i in range(len(boundary_nodes)):
-        boundary_node = boundary_nodes[i]
-
-        distances = nph.euclidean_norm_numba(obstacle_nodes - boundary_node)
-        # valid_indices = np.where((obstacle_normals @ edge_normal) > 0)[0]
-        # if(len(valid_indices) > 0):
-        # min_index = valid_indices[distances[valid_indices].argmin()]
-
-        boundary_obstacle_indices[i] = distances.argmin()
-
-    return boundary_obstacle_indices
 
 
 def L2_obstacle(
@@ -93,15 +136,17 @@ def L2_obstacle(
     boundary_normals,
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
-    boundary_nodes_volume,
+    boundary_nodes_volume: np.ndarray,
+    obstacle_prop: ObstacleProperties,
+    time_step: float,
 ):
     value = L2_new(a, C, E)
 
     boundary_nodes_count = boundary_v_old.shape[0]
     boundary_a = a[:boundary_nodes_count, :]  # TODO: boundary slice
 
-    boundary_v_new = boundary_v_old + config.TIMESTEP * boundary_a
-    boundary_nodes_new = boundary_nodes + config.TIMESTEP * boundary_v_new
+    boundary_v_new = boundary_v_old + time_step * boundary_a
+    boundary_nodes_new = boundary_nodes + time_step * boundary_v_new
 
     args = (
         boundary_nodes_new,
@@ -110,32 +155,43 @@ def L2_obstacle(
         boundary_obstacle_normals,
         boundary_v_new,
         boundary_nodes_volume,
+        obstacle_prop.hardness,
+        obstacle_prop.friction,
+        time_step,
     )
 
-    boundary_integral = integrate_numba(*args) if a is np.array else integrate(*args)
+    is_numpy = isinstance(a, np.ndarray)
+    boundary_integral = integrate_numba(*args) if is_numpy else integrate(*args)
     return value + boundary_integral
+
+
+@njit
+def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
+    boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
+
+    for i in range(len(boundary_nodes)):
+        distances = nph.euclidean_norm_numba(obstacle_nodes - boundary_nodes[i])
+        boundary_obstacle_indices[i] = distances.argmin()
+
+    return boundary_obstacle_indices
 
 
 class SettingObstacles(SettingForces):
     def __init__(
         self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
-        create_in_subprocess=False,
+        mesh_data: MeshData,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            schedule=schedule,
+            create_in_subprocess=create_in_subprocess,
         )
+        self.obstacle_prop = obstacle_prop
         self.obstacles = None
         self.clear()
 
@@ -152,6 +208,21 @@ class SettingObstacles(SettingForces):
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
+
+    def get_normalized_L2_obstacle_np(self):
+        return lambda normalized_boundary_a_vector: L2_obstacle(
+            nph.unstack(normalized_boundary_a_vector, self.dim),
+            self.C_boundary,
+            self.normalized_E_boundary,
+            self.normalized_boundary_v_old,
+            self.normalized_boundary_nodes,
+            self.normalized_boundary_normals,
+            self.normalized_boundary_obstacle_nodes,
+            self.normalized_boundary_obstacle_normals,
+            self.boundary_nodes_volume,
+            self.obstacle_prop,
+            self.time_step,
+        )
 
     @property
     def obstacle_normals(self):
@@ -211,40 +282,64 @@ class SettingObstacles(SettingForces):
     def normalized_obstacle_origin(self):
         return self.normalized_obstacle_origins[0]
 
-    def get_normalized_L2_obstacle_np(self):
-        return lambda normalized_boundary_a_vector: L2_obstacle(
-            nph.unstack(normalized_boundary_a_vector, self.dim),
-            self.C_boundary,
-            self.normalized_E_boundary,
-            self.normalized_boundary_v_old,
-            self.normalized_boundary_nodes,
-            self.normalized_boundary_normals,
-            self.normalized_boundary_obstacle_nodes,
-            self.normalized_boundary_obstacle_normals,
-            self.boundary_nodes_volume,
-        )
+    @property
+    def boundary_v_old(self):
+        return self.v_old[self.boundary_nodes_indices]
+
+    @property
+    def boundary_a_old(self):
+        return self.a_old[self.boundary_nodes_indices]
 
     @property
     def normalized_boundary_v_old(self):
-        return self.normalized_v_old[: self.boundary_nodes_count, :]
+        return self.rotated_v_old[self.boundary_nodes_indices]
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[: self.boundary_nodes_count, :]
+        return self.normalized_points[self.boundary_nodes_indices]
 
     @property
-    def boundary_obstacle_penetration(self):
-        node_penetration = (-1) * nph.elementwise_dot(
-            self.boundary_nodes - self.boundary_obstacle_nodes,
+    def boundary_penetration_norm(self):
+        return get_penetration_norm(
+            self.boundary_nodes,
+            self.boundary_obstacle_nodes,
             self.boundary_obstacle_normals,
-            keepdims=True,
         )
-        return (node_penetration > 0) * node_penetration
 
     @property
-    def boundary_obstacle_penetration_vectors(self):
-        return self.boundary_obstacle_penetration * self.boundary_obstacle_normals
+    def boundary_penetration(self):
+        boundary_penetration_norm = self.boundary_penetration_norm
+        return boundary_penetration_norm * self.boundary_obstacle_normals
 
     @property
-    def normalized_boundary_obstacle_penetration_vectors(self):
-        return self.normalize_rotate(self.boundary_obstacle_penetration_vectors)
+    def normalized_boundary_penetration(self):
+        return self.normalize_rotate(self.boundary_penetration)
+
+    @property
+    def normalized_boundary_v_tangential(self):
+        return nph.get_tangential(
+            self.normalized_boundary_v_old, self.normalized_boundary_normals
+        ) * (self.boundary_penetration_norm > 0)
+
+    @property
+    def boundary_v_tangential(self):
+        return nph.get_tangential(self.boundary_v_old, self.boundary_normals)
+
+    @property
+    def resistance_normal(self):
+        return obstacle_resistance_potential_normal(
+            self.boundary_penetration_norm, self.obstacle_prop.hardness, self.time_step
+        )
+
+    @property
+    def resistance_tangential(self):
+        return obstacle_resistance_potential_tangential(
+            self.boundary_penetration_norm,
+            self.boundary_v_tangential,
+            self.obstacle_prop.friction,
+            self.time_step,
+        )
+
+    @property
+    def is_coliding(self):
+        return np.any(self.boundary_penetration_norm > 0)

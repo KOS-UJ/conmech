@@ -3,6 +3,7 @@ import pytest
 from conmech.helpers import nph
 from deep_conmech.simulator.setting import setting_mesh
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from conmech.dataclass.mesh_data import MeshData
 
 
 @pytest.mark.parametrize("scale_x, scale_y", ((1, 1), (2, 3), (5, 1)))
@@ -10,11 +11,11 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
     setting = SettingMesh(
+        mesh_data=MeshData(
         mesh_type="meshzoo_rectangle",
-        mesh_density_x=3,
-        mesh_density_y=3,
-        scale_x=scale_x,
-        scale_y=scale_y,
+        mesh_density=[3,3],
+        scale=[scale_x, scale_y]
+        )
     )
     setting.prepare()
 
@@ -29,7 +30,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
 def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
-    setting = SettingMesh(mesh_type="meshzoo_cube_3d", mesh_density_x=4)
+    setting = SettingMesh(mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]))
     setting.prepare()
 
     # Act and Assert

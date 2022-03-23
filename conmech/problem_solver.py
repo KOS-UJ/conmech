@@ -5,13 +5,15 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
+from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
 from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem
 from conmech.problems import Static as StaticProblem
 from conmech.solvers import Solvers
-from conmech.solvers.coefficients import Coefficients
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state import State, TemperatureState
@@ -24,25 +26,25 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        th_coef = setup.th_coef if hasattr(setup, "th_coef") else 0
-        ze_coef = setup.ze_coef if hasattr(setup, "ze_coef") else 0
+        body_prop = BodyProperties(
+            mu=setup.mu_coef, lambda_=setup.la_coef, mass_density=1.0
+        )
+        body_prop.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
+        body_prop.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
         time_step = setup.time_step if hasattr(setup, "time_step") else 0
 
-        grid_width = (setup.grid_height / setup.cells_number[0]) * setup.cells_number[1]
+        grid_width = (
+            setup.grid_height / setup.elements_number[0]
+        ) * setup.elements_number[1]
 
         self.mesh = MeshFeatures(
-            mesh_type="cross",
-            mesh_density_x=setup.cells_number[1],
-            mesh_density_y=setup.cells_number[0],
-            scale_x=float(grid_width),
-            scale_y=float(setup.grid_height),
-            is_adaptive=False,
-            mu_coef=setup.mu_coef,
-            la_coef=setup.la_coef,
-            th_coef=th_coef,
-            ze_coef=ze_coef,
-            density=1,
-            time_step=time_step,
+            mesh_data=MeshData(
+                mesh_type="cross",
+                mesh_density=[setup.elements_number[1], setup.elements_number[0]],
+                scale=[float(grid_width), float(setup.grid_height)],
+            ),
+            body_prop=body_prop,
+            schedule=Schedule(time_step=time_step, final_time=0.0),
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
         )
@@ -66,15 +68,16 @@ class ProblemSolver:
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
-            coefficients = Coefficients(
-                mu=self.setup.mu_coef, lambda_=self.setup.la_coef
+            body_prop = BodyProperties(
+                mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            coefficients = Coefficients(
+            body_prop = BodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
                 theta=self.setup.th_coef,
                 zeta=self.setup.ze_coef,
+                mass_density=1.0,
             )
             time_step = self.setup.time_step
         else:
@@ -84,7 +87,7 @@ class ProblemSolver:
             self.mesh,
             self.setup.inner_forces,
             self.setup.outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,
@@ -333,7 +336,7 @@ class TDynamic(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = TemperatureState(self.mesh)
-        state.temperature = np.full_like(state.temperature, 0.)  # TODO #50
+        state.temperature = np.full_like(state.temperature, 0.0)  # TODO #50
         if initial_velocity:
             state.set_velocity(initial_velocity, update_displacement=False)
         solution = state.velocity.reshape(2, -1)

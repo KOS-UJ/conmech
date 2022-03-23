@@ -1,31 +1,17 @@
-# Standardize data! (from -1 to 1)
-DIM = 2
-
-DENS = 0.01
-MU = 0.01
-LA = 0.01
-TH = 0.01
-ZE = 0.01
-
-OBSTACLE_HARDNESS = 0.04
-OBSTACLE_FRICTION = 0.004
+TEST = False
 
 NORMALIZE_ROTATE = True
 ############
 
-# "meshzoo" "pygmsh_rectangle" "pygmsh_circle" "pygmsh_spline" "pygmsh_polygon" "dmsh" "cross"
-
 TRAIN_SCALE = 1.0
 VALIDATION_SCALE = 1.0
-PRINT_SCALE = 2.0
-SIMULATOR_SCALE = 1.0
+PRINT_SCALE = 1.0
 
-MESH_DENSITY = 16
-ADAPTIVE_MESH = True
-CALCULATOR_MODE = "optimization"  # "function" # "optimization"
-SIMULATE_DIRTY_DATA = True
+FINAL_TIME = 2.0 if TEST else 8
 
-TIMESTEP = 0.01
+
+MESH_DENSITY = 8 if TEST else 16
+ADAPTIVE_TRAINING_MESH = False  #!# True
 
 ############
 
@@ -43,40 +29,36 @@ V_IN_RANDOM_FACTOR = 0.005 * V_RANDOM_SCALE
 
 ############
 
-FINAL_TIME = 8.0  #!# 4
-EPISODE_STEPS = int(FINAL_TIME / TIMESTEP)
+DATA_FOLDER = f"{MESH_DENSITY}"
+PRINT_DATA_CUTOFF = 0.1
 
 ############
 
-DATA_FOLDER = f"{MESH_DENSITY}"  #!#
-PRINT_DATA_CUTOFF = 10
+VALIDATE_AT_EPOCHS = 1 if TEST else 20
+DRAW_AT_MINUTES = 10 if TEST else 60
+PRINT_SKIP = 0.1
 
-############
-
-VALIDATE_AT_EPOCHS = 20
-DRAW_AT_MINUTES = 60  #!#
-PRINT_SKIP = 0.2
-
-L2_LOSS = False #!#
+L2_LOSS = False  #!#
 BATCH_SIZE = 128  #!#
-VALID_BATCH_SIZE = 32  #!#
-SYNTHETIC_BATCHES_IN_EPOCH = 64 #512  #!#
+VALID_BATCH_SIZE = 128  #!#
+SYNTHETIC_BATCHES_IN_EPOCH = 64 if TEST else 512  #!#
 SYNTHETIC_SOLVERS_COUNT = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
 ############
 
 DATALOADER_WORKERS = 4
-GENERATION_WORKERS = 2
+GENERATION_WORKERS = 1  # 2
 GENERATION_MEMORY_LIMIT_GB = 24.0 / GENERATION_WORKERS
 TOTAL_MEMORY_LIMIT_GB = 29.0
 
 ############
 
-DROPOUT_RATE = 0.2  # 0.1  # 0.05
+LAYER_NORM = True
+DROPOUT_RATE = None  # 0.0  # 0.1  # 0.2  0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0
 
-ATTENTION_HEADS = None  # 1  # None 1 3 5
+ATTENTION_HEADS = None  # None 1 3 5
 
 INITIAL_LR = 1e-4
 LR_GAMMA = 1.0  # 0.999

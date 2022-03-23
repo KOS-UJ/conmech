@@ -46,7 +46,7 @@ class JureczkaOchal2018(ContactLaw):
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1.0
-    cells_number: ... = (4, 8)
+    elements_number: ... = (4, 8)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = JureczkaOchal2018
@@ -68,12 +68,12 @@ class StaticSetup(Static):
         return 0.8
 
     @staticmethod
-    def is_contact(x, y):
-        return y == 0
+    def is_contact(x):
+        return x[1] == 0
 
     @staticmethod
-    def is_dirichlet(x, y):
-        return x == 0
+    def is_dirichlet(x):
+        return x[0] == 0
 
 
 if __name__ == "__main__":

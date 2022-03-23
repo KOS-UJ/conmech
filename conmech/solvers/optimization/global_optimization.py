@@ -3,9 +3,9 @@ Created 22.02.2021
 """
 
 import numpy as np
-
-from conmech.solvers.optimization.optimization import Optimization
+from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
+from conmech.solvers.optimization.optimization import Optimization
 
 
 class Global(Optimization):
@@ -14,7 +14,7 @@ class Global(Optimization):
         grid,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
@@ -23,7 +23,7 @@ class Global(Optimization):
             grid,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -68,7 +68,7 @@ class Quasistatic(Global):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
@@ -78,7 +78,7 @@ class Quasistatic(Global):
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
@@ -102,27 +102,30 @@ class Dynamic(Quasistatic):
         mesh,
         inner_forces,
         outer_forces,
-        coefficients,
+        body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
+        self.dim = mesh.dimension
         self.ACC = mesh.ACC
         self.K = mesh.K
-        self.t_vector = np.zeros(mesh.independent_nodes_count)
+        self.C2T = mesh.C2T
+        self.ind = mesh.independent_nodes_count
+        self.t_vector = np.zeros(self.ind)
         super().__init__(
             mesh,
             inner_forces,
             outer_forces,
-            coefficients,
+            body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        self._point_temperature = (1 / self.time_step) \
-            * self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count] \
-            + self.K[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
+        self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
+            : self.ind, : self.ind
+        ] + self.K[: self.ind, : self.ind]
 
         self.Q = self.recalculate_temperature()
 
@@ -138,12 +141,7 @@ class Dynamic(Quasistatic):
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
-        C2XTemp = np.squeeze(np.dot(np.transpose(C2X), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
-        C2YTemp = np.squeeze(np.dot(np.transpose(C2Y), self.t_vector[0:self.mesh.independent_nodes_count].transpose()))
-
-        C2 = np.concatenate((C2XTemp, C2YTemp))
-        X += C2
+        X += np.tile(self.t_vector, self.dim) @ self.C2T
 
         return self.forces.F_vector + X
 
@@ -153,28 +151,8 @@ class Dynamic(Quasistatic):
         self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        C2X, C2Y = self.mesh.C2X, self.mesh.C2Y
+        X = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
 
-        C2Xv = np.squeeze(
-            np.asarray(
-                C2X @ self.v_vector[0: self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-        C2Yv = np.squeeze(
-            np.asarray(
-                C2Y @ self.v_vector[
-                    self.mesh.independent_nodes_count: 2 * self.mesh.independent_nodes_count
-                ].transpose()
-            )
-        )
+        X += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
 
-        Q1 = (1 / self.time_step) * np.squeeze(
-            np.asarray(
-                self.ACC[:self.mesh.independent_nodes_count, :self.mesh.independent_nodes_count]
-                @ self.t_vector[:self.mesh.independent_nodes_count].transpose(),
-            )
-        )
-
-        QBig = Q1 - C2Xv - C2Yv
-
-        return QBig
+        return X

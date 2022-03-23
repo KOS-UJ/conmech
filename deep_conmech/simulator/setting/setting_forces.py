@@ -5,7 +5,6 @@ from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from numba import njit
 
 
-
 def L2_new(a, C, E):
     a_vector = nph.stack_column(a)
     first = 0.5 * (C @ a_vector) - E
@@ -15,7 +14,7 @@ def L2_new(a, C, E):
 
 @njit
 def get_forces_by_function_numba(
-    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, current_time
+    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, scale_z, current_time
 ):
     forces = np.zeros_like(initial_nodes, dtype=numba.double)
     for i in range(len(initial_nodes)):
@@ -27,23 +26,13 @@ def get_forces_by_function_numba(
 
 class SettingForces(SettingMatrices):
     def __init__(
-        self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y=None,
-        scale_x=None,
-        scale_y=None,
-        is_adaptive=False,
-        create_in_subprocess=False,
+        self, mesh_data, body_prop, schedule, create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            schedule=schedule,
+            create_in_subprocess=create_in_subprocess,
         )
         self.forces = None
 
@@ -52,8 +41,9 @@ class SettingForces(SettingMatrices):
             numba.njit(forces_function),
             self.initial_nodes,
             self.moved_nodes,
-            self.scale_x,
-            self.scale_y,
+            self.mesh_data.scale_x,
+            self.mesh_data.scale_y,
+            self.mesh_data.scale_z,
             current_time,
         )
 
@@ -101,13 +91,13 @@ class SettingForces(SettingMatrices):
             self.normalized_forces,
             self.normalized_u_old,
             self.normalized_v_old,
-            self.AREA,
+            self.VOL,
             self.A_plus_B_times_ts,
             self.B,
         )
 
-    def get_E(self, forces, u_old, v_old, AREA, A_plus_B_times_ts, B):
-        F_vector = nph.stack_column(AREA @ forces)
+    def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B):
+        F_vector = nph.stack_column(VOL @ forces)
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 

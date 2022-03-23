@@ -1,38 +1,58 @@
 import torch
 from deep_conmech.graph.helpers import thh
-from deep_conmech.simulator.setting.setting_obstacles import *
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 
-class SettingTorch(SettingObstacles):
+class SettingTorch(SettingRandomized):
     def __init__(
-        self,
-        mesh_type,
-        mesh_density_x,
-        mesh_density_y,
-        scale_x,
-        scale_y,
-        is_adaptive,
-        create_in_subprocess,
+        self, mesh_data, body_prop, obstacle_prop, schedule, create_in_subprocess,
     ):
         super().__init__(
-            mesh_type,
-            mesh_density_x,
-            mesh_density_y,
-            scale_x,
-            scale_y,
-            is_adaptive,
-            create_in_subprocess,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            create_in_subprocess=create_in_subprocess,
         )
-        self.exact_normalized_a_torch = None  # todo: clear on change
+        self.exact_normalized_a_torch = None  # TODO: clear on change
 
     def complete_boundary_data_with_zeros(self, data):
-        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data = torch.zeros(
+            (self.nodes_count, data.shape[1]), dtype=data.dtype
+        )
         completed_data[self.boundary_nodes_indices] = data
         return completed_data
 
     @property
-    def AREA_torch(self):
-        return thh.to_torch_double(self.AREA)
+    def input_u_old_torch(self):
+        return thh.to_torch_double(self.input_u_old)
+
+    @property
+    def input_v_old_torch(self):
+        return thh.to_torch_double(self.input_v_old)
+
+    @property
+    def normalized_forces_mean_torch(self):
+        return thh.to_torch_double(self.normalized_forces_mean)
+
+    @property
+    def predicted_normalized_a_mean_cuda(self):
+        return (
+            self.normalized_forces_mean_torch.to(thh.device)
+            * self.body_prop.mass_density
+        )
+
+    @property
+    def input_forces_torch(self):
+        return thh.to_torch_double(self.input_forces)
+
+    @property
+    def normalized_a_correction_torch(self):
+        return thh.to_torch_double(self.normalized_a_correction)
+
+    @property
+    def VOL_torch(self):
+        return thh.to_torch_double(self.VOL)
 
     @property
     def B_torch(self):
@@ -107,14 +127,16 @@ class SettingTorch(SettingObstacles):
         return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
 
     @property
-    def normalized_boundary_obstacle_penetration_vectors_torch(self):
-        return thh.to_torch_double(
-            self.normalized_boundary_obstacle_penetration_vectors
-        )
+    def normalized_boundary_penetration_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_penetration)
 
     @property
     def normalized_boundary_obstacle_normals_torch(self):
         return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
+
+    @property
+    def normalized_boundary_v_tangential_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_v_tangential)
 
     @property
     def boundary_nodes_volume_torch(self):

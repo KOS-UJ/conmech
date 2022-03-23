@@ -25,7 +25,7 @@ def generate_test_suits():
     @dataclass()
     class StaticSetup(Static):
         grid_height: ... = 1
-        cells_number: ... = (2, 5)
+        elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
         contact_law: ... = make_slope_contact_law(slope=1)
@@ -43,12 +43,12 @@ def generate_test_suits():
             return 0
 
         @staticmethod
-        def is_contact(x, y):
-            return y == 0
+        def is_contact(x):
+            return x[1] == 0
 
         @staticmethod
-        def is_dirichlet(x, y):
-            return x == 0
+        def is_dirichlet(x):
+            return x[0] == 0
 
     setup_m02_m02 = StaticSetup()
 
@@ -123,7 +123,7 @@ def generate_test_suits():
     @dataclass()
     class StaticSetup(Static):
         grid_height: ... = 1.37
-        cells_number: ... = (2, 5)
+        elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
         la_coef: ... = 3.33
         contact_law: ... = make_slope_contact_law(slope=2.71)
@@ -141,12 +141,12 @@ def generate_test_suits():
             return 0.0
 
         @staticmethod
-        def is_contact(x, y):
-            return y == 0
+        def is_contact(x):
+            return x[1] == 0
 
         @staticmethod
-        def is_dirichlet(x, y):
-            return x == 0
+        def is_dirichlet(x):
+            return x[0] == 0
 
     setup_var = StaticSetup()
     expected_displacement_vector_var = [
@@ -177,7 +177,7 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     result = runner.solve()
 
     displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
-    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.cells)
+    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
