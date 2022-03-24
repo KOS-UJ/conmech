@@ -44,5 +44,6 @@ if __name__ == "__main__":
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "direct")
 
-    state = runner.solve(verbose=True)
+    state = runner.solve(verbose=True,
+                         initial_displacement=setup.initial_displacement)
     Drawer(state).draw()

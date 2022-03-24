@@ -22,14 +22,13 @@ class Drawer:
     def get_directory():
         return f"./output/DRAWING {cmh.CURRENT_TIME}"
 
-
     def draw(self, temp_max=None, temp_min=None):
         f, ax = plt.subplots()
 
         if hasattr(self.state, "temperature"):
             temperature = np.concatenate((
                 self.state.temperature[:],
-                np.zeros(self.mesh.dirichlet_count)
+                np.zeros(self.mesh.dirichlet_count)  # TODO #60
             ))
             self.draw_field(temperature, temp_min, temp_max, ax, f)
 
@@ -56,7 +55,6 @@ class Drawer:
         plt.show()
         self.save_plot()
 
-
     def save_plot(self):
         directory = Drawer.get_directory()
         cmh.create_folders(directory)
@@ -71,8 +69,6 @@ class Drawer:
             dpi=800
         )
         plt.close()
-
-
 
     def draw_mesh(self, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()

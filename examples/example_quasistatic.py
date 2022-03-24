@@ -47,6 +47,8 @@ if __name__ == "__main__":
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
+    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True,
+                          initial_displacement=setup.initial_displacement,
+                          initial_velocity=setup.initial_velocity)
     for state in states:
         Drawer(state).draw()

@@ -80,5 +80,6 @@ if __name__ == "__main__":
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "schur")
 
-    state = runner.solve(verbose=True, fixed_point_abs_tol=0.001)
+    state = runner.solve(verbose=True, fixed_point_abs_tol=0.001,
+                         initial_displacement=setup.initial_displacement)
     Drawer(state).draw()
