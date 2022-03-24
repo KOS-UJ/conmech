@@ -85,7 +85,7 @@ class SettingForces(SettingMatrices):
             self.normalized_E_free,
         ) = SchurComplement.calculate_schur_complement_vector(
             vector=self.normalized_E,
-            dimension=self.dim,
+            dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
             free_x_free_inverted=self.free_x_free_inverted,

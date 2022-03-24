@@ -7,7 +7,7 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from conmech.helpers import cmh
-from deep_conmech.common import config, mapper
+from deep_conmech.common import config, simulator
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
@@ -73,7 +73,7 @@ def simulate(scenario, directory):
     images_directory = f"{directory}/saved_images"
     cmh.create_folders(images_directory)
 
-    all_settings, _ = mapper.map_time(
+    all_settings, _ = simulator.simulate(
         compare_with_base_setting=False,
         solve_function=Calculator.solve,
         scenario=scenario,

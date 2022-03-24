@@ -339,7 +339,7 @@ print_args = dict(
 )
 all_print = [
     *get_data(
-        scale=config.PRINT_SCALE, is_adaptive=False, final_time=config.FINAL_TIME
+        scale=config.PRINT_SCALE, is_adaptive=False, final_time=3.0 #config.FINAL_TIME
     ),
     # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
     # polygon_two(**print_args),

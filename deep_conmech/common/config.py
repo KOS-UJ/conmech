@@ -35,7 +35,7 @@ PRINT_DATA_CUTOFF = 0.1
 ############
 
 VALIDATE_AT_EPOCHS = 1 if TEST else 20
-DRAW_AT_MINUTES = 10 if TEST else 5  # 60
+DRAW_AT_MINUTES = 10 if TEST else 10 # 60
 PRINT_SKIP = 0.1
 
 L2_LOSS = False  #!#

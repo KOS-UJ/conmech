@@ -12,6 +12,13 @@ from scipy import optimize
 
 class Calculator:
     @staticmethod
+    def solve(
+        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        cleaned_a, _ = Calculator.solve_all(setting, initial_vector)
+        return cleaned_a
+
+    @staticmethod
     def solve_all(
         setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
     ) -> np.ndarray:
@@ -21,27 +28,46 @@ class Calculator:
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
-    def solve(
-        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
-    ) -> np.ndarray:
-        cleaned_a, _ = Calculator.solve_all(setting, initial_vector)
-        return cleaned_a
-
-    @staticmethod
     def solve_normalized(
-        setting: SettingRandomized, initial_vector: Optional[np.ndarray] = None
+        setting: SettingRandomized, initial_a_vector: Optional[np.ndarray] = None
     ) -> np.ndarray:
-        # TODO: repeat with optimization if colision in this round
+        # TODO: repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Calculator.solve_normalized_optimization(setting, initial_vector)
+            return Calculator.solve_normalized_optimization(setting, initial_a_vector)
         else:
-            return Calculator.solve_normalized_function(setting, initial_vector)
+            return Calculator.solve_normalized_function(setting, initial_a_vector)
 
     @staticmethod
-    def solve_normalized_function(setting, initial_vector):
+    def solve_with_temperature(
+        setting: SettingRandomized,
+        initial_a_vector: Optional[np.ndarray] = None,
+        initial_t_vector: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        cleaned_a = Calculator.solve(setting, initial_a_vector)
+
+        t = Calculator.solve_temperature_normalized(setting, initial_t_vector)
+        cleaned_t = Calculator.clean_temperature(setting, t)
+
+        return cleaned_a, cleaned_t
+
+    @staticmethod
+    def solve_temperature_normalized(
+        setting: SettingRandomized, initial_t_vector: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        return Calculator.solve_temperature_normalized_function(
+            setting, initial_t_vector
+        )
+
+    @staticmethod
+    def solve_temperature_normalized_function(setting, initial_t_vector):
+        t_vector = np.linalg.solve(setting.T, setting.Q)
+        return t_vector
+
+    @staticmethod
+    def solve_normalized_function(setting, initial_a_vector):
         normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
-        return nph.unstack(normalized_a_vector, setting.dim)
+        return nph.unstack(normalized_a_vector, setting.dimension)
 
         """
         time used
@@ -72,14 +98,14 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve_normalized_optimization(setting, initial_boundary=None):
-        if initial_boundary is None:
+    def solve_normalized_optimization(setting, initial_boundary_a=None):
+        if initial_boundary_a is None:
             initial_boundary_vector = np.zeros(
                 setting.boundary_nodes_count * setting.dim
             )
         else:
             initial_boundary_vector = nph.stack_column(
-                initial_boundary[setting.boundary_indices]
+                initial_boundary_a[setting.boundary_indices]
             )
 
         tstart = time.time()
@@ -101,7 +127,7 @@ class Calculator:
             setting, setting.normalized_E_free, normalized_boundary_a_vector
         )
 
-        return nph.unstack(normalized_a_vector, setting.dim)
+        return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
     def clean(setting, normalized_a):
@@ -110,6 +136,10 @@ class Calculator:
             if normalized_a is not None
             else None
         )
+
+    @staticmethod
+    def clean_temperature(setting, t):
+        return t if t is not None else None  # + setting.normalized_a_correction #TODO
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):
@@ -123,8 +153,8 @@ class Calculator:
 
         normalized_a = np.vstack(
             (
-                nph.unstack(normalized_at_vector, setting.dim),
-                nph.unstack(normalized_ai_vector, setting.dim),
+                nph.unstack(normalized_at_vector, setting.dimension),
+                nph.unstack(normalized_ai_vector, setting.dimension),
             )
         )
         normalized_a_vector = nph.stack(normalized_a)

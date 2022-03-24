@@ -1,5 +1,5 @@
 from conmech.helpers import cmh
-from deep_conmech.common import config, mapper
+from deep_conmech.common import config, simulator
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
@@ -16,21 +16,22 @@ def print_one_dynamic(
     description,
     plot_images=False,
     plot_animation=True,
+    with_temperatue=False,
 ):
     extension = "png"  # pdf
-    final_catalog = f"{cmh.CURRENT_TIME}- {catalog}"
+    final_catalog = f"{cmh.CURRENT_TIME} - {catalog}"
     cmh.create_folders(f"output/{final_catalog}")
 
     _plot_at_interval = lambda current_time, setting, base_setting, a, base_a: plot_at_interval(
         current_time=current_time,
         setting=setting,
-        path=f"output/{catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
+        path=f"output/{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
         base_setting=base_setting,
         draw_detailed=draw_detailed,
         extension=extension,
     )
 
-    all_settings, all_base_settings = mapper.map_time(
+    all_settings, all_base_settings = simulator.simulate(
         compare_with_base_setting=draw_base,
         solve_function=solve_function,
         scenario=scenario,
@@ -38,8 +39,9 @@ def print_one_dynamic(
         simulate_dirty_data=simulate_dirty_data,
         description=description,
         operation=_plot_at_interval if plot_images else None,
+        with_temperatue=with_temperatue,
     )
-    '''
+    """
     if plot_images:
         time_tqdm = scenario.get_tqdm(f"Plotting images {description}")
         for i in time_tqdm:
@@ -48,7 +50,7 @@ def print_one_dynamic(
                 all_base_settings[i] if all_base_settings is not None else None
             )
             _plot_at_interval(current_time, all_settings[i], base_setting, None, None)
-    '''
+    """
 
     if plot_animation:
         print("Generating animation...")
@@ -57,7 +59,6 @@ def print_one_dynamic(
             plotter_2d.plot_animation(scenario, all_settings, animation_path)
         else:
             plotter_3d.plot_animation(scenario, all_settings, animation_path)
-        
 
 
 def plot_at_interval(
@@ -109,4 +110,3 @@ def print_setting(setting, filename, catalog):
     extension = "png"  # pdf
     path = f"{catalog}/{filename}.{extension}"
     plot_at_interval(0, setting, path, None, True, extension)
-

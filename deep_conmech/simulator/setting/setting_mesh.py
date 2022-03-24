@@ -490,7 +490,3 @@ class SettingMesh:
     @property
     def edges_number(self):
         return len(self.edges)
-
-    @property
-    def dim(self):
-        return self.initial_nodes.shape[1]

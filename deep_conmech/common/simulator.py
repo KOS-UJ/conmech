@@ -7,14 +7,15 @@ from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
 
 
-def map_time(
+def simulate(
     compare_with_base_setting,
     solve_function,
     scenario: Scenario,
     get_setting_function,
     simulate_dirty_data,
     description,
-    operation: Optional[Callable] = None
+    operation: Optional[Callable] = None,
+    with_temperatue: bool = False,
 ):
     all_settings = []
     all_base_settings = [] if compare_with_base_setting else None
@@ -36,6 +37,7 @@ def map_time(
 
     time_tqdm = scenario.get_tqdm(description)
     a = None
+    t = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
@@ -47,7 +49,12 @@ def map_time(
             all_base_settings.append(copy.deepcopy(setting))
 
         start_time = time.time()
-        a = solve_function(setting, initial_vector=a)
+        if with_temperatue:
+            a, t = solve_function(setting, initial_a_vector=a, initial_t_vector=t)
+        else:
+            a = solve_function(setting, initial_vector=a)
+
+
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
@@ -65,7 +72,11 @@ def map_time(
         if operation is not None:
             operation(current_time, setting, base_setting, a, base_a)
 
-        setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+        if with_temperatue:
+            setting.iterate_self(a, t, randomized_inputs=simulate_dirty_data)
+        else:
+            setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+            
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
 

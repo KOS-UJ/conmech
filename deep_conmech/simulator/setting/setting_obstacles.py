@@ -4,7 +4,6 @@ from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
-from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
@@ -211,7 +210,7 @@ class SettingObstacles(SettingForces):
 
     def get_normalized_L2_obstacle_np(self):
         return lambda normalized_boundary_a_vector: L2_obstacle(
-            nph.unstack(normalized_boundary_a_vector, self.dim),
+            nph.unstack(normalized_boundary_a_vector, self.dimension),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,

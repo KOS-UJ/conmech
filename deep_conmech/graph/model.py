@@ -116,8 +116,9 @@ class GraphModelDynamic:
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
-        examples_seen = 0
         start_time = time.time()
+        last_plotting_time = start_time
+        examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
         while True:
@@ -147,16 +148,16 @@ class GraphModelDynamic:
 
             self.scheduler.step()
 
-            time_enlapsed = time.time() - start_time
+            current_time = time.time()
+            elapsed_time = current_time - start_time
             if epoch_number % config.VALIDATE_AT_EPOCHS == 0:
-                self.validation_raport(examples_seen, epoch_number)
+                self.validation_raport(examples_seen, epoch_number, elapsed_time)
                 self.train_dataset.update_data()
-                print(f"Time enlapsed: {time_enlapsed}")
 
-            if time_enlapsed > config.DRAW_AT_MINUTES * 60:
+            if current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
                 # self.save()
-                self.print_raport()
-                start_time = time.time()
+                self.plot_scenarios()
+                last_plotting_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
 
@@ -207,8 +208,9 @@ class GraphModelDynamic:
                 f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
             )
 
-    def validation_raport(self, examples_seen, epoch_number):
-        print("----VALIDATION----")
+    def validation_raport(self, examples_seen, epoch_number, elapsed_time):
+        print("----VALIDATING----")
+        print(f"Time elapsed: {(elapsed_time / 60):.4f} min")
         total_loss_array = np.zeros(self.labels_count)
         for dataset, dataloader in self.all_val_data:
             mean_loss_array = np.zeros(self.labels_count)
@@ -241,8 +243,8 @@ class GraphModelDynamic:
             )
         print("---")
 
-    def print_raport(self):
-        print("----RAPORT----")
+    def plot_scenarios(self):
+        print("----PLOTTING----")
         start_time = time.time()
         timestamp = cmh.get_timestamp()
         for scenario in self.print_scenarios:
@@ -255,11 +257,11 @@ class GraphModelDynamic:
                 draw_base=False,  ###
                 draw_detailed=False,
                 description="Raport",
-                plot_images=True,
-                plot_animation=False
+                plot_images=False,
+                plot_animation=True
             )
 
-        print(f"Printing time: {int((time.time() - start_time)/60)} min")
+        print(f"Plotting time: {int((time.time() - start_time)/60)} min")
         print("----")
 
     #################

@@ -5,7 +5,6 @@ import math
 from typing import Tuple
 
 import numpy as np
-from conmech.forces import Forces
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
