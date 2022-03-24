@@ -219,7 +219,10 @@ def generate_test_suits():
 def test_global_optimization_solver(
         solving_method, setup, expected_displacement_vector, expected_temperature_vector):
     runner = TDynamicProblem(setup, solving_method)
-    results = runner.solve(n_steps=32)
+    results = runner.solve(n_steps=32,
+                           initial_displacement=setup.initial_displacement,
+                           initial_velocity=setup.initial_velocity,
+                           initial_temperature=setup.initial_temperature)
 
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
     displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]

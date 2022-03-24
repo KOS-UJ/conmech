@@ -174,7 +174,7 @@ def generate_test_suits():
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
 def test_direct_solver(solving_method, setup, expected_displacement_vector):
     runner = StaticProblem(setup, solving_method)
-    result = runner.solve()
+    result = runner.solve(initial_displacement=setup.initial_displacement)
 
     displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)

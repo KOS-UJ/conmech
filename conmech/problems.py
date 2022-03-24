@@ -28,6 +28,7 @@ class ContactLaw:
 
 @dataclass()
 class Problem:
+    DIMENSION = 2
     grid_height: float
 
     elements_number: Union[
@@ -38,6 +39,10 @@ class Problem:
     la_coef: float
     contact_law: ContactLaw
     dynamism: str = None  # TODO: remove
+
+    @staticmethod
+    def initial_displacement(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
 
     @staticmethod
     def inner_forces(x: float, y: float) -> np.ndarray:
@@ -88,6 +93,10 @@ class Quasistatic(Problem):
     time_step: float
 
     @staticmethod
+    def initial_velocity(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
+
+    @staticmethod
     def inner_forces(x: float, y: float) -> np.ndarray:
         raise NotImplementedError()
 
@@ -112,6 +121,14 @@ class Dynamic(Problem):
     th_coef: float
     ze_coef: float
     time_step: float
+
+    @staticmethod
+    def initial_velocity(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
+
+    @staticmethod
+    def initial_temperature(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
 
     @staticmethod
     def inner_forces(x: float, y: float) -> np.ndarray:
