@@ -28,15 +28,17 @@ def main():
     all_val_datasets.append(
         ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
     )
-    #val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
-    #nodes_statistics.describe()["forces_norm"]["mean"]
-    #mean_val = np.mean(
+    # val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
+    # nodes_statistics.describe()["forces_norm"]["mean"]
+    # mean_val = np.mean(
     #    [
     #        val_stat[i][0].describe()["forces_norm"]["mean"]
     #        for i, _ in enumerate(scenarios.all_validation)
     #    ]
-    #)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, net)
+    # )
+    model = GraphModelDynamic(
+        train_dataset, all_val_datasets, scenarios.all_print(), net
+    )
     if path is not None:
         model.load(path)
         model.print_raport()
@@ -47,18 +49,18 @@ def main():
 if __name__ == "__main__":
     main()
 
-#remove ACC, use stacked U
-#add tests
-#new branch
+# remove ACC, use stacked U
+# add tests
+# new branch
 
-#constitutive_velocity
-#displacement_matrix lhs
-#displacement_vector rhs
+# constitutive_velocity
+# displacement_matrix lhs
+# displacement_vector rhs
 
-    # change name boundary to contact
-    # ball falling from staircase
-    # check different time steps (and mesh sizes)
-    # standardize boundary indices and initial_vector
+# change name boundary to contact
+# ball falling from staircase
+# check different time steps (and mesh sizes)
+# standardize boundary indices and initial_vector
 
 #############################################
 # add friction and normal response (separately or together) to 2d and 3d
