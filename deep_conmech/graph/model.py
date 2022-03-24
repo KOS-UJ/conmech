@@ -156,7 +156,7 @@ class GraphModelDynamic:
 
             if current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
                 # self.save()
-                self.plot_scenarios()
+                self.plot_scenarios(elapsed_time)
                 last_plotting_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
@@ -208,9 +208,12 @@ class GraphModelDynamic:
                 f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
             )
 
+    def print_elapsed_time(self, elapsed_time):
+        print(f"Time elapsed: {(elapsed_time / 60):.4f} min")
+
     def validation_raport(self, examples_seen, epoch_number, elapsed_time):
         print("----VALIDATING----")
-        print(f"Time elapsed: {(elapsed_time / 60):.4f} min")
+        self.print_elapsed_time(elapsed_time)
         total_loss_array = np.zeros(self.labels_count)
         for dataset, dataloader in self.all_val_data:
             mean_loss_array = np.zeros(self.labels_count)
@@ -243,8 +246,9 @@ class GraphModelDynamic:
             )
         print("---")
 
-    def plot_scenarios(self):
+    def plot_scenarios(self, elapsed_time):
         print("----PLOTTING----")
+        self.print_elapsed_time(elapsed_time)
         start_time = time.time()
         timestamp = cmh.get_timestamp()
         for scenario in self.print_scenarios:
@@ -258,7 +262,7 @@ class GraphModelDynamic:
                 draw_detailed=False,
                 description="Raport",
                 plot_images=False,
-                plot_animation=True
+                plot_animation=True,
             )
 
         print(f"Plotting time: {int((time.time() - start_time)/60)} min")

@@ -13,10 +13,8 @@ def print_one_dynamic(
     simulate_dirty_data,
     draw_base,
     draw_detailed,
-    description,
     plot_images=False,
-    plot_animation=True,
-    with_temperatue=False,
+    plot_animation=True
 ):
     extension = "png"  # pdf
     final_catalog = f"{cmh.CURRENT_TIME} - {catalog}"
@@ -37,9 +35,8 @@ def print_one_dynamic(
         scenario=scenario,
         get_setting_function=get_setting_function,
         simulate_dirty_data=simulate_dirty_data,
-        description=description,
+        description=catalog,
         operation=_plot_at_interval if plot_images else None,
-        with_temperatue=with_temperatue,
     )
     """
     if plot_images:

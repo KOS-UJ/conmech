@@ -27,9 +27,9 @@ class SettingTemperature(SettingRandomized):
 
     def get_normalized_L2_temperature_np(self):
         return lambda normalized_boundary_t_vector: L2_temperature(
-            nph.unstack(normalized_boundary_t_vector, self.dimension),
+            nph.unstack(normalized_boundary_t_vector, 1),
             self.T_boundary,
-            self.Q_boundary,
+            self.normalized_Q_boundary,
         )
 
     def prepare(self, forces):
@@ -56,17 +56,17 @@ class SettingTemperature(SettingRandomized):
         super().set_u_old(u)
 
     def clear_all_Q(self):
-        self.Q = None
-        self.Q_free = None
-        self.Q_boundary = None
+        self.normalized_Q = None
+        self.normalized_Q_free = None
+        self.normalized_Q_boundary = None
 
     def set_all_normalized_Q_np(self):
-        self.Q = self.get_normalized_Q_np()
+        self.normalized_Q = self.get_normalized_Q_np()
         (
-            self.Q_boundary,
-            self.Q_free,
+            self.normalized_Q_boundary,
+            self.normalized_Q_free,
         ) = SchurComplement.calculate_schur_complement_vector(
-            vector=self.Q,
+            vector=self.normalized_Q,
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
@@ -84,14 +84,30 @@ class SettingTemperature(SettingRandomized):
         )
 
     def get_Q(self, dimension, t_old, v_old, C2T, U):
-        t_old_vector = t_old.reshape(-1)
-        v_old_vector = nph.stack_column(v_old).reshape(-1)
+        v_old_vector = nph.stack_column(v_old)
 
         Q = (-1) * nph.unstack_and_sum_columns(
-            C2T @ v_old_vector, dim=dimension #, keepdims=True
-        )
-        Q += (1 / self.time_step) * U @ t_old_vector
+            C2T @ v_old_vector, dim=dimension, keepdims=True
+        )  # here v_old_vector is column vector
+        Q += (1 / self.time_step) * U @ t_old
         return Q
+
+    def get_normalized_E_np(self):
+        return self.get_E(
+            forces=self.normalized_forces,
+            u_old=self.normalized_u_old,
+            v_old=self.normalized_v_old,
+            VOL=self.VOL,
+            A_plus_B_times_ts=self.A_plus_B_times_ts,
+            B=self.B,
+            dimension=self.dimension,
+            C2T=self.C2T,
+        )
+
+    def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B, dimension, C2T):
+        value = super().get_E(forces, u_old, v_old, VOL, A_plus_B_times_ts, B)
+        value += C2T.T @ np.tile(self.t_old, (dimension, 1))
+        return value
 
     def iterate_self(self, a, t, randomized_inputs=False):
         self.set_t_old(t)

@@ -281,7 +281,7 @@ def get_boundary_nodes_data_numba(
 ################
 
 
-class SettingMesh:
+class Mesh:
     def __init__(
         self,
         mesh_data: MeshData,

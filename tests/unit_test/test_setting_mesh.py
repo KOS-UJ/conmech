@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 from conmech.helpers import nph
-from deep_conmech.simulator.setting import setting_mesh
-from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from deep_conmech.simulator.setting import mesh
+from deep_conmech.simulator.setting.mesh import Mesh
 from conmech.dataclass.mesh_data import MeshData
 
 
@@ -10,11 +10,9 @@ from conmech.dataclass.mesh_data import MeshData
 def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
-    setting = SettingMesh(
+    setting = Mesh(
         mesh_data=MeshData(
-        mesh_type="meshzoo_rectangle",
-        mesh_density=[3,3],
-        scale=[scale_x, scale_y]
+            mesh_type="meshzoo_rectangle", mesh_density=[3, 3], scale=[scale_x, scale_y]
         )
     )
     setting.prepare()
@@ -30,7 +28,9 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
 def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
-    setting = SettingMesh(mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]))
+    setting = Mesh(
+        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1])
+    )
     setting.prepare()
 
     # Act and Assert
@@ -57,7 +57,7 @@ def test_remove_unconnected_nodes():
     elements = np.array([[4, 2], [2, 5], [4, 5]])
 
     # Act
-    cleaned_nodes, cleaned_elements = setting_mesh.remove_unconnected_nodes_numba(
+    cleaned_nodes, cleaned_elements = mesh.remove_unconnected_nodes_numba(
         nodes, elements
     )
 

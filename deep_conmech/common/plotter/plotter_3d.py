@@ -7,12 +7,14 @@ from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.setting_mesh import *
+from deep_conmech.simulator.setting.mesh import *
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def get_fig():
-    return plt.figure(figsize=(5,4))
+    return plt.figure(figsize=(5, 4))
+
 
 def get_one_ax(fig, grid, angle, distance):
     ax = fig.add_subplot(grid, projection="3d", facecolor="none")
@@ -57,7 +59,7 @@ def get_axs(fig):
     distances = np.array([[10, 10], [11, 10]])
     rows, columns, _ = angles.shape
 
-    #fig = get_figure()  # constrained_layout=True)
+    # fig = get_figure()  # constrained_layout=True)
     grid = fig.add_gridspec(nrows=rows, ncols=columns)
     # , width_ratios=[1, 1.], height_ratios=[1., 1.])
     # fig.subplots_adjust(left=-0.2, bottom=0., right=1., top=1.)#, wspace=-0.4, hspace=-0.4)
@@ -75,6 +77,7 @@ def get_axs(fig):
     ax4.set_position([0.5, 0.2, 0.4, 0.4])
     return [ax1, ax2, ax3, ax4]
 
+
 def plot_frame(setting, current_time, axs):
     return plot_frame_internal(
         setting=setting,
@@ -83,8 +86,10 @@ def plot_frame(setting, current_time, axs):
             setting.normalized_u_old,
             setting.normalized_v_old,
             setting.normalized_a_old,
-        ], axs=axs
+        ],
+        axs=axs,
     )
+
 
 def plot_frame_internal(setting, normalized_data, axs):
     for ax in axs:
@@ -94,15 +99,12 @@ def plot_frame_internal(setting, normalized_data, axs):
 
 
 def plot_arrows(starts, vectors, ax):
-    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(starts, vectors)
-    ax.quiver(
-        *prepared_starts,
-        *prepared_vectors,
-        arrow_length_ratio=0.1,
-        color="w",
-        lw=0.1
+    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(
+        starts, vectors
     )
-
+    ax.quiver(
+        *prepared_starts, *prepared_vectors, arrow_length_ratio=0.1, color="w", lw=0.1
+    )
 
 
 def draw_base_arrows(ax, base):
@@ -118,22 +120,40 @@ def plot_subframe(
     draw_base_arrows(ax, setting.moved_base)
 
     plot_mesh(
-        ax, setting.moved_nodes, setting, "tab:orange",
+        nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax
     )
     plot_obstacles(ax, setting, "tab:orange")
 
     shifted_normalized_nodes = setting.normalized_points + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(starts=shifted_normalized_nodes, vectors=data, ax=ax)
-
         plot_mesh(
-            ax, shifted_normalized_nodes, setting, "tab:blue",
+            nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", ax=ax
         )
-
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
+    if isinstance(setting, SettingTemperature):
+        draw_temperature(nodes=shifted_normalized_nodes, setting=setting, ax=ax)
 
-def plot_mesh(ax, nodes, setting, color):
+
+def draw_temperature(nodes, setting, ax):
+    points = nodes.T
+    t_min = 0.0
+    t_max = 0.1
+
+    ax.scatter(
+        *points,
+        c=setting.t_old,
+        vmin=t_min,
+        vmax=t_max,
+        cmap=plt.cm.plasma,
+        s=1,
+        marker=".",
+        linewidths=0.1,
+    )
+
+
+def plot_mesh(nodes, setting, color, ax):
     boundary_faces_nodes = nodes[setting.boundary_faces]
     ax.add_collection3d(
         Poly3DCollection(
@@ -169,7 +189,6 @@ def plot_obstacles(ax, setting, color):
     # ax.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
 
     ax.quiver(*node, *normal, color=color, alpha=alpha)
-
 
 
 def plot_animation(

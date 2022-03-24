@@ -48,7 +48,6 @@ if __name__ == "__main__":
     main()
 
 #remove ACC, use stacked U
-#move temperature out of deep_conmech
 #add tests
 #new branch
 

@@ -229,7 +229,7 @@ class BaseDatasetDynamic:
         setting = self.load(index)
         if self.randomize_at_load:
             setting.set_randomization(True)
-            exact_normalized_a_torch = Calculator.clean(
+            exact_normalized_a_torch = Calculator.clean_acceleration(
                 setting, setting.exact_normalized_a_torch
             )
         else:

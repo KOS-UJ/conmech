@@ -5,6 +5,7 @@ from typing import Callable, Optional
 from conmech.helpers import cmh
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
 def simulate(
@@ -14,8 +15,7 @@ def simulate(
     get_setting_function,
     simulate_dirty_data,
     description,
-    operation: Optional[Callable] = None,
-    with_temperatue: bool = False,
+    operation: Optional[Callable] = None
 ):
     all_settings = []
     all_base_settings = [] if compare_with_base_setting else None
@@ -23,6 +23,7 @@ def simulate(
     setting = get_setting_function(
         scenario, randomize=simulate_dirty_data, create_in_subprocess=True
     )
+    with_temperature = isinstance(setting, SettingTemperature)
     if compare_with_base_setting:
         base_setting = get_setting_function(
             scenario, randomize=False, create_in_subprocess=True
@@ -49,10 +50,10 @@ def simulate(
             all_base_settings.append(copy.deepcopy(setting))
 
         start_time = time.time()
-        if with_temperatue:
-            a, t = solve_function(setting, initial_a_vector=a, initial_t_vector=t)
+        if with_temperature:
+            a, t = solve_function(setting, initial_a=a, initial_t=t)
         else:
-            a = solve_function(setting, initial_vector=a)
+            a = solve_function(setting, initial_a=a)
 
 
         solver_time += time.time() - start_time
@@ -72,7 +73,7 @@ def simulate(
         if operation is not None:
             operation(current_time, setting, base_setting, a, base_a)
 
-        if with_temperatue:
+        if with_temperature:
             setting.iterate_self(a, t, randomized_inputs=simulate_dirty_data)
         else:
             setting.iterate_self(a, randomized_inputs=simulate_dirty_data)

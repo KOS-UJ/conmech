@@ -1,13 +1,12 @@
 from typing import Callable
 
-import deep_conmech.common.config as config
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
-from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from deep_conmech.simulator.setting.mesh import Mesh
 from numba import njit
 
 
@@ -24,7 +23,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
     return edges_features
 
 
-class SettingMatrices(SettingMesh):
+class SettingMatrices(Mesh):
     def __init__(
         self,
         mesh_data: MeshData,
