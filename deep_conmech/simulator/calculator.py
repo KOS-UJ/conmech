@@ -62,11 +62,13 @@ class Calculator:
         """
 
     @staticmethod
-    def minimize(function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray) -> np.ndarray:
+    def minimize(
+        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
+    ) -> np.ndarray:
         return scipy.optimize.minimize(
             function,
             initial_vector,
-            method="L-BFGS-B", # , POWELL L-BFGS-B options={"disp": True}
+            method="L-BFGS-B",  # , POWELL L-BFGS-B options={"disp": True}
         ).x
 
     @staticmethod
@@ -77,7 +79,7 @@ class Calculator:
             )
         else:
             initial_boundary_vector = nph.stack_column(
-                initial_boundary[setting.boundary_nodes_indices]
+                initial_boundary[setting.boundary_indices]
             )
 
         tstart = time.time()
@@ -115,8 +117,8 @@ class Calculator:
 
     @staticmethod
     def get_normalized_a_vector(setting, normalized_Ei, normalized_at_vector):
-        normalized_ai_vector = setting.CiiINV @ (
-            normalized_Ei - (setting.Cit @ normalized_at_vector)
+        normalized_ai_vector = setting.free_x_free_inverted @ (
+            normalized_Ei - (setting.free_x_contact @ normalized_at_vector)
         )
 
         normalized_a = np.vstack(

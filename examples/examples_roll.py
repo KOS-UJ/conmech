@@ -9,6 +9,20 @@ from deep_conmech.simulator.calculator import Calculator
 def main():
     all_scenarios = [
         Scenario(
+            id="rectangle_small",
+            mesh_data=MeshData(
+                dimension=2,
+                mesh_type=scenarios.m_rectangle,
+                scale=[1],
+                mesh_density=[4],
+            ),
+            body_prop=scenarios.body_prop,
+            obstacle_prop=scenarios.obstacle_prop,
+            schedule=Schedule(final_time=0.4),
+            forces_function=np.array([2.0, -0.5]),
+            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+        ),
+        Scenario(
             id="circle_slide_roll",
             mesh_data=MeshData(
                 dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[8]

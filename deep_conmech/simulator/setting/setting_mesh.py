@@ -153,10 +153,10 @@ def reorder_boundary_nodes(nodes, elements, is_contact):
     _, boundary_indices, contact_indices, _ = get_boundary_faces(
         nodes, elements, is_contact
     )
-    nodes, elements, boundary_nodes_count = move_boundary_nodes_to_start_numba(
+    nodes, elements, _ = move_boundary_nodes_to_start_numba(
         nodes, elements, boundary_indices, contact_indices
     )
-    return nodes, elements, boundary_nodes_count
+    return nodes, elements
 
 
 ######################################################
@@ -256,9 +256,8 @@ def element_volume_part_numba(face_nodes):
 
 @njit
 def get_boundary_nodes_data_numba(
-    boundary_faces_normals, boundary_faces, boundary_nodes_indices, moved_nodes
+    boundary_faces_normals, boundary_faces, boundary_nodes_count, moved_nodes
 ):
-    boundary_nodes_count = len(boundary_nodes_indices)
     dim = boundary_faces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
     boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
@@ -327,22 +326,39 @@ class SettingMesh:
         (
             self.initial_nodes,
             self.elements,
-            self.boundary_nodes_count,
         ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, self.is_contact)
         (
             self.boundary_faces,
-            self.boundary_nodes_indices,
-            self.contact_nodes_indices,
+            _boundary_indices,
+            _contact_indices,
             self.boundary_internal_indices,
         ) = get_boundary_faces(self.initial_nodes, self.elements, self.is_contact)
 
+        self.independent_nodes_count = self.nodes_count
+        self.contact_nodes_count = len(_contact_indices)
+        self.boundary_nodes_count = len(_boundary_indices)
+        self.free_nodes_count = self.independent_nodes_count - self.contact_nodes_count
+
+        self.boundaries = None
+
         if not np.array_equal(
-            self.boundary_nodes_indices, range(self.boundary_nodes_count)
+            _boundary_indices, range(self.boundary_nodes_count)
         ):
             raise ArgumentError("Bad boundary ordering")
 
-        self.boundaries = None
-        self.independent_nodes_count = self.nodes_count
+    @property
+    def contact_indices(self):
+        return slice(self.contact_nodes_count)
+    @property
+    def boundary_indices(self):
+        return slice(self.boundary_nodes_count)
+    @property
+    def independent_indices(self):
+        return slice(self.independent_nodes_count)
+    @property
+    def free_indices(self):
+        return slice(self.contact_nodes_count, self.independent_nodes_count)
+
 
     @property
     def dimension(self):
@@ -367,7 +383,7 @@ class SettingMesh:
         ) = get_boundary_nodes_data_numba(
             boundary_faces_normals,
             self.boundary_faces,
-            self.boundary_nodes_indices,
+            self.boundary_nodes_count,
             self.moved_nodes,
         )
 
@@ -377,11 +393,11 @@ class SettingMesh:
 
     @property
     def boundary_nodes(self):
-        return self.moved_nodes[self.boundary_nodes_indices]
+        return self.moved_nodes[self.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_nodes_indices]
+        return self.normalized_points[self.boundary_indices]
 
     @property
     def normalized_boundary_normals(self):
@@ -410,7 +426,7 @@ class SettingMesh:
     @property
     def rotated_v_old(self):
         return self.normalize_rotate(self.v_old)
-        
+
     @property
     def normalized_v_old(self):
         return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))

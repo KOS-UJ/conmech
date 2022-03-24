@@ -16,11 +16,13 @@ from matplotlib.ticker import LinearLocator
 
 
 def get_fig():
-    return plt.figure(figsize=(5,2))
+    return plt.figure(figsize=(5, 2))
+
 
 def get_axs(fig):
     axs = fig.add_subplot(1, 1, 1, facecolor="none")
     return axs
+
 
 def set_perspective(scale, axs):
     axs.set_aspect("equal", "box")
@@ -81,8 +83,44 @@ def plot_frame(
         position[0] += shift
         draw_a(setting, position, axs)
 
+        position[0] += shift
+        draw_temperature(setting, position, axs)
+
         # draw_edges_data(setting, position, ax)
         # draw_vertices_data(setting, position, ax)
+
+
+def draw_temperature(setting: SettingRandomized, position, axs):
+    # temperature = np.random.uniform(size=setting.nodes_count)
+    temperature = nph.euclidean_norm(setting.moved_nodes)
+
+    # draw_additional_setting("T", setting, position, axs)
+    points = (setting.normalized_points + position).T
+    t_min = 0.0
+    t_max = 1.0
+
+    axs.scatter(
+        *points,
+        c=temperature,
+        vmin=t_min,
+        vmax=t_max,
+        cmap=plt.cm.plasma,
+        s=1,
+        marker=".",
+        linewidths=0.1,
+    )
+    # axs.colorbar()
+    """'
+    axs.tricontourf(
+        *points,
+        setting.elements,
+        temperature,
+        cmap=plt.cm.magma,
+        vmin=0,
+        vmax=1,
+        antialiased=True
+    )
+    """
 
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
@@ -111,7 +149,9 @@ def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
 
 
 def plot_arrows(starts, vectors, ax):
-    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(starts, vectors)
+    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(
+        starts, vectors
+    )
     ax.quiver(
         *prepared_starts,
         *prepared_vectors,
@@ -120,8 +160,9 @@ def plot_arrows(starts, vectors, ax):
         scale=1,
         width=0.001,
         color="w",
-        zorder=2
+        zorder=2,
     )
+
 
 def draw_main_obstacles(setting, ax):
     draw_obstacles(

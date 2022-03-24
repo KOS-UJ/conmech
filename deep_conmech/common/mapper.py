@@ -1,9 +1,10 @@
-import time
 import copy
+import time
+from typing import Callable, Optional
 
 from conmech.helpers import cmh
-from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.scenarios import Scenario
+from deep_conmech.simulator.calculator import Calculator
 
 
 def map_time(
@@ -13,6 +14,7 @@ def map_time(
     get_setting_function,
     simulate_dirty_data,
     description,
+    operation: Optional[Callable] = None
 ):
     all_settings = []
     all_base_settings = [] if compare_with_base_setting else None
@@ -60,6 +62,9 @@ def map_time(
             base_a = Calculator.solve(base_setting)  ## save in setting
             comparison_time += time.time() - start_time
 
+        if operation is not None:
+            operation(current_time, setting, base_setting, a, base_a)
+
         setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
@@ -67,9 +72,7 @@ def map_time(
         # setting.remesh_self() ####################################################
 
     comparison_str = (
-        f" | Comparison time: {comparison_time}"
-        if compare_with_base_setting
-        else ""
+        f" | Comparison time: {comparison_time}" if compare_with_base_setting else ""
     )
     print(f"    Solver time : {solver_time}{comparison_str}")
 
