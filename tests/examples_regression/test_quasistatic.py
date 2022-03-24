@@ -74,7 +74,7 @@ def generate_test_suits():
         [0.01850842, 0.03964177],
         [0.00648465, 0.01742879],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -103,7 +103,7 @@ def generate_test_suits():
         [0.18658834, -0.30784273],
         [0.11383078, -0.12090801],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
 
@@ -160,20 +160,20 @@ def generate_test_suits():
 
     setup_var = QuasistaticSetup()
     expected_displacement_vector_var = [
-        [0.0, 0.0],
-        [0.0260751, 0.0532828],
-        [0.03693136, 0.15587502],
-        [0.03541443, 0.2943425],
-        [0.02747103, 0.45490576],
-        [0.01291648, 0.62761593],
-        [-0.16050501, 0.64941692],
-        [-0.35617262, 0.66290617],
-        [-0.32973288, 0.48007344],
-        [-0.28372655, 0.31781761],
-        [-0.21878207, 0.17832828],
-        [-0.12898926, 0.07212696],
-        [0.0, 0.0],
-        [0.0, 0.0],
+        [0., 0.],
+        [0.0200761, 0.05161694],
+        [0.02427336, 0.15594426],
+        [0.01602643, 0.29567518],
+        [0.00243316, 0.45812936],
+        [-0.01804822, 0.63505164],
+        [-0.19644249, 0.66417281],
+        [-0.40300646, 0.68256874],
+        [-0.37078449, 0.49312311],
+        [-0.31711688, 0.32891245],
+        [-0.24357518, 0.18851801],
+        [-0.14334968, 0.08118621],
+        [0., 0.],
+        [0., 0.]
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))
@@ -193,6 +193,7 @@ def test_global_optimization_solver(
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
+    print(repr(displacement[std_ids]))
 
     np.testing.assert_array_almost_equal(
         displacement[std_ids], expected_displacement_vector, decimal=3

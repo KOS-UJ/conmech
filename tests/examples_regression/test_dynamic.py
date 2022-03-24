@@ -74,7 +74,7 @@ def generate_test_suits():
         [0.01987252, 0.0388462],
         [0.00722258, 0.01704675],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -103,7 +103,7 @@ def generate_test_suits():
         [0.16607859, -0.27796999],
         [0.10204931, -0.11029065],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
 
@@ -174,7 +174,7 @@ def generate_test_suits():
         [-0.24006106, 0.1695022],
         [-0.14068317, 0.07419011],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))

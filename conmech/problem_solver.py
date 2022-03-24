@@ -130,18 +130,11 @@ class ProblemSolver:
         self, solver, state, solution, validator, *, verbose=False, **kwargs
     ) -> np.ndarray:  # TODO
         quality = 0
-        iteration = 0
-        fuse = 10
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        while quality < validator.error_tolerance and bool(fuse):
-            fuse -= 1
-            solution = solver.solve(solution, **kwargs)
-            solver.iterate(solution)
-            quality = validator.check_quality(state, solution, quality)
-            iteration += 1
-            self.print_iteration_info(
-                iteration, quality, validator.error_tolerance, verbose
-            )
+        solution = solver.solve(solution, **kwargs)
+        solver.iterate(solution)
+        quality = validator.check_quality(state, solution, quality)
+        self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(
@@ -172,16 +165,12 @@ class ProblemSolver:
         return solution, solution_t
 
     @staticmethod
-    def print_iteration_info(
-        iteration: int, quality: float, error_tolerance: float, verbose: bool
-    ):
+    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool):
         qualitative = quality > error_tolerance
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
         if verbose:
-            print(
-                f"iteration = {iteration}; quality = {quality} {sign} {error_tolerance}{end}"
-            )
+            print(f"quality = {quality} {sign} {error_tolerance}{end}")
 
 
 class Static(ProblemSolver):
