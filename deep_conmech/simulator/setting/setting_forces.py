@@ -1,6 +1,7 @@
 import numba
 import numpy as np
 from conmech.helpers import nph
+from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
 from numba import njit
 
@@ -74,17 +75,22 @@ class SettingForces(SettingMatrices):
 
     def clear_all_E(self):
         self.normalized_E = None
-        self.normalized_Ei = None
+        self.normalized_E_free = None
         self.normalized_E_boundary = None
 
     def set_all_normalized_E_np(self):
         self.normalized_E = self.get_normalized_E_np()
-        t = self.boundary_nodes_count
-        normalized_E_split = nph.unstack(self.normalized_E, self.dim)
-        normalized_Et = nph.stack_column(normalized_E_split[:t, :])
-        self.normalized_Ei = nph.stack_column(normalized_E_split[t:, :])
-        CiiINVEi = self.free_x_free_inverted @ self.normalized_Ei
-        self.normalized_E_boundary = normalized_Et - (self.contact_x_free @ CiiINVEi)
+        (
+            self.normalized_E_boundary,
+            self.normalized_E_free,
+        ) = SchurComplement.calculate_schur_complement_vector(
+            vector=self.normalized_E,
+            dimension=self.dim,
+            contact_indices=self.contact_indices,
+            free_indices=self.free_indices,
+            free_x_free_inverted=self.free_x_free_inverted,
+            contact_x_free=self.contact_x_free,
+        )
 
     def get_normalized_E_np(self):
         return self.get_E(

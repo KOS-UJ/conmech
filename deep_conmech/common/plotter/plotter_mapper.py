@@ -15,6 +15,7 @@ def print_one_dynamic(
     draw_detailed,
     description,
     plot_images=False,
+    plot_animation=True,
 ):
     extension = "png"  # pdf
     final_catalog = f"{cmh.CURRENT_TIME}- {catalog}"
@@ -38,20 +39,25 @@ def print_one_dynamic(
         description=description,
         operation=_plot_at_interval if plot_images else None,
     )
-    """
+    '''
     if plot_images:
-        time_tqdm = scenario.get_tqdm(f"Printing {description}")
+        time_tqdm = scenario.get_tqdm(f"Plotting images {description}")
         for i in time_tqdm:
             current_time = (i + 1) * scenario.time_step
-            base_setting = all_base_settings[i] if all_base_settings is not None else None
-            _plot_at_interval(current_time, all_settings[i], base_setting,None,None)
-    """
-    print("Generating animation...")
-    animation_path = f"output/{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
-    if scenario.dimension == 2:
-        plotter_2d.plot_animation(scenario, all_settings, animation_path)
-    else:
-        plotter_3d.plot_animation(scenario, all_settings, animation_path)
+            base_setting = (
+                all_base_settings[i] if all_base_settings is not None else None
+            )
+            _plot_at_interval(current_time, all_settings[i], base_setting, None, None)
+    '''
+
+    if plot_animation:
+        print("Generating animation...")
+        animation_path = f"output/{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
+        if scenario.dimension == 2:
+            plotter_2d.plot_animation(scenario, all_settings, animation_path)
+        else:
+            plotter_3d.plot_animation(scenario, all_settings, animation_path)
+        
 
 
 def plot_at_interval(

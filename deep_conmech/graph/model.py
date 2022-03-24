@@ -119,6 +119,7 @@ class GraphModelDynamic:
         examples_seen = 0
         start_time = time.time()
         epoch_number = 0
+        print("----TRAINING----")
         while True:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
@@ -146,11 +147,12 @@ class GraphModelDynamic:
 
             self.scheduler.step()
 
+            time_enlapsed = time.time() - start_time
             if epoch_number % config.VALIDATE_AT_EPOCHS == 0:
                 self.validation_raport(examples_seen, epoch_number)
                 self.train_dataset.update_data()
+                print(f"Time enlapsed: {time_enlapsed}")
 
-            time_enlapsed = time.time() - start_time
             if time_enlapsed > config.DRAW_AT_MINUTES * 60:
                 # self.save()
                 self.print_raport()
@@ -206,6 +208,7 @@ class GraphModelDynamic:
             )
 
     def validation_raport(self, examples_seen, epoch_number):
+        print("----VALIDATION----")
         total_loss_array = np.zeros(self.labels_count)
         for dataset, dataloader in self.all_val_data:
             mean_loss_array = np.zeros(self.labels_count)
@@ -239,20 +242,25 @@ class GraphModelDynamic:
         print("---")
 
     def print_raport(self):
+        print("----RAPORT----")
         start_time = time.time()
+        timestamp = cmh.get_timestamp()
         for scenario in self.print_scenarios:
             plotter_mapper.print_one_dynamic(
                 self.net.solve,
                 scenario,
                 SettingInput.get_setting,
-                catalog=f"GRAPH/{cmh.get_timestamp()} - RESULT",
+                catalog=f"GRAPH/{timestamp} - RESULT",
                 simulate_dirty_data=False,
                 draw_base=False,  ###
                 draw_detailed=False,
                 description="Raport",
+                plot_images=True,
+                plot_animation=False
             )
 
         print(f"Printing time: {int((time.time() - start_time)/60)} min")
+        print("----")
 
     #################
 

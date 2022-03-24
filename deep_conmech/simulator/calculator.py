@@ -98,7 +98,7 @@ class Calculator:
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.get_normalized_a_vector(
-            setting, setting.normalized_Ei, normalized_boundary_a_vector
+            setting, setting.normalized_E_free, normalized_boundary_a_vector
         )
 
         return nph.unstack(normalized_a_vector, setting.dim)
@@ -116,9 +116,9 @@ class Calculator:
         return setting.denormalize_rotate(normalized_cleaned_a)
 
     @staticmethod
-    def get_normalized_a_vector(setting, normalized_Ei, normalized_at_vector):
+    def get_normalized_a_vector(setting, normalized_E_free, normalized_at_vector):
         normalized_ai_vector = setting.free_x_free_inverted @ (
-            normalized_Ei - (setting.free_x_contact @ normalized_at_vector)
+            normalized_E_free - (setting.free_x_contact @ normalized_at_vector)
         )
 
         normalized_a = np.vstack(

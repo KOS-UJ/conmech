@@ -1,11 +1,11 @@
 from typing import Callable
-from conmech.solvers.optimization.schur_complement import SchurComplement
 
 import deep_conmech.common.config as config
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
+from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
 from deep_conmech.simulator.setting.setting_mesh import SettingMesh
 from numba import njit
@@ -22,7 +22,6 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
                 edges_features[e] = edges_features_matrix[i, j]
                 e += 1
     return edges_features
-
 
 
 class SettingMatrices(SettingMesh):
@@ -87,10 +86,7 @@ class SettingMatrices(SettingMesh):
                 self.contact_x_free,
                 self.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                self.C,
-                self.dimension,
-                self.contact_indices,
-                self.free_indices,
+                self.C, self.dimension, self.contact_indices, self.free_indices,
             )
 
     def clear_save(self):
