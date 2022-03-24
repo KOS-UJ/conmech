@@ -40,33 +40,18 @@ class SchurComplement(Optimization):
 
         C = self.get_C()
 
-        # Cii
-        free_x_free = self.get_submatrix(
-            C, indices=(self.free_ids, self.free_ids), ind_num=n
-        )
-        # Cit
-        free_x_contact = self.get_submatrix(
-            C, indices=(self.free_ids, self.contact_ids), ind_num=n
-        )
-        # Cti
-        self.contact_x_free = self.get_submatrix(
-            C, indices=(self.contact_ids, self.free_ids), ind_num=n
-        )
-        # Ctt
-        contact_x_contact = self.get_submatrix(
-            C, indices=(self.contact_ids, self.contact_ids), ind_num=n
+        (
+            self._point_relations,
+            self.free_x_contact,
+            self.contact_x_free,
+            self.free_x_free_inverted,
+        ) = SchurComplement.calculate_schur_complement_matrices(
+            matrix=C,
+            dimension=self.mesh.dimension,
+            contact_indices=self.contact_ids,
+            free_indices=self.free_ids,
         )
 
-        self.free_x_contact = free_x_contact
-        # CiiINV:
-        self.free_x_free_inverted = np.linalg.inv(free_x_free)
-        # CiiINVCit:
-        _point_relations = self.free_x_free_inverted @ self.free_x_contact
-        # CtiCiiINVCit:
-        _point_relations = self.contact_x_free @ _point_relations
-        # Ctt - CtiCiiINVCit:
-        _point_relations = contact_x_contact - _point_relations
-        self._point_relations = np.asarray(_point_relations)
         self.forces_free, self._point_forces = self.recalculate_forces()
 
     def recalculate_forces(self):
@@ -99,20 +84,34 @@ class SchurComplement(Optimization):
         return "schur"
 
     @staticmethod
-    def get_submatrix(
-        arrays: iter, indices: Tuple[slice, slice], ind_num: int
-    ) -> np.matrix:
-        ind00 = (slice(0, ind_num), slice(0, ind_num))
-        ind01 = (slice(0, ind_num), slice(ind_num, 2 * ind_num))
-        ind10 = (slice(ind_num, 2 * ind_num), slice(0, ind_num))
-        ind11 = (slice(ind_num, 2 * ind_num), slice(ind_num, 2 * ind_num))
-        result = np.bmat(
-            [
-                [arrays[ind00][indices], arrays[ind01][indices]],
-                [arrays[ind10][indices], arrays[ind11][indices]],
-            ]
+    def calculate_schur_complement_matrices(
+        matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
+    ):
+        def get_sliced(matrix_split, indices_height, indices_width):
+            matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
+            dim, height, _, width = matrix.shape
+            return matrix.reshape(dim * height, dim * width)
+
+        matrix_split = np.array(
+            np.split(np.array(np.split(matrix, dimension, axis=-1)), dimension, axis=1)
         )
-        return result
+        # Cii
+        free_x_free = get_sliced(matrix_split, free_indices, free_indices)
+        # Cit
+        free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
+        # Cti
+        contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
+        # Ctt
+        contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
+
+        # CiiINV
+        free_x_free_inverted = np.linalg.inv(free_x_free)
+        matrix_boundary = contact_x_contact - contact_x_free @ (
+            free_x_free_inverted @ free_x_contact
+        )
+
+        return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
+
 
     @property
     def point_relations(self) -> np.ndarray:
@@ -253,24 +252,17 @@ class Dynamic(Quasistatic):
             : self.ind, : self.ind
         ]
 
-        # Tii
-        T_free_x_free = T[self.free_ids, self.free_ids]
-        # Tit
-        self.T_free_x_contact = T[self.free_ids, self.contact_ids]
-        # Tti
-        self.T_contact_x_free = T[self.contact_ids, self.free_ids]
-        # Ttt
-        T_contact_x_contact = T[self.contact_ids, self.contact_ids]
-
-        # TiiINV:
-        self.T_free_x_free_inverted = np.linalg.inv(T_free_x_free)
-        # TiiINVCit:
-        _point_temperature = np.dot(self.T_free_x_free_inverted, self.T_free_x_contact)
-        # TtiTiiINVTit:
-        _point_temperature = np.dot(self.T_contact_x_free, _point_temperature)
-        # Ttt - TtiTiiINVTit:
-        _point_temperature = T_contact_x_contact - _point_temperature
-        self._point_temperature = np.asarray(_point_temperature)
+        (
+            self._point_temperature,
+            self.T_free_x_contact,
+            self.T_contact_x_free,
+            self.T_free_x_free_inverted,
+        ) = SchurComplement.calculate_schur_complement_matrices(
+            matrix=T,
+            dimension=1,
+            contact_indices=self.contact_ids,
+            free_indices=self.free_ids,
+        )
 
         # TODO #50
         # def inner_forces(x, y):

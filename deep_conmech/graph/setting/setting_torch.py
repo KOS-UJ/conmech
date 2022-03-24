@@ -20,7 +20,7 @@ class SettingTorch(SettingRandomized):
         completed_data = torch.zeros(
             (self.nodes_count, data.shape[1]), dtype=data.dtype
         )
-        completed_data[self.boundary_nodes_indices] = data
+        completed_data[self.boundary_indices] = data
         return completed_data
 
     @property

@@ -14,11 +14,20 @@ def print_one_dynamic(
     draw_base,
     draw_detailed,
     description,
-    print_images=False
+    plot_images=False,
 ):
     extension = "png"  # pdf
     final_catalog = f"{cmh.CURRENT_TIME}- {catalog}"
     cmh.create_folders(f"output/{final_catalog}")
+
+    _plot_at_interval = lambda current_time, setting, base_setting, a, base_a: plot_at_interval(
+        current_time=current_time,
+        setting=setting,
+        path=f"output/{catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
+        base_setting=base_setting,
+        draw_detailed=draw_detailed,
+        extension=extension,
+    )
 
     all_settings, all_base_settings = mapper.map_time(
         compare_with_base_setting=draw_base,
@@ -27,23 +36,16 @@ def print_one_dynamic(
         get_setting_function=get_setting_function,
         simulate_dirty_data=simulate_dirty_data,
         description=description,
+        operation=_plot_at_interval if plot_images else None,
     )
-
-    if print_images:
+    """
+    if plot_images:
         time_tqdm = scenario.get_tqdm(f"Printing {description}")
         for i in time_tqdm:
             current_time = (i + 1) * scenario.time_step
-            plot_at_interval(
-                current_time=current_time,
-                setting=all_settings[i],
-                path=f"output/{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
-                base_setting=all_base_settings[i]
-                if all_base_settings is not None
-                else None,
-                draw_detailed=draw_detailed,
-                extension=extension,
-            )
-
+            base_setting = all_base_settings[i] if all_base_settings is not None else None
+            _plot_at_interval(current_time, all_settings[i], base_setting,None,None)
+    """
     print("Generating animation...")
     animation_path = f"output/{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
     if scenario.dimension == 2:
@@ -94,6 +96,7 @@ def print_simple_data(elements, nodes, path):
 
 
 ############################
+
 
 def print_setting(setting, filename, catalog):
     cmh.create_folders(catalog)

@@ -83,8 +83,8 @@ class SettingForces(SettingMatrices):
         normalized_E_split = nph.unstack(self.normalized_E, self.dim)
         normalized_Et = nph.stack_column(normalized_E_split[:t, :])
         self.normalized_Ei = nph.stack_column(normalized_E_split[t:, :])
-        CiiINVEi = self.CiiINV @ self.normalized_Ei
-        self.normalized_E_boundary = normalized_Et - (self.Cti @ CiiINVEi)
+        CiiINVEi = self.free_x_free_inverted @ self.normalized_Ei
+        self.normalized_E_boundary = normalized_Et - (self.contact_x_free @ CiiINVEi)
 
     def get_normalized_E_np(self):
         return self.get_E(

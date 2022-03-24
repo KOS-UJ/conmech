@@ -176,12 +176,12 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def get_matrices(edges_features_matrix, body_prop, slice_ind):
+def get_matrices(edges_features_matrix, body_prop, independent_indices):
     VOL = edges_features_matrix[0]
-    U = edges_features_matrix[1][slice_ind, slice_ind]
+    U = edges_features_matrix[1][independent_indices, independent_indices]
 
-    ALL_V = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(2, 5)]
-    ALL_W = [edges_features_matrix[i][slice_ind, slice_ind] for i in range(5, 14)]
+    ALL_V = [edges_features_matrix[i][independent_indices, independent_indices] for i in range(2, 5)]
+    ALL_W = [edges_features_matrix[i][independent_indices, independent_indices] for i in range(5, 14)]
 
     A = calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
     B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)

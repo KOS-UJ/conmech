@@ -284,19 +284,19 @@ class SettingObstacles(SettingForces):
 
     @property
     def boundary_v_old(self):
-        return self.v_old[self.boundary_nodes_indices]
+        return self.v_old[self.boundary_indices]
 
     @property
     def boundary_a_old(self):
-        return self.a_old[self.boundary_nodes_indices]
+        return self.a_old[self.boundary_indices]
 
     @property
     def normalized_boundary_v_old(self):
-        return self.rotated_v_old[self.boundary_nodes_indices]
+        return self.rotated_v_old[self.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_nodes_indices]
+        return self.normalized_points[self.boundary_indices]
 
     @property
     def boundary_penetration_norm(self):

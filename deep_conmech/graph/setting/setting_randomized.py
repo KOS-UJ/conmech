@@ -45,8 +45,8 @@ class SettingRandomized(SettingObstacles):
                 self.dim, self.nodes_count, config.U_IN_RANDOM_FACTOR
             )
             # Do not randomize boundaries
-            self.v_old_randomization[self.boundary_nodes_indices] = 0
-            self.v_old_randomization[self.boundary_nodes_indices] = 0
+            self.v_old_randomization[self.boundary_indices] = 0
+            self.v_old_randomization[self.boundary_indices] = 0
         else:
             self.v_old_randomization = np.zeros_like(self.initial_nodes)
             self.u_old_randomization = np.zeros_like(self.initial_nodes)
