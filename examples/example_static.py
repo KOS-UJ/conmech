@@ -40,10 +40,14 @@ class StaticSetup(Static):
         return x[0] == 0
 
 
-if __name__ == "__main__":
+def main():
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "direct")
 
     state = runner.solve(verbose=True,
                          initial_displacement=setup.initial_displacement)
     Drawer(state).draw()
+
+
+if __name__ == "__main__":
+    main()

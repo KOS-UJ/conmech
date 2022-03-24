@@ -78,7 +78,7 @@ class TDynamicSetup(Dynamic):
         return False
 
 
-if __name__ == "__main__":
+def main():
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
@@ -93,3 +93,7 @@ if __name__ == "__main__":
         T_min = min(T_min, np.min(state.temperature))
     for state in states:
         Drawer(state).draw(temp_max=T_max, temp_min=T_min)
+
+
+if __name__ == "__main__":
+    main()

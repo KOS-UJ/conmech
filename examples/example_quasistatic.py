@@ -43,7 +43,7 @@ class QuasistaticSetup(Quasistatic):
         return x[0] == 0
 
 
-if __name__ == "__main__":
+def main():
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
@@ -52,3 +52,7 @@ if __name__ == "__main__":
                           initial_velocity=setup.initial_velocity)
     for state in states:
         Drawer(state).draw()
+
+
+if __name__ == "__main__":
+    main()

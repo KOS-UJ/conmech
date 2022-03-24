@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from conmech.problem_solver import TDynamic as TDynamicProblem
 from conmech.problems import Dynamic
 from examples.p_slope_contact_law import make_slope_contact_law
-from tests.examples_regression.std_boundary import standard_boundary_nodes
+from tests.regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(params=[  # TODO #28

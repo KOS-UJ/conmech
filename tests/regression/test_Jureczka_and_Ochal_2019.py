@@ -3,7 +3,7 @@ import pytest
 
 from conmech.problem_solver import Static as StaticProblem
 from examples.Jureczka_and_Ochal_2019 import StaticSetup
-from tests.examples_regression.std_boundary import standard_boundary_nodes
+from tests.regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(params=[
