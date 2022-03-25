@@ -78,7 +78,7 @@ class TDynamicSetup(Dynamic):
         return False
 
 
-def main():
+def main(show: bool):
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
@@ -92,8 +92,8 @@ def main():
         T_max = max(T_max, np.max(state.temperature))
         T_min = min(T_min, np.min(state.temperature))
     for state in states:
-        Drawer(state).draw(temp_max=T_max, temp_min=T_min)
+        Drawer(state).draw(temp_max=T_max, temp_min=T_min, show=show)
 
 
 if __name__ == "__main__":
-    main()
+    main(show=True)

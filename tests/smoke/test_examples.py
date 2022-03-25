@@ -26,4 +26,4 @@ def main(request):
 
 
 def test_examples(main):
-    main()
+    main(show=False)

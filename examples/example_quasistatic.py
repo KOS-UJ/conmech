@@ -43,7 +43,7 @@ class QuasistaticSetup(Quasistatic):
         return x[0] == 0
 
 
-def main():
+def main(show: bool):
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
@@ -51,8 +51,8 @@ def main():
                           initial_displacement=setup.initial_displacement,
                           initial_velocity=setup.initial_velocity)
     for state in states:
-        Drawer(state).draw()
+        Drawer(state).draw(show=show)
 
 
 if __name__ == "__main__":
-    main()
+    main(show=True)
