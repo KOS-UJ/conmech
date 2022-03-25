@@ -126,12 +126,12 @@ class ForwardNet(nn.Module):
         super().__init__()
 
         layers = []
-        '''
+        
         if normalization_statistics is not None:
             layers.append(DataNorm(input_dim, normalization_statistics))
         else:
             layers.append(nn.BatchNorm1d(input_dim))
-        '''
+        
         layers.append(
             BasicBlock(
                 in_channels=input_dim,
