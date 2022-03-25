@@ -43,10 +43,16 @@ class DynamicSetup(Dynamic):
         return x[0] == 0
 
 
-if __name__ == "__main__":
+def main(show: bool):
     setup = DynamicSetup()
     runner = DynamicProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True)
+    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True,
+                          initial_displacement=setup.initial_displacement,
+                          initial_velocity=setup.initial_velocity)
     for state in states:
-        Drawer(state).draw()
+        Drawer(state).draw(show=show)
+
+
+if __name__ == "__main__":
+    main(show=True)

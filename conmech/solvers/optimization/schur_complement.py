@@ -2,9 +2,8 @@
 Created at 22.02.2021
 """
 import math
-from typing import Tuple
-
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -33,7 +32,6 @@ class SchurComplement(Optimization):
 
         self.contact_ids = slice(0, mesh.contact_count)
         self.free_ids = slice(mesh.contact_count, mesh.independent_nodes_count)
-        n = self.mesh.independent_nodes_count
 
         # ADDED When working with velocity v, forces_contact depend on u
 
@@ -283,6 +281,18 @@ class Dynamic(Quasistatic):
         # self.inner_temperature.setF()
 
         self.Q, self.Q_free = self.recalculate_temperature()
+
+    # def solve(
+    #     self,
+    #     state,
+    #     *,
+    #     fixed_point_abs_tol: float = math.inf,
+    #     **kwargs
+    # ):
+    #     velocity = super(Dynamic, self).solve(state["velocity"],
+    #                                           fixed_point_abs_tol=fixed_point_abs_tol,
+    #                                           **kwargs)
+    #     state.set_velocity(velocity_vector=velocity)
 
     @property
     def T(self):
