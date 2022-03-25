@@ -22,14 +22,13 @@ class Drawer:
     def get_directory():
         return f"./output/DRAWING {cmh.CURRENT_TIME}"
 
-
-    def draw(self, temp_max=None, temp_min=None):
+    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="pdf"):
         f, ax = plt.subplots()
 
         if hasattr(self.state, "temperature"):
             temperature = np.concatenate((
                 self.state.temperature[:],
-                np.zeros(self.mesh.dirichlet_count)
+                np.zeros(self.mesh.dirichlet_count)  # TODO #60
             ))
             self.draw_field(temperature, temp_min, temp_max, ax, f)
 
@@ -53,26 +52,25 @@ class Drawer:
 
         f.set_size_inches(self.mesh.mesh_data.scale_x * 12, self.mesh.mesh_data.scale_y * 10)
 
-        plt.show()
-        self.save_plot()
+        if show:
+            plt.show()
+        if save:
+            self.save_plot(save_format)
 
-
-    def save_plot(self):
+    @staticmethod
+    def save_plot(format: str):
         directory = Drawer.get_directory()
         cmh.create_folders(directory)
-        extension = "png" # pdf
-        path = f"{directory}/{cmh.get_timestamp()}.{extension}"
+        path = f"{directory}/{cmh.get_timestamp()}.{format}"
         plt.savefig(
             path,
             transparent=False,
             bbox_inches="tight",
-            format=extension,
+            format=format,
             pad_inches=0.1,
             dpi=800
         )
         plt.close()
-
-
 
     def draw_mesh(self, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()

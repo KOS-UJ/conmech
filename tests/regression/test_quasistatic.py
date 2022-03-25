@@ -1,18 +1,23 @@
 """
 Created at 21.08.2019
 """
-from dataclasses import dataclass
 
 import numpy as np
 import pytest
+from dataclasses import dataclass
 
-from conmech.problem_solver import Static as StaticProblem
-from conmech.problems import Static
+from conmech.problem_solver import Quasistatic as QuasistaticProblem
+from conmech.problems import Quasistatic
 from examples.p_slope_contact_law import make_slope_contact_law
-from tests.examples_regression.std_boundary import standard_boundary_nodes
+from tests.regression.std_boundary import standard_boundary_nodes
 
 
-@pytest.fixture(params=["direct", "global optimization", "schur"])
+@pytest.fixture(
+    params=[  # TODO #28
+        "global optimization",
+        "schur"
+    ]
+)
 def solving_method(request):
     return request.param
 
@@ -23,12 +28,15 @@ def generate_test_suits():
     # Simple example
 
     @dataclass()
-    class StaticSetup(Static):
+    class QuasistaticSetup(Quasistatic):
         grid_height: ... = 1
         elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
-        contact_law: ... = make_slope_contact_law(slope=1)
+        th_coef: ... = 4
+        ze_coef: ... = 4
+        time_step: ... = 0.1
+        contact_law: ... = make_slope_contact_law(slope=1e1)
 
         @staticmethod
         def inner_forces(x, y):
@@ -50,30 +58,30 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_m02_m02 = StaticSetup()
+    setup_m02_m02 = QuasistaticSetup()
 
     expected_displacement_vector_m02_m02 = [
         [0.0, 0.0],
-        [0.04843176, 0.04429129],
-        [0.07642598, 0.08750102],
-        [0.09064929, 0.13301396],
-        [0.09615189, 0.17619656],
-        [0.09566479, 0.21772099],
-        [0.05373533, 0.22480478],
-        [0.00962312, 0.22716041],
-        [0.00730758, 0.18136726],
-        [0.00104241, 0.13297417],
-        [-0.00636696, 0.081923],
-        [-0.00867296, 0.03338082],
+        [0.03174709, 0.02791856],
+        [0.04874281, 0.04364196],
+        [0.05728231, 0.05630736],
+        [0.06046744, 0.06519966],
+        [0.0593477, 0.07272406],
+        [0.05109885, 0.08033477],
+        [0.04084442, 0.08284004],
+        [0.03832706, 0.07139745],
+        [0.03054836, 0.05772677],
+        [0.01850842, 0.03964177],
+        [0.00648465, 0.01742879],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = StaticSetup()
+    setup_0_02_p_0 = QuasistaticSetup()
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x, y):
@@ -83,19 +91,19 @@ def generate_test_suits():
 
     expected_displacement_vector_0_02_p_0 = [
         [0.0, 0.0],
-        [-0.11787841, -0.1252073],
-        [-0.19322311, -0.31878912],
-        [-0.23173236, -0.56035602],
-        [-0.24636923, -0.8166048],
-        [-0.24898703, -1.07004206],
-        [0.0, -1.06985119],
-        [0.24898703, -1.07004206],
-        [0.24636923, -0.8166048],
-        [0.23173236, -0.56035602],
-        [0.19322311, -0.31878912],
-        [0.11787841, -0.1252073],
+        [-0.11383076, -0.120908],
+        [-0.18658829, -0.30784272],
+        [-0.2237752, -0.54111482],
+        [-0.23790945, -0.78856463],
+        [-0.24043737, -1.03329948],
+        [0.00000004, -1.03311517],
+        [0.24043746, -1.03329948],
+        [0.23790954, -0.78856465],
+        [0.22377527, -0.54111483],
+        [0.18658834, -0.30784273],
+        [0.11383078, -0.12090801],
         [0.0, 0.0],
-        [0.0, 0.0],
+        [0.0, 0.0]
     ]
 
 
@@ -103,12 +111,11 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = StaticSetup()
+    setup_0_m02_p_0 = QuasistaticSetup()
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x, y):
         return np.array([0, -0.2])
-
 
     setup_0_m02_p_0.inner_forces = inner_forces
 
@@ -121,11 +128,14 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class StaticSetup(Static):
+    class QuasistaticSetup(Quasistatic):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
         la_coef: ... = 3.33
+        th_coef: ... = 2.11
+        ze_coef: ... = 4.99
+        time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law(slope=2.71)
 
         @staticmethod
@@ -148,22 +158,22 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_var = StaticSetup()
+    setup_var = QuasistaticSetup()
     expected_displacement_vector_var = [
-        [0.0, 0.0],
-        [-0.02154956, 0.01364313],
-        [-0.04849654, 0.05059958],
-        [-0.07590132, 0.0972985],
-        [-0.09873572, 0.15498692],
-        [-0.12252541, 0.22719522],
-        [-0.19937449, 0.26118308],
-        [-0.30552747, 0.28092124],
-        [-0.27474735, 0.1939756],
-        [-0.22880436, 0.13188258],
-        [-0.17312159, 0.08296667],
-        [-0.10282189, 0.04289061],
-        [0.0, 0.0],
-        [0.0, 0.0],
+        [0., 0.],
+        [0.0200761, 0.05161694],
+        [0.02427336, 0.15594426],
+        [0.01602643, 0.29567518],
+        [0.00243316, 0.45812936],
+        [-0.01804822, 0.63505164],
+        [-0.19644249, 0.66417281],
+        [-0.40300646, 0.68256874],
+        [-0.37078449, 0.49312311],
+        [-0.31711688, 0.32891245],
+        [-0.24357518, 0.18851801],
+        [-0.14334968, 0.08118621],
+        [0., 0.],
+        [0., 0.]
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))
@@ -172,11 +182,15 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
-def test_direct_solver(solving_method, setup, expected_displacement_vector):
-    runner = StaticProblem(setup, solving_method)
-    result = runner.solve()
+def test_global_optimization_solver(
+    solving_method, setup, expected_displacement_vector
+):
+    runner = QuasistaticProblem(setup, solving_method)
+    results = runner.solve(n_steps=32,
+                           initial_displacement=setup.initial_displacement,
+                           initial_velocity=setup.initial_velocity)
 
-    displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
+    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
 
     # print result

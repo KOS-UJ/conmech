@@ -3,7 +3,7 @@ import pytest
 
 from conmech.problem_solver import Static as StaticProblem
 from examples.Jureczka_and_Ochal_2019 import StaticSetup
-from tests.examples_regression.std_boundary import standard_boundary_nodes
+from tests.regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(params=[
@@ -42,7 +42,8 @@ def test_global_optimization_solver(solving_method):
          [0., 0.]]
     setup = StaticSetup()
     runner = StaticProblem(setup, solving_method)
-    result = runner.solve(fixed_point_abs_tol=0.001)
+    result = runner.solve(fixed_point_abs_tol=0.001,
+                          initial_displacement=setup.initial_displacement)
 
     displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
