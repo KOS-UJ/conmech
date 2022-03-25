@@ -9,10 +9,10 @@ from conmech.helpers import cmh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from matplotlib import animation, cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
-
 
 dpi = 600
 savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
@@ -34,36 +34,40 @@ def prepare_for_arrows(starts, vectors):
     return starts[mask].T, scaled_vectors[mask].T
 
 
-
-
 def plt_save(path, extension):
-    plt.savefig(path, **savefig_args, format=extension, dpi=dpi) #, bbox_inches="tight"
+    plt.savefig(
+        path, **savefig_args, format=extension, dpi=dpi
+    )  # , bbox_inches="tight"
     plt.close()
 
 
 def plot_animation(
-    scenario: Scenario,
-    all_settings: List[SettingRandomized],
+    all_setting_paths: List[str],
+    time_skip: float,
     path: str,
     get_axs: Callable,
     plot_frame: Callable,
     fig,
 ):
-    frac_skip = config.PRINT_SKIP
-    skip = int(frac_skip // scenario.time_step)
-    frames_count = len(all_settings) // skip
-    fps = int(1 / frac_skip)
+    # frac_skip = config.PRINT_SKIP
+    # skip = int(frac_skip // scenario.time_step)
+    frames_count = len(all_setting_paths)  # // skip
+    fps = int(1 / time_skip)
+    animation_tqdm = cmh.get_tqdm(range(frames_count), desc="Generating animation")
 
-    def animate(num):
-        i = num * skip
-        current_time = scenario.time_step * num
+    def animate(step):
+        current_time = step * time_skip
+        animation_tqdm.update(1)
         fig.clf()
         axs = get_axs(fig)
-        plot_frame(all_settings[i], current_time, axs)#, current_time), ax)
+        path = all_setting_paths[step]
+        setting = SettingIterable.load_pickle(path)
+        plot_frame(setting, current_time, axs)
         return fig
 
     ani = animation.FuncAnimation(
         fig, animate, frames=frames_count
     )  # , interval=scenario.final_time)
     ani.save(path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+    #animation_tqdm.close()
     plt.close()

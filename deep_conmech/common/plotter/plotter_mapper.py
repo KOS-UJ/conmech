@@ -14,30 +14,43 @@ def print_one_dynamic(
     draw_base,
     draw_detailed,
     plot_images=False,
-    plot_animation=True
+    plot_animation=True,
 ):
     extension = "png"  # pdf
-    final_catalog = f"{cmh.CURRENT_TIME} - {catalog}"
-    cmh.create_folders(f"output/{final_catalog}")
+    final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
+    setting_catalog = f"{final_catalog}/settings"
+    cmh.create_folders(setting_catalog)
+    time_skip = config.PRINT_SKIP
+    all_setting_paths = []
 
-    _plot_at_interval = lambda current_time, setting, base_setting, a, base_a: plot_at_interval(
-        current_time=current_time,
-        setting=setting,
-        path=f"output/{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
-        base_setting=base_setting,
-        draw_detailed=draw_detailed,
-        extension=extension,
-    )
+    def operation_plot(current_time, setting, base_setting, a, base_a):
+        plot_setting(
+            current_time=current_time,
+            setting=setting,
+            path=f"{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
+            base_setting=base_setting,
+            draw_detailed=draw_detailed,
+            extension=extension,
+        )
 
-    all_settings, all_base_settings = simulator.simulate(
+    def operation_save(current_time, setting, base_setting, a, base_a):
+        path = f"{setting_catalog}/time_{current_time:.4f}"
+        setting_path = f"{path}"
+        setting.save_pickle(setting_path)
+        all_setting_paths.append(setting_path)
+        # if draw_base:
+        #    setting.save_pickle(f"{path}_base_setting")
+
+    simulator.simulate(
         compare_with_base_setting=draw_base,
         solve_function=solve_function,
         scenario=scenario,
         get_setting_function=get_setting_function,
         simulate_dirty_data=simulate_dirty_data,
-        description=catalog,
-        operation=_plot_at_interval if plot_images else None,
+        operation=operation_save,  # plot_at_interval if plot_images else None,
+        time_skip=time_skip,
     )
+
     """
     if plot_images:
         time_tqdm = scenario.get_tqdm(f"Plotting images {description}")
@@ -46,30 +59,22 @@ def print_one_dynamic(
             base_setting = (
                 all_base_settings[i] if all_base_settings is not None else None
             )
-            _plot_at_interval(current_time, all_settings[i], base_setting, None, None)
+            operation_plot(current_time, all_settings[i], base_setting, None, None)
     """
 
     if plot_animation:
-        print("Generating animation...")
-        animation_path = f"output/{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
+        animation_path = f"{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
         if scenario.dimension == 2:
-            plotter_2d.plot_animation(scenario, all_settings, animation_path)
+            plotter_2d.plot_animation(all_setting_paths, time_skip, animation_path)
         else:
-            plotter_3d.plot_animation(scenario, all_settings, animation_path)
+            plotter_3d.plot_animation(all_setting_paths, time_skip, animation_path)
+
+    cmh.clear_folder(setting_catalog)
 
 
-def plot_at_interval(
-    current_time,
-    setting,
-    path,
-    base_setting,
-    draw_detailed,
-    extension,
-    skip=config.PRINT_SKIP,
+def plot_setting(
+    current_time, setting, path, base_setting, draw_detailed, extension,
 ):
-    if skip is not None and nph.close_modulo(current_time, skip) == False:
-        return
-
     if setting.dim == 2:
         fig = plotter_2d.get_fig()
         axs = plotter_2d.get_axs(fig)
@@ -87,7 +92,7 @@ def print_setting_test(setting):
     axs = plotter_2d.get_axs(fig)
     plotter_2d.set_perspective(scale=1, axs=axs)
     plotter_2d.draw_displaced(setting, [0.0, 0.0], "tab:orange", axs)
-    plotter_common.plt_save("./output/1.png", "png")
+    plotter_common.plt_save("output/1.png", "png")
 
 
 def print_simple_data(elements, nodes, path):

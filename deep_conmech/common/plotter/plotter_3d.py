@@ -119,9 +119,7 @@ def plot_subframe(
 ):
     draw_base_arrows(ax, setting.moved_base)
 
-    plot_mesh(
-        nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax
-    )
+    plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
     plot_obstacles(ax, setting, "tab:orange")
 
     shifted_normalized_nodes = setting.normalized_points + np.array([0, 2.0, 0])
@@ -191,9 +189,7 @@ def plot_obstacles(ax, setting, color):
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 
 
-def plot_animation(
-    scenario: Scenario, all_settings: List[SettingRandomized], path: str
-):
+def plot_animation(all_setting_paths: List[str], time_skip: float, path: str):
     plotter_common.plot_animation(
-        scenario, all_settings, path, get_axs, plot_frame, get_fig()
+        all_setting_paths, time_skip, path, get_axs, plot_frame, get_fig()
     )

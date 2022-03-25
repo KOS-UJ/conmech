@@ -32,11 +32,9 @@ def set_perspective(scale, axs):
     axs.set_ylim(-padding * scale, padding * scale)
 
 
-def plot_animation(
-    scenario: Scenario, all_settings: List[SettingRandomized], path: str
-):
+def plot_animation(all_setting_paths: List[str], time_skip: float, path: str):
     plotter_common.plot_animation(
-        scenario, all_settings, path, get_axs, plot_frame, get_fig()
+        all_setting_paths, time_skip, path, get_axs, plot_frame, get_fig()
     )
 
 

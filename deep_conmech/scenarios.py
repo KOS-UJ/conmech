@@ -346,8 +346,7 @@ print_args = dict(
     final_time=config.FINAL_TIME,
 )
 
-
-def all_print(mesh_density=config.MESH_DENSITY, final_time=config.FINAL_TIME):
+def all_print(mesh_density=config.MESH_DENSITY, final_time=5.0): #config.FINAL_TIME):
     return [
         *get_data(
             mesh_density=mesh_density,

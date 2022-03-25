@@ -18,7 +18,7 @@ RUN_TIMESTEMP = get_timestamp()
 CURRENT_TIME = datetime.now().strftime("%d-%H.%M.%S")
 
 
-def get_tqdm(iterable, desc=None, position=None):
+def get_tqdm(iterable, desc=None, position=None) -> tqdm:
     return tqdm(iterable, desc=desc, position=position, ascii=True)
 
 

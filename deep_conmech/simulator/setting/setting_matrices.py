@@ -104,27 +104,3 @@ class SettingMatrices(Mesh):
                 contact_indices=self.contact_indices,
                 free_indices=self.free_indices,
             )
-
-    def clear_save(self):
-        self.is_contact = None
-        self.is_dirichlet = None
-
-        self.element_initial_volume = None
-        self.A = None
-        self.ACC = None
-        self.K = None
-        self.C2T = None
-
-        self.B = None
-        self.VOL = None
-        self.A_plus_B_times_ts = None
-
-        self.C_boundary = None
-        self.free_x_contact = None
-        self.contact_x_free = None
-        self.free_x_free_inverted = None
-
-        self.T_boundary = None
-        self.T_free_x_contact = None
-        self.T_contact_x_free = None
-        self.T_free_x_free_inverted = None

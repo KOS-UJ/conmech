@@ -209,7 +209,7 @@ class GraphModelDynamic:
             )
 
     def print_elapsed_time(self, elapsed_time):
-        print(f"Time elapsed: {(elapsed_time / 60):.4f} min")
+        print(f"Time since training started: {(elapsed_time / 60):.4f} min")
 
     def validation_raport(self, examples_seen, epoch_number, elapsed_time):
         print("----VALIDATING----")
@@ -260,7 +260,6 @@ class GraphModelDynamic:
                 simulate_dirty_data=False,
                 draw_base=False,  ###
                 draw_detailed=False,
-                description="Raport",
                 plot_images=False,
                 plot_animation=True,
             )
@@ -334,11 +333,12 @@ class GraphModelDynamic:
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **L2_args
             )
+            if hasattr(batch, "exact_normalized_a"):
+                exact_normalized_a = exact_normalized_a_split[i]
 
             if config.L2_LOSS:
                 loss += predicted_normalized_L2
             else:
-                exact_normalized_a = exact_normalized_a_split[i]
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
 
             loss_array[0] += predicted_normalized_L2

@@ -371,7 +371,7 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         a = setting.denormalize_rotate(normalized_a)
         return a, normalized_a
 
-    def solve(self, setting, initial_vector, print_time=False):
+    def solve(self, setting, initial_a, print_time=False):
         a, _ = self.solve_all(setting, print_time)
         return a
 

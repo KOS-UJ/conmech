@@ -78,8 +78,7 @@ def simulate(scenario, directory):
         solve_function=Calculator.solve,
         scenario=scenario,
         get_setting_function=SettingRandomized.get_setting,
-        simulate_dirty_data=False,
-        description="Performing simulation",
+        simulate_dirty_data=False,,
     )
 
     plotter_2d.plot_animation(

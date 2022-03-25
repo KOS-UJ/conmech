@@ -6,7 +6,7 @@ from deep_conmech.simulator.calculator import Calculator
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
-def main(mesh_density=4, final_time=3.0):
+def main(mesh_density=3, final_time=3.0):
     all_scenarios = [
         Scenario(
             "polygon_rotate",

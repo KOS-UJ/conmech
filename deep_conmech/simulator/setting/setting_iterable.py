@@ -1,15 +1,14 @@
 import copy
+import pickle
+
+import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
-
-import deep_conmech.simulator.mesh.remesher as remesher
-from conmech.helpers import nph
-from deep_conmech.common import config
+from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.scenarios import Scenario
 
 
 class SettingIterable(SettingObstacles):
@@ -67,7 +66,6 @@ class SettingIterable(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
-
     @staticmethod
     def get_setting(
         scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
@@ -82,3 +80,40 @@ class SettingIterable(SettingObstacles):
         setting.set_randomization(randomize)
         setting.set_obstacles(scenario.obstacles)
         return setting
+
+    def save_pickle(self, path: str) -> None:
+        with open(f"{path}.st", "wb") as file:
+            setting_copy = copy.deepcopy(self)
+            setting_copy.clear_save()
+            pickle.dump(setting_copy, file)
+
+    @staticmethod
+    def load_pickle(path: str):
+        with open(f"{path}.st", "rb") as file:
+            setting = pickle.load(file)
+            return setting
+
+    def clear_save(self):
+        self.is_contact = None
+        self.is_dirichlet = None
+
+        self.element_initial_volume = None
+        self.A = None
+        self.ACC = None
+        self.K = None
+        self.C2T = None
+
+        self.B = None
+        self.VOL = None
+        self.A_plus_B_times_ts = None
+
+        self.C_boundary = None
+        self.free_x_contact = None
+        self.contact_x_free = None
+        self.free_x_free_inverted = None
+
+        self.T_boundary = None
+        self.T_free_x_contact = None
+        self.T_contact_x_free = None
+        self.T_free_x_free_inverted = None
+
