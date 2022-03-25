@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class MeshData:
     mesh_type: str
-    mesh_density : List[float]
-    scale : List[float]
+    mesh_density: List[float]
+    scale: List[float]
     dimension: int = 2
-    is_adaptive : bool = False
-
+    is_adaptive: bool = False
 
     def get_modulo(self, array, index):
         return array[index % len(array)]

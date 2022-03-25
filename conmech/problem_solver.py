@@ -1,7 +1,7 @@
 """
 General solver for Contact Mechanics problem.
 """
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 
 import numpy as np
 
@@ -118,7 +118,7 @@ class ProblemSolver:
 
             if self.coordinates == "displacement":
                 state.set_displacement(solution, t=self.step_solver.currentTime)
-                self.step_solver.u_vector = state.displacement.reshape(-1)
+                self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
                     solution, update_displacement=True, t=self.step_solver.currentTime
@@ -130,18 +130,11 @@ class ProblemSolver:
         self, solver, state, solution, validator, *, verbose=False, **kwargs
     ) -> np.ndarray:  # TODO
         quality = 0
-        iteration = 0
-        fuse = 10
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        while quality < validator.error_tolerance and bool(fuse):
-            fuse -= 1
-            solution = solver.solve(solution, **kwargs)
-            solver.iterate(solution)
-            quality = validator.check_quality(state, solution, quality)
-            iteration += 1
-            self.print_iteration_info(
-                iteration, quality, validator.error_tolerance, verbose
-            )
+        solution = solver.solve(solution, **kwargs)
+        solver.iterate(solution)
+        quality = validator.check_quality(state, solution, quality)
+        self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(
@@ -172,16 +165,12 @@ class ProblemSolver:
         return solution, solution_t
 
     @staticmethod
-    def print_iteration_info(
-        iteration: int, quality: float, error_tolerance: float, verbose: bool
-    ):
+    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool):
         qualitative = quality > error_tolerance
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
         if verbose:
-            print(
-                f"iteration = {iteration}; quality = {quality} {sign} {error_tolerance}{end}"
-            )
+            print(f"quality = {quality} {sign} {error_tolerance}{end}")
 
 
 class Static(ProblemSolver):
@@ -197,7 +186,7 @@ class Static(ProblemSolver):
         self.solving_method = solving_method
 
     def solve(
-        self, initial_displacement: np.ndarray = None, verbose: bool = False, **kwargs
+        self, initial_displacement: Callable, verbose: bool = False, **kwargs
     ) -> State:
         """
         :param initial_displacement: for the solver
@@ -205,9 +194,12 @@ class Static(ProblemSolver):
         :return: state
         """
         state = State(self.mesh)
-        if initial_displacement:
-            state.set_displacement(initial_displacement)
+        state.displacement = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+
         solution = state.displacement.reshape(2, -1)
+
+        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
 
         self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
 
@@ -229,8 +221,9 @@ class Quasistatic(ProblemSolver):
     def solve(
         self,
         n_steps: int,
+        initial_displacement: Callable,
+        initial_velocity: Callable,
         output_step: Optional[iter] = None,
-        initial_velocity: np.ndarray = None,
         verbose: bool = False,
     ) -> List[State]:
         """
@@ -239,6 +232,7 @@ class Quasistatic(ProblemSolver):
                             default (n_steps-1,)
                             example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
                                      we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param verbose: show prints
         :return: state
@@ -246,9 +240,15 @@ class Quasistatic(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = State(self.mesh)
-        if initial_velocity:
-            state.set_velocity(initial_velocity, update_displacement=False)
+        state.displacement[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+        state.velocity[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+
         solution = state.velocity.reshape(2, -1)
+
+        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []
@@ -274,8 +274,9 @@ class Dynamic(ProblemSolver):
     def solve(
         self,
         n_steps: int,
+        initial_displacement: Callable,
+        initial_velocity: Callable,
         output_step: Optional[iter] = None,
-        initial_velocity: np.ndarray = None,
         verbose: bool = False,
     ) -> List[State]:
         """
@@ -284,6 +285,7 @@ class Dynamic(ProblemSolver):
                             default (n_steps-1,)
                             example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
                                      we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param verbose: show prints
         :return: state
@@ -291,9 +293,15 @@ class Dynamic(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = State(self.mesh)
-        if initial_velocity:
-            state.set_velocity(initial_velocity, update_displacement=False)
+        state.displacement[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+        state.velocity[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+
         solution = state.velocity.reshape(2, -1)
+
+        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []
@@ -319,8 +327,10 @@ class TDynamic(ProblemSolver):
     def solve(
         self,
         n_steps: int,
+        initial_displacement: Callable,
+        initial_velocity: Callable,
+        initial_temperature: Callable,
         output_step: Optional[iter] = None,
-        initial_velocity: np.ndarray = None,
         verbose: bool = False,
     ) -> List[TemperatureState]:
         """
@@ -329,22 +339,31 @@ class TDynamic(ProblemSolver):
                             default (n_steps-1,)
                             example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
                                      we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_displacement: for the solver
         :param initial_velocity: for the solver
+        :param initial_temperature: for the solver
         :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = TemperatureState(self.mesh)
-        state.temperature = np.full_like(state.temperature, 0.0)  # TODO #50
-        if initial_velocity:
-            state.set_velocity(initial_velocity, update_displacement=False)
+        state.displacement[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+        state.velocity[:] = initial_displacement(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+        state.temperature[:] = initial_temperature(
+            self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
+
         solution = state.velocity.reshape(2, -1)
         solution_t = state.temperature
 
+        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
+        self.step_solver.t_vector[:] = state.temperature.ravel().copy()
+
         output_step = np.diff(output_step)
         results = []
-        self.step_solver.t_vector = solution_t
         for n in output_step:
             for i in range(n):
                 self.step_solver.currentTime += self.step_solver.time_step

@@ -1,10 +1,7 @@
-from conmech.helpers import cmh
-from deep_conmech.common import config
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.calculator import Calculator
-from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 
 
