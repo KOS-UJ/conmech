@@ -2,8 +2,13 @@ from typing import Optional
 
 import numpy as np
 from conmech.dataclass.body_properties import (
-    BodyProperties, DynamicBodyProperties, DynamicTemperatureBodyProperties, StaticBodyProperties,
-    StaticTemperatureBodyProperties, TemperatureBodyProperties)
+    BodyProperties,
+    DynamicBodyProperties,
+    DynamicTemperatureBodyProperties,
+    StaticBodyProperties,
+    StaticTemperatureBodyProperties,
+    TemperatureBodyProperties,
+)
 from numba import njit
 
 
@@ -46,7 +51,7 @@ class DynamicsBuilder:
         pass
 
     def get_matrices(
-        self, edges_features_matrix, body_prop: DynamicBodyProperties, independent_indices
+        self, edges_features_matrix, body_prop: BodyProperties, independent_indices
     ):
         i = independent_indices
 
@@ -59,12 +64,22 @@ class DynamicsBuilder:
             for j in range(self.dimension ** 2)
         ]
 
-        A = self.calculate_constitutive_matrices(
-            *ALL_W, body_prop.theta, body_prop.zeta
+        B = (
+            self.calculate_constitutive_matrices(
+                *ALL_W, body_prop.mu, body_prop.lambda_
+            )
+            if isinstance(body_prop, StaticBodyProperties)
+            else None
         )
-        B = self.calculate_constitutive_matrices(
-            *ALL_W, body_prop.mu, body_prop.lambda_
+
+        A = (
+            self.calculate_constitutive_matrices(
+                *ALL_W, body_prop.theta, body_prop.zeta
+            )
+            if isinstance(body_prop, DynamicBodyProperties)
+            else None
         )
+
         ACC = self.calculate_acceleration(U, body_prop.mass_density)
 
         if isinstance(body_prop, TemperatureBodyProperties):

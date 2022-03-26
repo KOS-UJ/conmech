@@ -1,5 +1,5 @@
 import numpy as np
-from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties
+from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties, TemperatureBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
@@ -53,6 +53,11 @@ class Dynamics(Mesh):
     def time_step(self):
         return self.schedule.time_step
 
+    @property
+    def with_temperature(self):
+        return isinstance(self.body_prop, TemperatureBodyProperties)
+
+
     def reinitialize_matrices(self):
         builder = (
             dynamics_builder_2d.DynamicsBuilder2D()
@@ -90,16 +95,17 @@ class Dynamics(Mesh):
                 free_indices=self.free_indices,
             )
 
-            i = self.independent_indices
-            self.T = (1 / self.time_step) * self.ACC[i, i] + self.K[i, i]
-            (
-                self.T_boundary,
-                self.T_free_x_contact,
-                self.T_contact_x_free,
-                self.T_free_x_free_inverted,
-            ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=self.T,
-                dimension=1,
-                contact_indices=self.contact_indices,
-                free_indices=self.free_indices,
-            )
+            if self.with_temperature:
+                i = self.independent_indices
+                self.T = (1 / self.time_step) * self.ACC[i, i] + self.K[i, i]
+                (
+                    self.T_boundary,
+                    self.T_free_x_contact,
+                    self.T_contact_x_free,
+                    self.T_free_x_free_inverted,
+                ) = SchurComplement.calculate_schur_complement_matrices(
+                    matrix=self.T,
+                    dimension=1,
+                    contact_indices=self.contact_indices,
+                    free_indices=self.free_indices,
+                )

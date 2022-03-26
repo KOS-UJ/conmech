@@ -260,8 +260,8 @@ class GraphModelDynamic:
                 SettingInput.get_setting,
                 catalog=f"GRAPH/{timestamp} - RESULT",
                 simulate_dirty_data=False,
-                draw_base=False,  ###
-                draw_detailed=False,
+                plot_base=False,  ###
+                plot_detailed=False,
                 plot_images=False,
                 plot_animation=True,
             )
@@ -328,7 +328,7 @@ class GraphModelDynamic:
                 boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
                 boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
                 boundary_nodes_volume=boundary_nodes_volume_split[i],
-                obstacle_prop=scenarios.obstacle_prop,  # TODO: generalize
+                obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
             )
 

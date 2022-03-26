@@ -6,7 +6,7 @@ from deep_conmech.scenarios import *
 from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=4, final_time=3.0):
+def main(mesh_density=5, final_time=5, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="rectangle_small",
@@ -16,8 +16,8 @@ def main(mesh_density=4, final_time=3.0):
                 scale=[1],
                 mesh_density=[4],
             ),
-            body_prop=scenarios.body_prop,
-            obstacle_prop=scenarios.obstacle_prop,
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=scenarios.default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
@@ -30,8 +30,8 @@ def main(mesh_density=4, final_time=3.0):
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
-            body_prop=scenarios.body_prop,
-            obstacle_prop=scenarios.obstacle_prop,
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=scenarios.default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, -0.5]),
             obstacles=np.array(
@@ -46,8 +46,8 @@ def main(mesh_density=4, final_time=3.0):
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
-            body_prop=scenarios.body_prop,
-            obstacle_prop=scenarios.obstacle_prop,
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=scenarios.default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
@@ -60,8 +60,8 @@ def main(mesh_density=4, final_time=3.0):
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
-            body_prop=scenarios.body_prop,
-            obstacle_prop=scenarios.obstacle_prop,
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=scenarios.default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
@@ -75,8 +75,9 @@ def main(mesh_density=4, final_time=3.0):
             SettingRandomized.get_setting,
             catalog="EXAMPLES ROLL",
             simulate_dirty_data=False,
-            draw_base=False,
-            draw_detailed=True,
+            plot_base=False,
+            plot_detailed=True,
+            plot_animation=plot_animation
         )
 
 

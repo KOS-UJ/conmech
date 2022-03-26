@@ -93,14 +93,20 @@ class TemperatureScenario(Scenario):
 
 ####################################
 
-schedule = Schedule(time_step=0.01, final_time=4.0)
+default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
-body_prop = DynamicBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
+default_body_prop = DynamicBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
-obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
+default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
-temp_body_prop = DynamicTemperatureBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
-def get_temp_body_prop(C_coeff, K_coeff): return DynamicTemperatureBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0, C_coeff=C_coeff, K_coeff=K_coeff)
+
+
+default_C_coeff=np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+default_K_coeff=np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+default_temp_body_prop = DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, C_coeff=default_C_coeff, K_coeff=default_K_coeff)
+
+def get_temp_body_prop(C_coeff, K_coeff):
+    return DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0,  C_coeff=C_coeff, K_coeff=K_coeff)
 
 ####################################
 
@@ -205,8 +211,8 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop=body_prop,
-        obstacle_prop=obstacle_prop,
+        body_prop=default_body_prop,
+        obstacle_prop=default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
@@ -223,8 +229,8 @@ def spline_right(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop=body_prop,
-        obstacle_prop=obstacle_prop,
+        body_prop=default_body_prop,
+        obstacle_prop=default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_right,
         obstacles=o_front,
@@ -241,8 +247,8 @@ def circle_left(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back,
@@ -259,8 +265,8 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacles=o_back * scale,
@@ -277,8 +283,8 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_slope,
@@ -295,8 +301,8 @@ def circle_rotate(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
@@ -313,8 +319,8 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacles=o_side,
@@ -331,8 +337,8 @@ def polygon_stay(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_stay,
         obstacles=o_side,
@@ -349,8 +355,8 @@ def polygon_two(scale, is_adaptive, final_time):
             mesh_density=[config.MESH_DENSITY],
             is_adaptive=is_adaptive,
         ),
-        body_prop,
-        obstacle_prop,
+        default_body_prop,
+        default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacles=o_two,

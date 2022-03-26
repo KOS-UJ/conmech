@@ -11,8 +11,8 @@ def print_one_dynamic(
     get_setting_function,
     catalog,
     simulate_dirty_data,
-    draw_base,
-    draw_detailed,
+    plot_base,
+    plot_detailed,
     plot_images=False,
     plot_animation=True,
 ):
@@ -23,13 +23,15 @@ def print_one_dynamic(
     time_skip = config.PRINT_SKIP
     all_setting_paths = []
 
+
+
     def operation_plot(current_time, setting, base_setting, a, base_a):
         plot_setting(
             current_time=current_time,
             setting=setting,
             path=f"{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
             base_setting=base_setting,
-            draw_detailed=draw_detailed,
+            draw_detailed=plot_detailed,
             extension=extension,
         )
 
@@ -42,12 +44,12 @@ def print_one_dynamic(
         #    setting.save_pickle(f"{path}_base_setting")
 
     simulator.simulate(
-        compare_with_base_setting=draw_base,
+        compare_with_base_setting=plot_base,
         solve_function=solve_function,
         scenario=scenario,
         get_setting_function=get_setting_function,
         simulate_dirty_data=simulate_dirty_data,
-        operation=operation_save,  # plot_at_interval if plot_images else None,
+        operation=operation_save if plot_animation else None,  # plot_at_interval if plot_images else None,
         time_skip=time_skip,
     )
 
