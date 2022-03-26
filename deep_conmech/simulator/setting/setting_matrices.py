@@ -1,13 +1,12 @@
 from typing import Callable
-from conmech.solvers.optimization.schur_complement import SchurComplement
 
-import deep_conmech.common.config as config
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
+from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
-from deep_conmech.simulator.setting.setting_mesh import SettingMesh
+from deep_conmech.simulator.setting.mesh import Mesh
 from numba import njit
 
 
@@ -24,8 +23,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
     return edges_features
 
 
-
-class SettingMatrices(SettingMesh):
+class SettingMatrices(Mesh):
     def __init__(
         self,
         mesh_data: MeshData,
@@ -59,13 +57,13 @@ class SettingMatrices(SettingMesh):
     def reinitialize_matrices(self):
         get_edges_features_matrix = (
             lambda *args: matrices_2d.get_edges_features_matrix_numba(*args)
-            if self.dim == 2
+            if self.dimension == 2
             else matrices_3d.get_edges_features_matrix_numba(*args)
         )
 
         get_matrices = (
             lambda *args: matrices_2d.get_matrices(*args)
-            if self.dim == 2
+            if self.dimension == 2
             else matrices_3d.get_matrices(*args)
         )
 
@@ -87,10 +85,24 @@ class SettingMatrices(SettingMesh):
                 self.contact_x_free,
                 self.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                self.C,
-                self.dimension,
-                self.contact_indices,
-                self.free_indices,
+                matrix=self.C,
+                dimension=self.dimension,
+                contact_indices=self.contact_indices,
+                free_indices=self.free_indices,
+            )
+
+            i = self.independent_indices
+            self.T = (1 / self.time_step) * self.ACC[i, i] + self.K[i, i]
+            (
+                self.T_boundary,
+                self.T_free_x_contact,
+                self.T_contact_x_free,
+                self.T_free_x_free_inverted,
+            ) = SchurComplement.calculate_schur_complement_matrices(
+                matrix=self.T,
+                dimension=1,
+                contact_indices=self.contact_indices,
+                free_indices=self.free_indices,
             )
 
     def clear_save(self):
@@ -106,7 +118,13 @@ class SettingMatrices(SettingMesh):
         self.B = None
         self.VOL = None
         self.A_plus_B_times_ts = None
-        self.contact_x_free = None
-        self.free_x_contact = None
-        self.free_x_free_inverted = None
+
         self.C_boundary = None
+        self.free_x_contact = None
+        self.contact_x_free = None
+        self.free_x_free_inverted = None
+
+        self.T_boundary = None
+        self.T_free_x_contact = None
+        self.T_contact_x_free = None
+        self.T_free_x_free_inverted = None

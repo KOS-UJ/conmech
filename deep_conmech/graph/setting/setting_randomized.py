@@ -8,11 +8,11 @@ import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.scenarios import Scenario
 
 
-class SettingRandomized(SettingObstacles):
+class SettingRandomized(SettingIterable):
     def __init__(
         self,
         mesh_data: MeshData,
@@ -39,10 +39,10 @@ class SettingRandomized(SettingObstacles):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.v_old_randomization = nph.get_random_normal(
-                self.dim, self.nodes_count, config.V_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, config.V_IN_RANDOM_FACTOR
             )
             self.u_old_randomization = nph.get_random_normal(
-                self.dim, self.nodes_count, config.U_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, config.U_IN_RANDOM_FACTOR
             )
             # Do not randomize boundaries
             self.v_old_randomization[self.boundary_indices] = 0
@@ -105,44 +105,11 @@ class SettingRandomized(SettingObstacles):
         self.u_old_randomization = np.zeros_like(self.initial_nodes)
         self.randomized_inputs = False
 
-    def get_copy(self):
-        setting = copy.deepcopy(self)
-        return setting
 
     def iterate_self(self, a, randomized_inputs=False):
-        v = self.v_old + self.time_step * a
-        u = self.u_old + self.time_step * v
-
         self.set_randomization(randomized_inputs)
-        self.set_u_old(u)
-        self.set_v_old(v)
-        self.set_a_old(a)
+        super().iterate_self(a, randomized_inputs)
 
-        self.clear()
-        return self
-
-    def remesh_self(self):
-        old_initial_nodes = self.initial_nodes.copy()
-        old_elements = self.elements.copy()
-        u_old = self.u_old.copy()
-        v_old = self.v_old.copy()
-        a_old = self.a_old.copy()
-
-        self.remesh()
-
-        u = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, u_old, old_elements
-        )
-        v = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, v_old, old_elements
-        )
-        a = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, a_old, old_elements
-        )
-
-        self.set_u_old(u)
-        self.set_v_old(v)
-        self.set_a_old(a)
 
     @staticmethod
     def get_setting(

@@ -35,50 +35,14 @@ class SchurComplement(Optimization):
 
         # ADDED When working with velocity v, forces_contact depend on u
 
-        C = self.get_C()
-
         (
             self._point_relations,
             self.free_x_contact,
             self.contact_x_free,
             self.free_x_free_inverted,
-        ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=C,
-            dimension=self.mesh.dimension,
-            contact_indices=self.contact_ids,
-            free_indices=self.free_ids,
-        )
+        ) = self.recalculate_displacement()
 
-        self.forces_free, self._point_forces = self.recalculate_forces()
-
-    def recalculate_forces(self):
-        E_split = self.get_E_split()
-        # Et
-        forces_contact = nph.stack_column(E_split[self.contact_ids, :])
-        # Ei
-        forces_free = nph.stack_column(E_split[self.free_ids, :])
-
-        # Ebig = self.FVector - Bu + (1./self.tS) * ACCv / Ebig = self.FVector - X
-        # Et = np.append(Ebig[self.i:self.n], Ebig[self.n + self.i:self.n + self.n])
-        # self.Ei = np.append(Ebig[0:self.i], Ebig[self.n:self.n + self.i])
-
-        # CiiINVEi = multiplyByDAT('E:\\SPARE\\cross ' + str(self.SizeH) + ' CiiINV.dat', self.Ei)
-        _point_forces = self.free_x_free_inverted @ forces_free
-        _point_forces = self.contact_x_free @ _point_forces
-        # self.E = (Et - np.asarray(self.Cti.dot(CiiINVEi))).astype(np.single)
-        _point_forces = forces_contact - _point_forces
-        point_forces = np.asarray(_point_forces.reshape(1, -1))
-
-        return forces_free, point_forces
-
-    def get_C(self):
-        raise NotImplementedError()
-
-    def get_E_split(self):
-        raise NotImplementedError()
-
-    def __str__(self):
-        return "schur"
+        self._point_forces, self.forces_free = self.recalculate_forces()
 
     @staticmethod
     def calculate_schur_complement_matrices(
@@ -109,6 +73,51 @@ class SchurComplement(Optimization):
 
         return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
 
+    @staticmethod
+    def calculate_schur_complement_vector(
+        vector: np.ndarray,
+        dimension: int,
+        contact_indices: slice,
+        free_indices: slice,
+        free_x_free_inverted: np.ndarray,
+        contact_x_free: np.ndarray,
+    ):
+        vector_split = nph.unstack(vector, dimension)
+        #Et
+        vector_contact = nph.stack_column(vector_split[contact_indices, :])
+        #Ei
+        vector_free = nph.stack_column(vector_split[free_indices, :])
+        #E_boundary
+        vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
+        return vector_boundary, vector_free
+
+    def recalculate_displacement(self):
+        return SchurComplement.calculate_schur_complement_matrices(
+            matrix=self.get_C(),
+            dimension=self.mesh.dimension,
+            contact_indices=self.contact_ids,
+            free_indices=self.free_ids,
+        )
+
+    def recalculate_forces(self):
+        point_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
+            vector=self.get_E_split(),
+            dimension=self.mesh.dimension,
+            contact_indices=self.contact_ids,
+            free_indices=self.free_ids,
+            contact_x_free=self.contact_x_free,
+            free_x_free_inverted=self.free_x_free_inverted,
+        )
+        return point_forces.T, forces_free #TODO: refactor to remove T
+
+    def get_C(self):
+        raise NotImplementedError()
+
+    def get_E_split(self):
+        raise NotImplementedError()
+
+    def __str__(self):
+        return "schur"
 
     @property
     def point_relations(self) -> np.ndarray:
@@ -214,7 +223,7 @@ class Quasistatic(SchurComplement):
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
-        self.forces_free, self._point_forces = self.recalculate_forces()
+        self._point_forces, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
@@ -271,7 +280,7 @@ class Dynamic(Quasistatic):
         # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
         # self.inner_temperature.setF()
 
-        self.Q_free, self.Q = self.recalculate_temperature()
+        self.Q, self.Q_free = self.recalculate_temperature()
 
     # def solve(
     #     self,
@@ -303,8 +312,8 @@ class Dynamic(Quasistatic):
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
-        self.forces_free, self._point_forces = self.recalculate_forces()
-        self.Q_free, self.Q = self.recalculate_temperature()
+        self._point_forces, self.forces_free = self.recalculate_forces()
+        self.Q, self.Q_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         QBig = (-1) * nph.unstack_and_sum_columns(
@@ -314,10 +323,12 @@ class Dynamic(Quasistatic):
         QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
-        Q_free = QBig[self.free_ids]
-        Q_contact = QBig[self.contact_ids]
-        # TiiINVQi = multiplyByDAT(prefix + ' TiiINV.dat', self.Qi)
-        _point_temperature = self.T_free_x_free_inverted @ Q_free
-        Q = Q_contact - np.asarray(self.T_contact_x_free.dot(_point_temperature))
-
-        return Q_free, Q
+        Q, Q_free = SchurComplement.calculate_schur_complement_vector(
+            vector=QBig,
+            dimension=1,
+            contact_indices=self.contact_ids,
+            free_indices=self.free_ids,
+            contact_x_free=self.T_contact_x_free,
+            free_x_free_inverted=self.T_free_x_free_inverted,
+        )
+        return Q.reshape(-1), Q_free.reshape(-1) #TODO: refactor to remove reshape

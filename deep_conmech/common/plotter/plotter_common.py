@@ -66,3 +66,4 @@ def plot_animation(
         fig, animate, frames=frames_count
     )  # , interval=scenario.final_time)
     ani.save(path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+    plt.close()

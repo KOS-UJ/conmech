@@ -10,6 +10,7 @@ from deep_conmech.common.plotter import plotter_common
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from matplotlib import animation, cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
@@ -49,7 +50,10 @@ def plot_frame(
     scale = setting.mesh_data.scale_x
     set_perspective(scale, axs)
 
-    draw_main_displaced(setting, axs)
+    if isinstance(setting, SettingTemperature):
+        draw_main_temperature(setting, axs)
+    else:
+        draw_main_displaced(setting, axs)
     if base_setting is not None:
         draw_base_displaced(base_setting, scale, axs)
     description_offset = np.array([-0.1, -1.1]) * scale
@@ -84,43 +88,44 @@ def plot_frame(
         draw_a(setting, position, axs)
 
         position[0] += shift
-        draw_temperature(setting, position, axs)
+        if isinstance(setting, SettingTemperature):
+            draw_temperature(setting=setting, position=position, axs=axs)
 
         # draw_edges_data(setting, position, ax)
         # draw_vertices_data(setting, position, ax)
 
 
-def draw_temperature(setting: SettingRandomized, position, axs):
-    # temperature = np.random.uniform(size=setting.nodes_count)
-    temperature = nph.euclidean_norm(setting.moved_nodes)
-
-    # draw_additional_setting("T", setting, position, axs)
+def draw_temperature(setting: SettingTemperature, position, axs):
+    add_annotation("TEMP", setting, position, axs)
+    # add_annotation("TEMP", setting, position, axs)
     points = (setting.normalized_points + position).T
     t_min = 0.0
-    t_max = 1.0
+    t_max = 0.1
 
     axs.scatter(
         *points,
-        c=temperature,
+        c=setting.t_old,
         vmin=t_min,
         vmax=t_max,
-        cmap=plt.cm.plasma,
+        cmap=plt.cm.plasma,  # magma
         s=1,
         marker=".",
         linewidths=0.1,
     )
     # axs.colorbar()
-    """'
+
+
+def draw_main_temperature(setting, axs):
+    draw_main_obstacles(setting, axs)
     axs.tricontourf(
-        *points,
+        *(setting.moved_nodes.T),
         setting.elements,
-        temperature,
-        cmap=plt.cm.magma,
+        setting.t_old.reshape(-1),
+        cmap=plt.cm.plasma,
         vmin=0,
-        vmax=1,
-        antialiased=True
+        vmax=0.1,
+        antialiased=True,
     )
-    """
 
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
@@ -295,9 +300,13 @@ def draw_data(annotation, data, setting, position, ax):
 
 def draw_additional_setting(annotation, setting, position, ax):
     draw_triplot(setting.normalized_points + position, setting, "tab:blue", ax)
+    add_annotation(annotation, setting, position, ax)
+
+
+def add_annotation(annotation, setting, position, ax):
     scale = setting.mesh_data.scale_x
-    description_offset = np.array([-0.1, -1.1]) * scale
-    ax.annotate(annotation, xy=position + description_offset, color="w", fontsize=8)
+    description_offset = np.array([-0.5, -1.1]) * scale
+    ax.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
 
 def draw_parameters(time, setting, scale, ax):

@@ -128,11 +128,8 @@ def get_matrices(edges_features_matrix, body_prop, independent_indices):
     B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
     ACC = calculate_acceleration(U, body_prop.mass_density)
 
-    C_coeff = [[0.5, 0.0], [0.0, 0.5]]
-    C2T = calculate_temperature_C(*ALL_V, C_coeff)
-
-    K_coeff = [[0.1, 0.0], [0.0, 0.1]]
-    K = calculate_temperature_K(*ALL_W, K_coeff)
+    C2T = calculate_temperature_C(*ALL_V, body_prop.C_coeff)
+    K = calculate_temperature_K(*ALL_W, body_prop.K_coeff)
 
     # T = (1.0 / TIMESTEP) * K
     return VOL, ACC, A, B, C2T, K

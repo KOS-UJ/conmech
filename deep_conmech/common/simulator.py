@@ -5,9 +5,10 @@ from typing import Callable, Optional
 from conmech.helpers import cmh
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
-def map_time(
+def simulate(
     compare_with_base_setting,
     solve_function,
     scenario: Scenario,
@@ -22,6 +23,7 @@ def map_time(
     setting = get_setting_function(
         scenario, randomize=simulate_dirty_data, create_in_subprocess=True
     )
+    with_temperature = isinstance(setting, SettingTemperature)
     if compare_with_base_setting:
         base_setting = get_setting_function(
             scenario, randomize=False, create_in_subprocess=True
@@ -36,6 +38,7 @@ def map_time(
 
     time_tqdm = scenario.get_tqdm(description)
     a = None
+    t = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
@@ -47,7 +50,12 @@ def map_time(
             all_base_settings.append(copy.deepcopy(setting))
 
         start_time = time.time()
-        a = solve_function(setting, initial_vector=a)
+        if with_temperature:
+            a, t = solve_function(setting, initial_a=a, initial_t=t)
+        else:
+            a = solve_function(setting, initial_a=a)
+
+
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
@@ -65,7 +73,11 @@ def map_time(
         if operation is not None:
             operation(current_time, setting, base_setting, a, base_a)
 
-        setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+        if with_temperature:
+            setting.iterate_self(a, t, randomized_inputs=simulate_dirty_data)
+        else:
+            setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+            
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
 

@@ -176,18 +176,42 @@ def create_acceleration(U, density):
     return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def get_matrices(edges_features_matrix, body_prop, independent_indices):
-    VOL = edges_features_matrix[0]
-    U = edges_features_matrix[1][independent_indices, independent_indices]
+def calculate_temperature_C(V1, V2, V3, C_coef):
+    Z = np.zeros_like(V1)
+    X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2 + C_coef[0][2] * V3
+    X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2 + C_coef[1][2] * V3
+    X33 = C_coef[2][0] * V1 + C_coef[2][1] * V2 + C_coef[2][2] * V3
+    return np.block([[X11, Z, Z], [Z, X22, Z], [Z, Z, X33]])
 
-    ALL_V = [edges_features_matrix[i][independent_indices, independent_indices] for i in range(2, 5)]
-    ALL_W = [edges_features_matrix[i][independent_indices, independent_indices] for i in range(5, 14)]
+
+def calculate_temperature_K(W11, W12, W13, W21, W22, W23, W31, W32, W33, K_coef):
+    return (
+        K_coef[0][0] * W11
+        + K_coef[0][1] * W12
+        + K_coef[0][2] * W13
+        + K_coef[1][0] * W21
+        + K_coef[1][1] * W22
+        + K_coef[1][2] * W23
+        + K_coef[2][0] * W31
+        + K_coef[2][1] * W32
+        + K_coef[2][2] * W33
+    )
+
+
+def get_matrices(edges_features_matrix, body_prop, independent_indices):
+    i = independent_indices
+
+    VOL = edges_features_matrix[0][i, i]
+    U = edges_features_matrix[1][i, i]
+
+    ALL_V = [edges_features_matrix[j][i, i] for j in range(2, 5)]
+    ALL_W = [edges_features_matrix[j][i, i] for j in range(5, 14)]
 
     A = calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
     B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
     ACC = create_acceleration(U, body_prop.mass_density)
 
-    C2T = None
-    K = None
+    C2T = calculate_temperature_C(*ALL_V, body_prop.C_coeff)
+    K = calculate_temperature_K(*ALL_W, body_prop.K_coeff)
 
     return VOL, ACC, A, B, C2T, K

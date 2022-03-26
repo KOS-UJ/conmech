@@ -1,12 +1,12 @@
 import deep_conmech.scenarios as scenarios
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from conmech.helpers import cmh
 from deep_conmech.common.plotter import plotter_mapper
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.calculator import Calculator
 
 
-def main():
+def main(mesh_density=4, final_time=3.0):
     all_scenarios = [
         Scenario(
             id="rectangle_small",
@@ -18,18 +18,21 @@ def main():
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            schedule=Schedule(final_time=0.4),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
         Scenario(
             id="circle_slide_roll",
             mesh_data=MeshData(
-                dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[8]
+                dimension=2,
+                mesh_type=scenarios.m_circle,
+                scale=[1],
+                mesh_density=[mesh_density],
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            schedule=Schedule(final_time=8.0),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, -0.5]),
             obstacles=np.array(
                 [[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]
@@ -38,11 +41,14 @@ def main():
         Scenario(
             id="circle_flat_roll",
             mesh_data=MeshData(
-                dimension=2, mesh_type=scenarios.m_circle, scale=[1], mesh_density=[5]
+                dimension=2,
+                mesh_type=scenarios.m_circle,
+                scale=[1],
+                mesh_density=[mesh_density],
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            schedule=Schedule(final_time=4.0),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
@@ -52,16 +58,16 @@ def main():
                 dimension=2,
                 mesh_type=scenarios.m_rectangle,
                 scale=[1],
-                mesh_density=[5],
+                mesh_density=[mesh_density],
             ),
             body_prop=scenarios.body_prop,
             obstacle_prop=scenarios.obstacle_prop,
-            schedule=Schedule(final_time=4.0),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
     ]
-    
+
     for scenario in all_scenarios:
         plotter_mapper.print_one_dynamic(
             Calculator.solve,
@@ -71,7 +77,6 @@ def main():
             simulate_dirty_data=False,
             draw_base=False,
             draw_detailed=True,
-            description="Examples roll",
         )
 
 
