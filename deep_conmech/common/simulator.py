@@ -73,7 +73,7 @@ def simulate(
                 operation(current_time, setting, base_setting, a, base_a)
 
         if with_temperature:
-            setting.iterate_self(a, t, randomized_inputs=simulate_dirty_data)
+            setting.iterate_self(a, t)
         else:
             setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
 

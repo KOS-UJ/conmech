@@ -59,8 +59,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.B)
 
     @property
-    def A_plus_B_times_ts_torch(self):
-        return thh.to_torch_double(self.A_plus_B_times_ts)
+    def visco_plus_elast_times_ts_torch(self):
+        return thh.to_torch_double(self.visco_plus_elast_times_ts)
 
     @property
     def C_torch(self):

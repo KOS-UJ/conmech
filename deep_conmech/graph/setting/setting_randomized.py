@@ -108,7 +108,7 @@ class SettingRandomized(SettingIterable):
 
     def iterate_self(self, a, randomized_inputs=False):
         self.set_randomization(randomized_inputs)
-        super().iterate_self(a, randomized_inputs)
+        super().iterate_self(a)
 
 
     @staticmethod

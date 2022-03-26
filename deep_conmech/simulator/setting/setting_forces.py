@@ -25,7 +25,6 @@ class SettingForces(Dynamics):
         )
         self.forces = None
 
-
     @property
     def normalized_forces(self):
         return self.normalize_rotate(self.forces)
@@ -75,15 +74,15 @@ class SettingForces(Dynamics):
             self.normalized_forces,
             self.normalized_u_old,
             self.normalized_v_old,
-            self.VOL,
-            self.A_plus_B_times_ts,
-            self.B,
+            self.const_volume,
+            self.visco_plus_elast_times_ts,
+            self.const_elasticity,
         )
 
-    def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B):
+    def get_E(self, forces, u_old, v_old, const_volume, visco_plus_elast_times_ts, const_elasticity):
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 
-        F_vector = nph.stack_column(VOL @ forces)
-        E = F_vector - A_plus_B_times_ts @ v_old_vector - B @ u_old_vector
+        F_vector = nph.stack_column(const_volume @ forces)
+        E = F_vector - visco_plus_elast_times_ts @ v_old_vector - const_elasticity @ u_old_vector
         return E

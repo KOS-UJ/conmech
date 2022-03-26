@@ -48,7 +48,7 @@ class Scenario:
     def get_tqdm(self, description):
         return cmh.get_tqdm(
             range(self.schedule.episode_steps),
-            f"{description} {self.id} scale_{self.mesh_data.scale_x}",
+            f"{description} {self.id}" # scale_{self.mesh_data.scale_x}",
         )
 
     @property

@@ -28,11 +28,25 @@ class SettingIterable(SettingObstacles):
             create_in_subprocess=create_in_subprocess,
         )
 
+
+    @property
+    def input_v_old(self):
+        return self.normalized_v_old
+
+    @property
+    def input_u_old(self):
+        return self.normalized_u_old
+
+    @property
+    def input_forces(self):
+        return self.normalized_forces
+
+
     def get_copy(self):
         setting = copy.deepcopy(self)
         return setting
 
-    def iterate_self(self, a, randomized_inputs=False):
+    def iterate_self(self, a):
         v = self.v_old + self.time_step * a
         u = self.u_old + self.time_step * v
 
@@ -77,7 +91,6 @@ class SettingIterable(SettingObstacles):
             schedule=scenario.schedule,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.set_randomization(randomize)
         setting.set_obstacles(scenario.obstacles)
         return setting
 
@@ -105,7 +118,7 @@ class SettingIterable(SettingObstacles):
 
         self.B = None
         self.VOL = None
-        self.A_plus_B_times_ts = None
+        self.visco_plus_elast_times_ts = None
 
         self.C_boundary = None
         self.free_x_contact = None

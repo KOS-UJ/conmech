@@ -1,12 +1,17 @@
+from typing import Callable
+
 import numpy as np
-from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties, TemperatureBodyProperties
+from conmech.dataclass.body_properties import (BodyProperties,
+                                               DynamicBodyProperties,
+                                               StaticBodyProperties,
+                                               TemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
+from deep_conmech.simulator.dynamics import (dynamics_builder_2d,
+                                             dynamics_builder_3d)
 from deep_conmech.simulator.mesh.mesh import Mesh
 from numba import njit
-from typing import Callable
 
 
 @njit
@@ -64,25 +69,25 @@ class Dynamics(Mesh):
             if self.dimension == 2
             else dynamics_builder_3d.DynamicsBuilder3D()
         )
-
+        
         (
             self.element_initial_volume,
-            self.VOL,
+            self.const_volume,
             self.ACC,
-            self.A,
-            self.B,
+            self.const_elasticity,
+            self.const_viscosity,
             self.C2T,
-            self.K,
+            self.K
         ) = builder.build_matrices(
             elements=self.elements,
-            normalized_points=self.normalized_points,
+            nodes=self.normalized_points,
             body_prop=self.body_prop,
             independent_indices=self.independent_indices,
         )
 
         if self.with_schur_complement_matrices:
-            self.A_plus_B_times_ts = self.A + self.B * self.time_step
-            self.C = self.ACC + self.A_plus_B_times_ts * self.time_step
+            self.visco_plus_elast_times_ts = self.const_viscosity + self.const_elasticity * self.time_step
+            self.C = self.ACC + self.visco_plus_elast_times_ts * self.time_step
             (
                 self.C_boundary,
                 self.free_x_contact,

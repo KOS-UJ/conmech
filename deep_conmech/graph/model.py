@@ -233,7 +233,7 @@ class GraphModelDynamic:
         print("---")
 
     def validate(self, dataset):
-        dataloader = data_base.get_valid_dataloader(dataset)
+        dataloader = data_base.get_train_dataloader(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
         # range(len()) -> enumerate
 
@@ -246,7 +246,6 @@ class GraphModelDynamic:
             mean_loss_array += loss_array
         mean_loss_array /= len(batch_tqdm)
         return mean_loss_array
-
 
     def plot_scenarios(self, elapsed_time):
         print("----PLOTTING----")

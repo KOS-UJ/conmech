@@ -155,7 +155,6 @@ def denominator_numba(x_i, x_j1, x_j2, x_j3):
 
 class DynamicsBuilder3D(DynamicsBuilder):
 
-
     def get_edges_features_matrix(self, elements, nodes):
         return get_edges_features_matrix_numba(elements,nodes)
 

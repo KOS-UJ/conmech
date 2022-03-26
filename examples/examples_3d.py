@@ -5,7 +5,7 @@ from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=4, final_time=3.0, plot_animation=True):
+def main(mesh_density=3, final_time=3, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="ball_roll",
@@ -43,6 +43,7 @@ def main(mesh_density=4, final_time=3.0, plot_animation=True):
     ]
 
     for scenario in all_scenarios:
+        print("-----")
         plotter_mapper.print_one_dynamic(
             Solver.solve,
             scenario,

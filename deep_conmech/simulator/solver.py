@@ -1,10 +1,13 @@
+import copy
 import time
+from ast import Tuple
 from typing import Callable, Optional
 
 import numpy as np
 import scipy
 from conmech.helpers import nph
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from scipy import optimize
 
@@ -47,9 +50,7 @@ class Solver:
         return cleaned_a
 
     @staticmethod
-    def solve_all(
-        setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    def solve_all(setting: SettingIterable, initial_a: Optional[np.ndarray] = None):
         normalized_a = Solver.solve_acceleration_normalized(setting, initial_a)
         normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
         cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
@@ -57,42 +58,52 @@ class Solver:
 
     @staticmethod
     def solve_with_temperature(
-        setting: SettingRandomized,
+        setting: SettingTemperature,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
-    ) -> np.ndarray:
-        cleaned_a = Solver.solve(setting, initial_a)
-        t = Solver.solve_temperature_normalized(setting, initial_t)
+    ):
+        #candidate_t
+        #candidate_a
+
+        normalized_a = Solver.solve_acceleration_normalized(setting, initial_a)
+        t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
+
+
+        normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
+        cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
         cleaned_t = Solver.clean_temperature(setting, t)
         return cleaned_a, cleaned_t
 
     @staticmethod
+    def solve_temperature(setting: SettingTemperature, normalized_a:np.ndarray, initial_t):
+        t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
+        cleaned_t = Solver.clean_temperature(setting, t)
+        return cleaned_t
+
+    @staticmethod
     def solve_acceleration_normalized(
-        setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
+        setting: SettingIterable, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Solver.solve_acceleration_normalized_optimization(
-                setting, initial_a
-            )
+            return Solver.solve_acceleration_normalized_optimization(setting, initial_a)
         else:
             return Solver.solve_acceleration_normalized_function(setting, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
-        setting: SettingRandomized, initial_t: Optional[np.ndarray] = None
+        setting: SettingTemperature, normalized_a:np.ndarray, initial_t: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Solver.solve_temperature_normalized_optimization(
-                setting, initial_t
-            )
+            return Solver.solve_temperature_normalized_optimization(setting, normalized_a, initial_t)
         else:
-            return Solver.solve_temperature_normalized_function(setting, initial_t)
+            return Solver.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
-    def solve_temperature_normalized_function(setting, initial_t):
-        t_vector = np.linalg.solve(setting.T, setting.normalized_Q)
+    def solve_temperature_normalized_function(setting:SettingTemperature, normalized_a, initial_t):
+        normalized_Q = setting.get_normalized_Q_np(normalized_a)
+        t_vector = np.linalg.solve(setting.T, normalized_Q)
         return t_vector
 
     @staticmethod
@@ -135,28 +146,28 @@ class Solver:
 
     @staticmethod
     def solve_temperature_normalized_optimization(
-        setting: SettingTemperature, initial_t_vector
+        setting: SettingTemperature,
+        normalized_a: np.ndarray,
+        initial_t_vector: np.ndarray,
     ):
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
-        cost_function = setting.get_normalized_L2_temperature_np()
-        boundary_t_vector_np = Solver.minimize(
-            cost_function, initial_t_boundary_vector
-        )
+        cost_function, normalized_Q_free = setting.get_normalized_L2_temperature_np(normalized_a)
+        boundary_t_vector_np = Solver.minimize(cost_function, initial_t_boundary_vector)
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)
         t_vector = Solver.complete_t_vector(
-            setting, setting.normalized_Q_free, boundary_t_vector
+            setting, normalized_Q_free, boundary_t_vector
         )
         return t_vector
 
     @staticmethod
-    def clean_acceleration(setting, normalized_a):
-        return (
-            normalized_a + setting.normalized_a_correction
-            if normalized_a is not None
-            else None
-        )
+    def clean_acceleration(setting: SettingIterable, normalized_a):
+        if normalized_a is None:
+            return None
+        if isinstance(setting, SettingRandomized) == False:
+            return normalized_a
+        return normalized_a + setting.normalized_a_correction
 
     @staticmethod
     def clean_temperature(setting, t):

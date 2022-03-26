@@ -6,22 +6,8 @@ from deep_conmech.scenarios import *
 from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=5, final_time=5, plot_animation=True):
+def main(mesh_density=3, final_time=10, plot_animation=True):
     all_scenarios = [
-        Scenario(
-            id="rectangle_small",
-            mesh_data=MeshData(
-                dimension=2,
-                mesh_type=scenarios.m_rectangle,
-                scale=[1],
-                mesh_density=[4],
-            ),
-            body_prop=scenarios.default_body_prop,
-            obstacle_prop=scenarios.default_obstacle_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([2.0, -0.5]),
-            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
-        ),
         Scenario(
             id="circle_slide_roll",
             mesh_data=MeshData(
@@ -39,7 +25,7 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
             ),
         ),
         Scenario(
-            id="circle_flat_roll",
+            id="circle_flat_A_roll",
             mesh_data=MeshData(
                 dimension=2,
                 mesh_type=scenarios.m_circle,
@@ -47,7 +33,35 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            obstacle_prop=scenarios.default_obstacle_prop,
+            obstacle_prop=ObstacleProperties(hardness=100.0, friction=5.0),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([2.0, -0.5]),
+            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+        ),
+        Scenario(
+            id="circle_flat_B_roll",
+            mesh_data=MeshData(
+                dimension=2,
+                mesh_type=scenarios.m_circle,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=ObstacleProperties(hardness=10.0, friction=5.0),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([2.0, -0.5]),
+            obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+        ),
+        Scenario(
+            id="circle_flat_C_roll",
+            mesh_data=MeshData(
+                dimension=2,
+                mesh_type=scenarios.m_circle,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=scenarios.default_body_prop,
+            obstacle_prop=ObstacleProperties(hardness=100.0, friction=0.5),
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([2.0, -0.5]),
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
@@ -69,6 +83,7 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
     ]
 
     for scenario in all_scenarios:
+        print("-----")
         plotter_mapper.print_one_dynamic(
             Solver.solve,
             scenario,

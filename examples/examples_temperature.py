@@ -31,6 +31,27 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
     all_scenarios.extend(
         [
             TemperatureScenario(
+                id=f"temperature_cube_heat_{i}",
+                mesh_data=MeshData(
+                    dimension=2,
+                    mesh_type=m_rectangle,
+                    scale=[1],
+                    mesh_density=[mesh_density],
+                    is_adaptive=False,
+                ),
+                body_prop=temp_body_prop,
+                obstacle_prop=default_obstacle_prop,
+                schedule=Schedule(final_time=final_time),
+                forces_function=np.array([0, 0]),  # f_rotate,
+                obstacles=o_side,
+                heat_function=np.array([0.01]),
+            )
+            for i, temp_body_prop in enumerate(all_temp_body_prop)
+        ]
+    )
+    all_scenarios.extend(
+        [
+            TemperatureScenario(
                 id=f"{i}_temperature_polygon_rotate",
                 mesh_data=MeshData(
                     dimension=2,
@@ -50,27 +71,6 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
         ]
     )
 
-    all_scenarios.extend(
-        [
-            TemperatureScenario(
-                id=f"temperature_cube_heat_{i}",
-                mesh_data=MeshData(
-                    dimension=2,
-                    mesh_type=m_rectangle,
-                    scale=[1],
-                    mesh_density=[mesh_density],
-                    is_adaptive=False,
-                ),
-                body_prop=temp_body_prop,
-                obstacle_prop=default_obstacle_prop,
-                schedule=Schedule(final_time=final_time),
-                forces_function=np.array([0, 0]),  # f_rotate,
-                obstacles=o_side,
-                heat_function=np.array([0.01]),
-            )
-            for i, temp_body_prop in enumerate(all_temp_body_prop)
-        ]
-    )
     '''
     all_scenarios.extend(
         [
@@ -93,6 +93,7 @@ def main(mesh_density=5, final_time=5, plot_animation=True):
     )
     '''
     for scenario in all_scenarios:
+        print("-----")
         plotter_mapper.print_one_dynamic(
             Solver.solve_with_temperature,
             scenario,

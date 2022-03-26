@@ -6,8 +6,9 @@ from deep_conmech.scenarios import *
 from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=5, final_time=5.0, plot_animation=True):
+def main(mesh_density=5, final_time=5, plot_animation=True):
     for scenario in scenarios.all_print(mesh_density=mesh_density, final_time=final_time):
+        print("-----")
         plotter_mapper.print_one_dynamic(
             Solver.solve,
             scenario,
