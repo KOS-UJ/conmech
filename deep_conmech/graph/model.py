@@ -24,6 +24,7 @@ def get_writer():
 | ah {config.ATTENTION_HEADS} \
 | ln {config.LAYER_NORM} \
 | l2l {config.L2_LOSS} \
+| ds {config.DATASET} \
 | dzf {config.DATA_ZERO_FORCES} drv {config.DATA_ROTATE_VELOCITY}  \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
 | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
@@ -215,6 +216,7 @@ class GraphModelDynamic:
         print("----VALIDATING----")
         self.print_elapsed_time(elapsed_time)
         total_loss_array = np.zeros(self.labels_count)
+
         for dataset, dataloader in self.all_val_data:
             mean_loss_array = np.zeros(self.labels_count)
 
@@ -236,7 +238,7 @@ class GraphModelDynamic:
                     examples_seen,
                 )
             total_loss_array += mean_loss_array
-
+        
         total_loss_array /= len(self.all_val_data)
         for i in range(self.labels_count):
             self.writer.add_scalar(

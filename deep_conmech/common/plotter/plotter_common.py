@@ -53,7 +53,7 @@ def plot_animation(
     # skip = int(frac_skip // scenario.time_step)
     frames_count = len(all_setting_paths)  # // skip
     fps = int(1 / time_skip)
-    animation_tqdm = cmh.get_tqdm(range(frames_count), desc="Generating animation")
+    animation_tqdm = cmh.get_tqdm(range(frames_count+1), desc="Generating animation")
 
     def animate(step):
         current_time = step * time_skip

@@ -39,8 +39,13 @@ def simulate(
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
-        forces = setting.get_forces_by_function(scenario.forces_function, current_time)
-        setting.prepare(forces)
+        forces = scenario.get_forces_by_function(setting, current_time)
+        if with_temperature:
+            heat = scenario.get_heat_by_function(setting, current_time)
+            setting.prepare(forces, heat)
+        else:
+            setting.prepare(forces)
+
         # max_data.set(setting, time_step)
 
         start_time = time.time()
@@ -55,7 +60,7 @@ def simulate(
             setting.make_dirty()
 
         if compare_with_base_setting:
-            base_setting.set_forces_from_function(
+            scenario.base_setting.set_forces_from_function(
                 scenario.forces_function, current_time
             )
 

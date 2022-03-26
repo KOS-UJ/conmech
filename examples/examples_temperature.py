@@ -8,23 +8,40 @@ from deep_conmech.simulator.setting.setting_temperature import SettingTemperatur
 
 def main(mesh_density=3, final_time=3.0):
     all_scenarios = [
-        Scenario(
-            "polygon_rotate",
-            MeshData(
+        TemperatureScenario(
+            id="temperature_polygon_rotate",
+            mesh_data=MeshData(
                 dimension=2,
                 mesh_type=m_polygon,
                 scale=[1],
                 mesh_density=[mesh_density],
                 is_adaptive=False,
             ),
-            body_prop,
-            obstacle_prop,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([1, 0]),  # f_rotate,
             obstacles=o_front,
+            heat_function=np.array([0]),
         ),
-        Scenario(
-            id="cube_throw",
+        TemperatureScenario(
+            id="temperature_cube",
+            mesh_data=MeshData(
+                dimension=2,
+                mesh_type=m_rectangle,
+                scale=[1],
+                mesh_density=[mesh_density],
+                is_adaptive=False,
+            ),
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0, 0]),  # f_rotate,
+            obstacles=o_side,
+            heat_function=np.array([0.1]),
+        ),
+        TemperatureScenario(
+            id="temperature_cube_throw",
             mesh_data=MeshData(
                 dimension=3, mesh_type=m_cube_3d, scale=[1], mesh_density=[mesh_density]
             ),
@@ -33,6 +50,7 @@ def main(mesh_density=3, final_time=3.0):
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
             obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
+            heat_function=np.array([0]),
         ),
     ]
     for scenario in all_scenarios:

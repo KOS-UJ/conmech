@@ -12,23 +12,33 @@ def main():
     # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
     path = None
 
-    train_dataset = TrainingScenariosDatasetDynamic(
-        scenarios.all_train, Calculator.solve_all
-    )
+    if config.DATASET == "synthetic":
+        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
+    elif config.DATASET == "scenarios":
+        train_dataset = TrainingScenariosDatasetDynamic(
+            scenarios.all_train, Calculator.solve_all
+        )
+    else:
+        raise ArgumentError()
+    # nodes_statistics, edges_statistics = None, None
     nodes_statistics, edges_statistics = train_dataset.get_statistics()
-    #nodes_statistics, edges_statistics = None, None
     net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
 
-    # train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
-    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
-    #all_val_datasets = [
-    #    ValidationScenarioDatasetDynamic([scenario], scenario.id)
-    #    for scenario in scenarios.all_validation
-    #]
-    #all_val_datasets.append(
-    #    ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
-    #)
-    #val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
+    #else:
+    #    net = CustomGraphNet(2, None, None).to(thh.device)
+    #    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
+
+    all_val_datasets = [
+        ValidationScenarioDatasetDynamic([scenario], scenario.id)
+        for scenario in scenarios.all_validation
+    ]
+    all_val_datasets.append(
+        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+    )
+    all_val_datasets.append(
+        train_dataset
+    )
+    # val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
     # nodes_statistics.describe()["forces_norm"]["mean"]
     # mean_val = np.mean(
     #    [

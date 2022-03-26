@@ -104,7 +104,7 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
             all_scenarios=all_scenarios,
             solve_function=solve_function,
             relative_path="training_scenarios",
-            num_workers=config.GENERATION_WORKERS,
+            num_workers=1 #config.GENERATION_WORKERS,
         )
 
     def update_data(self):

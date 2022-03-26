@@ -13,18 +13,6 @@ def L2_new(a, C, E):
     return value
 
 
-@njit
-def get_forces_by_function_numba(
-    forces_function, initial_nodes, moved_nodes, scale_x, scale_y, scale_z, current_time
-):
-    forces = np.zeros_like(initial_nodes, dtype=numba.double)
-    for i in range(len(initial_nodes)):
-        forces[i] = forces_function(
-            initial_nodes[i], moved_nodes[i], current_time, scale_x, scale_y
-        )
-    return forces
-
-
 class SettingForces(SettingMatrices):
     def __init__(
         self, mesh_data, body_prop, schedule, create_in_subprocess,
@@ -37,16 +25,6 @@ class SettingForces(SettingMatrices):
         )
         self.forces = None
 
-    def get_forces_by_function(self, forces_function, current_time):
-        return get_forces_by_function_numba(
-            numba.njit(forces_function),
-            self.initial_nodes,
-            self.moved_nodes,
-            self.mesh_data.scale_x,
-            self.mesh_data.scale_y,
-            self.mesh_data.scale_z,
-            current_time,
-        )
 
     @property
     def normalized_forces(self):
@@ -103,9 +81,9 @@ class SettingForces(SettingMatrices):
         )
 
     def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B):
-        F_vector = nph.stack_column(VOL @ forces)
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 
+        F_vector = nph.stack_column(VOL @ forces)
         E = F_vector - A_plus_B_times_ts @ v_old_vector - B @ u_old_vector
         return E

@@ -14,7 +14,7 @@ from torch_geometric.loader import DataLoader
 
 def create_forces(setting):
     if interpolation_helpers.decide(config.DATA_ZERO_FORCES):
-        forces = np.zeros([setting.nodes_count, setting.dim])
+        forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             setting.nodes_count,
@@ -59,7 +59,7 @@ def create_v_old(setting):
 
 def create_obstacles(setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dim, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
@@ -73,7 +73,7 @@ def create_mesh_type():
 
 def create_obstacles(setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dim, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))

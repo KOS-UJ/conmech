@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
@@ -18,7 +18,7 @@ class Scenario:
         body_prop: BodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        forces_function: Union[Callable, np.ndarray],
+        forces_function: Union[Callable[[Any], np.ndarray], np.ndarray],
         obstacles: np.ndarray,
     ):
         self.id = id
@@ -27,10 +27,22 @@ class Scenario:
         self.obstacle_prop = obstacle_prop
         self.schedule = schedule
         self.obstacles = obstacles * mesh_data.scale_x
-        if isinstance(forces_function, np.ndarray):
-            self.forces_function = lambda ip, mp, t, scale_x, scale_y: forces_function
-        else:
-            self.forces_function = forces_function
+        self.forces_function = forces_function
+
+    @staticmethod
+    def get_by_function(function, setting, current_time):
+        if isinstance(function, np.ndarray):
+            return np.tile(function, (setting.nodes_count,1))
+        return np.array(
+            [
+                function(*nodes_pairs, setting.mesh_data, current_time)
+                for nodes_pairs in zip(setting.initial_nodes, setting.moved_nodes)
+            ]
+        )
+
+    def get_forces_by_function(self, setting, current_time):
+        return Scenario.get_by_function(self.forces_function, setting, current_time)
+
 
     def get_tqdm(self, description):
         return cmh.get_tqdm(
@@ -49,6 +61,33 @@ class Scenario:
     @property
     def final_time(self):
         return self.schedule.final_time
+
+
+class TemperatureScenario(Scenario):
+    def __init__(
+        self,
+        id: str,
+        mesh_data: MeshData,
+        body_prop: BodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        forces_function: Union[Callable, np.ndarray],
+        obstacles: np.ndarray,
+        heat_function: Union[Callable, np.ndarray],
+    ):
+        super().__init__(
+            id=id,
+            mesh_data=mesh_data,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            forces_function=forces_function,
+            obstacles=obstacles,
+        )
+        self.heat_function = heat_function
+
+    def get_heat_by_function(self, setting, current_time):
+        return Scenario.get_by_function(self.heat_function, setting, current_time)
 
 
 ####################################
@@ -84,46 +123,45 @@ o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 ##################
 
 
-def f_fall(ip, mp, t, scale_x, scale_y):
+def f_fall(ip, mp, md, t):
     force = np.array([2.0, -1.0])
     return force
 
 
-def f_slide(ip, mp, t, scale_x, scale_y):
+def f_slide(ip, mp, md, t):
     force = np.array([0.0, 0.0])
     if t <= 0.5:
         force = np.array([4.0, 0.0])
     return force
 
 
-def f_accelerate_fast(ip, mp, t, scale_x, scale_y):
+def f_accelerate_fast(ip, mp, md, t):
     force = np.array([2.0, 0.0])
     return force
 
 
-def f_accelerate_slow_right(ip, mp, t, scale_x, scale_y):
+def f_accelerate_slow_right(ip, mp, md, t):
     force = np.array([0.5, 0.0])
     return force
 
 
-def f_accelerate_slow_left(ip, mp, t, scale_x, scale_y):
+def f_accelerate_slow_left(ip, mp, md, t):
     force = np.array([-0.5, 0.0])
     return force
 
 
-def f_stay(ip, mp, t, scale_x, scale_y):
+def f_stay(ip, mp, md, t):
     return np.array([0.0, 0.0])
 
 
-def f_rotate(ip, mp, t, scale_x, scale_y):
+def f_rotate(ip, mp, md, t):
     if t <= 0.5:
-        y_scaled = ip[1] / scale_y
-        # y_scaled = 2*y_scaled - 1.
+        y_scaled = ip[1] / md.scale_y
         return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_random(ip, mp, t, scale_x, scale_y):
+def f_random(ip, mp, md, t):
     scale = config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
     return force
@@ -132,15 +170,22 @@ def f_random(ip, mp, t, scale_x, scale_y):
 ####################################
 
 
-def f_push_3d(ip, mp, t, scale_x, scale_y):
+def f_push_3d(ip, mp, md, t):
     return np.array([1.0, 1.0, 1.0])
 
 
-def f_rotate_3d(ip, mp, t, scale_x, scale_y):
+def f_rotate_3d(ip, mp, md, t):
     if t <= 0.5:
         scale = ip[1] * ip[2]
         return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
+
+
+####################################
+
+
+def h_up(ip, mp, md, t):
+    return 0.1
 
 
 ####################################
@@ -346,7 +391,8 @@ print_args = dict(
     final_time=config.FINAL_TIME,
 )
 
-def all_print(mesh_density=config.MESH_DENSITY, final_time=5.0): #config.FINAL_TIME):
+
+def all_print(mesh_density=config.MESH_DENSITY, final_time=5.0):  # config.FINAL_TIME):
     return [
         *get_data(
             mesh_density=mesh_density,

@@ -24,6 +24,8 @@ class SettingTemperature(SettingRandomized):
             create_in_subprocess=create_in_subprocess,
         )
         self.t_old = np.zeros((self.nodes_count, 1))
+        self.heat = None
+
 
     def get_normalized_L2_temperature_np(self):
         return lambda normalized_boundary_t_vector: L2_temperature(
@@ -32,16 +34,17 @@ class SettingTemperature(SettingRandomized):
             self.normalized_Q_boundary,
         )
 
-    def prepare(self, forces):
+    def prepare(self, forces, heat):
         super().prepare(forces)
+        self.heat = heat
         self.set_all_normalized_Q_np()
-
-    def set_t_old(self, t):
-        self.t_old = t
 
     def clear(self):
         super().clear()
-        # self.forces = None
+        self.heat = None
+
+    def set_t_old(self, t):
+        self.t_old = t
 
     def set_a_old(self, a):
         self.clear_all_Q()
@@ -76,17 +79,20 @@ class SettingTemperature(SettingRandomized):
 
     def get_normalized_Q_np(self):
         return self.get_Q(
-            dimension=self.dimension,
+            heat=self.heat,
             t_old=self.t_old,
             v_old=self.normalized_v_old,
+            VOL=self.VOL,
             C2T=self.C2T,
             U=self.ACC[self.independent_indices, self.independent_indices],
+            dimension=self.dimension,
         )
 
-    def get_Q(self, dimension, t_old, v_old, C2T, U):
+    def get_Q(self, heat, t_old, v_old, VOL, C2T, U, dimension):
         v_old_vector = nph.stack_column(v_old)
 
-        Q = (-1) * nph.unstack_and_sum_columns(
+        Q = nph.stack_column(VOL @ heat)
+        Q += (-1) * nph.unstack_and_sum_columns(
             C2T @ v_old_vector, dim=dimension, keepdims=True
         )  # here v_old_vector is column vector
         Q += (1 / self.time_step) * U @ t_old
