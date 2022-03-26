@@ -1,5 +1,11 @@
+from typing import Optional
+
 import numpy as np
+from conmech.dataclass.body_properties import (BodyProperties,
+                                               TemperatureBodyProperties)
 from numba import njit
+
+from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder, DynamicsBuilder
 
 ELEMENT_NODES_COUNT = 3
 CONNECTED_EDGES_COUNT = 2
@@ -86,50 +92,40 @@ def denominator_numba(x_i, x_j1, x_j2):
     )
 
 
-def calculate_constitutive_matrices(W11, W12, W21, W22, MU, LA):
-    X11 = (2 * MU + LA) * W11 + MU * W22
-    X22 = MU * W11 + (2 * MU + LA) * W22
-    X12 = MU * W21 + LA * W12
-    X21 = LA * W21 + MU * W12
-    return np.block([[X11, X12], [X21, X22]])
 
 
-def calculate_acceleration(U, density):
-    Z = np.zeros_like(U)
-    return density * np.block([[U, Z], [Z, U]])
+class DynamicsBuilder2D(DynamicsBuilder):
+    def get_edges_features_matrix(self, elements, nodes):
+        return get_edges_features_matrix_numba(elements,nodes)
+
+    @property
+    def dimension(self) -> int:
+        return 2
+
+    def calculate_constitutive_matrices(self, W11, W12, W21, W22, MU, LA):
+        X11 = (2 * MU + LA) * W11 + MU * W22
+        X22 = MU * W11 + (2 * MU + LA) * W22
+        X12 = MU * W21 + LA * W12
+        X21 = LA * W21 + MU * W12
+        return np.block([[X11, X12], [X21, X22]])
 
 
-def calculate_temperature_C(V1, V2, C_coef):
-    Z = np.zeros_like(V1)
-    X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2
-    X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2
-    return np.block([[X11, Z], [Z, X22]])
+    def calculate_acceleration(self, U, density):
+        Z = np.zeros_like(U)
+        return density * np.block([[U, Z], [Z, U]])
 
 
-def calculate_temperature_K(W11, W12, W21, W22, K_coef):
-    return (
-        K_coef[0][0] * W11
-        + K_coef[0][1] * W12
-        + K_coef[1][0] * W21
-        + K_coef[1][1] * W22
-    )
+    def calculate_temperature_C(self, V1, V2, C_coef):
+        Z = np.zeros_like(V1)
+        X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2
+        X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2
+        return np.block([[X11, Z], [Z, X22]])
 
 
-def get_matrices(edges_features_matrix, body_prop, independent_indices):
-    i = independent_indices
-
-    VOL = edges_features_matrix[0][i, i]
-    U = edges_features_matrix[1][i, i]
-
-    ALL_V = [edges_features_matrix[j][i, i] for j in range(2, 4)]
-    ALL_W = [edges_features_matrix[j][i, i] for j in range(4, 8)]
-
-    A = calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
-    B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
-    ACC = calculate_acceleration(U, body_prop.mass_density)
-
-    C2T = calculate_temperature_C(*ALL_V, body_prop.C_coeff)
-    K = calculate_temperature_K(*ALL_W, body_prop.K_coeff)
-
-    # T = (1.0 / TIMESTEP) * K
-    return VOL, ACC, A, B, C2T, K
+    def calculate_temperature_K(self, W11, W12, W21, W22, K_coef):
+        return (
+            K_coef[0][0] * W11
+            + K_coef[0][1] * W12
+            + K_coef[1][0] * W21
+            + K_coef[1][1] * W22
+        )

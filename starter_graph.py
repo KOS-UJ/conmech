@@ -16,7 +16,7 @@ def main():
         train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
     elif config.DATASET == "scenarios":
         train_dataset = TrainingScenariosDatasetDynamic(
-            scenarios.all_train, Calculator.solve_all
+            scenarios.all_train, Solver.solve_all
         )
     else:
         raise ArgumentError()
@@ -28,16 +28,17 @@ def main():
     #    net = CustomGraphNet(2, None, None).to(thh.device)
     #    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
 
-    all_val_datasets = [
-        ValidationScenarioDatasetDynamic([scenario], scenario.id)
-        for scenario in scenarios.all_validation
-    ]
-    all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
-    )
+    all_val_datasets = []
     all_val_datasets.append(
         train_dataset
     )
+    all_val_datasets.append(
+        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+    )
+    all_val_datasets.extend([
+        ValidationScenarioDatasetDynamic([scenario], scenario.id)
+        for scenario in scenarios.all_validation
+    ])
     # val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
     # nodes_statistics.describe()["forces_norm"]["mean"]
     # mean_val = np.mean(

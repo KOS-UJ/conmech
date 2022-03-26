@@ -7,7 +7,7 @@ from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
 
@@ -129,7 +129,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         add_label = False
         if add_label:
-            normalized_a = Calculator.solve_normalized(setting)
+            normalized_a = Solver.solve_normalized(setting)
             exact_normalized_a_torch = thh.to_torch_double(normalized_a)
         else:
             exact_normalized_a_torch = None

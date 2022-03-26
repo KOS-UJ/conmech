@@ -1,7 +1,8 @@
 from typing import Any, Callable, Optional, Union
 
 import numpy as np
-from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.body_properties import (BodyProperties,
+                                               TemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
@@ -68,12 +69,12 @@ class TemperatureScenario(Scenario):
         self,
         id: str,
         mesh_data: MeshData,
-        body_prop: BodyProperties,
+        body_prop: TemperatureBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacles: np.ndarray,
-        heat_function: Union[Callable, np.ndarray],
+        heat_function: Union[Callable, np.ndarray]
     ):
         super().__init__(
             id=id,
@@ -92,11 +93,14 @@ class TemperatureScenario(Scenario):
 
 ####################################
 
+schedule = Schedule(time_step=0.01, final_time=4.0)
+
 body_prop = BodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
 # body_prop = BodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
-schedule = Schedule(time_step=0.01, final_time=4.0)
+temp_body_prop = TemperatureBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
+def get_temp_body_prop(c_coeff, k_coeff): TemperatureBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0, C_coeff=c_coeff, K_coeff=k_coeff)
 
 ####################################
 

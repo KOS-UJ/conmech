@@ -12,7 +12,7 @@ from conmech.helpers import cmh, mph
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
 
@@ -229,7 +229,7 @@ class BaseDatasetDynamic:
         setting = self.load(index)
         if self.randomize_at_load:
             setting.set_randomization(True)
-            exact_normalized_a_torch = Calculator.clean_acceleration(
+            exact_normalized_a_torch = Solver.clean_acceleration(
                 setting, setting.exact_normalized_a_torch
             )
         else:

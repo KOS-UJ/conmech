@@ -1,12 +1,12 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.matrices import matrices_2d, matrices_3d
-from deep_conmech.simulator.setting.mesh import Mesh
+from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
+from deep_conmech.simulator.mesh.mesh import Mesh
 from numba import njit
 
 
@@ -23,7 +23,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
     return edges_features
 
 
-class SettingMatrices(Mesh):
+class Dynamics(Mesh):
     def __init__(
         self,
         mesh_data: MeshData,
@@ -55,25 +55,25 @@ class SettingMatrices(Mesh):
         return self.schedule.time_step
 
     def reinitialize_matrices(self):
-        get_edges_features_matrix = (
-            lambda *args: matrices_2d.get_edges_features_matrix_numba(*args)
+        builder = (
+            dynamics_builder_2d.DynamicsBuilder2D()
             if self.dimension == 2
-            else matrices_3d.get_edges_features_matrix_numba(*args)
-        )
-
-        get_matrices = (
-            lambda *args: matrices_2d.get_matrices(*args)
-            if self.dimension == 2
-            else matrices_3d.get_matrices(*args)
+            else dynamics_builder_3d.DynamicsBuilder3D()
         )
 
         (
-            edges_features_matrix,
             self.element_initial_volume,
-        ) = get_edges_features_matrix(self.elements, self.normalized_points)
-
-        (self.VOL, self.ACC, self.A, self.B, self.C2T, self.K) = get_matrices(
-            edges_features_matrix, self.body_prop, self.independent_indices,
+            self.VOL,
+            self.ACC,
+            self.A,
+            self.B,
+            self.C2T,
+            self.K,
+        ) = builder.build_matrices(
+            elements=self.elements,
+            normalized_points=self.normalized_points,
+            body_prop=self.body_prop,
+            independent_indices=self.independent_indices,
         )
 
         if self.with_schur_complement_matrices:

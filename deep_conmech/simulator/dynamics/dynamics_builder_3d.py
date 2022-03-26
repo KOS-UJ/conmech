@@ -1,6 +1,10 @@
+from typing import Optional
 import numba
 import numpy as np
 from numba import njit
+
+from conmech.dataclass.body_properties import BodyProperties, TemperatureBodyProperties
+from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
 
 ELEMENT_NODES_COUNT = 4
 CONNECTED_EDGES_COUNT = 3
@@ -150,68 +154,57 @@ def denominator_numba(x_i, x_j1, x_j2, x_j3):
     )
 
 
-######################################
 
 
-def calculate_constitutive_matrices(
-    W11, W12, W13, W21, W22, W23, W31, W32, W33, MU, LA
-):
-    X11 = (2 * MU + LA) * W11 + MU * W22 + LA * W33
-    X22 = MU * W11 + (2 * MU + LA) * W22 + LA * W33
-    X33 = MU * W11 + LA * W22 + (2 * MU + LA) * W33
 
-    X21 = MU * W21 + LA * W12
-    X31 = MU * W31 + LA * W13
-    X32 = MU * W32 + LA * W23
-
-    X12 = LA * W21 + MU * W12
-    X13 = LA * W31 + MU * W13
-    X23 = LA * W32 + MU * W23
-
-    return np.block([[X11, X12, X13], [X21, X22, X23], [X31, X32, X33]])
+class DynamicsBuilder3D(DynamicsBuilder):
 
 
-def create_acceleration(U, density):
-    Z = np.zeros_like(U)
-    return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
+    def get_edges_features_matrix(self, elements, nodes):
+        return get_edges_features_matrix_numba(elements,nodes)
+
+    @property
+    def dimension(self) -> int:
+        return 3
+
+    def calculate_constitutive_matrices(self,
+        W11, W12, W13, W21, W22, W23, W31, W32, W33, MU, LA
+    ):
+        X11 = (2 * MU + LA) * W11 + MU * W22 + LA * W33
+        X22 = MU * W11 + (2 * MU + LA) * W22 + LA * W33
+        X33 = MU * W11 + LA * W22 + (2 * MU + LA) * W33
+
+        X21 = MU * W21 + LA * W12
+        X31 = MU * W31 + LA * W13
+        X32 = MU * W32 + LA * W23
+
+        X12 = LA * W21 + MU * W12
+        X13 = LA * W31 + MU * W13
+        X23 = LA * W32 + MU * W23
+
+        return np.block([[X11, X12, X13], [X21, X22, X23], [X31, X32, X33]])
+
+    def calculate_acceleration(self, U, density):
+        Z = np.zeros_like(U)
+        return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
 
-def calculate_temperature_C(V1, V2, V3, C_coef):
-    Z = np.zeros_like(V1)
-    X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2 + C_coef[0][2] * V3
-    X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2 + C_coef[1][2] * V3
-    X33 = C_coef[2][0] * V1 + C_coef[2][1] * V2 + C_coef[2][2] * V3
-    return np.block([[X11, Z, Z], [Z, X22, Z], [Z, Z, X33]])
+    def calculate_temperature_C(self, V1, V2, V3, C_coef):
+        Z = np.zeros_like(V1)
+        X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2 + C_coef[0][2] * V3
+        X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2 + C_coef[1][2] * V3
+        X33 = C_coef[2][0] * V1 + C_coef[2][1] * V2 + C_coef[2][2] * V3
+        return np.block([[X11, Z, Z], [Z, X22, Z], [Z, Z, X33]])
 
-
-def calculate_temperature_K(W11, W12, W13, W21, W22, W23, W31, W32, W33, K_coef):
-    return (
-        K_coef[0][0] * W11
-        + K_coef[0][1] * W12
-        + K_coef[0][2] * W13
-        + K_coef[1][0] * W21
-        + K_coef[1][1] * W22
-        + K_coef[1][2] * W23
-        + K_coef[2][0] * W31
-        + K_coef[2][1] * W32
-        + K_coef[2][2] * W33
-    )
-
-
-def get_matrices(edges_features_matrix, body_prop, independent_indices):
-    i = independent_indices
-
-    VOL = edges_features_matrix[0][i, i]
-    U = edges_features_matrix[1][i, i]
-
-    ALL_V = [edges_features_matrix[j][i, i] for j in range(2, 5)]
-    ALL_W = [edges_features_matrix[j][i, i] for j in range(5, 14)]
-
-    A = calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
-    B = calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
-    ACC = create_acceleration(U, body_prop.mass_density)
-
-    C2T = calculate_temperature_C(*ALL_V, body_prop.C_coeff)
-    K = calculate_temperature_K(*ALL_W, body_prop.K_coeff)
-
-    return VOL, ACC, A, B, C2T, K
+    def calculate_temperature_K(self, W11, W12, W13, W21, W22, W23, W31, W32, W33, K_coef):
+        return (
+            K_coef[0][0] * W11
+            + K_coef[0][1] * W12
+            + K_coef[0][2] * W13
+            + K_coef[1][0] * W21
+            + K_coef[1][1] * W22
+            + K_coef[1][2] * W23
+            + K_coef[2][0] * W31
+            + K_coef[2][1] * W32
+            + K_coef[2][2] * W33
+        )

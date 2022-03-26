@@ -5,7 +5,7 @@ from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
 
 
@@ -116,7 +116,7 @@ class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(self, all_scenarios, id):
         super().__init__(
             all_scenarios=all_scenarios,
-            solve_function=Calculator.solve_all,
+            solve_function=Solver.solve_all,
             relative_path=f"validation/{id}",
             num_workers=1,  ###
         )

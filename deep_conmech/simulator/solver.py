@@ -9,7 +9,7 @@ from deep_conmech.simulator.setting.setting_temperature import SettingTemperatur
 from scipy import optimize
 
 
-class Calculator:
+class Solver:
 
     """
         time used
@@ -43,16 +43,16 @@ class Calculator:
     def solve(
         setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
-        cleaned_a, _ = Calculator.solve_all(setting, initial_a)
+        cleaned_a, _ = Solver.solve_all(setting, initial_a)
         return cleaned_a
 
     @staticmethod
     def solve_all(
         setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
-        normalized_a = Calculator.solve_acceleration_normalized(setting, initial_a)
-        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
-        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
+        normalized_a = Solver.solve_acceleration_normalized(setting, initial_a)
+        normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
+        cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
@@ -61,9 +61,9 @@ class Calculator:
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
-        cleaned_a = Calculator.solve(setting, initial_a)
-        t = Calculator.solve_temperature_normalized(setting, initial_t)
-        cleaned_t = Calculator.clean_temperature(setting, t)
+        cleaned_a = Solver.solve(setting, initial_a)
+        t = Solver.solve_temperature_normalized(setting, initial_t)
+        cleaned_t = Solver.clean_temperature(setting, t)
         return cleaned_a, cleaned_t
 
     @staticmethod
@@ -72,11 +72,11 @@ class Calculator:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Calculator.solve_acceleration_normalized_optimization(
+            return Solver.solve_acceleration_normalized_optimization(
                 setting, initial_a
             )
         else:
-            return Calculator.solve_acceleration_normalized_function(setting, initial_a)
+            return Solver.solve_acceleration_normalized_function(setting, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -84,11 +84,11 @@ class Calculator:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Calculator.solve_temperature_normalized_optimization(
+            return Solver.solve_temperature_normalized_optimization(
                 setting, initial_t
             )
         else:
-            return Calculator.solve_temperature_normalized_function(setting, initial_t)
+            return Solver.solve_temperature_normalized_function(setting, initial_t)
 
     @staticmethod
     def solve_temperature_normalized_function(setting, initial_t):
@@ -114,7 +114,7 @@ class Calculator:
 
         tstart = time.time()
         cost_function = setting.get_normalized_L2_obstacle_np()
-        normalized_boundary_a_vector_np = Calculator.minimize(
+        normalized_boundary_a_vector_np = Solver.minimize(
             cost_function, initial_a_boundary_vector
         )
         t_np = time.time() - tstart
@@ -127,7 +127,7 @@ class Calculator:
         """
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
-        normalized_a_vector = Calculator.complete_a_vector(
+        normalized_a_vector = Solver.complete_a_vector(
             setting, setting.normalized_E_free, normalized_boundary_a_vector
         )
 
@@ -140,12 +140,12 @@ class Calculator:
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
         cost_function = setting.get_normalized_L2_temperature_np()
-        boundary_t_vector_np = Calculator.minimize(
+        boundary_t_vector_np = Solver.minimize(
             cost_function, initial_t_boundary_vector
         )
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)
-        t_vector = Calculator.complete_t_vector(
+        t_vector = Solver.complete_t_vector(
             setting, setting.normalized_Q_free, boundary_t_vector
         )
         return t_vector

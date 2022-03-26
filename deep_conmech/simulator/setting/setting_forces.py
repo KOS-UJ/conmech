@@ -2,7 +2,7 @@ import numba
 import numpy as np
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+from deep_conmech.simulator.dynamics.dynamics import Dynamics
 from numba import njit
 
 
@@ -13,7 +13,7 @@ def L2_new(a, C, E):
     return value
 
 
-class SettingForces(SettingMatrices):
+class SettingForces(Dynamics):
     def __init__(
         self, mesh_data, body_prop, schedule, create_in_subprocess,
     ):

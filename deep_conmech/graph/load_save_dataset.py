@@ -12,7 +12,7 @@ from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
 
 tf.enable_eager_execution()
@@ -75,7 +75,7 @@ def simulate(scenario, directory):
 
     all_settings, _ = simulator.simulate(
         compare_with_base_setting=False,
-        solve_function=Calculator.solve,
+        solve_function=Solver.solve,
         scenario=scenario,
         get_setting_function=SettingRandomized.get_setting,
         simulate_dirty_data=False,,

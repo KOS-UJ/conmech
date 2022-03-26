@@ -3,7 +3,7 @@ from typing import Callable, Optional
 
 from conmech.helpers import nph
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
@@ -65,7 +65,7 @@ def simulate(
             )
 
             start_time = time.time()
-            base_a = Calculator.solve(base_setting)  ## save in setting
+            base_a = Solver.solve(base_setting)  ## save in setting
             comparison_time += time.time() - start_time
 
         if time_skip is None or nph.close_modulo(current_time, time_skip):

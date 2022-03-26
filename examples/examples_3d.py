@@ -1,7 +1,7 @@
 from deep_conmech.common.plotter import plotter_mapper
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.calculator import Calculator
+from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 
 
@@ -44,7 +44,7 @@ def main(mesh_density=4, final_time=3.0):
 
     for scenario in all_scenarios:
         plotter_mapper.print_one_dynamic(
-            Calculator.solve,
+            Solver.solve,
             scenario,
             SettingRandomized.get_setting,
             catalog="EXAMPLES 3D",

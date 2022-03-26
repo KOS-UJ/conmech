@@ -3,11 +3,8 @@ from typing import List, Optional, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from deep_conmech.common.plotter import plotter_common
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.matrices.matrices_3d import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.mesh import *
+from deep_conmech.simulator.mesh.mesh import *
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 

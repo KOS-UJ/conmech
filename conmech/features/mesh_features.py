@@ -4,10 +4,10 @@ from conmech.dataclass.body_properties import BodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
-from deep_conmech.simulator.setting.setting_matrices import SettingMatrices
+from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
-class MeshFeatures(SettingMatrices):
+class MeshFeatures(Dynamics):
     def __init__(
         self,
         mesh_data: MeshData,
