@@ -1,8 +1,4 @@
-from typing import Optional
-
 import numpy as np
-from conmech.dataclass.body_properties import (BodyProperties,
-                                               TemperatureBodyProperties)
 from numba import njit
 
 from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder, DynamicsBuilder

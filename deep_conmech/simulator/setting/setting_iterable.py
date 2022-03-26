@@ -2,7 +2,7 @@ import copy
 import pickle
 
 import deep_conmech.simulator.mesh.remesher as remesher
-from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
@@ -15,7 +15,7 @@ class SettingIterable(SettingObstacles):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_prop: BodyProperties,
+        body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess,

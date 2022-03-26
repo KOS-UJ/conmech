@@ -100,7 +100,7 @@ class SettingInput(SettingTorch):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_prop: BodyProperties,
+        body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess: bool,

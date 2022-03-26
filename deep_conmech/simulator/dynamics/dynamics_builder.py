@@ -1,8 +1,9 @@
 from typing import Optional
 
 import numpy as np
-from conmech.dataclass.body_properties import (BodyProperties,
-                                               TemperatureBodyProperties)
+from conmech.dataclass.body_properties import (
+    BodyProperties, DynamicBodyProperties, DynamicTemperatureBodyProperties, StaticBodyProperties,
+    StaticTemperatureBodyProperties, TemperatureBodyProperties)
 from numba import njit
 
 
@@ -12,7 +13,7 @@ class DynamicsBuilder:
         elements: np.ndarray,
         normalized_points: np.ndarray,
         independent_indices: slice,
-        body_prop: BodyProperties,
+        body_prop: StaticBodyProperties,
     ):
         (
             edges_features_matrix,
@@ -44,18 +45,26 @@ class DynamicsBuilder:
     def calculate_temperature_K(self, W11, W12, W21, W22, K_coef):
         pass
 
-
-    def get_matrices(self, edges_features_matrix, body_prop:BodyProperties, independent_indices):
+    def get_matrices(
+        self, edges_features_matrix, body_prop: DynamicBodyProperties, independent_indices
+    ):
         i = independent_indices
 
         VOL = edges_features_matrix[0][i, i]
         U = edges_features_matrix[1][i, i]
 
-        ALL_V = [edges_features_matrix[2+j][i, i] for j in range(self.dimension)]
-        ALL_W = [edges_features_matrix[2+self.dimension+j][i, i] for j in range(self.dimension **2)]
+        ALL_V = [edges_features_matrix[2 + j][i, i] for j in range(self.dimension)]
+        ALL_W = [
+            edges_features_matrix[2 + self.dimension + j][i, i]
+            for j in range(self.dimension ** 2)
+        ]
 
-        A = self.calculate_constitutive_matrices(*ALL_W, body_prop.theta, body_prop.zeta)
-        B = self.calculate_constitutive_matrices(*ALL_W, body_prop.mu, body_prop.lambda_)
+        A = self.calculate_constitutive_matrices(
+            *ALL_W, body_prop.theta, body_prop.zeta
+        )
+        B = self.calculate_constitutive_matrices(
+            *ALL_W, body_prop.mu, body_prop.lambda_
+        )
         ACC = self.calculate_acceleration(U, body_prop.mass_density)
 
         if isinstance(body_prop, TemperatureBodyProperties):
@@ -66,4 +75,4 @@ class DynamicsBuilder:
             K = None
 
         return VOL, ACC, A, B, C2T, K
-        
+

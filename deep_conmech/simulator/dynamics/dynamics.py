@@ -1,13 +1,12 @@
-from typing import Callable, Optional
-
 import numpy as np
-from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
 from deep_conmech.simulator.mesh.mesh import Mesh
 from numba import njit
+from typing import Callable
 
 
 @njit
@@ -27,7 +26,7 @@ class Dynamics(Mesh):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_prop: BodyProperties,
+        body_prop: StaticBodyProperties,
         schedule: Schedule,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),

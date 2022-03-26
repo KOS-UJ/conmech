@@ -1,10 +1,6 @@
-from typing import Optional
-import numba
 import numpy as np
-from numba import njit
-
-from conmech.dataclass.body_properties import BodyProperties, TemperatureBodyProperties
 from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
+from numba import njit
 
 ELEMENT_NODES_COUNT = 4
 CONNECTED_EDGES_COUNT = 3

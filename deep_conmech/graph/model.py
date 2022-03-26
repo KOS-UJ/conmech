@@ -49,10 +49,6 @@ class GraphModelDynamic:
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.train_dataloader = data_base.get_train_dataloader(train_dataset)
-        self.all_val_data = [
-            (dataset, data_base.get_valid_dataloader(dataset))
-            for dataset in all_val_datasets
-        ]
         self.writer = get_writer()
         self.loss_labels = [
             "L2",
@@ -215,38 +211,42 @@ class GraphModelDynamic:
     def validation_raport(self, examples_seen, epoch_number, elapsed_time):
         print("----VALIDATING----")
         self.print_elapsed_time(elapsed_time)
-        total_loss_array = np.zeros(self.labels_count)
 
-        for dataset, dataloader in self.all_val_data:
-            mean_loss_array = np.zeros(self.labels_count)
-
-            batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
-            # range(len()) -> enumerate
-
-            for _, batch in enumerate(batch_tqdm):
-                loss_array = self.test_step(batch)
-                mean_loss_array += loss_array
-                batch_tqdm.set_description(
-                    f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
-                )
-            mean_loss_array = mean_loss_array / len(dataloader)
-
+        mean_loss_array = np.zeros(self.labels_count)
+        for dataset in self.all_val_datasets:
+            loss_array = self.validate(dataset)
             for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
-                    mean_loss_array[i],
+                    loss_array[i],
                     examples_seen,
                 )
-            total_loss_array += mean_loss_array
-        
-        total_loss_array /= len(self.all_val_data)
+            mean_loss_array += loss_array
+        mean_loss_array /= len(self.all_val_datasets)
+
         for i in range(self.labels_count):
             self.writer.add_scalar(
                 f"Loss/Validation/{self.loss_labels[i]}",
-                total_loss_array[i],
+                mean_loss_array[i],
                 examples_seen,
             )
         print("---")
+
+    def validate(self, dataset):
+        dataloader = data_base.get_valid_dataloader(dataset)
+        batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
+        # range(len()) -> enumerate
+
+        mean_loss_array = np.zeros(self.labels_count)
+        for _, batch in enumerate(batch_tqdm):
+            loss_array = self.test_step(batch)
+            batch_tqdm.set_description(
+                f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
+            )
+            mean_loss_array += loss_array
+        mean_loss_array /= len(batch_tqdm)
+        return mean_loss_array
+
 
     def plot_scenarios(self, elapsed_time):
         print("----PLOTTING----")

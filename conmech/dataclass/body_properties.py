@@ -7,13 +7,26 @@ import numpy as np
 @dataclass
 class BodyProperties:
     mass_density: float
+
+@dataclass
+class StaticBodyProperties(BodyProperties):
     mu: float
     lambda_: float
-    theta: Optional[float] = None
-    zeta: Optional[float] = None
+
+@dataclass
+class DynamicBodyProperties(StaticBodyProperties):
+    theta: float
+    zeta: float
+
+@dataclass
+class TemperatureBodyProperties:
+    C_coeff: np.ndarray
+    K_coeff: np.ndarray
 
 
 @dataclass
-class TemperatureBodyProperties(BodyProperties):    
-    C_coeff: np.ndarray = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-    K_coeff: np.ndarray = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyProperties):
+    pass
+@dataclass
+class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
+    pass

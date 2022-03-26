@@ -1,11 +1,13 @@
 """
 General solver for Contact Mechanics problem.
 """
-from typing import List, Optional, Tuple, Callable
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.body_properties import (
+    DynamicBodyProperties, DynamicTemperatureBodyProperties,
+    StaticBodyProperties, StaticTemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.mesh_features import MeshFeatures
@@ -20,18 +22,25 @@ from conmech.state import State, TemperatureState
 
 
 class ProblemSolver:
+
+
     def __init__(self, setup: Problem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = BodyProperties(
-            mu=setup.mu_coef, lambda_=setup.la_coef, mass_density=1.0
+        self.C_coeff=np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        self.K_coeff=np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+
+
+        with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
+        body_prop = DynamicTemperatureBodyProperties(
+            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, theta=setup.th_coef, zeta=setup.ze_coef, C_coeff=self.C_coeff, K_coeff=self.K_coeff
+        ) if with_time else StaticTemperatureBodyProperties(
+            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, C_coeff=self.C_coeff, K_coeff=self.K_coeff
         )
-        body_prop.theta = setup.th_coef if hasattr(setup, "th_coef") else 0
-        body_prop.zeta = setup.ze_coef if hasattr(setup, "ze_coef") else 0
-        time_step = setup.time_step if hasattr(setup, "time_step") else 0
+        time_step = setup.time_step if with_time else 0
 
         grid_width = (
             setup.grid_height / setup.elements_number[0]
@@ -68,16 +77,18 @@ class ProblemSolver:
         # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
-            body_prop = BodyProperties(
-                mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0
-            )
+            body_prop = StaticTemperatureBodyProperties(
+                mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0, C_coeff=self.C_coeff, K_coeff=self.K_coeff
+                )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            body_prop = BodyProperties(
+            body_prop = DynamicTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
                 theta=self.setup.th_coef,
                 zeta=self.setup.ze_coef,
                 mass_density=1.0,
+                C_coeff=self.C_coeff,
+                K_coeff=self.K_coeff
             )
             time_step = self.setup.time_step
         else:

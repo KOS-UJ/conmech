@@ -1,6 +1,6 @@
 from typing import Callable
 
-from conmech.dataclass.body_properties import BodyProperties
+from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
@@ -11,7 +11,7 @@ class MeshFeatures(Dynamics):
     def __init__(
         self,
         mesh_data: MeshData,
-        body_prop: BodyProperties,
+        body_prop: StaticBodyProperties,
         schedule: Schedule,
         is_dirichlet: Callable,
         is_contact: Callable,

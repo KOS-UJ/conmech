@@ -14,7 +14,7 @@ from matplotlib import animation, cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
 
-dpi = 600
+dpi = 800
 savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
 
 
