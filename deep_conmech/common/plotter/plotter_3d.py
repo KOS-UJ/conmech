@@ -75,7 +75,7 @@ def get_axs(fig):
     return [ax1, ax2, ax3, ax4]
 
 
-def plot_frame(setting, current_time, axs):
+def plot_frame(setting, current_time, axs, fig, t_scale: Optional[List] = None):
     return plot_frame_internal(
         setting=setting,
         normalized_data=[
@@ -85,13 +85,14 @@ def plot_frame(setting, current_time, axs):
             setting.normalized_a_old,
         ],
         axs=axs,
+        t_scale=t_scale
     )
 
 
-def plot_frame_internal(setting, normalized_data, axs):
+def plot_frame_internal(setting, normalized_data, axs, t_scale):
     for ax in axs:
         plot_subframe(
-            setting, normalized_data=normalized_data, ax=ax,
+            setting, normalized_data=normalized_data, ax=ax, t_scale=t_scale
         )
 
 
@@ -112,7 +113,7 @@ def draw_base_arrows(ax, base):
 
 
 def plot_subframe(
-    setting, normalized_data, ax,
+    setting, normalized_data, ax, t_scale
 ):
     draw_base_arrows(ax, setting.moved_base)
 
@@ -128,19 +129,17 @@ def plot_subframe(
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
     if isinstance(setting, SettingTemperature):
-        draw_temperature(nodes=shifted_normalized_nodes, setting=setting, ax=ax)
+        plot_temperature(nodes=shifted_normalized_nodes, setting=setting, ax=ax, t_scale=t_scale)
 
 
-def draw_temperature(nodes, setting, ax):
+def plot_temperature(nodes, setting, ax, t_scale):
     points = nodes.T
-    t_min = 0.0
-    t_max = 0.1
 
     ax.scatter(
         *points,
         c=setting.t_old,
-        vmin=t_min,
-        vmax=t_max,
+        vmin=t_scale[0],
+        vmax=t_scale[1],
         cmap=plt.cm.plasma,
         s=1,
         marker=".",
@@ -186,7 +185,7 @@ def plot_obstacles(ax, setting, color):
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 
 
-def plot_animation(all_setting_paths: List[str], time_skip: float, path: str):
+def plot_animation(all_setting_paths: List[str], time_skip: float, path: str, t_scale:Optional[List]=None):
     plotter_common.plot_animation(
-        all_setting_paths, time_skip, path, get_axs, plot_frame, get_fig()
+        all_setting_paths=all_setting_paths, time_skip=time_skip, path=path, get_axs=get_axs, plot_frame=plot_frame, fig=get_fig(), t_scale=t_scale
     )

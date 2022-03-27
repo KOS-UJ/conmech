@@ -51,16 +51,16 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_a_correction)
 
     @property
-    def VOL_torch(self):
-        return thh.to_torch_double(self.VOL)
+    def const_volume_torch(self):
+        return thh.to_torch_double(self.const_volume)
 
     @property
-    def B_torch(self):
-        return thh.to_torch_double(self.B)
+    def const_elasticity_torch(self):
+        return thh.to_torch_double(self.const_elasticity)
 
     @property
-    def visco_plus_elast_times_ts_torch(self):
-        return thh.to_torch_double(self.visco_plus_elast_times_ts)
+    def const_viscosity_torch(self):
+        return thh.to_torch_double(self.const_viscosity)
 
     @property
     def C_torch(self):
@@ -142,6 +142,5 @@ class SettingTorch(SettingRandomized):
     def boundary_nodes_volume_torch(self):
         return thh.to_torch_double(self.boundary_nodes_volume)
 
-    @property
-    def normalized_E_torch(self):
-        return thh.to_torch_double(self.normalized_E)
+    def get_normalized_E_torch(self):
+        return thh.to_torch_double(self.get_normalized_E_np(None))

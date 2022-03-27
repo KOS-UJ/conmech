@@ -3,6 +3,7 @@ from deep_conmech.common import config, simulator
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
 
 def print_one_dynamic(
@@ -22,8 +23,6 @@ def print_one_dynamic(
     cmh.create_folders(setting_catalog)
     time_skip = config.PRINT_SKIP
     all_setting_paths = []
-
-
 
     def operation_plot(current_time, setting, base_setting, a, base_a):
         plot_setting(
@@ -49,7 +48,9 @@ def print_one_dynamic(
         scenario=scenario,
         get_setting_function=get_setting_function,
         simulate_dirty_data=simulate_dirty_data,
-        operation=operation_save if plot_animation else None,  # plot_at_interval if plot_images else None,
+        operation=operation_save
+        if plot_animation
+        else None,  # plot_at_interval if plot_images else None,
         time_skip=time_skip,
     )
 
@@ -63,15 +64,23 @@ def print_one_dynamic(
             )
             operation_plot(current_time, all_settings[i], base_setting, None, None)
     """
-
+    t_scale = get_temperature_interval(all_setting_paths)
+    #t_scale=None
     if plot_animation:
         animation_path = f"{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
         if scenario.dimension == 2:
-            plotter_2d.plot_animation(all_setting_paths, time_skip, animation_path)
+            plotter_2d.plot_animation(all_setting_paths, time_skip, animation_path, t_scale)
         else:
-            plotter_3d.plot_animation(all_setting_paths, time_skip, animation_path)
+            plotter_3d.plot_animation(all_setting_paths, time_skip, animation_path, t_scale)
 
     cmh.clear_folder(setting_catalog)
+
+
+def get_temperature_interval(all_setting_paths):
+    temperatures = np.array(
+        [SettingIterable.load_pickle(path).t_old for path in all_setting_paths]
+    )
+    return [np.min(temperatures), np.max(temperatures)]
 
 
 def plot_setting(

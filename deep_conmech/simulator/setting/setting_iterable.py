@@ -111,14 +111,13 @@ class SettingIterable(SettingObstacles):
         self.is_dirichlet = None
 
         self.element_initial_volume = None
-        self.A = None
+        #self.const_volume = None
+        #self.const_elasticity = None
+        #self.const_viscosity = None
         self.ACC = None
         self.K = None
         self.C2T = None
-
-        self.B = None
-        self.VOL = None
-        self.visco_plus_elast_times_ts = None
+        #self.visco_plus_elast_times_ts = None
 
         self.C_boundary = None
         self.free_x_contact = None

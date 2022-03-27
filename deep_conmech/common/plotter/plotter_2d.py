@@ -2,6 +2,8 @@ import os
 import time
 from typing import List, Optional, Tuple
 
+import matplotlib
+
 import deep_conmech.common.config as config
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,9 +34,20 @@ def set_perspective(scale, axs):
     axs.set_ylim(-padding * scale, padding * scale)
 
 
-def plot_animation(all_setting_paths: List[str], time_skip: float, path: str):
+def plot_animation(
+    all_setting_paths: List[str],
+    time_skip: float,
+    path: str,
+    t_scale: Optional[List] = None,
+):
     plotter_common.plot_animation(
-        all_setting_paths, time_skip, path, get_axs, plot_frame, get_fig()
+        all_setting_paths=all_setting_paths,
+        time_skip=time_skip,
+        path=path,
+        get_axs=get_axs,
+        plot_frame=plot_frame,
+        fig=get_fig(),
+        t_scale=t_scale,
     )
 
 
@@ -42,14 +55,16 @@ def plot_frame(
     setting: SettingRandomized,
     current_time: float,
     axs,
+    fig,
     draw_detailed: bool = True,
     base_setting: Optional[SettingRandomized] = None,
+    t_scale: Optional[List] = None,
 ):
     scale = setting.mesh_data.scale_x
     set_perspective(scale, axs)
 
     if isinstance(setting, SettingTemperature):
-        draw_main_temperature(setting, axs)
+        draw_main_temperature(axs=axs, fig=fig, setting=setting, t_scale=t_scale)
     else:
         draw_main_displaced(setting, axs)
     if base_setting is not None:
@@ -87,43 +102,45 @@ def plot_frame(
 
         position[0] += shift
         if isinstance(setting, SettingTemperature):
-            draw_temperature(setting=setting, position=position, axs=axs)
+            plot_temperature(
+                axs=axs, setting=setting, position=position, t_scale=t_scale
+            )
 
         # draw_edges_data(setting, position, ax)
         # draw_vertices_data(setting, position, ax)
 
+cmap=plt.cm.plasma  # magma plasma
 
-def draw_temperature(setting: SettingTemperature, position, axs):
+def plot_temperature(axs, setting: SettingTemperature, position, t_scale):
     add_annotation("TEMP", setting, position, axs)
-    # add_annotation("TEMP", setting, position, axs)
     points = (setting.normalized_points + position).T
-    t_min = 0.0
-    t_max = 0.1
-
     axs.scatter(
         *points,
         c=setting.t_old,
-        vmin=t_min,
-        vmax=t_max,
-        cmap=plt.cm.plasma,  # magma
+        vmin=t_scale[0],
+        vmax=t_scale[1],
+        cmap=cmap,
         s=1,
         marker=".",
         linewidths=0.1,
     )
-    # axs.colorbar()
 
-
-def draw_main_temperature(setting, axs):
+def draw_main_temperature(axs, fig, setting, t_scale):
     draw_main_obstacles(setting, axs)
-    axs.tricontourf(
+    values = axs.tricontourf(
         *(setting.moved_nodes.T),
         setting.elements,
         setting.t_old.reshape(-1),
-        cmap=plt.cm.plasma,
-        vmin=0,
-        vmax=0.1,
+        cmap=cmap,
+        vmin=t_scale[0],
+        vmax=t_scale[1],
         antialiased=True,
     )
+    fig.clim(t_scale[0],t_scale[1])
+    fig.colorbar(values, ax=axs)
+    #norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
+    #fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
+    #         cax=axs)#, orientation='horizontal', label='Some Units')
 
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):

@@ -87,15 +87,16 @@ class SettingTemperature(SettingIterable):
         Q += (1 / self.time_step) * U @ t_old
         return Q
 
-    def get_normalized_E_np(self):#, t):
+    def get_normalized_E_np(self, t):
         return self.get_E(
-            t=self.t_old,###
+            t=t,
             forces=self.normalized_forces,
             u_old=self.normalized_u_old,
             v_old=self.normalized_v_old,
             const_volume=self.const_volume,
-            visco_plus_elast_times_ts=self.visco_plus_elast_times_ts,
             const_elasticity=self.const_elasticity,
+            const_viscosity=self.const_viscosity,
+            time_step=self.time_step,
             dimension=self.dimension,
             C2T=self.C2T,
         )
@@ -107,8 +108,9 @@ class SettingTemperature(SettingIterable):
         u_old,
         v_old,
         const_volume,
-        visco_plus_elast_times_ts,
         const_elasticity,
+        const_viscosity,
+        time_step,
         dimension,
         C2T,
     ):
@@ -117,8 +119,9 @@ class SettingTemperature(SettingIterable):
             u_old=u_old,
             v_old=v_old,
             const_volume=const_volume,
-            visco_plus_elast_times_ts=visco_plus_elast_times_ts,
             const_elasticity=const_elasticity,
+            const_viscosity=const_viscosity,
+            time_step=time_step
         )
         value += C2T.T @ np.tile(t, (dimension, 1))
         return value

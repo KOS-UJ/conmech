@@ -48,6 +48,7 @@ def plot_animation(
     get_axs: Callable,
     plot_frame: Callable,
     fig,
+    t_scale: Optional[List] = None
 ):
     # frac_skip = config.PRINT_SKIP
     # skip = int(frac_skip // scenario.time_step)
@@ -62,7 +63,7 @@ def plot_animation(
         axs = get_axs(fig)
         path = all_setting_paths[step]
         setting = SettingIterable.load_pickle(path)
-        plot_frame(setting, current_time, axs)
+        plot_frame(setting=setting, current_time=current_time, axs=axs, fig=fig, t_scale=t_scale)
         return fig
 
     ani = animation.FuncAnimation(

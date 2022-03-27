@@ -1,5 +1,6 @@
 import copy
 import time
+from argparse import ArgumentError
 from ast import Tuple
 from typing import Callable, Optional
 
@@ -8,7 +9,8 @@ import scipy
 from conmech.helpers import nph
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
 from scipy import optimize
 
 
@@ -51,7 +53,7 @@ class Solver:
 
     @staticmethod
     def solve_all(setting: SettingIterable, initial_a: Optional[np.ndarray] = None):
-        normalized_a = Solver.solve_acceleration_normalized(setting, initial_a)
+        normalized_a = Solver.solve_acceleration_normalized(setting, None, initial_a)
         normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
         cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
@@ -62,12 +64,20 @@ class Solver:
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ):
-        #candidate_t
-        #candidate_a
-
-        normalized_a = Solver.solve_acceleration_normalized(setting, initial_a)
-        t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
-
+        uzawa = False
+        max_iter = 10
+        i=0
+        normalized_a = None
+        t = setting.t_old
+        while i<2 or np.allclose(last_normalized_a, normalized_a) == False and np.allclose(last_t, t) == False:
+            last_normalized_a, last_t = normalized_a, t
+            normalized_a = Solver.solve_acceleration_normalized(setting, t, initial_a)
+            t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
+            i+=1
+            if i >= max_iter:
+               raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
+            if uzawa is False:
+                break
 
         normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
         cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
@@ -82,13 +92,13 @@ class Solver:
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: SettingIterable, initial_a: Optional[np.ndarray] = None
+        setting: SettingIterable, t, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_coliding:
-            return Solver.solve_acceleration_normalized_optimization(setting, initial_a)
+            return Solver.solve_acceleration_normalized_optimization(setting, t, initial_a)
         else:
-            return Solver.solve_acceleration_normalized_function(setting, initial_a)
+            return Solver.solve_acceleration_normalized_function(setting, t, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -101,22 +111,23 @@ class Solver:
             return Solver.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
-    def solve_temperature_normalized_function(setting:SettingTemperature, normalized_a, initial_t):
+    def solve_temperature_normalized_function(setting:SettingTemperature, normalized_a:np.ndarray, initial_t):
         normalized_Q = setting.get_normalized_Q_np(normalized_a)
         t_vector = np.linalg.solve(setting.T, normalized_Q)
         return t_vector
 
     @staticmethod
-    def solve_acceleration_normalized_function(setting, initial_a):
-        normalized_a_vector = np.linalg.solve(setting.C, setting.normalized_E)
+    def solve_acceleration_normalized_function(setting, t, initial_a=None):
+        normalized_E = setting.get_normalized_E_np(t)
+        normalized_a_vector = np.linalg.solve(setting.C, normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
-    def solve_acceleration_normalized_optimization(setting, initial_a=None):
+    def solve_acceleration_normalized_optimization(setting, t, initial_a=None):
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(
-                setting.boundary_nodes_count * setting.dim
+                setting.boundary_nodes_count * setting.dimension
             )
         else:
             initial_a_boundary_vector = nph.stack_column(
@@ -124,7 +135,7 @@ class Solver:
             )
 
         tstart = time.time()
-        cost_function = setting.get_normalized_L2_obstacle_np()
+        cost_function, normalized_E_free = setting.get_normalized_L2_obstacle_np(t)
         normalized_boundary_a_vector_np = Solver.minimize(
             cost_function, initial_a_boundary_vector
         )
@@ -139,7 +150,7 @@ class Solver:
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Solver.complete_a_vector(
-            setting, setting.normalized_E_free, normalized_boundary_a_vector
+            setting, normalized_E_free, normalized_boundary_a_vector
         )
 
         return nph.unstack(normalized_a_vector, setting.dimension)

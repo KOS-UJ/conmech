@@ -24,18 +24,21 @@ def main():
     nodes_statistics, edges_statistics = train_dataset.get_statistics()
     net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
 
-    #else:
+    # else:
     #    net = CustomGraphNet(2, None, None).to(thh.device)
     #    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
 
     all_val_datasets = []
+    all_val_datasets.append(train_dataset)
     all_val_datasets.append(
-        train_dataset
+        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
     )
-    all_val_datasets.extend([
-        ValidationScenarioDatasetDynamic([scenario], scenario.id)
-        for scenario in scenarios.all_validation
-    ])
+    all_val_datasets.extend(
+        [
+            ValidationScenarioDatasetDynamic([scenario], scenario.id)
+            for scenario in scenarios.all_validation
+        ]
+    )
     # val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
     # nodes_statistics.describe()["forces_norm"]["mean"]
     # mean_val = np.mean(

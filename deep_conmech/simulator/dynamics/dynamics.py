@@ -86,8 +86,7 @@ class Dynamics(Mesh):
         )
 
         if self.with_schur_complement_matrices:
-            self.visco_plus_elast_times_ts = self.const_viscosity + self.const_elasticity * self.time_step
-            self.C = self.ACC + self.visco_plus_elast_times_ts * self.time_step
+            self.C = self.ACC + (self.const_viscosity + self.const_elasticity * self.time_step) * self.time_step
             (
                 self.C_boundary,
                 self.free_x_contact,

@@ -215,14 +215,13 @@ class GraphModelDynamic:
         mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
             loss_array = self.validate(dataset)
+            mean_loss_array += (loss_array / len(self.all_val_datasets))
             for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
                     loss_array[i],
                     examples_seen,
                 )
-            mean_loss_array += loss_array
-        mean_loss_array /= len(self.all_val_datasets)
 
         for i in range(self.labels_count):
             self.writer.add_scalar(
@@ -239,12 +238,12 @@ class GraphModelDynamic:
 
         mean_loss_array = np.zeros(self.labels_count)
         for _, batch in enumerate(batch_tqdm):
+            #len(batch) ?
             loss_array = self.test_step(batch)
+            mean_loss_array += (loss_array * (batch.num_graphs/len(dataset)))
             batch_tqdm.set_description(
                 f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
             )
-            mean_loss_array += loss_array
-        mean_loss_array /= len(batch_tqdm)
         return mean_loss_array
 
     def plot_scenarios(self, elapsed_time):

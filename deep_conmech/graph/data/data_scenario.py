@@ -5,8 +5,8 @@ from deep_conmech.common import config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.solver import Solver
 
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
@@ -76,9 +76,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                 return False
 
             current_time = ts * setting.time_step
-            forces = setting.get_forces_by_function(
-                scenario.forces_function, current_time
-            )
+            forces = scenario.get_forces_by_function(setting, current_time)
             setting.prepare(forces)
 
             a, normalized_a = self.solve_function(setting)
@@ -104,7 +102,7 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
             all_scenarios=all_scenarios,
             solve_function=solve_function,
             relative_path="training_scenarios",
-            num_workers=1 #config.GENERATION_WORKERS,
+            num_workers=1,  # config.GENERATION_WORKERS,
         )
 
     def update_data(self):

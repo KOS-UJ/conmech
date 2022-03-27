@@ -208,11 +208,12 @@ class SettingObstacles(SettingForces):
         self.obstacles = obstacles_unnormalized
         self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
 
-    def get_normalized_L2_obstacle_np(self):
+    def get_normalized_L2_obstacle_np(self, t=None):
+        normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
         return lambda normalized_boundary_a_vector: L2_obstacle(
             nph.unstack(normalized_boundary_a_vector, self.dimension),
             self.C_boundary,
-            self.normalized_E_boundary,
+            normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_nodes,
             self.normalized_boundary_normals,
@@ -221,7 +222,7 @@ class SettingObstacles(SettingForces):
             self.boundary_nodes_volume,
             self.obstacle_prop,
             self.time_step,
-        )
+        ), normalized_E_free
 
     @property
     def obstacle_normals(self):
@@ -307,8 +308,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def boundary_penetration(self):
-        boundary_penetration_norm = self.boundary_penetration_norm
-        return boundary_penetration_norm * self.boundary_obstacle_normals
+        return self.boundary_penetration_norm * self.boundary_obstacle_normals
 
     @property
     def normalized_boundary_penetration(self):
