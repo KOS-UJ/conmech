@@ -83,7 +83,7 @@ class SettingIterable(SettingObstacles):
     @staticmethod
     def get_setting(
         scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
+    ) -> "SettingIterable":
         setting = SettingIterable(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,

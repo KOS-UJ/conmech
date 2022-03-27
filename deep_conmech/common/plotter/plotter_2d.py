@@ -52,10 +52,10 @@ def plot_animation(
 
 
 def plot_frame(
+    fig,
+    axs,
     setting: SettingRandomized,
     current_time: float,
-    axs,
-    fig,
     draw_detailed: bool = True,
     base_setting: Optional[SettingRandomized] = None,
     t_scale: Optional[List] = None,
@@ -109,7 +109,6 @@ def plot_frame(
         # draw_edges_data(setting, position, ax)
         # draw_vertices_data(setting, position, ax)
 
-cmap=plt.cm.plasma  # magma plasma
 
 def plot_temperature(axs, setting: SettingTemperature, position, t_scale):
     add_annotation("TEMP", setting, position, axs)
@@ -119,7 +118,7 @@ def plot_temperature(axs, setting: SettingTemperature, position, t_scale):
         c=setting.t_old,
         vmin=t_scale[0],
         vmax=t_scale[1],
-        cmap=cmap,
+        cmap=plotter_common.cmap,
         s=1,
         marker=".",
         linewidths=0.1,
@@ -131,16 +130,16 @@ def draw_main_temperature(axs, fig, setting, t_scale):
         *(setting.moved_nodes.T),
         setting.elements,
         setting.t_old.reshape(-1),
-        cmap=cmap,
+        cmap=plotter_common.cmap,
         vmin=t_scale[0],
         vmax=t_scale[1],
         antialiased=True,
     )
-    fig.clim(t_scale[0],t_scale[1])
-    fig.colorbar(values, ax=axs)
-    #norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
-    #fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
-    #         cax=axs)#, orientation='horizontal', label='Some Units')
+    #cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    #plt.clim(t_scale[0],t_scale[1])
+    norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
+    values = plt.cm.ScalarMappable(norm=norm, cmap=plotter_common.cmap)
+    fig.colorbar(values, ax=axs)#, orientation='horizontal', label='Some Units') #cax=cbar_ax #cax vs ax
 
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):

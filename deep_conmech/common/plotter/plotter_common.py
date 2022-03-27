@@ -2,6 +2,8 @@ import os
 import time
 from typing import Callable, List, Optional, Tuple
 
+import matplotlib
+
 import deep_conmech.common.config as config
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +18,14 @@ from matplotlib.ticker import LinearLocator
 
 dpi = 800
 savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
+cmap=plt.cm.plasma  # magma plasma
 
+
+def plot_colorbar(fig, t_scale):
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
+    values = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    fig.colorbar(values, cax=cbar_ax)
 
 def prepare_for_arrows(starts, vectors):
     nodes_count = len(starts)
@@ -63,7 +72,7 @@ def plot_animation(
         axs = get_axs(fig)
         path = all_setting_paths[step]
         setting = SettingIterable.load_pickle(path)
-        plot_frame(setting=setting, current_time=current_time, axs=axs, fig=fig, t_scale=t_scale)
+        plot_frame(axs=axs, fig=fig, setting=setting, current_time=current_time, t_scale=t_scale)
         return fig
 
     ani = animation.FuncAnimation(

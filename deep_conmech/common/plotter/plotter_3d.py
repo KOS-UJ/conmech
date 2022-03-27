@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple
+import matplotlib
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,24 +76,19 @@ def get_axs(fig):
     return [ax1, ax2, ax3, ax4]
 
 
-def plot_frame(setting, current_time, axs, fig, t_scale: Optional[List] = None):
-    return plot_frame_internal(
-        setting=setting,
-        normalized_data=[
-            setting.normalized_forces,
-            setting.normalized_u_old,
-            setting.normalized_v_old,
-            setting.normalized_a_old,
-        ],
-        axs=axs,
-        t_scale=t_scale
-    )
-
-
-def plot_frame_internal(setting, normalized_data, axs, t_scale):
+def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
     for ax in axs:
         plot_subframe(
-            setting, normalized_data=normalized_data, ax=ax, t_scale=t_scale
+            fig=fig,
+            ax=ax,
+            setting=setting,
+            normalized_data=[
+                setting.normalized_forces,
+                setting.normalized_u_old,
+                setting.normalized_v_old,
+                setting.normalized_a_old,
+            ],
+            t_scale=t_scale
         )
 
 
@@ -113,7 +109,7 @@ def draw_base_arrows(ax, base):
 
 
 def plot_subframe(
-    setting, normalized_data, ax, t_scale
+    fig, ax, setting, normalized_data, t_scale
 ):
     draw_base_arrows(ax, setting.moved_base)
 
@@ -129,10 +125,10 @@ def plot_subframe(
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
     if isinstance(setting, SettingTemperature):
-        plot_temperature(nodes=shifted_normalized_nodes, setting=setting, ax=ax, t_scale=t_scale)
+        plot_temperature(fig=fig, ax=ax, nodes=shifted_normalized_nodes, setting=setting, t_scale=t_scale)
 
 
-def plot_temperature(nodes, setting, ax, t_scale):
+def plot_temperature(fig, ax, nodes, setting, t_scale):
     points = nodes.T
 
     ax.scatter(
@@ -140,11 +136,14 @@ def plot_temperature(nodes, setting, ax, t_scale):
         c=setting.t_old,
         vmin=t_scale[0],
         vmax=t_scale[1],
-        cmap=plt.cm.plasma,
+        cmap=plotter_common.cmap,
         s=1,
         marker=".",
         linewidths=0.1,
     )
+    
+    plotter_common.plot_colorbar(fig, t_scale)
+
 
 
 def plot_mesh(nodes, setting, color, ax):

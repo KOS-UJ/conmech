@@ -8,10 +8,11 @@ from examples.example_quasistatic import main as quasistatic
 from examples.example_dynamic import main as dynamic
 from examples.example_temperature_dynamic import main as temperature
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
-from examples.examples_graph import main as examples_graph
-from examples.examples_roll import main as examples_roll
-from examples.examples_temperature import main as examples_temperature
+from examples.examples_graph_2d import main as examples_graph_2d
+from examples.examples_roll_2d import main as examples_roll_2d
 from examples.examples_3d import main as examples_3d
+from examples.examples_temperature_2d import main as examples_temperature_2d
+from examples.examples_temperature_3d import main as examples_temperature_3d
 
 
 default_args = dict(show=False)
@@ -24,10 +25,11 @@ test_suits = {
     "temperature": lambda: temperature(**default_args),
     "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(**default_args),
 
-    "examples_graph": lambda: examples_graph(**default_args_deep),
-    "examples_roll": lambda: examples_roll(**default_args_deep),
-    "examples_temperature": lambda: examples_temperature(**default_args_deep),
-    "examples_3d": lambda: examples_3d(**default_args_deep)
+    "examples_graph_2d": lambda: examples_graph_2d(**default_args_deep),
+    "examples_roll_2d": lambda: examples_roll_2d(**default_args_deep),
+    "examples_3d": lambda: examples_3d(**default_args_deep),
+    "examples_temperature_2d": lambda: examples_temperature_2d(**default_args_deep),
+    "examples_temperature_3d": lambda: examples_temperature_3d(**default_args_deep),
 }
 
 @pytest.fixture(params=list(test_suits.keys()))

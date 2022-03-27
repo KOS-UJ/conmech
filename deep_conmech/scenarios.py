@@ -101,7 +101,7 @@ default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
 
 
-default_C_coeff=np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+default_C_coeff=np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 default_K_coeff=np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 default_temp_body_prop = DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, C_coeff=default_C_coeff, K_coeff=default_K_coeff)
 
@@ -194,8 +194,12 @@ def f_rotate_3d(ip, mp, md, t):
 ####################################
 
 
-def h_up(ip, mp, md, t):
-    return 0.1
+def h_corner(ip, mp, md, t):
+    x_scaled = ip[0] / md.scale_x
+    y_scaled = ip[1] / md.scale_y
+    if(x_scaled < 0.1 and y_scaled<0.1):
+        return 1.0
+    return 0.0
 
 
 ####################################
