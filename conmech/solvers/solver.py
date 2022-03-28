@@ -30,7 +30,7 @@ class Solver:
         self.u_vector = np.zeros([self.mesh.independent_nodes_count * 2])
         self.v_vector = np.zeros([self.mesh.independent_nodes_count * 2])
 
-        self.B = mesh.B
+        self.const_elasticity = mesh.const_elasticity
 
         self.forces = Forces(mesh, inner_forces, outer_forces)
         self.forces.setF()

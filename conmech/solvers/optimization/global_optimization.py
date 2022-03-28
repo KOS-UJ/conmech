@@ -55,7 +55,7 @@ class Global(Optimization):
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
     def get_left_hand_side(self):
-        return self.B
+        return self.const_elasticity
 
     def get_right_hand_side(self):
         return self.forces.F_vector
@@ -73,7 +73,7 @@ class Quasistatic(Global):
         contact_law,
         friction_bound,
     ):
-        self.A = mesh.A
+        self.const_viscosity = mesh.const_viscosity
         super().__init__(
             mesh,
             inner_forces,
@@ -85,10 +85,10 @@ class Quasistatic(Global):
         )
 
     def get_left_hand_side(self):
-        return self.A
+        return self.const_viscosity
 
     def get_right_hand_side(self):
-        return self.forces.F_vector - self.B @ self.u_vector.T
+        return self.forces.F_vector - self.const_elasticity @ self.u_vector.T
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -134,10 +134,10 @@ class Dynamic(Quasistatic):
         return self._point_temperature
 
     def get_left_hand_side(self):
-        return self.A + (1 / self.time_step) * self.ACC
+        return self.const_viscosity + (1 / self.time_step) * self.ACC
 
     def get_right_hand_side(self):
-        X = -1 * self.B @ self.u_vector
+        X = -1 * self.const_elasticity @ self.u_vector
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 

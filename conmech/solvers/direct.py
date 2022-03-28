@@ -48,7 +48,7 @@ class Direct(Solver):
             args=(
                 self.mesh.initial_nodes,
                 self.mesh.boundaries.contact,
-                self.B,
+                self.const_elasticity,
                 self.forces.F_vector,
             ),
         )

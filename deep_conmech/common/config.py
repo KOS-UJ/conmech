@@ -1,4 +1,4 @@
-TEST = False #False
+TEST = True #False
 
 NORMALIZE_ROTATE = True
 ############
@@ -7,7 +7,7 @@ TRAIN_SCALE = 1.0
 VALIDATION_SCALE = 1.0
 PRINT_SCALE = 1.0
 
-FINAL_TIME = 2.0 if TEST else 4 #8
+FINAL_TIME = 2 if TEST else 4 #8
 
 
 MESH_DENSITY = 8 if TEST else 16

@@ -185,7 +185,7 @@ class SchurComplement(Optimization):
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
     def get_C(self):
-        return self.B
+        return self.const_elasticity
 
     def get_E_split(self):
         return self.forces.F
@@ -203,7 +203,7 @@ class Quasistatic(SchurComplement):
         contact_law,
         friction_bound,
     ):
-        self.A = mesh.A
+        self.const_viscosity = mesh.const_viscosity
         self.dim = mesh.dimension
         super().__init__(
             mesh,
@@ -216,10 +216,10 @@ class Quasistatic(SchurComplement):
         )
 
     def get_C(self):
-        return self.A
+        return self.const_viscosity
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.B @ self.u_vector.T, dim=self.dim)
+        return self.forces.F - nph.unstack(self.const_elasticity @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -299,10 +299,10 @@ class Dynamic(Quasistatic):
         return self._point_temperature
 
     def get_C(self):
-        return self.A + (1 / self.time_step) * self.ACC
+        return self.const_viscosity + (1 / self.time_step) * self.ACC
 
     def get_E_split(self):
-        X = -1 * self.B @ self.u_vector
+        X = -1 * self.const_elasticity @ self.u_vector
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
