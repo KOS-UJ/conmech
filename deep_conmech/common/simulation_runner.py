@@ -1,0 +1,204 @@
+import os
+import time
+from typing import Callable, List, Optional
+
+from conmech.helpers import cmh
+from deep_conmech.common import config
+from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
+from deep_conmech.scenarios import Scenario
+from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
+
+
+def run_examples(all_scenarios, file, plot_animation, simulate_dirty_data=False):
+    for i, scenario in enumerate(all_scenarios):
+        print(f"-----EXAMPLE {i+1}/{len(all_scenarios)}-----")
+        catalog = os.path.splitext(os.path.basename(file))[0].upper()
+        plot_scenario(
+            solve_function=scenario.get_solve_function(),
+            scenario=scenario,
+            catalog=catalog,
+            simulate_dirty_data=simulate_dirty_data,
+            plot_base=False,
+            plot_detailed=True,
+            plot_animation=plot_animation
+        )
+        print()
+    print("DONE")
+
+
+def plot_scenario(
+    solve_function,
+    scenario: Scenario,
+    catalog,
+    simulate_dirty_data,
+    plot_base,
+    plot_detailed,
+    plot_images=False,
+    plot_animation=True,
+):
+    extension = "png"  # pdf
+    final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
+    setting_catalog = f"{final_catalog}/settings"
+    cmh.create_folders(setting_catalog)
+    time_skip = config.PRINT_SKIP
+    all_setting_paths = []
+
+    def operation_plot(current_time, setting, base_setting, a, base_a):
+        plot_setting(
+            current_time=current_time,
+            setting=setting,
+            path=f"{final_catalog}/{scenario.id} {int(current_time * 100)}.{extension}",
+            base_setting=base_setting,
+            draw_detailed=plot_detailed,
+            extension=extension,
+        )
+
+    def operation_save(current_time, setting, base_setting, a, base_a):
+        path = f"{setting_catalog}/time_{current_time:.4f}"
+        setting_path = f"{path}"
+        setting.save_pickle(setting_path)
+        all_setting_paths.append(setting_path)
+        # if draw_base:
+        #    setting.save_pickle(f"{path}_base_setting")
+
+    simulate(
+        compare_with_base_setting=plot_base,
+        solve_function=solve_function,
+        scenario=scenario,
+        simulate_dirty_data=simulate_dirty_data,
+        operation=operation_save
+        if plot_animation
+        else None,  # plot_at_interval if plot_images else None,
+        time_skip=time_skip,
+    )
+
+    """
+    if plot_images:
+        time_tqdm = scenario.get_tqdm(f"Plotting images {description}")
+        for i in time_tqdm:
+            current_time = (i + 1) * scenario.time_step
+            base_setting = (
+                all_base_settings[i] if all_base_settings is not None else None
+            )
+            operation_plot(current_time, all_settings[i], base_setting, None, None)
+    """
+
+    if plot_animation:
+        plot_scenario_animation(scenario, all_setting_paths, final_catalog, time_skip)
+
+    cmh.clear_folder(setting_catalog)
+
+
+def plot_scenario_animation(scenario, all_setting_paths, final_catalog, time_skip):
+    t_scale = plotter_common.get_t_scale(scenario, all_setting_paths)
+    animation_path = f"{final_catalog}/{scenario.id}.gif"  # scale_{scenario.mesh_data.scale_x}
+    plot_function = plotter_2d.plot_animation if scenario.dimension == 2 else plotter_3d.plot_animation
+    plot_function(all_setting_paths=all_setting_paths, time_skip=time_skip, path=animation_path, t_scale=t_scale)
+
+
+########
+
+def simulate(
+    compare_with_base_setting,
+    solve_function,
+    scenario: Scenario,
+    simulate_dirty_data: bool,
+    operation: Optional[Callable] = None,
+    time_skip: Optional[float] = None,
+) -> None:
+    setting = scenario.get_setting(randomize=simulate_dirty_data, create_in_subprocess=True)
+    with_temperature = isinstance(setting, SettingTemperature)
+    if compare_with_base_setting:
+        base_setting = scenario.get_setting(randomize=False, create_in_subprocess=True)
+    else:
+        base_setting = None
+        base_a = None
+
+    solver_time = 0
+    comparison_time = 0
+
+    time_tqdm = scenario.get_tqdm("Simulating")
+    a = None
+    t = None
+    for time_step in time_tqdm:
+        current_time = (time_step + 1) * setting.time_step
+
+        forces = scenario.get_forces_by_function(setting, current_time)
+        if with_temperature:
+            heat = scenario.get_heat_by_function(setting, current_time)
+            setting.prepare(forces, heat)
+        else:
+            setting.prepare(forces)
+
+
+        start_time = time.time()
+        if with_temperature:
+            a, t = solve_function(setting, initial_a=a, initial_t=t)
+        else:
+            a = solve_function(setting, initial_a=a)
+
+        solver_time += time.time() - start_time
+
+        if simulate_dirty_data:
+            setting.make_dirty()
+
+        if compare_with_base_setting:
+            scenario.base_setting.set_forces_from_function(
+                scenario.forces_function, current_time
+            )
+
+            start_time = time.time()
+            base_a = Solver.solve(base_setting)  ## save in setting
+            comparison_time += time.time() - start_time
+
+        if time_skip is None or nph.close_modulo(current_time, time_skip):
+            if operation is not None:
+                operation(current_time, setting, base_setting, a, base_a)
+
+        if with_temperature:
+            setting.iterate_self(a, t)
+        else:
+            setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+
+        if compare_with_base_setting:
+            base_setting.iterate_self(base_a)
+
+        # setting.remesh_self() ####################################################
+
+    #comparison_str = (
+    #    f" | Comparison time: {comparison_time}" if compare_with_base_setting else ""
+    #)
+    #print(f"    Solver time : {solver_time}{comparison_str}")
+
+
+########
+
+
+def plot_setting(
+    current_time, setting, path, base_setting, draw_detailed, extension,
+):
+    if setting.dimension == 2:
+        fig = plotter_2d.get_fig()
+        axs = plotter_2d.get_axs(fig)
+        plotter_2d.plot_frame(
+            fig=fig,
+            axs=axs,
+            setting=setting,
+            current_time=current_time,
+            draw_detailed=draw_detailed,
+            base_setting=base_setting,
+        )
+        plotter_common.plt_save(path, extension)
+    else:
+        fig = plotter_3d.get_fig()
+        axs = plotter_3d.get_axs(fig)
+        plotter_3d.plot_frame(
+            fig=fig, axs=axs, setting=setting, current_time=current_time
+        )
+        plotter_common.plt_save(path, extension)
+
+
+
+############################

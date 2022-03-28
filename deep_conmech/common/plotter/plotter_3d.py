@@ -113,7 +113,11 @@ def plot_subframe(
 ):
     draw_base_arrows(ax, setting.moved_base)
 
-    plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
+    if isinstance(setting, SettingTemperature):
+        cbar_settings = plotter_common.get_t_data(t_scale)
+        plot_main_temperature(fig, ax, nodes=setting.moved_nodes, setting=setting)
+    else:
+        plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
     plot_obstacles(ax, setting, "tab:orange")
 
     shifted_normalized_nodes = setting.normalized_points + np.array([0, 2.0, 0])
@@ -125,24 +129,26 @@ def plot_subframe(
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
     if isinstance(setting, SettingTemperature):
-        plot_temperature(fig=fig, ax=ax, nodes=shifted_normalized_nodes, setting=setting, t_scale=t_scale)
+        plot_temperature(fig=fig, ax=ax, nodes=shifted_normalized_nodes, setting=setting, cbar_settings=cbar_settings)
 
 
-def plot_temperature(fig, ax, nodes, setting, t_scale):
+def plot_temperature(fig, ax, nodes, setting, cbar_settings : plotter_common.ColorbarSettings):
     points = nodes.T
-
     ax.scatter(
         *points,
         c=setting.t_old,
-        vmin=t_scale[0],
-        vmax=t_scale[1],
-        cmap=plotter_common.cmap,
+        vmin=cbar_settings.vmin,
+        vmax=cbar_settings.vmax,
+        cmap=cbar_settings.cmap,
         s=1,
         marker=".",
         linewidths=0.1,
     )
-    
-    plotter_common.plot_colorbar(fig, t_scale)
+
+
+def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
+    plot_mesh(nodes=nodes, setting=setting, color="tab:orange", ax=ax)
+    plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
 
 
 

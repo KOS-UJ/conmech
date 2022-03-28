@@ -9,6 +9,10 @@ from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.solver import Solver
 
 
 class Scenario:
@@ -51,6 +55,22 @@ class Scenario:
             f"{description} {self.id}" # scale_{self.mesh_data.scale_x}",
         )
 
+    def get_solve_function(self):
+        return Solver.solve
+        
+    def get_setting(self, randomize=False, create_in_subprocess: bool = False) -> SettingRandomized: #"SettingIterable":
+        setting = SettingRandomized(
+            mesh_data=self.mesh_data,
+            body_prop=self.body_prop,
+            obstacle_prop=self.obstacle_prop,
+            schedule=self.schedule,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(self.obstacles)
+        return setting
+
+
     @property
     def dimension(self):
         return self.mesh_data.dimension
@@ -89,6 +109,22 @@ class TemperatureScenario(Scenario):
 
     def get_heat_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.heat_function, setting, current_time)
+
+    def get_solve_function(self):
+        return Solver.solve_with_temperature
+
+    def get_setting(
+        self, randomize=False, create_in_subprocess: bool = False
+    ) -> SettingTemperature:
+        setting = SettingTemperature(
+            mesh_data=self.mesh_data,
+            body_prop=self.body_prop,
+            obstacle_prop=self.obstacle_prop,
+            schedule=self.schedule,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_obstacles(self.obstacles)
+        return setting
 
 
 ####################################
@@ -198,16 +234,6 @@ def f_rotate_3d(ip, mp, md, t):
 
 ####################################
 
-
-def h_corner(ip, mp, md, t):
-    x_scaled = ip[0] / md.scale_x
-    y_scaled = ip[1] / md.scale_y
-    if(x_scaled < 0.1 and y_scaled<0.1):
-        return 2.0
-    return 0.0
-
-
-####################################
 
 
 def circle_slope(mesh_density, scale, is_adaptive, final_time):

@@ -1,4 +1,4 @@
-TEST = False
+TEST = False #False
 
 NORMALIZE_ROTATE = True
 ############
@@ -54,7 +54,7 @@ TOTAL_MEMORY_LIMIT_GB = 29.0
 
 ############
 
-LAYER_NORM = False #True
+LAYER_NORM = True
 DROPOUT_RATE = None  # 0.0  # 0.1  # 0.2  0.05
 SKIP = True
 # GRADIENT_CLIP = 10.0

@@ -7,8 +7,8 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from conmech.helpers import cmh
-from deep_conmech.common import config, simulator
-from deep_conmech.common.plotter import plotter_mapper
+from deep_conmech.common import config
+from deep_conmech.common import simulation_runner
 from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
@@ -73,12 +73,14 @@ def simulate(scenario, directory):
     images_directory = f"{directory}/saved_images"
     cmh.create_folders(images_directory)
 
-    all_settings, _ = simulator.simulate(
+    all_settings = []
+    
+    simulation_runner.simulate(
+        operation = lambda current_time, setting, base_setting, a, base_a: all_settings.append(setting),
         compare_with_base_setting=False,
         solve_function=Solver.solve,
         scenario=scenario,
-        get_setting_function=SettingRandomized.get_setting,
-        simulate_dirty_data=False,,
+        simulate_dirty_data=False,
     )
 
     plotter_2d.plot_animation(
@@ -174,7 +176,7 @@ def print_result(inputs, directory):
             moved_nodes = all_moved_nodes[i]
             path = f"{images_directory}/loaded_result {i}.png"
             all_images_paths.append(path)
-            plotter_mapper.print_simple_data(elements, moved_nodes, path)
+            plotter_2d.plot_simple_data(elements, moved_nodes, path)
 
 
 def load_data(meta_path, data_path):

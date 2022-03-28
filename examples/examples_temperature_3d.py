@@ -1,13 +1,8 @@
-import deep_conmech.scenarios as scenarios
-from conmech.helpers import cmh
-from deep_conmech.common.plotter import plotter_mapper
+from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
-from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=3, final_time=3, plot_animation=True):
+def main(mesh_density=3, final_time=1, plot_animation=True):
     all_temp_body_prop = [
         get_temp_body_prop(
             C_coeff=np.array([[1, 0], [0, 0.5]]),
@@ -36,18 +31,11 @@ def main(mesh_density=3, final_time=3, plot_animation=True):
         ]
     )
     
-    for scenario in all_scenarios:
-        print("-----")
-        plotter_mapper.print_one_dynamic(
-            Solver.solve_with_temperature,
-            scenario,
-            SettingTemperature.get_setting,
-            catalog="EXAMPLES TEMPERATURE 3D",
-            simulate_dirty_data=False,
-            plot_base=False,
-            plot_detailed=True,
-            plot_animation=plot_animation
-        )
+    simulation_runner.run_examples(
+        all_scenarios=all_scenarios,
+        file=__file__,
+        plot_animation=plot_animation,
+    )
 
 
 if __name__ == "__main__":

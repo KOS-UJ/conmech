@@ -9,7 +9,7 @@ from conmech.helpers import nph
 from deep_conmech.common import config
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
-from deep_conmech.scenarios import Scenario
+ 
 
 
 class SettingRandomized(SettingIterable):
@@ -109,19 +109,3 @@ class SettingRandomized(SettingIterable):
     def iterate_self(self, a, randomized_inputs=False):
         self.set_randomization(randomized_inputs)
         super().iterate_self(a)
-
-
-    @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
-        setting = SettingRandomized(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_randomization(randomize)
-        setting.set_obstacles(scenario.obstacles)
-        return setting

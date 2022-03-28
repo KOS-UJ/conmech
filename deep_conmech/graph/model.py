@@ -6,12 +6,12 @@ import torch
 from conmech.helpers import cmh
 from deep_conmech import scenarios
 from deep_conmech.common import *
-from deep_conmech.common.plotter import plotter_mapper
+from deep_conmech.common import simulation_runner
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting import setting_input
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 
 start = time.time()
 
@@ -117,12 +117,10 @@ class GraphModelDynamic:
                 dataset=self.train_dataset,
                 dataloader_function=data_base.get_train_dataloader,
                 step_function=self.train_step,
-                description=f"EPOCH: {epoch_number}, lr: {self.lr:.6f}",
+                description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
             )
             examples_seen += es
-            self.training_raport(
-                loss_array, examples_seen, epoch_number
-            )
+            self.training_raport(loss_array, examples_seen, epoch_number)
 
             self.scheduler.step()
 
@@ -134,7 +132,7 @@ class GraphModelDynamic:
 
             if current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
                 # self.save()
-                self.plot_scenarios(elapsed_time)
+                self.plot_all_scenarios(elapsed_time)
                 last_plotting_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
@@ -160,7 +158,7 @@ class GraphModelDynamic:
 
         # forward
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np, _ = self.E(batch)
+            _, loss_array_np, _ = self.E(batch, True)
 
         return loss_array_np
 
@@ -192,7 +190,6 @@ class GraphModelDynamic:
                 f"{description} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
             )
         return mean_loss_array, examples_seen
-
 
     def training_raport(self, loss_array, examples_seen, epoch_number):
         self.writer.add_scalar(
@@ -234,16 +231,15 @@ class GraphModelDynamic:
             )
         print("---")
 
-    def plot_scenarios(self, elapsed_time):
+    def plot_all_scenarios(self, elapsed_time):
         print("----PLOTTING----")
         self.print_elapsed_time(elapsed_time)
         start_time = time.time()
         timestamp = cmh.get_timestamp()
         for scenario in self.print_scenarios:
-            plotter_mapper.print_one_dynamic(
-                self.net.solve,
-                scenario,
-                SettingInput.get_setting,
+            simulation_runner.plot_scenario(
+                solve_function=self.net.solve,
+                scenario=scenario,
                 catalog=f"GRAPH/{timestamp} - RESULT",
                 simulate_dirty_data=False,
                 plot_base=False,  ###
@@ -257,7 +253,7 @@ class GraphModelDynamic:
 
     #################
 
-    def E(self, batch):
+    def E(self, batch, test_using_true_solution=False):
         # graph_couts = [1 for i in range(batch.num_graphs)]
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
@@ -317,6 +313,16 @@ class GraphModelDynamic:
                 obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
             )
+
+            if test_using_true_solution:
+                function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
+                    cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(thh.device), **L2_args
+                ).item()
+                
+                #@v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
+                predicted_normalized_a = thh.to_torch_double(nph.unstack(Solver.minimize(
+                    function, thh.to_np_double(torch.zeros_like(predicted_normalized_a))
+                ), dim=2)).to(thh.device)
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **L2_args

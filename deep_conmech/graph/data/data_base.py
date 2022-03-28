@@ -4,16 +4,16 @@ from os import listdir
 from os.path import isfile, join
 
 import deep_conmech.common.config as config
-import deep_conmech.common.plotter.plotter_mapper as plotter_mapper
 import numpy as np
 import pandas as pd
 import torch
 from conmech.helpers import cmh, mph
+from deep_conmech.common import simulation_runner
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.solver import Solver
 from torch_geometric.loader import DataLoader
 
 
@@ -22,19 +22,19 @@ def print_dataset(dataset, cutoff, timestamp, description):
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
-    #for i in range(iterations):
+    # for i in range(iterations):
     #    plotter_mapper.plot_data_setting(batch.setting[i], i, timestamp)
 
-        # for _ in range(100):
-        #    setting.set_forces(np.random.uniform(
-        #        low= -config.FORCES_DATA_SCALE,
-        #        high= config.FORCES_DATA_SCALE,
-        #        size=(setting.nodes_count, dim)
-        #    ))
-        #    test_setting(setting)
-        #    a = setting.calculate_normalized()
-        #    setting.iterate(a)
-        # break
+    # for _ in range(100):
+    #    setting.set_forces(np.random.uniform(
+    #        low= -config.FORCES_DATA_SCALE,
+    #        high= config.FORCES_DATA_SCALE,
+    #        size=(setting.nodes_count, dim)
+    #    ))
+    #    test_setting(setting)
+    #    a = setting.calculate_normalized()
+    #    setting.iterate(a)
+    # break
 
 
 def get_print_dataloader(dataset):
@@ -250,7 +250,7 @@ class BaseDatasetDynamic:
             step_tqdm.set_description(
                 f"{tqdm_description} - printing data {current_index}"
             )
-            plotter_mapper.plot_data_setting(setting, current_index, self.images_path)
+            self.plot_data_setting(setting, current_index, self.images_path)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
@@ -259,3 +259,16 @@ class BaseDatasetDynamic:
 
     def __len__(self):
         return self.data_count
+
+    def plot_data_setting(self, setting, filename, catalog):
+        cmh.create_folders(catalog)
+        extension = "png"  # pdf
+        path = f"{catalog}/{filename}.{extension}"
+        simulation_runner.plot_setting(
+            current_time=0,
+            setting=setting,
+            path=path,
+            base_setting=None,
+            draw_detailed=True,
+            extension=extension,
+        )

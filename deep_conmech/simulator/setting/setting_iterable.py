@@ -6,7 +6,6 @@ from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
-from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
@@ -80,19 +79,7 @@ class SettingIterable(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
-    @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ) -> "SettingIterable":
-        setting = SettingIterable(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_obstacles(scenario.obstacles)
-        return setting
+
 
     def save_pickle(self, path: str) -> None:
         with open(f"{path}.st", "wb") as file:

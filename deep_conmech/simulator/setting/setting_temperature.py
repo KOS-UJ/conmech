@@ -1,7 +1,5 @@
 import numpy as np
 from conmech.helpers import nph
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
@@ -27,15 +25,18 @@ class SettingTemperature(SettingIterable):
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None
 
-
-
     def get_normalized_L2_temperature_np(self, normalized_a):
-        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(normalized_a)
-        return lambda normalized_boundary_t_vector: L2_temperature(
-            nph.unstack(normalized_boundary_t_vector, 1),
-            self.T_boundary,
-            normalized_Q_boundary,
-        ), normalized_Q_free
+        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(
+            normalized_a
+        )
+        return (
+            lambda normalized_boundary_t_vector: L2_temperature(
+                nph.unstack(normalized_boundary_t_vector, 1),
+                self.T_boundary,
+                normalized_Q_boundary,
+            ),
+            normalized_Q_free,
+        )
 
     def prepare(self, forces, heat):
         super().prepare(forces)
@@ -69,7 +70,7 @@ class SettingTemperature(SettingIterable):
             v_old=self.normalized_v_old,
             heat=self.heat,
             t_old=self.t_old,
-            const_volume=self.const_volume ,
+            const_volume=self.const_volume,
             C2T=self.C2T,
             U=self.ACC[self.independent_indices, self.independent_indices],
             dimension=self.dimension,
@@ -121,7 +122,7 @@ class SettingTemperature(SettingIterable):
             const_volume=const_volume,
             const_elasticity=const_elasticity,
             const_viscosity=const_viscosity,
-            time_step=time_step
+            time_step=time_step,
         )
         value += C2T.T @ np.tile(t, (dimension, 1))
         return value
@@ -130,16 +131,3 @@ class SettingTemperature(SettingIterable):
         self.set_t_old(t)
         return super().iterate_self(a=a)
 
-    @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
-        setting = SettingTemperature(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_obstacles(scenario.obstacles)
-        return setting

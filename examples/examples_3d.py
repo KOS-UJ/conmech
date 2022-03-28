@@ -1,11 +1,10 @@
-from deep_conmech.common.plotter import plotter_mapper
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+import os
+from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=3, final_time=3, plot_animation=True):
+def main(mesh_density=3, final_time=1, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="ball_roll",
@@ -42,18 +41,11 @@ def main(mesh_density=3, final_time=3, plot_animation=True):
         ),
     ]
 
-    for scenario in all_scenarios:
-        print("-----")
-        plotter_mapper.print_one_dynamic(
-            Solver.solve,
-            scenario,
-            SettingRandomized.get_setting,
-            catalog="EXAMPLES 3D",
-            simulate_dirty_data=False,
-            plot_base=False,
-            plot_detailed=True,
-            plot_animation=plot_animation
-        )
+    simulation_runner.run_examples(
+        all_scenarios=all_scenarios,
+        file=__file__,
+        plot_animation=plot_animation,
+    )
 
 
 if __name__ == "__main__":

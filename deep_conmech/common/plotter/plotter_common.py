@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import cmh
+from deep_conmech.scenarios import Scenario, TemperatureScenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from matplotlib import animation, cm, collections
@@ -26,6 +27,14 @@ class ColorbarSettings:
     vmax:float
     cmap: ListedColormap
 
+def get_t_scale(scenario: Scenario, all_setting_paths: List[str]):
+    if isinstance(scenario, TemperatureScenario) is False:
+        return None
+    temperatures = np.array(
+        [SettingIterable.load_pickle(path).t_old for path in all_setting_paths]
+    )
+    return np.array([np.min(temperatures), np.max(temperatures)])
+
 def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
      # magma plasma cool coolwarm
     lim_small = 0.2
@@ -35,12 +44,14 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
         return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
-def plot_colorbar(fig, t_scale):
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    cbar_settings = get_t_data(t_scale)
+def plot_colorbar(fig, cbar_settings):
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
     norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
     values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
-    fig.colorbar(values, cax=cbar_ax)
+    cbar = fig.colorbar(values, cax=cbar_ax)
+    cbar.ax.tick_params(colors="w")
+
+########
 
 def prepare_for_arrows(starts, vectors):
     nodes_count = len(starts)

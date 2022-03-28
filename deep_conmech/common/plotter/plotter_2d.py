@@ -38,7 +38,7 @@ def plot_animation(
     all_setting_paths: List[str],
     time_skip: float,
     path: str,
-    t_scale: Optional[List] = None,
+    t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         all_setting_paths=all_setting_paths,
@@ -142,12 +142,12 @@ def draw_main_temperature(axs, fig, setting, cbar_settings):
         vmax=cbar_settings.vmax,
         antialiased=True,
     )
-    norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
-    values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
-    fig.colorbar(
-        values, ax=axs
-    ) #cax=cbar_ax #cax vs ax
-
+    plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
+    #norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
+    #values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
+    #cbar = fig.colorbar(
+    #    values, ax=axs
+    #) #cax=cbar_ax #cax vs ax
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
     obstacles_tangient = np.hstack(
@@ -415,62 +415,10 @@ def draw_data_at_vertices(setting, features, position, ax):
 
 ###################
 
-
-def draw_colors_triangles(mesh, data):
-    vertices_number = mesh.elements_points.shape[1]
-    centers = np.sum(mesh.elements_points, axis=1) / vertices_number
-
-    colors = np.array([(x - 0.5) ** 2 + (y - 0.5) ** 2 for x, y in centers])
-    plt.tripcolor(
-        mesh.moved_nodes[:, 0],
-        mesh.moved_nodes[:, 1],
-        mesh.elements,
-        facecolors=colors,
-        edgecolors="k",
-    )
-    plt.gca().set_aspect("equal")
-
-    ts = time.time()
-    plt_save(f"draw_colors_triangles {ts}")
-
-
-###################
-
-
-def draw_mesh_density(id):
-    mesh_density = config.MESH_SIZE_PRINT
-    corners = config.VAL_PRINT_CORNERS
-
-    fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-
-    min = nph.min(corners)
-    max = nph.max(corners)
-    precision = 0.01
-    X = np.arange(min[0], max[0], precision)
-    Y = np.arange(min[1], max[1], precision)
-    X, Y = np.meshgrid(X, Y)
-
-    base_density = nph.get_base_density(mesh_density, corners)
-    corner_data = nph.mesh_corner_data(base_density)
-    Z = nph.get_adaptive_mesh_density(X, Y, base_density, corner_data)
-
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-
-    max_z = 0.1  # np.max(Z)
-    ax.set_zlim(0.0, max_z)
-    ax.zaxis.set_major_locator(LinearLocator(10))
-    ax.zaxis.set_major_formatter("{x:.02f}")
-
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-
-    # plt.show()
-    format = "png"
-    plt.savefig(
-        f"./meshes/mesh_density_{id}.{format}",
-        transparent=False,
-        bbox_inches="tight",
-        format=format,
-        pad_inches=0.1,
-        dpi=dpi,
-    )
-    plt.close()
+def plot_simple_data(elements, nodes, path):
+    fig = get_fig()
+    axs = get_axs(fig)
+    set_perspective(scale=1, axs=axs)
+    triplot(nodes, elements, "tab:orange", axs)
+    extension = path.split(".")[-1]
+    plotter_common.plt_save(path, extension)

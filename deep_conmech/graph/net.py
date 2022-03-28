@@ -356,23 +356,19 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         output = self.decoder(node_latents)
         return output
 
-    def solve_all(self, setting, print_time=False):
+    def solve_all(self, setting):
         self.eval()
         batch = setting.get_data().to(thh.device)
 
-        start = time.time()
         normalized_a_cuda = self(
             batch
-        )  # + setting.predicted_normalized_a_mean_cuda
-        if print_time:
-            print("Graph solve time: ", time.time() - start)
-
+        )
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = setting.denormalize_rotate(normalized_a)
         return a, normalized_a
 
-    def solve(self, setting, initial_a, print_time=False):
-        a, _ = self.solve_all(setting, print_time)
+    def solve(self, setting, initial_a):
+        a, _ = self.solve_all(setting)
         return a
 
 
