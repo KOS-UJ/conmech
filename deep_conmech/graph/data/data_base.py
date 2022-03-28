@@ -22,8 +22,8 @@ def print_dataset(dataset, cutoff, timestamp, description):
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
-    for i in range(iterations):
-        plotter_mapper.print_setting(batch.setting[i], i, timestamp, description)
+    #for i in range(iterations):
+    #    plotter_mapper.plot_data_setting(batch.setting[i], i, timestamp)
 
         # for _ in range(100):
         #    setting.set_forces(np.random.uniform(
@@ -250,7 +250,7 @@ class BaseDatasetDynamic:
             step_tqdm.set_description(
                 f"{tqdm_description} - printing data {current_index}"
             )
-            ##################plotter_mapper.print_setting(setting, current_index, self.images_path)
+            plotter_mapper.plot_data_setting(setting, current_index, self.images_path)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 

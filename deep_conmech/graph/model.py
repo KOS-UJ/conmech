@@ -48,7 +48,6 @@ class GraphModelDynamic:
         self.print_scenarios = print_scenarios
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        self.train_dataloader = data_base.get_train_dataloader(train_dataset)
         self.writer = get_writer()
         self.loss_labels = [
             "L2",
@@ -56,7 +55,7 @@ class GraphModelDynamic:
             "RMSE_acc",
         ]  # "L2_diff", "L2_no_acc"]  # . "L2_main", "v_step_diff"]
         self.labels_count = len(self.loss_labels)
-        self.tqdm_loss_index = -1
+        self.tqdm_loss_index = 0
 
         self.net = net
         self.optimizer = torch.optim.Adam(
@@ -102,14 +101,6 @@ class GraphModelDynamic:
 
     ################
 
-    def get_epoch_description(self, epoch_number, loss_array=None):
-        loss_description = (
-            ""
-            if loss_array is None
-            else f", loss: {loss_array[self.tqdm_loss_index]:.4f}"
-        )
-        return f"EPOCH: {epoch_number}, lr: {self.lr:.6f}{loss_description}"
-
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
@@ -122,26 +113,16 @@ class GraphModelDynamic:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            epoch_tqdm = cmh.get_tqdm(
-                self.train_dataloader, desc=self.get_epoch_description(epoch_number)
+            loss_array, es = self.iterate_dataset(
+                dataset=self.train_dataset,
+                dataloader_function=data_base.get_train_dataloader,
+                step_function=self.train_step,
+                description=f"EPOCH: {epoch_number}, lr: {self.lr:.6f}",
             )
-            batch_count = len(epoch_tqdm)
-
-            total_loss_array = np.zeros(self.labels_count)
-            for batch_number, batch in enumerate(epoch_tqdm):
-                epoch_tqdm.set_description(
-                    self.get_epoch_description(
-                        epoch_number, total_loss_array / (batch_number + 1)
-                    )
-                )
-                total_loss_array += self.train_step(batch)
-                examples_seen += len(batch)
-
-                if batch_number == batch_count - 1:
-                    total_loss_array /= batch_count
-                    self.training_raport(
-                        epoch_tqdm, total_loss_array, examples_seen, epoch_number
-                    )
+            examples_seen += es
+            self.training_raport(
+                loss_array, examples_seen, epoch_number
+            )
 
             self.scheduler.step()
 
@@ -195,8 +176,25 @@ class GraphModelDynamic:
 
     #################
 
-    def training_raport(self, tqdm, loss_array, examples_seen, epoch_number):
-        tqdm.set_description(self.get_epoch_description(epoch_number, loss_array))
+    def iterate_dataset(self, dataset, dataloader_function, step_function, description):
+        dataloader = dataloader_function(dataset)
+        batch_tqdm = cmh.get_tqdm(dataloader, desc=description)
+        # range(len()) -> enumerate
+
+        examples_seen = 0
+        mean_loss_array = np.zeros(self.labels_count)
+        for _, batch in enumerate(batch_tqdm):
+            # len(batch) ?
+            loss_array = step_function(batch)
+            examples_seen += batch.num_graphs
+            mean_loss_array += loss_array * (batch.num_graphs / len(dataset))
+            batch_tqdm.set_description(
+                f"{description} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
+            )
+        return mean_loss_array, examples_seen
+
+
+    def training_raport(self, loss_array, examples_seen, epoch_number):
         self.writer.add_scalar(
             "Loss/Training/LearningRate", self.lr, examples_seen,
         )
@@ -214,8 +212,13 @@ class GraphModelDynamic:
 
         mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
-            loss_array = self.validate(dataset)
-            mean_loss_array += (loss_array / len(self.all_val_datasets))
+            loss_array, _ = self.iterate_dataset(
+                dataset=dataset,
+                dataloader_function=data_base.get_train_dataloader,
+                step_function=self.test_step,
+                description=dataset.relative_path,
+            )
+            mean_loss_array += loss_array / len(self.all_val_datasets)
             for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
@@ -230,21 +233,6 @@ class GraphModelDynamic:
                 examples_seen,
             )
         print("---")
-
-    def validate(self, dataset):
-        dataloader = data_base.get_train_dataloader(dataset)
-        batch_tqdm = cmh.get_tqdm(dataloader, desc=dataset.relative_path)
-        # range(len()) -> enumerate
-
-        mean_loss_array = np.zeros(self.labels_count)
-        for _, batch in enumerate(batch_tqdm):
-            #len(batch) ?
-            loss_array = self.test_step(batch)
-            mean_loss_array += (loss_array * (batch.num_graphs/len(dataset)))
-            batch_tqdm.set_description(
-                f"{dataset.relative_path} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
-            )
-        return mean_loss_array
 
     def plot_scenarios(self, elapsed_time):
         print("----PLOTTING----")

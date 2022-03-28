@@ -1,30 +1,45 @@
 import os
 import time
+from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
 
-import matplotlib
-
 import deep_conmech.common.config as config
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import cmh
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from matplotlib import animation, cm, collections
+from matplotlib.colors import ListedColormap
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
 
 dpi = 800
 savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
-cmap=plt.cm.plasma  # magma plasma
 
+
+
+@dataclass
+class ColorbarSettings:
+    vmin:float
+    vmax:float
+    cmap: ListedColormap
+
+def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
+     # magma plasma cool coolwarm
+    lim_small = 0.2
+    lim_big = 10
+
+    if(t_scale[0] > -lim_small and t_scale[1] < lim_small):
+        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)
+    return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
 def plot_colorbar(fig, t_scale):
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
-    values = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    cbar_settings = get_t_data(t_scale)
+    norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
+    values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
     fig.colorbar(values, cax=cbar_ax)
 
 def prepare_for_arrows(starts, vectors):
@@ -57,7 +72,7 @@ def plot_animation(
     get_axs: Callable,
     plot_frame: Callable,
     fig,
-    t_scale: Optional[List] = None
+    t_scale: Optional[np.ndarray] = None
 ):
     # frac_skip = config.PRINT_SKIP
     # skip = int(frac_skip // scenario.time_step)

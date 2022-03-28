@@ -184,7 +184,7 @@ def plot_obstacles(ax, setting, color):
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 
 
-def plot_animation(all_setting_paths: List[str], time_skip: float, path: str, t_scale:Optional[List]=None):
+def plot_animation(all_setting_paths: List[str], time_skip: float, path: str, t_scale:Optional[np.ndarray]=None):
     plotter_common.plot_animation(
         all_setting_paths=all_setting_paths, time_skip=time_skip, path=path, get_axs=get_axs, plot_frame=plot_frame, fig=get_fig(), t_scale=t_scale
     )

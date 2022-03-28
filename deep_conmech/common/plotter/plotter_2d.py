@@ -58,18 +58,18 @@ def plot_frame(
     current_time: float,
     draw_detailed: bool = True,
     base_setting: Optional[SettingRandomized] = None,
-    t_scale: Optional[List] = None,
+    t_scale: Optional[np.ndarray] = None,
 ):
     scale = setting.mesh_data.scale_x
     set_perspective(scale, axs)
 
     if isinstance(setting, SettingTemperature):
-        draw_main_temperature(axs=axs, fig=fig, setting=setting, t_scale=t_scale)
+        cbar_settings = plotter_common.get_t_data(t_scale)
+        draw_main_temperature(fig=fig, axs=axs, setting=setting, cbar_settings=cbar_settings)
     else:
         draw_main_displaced(setting, axs)
     if base_setting is not None:
         draw_base_displaced(base_setting, scale, axs)
-    description_offset = np.array([-0.1, -1.1]) * scale
 
     draw_parameters(current_time, setting, scale, axs)
     # draw_angles(setting, ax)
@@ -103,43 +103,50 @@ def plot_frame(
         position[0] += shift
         if isinstance(setting, SettingTemperature):
             plot_temperature(
-                axs=axs, setting=setting, position=position, t_scale=t_scale
+                axs=axs, setting=setting, position=position, cbar_settings=cbar_settings
             )
 
         # draw_edges_data(setting, position, ax)
         # draw_vertices_data(setting, position, ax)
 
 
-def plot_temperature(axs, setting: SettingTemperature, position, t_scale):
+def plot_temperature(
+    axs,
+    setting: SettingTemperature,
+    position,
+    cbar_settings: plotter_common.ColorbarSettings,
+):
     add_annotation("TEMP", setting, position, axs)
+    # vmin, vmax, cmap = plotter_common.get_t_data(t_scale)
     points = (setting.normalized_points + position).T
     axs.scatter(
         *points,
         c=setting.t_old,
-        vmin=t_scale[0],
-        vmax=t_scale[1],
-        cmap=plotter_common.cmap,
+        cmap=cbar_settings.cmap,
+        vmin=cbar_settings.vmin,
+        vmax=cbar_settings.vmax,
         s=1,
         marker=".",
         linewidths=0.1,
     )
 
-def draw_main_temperature(axs, fig, setting, t_scale):
+
+def draw_main_temperature(axs, fig, setting, cbar_settings):
     draw_main_obstacles(setting, axs)
     values = axs.tricontourf(
         *(setting.moved_nodes.T),
         setting.elements,
         setting.t_old.reshape(-1),
-        cmap=plotter_common.cmap,
-        vmin=t_scale[0],
-        vmax=t_scale[1],
+        cmap=cbar_settings.cmap,
+        vmin=cbar_settings.vmin,
+        vmax=cbar_settings.vmax,
         antialiased=True,
     )
-    #cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    #plt.clim(t_scale[0],t_scale[1])
-    norm = matplotlib.colors.Normalize(vmin=t_scale[0], vmax=t_scale[1])
-    values = plt.cm.ScalarMappable(norm=norm, cmap=plotter_common.cmap)
-    fig.colorbar(values, ax=axs)#, orientation='horizontal', label='Some Units') #cax=cbar_ax #cax vs ax
+    norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
+    values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
+    fig.colorbar(
+        values, ax=axs
+    ) #cax=cbar_ax #cax vs ax
 
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):

@@ -99,8 +99,6 @@ default_body_prop = DynamicBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
-
-
 default_C_coeff=np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 default_K_coeff=np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 default_temp_body_prop = DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, C_coeff=default_C_coeff, K_coeff=default_K_coeff)
@@ -171,6 +169,13 @@ def f_rotate(ip, mp, md, t):
     return np.array([0.0, 0.0])
 
 
+def f_rotate_fast(ip, mp, md, t):
+    if t <= 0.5:
+        y_scaled = ip[1] / md.scale_y
+        return y_scaled * np.array([3.0, 0.0])
+    return np.array([0.0, 0.0])
+
+
 def f_random(ip, mp, md, t):
     scale = config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
@@ -198,7 +203,7 @@ def h_corner(ip, mp, md, t):
     x_scaled = ip[0] / md.scale_x
     y_scaled = ip[1] / md.scale_y
     if(x_scaled < 0.1 and y_scaled<0.1):
-        return 1.0
+        return 2.0
     return 0.0
 
 
@@ -295,14 +300,14 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def circle_rotate(scale, is_adaptive, final_time):
+def circle_rotate(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "circle_rotate",
         MeshData(
             dimension=2,
             mesh_type=m_circle,
             scale=[scale],
-            mesh_density=[config.MESH_DENSITY],
+            mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
         default_body_prop,
@@ -331,14 +336,14 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_stay(scale, is_adaptive, final_time):
+def polygon_stay(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_stay",
         MeshData(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
-            mesh_density=[config.MESH_DENSITY],
+            mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
         default_body_prop,
@@ -349,14 +354,14 @@ def polygon_stay(scale, is_adaptive, final_time):
     )
 
 
-def polygon_two(scale, is_adaptive, final_time):
+def polygon_two(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_two",
         MeshData(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
-            mesh_density=[config.MESH_DENSITY],
+            mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
         default_body_prop,
@@ -370,17 +375,18 @@ def polygon_two(scale, is_adaptive, final_time):
 #########################
 
 
-def get_data(mesh_density, scale, is_adaptive, final_time):
+def get_data(**args):
     return [
-        polygon_rotate(mesh_density, scale, is_adaptive, final_time),
-        # polygon_two(scale, is_adaptive, final_time),
-        circle_slope(mesh_density, scale, is_adaptive, final_time),
-        spline_right(mesh_density, scale, is_adaptive, final_time),
-        circle_left(mesh_density, scale, is_adaptive, final_time),
-        # polygon_left(scale, is_adaptive, final_time),
-        # circle_rotate(scale, is_adaptive, final_time),
-        # polygon_rotate(scale, is_adaptive, final_time),
-        # polygon_stay(scale, is_adaptive, final_time),
+        polygon_rotate(**args),
+        polygon_two(**args),
+        circle_slope(**args),
+        spline_right(**args),
+        circle_left(**args),
+        polygon_left(**args),
+        circle_rotate(**args),
+        polygon_rotate(**args),
+        polygon_rotate(**args),
+        polygon_stay(**args),
     ]
 
 
@@ -417,4 +423,3 @@ def all_print(mesh_density=config.MESH_DENSITY, final_time=5.0):  # config.FINAL
         # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
         # polygon_two(**print_args),
     ]
-

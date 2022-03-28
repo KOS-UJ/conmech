@@ -1,3 +1,4 @@
+from typing import List
 from conmech.helpers import cmh
 from deep_conmech.common import config, simulator
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
@@ -66,9 +67,9 @@ def print_one_dynamic(
     """
 
     t_scale = get_t_scale(scenario, all_setting_paths)
-    
+
     if plot_animation:
-        animation_path = f"{final_catalog}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif"
+        animation_path = f"{final_catalog}/{scenario.id} ANIMATION.gif"  # scale_{scenario.mesh_data.scale_x}
         if scenario.dimension == 2:
             plotter_2d.plot_animation(
                 all_setting_paths, time_skip, animation_path, t_scale
@@ -81,28 +82,50 @@ def print_one_dynamic(
     cmh.clear_folder(setting_catalog)
 
 
-def get_t_scale(scenario, all_setting_paths):
-    if isinstance(scenario, TemperatureScenario) == False:
+def get_t_scale(scenario: Scenario, all_setting_paths: List[str]):
+    if isinstance(scenario, TemperatureScenario) is False:
         return None
-
     temperatures = np.array(
         [SettingIterable.load_pickle(path).t_old for path in all_setting_paths]
     )
-    return [np.min(temperatures), np.max(temperatures)]
+    return np.array([np.min(temperatures), np.max(temperatures)])
+
+
+def plot_data_setting(setting, filename, catalog):
+    cmh.create_folders(catalog)
+    extension = "png"  # pdf
+    path = f"{catalog}/{filename}.{extension}"
+    plot_setting(
+        current_time=0,
+        setting=setting,
+        path=path,
+        base_setting=None,
+        draw_detailed=True,
+        extension=extension,
+    )
 
 
 def plot_setting(
     current_time, setting, path, base_setting, draw_detailed, extension,
 ):
-    if setting.dim == 2:
+    if setting.dimension == 2:
         fig = plotter_2d.get_fig()
         axs = plotter_2d.get_axs(fig)
-        plotter_2d.plot_frame(setting, current_time, axs, draw_detailed, base_setting)
+        plotter_2d.plot_frame(
+            fig=fig,
+            axs=axs,
+            setting=setting,
+            current_time=current_time,
+            draw_detailed=draw_detailed,
+            base_setting=base_setting,
+        )
         plotter_common.plt_save(path, extension)
     else:
         fig = plotter_3d.get_fig()
         axs = plotter_3d.get_axs(fig)
-        plotter_3d.plot_frame(setting=setting, current_time=current_time, axs=axs)
+        plotter_3d.plot_frame(
+            fig=fig, axs=axs, setting=setting, current_time=current_time
+        )
         plotter_common.plt_save(path, extension)
 
 
@@ -125,9 +148,3 @@ def print_simple_data(elements, nodes, path):
 
 ############################
 
-
-def print_setting(setting, filename, catalog):
-    cmh.create_folders(catalog)
-    extension = "png"  # pdf
-    path = f"{catalog}/{filename}.{extension}"
-    plot_at_interval(0, setting, path, None, True, extension)

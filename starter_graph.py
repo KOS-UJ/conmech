@@ -30,23 +30,16 @@ def main():
 
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
-    all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
-    )
-    all_val_datasets.extend(
-        [
-            ValidationScenarioDatasetDynamic([scenario], scenario.id)
-            for scenario in scenarios.all_validation
-        ]
-    )
-    # val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
-    # nodes_statistics.describe()["forces_norm"]["mean"]
-    # mean_val = np.mean(
+    #all_val_datasets.append(
+    #    ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+    #)
+    #all_val_datasets.extend(
     #    [
-    #        val_stat[i][0].describe()["forces_norm"]["mean"]
-    #        for i, _ in enumerate(scenarios.all_validation)
+    #        ValidationScenarioDatasetDynamic([scenario], scenario.id)
+    #        for scenario in scenarios.all_validation
     #    ]
-    # )
+    #)
+
     model = GraphModelDynamic(
         train_dataset, all_val_datasets, scenarios.all_print(), net
     )
