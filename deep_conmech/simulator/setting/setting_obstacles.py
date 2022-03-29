@@ -196,9 +196,10 @@ class SettingObstacles(SettingForces):
 
     def prepare(self, forces):
         super().prepare(forces)
-        self.boundary_obstacle_indices = get_closest_obstacle_to_boundary_numba(
-            self.boundary_nodes, self.obstacle_origins
-        )
+        if self.obstacles is not None:
+            self.boundary_obstacle_indices = get_closest_obstacle_to_boundary_numba(
+                self.boundary_nodes, self.obstacle_origins
+            )
 
     def clear(self):
         super().clear()
@@ -206,7 +207,8 @@ class SettingObstacles(SettingForces):
 
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
-        self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
+        if obstacles_unnormalized is not None:
+            self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
 
     def get_normalized_L2_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
@@ -341,4 +343,6 @@ class SettingObstacles(SettingForces):
 
     @property
     def is_coliding(self):
+        if self.obstacles is None:
+            return False
         return np.any(self.boundary_penetration_norm > 0)

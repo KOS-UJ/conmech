@@ -26,8 +26,10 @@ def build_mesh(
 
     elif "pygmsh" in mesh_data.mesh_type:
         if "3d" in mesh_data.mesh_type:
-            # initial_nodes, elements = get_twist(mesh_size)
-            inner_function = lambda: mesh_builders_3d.get_pygmsh_extrude(mesh_data.mesh_density_x)
+            if "polygon" in mesh_data.mesh_type:
+                inner_function = lambda: mesh_builders_3d.get_pygmsh_polygon(mesh_data.mesh_density_x)
+            if "twist" in mesh_data.mesh_type:
+                inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_data.mesh_density_x)
         else:
             inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(
                 mesh_data

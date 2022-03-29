@@ -26,6 +26,13 @@ class ColorbarSettings:
     vmin:float
     vmax:float
     cmap: ListedColormap
+    
+    @property
+    def mappable(self):
+        norm = matplotlib.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
+        return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
+
+
 
 def get_t_scale(scenario: Scenario, all_setting_paths: List[str]):
     if isinstance(scenario, TemperatureScenario) is False:
@@ -41,14 +48,12 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     lim_big = 10
 
     if(t_scale[0] > -lim_small and t_scale[1] < lim_small):
-        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)
+        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.coolwarm) #cool
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
 def plot_colorbar(fig, cbar_settings):
     cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-    norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
-    values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
-    cbar = fig.colorbar(values, cax=cbar_ax)
+    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=cbar_ax)
     cbar.ax.tick_params(colors="w")
 
 ########
@@ -79,7 +84,7 @@ def plt_save(path, extension):
 def plot_animation(
     all_setting_paths: List[str],
     time_skip: float,
-    path: str,
+    save_path: str,
     get_axs: Callable,
     plot_frame: Callable,
     fig,
@@ -104,6 +109,6 @@ def plot_animation(
     ani = animation.FuncAnimation(
         fig, animate, frames=frames_count
     )  # , interval=scenario.final_time)
-    ani.save(path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+    ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
     #animation_tqdm.close()
     plt.close()

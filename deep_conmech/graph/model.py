@@ -130,7 +130,7 @@ class GraphModelDynamic:
                 self.validation_raport(examples_seen, epoch_number, elapsed_time)
                 self.train_dataset.update_data()
 
-            if current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
+            if False: #current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
                 # self.save()
                 self.plot_all_scenarios(elapsed_time)
                 last_plotting_time = time.time()
@@ -158,7 +158,7 @@ class GraphModelDynamic:
 
         # forward
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np, _ = self.E(batch, True)
+            _, loss_array_np, _ = self.E(batch) #, True)
 
         return loss_array_np
 

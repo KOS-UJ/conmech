@@ -18,7 +18,7 @@ def get_meshzoo_ball(mesh_density):
     return normalize_nodes(nodes), elements
 
 
-def get_pygmsh_extrude(mesh_density):
+def get_pygmsh_polygon(mesh_density):
     with pygmsh.geo.Geometry() as geom:
         poly = geom.add_polygon(
             [[0.0, 0.0], [1.0, -0.2], [1.1, 1.2], [0.1, 0.7],]
@@ -54,4 +54,3 @@ def get_pygmsh_twist(mesh_density):
         geom.set_mesh_size_callback(lambda dim, tag, x, y, z: 1.0 / mesh_density)
         nodes, elements = get_nodes_and_elements(geom, 3)
     return normalize_nodes(nodes), elements
-

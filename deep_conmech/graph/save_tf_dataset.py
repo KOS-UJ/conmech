@@ -7,13 +7,12 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from conmech.helpers import cmh
-from deep_conmech.common import config
-from deep_conmech.common import simulation_runner
+from deep_conmech.common import config, simulation_runner
 from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.solver import Solver
 
 tf.enable_eager_execution()
 
@@ -68,26 +67,14 @@ def to_dict(type, array):
     return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
 
 
-def simulate(scenario, directory):
-    extension = "png"
-    images_directory = f"{directory}/saved_images"
-    cmh.create_folders(images_directory)
-
-    all_settings = []
-    
-    simulation_runner.simulate(
-        operation = lambda current_time, setting, base_setting, a, base_a: all_settings.append(setting),
-        compare_with_base_setting=False,
+def simulate(scenario):
+    all_setting_paths = simulation_runner.plot_scenario(
         solve_function=Solver.solve,
         scenario=scenario,
-        simulate_dirty_data=False,
+        catalog="LOAD_SAVE",
+        clear_catalog=False,
     )
-
-    plotter_2d.plot_animation(
-        scenario,
-        all_settings,
-        f"{images_directory}/{scenario.id} scale_{scenario.mesh_data.scale_x} ANIMATION.gif",
-    )
+    all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
     return all_settings
 
 
@@ -130,25 +117,26 @@ def prepare_data(all_settings):
 
 
 def main():
-    directory = "/home/michal/Desktop/DATA/conmech"  # "data/flag_simple"
+    directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
+
     scenario = Scenario(
         "polygon_rotate",
         MeshData(
             dimension=2,
             mesh_type=m_polygon,
             scale=[1],
-            mesh_density=[4],
+            mesh_density=[32],
             is_adaptive=False,
         ),
         default_body_prop,
         default_obstacle_prop,
-        schedule=Schedule(final_time=0.5),
+        schedule=Schedule(final_time=8.0),
         forces_function=f_rotate,
         obstacles=o_side,
     )
 
-    all_settings = simulate(scenario, directory)
+    all_settings = simulate(scenario)
     meta, data = prepare_data(all_settings)
 
     meta_path = os.path.join(directory, "meta.json")

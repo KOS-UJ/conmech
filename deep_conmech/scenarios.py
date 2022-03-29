@@ -24,14 +24,14 @@ class Scenario:
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         forces_function: Union[Callable[[Any], np.ndarray], np.ndarray],
-        obstacles: np.ndarray,
+        obstacles: Optional[np.ndarray],
     ):
         self.id = id
         self.mesh_data = mesh_data
         self.body_prop = body_prop
         self.obstacle_prop = obstacle_prop
         self.schedule = schedule
-        self.obstacles = obstacles * mesh_data.scale_x
+        self.obstacles = None if obstacles is None else obstacles * mesh_data.scale_x
         self.forces_function = forces_function
 
     @staticmethod
@@ -152,6 +152,7 @@ m_polygon = "pygmsh_polygon"
 m_cube_3d = "meshzoo_cube_3d"
 m_ball_3d = "meshzoo_ball_3d"
 m_polygon_3d = "pygmsh_polygon_3d"
+m_twist_3d = "pygmsh_twist_3d"
 
 ####################################
 

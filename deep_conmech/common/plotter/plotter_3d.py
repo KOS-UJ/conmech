@@ -115,7 +115,7 @@ def plot_subframe(
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
-        plot_main_temperature(fig, ax, nodes=setting.moved_nodes, setting=setting)
+        plot_main_temperature(fig, ax, nodes=setting.moved_nodes, setting=setting, cbar_settings=cbar_settings)
     else:
         plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
     plot_obstacles(ax, setting, "tab:orange")
@@ -147,7 +147,20 @@ def plot_temperature(fig, ax, nodes, setting, cbar_settings : plotter_common.Col
 
 
 def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
-    plot_mesh(nodes=nodes, setting=setting, color="tab:orange", ax=ax)
+    boundary_faces_nodes = nodes[setting.boundary_faces]
+    nodes_temperature = setting.t_old[setting.boundary_faces]
+    faces_temperature = np.mean(nodes_temperature, axis=1)
+
+    facecolors = cbar_settings.mappable.to_rgba(faces_temperature) # plt.cm.jet(faces_temperature)
+    ax.add_collection3d(
+        Poly3DCollection(
+            boundary_faces_nodes,
+            #edgecolors=,
+            linewidths=0.1,
+            facecolors=facecolors,
+            alpha=0.2,
+        )
+    )
     plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
 
 
@@ -166,6 +179,8 @@ def plot_mesh(nodes, setting, color, ax):
 
 
 def plot_obstacles(ax, setting, color):
+    if setting.obstacles is None:
+        return
     alpha = 0.3
     node = setting.obstacle_nodes[0]
     normal = setting.obstacle_normals[0]
@@ -190,7 +205,7 @@ def plot_obstacles(ax, setting, color):
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 
 
-def plot_animation(all_setting_paths: List[str], time_skip: float, path: str, t_scale:Optional[np.ndarray]=None):
+def plot_animation(all_setting_paths: List[str], time_skip: float, save_path: str, t_scale:Optional[np.ndarray]=None):
     plotter_common.plot_animation(
-        all_setting_paths=all_setting_paths, time_skip=time_skip, path=path, get_axs=get_axs, plot_frame=plot_frame, fig=get_fig(), t_scale=t_scale
+        all_setting_paths=all_setting_paths, time_skip=time_skip, save_path=save_path, get_axs=get_axs, plot_frame=plot_frame, fig=get_fig(), t_scale=t_scale
     )

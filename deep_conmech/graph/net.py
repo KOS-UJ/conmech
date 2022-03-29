@@ -358,6 +358,8 @@ class CustomGraphNet(nn.Module):  # SAMPLE
 
     def solve_all(self, setting):
         self.eval()
+
+        
         batch = setting.get_data().to(thh.device)
 
         normalized_a_cuda = self(

@@ -37,13 +37,13 @@ def set_perspective(scale, axs):
 def plot_animation(
     all_setting_paths: List[str],
     time_skip: float,
-    path: str,
+    save_path: str,
     t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         all_setting_paths=all_setting_paths,
         time_skip=time_skip,
-        path=path,
+        save_path=save_path,
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
