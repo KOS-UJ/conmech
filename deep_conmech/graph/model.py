@@ -10,6 +10,7 @@ from deep_conmech.common import simulation_runner
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -43,9 +44,8 @@ class ErrorResult:
 
 
 class GraphModelDynamic:
-    def __init__(self, train_dataset, all_val_datasets, print_scenarios, net):
+    def __init__(self, train_dataset, all_val_datasets, net: CustomGraphNet):
         self.all_val_datasets = all_val_datasets
-        self.print_scenarios = print_scenarios
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.writer = get_writer()
@@ -86,26 +86,11 @@ class GraphModelDynamic:
 
     ################
 
-    def save(self):
-        print("Saving model")
-        timestamp = cmh.get_timestamp()
-        catalog = f"output/{cmh.CURRENT_TIME} - GRAPH"
-        cmh.create_folders(catalog)
-        path = f"{catalog}/{timestamp} - MODEL.pt"
-        torch.save(self.net.state_dict(), path)
-
-    def load(self, path):
-        print(f"Loading model {path}")
-        self.net.load_state_dict(torch.load(path))
-        self.net.eval()
-
-    ################
-
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         start_time = time.time()
-        last_plotting_time = start_time
+        last_saving_time = start_time
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
@@ -130,10 +115,10 @@ class GraphModelDynamic:
                 self.validation_raport(examples_seen, epoch_number, elapsed_time)
                 self.train_dataset.update_data()
 
-            if False: #current_time > config.DRAW_AT_MINUTES * 60 + last_plotting_time:
-                # self.save()
-                self.plot_all_scenarios(elapsed_time)
-                last_plotting_time = time.time()
+            if current_time > config.SAVE_AT_MINUTES * 60 + last_saving_time:
+                self.net.save()
+                # self.plot_all_scenarios(elapsed_time)
+                last_saving_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
 
@@ -141,8 +126,6 @@ class GraphModelDynamic:
 
     def train_step(self, batch):
         self.net.train()
-
-        # for _ in range(config.TRAIN_ITERATIONS):
         self.net.zero_grad()
 
         loss, loss_array_np, batch = self.E(batch)
@@ -153,12 +136,10 @@ class GraphModelDynamic:
         return loss_array_np
 
     def test_step(self, batch):
-        ###############self.net.eval()
-        self.net.train()
+        self.net.eval()
 
-        # forward
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np, _ = self.E(batch) #, True)
+            _, loss_array_np, _ = self.E(batch)
 
         return loss_array_np
 
@@ -231,25 +212,22 @@ class GraphModelDynamic:
             )
         print("---")
 
-    def plot_all_scenarios(self, elapsed_time):
+    @staticmethod
+    def plot_all_scenarios(net: CustomGraphNet, print_scenarios):
         print("----PLOTTING----")
-        self.print_elapsed_time(elapsed_time)
         start_time = time.time()
         timestamp = cmh.get_timestamp()
-        for scenario in self.print_scenarios:
+        catalog = f"GRAPH/{timestamp} - RESULT"
+        for scenario in print_scenarios:
             simulation_runner.plot_scenario(
-                solve_function=self.net.solve,
+                solve_function=net.solve,
                 scenario=scenario,
-                catalog=f"GRAPH/{timestamp} - RESULT",
+                catalog=catalog,
                 simulate_dirty_data=False,
-                plot_base=False,  ###
-                plot_detailed=False,
-                plot_images=False,
                 plot_animation=True,
             )
-
         print(f"Plotting time: {int((time.time() - start_time)/60)} min")
-        print("----")
+        # return catalog
 
     #################
 
@@ -315,14 +293,7 @@ class GraphModelDynamic:
             )
 
             if test_using_true_solution:
-                function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
-                    cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(thh.device), **L2_args
-                ).item()
-                
-                #@v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
-                predicted_normalized_a = thh.to_torch_double(nph.unstack(Solver.minimize(
-                    function, thh.to_np_double(torch.zeros_like(predicted_normalized_a))
-                ), dim=2)).to(thh.device)
+                predicted_normalized_a = self.use_true_solution(predicted_normalized_a, L2_args)
 
             predicted_normalized_L2 = setting_input.L2_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **L2_args
@@ -351,3 +322,24 @@ class GraphModelDynamic:
         loss /= batch.num_graphs
         loss_array /= batch.num_graphs
         return loss, loss_array, None  # new_batch
+
+
+    def use_true_solution(self, predicted_normalized_a, L2_args):
+        function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
+            cleaned_a=thh.to_torch_double(
+                nph.unstack(normalized_a_vector, dim=2)
+            ).to(thh.device),
+            **L2_args,
+        ).item()
+
+        # @v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
+        predicted_normalized_a = thh.to_torch_double(
+            nph.unstack(
+                Solver.minimize(
+                    function,
+                    thh.to_np_double(torch.zeros_like(predicted_normalized_a)),
+                ),
+                dim=2,
+            )
+        ).to(thh.device)
+        return predicted_normalized_a

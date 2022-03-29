@@ -9,6 +9,7 @@ from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 
 from deep_conmech.common import config
+from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
@@ -58,7 +59,7 @@ class Scenario:
     def get_solve_function(self):
         return Solver.solve
         
-    def get_setting(self, randomize=False, create_in_subprocess: bool = False) -> SettingRandomized: #"SettingIterable":
+    def get_setting(self, randomize=False, create_in_subprocess: bool = False) -> SettingRandomized: # "SettingIterable":
         setting = SettingRandomized(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,

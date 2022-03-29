@@ -3,7 +3,6 @@ from deep_conmech.common import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import *
 from deep_conmech.graph.setting.setting_torch import SettingTorch
-from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from torch_geometric.data import Data
@@ -236,17 +235,3 @@ class SettingInput(SettingTorch):
             self.boundary_nodes_volume,
         )
 
-    @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
-        setting = SettingInput(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_randomization(randomize)
-        setting.set_obstacles(scenario.obstacles)
-        return setting

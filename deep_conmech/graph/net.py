@@ -1,6 +1,7 @@
 import time
 
 import torch
+from conmech.helpers import cmh
 from deep_conmech.common import config
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
@@ -101,9 +102,9 @@ class ResidualBlock(Block):
 
 
 class EmptyNorm(nn.Module):
-
     def forward(self, x):
         return x
+
 
 class DataNorm(nn.Module):
     def __init__(self, in_channels, normalization_statistics):
@@ -111,7 +112,7 @@ class DataNorm(nn.Module):
         self.in_channels = in_channels
         self.x_mean = normalization_statistics.data_mean.to(thh.device)
         self.x_std = normalization_statistics.data_std.to(thh.device)
-        self.mask = (self.x_std == 0)
+        self.mask = self.x_std == 0
 
     def forward(self, x):
         output = (x - self.x_mean) / self.x_std
@@ -126,12 +127,12 @@ class ForwardNet(nn.Module):
         super().__init__()
 
         layers = []
-        
+
         if normalization_statistics is not None:
             layers.append(DataNorm(input_dim, normalization_statistics))
         else:
             layers.append(nn.BatchNorm1d(input_dim))
-        
+
         layers.append(
             BasicBlock(
                 in_channels=input_dim,
@@ -268,7 +269,11 @@ class ProcessorLayer(MessagePassing):
 
         # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
         # self.node_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
-        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM)) if config.LAYER_NORM else EmptyNorm()
+        self.layer_norm = (
+            thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+            if config.LAYER_NORM
+            else EmptyNorm()
+        )
         self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS)
         self.epsilon = Parameter(torch.Tensor(1))
 
@@ -326,7 +331,11 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             output_linear_dim=config.LATENT_DIM,
             normalization_statistics=edges_statistics,
         )
-        self.layer_norm = thh.set_precision(nn.LayerNorm(config.LATENT_DIM)) if config.LAYER_NORM else EmptyNorm()
+        self.layer_norm = (
+            thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+            if config.LAYER_NORM
+            else EmptyNorm()
+        )
 
         self.processor_layers = []
         for _ in range(config.MESSAGE_PASSES):
@@ -339,7 +348,6 @@ class CustomGraphNet(nn.Module):  # SAMPLE
             layers_count=config.DEC_LAYER_COUNT,
             output_linear_dim=output_dim,
         )
-
 
     def forward(self, batch):
         node_input = batch.x  # position "pos" will not generalize
@@ -356,15 +364,29 @@ class CustomGraphNet(nn.Module):  # SAMPLE
         output = self.decoder(node_latents)
         return output
 
+    ################
+
+    def save(self):
+        print("----SAVING----")
+        timestamp = cmh.get_timestamp()
+        catalog = f"output/{cmh.CURRENT_TIME} - GRAPH"
+        cmh.create_folders(catalog)
+        path = f"{catalog}/{timestamp} - MODEL.pt"
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        print(f"Loading model {path}")
+        self.load_state_dict(torch.load(path))
+        self.eval()
+
+    ################
+
     def solve_all(self, setting):
         self.eval()
 
-        
         batch = setting.get_data().to(thh.device)
 
-        normalized_a_cuda = self(
-            batch
-        )
+        normalized_a_cuda = self(batch)
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = setting.denormalize_rotate(normalized_a)
         return a, normalized_a

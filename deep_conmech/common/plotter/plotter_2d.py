@@ -2,9 +2,8 @@ import os
 import time
 from typing import List, Optional, Tuple
 
+from deep_conmech.common import config
 import matplotlib
-
-import deep_conmech.common.config as config
 import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import cmh
@@ -35,13 +34,13 @@ def set_perspective(scale, axs):
 
 
 def plot_animation(
-    all_setting_paths: List[str],
+    plot_setting_paths: List[str],
     time_skip: float,
     save_path: str,
     t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
-        all_setting_paths=all_setting_paths,
+        plot_setting_paths=plot_setting_paths,
         time_skip=time_skip,
         save_path=save_path,
         get_axs=get_axs,
@@ -65,7 +64,9 @@ def plot_frame(
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
-        draw_main_temperature(fig=fig, axs=axs, setting=setting, cbar_settings=cbar_settings)
+        draw_main_temperature(
+            fig=fig, axs=axs, setting=setting, cbar_settings=cbar_settings
+        )
     else:
         draw_main_displaced(setting, axs)
     if base_setting is not None:
@@ -143,11 +144,12 @@ def draw_main_temperature(axs, fig, setting, cbar_settings):
         antialiased=True,
     )
     plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
-    #norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
-    #values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
-    #cbar = fig.colorbar(
+    # norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
+    # values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
+    # cbar = fig.colorbar(
     #    values, ax=axs
-    #) #cax=cbar_ax #cax vs ax
+    # ) #cax=cbar_ax #cax vs ax
+
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
     obstacles_tangient = np.hstack(
@@ -330,19 +332,14 @@ def add_annotation(annotation, setting, position, ax):
     ax.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
 
-def draw_parameters(time, setting, scale, ax):
+def draw_parameters(current_time, setting, scale, ax):
     x_max = ax.get_xlim()[1]
     y_max = ax.get_ylim()[1]
     args = dict(color="w", fontsize=5,)
-    ax.annotate(
-        f"time: {str(round(time, 1))}",
-        xy=(x_max - 3.0 * scale, y_max - 0.5 * scale),
-        **args,
-    )
-    ax.annotate(
-        f"nodes: {str(setting.nodes_count)}",
-        xy=(x_max - 3.0 * scale, y_max - 1.0 * scale),
-        **args,
+    
+    annotation = plotter_common.get_frame_annotation(current_time=current_time, setting=setting)
+    ax.text(
+        x_max - 3.0 * scale, y_max - 1.0 * scale, s=annotation, **args
     )
 
 
@@ -414,6 +411,7 @@ def draw_data_at_vertices(setting, features, position, ax):
 
 
 ###################
+
 
 def plot_simple_data(elements, nodes, path):
     fig = get_fig()

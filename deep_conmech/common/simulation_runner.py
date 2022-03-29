@@ -31,21 +31,28 @@ def plot_scenario(
     catalog,
     simulate_dirty_data=False,
     plot_animation=True,
-    clear_catalog=True
+    save_all=False
 ):
     final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
     setting_catalog = f"{final_catalog}/settings"
     cmh.create_folders(setting_catalog)
     time_skip = config.PRINT_SKIP
+    plot_setting_paths = []
     all_setting_paths = []
 
     def operation_save(current_time, setting, base_setting, a, base_a):
         path = f"{setting_catalog}/time_{current_time:.4f}"
         setting_path = f"{path}"
-        setting.save_pickle(setting_path)
-        all_setting_paths.append(setting_path)
-        # if draw_base:
-        #    setting.save_pickle(f"{path}_base_setting")
+
+        is_selected = time_skip is None or nph.close_modulo(current_time, time_skip)
+        if save_all or is_selected:
+            setting.save_pickle(setting_path)
+            if is_selected:
+                plot_setting_paths.append(setting_path)
+            all_setting_paths.append(setting_path)
+            
+            # if draw_base:
+            #    setting.save_pickle(f"{path}_base_setting")
 
     simulate(
         compare_with_base_setting=False,
@@ -53,20 +60,19 @@ def plot_scenario(
         scenario=scenario,
         simulate_dirty_data=simulate_dirty_data,
         operation=operation_save if plot_animation else None,
-        time_skip=time_skip,
     )
 
     if plot_animation:
-        plot_scenario_animation(scenario, all_setting_paths, final_catalog, time_skip)
+        plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip)
 
-    if clear_catalog:
+    if not save_all:
         cmh.clear_folder(setting_catalog)
     
     return all_setting_paths
 
 
-def plot_scenario_animation(scenario, all_setting_paths, final_catalog, time_skip):
-    t_scale = plotter_common.get_t_scale(scenario, all_setting_paths)
+def plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip):
+    t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
     save_path = (
         f"{final_catalog}/{scenario.id}.gif"
     )
@@ -76,7 +82,7 @@ def plot_scenario_animation(scenario, all_setting_paths, final_catalog, time_ski
         else plotter_3d.plot_animation
     )
     plot_function(
-        all_setting_paths=all_setting_paths,
+        plot_setting_paths=plot_setting_paths,
         time_skip=time_skip,
         save_path=save_path,
         t_scale=t_scale,
@@ -92,7 +98,6 @@ def simulate(
     scenario: Scenario,
     simulate_dirty_data: bool,
     operation: Optional[Callable] = None,
-    time_skip: Optional[float] = None,
 ) -> None:
     setting = scenario.get_setting(
         randomize=simulate_dirty_data, create_in_subprocess=True
@@ -140,9 +145,8 @@ def simulate(
             base_a = Solver.solve(base_setting)  ## save in setting
             comparison_time += time.time() - start_time
 
-        if time_skip is None or nph.close_modulo(current_time, time_skip):
-            if operation is not None:
-                operation(current_time, setting, base_setting, a, base_a)
+        if operation is not None:
+            operation(current_time, setting, base_setting, a, base_a)
 
         if with_temperature:
             setting.iterate_self(a, t)

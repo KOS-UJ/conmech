@@ -34,11 +34,11 @@ class ColorbarSettings:
 
 
 
-def get_t_scale(scenario: Scenario, all_setting_paths: List[str]):
+def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     temperatures = np.array(
-        [SettingIterable.load_pickle(path).t_old for path in all_setting_paths]
+        [SettingIterable.load_pickle(path).t_old for path in plot_setting_paths]
     )
     return np.array([np.min(temperatures), np.max(temperatures)])
 
@@ -82,7 +82,7 @@ def plt_save(path, extension):
 
 
 def plot_animation(
-    all_setting_paths: List[str],
+    plot_setting_paths: List[str],
     time_skip: float,
     save_path: str,
     get_axs: Callable,
@@ -92,7 +92,7 @@ def plot_animation(
 ):
     # frac_skip = config.PRINT_SKIP
     # skip = int(frac_skip // scenario.time_step)
-    frames_count = len(all_setting_paths)  # // skip
+    frames_count = len(plot_setting_paths)  # // skip
     fps = int(1 / time_skip)
     animation_tqdm = cmh.get_tqdm(range(frames_count+1), desc="Generating animation")
 
@@ -101,7 +101,7 @@ def plot_animation(
         animation_tqdm.update(1)
         fig.clf()
         axs = get_axs(fig)
-        path = all_setting_paths[step]
+        path = plot_setting_paths[step]
         setting = SettingIterable.load_pickle(path)
         plot_frame(axs=axs, fig=fig, setting=setting, current_time=current_time, t_scale=t_scale)
         return fig
@@ -112,3 +112,7 @@ def plot_animation(
     ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
     #animation_tqdm.close()
     plt.close()
+
+def get_frame_annotation(setting, current_time):
+    return f"""time: {str(round(current_time, 1))}
+nodes: {str(setting.nodes_count)}"""

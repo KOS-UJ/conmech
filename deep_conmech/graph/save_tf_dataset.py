@@ -13,11 +13,25 @@ from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
-
+from deep_conmech.graph.helpers import dch
 tf.enable_eager_execution()
 
 
 #########
+
+
+def load_data(meta_path, data_path):
+    meta = load_meta(meta_path)
+
+    ds = tf.data.TFRecordDataset(data_path)
+    parser = functools.partial(_parse, meta=meta)
+    first_input = tf.data.make_one_shot_iterator(ds).get_next()
+    result = parser(first_input)
+
+    ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
+    ds = ds.prefetch(1)  # 10
+    inputs = tf.data.make_one_shot_iterator(ds).get_next()
+    return inputs
 
 
 def _parse(proto, meta):
@@ -38,6 +52,7 @@ def _parse(proto, meta):
         out[key] = data
     return out
 
+#########
 
 def save_tf_data(data, path: str):
     writer = tf.io.TFRecordWriter(path)
@@ -68,18 +83,17 @@ def to_dict(type, array):
 
 
 def simulate(scenario):
-    all_setting_paths = simulation_runner.plot_scenario(
+    return simulation_runner.plot_scenario(
         solve_function=Solver.solve,
         scenario=scenario,
-        catalog="LOAD_SAVE",
-        clear_catalog=False,
+        catalog="SAVE_TF",
+        save_all=True
     )
-    all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
-    return all_settings
 
 
-def prepare_data(all_settings):
-    base_setting = all_settings[0]
+def prepare_data(all_setting_paths):
+    #all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
+    base_setting = SettingIterable.load_pickle(all_setting_paths[0])
 
     elements = base_setting.elements[np.newaxis, ...].astype("int32")
     initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
@@ -87,8 +101,14 @@ def prepare_data(all_settings):
         (1, base_setting.nodes_count, 1), dtype="int32"
     )  # TODO: Mask boundary points
 
-    moved_nodes = np.array([s.moved_nodes for s in all_settings], dtype="float32")
-    forces = np.array([s.forces for s in all_settings], dtype="float32")
+    moved_nodes_list = []
+    forces_list = []
+    for path in cmh.get_tqdm(all_setting_paths, desc="Preparing data to save"):
+        setting = SettingIterable.load_pickle(path)
+        moved_nodes_list.append(setting.moved_nodes)
+        forces_list.append(setting.forces)
+    moved_nodes = np.array(moved_nodes_list, dtype="float32")
+    forces = np.array(forces_list, dtype="float32")
 
     meta = dict(
         simulator="conmech",
@@ -102,7 +122,7 @@ def prepare_data(all_settings):
             world_pos=to_dict("dynamic", moved_nodes),
         ),
         field_names=["cells", "node_type", "mesh_pos", "forces", "world_pos"],
-        trajectory_length=len(all_settings),
+        trajectory_length=len(all_setting_paths),
     )
 
     data = dict(
@@ -117,6 +137,7 @@ def prepare_data(all_settings):
 
 
 def main():
+    dch.set_memory_limit()
     directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
 
@@ -136,8 +157,8 @@ def main():
         obstacles=o_side,
     )
 
-    all_settings = simulate(scenario)
-    meta, data = prepare_data(all_settings)
+    all_setting_paths = simulate(scenario)
+    meta, data = prepare_data(all_setting_paths)
 
     meta_path = os.path.join(directory, "meta.json")
     save_meta(meta, meta_path)
@@ -145,40 +166,6 @@ def main():
     for mode in ["train", "test", "valid"]:
         data_path = f"{directory}/{mode}.tfrecord"
         save_tf_data(data, data_path)
-
-        inputs = load_data(meta_path, data_path)
-        print_result(inputs, directory)
-
-
-def print_result(inputs, directory):
-    images_directory = f"{directory}/loaded_images"
-    cmh.create_folders(images_directory)
-
-    elements = inputs["cells"][0].numpy()
-    all_moved_nodes = inputs["world_pos"].numpy()
-
-    all_images_paths = []
-    for i in range(len(all_moved_nodes)):
-        time = (i + 1) * 0.01  # refactor
-        if time % config.PRINT_SKIP == 0:
-            moved_nodes = all_moved_nodes[i]
-            path = f"{images_directory}/loaded_result {i}.png"
-            all_images_paths.append(path)
-            plotter_2d.plot_simple_data(elements, moved_nodes, path)
-
-
-def load_data(meta_path, data_path):
-    meta = load_meta(meta_path)
-
-    ds = tf.data.TFRecordDataset(data_path)
-    parser = functools.partial(_parse, meta=meta)
-    first_input = tf.data.make_one_shot_iterator(ds).get_next()
-    result = parser(first_input)
-
-    ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
-    ds = ds.prefetch(1)  # 10
-    inputs = tf.data.make_one_shot_iterator(ds).get_next()
-    return inputs
 
 
 if __name__ == "__main__":

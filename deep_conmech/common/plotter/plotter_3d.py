@@ -1,11 +1,11 @@
 from typing import List, Optional, Tuple
-import matplotlib
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from deep_conmech.common.plotter import plotter_common
-from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.mesh.mesh import *
+from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -88,8 +88,21 @@ def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
                 setting.normalized_v_old,
                 setting.normalized_a_old,
             ],
-            t_scale=t_scale
+            t_scale=t_scale,
         )
+    draw_parameters(ax=axs[2], setting=setting, current_time=current_time)
+
+
+def draw_parameters(ax, setting, current_time):
+    annotation = plotter_common.get_frame_annotation(current_time=current_time, setting=setting)
+    x_max = ax.get_xlim()[1]
+    y_max = ax.get_ylim()[1]
+    z_max = ax.get_zlim()[1]
+
+    args = dict(color="w", fontsize=4)
+    ax.text(
+        x_max-2.0, y_max-0.5, z_max+1.0, s=annotation, **args
+    )  # zdir=None,
 
 
 def plot_arrows(starts, vectors, ax):
@@ -108,14 +121,18 @@ def draw_base_arrows(ax, base):
     ax.quiver(*z, *(base[2]), arrow_length_ratio=0.1, color="g")
 
 
-def plot_subframe(
-    fig, ax, setting, normalized_data, t_scale
-):
+def plot_subframe(fig, ax, setting, normalized_data, t_scale):
     draw_base_arrows(ax, setting.moved_base)
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
-        plot_main_temperature(fig, ax, nodes=setting.moved_nodes, setting=setting, cbar_settings=cbar_settings)
+        plot_main_temperature(
+            fig,
+            ax,
+            nodes=setting.moved_nodes,
+            setting=setting,
+            cbar_settings=cbar_settings,
+        )
     else:
         plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
     plot_obstacles(ax, setting, "tab:orange")
@@ -129,10 +146,18 @@ def plot_subframe(
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
     if isinstance(setting, SettingTemperature):
-        plot_temperature(fig=fig, ax=ax, nodes=shifted_normalized_nodes, setting=setting, cbar_settings=cbar_settings)
+        plot_temperature(
+            fig=fig,
+            ax=ax,
+            nodes=shifted_normalized_nodes,
+            setting=setting,
+            cbar_settings=cbar_settings,
+        )
 
 
-def plot_temperature(fig, ax, nodes, setting, cbar_settings : plotter_common.ColorbarSettings):
+def plot_temperature(
+    fig, ax, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
+):
     points = nodes.T
     ax.scatter(
         *points,
@@ -151,18 +176,19 @@ def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
     nodes_temperature = setting.t_old[setting.boundary_faces]
     faces_temperature = np.mean(nodes_temperature, axis=1)
 
-    facecolors = cbar_settings.mappable.to_rgba(faces_temperature) # plt.cm.jet(faces_temperature)
+    facecolors = cbar_settings.mappable.to_rgba(
+        faces_temperature
+    )  # plt.cm.jet(faces_temperature)
     ax.add_collection3d(
         Poly3DCollection(
             boundary_faces_nodes,
-            #edgecolors=,
+            # edgecolors=,
             linewidths=0.1,
             facecolors=facecolors,
             alpha=0.2,
         )
     )
     plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
-
 
 
 def plot_mesh(nodes, setting, color, ax):
@@ -205,7 +231,19 @@ def plot_obstacles(ax, setting, color):
     ax.quiver(*node, *normal, color=color, alpha=alpha)
 
 
-def plot_animation(all_setting_paths: List[str], time_skip: float, save_path: str, t_scale:Optional[np.ndarray]=None):
+def plot_animation(
+    plot_setting_paths: List[str],
+    time_skip: float,
+    save_path: str,
+    t_scale: Optional[np.ndarray] = None,
+):
     plotter_common.plot_animation(
-        all_setting_paths=all_setting_paths, time_skip=time_skip, save_path=save_path, get_axs=get_axs, plot_frame=plot_frame, fig=get_fig(), t_scale=t_scale
+        plot_setting_paths=plot_setting_paths,
+        time_skip=time_skip,
+        save_path=save_path,
+        get_axs=get_axs,
+        plot_frame=plot_frame,
+        fig=get_fig(),
+        t_scale=t_scale,
     )
+

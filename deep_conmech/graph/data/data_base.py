@@ -73,12 +73,12 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{dch.GENERATION_MEMORY_LIMIT_GB}"
     )
-    memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > dch.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > dch.GENERATION_MEMORY_LIMIT_GB
 
 
 def get_process_data_range(process_id, data_part_count):
