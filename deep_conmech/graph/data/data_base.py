@@ -3,7 +3,7 @@ import re
 from os import listdir
 from os.path import isfile, join
 
-import deep_conmech.common.config as config
+import deep_conmech.common.training_config as training_config
 import numpy as np
 import pandas as pd
 import torch
@@ -38,21 +38,21 @@ def print_dataset(dataset, cutoff, timestamp, description):
 
 
 def get_print_dataloader(dataset):
-    return get_dataloader(dataset, config.BATCH_SIZE, num_workers=0, shuffle=False)
+    return get_dataloader(dataset, training_config.BATCH_SIZE, num_workers=0, shuffle=False)
 
 
 def get_valid_dataloader(dataset):
     return get_dataloader(
         dataset,
-        config.VALID_BATCH_SIZE,
-        num_workers=config.DATALOADER_WORKERS,
+        training_config.VALID_BATCH_SIZE,
+        num_workers=training_config.DATALOADER_WORKERS,
         shuffle=False,
     )
 
 
 def get_train_dataloader(dataset):
     return get_dataloader(
-        dataset, config.BATCH_SIZE, num_workers=config.DATALOADER_WORKERS, shuffle=True
+        dataset, training_config.BATCH_SIZE, num_workers=training_config.DATALOADER_WORKERS, shuffle=True
     )
 
 
@@ -203,7 +203,7 @@ class BaseDatasetDynamic:
 
     @property
     def path(self):
-        return f"./datasets/{config.DATA_FOLDER}/{self.relative_path}"
+        return f"./datasets/{training_config.DATA_FOLDER}/{self.relative_path}"
 
     @property
     def images_path(self):
@@ -244,7 +244,7 @@ class BaseDatasetDynamic:
     def check_and_print(
         self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
-        cutoff = config.PRINT_DATA_CUTOFF
+        cutoff = training_config.PRINT_DATA_CUTOFF
         relative_index = current_index % int(data_count * cutoff)
         if relative_index == 0:
             step_tqdm.set_description(

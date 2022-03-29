@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
 
-import deep_conmech.common.config as config
+import deep_conmech.common.training_config as training_config
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np

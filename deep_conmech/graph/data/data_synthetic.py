@@ -3,7 +3,7 @@ import numpy as np
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from deep_conmech import scenarios
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
@@ -13,13 +13,13 @@ from torch_geometric.loader import DataLoader
 
 
 def create_forces(setting):
-    if interpolation_helpers.decide(config.DATA_ZERO_FORCES):
+    if interpolation_helpers.decide(training_config.DATA_ZERO_FORCES):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
-            config.FORCES_RANDOM_SCALE,
+            training_config.FORCES_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
@@ -30,7 +30,7 @@ def create_u_old(setting):
     u_old = interpolation_helpers.interpolate_four(
         setting.nodes_count,
         setting.initial_nodes,
-        config.U_RANDOM_SCALE,
+        training_config.U_RANDOM_SCALE,
         setting.mesh_data.scale_x,
         setting.mesh_data.scale_y,
     )
@@ -38,11 +38,11 @@ def create_u_old(setting):
 
 
 def create_v_old(setting):
-    if interpolation_helpers.decide(config.DATA_ROTATE_VELOCITY):
+    if interpolation_helpers.decide(training_config.DATA_ROTATE_VELOCITY):
         v_old = interpolation_helpers.interpolate_rotate(
             setting.nodes_count,
             setting.initial_nodes,
-            config.V_RANDOM_SCALE,
+            training_config.V_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
@@ -50,7 +50,7 @@ def create_v_old(setting):
         v_old = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
-            config.V_RANDOM_SCALE,
+            training_config.V_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
@@ -59,7 +59,7 @@ def create_v_old(setting):
 
 def create_obstacles(setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, training_config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
@@ -73,7 +73,7 @@ def create_mesh_type():
 
 def create_obstacles(setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, training_config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
@@ -83,21 +83,21 @@ def get_base_setting(mesh_type):
     return SettingInput(
         mesh_data=MeshData(
             mesh_type=mesh_type,
-            mesh_density=[config.MESH_DENSITY],
-            scale=[config.TRAIN_SCALE],
-            is_adaptive=config.ADAPTIVE_TRAINING_MESH,
+            mesh_density=[training_config.MESH_DENSITY],
+            scale=[training_config.TRAIN_SCALE],
+            is_adaptive=training_config.ADAPTIVE_TRAINING_MESH,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=config.FINAL_TIME),
+        schedule=Schedule(final_time=training_config.FINAL_TIME),
         create_in_subprocess=False,
     )
 
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
     def __init__(self, dimension):
-        num_workers = config.GENERATION_WORKERS
-        data_count = config.SYNTHETIC_SOLVERS_COUNT
+        num_workers = training_config.GENERATION_WORKERS
+        data_count = training_config.SYNTHETIC_SOLVERS_COUNT
 
         if data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")

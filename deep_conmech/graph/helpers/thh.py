@@ -7,16 +7,9 @@ import torch
 # print(numba.cuda.gpus)
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# torch.autograd.set_detect_anomaly(True)
-print(f"Running using {device}")
-
-
-def cuda_launch_blocking():
-    print("CUDA_LAUNCH_BLOCKING !!!!")
-    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-
+def get_device():
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # torch.autograd.set_detect_anomaly(True)
 
 def set_precision(data):
     return data.float()

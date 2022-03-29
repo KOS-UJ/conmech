@@ -1,5 +1,5 @@
 import torch
-from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 
@@ -38,7 +38,7 @@ class SettingTorch(SettingRandomized):
     @property
     def predicted_normalized_a_mean_cuda(self):
         return (
-            self.normalized_forces_mean_torch.to(thh.device)
+            self.normalized_forces_mean_torch.to(dch.DEVICE)
             * self.body_prop.mass_density
         )
 

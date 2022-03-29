@@ -3,7 +3,7 @@ import time
 from typing import Callable, List, Optional
 
 from conmech.helpers import cmh
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
@@ -36,7 +36,7 @@ def plot_scenario(
     final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
     setting_catalog = f"{final_catalog}/settings"
     cmh.create_folders(setting_catalog)
-    time_skip = config.PRINT_SKIP
+    time_skip = training_config.PRINT_SKIP
     plot_setting_paths = []
     all_setting_paths = []
 

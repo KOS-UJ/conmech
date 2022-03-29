@@ -1,6 +1,6 @@
 import torch
 from deep_conmech.common import *
-from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_randomized import *
 from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_forces import *
@@ -80,16 +80,16 @@ def L2_obstacle_nvt(
     boundary_nodes_volume,
 ):  # np via torch
     value_torch = L2_normalized_obstacle_correction(
-        thh.to_torch_double(boundary_a).to(thh.device),
+        thh.to_torch_double(boundary_a).to(dch.DEVICE),
         None,
-        thh.to_torch_double(C_boundary).to(thh.device),
-        thh.to_torch_double(E_boundary).to(thh.device),
-        thh.to_torch_double(boundary_v_old).to(thh.device),
-        thh.to_torch_double(boundary_nodes).to(thh.device),
-        thh.to_torch_long(boundary_normals).to(thh.device),
-        thh.to_torch_double(boundary_obstacle_nodes).to(thh.device),
-        thh.to_torch_double(boundary_obstacle_normals).to(thh.device),
-        thh.to_torch_double(boundary_nodes_volume).to(thh.device),
+        thh.to_torch_double(C_boundary).to(dch.DEVICE),
+        thh.to_torch_double(E_boundary).to(dch.DEVICE),
+        thh.to_torch_double(boundary_v_old).to(dch.DEVICE),
+        thh.to_torch_double(boundary_nodes).to(dch.DEVICE),
+        thh.to_torch_long(boundary_normals).to(dch.DEVICE),
+        thh.to_torch_double(boundary_obstacle_nodes).to(dch.DEVICE),
+        thh.to_torch_double(boundary_obstacle_normals).to(dch.DEVICE),
+        thh.to_torch_double(boundary_nodes_volume).to(dch.DEVICE),
     )
     value = thh.to_np_double(value_torch)
     return value  # .item()

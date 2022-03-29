@@ -8,7 +8,7 @@ from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
@@ -215,7 +215,7 @@ def f_rotate_fast(ip, mp, md, t):
 
 
 def f_random(ip, mp, md, t):
-    scale = config.FORCES_RANDOM_SCALE
+    scale = training_config.FORCES_RANDOM_SCALE
     force = np.random.uniform(low=-scale, high=scale, size=2)
     return force
 
@@ -419,32 +419,32 @@ def get_data(**args):
 
 
 all_train = get_data(
-    mesh_density=config.MESH_DENSITY,
-    scale=config.TRAIN_SCALE,
-    is_adaptive=config.ADAPTIVE_TRAINING_MESH,
-    final_time=config.FINAL_TIME,
+    mesh_density=training_config.MESH_DENSITY,
+    scale=training_config.TRAIN_SCALE,
+    is_adaptive=training_config.ADAPTIVE_TRAINING_MESH,
+    final_time=training_config.FINAL_TIME,
 )
 
 all_validation = get_data(
-    mesh_density=config.MESH_DENSITY,
-    scale=config.VALIDATION_SCALE,
+    mesh_density=training_config.MESH_DENSITY,
+    scale=training_config.VALIDATION_SCALE,
     is_adaptive=False,
-    final_time=config.FINAL_TIME,
+    final_time=training_config.FINAL_TIME,
 )
 
 print_args = dict(
-    mesh_density=config.MESH_DENSITY,
-    scale=config.PRINT_SCALE,
+    mesh_density=training_config.MESH_DENSITY,
+    scale=training_config.PRINT_SCALE,
     is_adaptive=False,
-    final_time=config.FINAL_TIME,
+    final_time=training_config.FINAL_TIME,
 )
 
 
-def all_print(mesh_density=config.MESH_DENSITY, final_time=5.0):  # config.FINAL_TIME):
+def all_print(mesh_density=training_config.MESH_DENSITY, final_time=5.0):  # config.FINAL_TIME):
     return [
         *get_data(
             mesh_density=mesh_density,
-            scale=config.PRINT_SCALE,
+            scale=training_config.PRINT_SCALE,
             is_adaptive=False,
             final_time=final_time,
         ),

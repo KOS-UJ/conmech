@@ -6,7 +6,7 @@ from conmech.dataclass.schedule import Schedule
 
 import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.helpers import nph
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
  
@@ -39,10 +39,10 @@ class SettingRandomized(SettingIterable):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.v_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, config.V_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, training_config.V_IN_RANDOM_FACTOR
             )
             self.u_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, config.U_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, training_config.U_IN_RANDOM_FACTOR
             )
             # Do not randomize boundaries
             self.v_old_randomization[self.boundary_indices] = 0
@@ -85,11 +85,11 @@ class SettingRandomized(SettingIterable):
 
     @property
     def a_correction(self):
-        u_correction = config.U_NOISE_GAMMA * (
+        u_correction = training_config.U_NOISE_GAMMA * (
             self.u_old_randomization / (self.time_step ** 2)
         )
         v_correction = (
-            (1.0 - config.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
+            (1.0 - training_config.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 

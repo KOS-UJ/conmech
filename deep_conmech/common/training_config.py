@@ -1,4 +1,4 @@
-TEST = True #False
+TEST = False
 
 NORMALIZE_ROTATE = True
 ############
@@ -59,7 +59,7 @@ SKIP = True
 
 ATTENTION_HEADS = None  # None 1 3 5
 
-INITIAL_LR = 1e-3  # 1e-4 # 1e-5 
+INITIAL_LR = 1e-3  # 1e-4 # 1e-5
 LR_GAMMA = 1.0  # 0.999
 FINAL_LR = 1e-6
 

@@ -17,9 +17,11 @@ RUN_TIMESTEMP = get_timestamp()
 
 CURRENT_TIME = datetime.now().strftime("%d-%H.%M.%S")
 
+SHELL = False
+
 
 def get_tqdm(iterable, desc=None, position=None) -> tqdm:
-    return tqdm(iterable, desc=desc, position=position)#, ascii=True)
+    return tqdm(iterable, desc=desc, position=position, ascii=SHELL)
 
 
 def create_folder(path):

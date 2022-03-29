@@ -3,10 +3,10 @@ from conmech.dataclass.schedule import Schedule
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech import scenarios
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 
 class GraphScenario(Scenario):
-    
+
     def get_setting(
         self, randomize=False, create_in_subprocess: bool = False
     ) -> SettingInput:  # "SettingIterable":
@@ -29,13 +29,13 @@ def all_print():
             MeshData(
                 dimension=2,
                 mesh_type=scenarios.m_polygon,
-                scale=[config.PRINT_SCALE],
-                mesh_density=[config.MESH_DENSITY],
+                scale=[training_config.PRINT_SCALE],
+                mesh_density=[training_config.MESH_DENSITY],
                 is_adaptive=False,
             ),
             scenarios.default_body_prop,
             scenarios.default_obstacle_prop,
-            schedule=Schedule(final_time=config.FINAL_TIME),
+            schedule=Schedule(final_time=training_config.FINAL_TIME),
             forces_function=scenarios.f_rotate,
             obstacles=scenarios.o_side,
         )

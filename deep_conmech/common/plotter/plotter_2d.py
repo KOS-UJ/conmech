@@ -2,7 +2,7 @@ import os
 import time
 from typing import List, Optional, Tuple
 
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np

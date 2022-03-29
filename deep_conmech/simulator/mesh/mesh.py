@@ -1,7 +1,7 @@
 from argparse import ArgumentError
 from typing import Callable
 
-import deep_conmech.common.config as config
+import deep_conmech.common.training_config as training_config
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
@@ -453,7 +453,7 @@ class Mesh:
     def normalize_rotate(self, vectors):
         return (
             nph.get_in_base(vectors, self.moved_base)
-            if config.NORMALIZE_ROTATE
+            if training_config.NORMALIZE_ROTATE
             else vectors
         )
 

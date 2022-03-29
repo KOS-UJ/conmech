@@ -1,7 +1,7 @@
 from argparse import ArgumentError
 from typing import List
 
-from deep_conmech.common import config
+from deep_conmech.common import training_config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario

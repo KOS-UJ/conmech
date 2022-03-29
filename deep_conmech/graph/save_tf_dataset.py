@@ -7,7 +7,7 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 from conmech.helpers import cmh
-from deep_conmech.common import config, simulation_runner
+from deep_conmech.common import simulation_runner, training_config
 from deep_conmech.common.plotter import plotter_2d
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
