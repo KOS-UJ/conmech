@@ -144,12 +144,7 @@ def draw_main_temperature(axs, fig, setting, cbar_settings):
         antialiased=True,
     )
     plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
-    # norm = matplotlib.colors.Normalize(vmin=cbar_settings.vmin, vmax=cbar_settings.vmax)
-    # values = plt.cm.ScalarMappable(norm=norm, cmap=cbar_settings.cmap)
-    # cbar = fig.colorbar(
-    #    values, ax=axs
-    # ) #cax=cbar_ax #cax vs ax
-
+    
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
     obstacles_tangient = np.hstack(

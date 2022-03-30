@@ -48,7 +48,7 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     lim_big = 10
 
     if(t_scale[0] > -lim_small and t_scale[1] < lim_small):
-        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.coolwarm) #cool
+        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool) #coolwarm
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
 def plot_colorbar(fig, cbar_settings):

@@ -56,11 +56,11 @@ def train():
 
 def plot():
     net, _ = get_net()
-    path = GraphModelDynamic.get_newest_saved_model(net)
+    path = GraphModelDynamic.get_newest_saved_model_path()
     net.load(path)
     GraphModelDynamic.plot_all_scenarios(
         net, graph_scenarios.all_print()
-    )  # scenarios.all_print())
+    )
 
 
 def main(args):

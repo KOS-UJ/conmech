@@ -124,32 +124,24 @@ class GraphModelDynamic:
                 self.train_dataset.update_data()
 
             if current_time > training_config.SAVE_AT_MINUTES * 60 + last_saving_time:
-                self.save_model()
+                self.save_net()
                 # self.plot_all_scenarios(elapsed_time)
                 last_saving_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
 
+    ################
 
-#################
-
-    def save(self):
+    def save_net(self):
+        print("----SAVING----")
         timestamp = cmh.get_timestamp()
         catalog = f"output/{cmh.CURRENT_TIME} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
-        torch.save(self.net.state_dict(), path)
-        #torch.save(self.net, path)
-
-    def load(self, path):
-        self.net.load_state_dict(torch.load(path))
-        #self.net = torch.load(path)
-        self.net.eval()
-
-    ################
+        self.net.save(path)
 
     @staticmethod
-    def get_newest_saved_model():
+    def get_newest_saved_model_path():
         def get_index(path):
             return int(path.split("/")[-1].split(" ")[0])
 
@@ -160,42 +152,8 @@ class GraphModelDynamic:
         newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
         path = saved_model_paths[newest_index]
 
-        #print(f"Taking saved model {path.split('/')[-1]}")
+        print(f"Taking saved model {path.split('/')[-1]}")
         return path
-
-        
-    def save_model(self):
-        GraphModelDynamic.plot_all_scenarios(
-            self.net, graph_scenarios.all_print()
-        )
-
-        print("----SAVING----")
-        self.save()
-
-        net3 = CustomGraphNet(2, None, None).to(dch.DEVICE)
-        path = GraphModelDynamic.get_newest_saved_model()
-        net3.load_state_dict(torch.load(path))
-
-        GraphModelDynamic.plot_all_scenarios(
-            net3, graph_scenarios.all_print()
-        )
-        #list(self.net.node_encoder.net.children())[0].running_var 
-        self.net = net3
-
-    def compare_models(self, model_1, model_2):
-        models_differ = 0
-        for key_item_1, key_item_2 in zip(model_1.state_dict().items(), model_2.state_dict().items()):
-            if torch.equal(key_item_1[1], key_item_2[1]):
-                pass
-            else:
-                models_differ += 1
-                if (key_item_1[0] == key_item_2[0]):
-                    return f'Mismtach found at', key_item_1[0]
-                else:
-                    return "Exception"
-        if models_differ == 0:
-            return "Equal"
-
 
     @staticmethod
     def plot_all_scenarios(net: CustomGraphNet, print_scenarios):

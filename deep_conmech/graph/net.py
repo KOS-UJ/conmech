@@ -172,50 +172,6 @@ class ForwardNet(nn.Module):
         return result
 
 
-class MLP(nn.Module):
-    def __init__(
-        self,
-        input_dim,
-        layers_count,
-        output_linear_dim=training_config.LATENT_DIM,
-        input_normalization=False,
-        output_bias=True,
-    ):
-        super().__init__()
-
-        layers = []
-        if input_normalization:
-            layers.append(nn.BatchNorm1d(input_dim))
-
-        in_channels = input_dim
-        for _ in range(layers_count):
-            layers.append(
-                BasicBlock(
-                    in_channels=in_channels,
-                    out_channels=training_config.LATENT_DIM,
-                    bias=True,
-                    activation=ACTIVATION,
-                    dropout_rate=training_config.DROPOUT_RATE,
-                )
-            )
-            in_channels = layers[-1].out_channels
-
-        layers.append(
-            BasicBlock(
-                in_channels=training_config.LATENT_DIM,
-                out_channels=output_linear_dim,
-                bias=output_bias,
-                activation=ACTIVATION,  ##########################False,
-                dropout_rate=False,
-            )
-        )
-
-        self.net = nn.Sequential(*layers)
-
-    def forward(self, x):
-        result = self.net(x)
-        return result
-
 
 class Attention(Block):
     def __init__(self, in_channels, heads):
@@ -267,8 +223,6 @@ class ProcessorLayer(MessagePassing):
             output_linear_dim=training_config.LATENT_DIM,
         )
 
-        # self.edge_processor = MLP(input_dim=config.LATENT_DIM * 3)
-        # self.node_processor = MLP(input_dim=config.LATENT_DIM)  # 2 1
         self.layer_norm = (
             thh.set_precision(nn.LayerNorm(training_config.LATENT_DIM))
             if training_config.LAYER_NORM
@@ -317,7 +271,7 @@ class ProcessorLayer(MessagePassing):
         return new_node_latents, self.new_edge_latents
 
 
-class CustomGraphNet(nn.Module):  # SAMPLE
+class CustomGraphNet(nn.Module):
     def __init__(self, output_dim, nodes_statistics, edges_statistics):
         super().__init__()
 
@@ -372,6 +326,15 @@ class CustomGraphNet(nn.Module):  # SAMPLE
 
         output = self.decoder(node_latents)
         return output
+
+    ################
+
+    def save(self, path):
+        torch.save(self.state_dict(), path)
+
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
+        self.eval()
 
     ################
 

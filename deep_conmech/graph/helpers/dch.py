@@ -24,10 +24,10 @@ def get_used_memory_gb():
 
 
 TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
-TOTAL_MEMORY_LIMIT_GB = TOTAL_MEMORY_GB * 0.9
-GENERATION_MEMORY_LIMIT_GB = (
-    TOTAL_MEMORY_GB * 0.8
-) / training_config.GENERATION_WORKERS
+TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
+GENERATION_MEMORY_LIMIT_GB = round(
+    (TOTAL_MEMORY_GB * 0.8) / training_config.GENERATION_WORKERS, 2
+)
 
 
 def cuda_launch_blocking():
@@ -46,8 +46,10 @@ def set_memory_limit():
 SHELL = False
 DEVICE = thh.get_device()
 
+
 def initialize():
     set_memory_limit()
     print(f"Running using {DEVICE}")
+
 
 initialize()

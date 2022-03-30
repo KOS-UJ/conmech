@@ -9,9 +9,7 @@ from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 
 from deep_conmech.common import training_config
-from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.simulator.solver import Solver
 

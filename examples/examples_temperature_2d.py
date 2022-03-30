@@ -108,10 +108,9 @@ def get_polygon_scenarios(mesh_density, final_time):
 
 
 def main(mesh_density=4, final_time=3, plot_animation=True):
-    #add cool down
     all_scenarios = []
-    all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
-    all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
+    #all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    #all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
 
     simulation_runner.run_examples(

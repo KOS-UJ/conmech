@@ -7,11 +7,11 @@ TRAIN_SCALE = 1.0
 VALIDATION_SCALE = 1.0
 PRINT_SCALE = 1.0
 
-FINAL_TIME = 2 if TEST else 4 #8
+FINAL_TIME = 2 if TEST else 8
 
 
-MESH_DENSITY = 8 if TEST else 16
-ADAPTIVE_TRAINING_MESH = False  #!# True
+MESH_DENSITY = 8 if TEST else 32
+ADAPTIVE_TRAINING_MESH = True
 
 ############
 
@@ -38,7 +38,7 @@ VALIDATE_AT_EPOCHS = 1 if TEST else 10
 SAVE_AT_MINUTES = 1 if TEST else 20
 PRINT_SKIP = 0.1
 
-DATASET = "scenarios"  # synthetic # scenarios
+DATASET = "synthetic"  # synthetic # scenarios
 L2_LOSS = True  #!#
 BATCH_SIZE = 128  #!#
 VALID_BATCH_SIZE = 128  #!#
@@ -59,7 +59,7 @@ SKIP = True
 
 ATTENTION_HEADS = None  # None 1 3 5
 
-INITIAL_LR = 1e-3  # 1e-4 # 1e-5
+INITIAL_LR = 1e-3 # 1e-4 # 1e-5
 LR_GAMMA = 1.0  # 0.999
 FINAL_LR = 1e-6
 
