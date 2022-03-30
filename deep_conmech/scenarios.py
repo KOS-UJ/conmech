@@ -1,8 +1,10 @@
 from typing import Any, Callable, Optional, Union
 
 import numpy as np
-from conmech.dataclass.body_properties import (DynamicBodyProperties,
-                                               DynamicTemperatureBodyProperties)
+from conmech.dataclass.body_properties import (
+    DynamicBodyProperties,
+    DynamicTemperatureBodyProperties,
+)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
@@ -36,7 +38,7 @@ class Scenario:
     @staticmethod
     def get_by_function(function, setting, current_time):
         if isinstance(function, np.ndarray):
-            return np.tile(function, (setting.nodes_count,1))
+            return np.tile(function, (setting.nodes_count, 1))
         return np.array(
             [
                 function(*nodes_pairs, setting.mesh_data, current_time)
@@ -47,17 +49,18 @@ class Scenario:
     def get_forces_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.forces_function, setting, current_time)
 
-
     def get_tqdm(self, description):
         return cmh.get_tqdm(
             range(self.schedule.episode_steps),
-            f"{description} {self.id}" # scale_{self.mesh_data.scale_x}",
+            f"{description} {self.id}",  # scale_{self.mesh_data.scale_x}",
         )
 
     def get_solve_function(self):
         return Solver.solve
-        
-    def get_setting(self, randomize=False, create_in_subprocess: bool = False) -> SettingRandomized: # "SettingIterable":
+
+    def get_setting(
+        self, randomize=False, create_in_subprocess: bool = False
+    ) -> SettingRandomized:  # "SettingIterable":
         setting = SettingRandomized(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
@@ -68,7 +71,6 @@ class Scenario:
         setting.set_randomization(randomize)
         setting.set_obstacles(self.obstacles)
         return setting
-
 
     @property
     def dimension(self):
@@ -93,7 +95,7 @@ class TemperatureScenario(Scenario):
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacles: np.ndarray,
-        heat_function: Union[Callable, np.ndarray]
+        heat_function: Union[Callable, np.ndarray],
     ):
         super().__init__(
             id=id,
@@ -130,16 +132,36 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
-default_body_prop = DynamicBodyProperties(mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0)
+default_body_prop = DynamicBodyProperties(
+    mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
+)
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
-default_C_coeff=np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-default_K_coeff=np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
-default_temp_body_prop = DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, C_coeff=default_C_coeff, K_coeff=default_K_coeff)
+default_C_coeff = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+default_K_coeff = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+default_temp_body_prop = DynamicTemperatureBodyProperties(
+    mass_density=1.0,
+    mu=4.0,
+    lambda_=4.0,
+    theta=4.0,
+    zeta=4.0,
+    C_coeff=default_C_coeff,
+    K_coeff=default_K_coeff,
+)
+
 
 def get_temp_body_prop(C_coeff, K_coeff):
-    return DynamicTemperatureBodyProperties(mass_density=1.0, mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0,  C_coeff=C_coeff, K_coeff=K_coeff)
+    return DynamicTemperatureBodyProperties(
+        mass_density=1.0,
+        mu=4.0,
+        lambda_=4.0,
+        theta=4.0,
+        zeta=4.0,
+        C_coeff=C_coeff,
+        K_coeff=K_coeff,
+    )
+
 
 ####################################
 
@@ -233,7 +255,6 @@ def f_rotate_3d(ip, mp, md, t):
 
 
 ####################################
-
 
 
 def circle_slope(mesh_density, scale, is_adaptive, final_time):
@@ -438,7 +459,9 @@ print_args = dict(
 )
 
 
-def all_print(mesh_density=training_config.MESH_DENSITY, final_time=5.0):  # config.FINAL_TIME):
+def all_print(
+    mesh_density=training_config.MESH_DENSITY, final_time=training_config.FINAL_TIME
+):
     return [
         *get_data(
             mesh_density=mesh_density,

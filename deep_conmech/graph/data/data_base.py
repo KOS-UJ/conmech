@@ -1,14 +1,15 @@
 import copy
 import re
+from dataclasses import dataclass
 from os import listdir
 from os.path import isfile, join
 
 import deep_conmech.common.training_config as training_config
 import numpy as np
-import pandas as pd
 import torch
 from conmech.helpers import cmh, mph
 from deep_conmech.common import simulation_runner
+from deep_conmech.graph.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
@@ -38,7 +39,9 @@ def print_dataset(dataset, cutoff, timestamp, description):
 
 
 def get_print_dataloader(dataset):
-    return get_dataloader(dataset, training_config.BATCH_SIZE, num_workers=0, shuffle=False)
+    return get_dataloader(
+        dataset, training_config.BATCH_SIZE, num_workers=0, shuffle=False
+    )
 
 
 def get_valid_dataloader(dataset):
@@ -52,7 +55,10 @@ def get_valid_dataloader(dataset):
 
 def get_train_dataloader(dataset):
     return get_dataloader(
-        dataset, training_config.BATCH_SIZE, num_workers=training_config.DATALOADER_WORKERS, shuffle=True
+        dataset,
+        training_config.BATCH_SIZE,
+        num_workers=training_config.DATALOADER_WORKERS,
+        shuffle=True,
     )
 
 
@@ -117,17 +123,6 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
-class DatasetStatistics:
-    def __init__(self, data, descriprion):
-        self.pandas_data = pd.DataFrame(data.numpy())
-        self.pandas_data.columns = descriprion
-
-        self.data_mean = torch.mean(data, axis=0)
-        self.data_std = torch.std(data, axis=0)
-
-    def describe(self):
-        return self.pandas_data.describe()
-
 
 class BaseDatasetDynamic:
     def __init__(
@@ -160,13 +155,15 @@ class BaseDatasetDynamic:
             nodes_data = torch.cat((nodes_data, data.x))
             edges_data = torch.cat((edges_data, data.edge_attr))
 
-        return (
-            DatasetStatistics(
-                nodes_data, SettingInput.get_nodes_data_description(self.dimension)
-            ),
-            DatasetStatistics(
-                edges_data, SettingInput.get_edges_data_description(self.dimension)
-            ),
+        nodes_statistics = FeaturesStatistics(
+            nodes_data, SettingInput.get_nodes_data_description(self.dimension)
+        )
+        edges_statistics = FeaturesStatistics(
+            edges_data, SettingInput.get_edges_data_description(self.dimension)
+        )
+
+        return DatasetStatistics(
+            nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
     def update_data(self):

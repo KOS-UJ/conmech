@@ -24,7 +24,6 @@ test_suits = {
     "dynamic": lambda: dynamic(**default_args),
     "temperature": lambda: temperature(**default_args),
     "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(**default_args),
-
     "examples_graph_2d": lambda: examples_graph_2d(**default_args_deep),
     "examples_roll_2d": lambda: examples_roll_2d(**default_args_deep),
     "examples_3d": lambda: examples_3d(**default_args_deep),

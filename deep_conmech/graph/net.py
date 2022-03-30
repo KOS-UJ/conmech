@@ -1,8 +1,11 @@
-import time
+from typing import Optional
 
 import torch
-from conmech.helpers import cmh
 from deep_conmech.common import training_config
+from deep_conmech.graph.data.dataset_statistics import (
+    DatasetStatistics,
+    FeaturesStatistics,
+)
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from torch import nn
@@ -121,15 +124,13 @@ class DataNorm(nn.Module):
 
 
 class ForwardNet(nn.Module):
-    def __init__(
-        self, input_dim, layers_count, output_linear_dim, normalization_statistics=None
-    ):
+    def __init__(self, input_dim, layers_count, output_linear_dim, statistics=None):
         super().__init__()
         layers = []
 
-        self.statistics = normalization_statistics
-        if normalization_statistics is not None:
-            layers.append(DataNorm(input_dim, normalization_statistics))
+        self.statistics = statistics
+        if statistics is not None:
+            layers.append(DataNorm(input_dim, statistics))
         else:
             layers.append(nn.BatchNorm1d(input_dim))
 
@@ -170,7 +171,6 @@ class ForwardNet(nn.Module):
     def forward(self, x):
         result = self.net(x)
         return result
-
 
 
 class Attention(Block):
@@ -272,20 +272,20 @@ class ProcessorLayer(MessagePassing):
 
 
 class CustomGraphNet(nn.Module):
-    def __init__(self, output_dim, nodes_statistics, edges_statistics):
+    def __init__(self, output_dim, statistics: Optional[DatasetStatistics]):
         super().__init__()
 
         self.node_encoder = ForwardNet(
             input_dim=SettingInput.nodes_data_dim(),
             layers_count=training_config.ENC_LAYER_COUNT,
             output_linear_dim=training_config.LATENT_DIM,
-            normalization_statistics=nodes_statistics,
+            statistics=None if statistics is None else statistics.nodes_statistics,
         )
         self.edge_encoder = ForwardNet(
             input_dim=SettingInput.edges_data_dim(),
             layers_count=training_config.ENC_LAYER_COUNT,
             output_linear_dim=training_config.LATENT_DIM,
-            normalization_statistics=edges_statistics,
+            statistics=None if statistics is None else statistics.edges_statistics,
         )
         self.layer_norm = (
             thh.set_precision(nn.LayerNorm(training_config.LATENT_DIM))

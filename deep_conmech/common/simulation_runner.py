@@ -10,7 +10,13 @@ from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
-def run_examples(all_scenarios, file, plot_animation, simulate_dirty_data=False):
+def run_examples(
+    all_scenarios,
+    file,
+    plot_animation,
+    simulate_dirty_data=False,
+    get_setting_function: Optional[Callable] = None,
+):
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i+1}/{len(all_scenarios)}-----")
         catalog = os.path.splitext(os.path.basename(file))[0].upper()
@@ -20,6 +26,7 @@ def run_examples(all_scenarios, file, plot_animation, simulate_dirty_data=False)
             catalog=catalog,
             simulate_dirty_data=simulate_dirty_data,
             plot_animation=plot_animation,
+            get_setting_function=get_setting_function,
         )
         print()
     print("DONE")
@@ -31,7 +38,8 @@ def plot_scenario(
     catalog,
     simulate_dirty_data=False,
     plot_animation=True,
-    save_all=False
+    save_all=False,
+    get_setting_function: Optional[Callable] = None,
 ):
     final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
     setting_catalog = f"{final_catalog}/settings"
@@ -50,7 +58,7 @@ def plot_scenario(
             if is_selected:
                 plot_setting_paths.append(setting_path)
             all_setting_paths.append(setting_path)
-            
+
             # if draw_base:
             #    setting.save_pickle(f"{path}_base_setting")
 
@@ -60,6 +68,7 @@ def plot_scenario(
         scenario=scenario,
         simulate_dirty_data=simulate_dirty_data,
         operation=operation_save if plot_animation else None,
+        get_setting_function=get_setting_function,
     )
 
     if plot_animation:
@@ -67,15 +76,13 @@ def plot_scenario(
 
     if not save_all:
         cmh.clear_folder(setting_catalog)
-    
+
     return all_setting_paths
 
 
 def plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip):
     t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
-    save_path = (
-        f"{final_catalog}/{scenario.id}.gif"
-    )
+    save_path = f"{final_catalog}/{scenario.id}.gif"
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
@@ -98,13 +105,24 @@ def simulate(
     scenario: Scenario,
     simulate_dirty_data: bool,
     operation: Optional[Callable] = None,
+    get_setting_function: Optional[Callable] = None,
 ) -> None:
-    setting = scenario.get_setting(
+    _get_setting_function = (
+        scenario.get_setting
+        if get_setting_function is None
+        else lambda randomize, create_in_subprocess: get_setting_function(
+            scenario=scenario,
+            randomize=randomize,
+            create_in_subprocess=create_in_subprocess,
+        )
+    )
+
+    setting = _get_setting_function(
         randomize=simulate_dirty_data, create_in_subprocess=True
     )
     with_temperature = isinstance(setting, SettingTemperature)
     if compare_with_base_setting:
-        base_setting = scenario.get_setting(randomize=False, create_in_subprocess=True)
+        base_setting = _get_setting_function(randomize=False, create_in_subprocess=True)
     else:
         base_setting = None
         base_a = None

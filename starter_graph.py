@@ -1,7 +1,6 @@
 import argparse
 
 import deep_conmech.scenarios as scenarios
-from deep_conmech.graph import graph_scenarios
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.helpers import dch, thh
@@ -24,9 +23,9 @@ def get_train_dataset(dataset_type):
 def get_all_val_datasets(train_dataset):
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
-    # all_val_datasets.append(
-    #    ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
-    # )
+    all_val_datasets.append(
+       ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+    )
     # all_val_datasets.extend(
     #    [
     #        ValidationScenarioDatasetDynamic([scenario], scenario.id)
@@ -37,29 +36,27 @@ def get_all_val_datasets(train_dataset):
 
 
 def get_net():
-    train_dataset = get_train_dataset(training_config.DATASET)
-    # nodes_statistics, edges_statistics = train_dataset.get_statistics()
-    nodes_statistics, edges_statistics = None, None
-    net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(dch.DEVICE)
-    return net, train_dataset
+    statistics = None
+    net = CustomGraphNet(2, statistics=statistics).to(dch.DEVICE)
+    return net
 
 
 def train():
-    net, train_dataset = get_net()
-    # else:
-    #    net = CustomGraphNet(2, None, None).to(dch.DEVICE)
-    #    train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
+    train_dataset = get_train_dataset(training_config.DATASET)
+    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
+    # statistics = train_dataset.get_statistics()
+    net = get_net()
     all_val_datasets = get_all_val_datasets(train_dataset=train_dataset)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net)
     model.train()
 
 
 def plot():
-    net, _ = get_net()
+    net = get_net()
     path = GraphModelDynamic.get_newest_saved_model_path()
     net.load(path)
     GraphModelDynamic.plot_all_scenarios(
-        net, graph_scenarios.all_print()
+        net, scenarios.all_print()
     )
 
 

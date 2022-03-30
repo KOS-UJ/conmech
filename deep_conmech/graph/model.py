@@ -1,7 +1,5 @@
-from argparse import ArgumentError
 import time
-from re import A
-from gevent import config
+from argparse import ArgumentError
 
 import numpy as np
 import torch
@@ -11,14 +9,10 @@ from deep_conmech.common import *
 from deep_conmech.common import simulation_runner
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
-from deep_conmech.graph.graph_scenarios import GraphScenario
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard.writer import SummaryWriter
-from deep_conmech.graph import graph_scenarios
-
-start = time.time()
 
 
 def get_writer(net: CustomGraphNet):
@@ -43,7 +37,7 @@ def get_writer(net: CustomGraphNet):
     )
 
 
-#| dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
+# | dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
 # | vpes {config.EPISODE_STEPS} \
 
 
@@ -70,7 +64,8 @@ class GraphModelDynamic:
             self.net.parameters(), lr=training_config.INITIAL_LR,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            training_config.LR_GAMMA ** epoch, training_config.FINAL_LR / training_config.INITIAL_LR
+            training_config.LR_GAMMA ** epoch,
+            training_config.FINAL_LR / training_config.INITIAL_LR,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lr_lambda
@@ -113,19 +108,20 @@ class GraphModelDynamic:
                 description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
             )
             examples_seen += es
-            self.training_raport(loss_array, examples_seen, epoch_number)
+            self.training_raport(loss_array=loss_array, examples_seen=examples_seen)
 
             self.scheduler.step()
 
             current_time = time.time()
             elapsed_time = current_time - start_time
             if epoch_number % training_config.VALIDATE_AT_EPOCHS == 0:
-                self.validation_raport(examples_seen, epoch_number, elapsed_time)
+                self.validation_raport(
+                    examples_seen=examples_seen, elapsed_time=elapsed_time
+                )
                 self.train_dataset.update_data()
 
             if current_time > training_config.SAVE_AT_MINUTES * 60 + last_saving_time:
                 self.save_net()
-                # self.plot_all_scenarios(elapsed_time)
                 last_saving_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
@@ -140,6 +136,8 @@ class GraphModelDynamic:
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
 
+    ################
+
     @staticmethod
     def get_newest_saved_model_path():
         def get_index(path):
@@ -149,11 +147,28 @@ class GraphModelDynamic:
         if not saved_model_paths:
             raise ArgumentError("No saved models")
 
-        newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
+        newest_index = np.argmax(
+            np.array([get_index(path) for path in saved_model_paths])
+        )
         path = saved_model_paths[newest_index]
 
         print(f"Taking saved model {path.split('/')[-1]}")
         return path
+
+    @staticmethod
+    def get_setting_function(
+        scenario: Scenario, randomize=False, create_in_subprocess: bool = False
+    ) -> SettingInput:  # "SettingIterable":
+        setting = SettingInput(
+            mesh_data=scenario.mesh_data,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
+            schedule=scenario.schedule,
+            create_in_subprocess=create_in_subprocess,
+        )
+        setting.set_randomization(randomize)
+        setting.set_obstacles(scenario.obstacles)
+        return setting
 
     @staticmethod
     def plot_all_scenarios(net: CustomGraphNet, print_scenarios):
@@ -168,6 +183,7 @@ class GraphModelDynamic:
                 catalog=catalog,
                 simulate_dirty_data=False,
                 plot_animation=True,
+                get_setting_function=GraphModelDynamic.get_setting_function,
             )
         print(f"Plotting time: {int((time.time() - start_time)/60)} min")
         # return catalog
@@ -221,7 +237,7 @@ class GraphModelDynamic:
             )
         return mean_loss_array, examples_seen
 
-    def training_raport(self, loss_array, examples_seen, epoch_number):
+    def training_raport(self, loss_array, examples_seen):
         self.writer.add_scalar(
             "Loss/Training/LearningRate", self.lr, examples_seen,
         )
@@ -230,18 +246,15 @@ class GraphModelDynamic:
                 f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
             )
 
-    def print_elapsed_time(self, elapsed_time):
-        print(f"Time since training started: {(elapsed_time / 60):.4f} min")
-
-    def validation_raport(self, examples_seen, epoch_number, elapsed_time):
+    def validation_raport(self, examples_seen, elapsed_time):
         print("----VALIDATING----")
-        self.print_elapsed_time(elapsed_time)
+        print(f"Time since training started: {(elapsed_time / 60):.4f} min")
 
         mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
             loss_array, _ = self.iterate_dataset(
                 dataset=dataset,
-                dataloader_function=data_base.get_train_dataloader,
+                dataloader_function=data_base.get_valid_dataloader,
                 step_function=self.test_step,
                 description=dataset.relative_path,
             )
@@ -260,7 +273,6 @@ class GraphModelDynamic:
                 examples_seen,
             )
         print("---")
-
 
     #################
 
