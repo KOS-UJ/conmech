@@ -37,7 +37,7 @@ class TrainingConfig(Config):
 
     ############
 
-    FORCES_RANDOM_SCALE = 1.3
+    FORCES_RANDOM_SCALE = 10 ################################1.3
     OBSTACLE_ORIGIN_SCALE = 2.0 * TRAIN_SCALE
 
     DATA_ZERO_FORCES = 0.5
@@ -58,7 +58,7 @@ class TrainingConfig(Config):
 
     ############
 
-    VALIDATE_AT_MINUTES = 1 if TEST else 15
+    VALIDATE_AT_MINUTES = 1 if TEST else 5
 
     DATASET = "scenarios"  # synthetic # scenarios
     L2_LOSS = True  #!#
@@ -69,9 +69,8 @@ class TrainingConfig(Config):
 
     ############
 
-
     USE_DATASET_STATS = False
-    INPUT_BATCH_NORM = False
+    INPUT_BATCH_NORM = True
     INTERNAL_BATCH_NORM = False
     LAYER_NORM = True
 

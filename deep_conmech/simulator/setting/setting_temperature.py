@@ -120,7 +120,7 @@ class SettingTemperature(SettingIterable):
         Q += (1 / self.time_step) * U @ t_old
 
         obstacle_heat_integral = self.get_obstacle_heat_integral()
-        Q += obstacle_heat_integral
+        #Q += obstacle_heat_integral
         return Q
 
     def get_obstacle_heat_integral(self):

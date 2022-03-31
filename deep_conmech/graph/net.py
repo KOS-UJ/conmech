@@ -17,25 +17,13 @@ ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
 # | ac {.ACTIVATION._get_name()} \
 
 
-class CustomModule(nn.Module):
-    @property
-    def device(self):
-        return next(self.parameters()).device
+def device(module: nn.Module):
+    return next(module.parameters()).device
 
-    def _apply(self, device):
-        return super()._apply(device)
+#next(net.edge_encoder.children())[0]
 
 
-class CustomMessagePassing(MessagePassing):
-    @property
-    def device(self):
-        return next(self.parameters()).device
-
-    def to(self, device):
-        return super().to(device)
-
-
-class Block(CustomModule):
+class Block(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_rate):
         super().__init__()
         self.in_channels, self.out_channels = in_channels, out_channels
@@ -120,7 +108,7 @@ class ResidualBlock(Block):
         return output
 
 
-class DataNorm(CustomModule):
+class DataNorm(nn.Module):
     def __init__(self, in_channels, statistics: FeaturesStatistics):
         super().__init__()
         self.in_channels = in_channels
@@ -128,18 +116,13 @@ class DataNorm(CustomModule):
         self.register_buffer("x_std", statistics.data_std)
         self.register_buffer("mask", statistics.data_std == 0)
 
-    def to(self, device):
-        self.x_mean.to(device)
-        self.x_std.to(device)
-        return super().to(device)
-
     def forward(self, x):
         output = (x - self.x_mean) / self.x_std
         output = torch.nan_to_num(output)
         return output
 
 
-class ForwardNet(CustomModule):
+class ForwardNet(nn.Module):
     def __init__(
         self,
         input_dim: int,
@@ -194,15 +177,15 @@ class ForwardNet(CustomModule):
             )
         )
 
+        if layer_norm:
+            layers.append(nn.LayerNorm(output_linear_dim))
+
         self.net = thh.set_precision(nn.Sequential(*layers))
 
-        self.layer_norm = (
-            thh.set_precision(nn.LayerNorm(config.LATENT_DIM)) if layer_norm else None
-        )
 
     def forward(self, x):
         result = self.net(x)
-        return result if self.layer_norm is None else self.layer_norm(result)
+        return result
 
 
 class Attention(Block):
@@ -240,7 +223,7 @@ class Attention(Block):
         return alpha
 
 
-class ProcessorLayer(CustomMessagePassing):
+class ProcessorLayer(MessagePassing):
     def __init__(self, config: TrainingConfig):
         super().__init__()
 
@@ -301,7 +284,7 @@ class ProcessorLayer(CustomMessagePassing):
         return new_node_latents, self.new_edge_latents
 
 
-class CustomGraphNet(CustomModule):
+class CustomGraphNet(nn.Module):
     def __init__(
         self,
         output_dim,
@@ -345,6 +328,10 @@ class CustomGraphNet(CustomModule):
             layer_norm=config.LAYER_NORM,
             config=config,
         )
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
 
     @property
     def node_statistics(self):

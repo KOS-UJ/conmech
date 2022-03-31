@@ -33,7 +33,6 @@ def get_writer(net: CustomGraphNet, config: TrainingConfig):
 | l2l {config.L2_LOSS} \
 | ds {config.DATASET} \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
-| ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 | bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
 | ld {config.LATENT_DIM} \
 | lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
@@ -41,6 +40,7 @@ def get_writer(net: CustomGraphNet, config: TrainingConfig):
     )
 
 
+# | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 # | dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
 # | vpes {config.EPISODE_STEPS} \
 
@@ -290,7 +290,7 @@ class GraphModelDynamic:
             )
 
         validation_time = time.time() - start_time
-        print(f"--Validation time: {(validation_time / 60):.4f}")
+        print(f"--Validation time: {(validation_time / 60):.4f} min")
 
     #################
 
