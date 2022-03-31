@@ -1,3 +1,4 @@
+import json
 import time
 from argparse import ArgumentError
 
@@ -16,29 +17,16 @@ from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard.writer import SummaryWriter
 
 
-def get_writer(net: CustomGraphNet, config: TrainingConfig):
-    return SummaryWriter(
-        f"./log/{config.CURRENT_TIME} \
-| tst {config.TEST} \
-| n_s {net.node_statistics is not None} \
-| e_s {net.edge_statistics is not None} \
-| ft {config.FINAL_TIME} \
-| lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
-| dr {config.DROPOUT_RATE} \
-| ah {config.ATTENTION_HEADS} \
-| _uds {config.USE_DATASET_STATS} \
-| _ibn {config.INPUT_BATCH_NORM} \
-| _bn {config.INTERNAL_BATCH_NORM} \
-| _ln {config.LAYER_NORM} \
-| l2l {config.L2_LOSS} \
-| ds {config.DATASET} \
-| md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
-| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
-| ld {config.LATENT_DIM} \
-| lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
-| mp {config.MESSAGE_PASSES}"
-    )
+def get_and_init_writer(config: TrainingConfig):
+    writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")
 
+    def pretty_json(value):
+        dictionary = vars(value)
+        json_str = json.dumps(dictionary, indent=2)
+        return "".join("\t" + line for line in json_str.splitlines(True))
+
+    writer.add_text(f"{config.CURRENT_TIME}", pretty_json(config.td), global_step=0)
+    return writer
 
 # | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 # | dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
@@ -61,7 +49,7 @@ class GraphModelDynamic:
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        self.writer = get_writer(net, self.config)
+        self.writer = get_and_init_writer(self.config)
         self.loss_labels = [
             "L2",
             "L2_diff",
@@ -72,11 +60,11 @@ class GraphModelDynamic:
 
         self.net = net
         self.optimizer = torch.optim.Adam(
-            self.net.parameters(), lr=self.config.INITIAL_LR,  # weight_decay=5e-4
+            self.net.parameters(), lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            self.config.LR_GAMMA ** epoch,
-            self.config.FINAL_LR / self.config.INITIAL_LR,
+            self.config.td.LR_GAMMA ** epoch,
+            self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lr_lambda
@@ -125,7 +113,7 @@ class GraphModelDynamic:
 
             current_time = time.time()
             elapsed_time = current_time - last_valid_time
-            if elapsed_time > self.config.VALIDATE_AT_MINUTES * 60:
+            if elapsed_time > self.config.td.VALIDATE_AT_MINUTES * 60:
                 print(f"--Training time: {(elapsed_time / 60):.4f} min")
                 self.save_net()
                 self.validation_raport(
@@ -232,7 +220,7 @@ class GraphModelDynamic:
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
-        torch.nn.utils.clip_grad_norm_(parameters, self.config.GRADIENT_CLIP)
+        torch.nn.utils.clip_grad_norm_(parameters, self.config.td.GRADIENT_CLIP)
 
     #################
 
@@ -366,7 +354,7 @@ class GraphModelDynamic:
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
 
-            if self.config.L2_LOSS:
+            if self.config.td.L2_LOSS:
                 loss += predicted_normalized_L2
             else:
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)

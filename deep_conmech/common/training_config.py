@@ -1,13 +1,77 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import psutil
 from conmech.helpers.config import Config
 
 
 @dataclass
+class TrainingData:
+
+    TRAIN_SCALE: int = 1
+    VALIDATION_SCALE: int = 1
+    PRINT_SCALE: int = 1
+
+    FINAL_TIME: int = 8  #!# 2
+
+    MESH_DENSITY: int = 16  #!# 8
+    ADAPTIVE_TRAINING_MESH: bool = False  # True #############
+
+    ############
+
+    FORCES_RANDOM_SCALE: int = 10  ################################1.3
+    OBSTACLE_ORIGIN_SCALE: int = 2 * TRAIN_SCALE
+
+    DATA_ZERO_FORCES: float = 0.5
+    DATA_ROTATE_VELOCITY: float = 0.5
+
+    U_RANDOM_SCALE: float = 0.2
+    V_RANDOM_SCALE: float = 2.5
+
+    U_NOISE_GAMMA: float = 0.1
+    U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
+    V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
+
+    ############
+
+    VALIDATE_AT_MINUTES: int = 5  #!# 1
+
+    DATASET: str = "scenarios"  # synthetic # scenarios
+    L2_LOSS: bool = True  #!#
+    BATCH_SIZE: int = 128  #!#
+    VALID_BATCH_SIZE: int = 128  #!#
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 64  #!#  2 # 512
+    SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
+
+    ############
+
+    USE_DATASET_STATS: bool = False
+    INPUT_BATCH_NORM: bool = True
+    INTERNAL_BATCH_NORM: bool = False
+    LAYER_NORM: bool = True
+
+    DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
+    SKIP: bool = True
+    # GRADIENT_CLIP = 10.0
+
+    ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
+
+    INITIAL_LR: float = 1e-3  # 1e-4 # 1e-5
+    LR_GAMMA: float = 1.0  # 0.999
+    FINAL_LR: float = 1e-6
+
+    LATENT_DIM: int = 128
+    ENC_LAYER_COUNT: int = 2
+    PROC_LAYER_COUNT: int = 0
+    DEC_LAYER_COUNT: int = 2
+    MESSAGE_PASSES: int = 8  # 5 # 10
+
+
+@dataclass
 class TrainingConfig(Config):
 
-    DEVICE: str = "cpu"
+    td: TrainingData = TrainingData()
+    DEVICE: str = "_"
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
 
@@ -20,72 +84,7 @@ class TrainingConfig(Config):
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
     GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / GENERATION_WORKERS, 2)
 
-    #####################
-    TEST: bool = False
-
-    NORMALIZE_ROTATE: bool = True
     ############
 
-    TRAIN_SCALE = 1.0
-    VALIDATION_SCALE = 1.0
-    PRINT_SCALE = 1.0
-
-    FINAL_TIME = 2 if TEST else 4 #8
-
-    MESH_DENSITY = 8 if TEST else 16
-    ADAPTIVE_TRAINING_MESH = False #True #############
-
-    ############
-
-    FORCES_RANDOM_SCALE = 10 ################################1.3
-    OBSTACLE_ORIGIN_SCALE = 2.0 * TRAIN_SCALE
-
-    DATA_ZERO_FORCES = 0.5
-    DATA_ROTATE_VELOCITY = 0.5
-
-    
-    U_RANDOM_SCALE = 0.2
-    V_RANDOM_SCALE = 2.5
-
-    U_NOISE_GAMMA = 0.1
-    U_IN_RANDOM_FACTOR = 0.005 * U_RANDOM_SCALE
-    V_IN_RANDOM_FACTOR = 0.005 * V_RANDOM_SCALE
-
-    ############
-
-    DATA_FOLDER = f"{MESH_DENSITY}"
-    PRINT_DATA_CUTOFF = 0.1
-
-    ############
-
-    VALIDATE_AT_MINUTES = 1 if TEST else 5
-
-    DATASET = "scenarios"  # synthetic # scenarios
-    L2_LOSS = True  #!#
-    BATCH_SIZE = 128  #!#
-    VALID_BATCH_SIZE = 128  #!#
-    SYNTHETIC_BATCHES_IN_EPOCH = 2 if TEST else 64  # 512  #!#
-    SYNTHETIC_SOLVERS_COUNT = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
-
-    ############
-
-    USE_DATASET_STATS = False
-    INPUT_BATCH_NORM = True
-    INTERNAL_BATCH_NORM = False
-    LAYER_NORM = True
-
-    DROPOUT_RATE = None  # 0.0  # 0.1  # 0.2  0.05
-    SKIP = True
-    # GRADIENT_CLIP = 10.0
-
-    ATTENTION_HEADS = None  # None 1 3 5
-
-    INITIAL_LR = 1e-3  # 1e-4 # 1e-5
-    LR_GAMMA = 1.0  # 0.999
-    FINAL_LR = 1e-6
-
-    LATENT_DIM = 128
-    ENC_LAYER_COUNT = 2
-    PROC_LAYER_COUNT = 0
-    DEC_LAYER_COUNT = 2
-    MESSAGE_PASSES = 8  # 5 # 10
+    DATA_FOLDER: str = f"{td.MESH_DENSITY}"
+    PRINT_DATA_CUTOFF: float = 0.1

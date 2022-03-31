@@ -51,7 +51,7 @@ def get_print_dataloader(dataset):
 def get_valid_dataloader(dataset):
     return get_dataloader(
         dataset,
-        dataset.config.VALID_BATCH_SIZE,
+        dataset.config.td.VALID_BATCH_SIZE,
         num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=False,
     )
@@ -60,7 +60,7 @@ def get_valid_dataloader(dataset):
 def get_train_dataloader(dataset):
     return get_dataloader(
         dataset,
-        dataset.config.BATCH_SIZE,
+        dataset.config.td.BATCH_SIZE,
         num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=True,
     )
@@ -85,10 +85,10 @@ def is_memory_overflow(config: Config, step_tqdm, tqdm_description):
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
-    memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > config.td.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > config.td.GENERATION_MEMORY_LIMIT_GB
 
 
 def get_process_data_range(process_id, data_part_count):

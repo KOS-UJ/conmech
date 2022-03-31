@@ -7,8 +7,8 @@ import torch
 from deep_conmech.common.training_config import TrainingConfig
 
 
-def device(config: TrainingConfig):
-    return torch.device(config.DEVICE)
+def device(training_config: TrainingConfig):
+    return torch.device(training_config.DEVICE)
 
 def get_device_id():
     return "cuda" if torch.cuda.is_available() else "cpu"

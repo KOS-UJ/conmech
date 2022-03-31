@@ -6,6 +6,7 @@ from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
@@ -17,7 +18,7 @@ class SettingRandomized(SettingIterable):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        config: Config,
+        config: TrainingConfig,
         create_in_subprocess,
     ):
         super().__init__(
@@ -40,10 +41,10 @@ class SettingRandomized(SettingIterable):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.v_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.V_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, self.config.td.V_IN_RANDOM_FACTOR
             )
             self.u_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.U_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, self.config.td.U_IN_RANDOM_FACTOR
             )
             # Do not randomize boundaries
             self.v_old_randomization[self.boundary_indices] = 0
@@ -86,11 +87,11 @@ class SettingRandomized(SettingIterable):
 
     @property
     def a_correction(self):
-        u_correction = self.config.U_NOISE_GAMMA * (
+        u_correction = self.config.td.U_NOISE_GAMMA * (
             self.u_old_randomization / (self.time_step ** 2)
         )
         v_correction = (
-            (1.0 - self.config.U_NOISE_GAMMA)
+            (1.0 - self.config.td.U_NOISE_GAMMA)
             * self.v_old_randomization
             / self.time_step
         )

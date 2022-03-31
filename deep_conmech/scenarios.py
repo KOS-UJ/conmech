@@ -11,7 +11,7 @@ from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
-from deep_conmech.common.training_config import TrainingConfig
+from deep_conmech.common.training_config import TrainingConfig, TrainingData
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
@@ -435,40 +435,40 @@ def get_data(**args):
     ]
 
 
-def all_train(config: TrainingConfig):
+def all_train(td: TrainingData):
     return get_data(
-        mesh_density=config.MESH_DENSITY,
-        scale=config.TRAIN_SCALE,
-        is_adaptive=config.ADAPTIVE_TRAINING_MESH,
-        final_time=config.FINAL_TIME,
+        mesh_density=td.MESH_DENSITY,
+        scale=td.TRAIN_SCALE,
+        is_adaptive=td.ADAPTIVE_TRAINING_MESH,
+        final_time=td.FINAL_TIME,
     )
 
 
-def all_validation(config: TrainingConfig):
+def all_validation(td: TrainingData):
     return get_data(
-        mesh_density=config.MESH_DENSITY,
-        scale=config.VALIDATION_SCALE,
+        mesh_density=td.MESH_DENSITY,
+        scale=td.VALIDATION_SCALE,
         is_adaptive=False,
-        final_time=config.FINAL_TIME,
+        final_time=td.FINAL_TIME,
     )
 
 
-def print_args(config: TrainingConfig):
+def print_args(td: TrainingData):
     return dict(
-        mesh_density=config.MESH_DENSITY,
-        scale=config.PRINT_SCALE,
+        mesh_density=td.MESH_DENSITY,
+        scale=td.PRINT_SCALE,
         is_adaptive=False,
-        final_time=config.FINAL_TIME,
+        final_time=td.FINAL_TIME,
     )
 
 
-def all_print(config: TrainingConfig):
+def all_print(td: TrainingData):
     return [
         *get_data(
-            mesh_density=config.MESH_DENSITY,
-            scale=config.PRINT_SCALE,
+            mesh_density=td.MESH_DENSITY,
+            scale=td.PRINT_SCALE,
             is_adaptive=False,
-            final_time=config.FINAL_TIME,
+            final_time=td.FINAL_TIME,
         ),
         # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
         # polygon_two(**print_args),
