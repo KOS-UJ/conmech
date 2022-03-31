@@ -8,7 +8,7 @@ from examples.example_quasistatic import main as quasistatic
 from examples.example_dynamic import main as dynamic
 from examples.example_temperature_dynamic import main as temperature
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
-from examples.examples_roll_2d import main as examples_roll_2d
+from examples.examples_2d import main as examples_2d
 from examples.examples_3d import main as examples_3d
 from conmech.helpers.config import Config
 from examples.examples_temperature_2d import main as examples_temperature_2d
@@ -24,7 +24,7 @@ test_suits = {
     "dynamic": lambda: dynamic(**default_args),
     "temperature": lambda: temperature(**default_args),
     "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(**default_args),
-    "examples_roll_2d": lambda: examples_roll_2d(**default_args_deep),
+    "examples_2d": lambda: examples_2d(**default_args_deep),
     "examples_3d": lambda: examples_3d(**default_args_deep),
     "examples_temperature_2d": lambda: examples_temperature_2d(**default_args_deep),
     "examples_temperature_3d": lambda: examples_temperature_3d(**default_args_deep),

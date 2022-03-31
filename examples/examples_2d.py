@@ -6,7 +6,7 @@ from deep_conmech.scenarios import *
 from deep_conmech.simulator.solver import Solver
 
 
-def main(mesh_density=3, final_time=10, plot_animation=True):
+def main(mesh_density=3, final_time=0.10, plot_animation=True):
     config=Config(SHELL=False)
     all_scenarios = [
         Scenario(

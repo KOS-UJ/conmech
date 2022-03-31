@@ -17,8 +17,9 @@ from matplotlib.colors import ListedColormap
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
 
+#TODO: Move to config
 dpi = 800
-savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
+savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0) # "#24292E"
 
 
 
@@ -52,10 +53,26 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
         return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool) #coolwarm
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
-def plot_colorbar(fig, cbar_settings):
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=cbar_ax)
-    cbar.ax.tick_params(colors="w")
+def plot_colorbar(fig, axs, cbar_settings):
+    for ax in axs:
+        position = ax.get_position()
+        if(position.p0[0] > 0.1):
+            position.p0[0] *= 0.8
+        position.p1[0] *= 0.9
+        ax.set_position(position)
+
+    ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    set_ax(ax)
+    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=ax)
+    cbar.outline.set_edgecolor("w")
+    cbar.outline.set_linewidth(0.2)
+
+def set_ax(ax):
+    for spine in ax.spines.values():
+        spine.set_edgecolor("w")
+        spine.set_linewidth(0.2)
+    ax.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
+
 
 ########
 

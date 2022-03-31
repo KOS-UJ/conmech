@@ -26,6 +26,7 @@ def get_writer(net: CustomGraphNet, config:TrainingConfig):
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
+| bn {config.BATCH_NORM} \
 | ln {config.LAYER_NORM} \
 | l2l {config.L2_LOSS} \
 | ds {config.DATASET} \

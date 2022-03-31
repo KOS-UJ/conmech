@@ -7,16 +7,18 @@ from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.simulator.mesh.mesh import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def get_fig():
-    return plt.figure(figsize=(5, 4))
+    return plt.figure(figsize=(3, 2))
 
 
-def get_one_ax(fig, grid, angle, distance):
-    ax = fig.add_subplot(grid, projection="3d", facecolor="none")
+def get_one_ax(fig, rect, angle, distance):
+    #ax = fig.add_subplot(1, 1, 1, projection="3d", facecolor="none")
+    ax = fig.add_axes(rect, projection="3d", facecolor="none")
     ax.set_proj_type("ortho")
     ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
     ax.dist = distance
@@ -54,27 +56,15 @@ def get_one_ax(fig, grid, angle, distance):
 
 
 def get_axs(fig):
-    angles = np.array([[[0, -90], [0, 0]], [[30, -60], [90, 0]]])
-    distances = np.array([[10, 10], [11, 10]])
-    rows, columns, _ = angles.shape
+    angles = np.array([[[30, -60], [0, -90]], [[0, 0], [90, 0]]])
+    distances = np.array([[9, 10], [10, 10]])
 
-    # fig = get_figure()  # constrained_layout=True)
-    grid = fig.add_gridspec(nrows=rows, ncols=columns)
-    # , width_ratios=[1, 1.], height_ratios=[1., 1.])
-    # fig.subplots_adjust(left=-0.2, bottom=0., right=1., top=1.)#, wspace=-0.4, hspace=-0.4)
+    ax0 = get_one_ax(fig, [0.0, 0.0, 0.7, 0.7], angles[0, 0], distances[0, 0])
+    ax1 = get_one_ax(fig, [0.2, 0.5, 0.4, 0.4], angles[0, 1], distances[0, 0])
+    ax2 = get_one_ax(fig, [0.6, 0.5, 0.4, 0.4], angles[1, 0], distances[0, 1])
+    ax3 = get_one_ax(fig, [0.6, 0.2, 0.4, 0.4], angles[1, 1], distances[1, 1])
 
-    ax1 = get_one_ax(fig, grid[0, 0], angles[0, 0], distances[0, 0])
-    ax1.set_position([0.1, 0.5, 0.4, 0.4])
-
-    ax2 = get_one_ax(fig, grid[0, 1], angles[0, 1], distances[0, 1])
-    ax2.set_position([0.5, 0.5, 0.4, 0.4])
-
-    ax3 = get_one_ax(fig, grid[1, 0], angles[1, 0], distances[1, 0])
-    ax3.set_position([0.0, 0.0, 0.7, 0.7])
-
-    ax4 = get_one_ax(fig, grid[1, 1], angles[1, 1], distances[1, 1])
-    ax4.set_position([0.5, 0.2, 0.4, 0.4])
-    return [ax1, ax2, ax3, ax4]
+    return [ax0, ax1, ax2, ax3]
 
 
 def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
@@ -91,7 +81,11 @@ def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
             ],
             t_scale=t_scale,
         )
-    draw_parameters(ax=axs[2], setting=setting, current_time=current_time)
+    draw_parameters(ax=axs[0], setting=setting, current_time=current_time)
+
+    if isinstance(setting, SettingTemperature):
+        cbar_settings = plotter_common.get_t_data(t_scale=t_scale)
+        plotter_common.plot_colorbar(fig, axs=axs, cbar_settings=cbar_settings)
 
 
 def draw_parameters(ax, setting, current_time):
@@ -123,7 +117,7 @@ def draw_base_arrows(ax, base):
 
 
 def plot_subframe(fig, ax, setting, normalized_data, t_scale):
-    draw_base_arrows(ax, setting.moved_base)
+    #draw_base_arrows(ax, setting.moved_base)
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
@@ -189,7 +183,6 @@ def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
             alpha=0.2,
         )
     )
-    plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
 
 
 def plot_mesh(nodes, setting, color, ax):
@@ -249,4 +242,3 @@ def plot_animation(
         config = config,
         t_scale=t_scale,
     )
-

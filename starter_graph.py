@@ -26,7 +26,9 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
     all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(scenarios.all_validation(config), "ALL", config=config)
+        ValidationScenarioDatasetDynamic(
+            scenarios.all_validation(config), "ALL", config=config
+        )
     )
     # all_val_datasets.extend(
     #    [
@@ -62,9 +64,7 @@ def plot(config: TrainingConfig):
 
 def main(args: Namespace):
     print(f"MODE: {args.mode}")
-    config = TrainingConfig(
-        SHELL=(args.shell == "True"), TEST=False, DEVICE=thh.get_device_id()
-    )
+    config = TrainingConfig(SHELL=args.shell, TEST=False, DEVICE=thh.get_device_id())
     dch.set_memory_limit(config=config)
     print(f"Running using {config.DEVICE}")
 
@@ -84,13 +84,6 @@ if __name__ == "__main__":
         default="train",
         help="Running mode of aplication",
     )
-    parser.add_argument(
-        "--shell",
-        type=str,
-        choices=["True", "False"],
-        default="False",
-        help="Running in shell",
-    )
-    # iishell --noshell
+    parser.add_argument("--shell", action=argparse.BooleanOptionalAction, default=False) # Python 3.9+
     args = parser.parse_args()
     main(args)

@@ -2,11 +2,12 @@ import os
 import time
 from typing import List, Optional, Tuple
 
-from deep_conmech.common import training_config
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import cmh
+from conmech.helpers.config import Config
+from deep_conmech.common import training_config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import Scenario
@@ -15,23 +16,24 @@ from deep_conmech.simulator.setting.setting_temperature import SettingTemperatur
 from matplotlib import animation, cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
-from conmech.helpers.config import Config
 
 
 def get_fig():
-    return plt.figure(figsize=(5, 2))
+    return plt.figure(figsize=(4, 2))
 
 
 def get_axs(fig):
-    axs = fig.add_subplot(1, 1, 1, facecolor="none")
+    #axs = fig.add_subplot(1, 1, 1, facecolor="none")
+    axs = fig.add_axes([0.075, 0.15, 0.9, 0.8], facecolor="none")
     return axs
 
 
-def set_perspective(scale, axs):
-    axs.set_aspect("equal", "box")
-    padding = 4
-    axs.set_xlim(-padding * scale, 20 * scale)
-    axs.set_ylim(-padding * scale, padding * scale)
+def set_perspective(scale, ax):
+    ax.set_aspect("equal", "box")
+    padding = 6
+    ax.set_xlim(-padding * scale, 18 * scale)
+    ax.set_ylim(-padding * scale, padding * scale)
+    plotter_common.set_ax(ax)
 
 
 def plot_animation(
@@ -62,52 +64,54 @@ def plot_frame(
     base_setting: Optional[SettingRandomized] = None,
     t_scale: Optional[np.ndarray] = None,
 ):
+    ax=axs
     scale = setting.mesh_data.scale_x
-    set_perspective(scale, axs)
+    set_perspective(scale, ax=ax)
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
+        plotter_common.plot_colorbar(fig, axs=[ax], cbar_settings=cbar_settings)
         draw_main_temperature(
-            fig=fig, axs=axs, setting=setting, cbar_settings=cbar_settings
+            fig=fig, ax=ax, setting=setting, cbar_settings=cbar_settings
         )
     else:
-        draw_main_displaced(setting, axs)
+        draw_main_displaced(setting, ax=ax)
     if base_setting is not None:
-        draw_base_displaced(base_setting, scale, axs)
+        draw_base_displaced(base_setting, scale, ax=ax)
 
-    draw_parameters(current_time, setting, scale, axs)
+    draw_parameters(current_time, setting, scale, ax=ax)
     # draw_angles(setting, ax)
 
-    position = np.array([-1.8, -2.2]) * scale
+    position = np.array([-4.2, -4.2]) * scale
     shift = 2.5 * scale
-    draw_forces(setting, position, axs)
+    draw_forces(setting, position, ax=ax)
     if draw_detailed:  # detailed:
         position[0] += shift
         if setting.obstacles is not None:
-            draw_obstacle_resistance_normalized(setting, position, axs)
+            draw_obstacle_resistance_normalized(setting, position, ax=ax)
             position[0] += shift
         # draw_boundary_faces_normals(setting, position, ax)
         # position[0] += shift
         # draw_boundary_normals(setting, position, ax)
         # position[0] += shift
 
-        draw_boundary_resistance_normal(setting, position, axs)
+        draw_boundary_resistance_normal(setting, position, ax=ax)
         position[0] += shift
-        draw_boundary_resistance_tangential(setting, position, axs)
+        draw_boundary_resistance_tangential(setting, position, ax=ax)
         position[0] += shift
-        draw_boundary_v_tangential(setting, position, axs)
+        draw_boundary_v_tangential(setting, position, ax=ax)
         position[0] += shift
 
-        draw_input_u(setting, position, axs)
+        draw_input_u(setting, position, ax=ax)
         position[0] += shift
-        draw_input_v(setting, position, axs)
+        draw_input_v(setting, position, ax=ax)
         position[0] += shift
-        draw_a(setting, position, axs)
+        draw_a(setting, position, ax=ax)
 
         position[0] += shift
         if isinstance(setting, SettingTemperature):
             plot_temperature(
-                axs=axs, setting=setting, position=position, cbar_settings=cbar_settings
+                ax=ax, setting=setting, position=position, cbar_settings=cbar_settings
             )
 
         # draw_edges_data(setting, position, ax)
@@ -115,15 +119,15 @@ def plot_frame(
 
 
 def plot_temperature(
-    axs,
+    ax,
     setting: SettingTemperature,
     position,
     cbar_settings: plotter_common.ColorbarSettings,
 ):
-    add_annotation("TEMP", setting, position, axs)
+    add_annotation("TEMP", setting, position, ax)
     # vmin, vmax, cmap = plotter_common.get_t_data(t_scale)
     points = (setting.normalized_points + position).T
-    axs.scatter(
+    ax.scatter(
         *points,
         c=setting.t_old,
         cmap=cbar_settings.cmap,
@@ -135,9 +139,9 @@ def plot_temperature(
     )
 
 
-def draw_main_temperature(axs, fig, setting, cbar_settings):
-    draw_main_obstacles(setting, axs)
-    values = axs.tricontourf(
+def draw_main_temperature(fig, ax, setting, cbar_settings):
+    draw_main_obstacles(setting, ax)
+    values = ax.tricontourf(
         *(setting.moved_nodes.T),
         setting.elements,
         setting.t_old.reshape(-1),
@@ -146,8 +150,7 @@ def draw_main_temperature(axs, fig, setting, cbar_settings):
         vmax=cbar_settings.vmax,
         antialiased=True,
     )
-    plotter_common.plot_colorbar(fig, cbar_settings=cbar_settings)
-    
+
 
 def draw_obstacles(obstacle_origins, obstacle_normals, position, color, ax):
     obstacles_tangient = np.hstack(
@@ -207,8 +210,7 @@ def draw_normalized_obstacles(setting, position, ax):
 
 
 def draw_obstacle_resistance_normalized(setting, position, ax):
-    draw_normalized_obstacles(setting, position, ax)
-
+    #draw_normalized_obstacles(setting, position, ax)
     draw_additional_setting("P", setting, position, ax)
     plot_arrows(
         setting.normalized_boundary_nodes + position,
@@ -334,11 +336,11 @@ def draw_parameters(current_time, setting, scale, ax):
     x_max = ax.get_xlim()[1]
     y_max = ax.get_ylim()[1]
     args = dict(color="w", fontsize=5,)
-    
-    annotation = plotter_common.get_frame_annotation(current_time=current_time, setting=setting)
-    ax.text(
-        x_max - 3.0 * scale, y_max - 1.0 * scale, s=annotation, **args
+
+    annotation = plotter_common.get_frame_annotation(
+        current_time=current_time, setting=setting
     )
+    ax.text(x_max - 3.0 * scale, y_max - 1.0 * scale, s=annotation, **args)
 
 
 def draw_triplot(nodes, setting, color, ax):
@@ -414,7 +416,7 @@ def draw_data_at_vertices(setting, features, position, ax):
 def plot_simple_data(elements, nodes, path):
     fig = get_fig()
     axs = get_axs(fig)
-    set_perspective(scale=1, axs=axs)
+    set_perspective(scale=1, ax=axs)
     triplot(nodes, elements, "tab:orange", axs)
     extension = path.split(".")[-1]
     plotter_common.plt_save(path, extension)
