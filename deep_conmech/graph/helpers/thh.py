@@ -1,15 +1,17 @@
 '''
 torch helpers
 '''
-import os
 import numpy as np
 import torch
-# print(numba.cuda.gpus)
+
+from deep_conmech.common.training_config import TrainingConfig
 
 
-def get_device():
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # torch.autograd.set_detect_anomaly(True)
+def device(config: TrainingConfig):
+    return torch.device(config.DEVICE)
+
+def get_device_id():
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 def set_precision(data):
     return data.float()

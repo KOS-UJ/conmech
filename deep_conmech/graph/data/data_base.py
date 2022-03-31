@@ -8,8 +8,12 @@ import deep_conmech.common.training_config as training_config
 import numpy as np
 import torch
 from conmech.helpers import cmh, mph
+from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
-from deep_conmech.graph.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.graph.data.dataset_statistics import (
+    DatasetStatistics,
+    FeaturesStatistics,
+)
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
@@ -40,15 +44,15 @@ def print_dataset(dataset, cutoff, timestamp, description):
 
 def get_print_dataloader(dataset):
     return get_dataloader(
-        dataset, training_config.BATCH_SIZE, num_workers=0, shuffle=False
+        dataset, dataset.config.BATCH_SIZE, num_workers=0, shuffle=False
     )
 
 
 def get_valid_dataloader(dataset):
     return get_dataloader(
         dataset,
-        training_config.VALID_BATCH_SIZE,
-        num_workers=training_config.DATALOADER_WORKERS,
+        dataset.config.VALID_BATCH_SIZE,
+        num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=False,
     )
 
@@ -56,8 +60,8 @@ def get_valid_dataloader(dataset):
 def get_train_dataloader(dataset):
     return get_dataloader(
         dataset,
-        training_config.BATCH_SIZE,
-        num_workers=training_config.DATALOADER_WORKERS,
+        dataset.config.BATCH_SIZE,
+        num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=True,
     )
 
@@ -76,15 +80,15 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
     )
 
 
-def is_memory_overflow(step_tqdm, tqdm_description):
+def is_memory_overflow(config: Config, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{dch.GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
-    memory_overflow = memory_usage > dch.GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > dch.GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > config.GENERATION_MEMORY_LIMIT_GB
 
 
 def get_process_data_range(process_id, data_part_count):
@@ -123,23 +127,30 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
-
 class BaseDatasetDynamic:
     def __init__(
-        self, dimension, relative_path, data_count, randomize_at_load, num_workers
+        self,
+        dimension,
+        relative_path,
+        data_count,
+        randomize_at_load,
+        num_workers,
+        config: Config,
     ):
         self.dimension = dimension
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
+        self.config = config
 
-    def get_setting_input(self, scenario: Scenario):
+    def get_setting_input(self, scenario: Scenario, config:Config):
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
+            config=config,
             create_in_subprocess=False,  #####
         )
         setting.set_randomization(False)
@@ -200,7 +211,7 @@ class BaseDatasetDynamic:
 
     @property
     def path(self):
-        return f"./datasets/{training_config.DATA_FOLDER}/{self.relative_path}"
+        return f"./datasets/{self.config.DATA_FOLDER}/{self.relative_path}"
 
     @property
     def images_path(self):
@@ -234,14 +245,14 @@ class BaseDatasetDynamic:
 
         setting.exact_normalized_a_torch = None
         data = setting.get_data(
-            f"{cmh.get_timestamp()} - {index}", exact_normalized_a_torch
+            f"{cmh.get_timestamp(self.config)} - {index}", exact_normalized_a_torch
         )
         return data
 
     def check_and_print(
         self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
-        cutoff = training_config.PRINT_DATA_CUTOFF
+        cutoff = self.config.PRINT_DATA_CUTOFF
         relative_index = current_index % int(data_count * cutoff)
         if relative_index == 0:
             step_tqdm.set_description(

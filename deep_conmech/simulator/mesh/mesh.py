@@ -7,6 +7,7 @@ import numba
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
 from conmech.helpers import nph
+from conmech.helpers.config import Config
 from numba import njit
 
 # import os, sys
@@ -285,11 +286,13 @@ class Mesh:
     def __init__(
         self,
         mesh_data: MeshData,
+        normalize_by_rotation: bool,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         create_in_subprocess: bool = False,
     ):
         self.mesh_data = mesh_data
+        self.normalize_by_rotation = normalize_by_rotation
         self.is_dirichlet = is_dirichlet
         self.is_contact = is_contact
         self.create_in_subprocess = create_in_subprocess
@@ -453,7 +456,7 @@ class Mesh:
     def normalize_rotate(self, vectors):
         return (
             nph.get_in_base(vectors, self.moved_base)
-            if training_config.NORMALIZE_ROTATE
+            if self.normalize_by_rotation
             else vectors
         )
 

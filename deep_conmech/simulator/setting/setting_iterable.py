@@ -6,6 +6,7 @@ from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers.config import Config
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
@@ -17,6 +18,7 @@ class SettingIterable(SettingObstacles):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
+        normalize_by_rotation: bool,
         create_in_subprocess,
     ):
         super().__init__(
@@ -24,6 +26,7 @@ class SettingIterable(SettingObstacles):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
 
@@ -45,7 +48,7 @@ class SettingIterable(SettingObstacles):
         setting = copy.deepcopy(self)
         return setting
 
-    def iterate_self(self, a):
+    def iterate_self(self, a, randomized_inputs=False):
         v = self.v_old + self.time_step * a
         u = self.u_old + self.time_step * v
 

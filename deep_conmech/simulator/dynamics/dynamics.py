@@ -1,15 +1,15 @@
 from typing import Callable
 
 import numpy as np
-from conmech.dataclass.body_properties import (BodyProperties,
-                                               DynamicBodyProperties,
-                                               StaticBodyProperties,
-                                               TemperatureBodyProperties)
+from conmech.dataclass.body_properties import (
+    StaticBodyProperties,
+    TemperatureBodyProperties,
+)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers.config import Config
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics import (dynamics_builder_2d,
-                                             dynamics_builder_3d)
+from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
 from deep_conmech.simulator.mesh.mesh import Mesh
 from numba import njit
 
@@ -33,6 +33,7 @@ class Dynamics(Mesh):
         mesh_data: MeshData,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
+        normalize_by_rotation: bool,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         with_schur_complement_matrices: bool = True,
@@ -40,6 +41,7 @@ class Dynamics(Mesh):
     ):
         super().__init__(
             mesh_data=mesh_data,
+            normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
@@ -62,14 +64,13 @@ class Dynamics(Mesh):
     def with_temperature(self):
         return isinstance(self.body_prop, TemperatureBodyProperties)
 
-
     def reinitialize_matrices(self):
         builder = (
             dynamics_builder_2d.DynamicsBuilder2D()
             if self.dimension == 2
             else dynamics_builder_3d.DynamicsBuilder3D()
         )
-        
+
         (
             self.element_initial_volume,
             self.const_volume,
@@ -77,7 +78,7 @@ class Dynamics(Mesh):
             self.const_elasticity,
             self.const_viscosity,
             self.C2T,
-            self.K
+            self.K,
         ) = builder.build_matrices(
             elements=self.elements,
             nodes=self.normalized_points,
@@ -86,7 +87,11 @@ class Dynamics(Mesh):
         )
 
         if self.with_schur_complement_matrices:
-            self.C = self.ACC + (self.const_viscosity + self.const_elasticity * self.time_step) * self.time_step
+            self.C = (
+                self.ACC
+                + (self.const_viscosity + self.const_elasticity * self.time_step)
+                * self.time_step
+            )
             (
                 self.C_boundary,
                 self.free_x_contact,

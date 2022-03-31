@@ -1,11 +1,9 @@
 from typing import Optional
 
 import torch
-from deep_conmech.common import training_config
-from deep_conmech.graph.data.dataset_statistics import (
-    DatasetStatistics,
-    FeaturesStatistics,
-)
+from deep_conmech.common.training_config import TrainingConfig
+from deep_conmech.graph.data.dataset_statistics import (DatasetStatistics,
+                                                        FeaturesStatistics)
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from torch import nn
@@ -110,11 +108,11 @@ class EmptyNorm(nn.Module):
 
 
 class DataNorm(nn.Module):
-    def __init__(self, in_channels, normalization_statistics):
+    def __init__(self, in_channels, statistics: FeaturesStatistics):
         super().__init__()
         self.in_channels = in_channels
-        self.x_mean = normalization_statistics.data_mean.to(dch.DEVICE)
-        self.x_std = normalization_statistics.data_std.to(dch.DEVICE)
+        self.x_mean = statistics.data_mean.to(thh.device(self.config))
+        self.x_std = statistics.data_std.to(thh.device(self.config))
         self.mask = self.x_std == 0
 
     def forward(self, x):
@@ -124,20 +122,31 @@ class DataNorm(nn.Module):
 
 
 class ForwardNet(nn.Module):
-    def __init__(self, input_dim, layers_count, output_linear_dim, statistics=None):
+    def __init__(
+        self,
+        input_dim: int,
+        layers_count: int,
+        output_linear_dim: int,
+        statistics: Optional[FeaturesStatistics],
+        batch_norm: bool,
+        config: TrainingConfig,
+    ):
         super().__init__()
         layers = []
 
         self.statistics = statistics
-        if statistics is not None:
-            layers.append(DataNorm(input_dim, statistics))
-        else:
+        if batch_norm:
             layers.append(nn.BatchNorm1d(input_dim))
+            if statistics is not None:
+                raise ArgumentException()
+        else:
+            if statistics is not None:
+                layers.append(DataNorm(in_channels=input_dim, statistics=statistics))
 
         layers.append(
             BasicBlock(
                 in_channels=input_dim,
-                out_channels=training_config.LATENT_DIM,
+                out_channels=config.LATENT_DIM,
                 bias=True,
                 # batch_norm=config.BATCH_NORM,
                 activation=ACTIVATION,
@@ -148,16 +157,16 @@ class ForwardNet(nn.Module):
         for _ in range(layers_count):
             layers.append(
                 ResidualBlock(
-                    training_config.LATENT_DIM,
+                    config.LATENT_DIM,
                     # batch_norm=config.BATCH_NORM,
-                    dropout_rate=training_config.DROPOUT_RATE,
-                    skip=training_config.SKIP,
+                    dropout_rate=config.DROPOUT_RATE,
+                    skip=config.SKIP,
                 )
             )
 
         layers.append(
             BasicBlock(
-                in_channels=training_config.LATENT_DIM,
+                in_channels=config.LATENT_DIM,
                 out_channels=output_linear_dim,
                 bias=True,  ################################################################
                 # batch_norm=False,
@@ -174,7 +183,7 @@ class ForwardNet(nn.Module):
 
 
 class Attention(Block):
-    def __init__(self, in_channels, heads):
+    def __init__(self, in_channels, heads, config: TrainingConfig):
         super().__init__(
             in_channels=in_channels, out_channels=1, dropout_rate=False,
         )
@@ -185,7 +194,7 @@ class Attention(Block):
             return
 
         attention_heads = BasicBlock(
-            in_channels=training_config.LATENT_DIM,
+            in_channels=config.LATENT_DIM,
             out_channels=self.heads,
             bias=True,
             activation=ACTIVATION,
@@ -209,28 +218,32 @@ class Attention(Block):
 
 
 class ProcessorLayer(MessagePassing):
-    def __init__(self):
+    def __init__(self, config: TrainingConfig):
         super().__init__()
 
         self.edge_processor = ForwardNet(
-            input_dim=training_config.LATENT_DIM * 3,
-            layers_count=training_config.PROC_LAYER_COUNT,
-            output_linear_dim=training_config.LATENT_DIM,
+            input_dim=config.LATENT_DIM * 3,
+            layers_count=config.PROC_LAYER_COUNT,
+            output_linear_dim=config.LATENT_DIM,
+            statistics=None,
+            batch_norm=config.BATCH_NORM, #FALSE
+            config=config,
         )
         self.node_processor = ForwardNet(
-            input_dim=training_config.LATENT_DIM * 2,
-            layers_count=training_config.PROC_LAYER_COUNT,
-            output_linear_dim=training_config.LATENT_DIM,
+            input_dim=config.LATENT_DIM * 2,
+            layers_count=config.PROC_LAYER_COUNT,
+            output_linear_dim=config.LATENT_DIM,
+            statistics=None,
+            batch_norm=config.BATCH_NORM, #FALSE
+            config=config,
         )
 
         self.layer_norm = (
-            thh.set_precision(nn.LayerNorm(training_config.LATENT_DIM))
-            if training_config.LAYER_NORM
+            thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+            if config.LAYER_NORM
             else EmptyNorm()
         )
-        self.attention = Attention(
-            training_config.LATENT_DIM, training_config.ATTENTION_HEADS
-        )
+        self.attention = Attention(config.LATENT_DIM, config.ATTENTION_HEADS, config)
         self.epsilon = Parameter(torch.Tensor(1))
 
         # change heads to a
@@ -272,36 +285,49 @@ class ProcessorLayer(MessagePassing):
 
 
 class CustomGraphNet(nn.Module):
-    def __init__(self, output_dim, statistics: Optional[DatasetStatistics]):
+    def __init__(
+        self,
+        output_dim,
+        statistics: Optional[DatasetStatistics],
+        config: TrainingConfig,
+    ):
         super().__init__()
+        self.config=config
 
         self.node_encoder = ForwardNet(
             input_dim=SettingInput.nodes_data_dim(),
-            layers_count=training_config.ENC_LAYER_COUNT,
-            output_linear_dim=training_config.LATENT_DIM,
+            layers_count=config.ENC_LAYER_COUNT,
+            output_linear_dim=config.LATENT_DIM,
             statistics=None if statistics is None else statistics.nodes_statistics,
+            batch_norm=statistics is None,
+            config=config,
         )
         self.edge_encoder = ForwardNet(
             input_dim=SettingInput.edges_data_dim(),
-            layers_count=training_config.ENC_LAYER_COUNT,
-            output_linear_dim=training_config.LATENT_DIM,
+            layers_count=config.ENC_LAYER_COUNT,
+            output_linear_dim=config.LATENT_DIM,
             statistics=None if statistics is None else statistics.edges_statistics,
+            batch_norm=statistics is None,
+            config=config,
         )
         self.layer_norm = (
-            thh.set_precision(nn.LayerNorm(training_config.LATENT_DIM))
-            if training_config.LAYER_NORM
+            thh.set_precision(nn.LayerNorm(config.LATENT_DIM))
+            if config.LAYER_NORM
             else EmptyNorm()
         )
 
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer() for _ in range(training_config.MESSAGE_PASSES)]
+            [ProcessorLayer(config) for _ in range(config.MESSAGE_PASSES)]
         )
-        self.processor_layers.to(dch.DEVICE)
+        self.processor_layers.to(config.DEVICE)
 
         self.decoder = ForwardNet(
-            input_dim=training_config.LATENT_DIM,
-            layers_count=training_config.DEC_LAYER_COUNT,
+            input_dim=config.LATENT_DIM,
+            layers_count=config.DEC_LAYER_COUNT,
             output_linear_dim=output_dim,
+            statistics=None,
+            batch_norm=config.BATCH_NORM, #FALSE
+            config=config,
         )
 
     @property
@@ -341,7 +367,7 @@ class CustomGraphNet(nn.Module):
     def solve_all(self, setting):
         self.eval()
 
-        batch = setting.get_data().to(dch.DEVICE)
+        batch = setting.get_data().to(thh.device(self.config))
         normalized_a_cuda = self(batch)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)

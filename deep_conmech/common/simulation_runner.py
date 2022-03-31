@@ -3,17 +3,20 @@ import time
 from typing import Callable, List, Optional
 
 from conmech.helpers import cmh
+from conmech.helpers.config import Config
 from deep_conmech.common import training_config
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
 
 
 def run_examples(
     all_scenarios,
     file,
     plot_animation,
+    config: Config,
     simulate_dirty_data=False,
     get_setting_function: Optional[Callable] = None,
 ):
@@ -26,6 +29,7 @@ def run_examples(
             catalog=catalog,
             simulate_dirty_data=simulate_dirty_data,
             plot_animation=plot_animation,
+            config=config,
             get_setting_function=get_setting_function,
         )
         print()
@@ -36,15 +40,16 @@ def plot_scenario(
     solve_function,
     scenario: Scenario,
     catalog,
+    config: Config,
     simulate_dirty_data=False,
     plot_animation=True,
     save_all=False,
     get_setting_function: Optional[Callable] = None,
 ):
-    final_catalog = f"output/{cmh.CURRENT_TIME} - {catalog}"
+    final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
     setting_catalog = f"{final_catalog}/settings"
     cmh.create_folders(setting_catalog)
-    time_skip = training_config.PRINT_SKIP
+    time_skip = config.PRINT_SKIP
     plot_setting_paths = []
     all_setting_paths = []
 
@@ -67,12 +72,13 @@ def plot_scenario(
         solve_function=solve_function,
         scenario=scenario,
         simulate_dirty_data=simulate_dirty_data,
+        config=config,
         operation=operation_save if plot_animation else None,
         get_setting_function=get_setting_function,
     )
 
     if plot_animation:
-        plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip)
+        plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip, config)
 
     if not save_all:
         cmh.clear_folder(setting_catalog)
@@ -80,7 +86,13 @@ def plot_scenario(
     return all_setting_paths
 
 
-def plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip):
+def plot_scenario_animation(
+    scenario:Scenario,
+    plot_setting_paths: List[str],
+    final_catalog: str,
+    time_skip: float,
+    config: Config,
+):
     t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
     save_path = f"{final_catalog}/{scenario.id}.gif"
     plot_function = (
@@ -92,6 +104,7 @@ def plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_sk
         plot_setting_paths=plot_setting_paths,
         time_skip=time_skip,
         save_path=save_path,
+        config=config,
         t_scale=t_scale,
     )
 
@@ -104,6 +117,7 @@ def simulate(
     solve_function,
     scenario: Scenario,
     simulate_dirty_data: bool,
+    config: Config,
     operation: Optional[Callable] = None,
     get_setting_function: Optional[Callable] = None,
 ) -> None:
@@ -111,6 +125,7 @@ def simulate(
         scenario.get_setting
         if get_setting_function is None
         else lambda randomize, create_in_subprocess: get_setting_function(
+            config=config,
             scenario=scenario,
             randomize=randomize,
             create_in_subprocess=create_in_subprocess,
@@ -130,7 +145,7 @@ def simulate(
     solver_time = 0
     comparison_time = 0
 
-    time_tqdm = scenario.get_tqdm("Simulating")
+    time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     a = None
     t = None
     for time_step in time_tqdm:

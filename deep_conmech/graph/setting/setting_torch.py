@@ -1,17 +1,25 @@
 import torch
+from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 
 class SettingTorch(SettingRandomized):
     def __init__(
-        self, mesh_data, body_prop, obstacle_prop, schedule, create_in_subprocess,
+        self,
+        mesh_data,
+        body_prop,
+        obstacle_prop,
+        schedule,
+        config: Config,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            config=config,
             create_in_subprocess=create_in_subprocess,
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
@@ -34,13 +42,6 @@ class SettingTorch(SettingRandomized):
     @property
     def normalized_forces_mean_torch(self):
         return thh.to_torch_double(self.normalized_forces_mean)
-
-    @property
-    def predicted_normalized_a_mean_cuda(self):
-        return (
-            self.normalized_forces_mean_torch.to(dch.DEVICE)
-            * self.body_prop.mass_density
-        )
 
     @property
     def input_forces_torch(self):

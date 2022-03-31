@@ -1,9 +1,10 @@
 from typing import Callable
 
-from conmech.dataclass.body_properties import BodyProperties, DynamicBodyProperties, StaticBodyProperties
+from conmech.dataclass.body_properties import StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
+from conmech.helpers.config import Config
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
@@ -13,6 +14,7 @@ class MeshFeatures(Dynamics):
         mesh_data: MeshData,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
+        normalize_by_rotation: bool,
         is_dirichlet: Callable,
         is_contact: Callable,
     ):
@@ -20,6 +22,7 @@ class MeshFeatures(Dynamics):
             mesh_data=mesh_data,
             body_prop=body_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             with_schur_complement_matrices=False,

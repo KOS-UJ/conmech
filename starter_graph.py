@@ -1,30 +1,32 @@
 import argparse
+from argparse import ArgumentParser, Namespace
 
 import deep_conmech.scenarios as scenarios
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
-from deep_conmech.graph.helpers import dch, thh
+from deep_conmech.graph.helpers import dch
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 
 
-def get_train_dataset(dataset_type):
+def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
+        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, config=config)
     elif dataset_type == "scenarios":
         train_dataset = TrainingScenariosDatasetDynamic(
-            scenarios.all_train, Solver.solve_all
+            scenarios.all_train(config), Solver.solve_all, config=config
         )
     else:
         raise ArgumentError()
     return train_dataset
 
 
-def get_all_val_datasets(train_dataset):
+def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
     all_val_datasets.append(
-       ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+        ValidationScenarioDatasetDynamic(scenarios.all_validation(config), "ALL", config=config)
     )
     # all_val_datasets.extend(
     #    [
@@ -35,42 +37,46 @@ def get_all_val_datasets(train_dataset):
     return all_val_datasets
 
 
-def get_net():
+def get_net(config: TrainingConfig):
     statistics = None
-    net = CustomGraphNet(2, statistics=statistics).to(dch.DEVICE)
+    net = CustomGraphNet(2, statistics=statistics, config=config).to(thh.device(config))
     return net
 
 
-def train():
-    train_dataset = get_train_dataset(training_config.DATASET)
+def train(config: TrainingConfig):
+    train_dataset = get_train_dataset(config.DATASET, config=config)
     # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
     # statistics = train_dataset.get_statistics()
-    net = get_net()
-    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, net)
+    net = get_net(config)
+    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
+    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
 
 
-def plot():
-    net = get_net()
+def plot(config: TrainingConfig):
+    net = get_net(config)
     path = GraphModelDynamic.get_newest_saved_model_path()
     net.load(path)
-    GraphModelDynamic.plot_all_scenarios(
-        net, scenarios.all_print()
-    )
+    GraphModelDynamic.plot_all_scenarios(net, scenarios.all_print(config), config)
 
 
-def main(args):
+def main(args: Namespace):
     print(f"MODE: {args.mode}")
+    config = TrainingConfig(
+        SHELL=(args.shell == "True"), TEST=False, DEVICE=thh.get_device_id()
+    )
+    dch.set_memory_limit(config=config)
+    print(f"Running using {config.DEVICE}")
+
     if "train" in args.mode:
-        train()
+        train(config)
     if args.mode == "plot":
-        plot()
+        plot(config)
 
 
 if __name__ == "__main__":
     # torch.multiprocessing.set_start_method('spawn')
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument(
         "--mode",
         type=str,
@@ -78,7 +84,6 @@ if __name__ == "__main__":
         default="train",
         help="Running mode of aplication",
     )
-    '''
     parser.add_argument(
         "--shell",
         type=str,
@@ -86,6 +91,6 @@ if __name__ == "__main__":
         default="False",
         help="Running in shell",
     )
-    '''
+    # iishell --noshell
     args = parser.parse_args()
     main(args)

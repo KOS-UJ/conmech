@@ -9,9 +9,11 @@ from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
+from conmech.helpers.config import Config
 
-from deep_conmech.common import training_config
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.simulator.solver import Solver
 
@@ -24,7 +26,7 @@ class Scenario:
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        forces_function: Union[Callable[[Any], np.ndarray], np.ndarray],
+        forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacles: Optional[np.ndarray],
     ):
         self.id = id
@@ -49,26 +51,27 @@ class Scenario:
     def get_forces_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.forces_function, setting, current_time)
 
-    def get_tqdm(self, description):
+    def get_tqdm(self, desc: str, config: Config):
         return cmh.get_tqdm(
-            range(self.schedule.episode_steps),
-            f"{description} {self.id}",  # scale_{self.mesh_data.scale_x}",
+            iterable=range(self.schedule.episode_steps),
+            config=config,
+            desc=f"{desc} {self.id}",  # scale_{self.mesh_data.scale_x}",
         )
 
     def get_solve_function(self):
         return Solver.solve
 
     def get_setting(
-        self, randomize=False, create_in_subprocess: bool = False
-    ) -> SettingRandomized:  # "SettingIterable":
-        setting = SettingRandomized(
+        self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
+    ) -> SettingIterable:  # "SettingIterable":
+        setting = SettingIterable(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.set_randomization(randomize)
         setting.set_obstacles(self.obstacles)
         return setting
 
@@ -94,7 +97,7 @@ class TemperatureScenario(Scenario):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
-        obstacles: np.ndarray,
+        obstacles: Optional[np.ndarray],
         heat_function: Union[Callable, np.ndarray],
     ):
         super().__init__(
@@ -115,13 +118,14 @@ class TemperatureScenario(Scenario):
         return Solver.solve_with_temperature
 
     def get_setting(
-        self, randomize=False, create_in_subprocess: bool = False
+        self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
     ) -> SettingTemperature:
         setting = SettingTemperature(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_obstacles(self.obstacles)
@@ -232,12 +236,6 @@ def f_rotate_fast(ip, mp, md, t):
         y_scaled = ip[1] / md.scale_y
         return y_scaled * np.array([3.0, 0.0])
     return np.array([0.0, 0.0])
-
-
-def f_random(ip, mp, md, t):
-    scale = training_config.FORCES_RANDOM_SCALE
-    force = np.random.uniform(low=-scale, high=scale, size=2)
-    return force
 
 
 ####################################
@@ -437,37 +435,40 @@ def get_data(**args):
     ]
 
 
-all_train = get_data(
-    mesh_density=training_config.MESH_DENSITY,
-    scale=training_config.TRAIN_SCALE,
-    is_adaptive=training_config.ADAPTIVE_TRAINING_MESH,
-    final_time=training_config.FINAL_TIME,
-)
-
-all_validation = get_data(
-    mesh_density=training_config.MESH_DENSITY,
-    scale=training_config.VALIDATION_SCALE,
-    is_adaptive=False,
-    final_time=training_config.FINAL_TIME,
-)
-
-print_args = dict(
-    mesh_density=training_config.MESH_DENSITY,
-    scale=training_config.PRINT_SCALE,
-    is_adaptive=False,
-    final_time=training_config.FINAL_TIME,
-)
+def all_train(config: TrainingConfig):
+    return get_data(
+        mesh_density=config.MESH_DENSITY,
+        scale=config.TRAIN_SCALE,
+        is_adaptive=config.ADAPTIVE_TRAINING_MESH,
+        final_time=config.FINAL_TIME,
+    )
 
 
-def all_print(
-    mesh_density=training_config.MESH_DENSITY, final_time=training_config.FINAL_TIME
-):
+def all_validation(config: TrainingConfig):
+    return get_data(
+        mesh_density=config.MESH_DENSITY,
+        scale=config.VALIDATION_SCALE,
+        is_adaptive=False,
+        final_time=config.FINAL_TIME,
+    )
+
+
+def print_args(config: TrainingConfig):
+    return dict(
+        mesh_density=config.MESH_DENSITY,
+        scale=config.PRINT_SCALE,
+        is_adaptive=False,
+        final_time=config.FINAL_TIME,
+    )
+
+
+def all_print(config: TrainingConfig):
     return [
         *get_data(
-            mesh_density=mesh_density,
-            scale=training_config.PRINT_SCALE,
+            mesh_density=config.MESH_DENSITY,
+            scale=config.PRINT_SCALE,
             is_adaptive=False,
-            final_time=final_time,
+            final_time=config.FINAL_TIME,
         ),
         # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
         # polygon_two(**print_args),

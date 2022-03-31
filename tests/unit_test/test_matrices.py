@@ -11,7 +11,7 @@ def test_matrices_2d_integrals():
     scale_y = 3
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshData(mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y])
+        mesh_data=MeshData(mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]),
     )
     edges_features_matrix, element_initial_volume = dynamics_builder_2d.get_edges_features_matrix_numba(
         elements=elements, nodes=initial_nodes
@@ -38,7 +38,7 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1])
+        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
     )      
     edges_features_matrix, element_initial_volume = dynamics_builder_3d.get_edges_features_matrix_numba(
         elements=elements, nodes=initial_nodes

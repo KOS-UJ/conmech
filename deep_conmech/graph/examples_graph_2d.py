@@ -3,16 +3,17 @@ from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.solver import Solver
+from deep_conmech.graph.model import GraphModelDynamic
 
-
-def main(mesh_density=5, final_time=5, plot_animation=True):
+def main():
+    config = TrainingConfig()
     simulation_runner.run_examples(
-        all_scenarios=scenarios.all_print(
-            mesh_density=mesh_density, final_time=final_time
-        ),
+        all_scenarios=scenarios.all_print(config),
         file=__file__,
-        plot_animation=plot_animation,
+        simulate_dirty_data=True,
+        plot_animation=True,
+        config=config,
+        get_setting_function=GraphModelDynamic.get_setting_function,
     )
 
 

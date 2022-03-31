@@ -7,6 +7,7 @@ from conmech.helpers import cmh
 from deep_conmech import scenarios
 from deep_conmech.common import *
 from deep_conmech.common import simulation_runner
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
@@ -15,25 +16,25 @@ from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard.writer import SummaryWriter
 
 
-def get_writer(net: CustomGraphNet):
+def get_writer(net: CustomGraphNet, config:TrainingConfig):
     return SummaryWriter(
-        f"./log/{cmh.CURRENT_TIME} \
-| tst {training_config.TEST} \
+        f"./log/{config.CURRENT_TIME} \
+| tst {config.TEST} \
 | n_s {net.node_statistics is not None} \
 | e_s {net.edge_statistics is not None} \
-| ft {training_config.FINAL_TIME} \
-| lr {training_config.INITIAL_LR} - {training_config.FINAL_LR} ({training_config.LR_GAMMA}) \
-| dr {training_config.DROPOUT_RATE} \
-| ah {training_config.ATTENTION_HEADS} \
-| ln {training_config.LAYER_NORM} \
-| l2l {training_config.L2_LOSS} \
-| ds {training_config.DATASET} \
-| md {training_config.MESH_DENSITY} ad {training_config.ADAPTIVE_TRAINING_MESH} \
-| ung {training_config.U_NOISE_GAMMA} - rf u {training_config.U_IN_RANDOM_FACTOR} v {training_config.V_IN_RANDOM_FACTOR} \
-| bs {training_config.BATCH_SIZE} vbs {training_config.VALID_BATCH_SIZE} bie {training_config.SYNTHETIC_BATCHES_IN_EPOCH} \
-| ld {training_config.LATENT_DIM} \
-| lc {training_config.ENC_LAYER_COUNT}-{training_config.PROC_LAYER_COUNT}-{training_config.DEC_LAYER_COUNT} \
-| mp {training_config.MESSAGE_PASSES}"
+| ft {config.FINAL_TIME} \
+| lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
+| dr {config.DROPOUT_RATE} \
+| ah {config.ATTENTION_HEADS} \
+| ln {config.LAYER_NORM} \
+| l2l {config.L2_LOSS} \
+| ds {config.DATASET} \
+| md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
+| ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
+| bs {config.BATCH_SIZE} vbs {config.VALID_BATCH_SIZE} bie {config.SYNTHETIC_BATCHES_IN_EPOCH} \
+| ld {config.LATENT_DIM} \
+| lc {config.ENC_LAYER_COUNT}-{config.PROC_LAYER_COUNT}-{config.DEC_LAYER_COUNT} \
+| mp {config.MESSAGE_PASSES}"
     )
 
 
@@ -46,11 +47,18 @@ class ErrorResult:
 
 
 class GraphModelDynamic:
-    def __init__(self, train_dataset, all_val_datasets, net: CustomGraphNet):
+    def __init__(
+        self,
+        train_dataset,
+        all_val_datasets,
+        net: CustomGraphNet,
+        config: TrainingConfig,
+    ):
+        self.config = config
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        self.writer = get_writer(net)
+        self.writer = get_writer(net, self.config)
         self.loss_labels = [
             "L2",
             "L2_diff",
@@ -61,11 +69,11 @@ class GraphModelDynamic:
 
         self.net = net
         self.optimizer = torch.optim.Adam(
-            self.net.parameters(), lr=training_config.INITIAL_LR,  # weight_decay=5e-4
+            self.net.parameters(), lr=self.config.INITIAL_LR,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            training_config.LR_GAMMA ** epoch,
-            training_config.FINAL_LR / training_config.INITIAL_LR,
+            self.config.LR_GAMMA ** epoch,
+            self.config.FINAL_LR / self.config.INITIAL_LR,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lr_lambda
@@ -114,13 +122,13 @@ class GraphModelDynamic:
 
             current_time = time.time()
             elapsed_time = current_time - start_time
-            if epoch_number % training_config.VALIDATE_AT_EPOCHS == 0:
+            if epoch_number % self.config.VALIDATE_AT_EPOCHS == 0:
                 self.validation_raport(
                     examples_seen=examples_seen, elapsed_time=elapsed_time
                 )
                 self.train_dataset.update_data()
 
-            if current_time > training_config.SAVE_AT_MINUTES * 60 + last_saving_time:
+            if current_time > self.config.SAVE_AT_MINUTES * 60 + last_saving_time:
                 self.save_net()
                 last_saving_time = time.time()
 
@@ -130,8 +138,8 @@ class GraphModelDynamic:
 
     def save_net(self):
         print("----SAVING----")
-        timestamp = cmh.get_timestamp()
-        catalog = f"output/{cmh.CURRENT_TIME} - GRAPH MODELS"
+        timestamp = cmh.get_timestamp(self.config)
+        catalog = f"output/{self.config.CURRENT_TIME} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
@@ -157,13 +165,14 @@ class GraphModelDynamic:
 
     @staticmethod
     def get_setting_function(
-        scenario: Scenario, randomize=False, create_in_subprocess: bool = False
+        scenario: Scenario, config:TrainingConfig, randomize=False, create_in_subprocess: bool = False
     ) -> SettingInput:  # "SettingIterable":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
+            config=config,
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
@@ -171,20 +180,22 @@ class GraphModelDynamic:
         return setting
 
     @staticmethod
-    def plot_all_scenarios(net: CustomGraphNet, print_scenarios):
+    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: Config):
         print("----PLOTTING----")
         start_time = time.time()
-        timestamp = cmh.get_timestamp()
+        timestamp = cmh.get_timestamp(config)
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.plot_scenario(
                 solve_function=net.solve,
                 scenario=scenario,
+                config=config,
                 catalog=catalog,
                 simulate_dirty_data=False,
                 plot_animation=True,
                 get_setting_function=GraphModelDynamic.get_setting_function,
             )
+            print("---")
         print(f"Plotting time: {int((time.time() - start_time)/60)} min")
         # return catalog
 
@@ -216,13 +227,13 @@ class GraphModelDynamic:
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
-        torch.nn.utils.clip_grad_norm_(parameters, training_config.GRADIENT_CLIP)
+        torch.nn.utils.clip_grad_norm_(parameters, self.config.GRADIENT_CLIP)
 
     #################
 
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
-        batch_tqdm = cmh.get_tqdm(dataloader, desc=description)
+        batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
         # range(len()) -> enumerate
 
         examples_seen = 0
@@ -286,7 +297,7 @@ class GraphModelDynamic:
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
 
-        batch_cuda = batch.to(dch.DEVICE)
+        batch_cuda = batch.to(thh.device(self.config))
         predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
 
         reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
@@ -348,7 +359,7 @@ class GraphModelDynamic:
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
 
-            if training_config.L2_LOSS:
+            if self.config.L2_LOSS:
                 loss += predicted_normalized_L2
             else:
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
@@ -373,7 +384,7 @@ class GraphModelDynamic:
     def use_true_solution(self, predicted_normalized_a, L2_args):
         function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
             cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
-                dch.DEVICE
+                thh.device(self.config)
             ),
             **L2_args,
         ).item()
@@ -387,5 +398,5 @@ class GraphModelDynamic:
                 ),
                 dim=2,
             )
-        ).to(dch.DEVICE)
+        ).to(thh.device(self.config))
         return predicted_normalized_a

@@ -50,11 +50,11 @@ def get_K_temp_scenarios(mesh_density, final_time):
         ),
         get_temp_body_prop(
             C_coeff=default_C_coeff,
-            K_coeff=np.array([[0.1, 0., 0.1], [0., 0.1, 0.], [0.1, 0., 0.1]]),
+            K_coeff=np.array([[0.1, 0.0, 0.1], [0.0, 0.1, 0.0], [0.1, 0.0, 0.1]]),
         ),
         get_temp_body_prop(
             C_coeff=default_C_coeff,
-            K_coeff=np.array([[0.1, -0.1, 0.], [-0.1, 0.1, 0.], [0., 0., 0.1]]),
+            K_coeff=np.array([[0.1, -0.1, 0.0], [-0.1, 0.1, 0.0], [0.0, 0.0, 0.1]]),
         ),
         # not allowed in physical law
         get_temp_body_prop(
@@ -117,7 +117,10 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
     )
 
     simulation_runner.run_examples(
-        all_scenarios=all_scenarios, file=__file__, plot_animation=plot_animation,
+        all_scenarios=all_scenarios,
+        file=__file__,
+        plot_animation=plot_animation,
+        config=Config(SHELL=False),
     )
 
 

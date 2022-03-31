@@ -137,7 +137,8 @@ def prepare_data(all_setting_paths):
 
 
 def main():
-    dch.set_memory_limit()
+    config = TrainingConfig()
+    dch.set_memory_limit(config=config)
     directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
 

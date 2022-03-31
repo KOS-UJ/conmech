@@ -7,6 +7,7 @@ from deep_conmech.simulator.solver import Solver
 
 
 def main(mesh_density=3, final_time=10, plot_animation=True):
+    config=Config(SHELL=False)
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",
@@ -86,6 +87,7 @@ def main(mesh_density=3, final_time=10, plot_animation=True):
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,
+        config=config
     )
 
 

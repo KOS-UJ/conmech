@@ -4,24 +4,17 @@ conmech helpers
 import os
 import shutil
 import time
-from datetime import datetime
 
+from conmech.helpers.config import Config
 from tqdm import tqdm
 
 
-def get_timestamp():
-    return int(time.time() * 10000)
+def get_timestamp(config: Config):
+    return int(time.time() * config.TIMESTAMP_SKIP)
 
 
-RUN_TIMESTEMP = get_timestamp()
-
-CURRENT_TIME = datetime.now().strftime("%d-%H.%M.%S")
-
-SHELL = False
-
-
-def get_tqdm(iterable, desc=None, position=None) -> tqdm:
-    return tqdm(iterable, desc=desc, position=position, ascii=SHELL)
+def get_tqdm(iterable, config: Config, desc=None, position=None) -> tqdm:
+    return tqdm(iterable, desc=desc, position=position, ascii=config.SHELL)
 
 
 def create_folder(path):
@@ -50,6 +43,7 @@ def clear_folder(directory):
 def recreate_folder(directory):
     clear_folder(directory)
     create_folder(directory)
+
 
 def find_files_by_extension(directory, extension):
     files = []

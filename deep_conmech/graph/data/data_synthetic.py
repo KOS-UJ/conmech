@@ -12,37 +12,37 @@ from deep_conmech.simulator.setting.setting_forces import *
 from torch_geometric.loader import DataLoader
 
 
-def create_forces(setting):
-    if interpolation_helpers.decide(training_config.DATA_ZERO_FORCES):
+def create_forces(config, setting):
+    if interpolation_helpers.decide(config.DATA_ZERO_FORCES):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
-            training_config.FORCES_RANDOM_SCALE,
+            config.FORCES_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
     return forces
 
 
-def create_u_old(setting):
+def create_u_old(config, setting):
     u_old = interpolation_helpers.interpolate_four(
         setting.nodes_count,
         setting.initial_nodes,
-        training_config.U_RANDOM_SCALE,
+        config.U_RANDOM_SCALE,
         setting.mesh_data.scale_x,
         setting.mesh_data.scale_y,
     )
     return u_old
 
 
-def create_v_old(setting):
-    if interpolation_helpers.decide(training_config.DATA_ROTATE_VELOCITY):
+def create_v_old(config, setting):
+    if interpolation_helpers.decide(config.DATA_ROTATE_VELOCITY):
         v_old = interpolation_helpers.interpolate_rotate(
             setting.nodes_count,
             setting.initial_nodes,
-            training_config.V_RANDOM_SCALE,
+            config.V_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
@@ -50,16 +50,16 @@ def create_v_old(setting):
         v_old = interpolation_helpers.interpolate_four(
             setting.nodes_count,
             setting.initial_nodes,
-            training_config.V_RANDOM_SCALE,
+            config.V_RANDOM_SCALE,
             setting.mesh_data.scale_x,
             setting.mesh_data.scale_y,
         )
     return v_old
 
 
-def create_obstacles(setting):
+def create_obstacles(config, setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, training_config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
@@ -71,33 +71,34 @@ def create_mesh_type():
     )
 
 
-def create_obstacles(setting):
+def create_obstacles(config, setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, training_config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
 
 
-def get_base_setting(mesh_type):
+def get_base_setting(config, mesh_type):
     return SettingInput(
         mesh_data=MeshData(
             mesh_type=mesh_type,
-            mesh_density=[training_config.MESH_DENSITY],
-            scale=[training_config.TRAIN_SCALE],
-            is_adaptive=training_config.ADAPTIVE_TRAINING_MESH,
+            mesh_density=[config.MESH_DENSITY],
+            scale=[config.TRAIN_SCALE],
+            is_adaptive=config.ADAPTIVE_TRAINING_MESH,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=training_config.FINAL_TIME),
+        schedule=Schedule(final_time=config.FINAL_TIME),
+        config=config,
         create_in_subprocess=False,
     )
 
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
-    def __init__(self, dimension):
-        num_workers = training_config.GENERATION_WORKERS
-        data_count = training_config.SYNTHETIC_SOLVERS_COUNT
+    def __init__(self, config, dimension):
+        num_workers = config.GENERATION_WORKERS
+        data_count = config.SYNTHETIC_SOLVERS_COUNT
 
         if data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
@@ -109,18 +110,19 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             data_count=data_count,
             randomize_at_load=True,
             num_workers=num_workers,
+            config=config
         )
         self.initialize_data()
 
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
-        setting = get_base_setting(mesh_type)
+        setting = get_base_setting(self.config, mesh_type)
         # setting.set_randomization(True)
 
         obstacles_unnormaized = create_obstacles(setting)
-        forces = create_forces(setting)
-        u_old = create_u_old(setting)
-        v_old = create_v_old(setting)
+        forces = create_forces(self.config, setting)
+        u_old = create_u_old(self.config, setting)
+        v_old = create_v_old(self.config, setting)
 
         setting.set_obstacles(obstacles_unnormaized)
         setting.set_u_old(u_old)
@@ -150,7 +152,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             f"Process {process_id} - generating {self.relative_path} data"
         )
         step_tqdm = cmh.get_tqdm(
-            indices_to_do, desc=tqdm_description, position=process_id,
+            indices_to_do, desc=tqdm_description, config=self.config, position=process_id,
         )
         for index in step_tqdm:
             if is_memory_overflow(step_tqdm, tqdm_description):
@@ -164,25 +166,3 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True
-
-
-class StepDataset:
-    def __init__(self, batch_size):
-        self.all_data = [None] * batch_size
-
-    def set(self, i, setting):
-        self.all_data[i] = setting.data
-
-    def __getitem__(self, index):
-        return self.all_data[index]
-
-    def __len__(self):
-        return len(self.all_data)
-
-    def get_dataloader(self):
-        return DataLoader(
-            dataset=self,
-            batch_size=len(self),
-            shuffle=False,
-            # num_workers=1,
-        )

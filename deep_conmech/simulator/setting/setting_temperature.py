@@ -1,5 +1,6 @@
 import numpy as np
 from conmech.helpers import nph
+from conmech.helpers.config import Config
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
@@ -13,13 +14,14 @@ def L2_temperature(
 
 class SettingTemperature(SettingIterable):
     def __init__(
-        self, mesh_data, body_prop, obstacle_prop, schedule, create_in_subprocess,
+        self, mesh_data, body_prop, obstacle_prop, schedule, normalize_by_rotation:bool, create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         self.t_old = np.zeros((self.nodes_count, 1))
@@ -127,7 +129,7 @@ class SettingTemperature(SettingIterable):
         value += C2T.T @ np.tile(t, (dimension, 1))
         return value
 
-    def iterate_self(self, a, t):
+    def iterate_self(self, a, t, randomized_inputs=False):
         self.set_t_old(t)
         return super().iterate_self(a=a)
 

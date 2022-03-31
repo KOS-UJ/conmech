@@ -15,6 +15,7 @@ from deep_conmech.simulator.setting.setting_temperature import SettingTemperatur
 from matplotlib import animation, cm, collections
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import LinearLocator
+from conmech.helpers.config import Config
 
 
 def get_fig():
@@ -37,6 +38,7 @@ def plot_animation(
     plot_setting_paths: List[str],
     time_skip: float,
     save_path: str,
+    config: Config,
     t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
@@ -46,6 +48,7 @@ def plot_animation(
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
+        config=config,
         t_scale=t_scale,
     )
 

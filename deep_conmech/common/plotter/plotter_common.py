@@ -2,6 +2,7 @@ import os
 import time
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
+from conmech.helpers.config import Config
 
 import deep_conmech.common.training_config as training_config
 import matplotlib
@@ -88,13 +89,14 @@ def plot_animation(
     get_axs: Callable,
     plot_frame: Callable,
     fig,
+    config: Config,
     t_scale: Optional[np.ndarray] = None
 ):
     # frac_skip = config.PRINT_SKIP
     # skip = int(frac_skip // scenario.time_step)
     frames_count = len(plot_setting_paths)  # // skip
     fps = int(1 / time_skip)
-    animation_tqdm = cmh.get_tqdm(range(frames_count+1), desc="Generating animation")
+    animation_tqdm = cmh.get_tqdm(iterable=range(frames_count+1), config=config, desc="Generating animation")
 
     def animate(step):
         current_time = step * time_skip

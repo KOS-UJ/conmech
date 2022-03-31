@@ -4,6 +4,7 @@ from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
+from conmech.helpers.config import Config
 from deep_conmech.simulator.setting.setting_forces import *
 from numba import njit
 
@@ -182,12 +183,14 @@ class SettingObstacles(SettingForces):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
+        normalize_by_rotation: bool,
         create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         self.obstacle_prop = obstacle_prop
@@ -208,23 +211,28 @@ class SettingObstacles(SettingForces):
     def set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         if obstacles_unnormalized is not None:
-            self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
+            self.obstacles[0, ...] = nph.normalize_euclidean_numba(
+                self.obstacles[0, ...]
+            )
 
     def get_normalized_L2_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
-        return lambda normalized_boundary_a_vector: L2_obstacle(
-            nph.unstack(normalized_boundary_a_vector, self.dimension),
-            self.C_boundary,
-            normalized_E_boundary,
-            self.normalized_boundary_v_old,
-            self.normalized_boundary_nodes,
-            self.normalized_boundary_normals,
-            self.normalized_boundary_obstacle_nodes,
-            self.normalized_boundary_obstacle_normals,
-            self.boundary_nodes_volume,
-            self.obstacle_prop,
-            self.time_step,
-        ), normalized_E_free
+        return (
+            lambda normalized_boundary_a_vector: L2_obstacle(
+                nph.unstack(normalized_boundary_a_vector, self.dimension),
+                self.C_boundary,
+                normalized_E_boundary,
+                self.normalized_boundary_v_old,
+                self.normalized_boundary_nodes,
+                self.normalized_boundary_normals,
+                self.normalized_boundary_obstacle_nodes,
+                self.normalized_boundary_obstacle_normals,
+                self.boundary_nodes_volume,
+                self.obstacle_prop,
+                self.time_step,
+            ),
+            normalized_E_free,
+        )
 
     @property
     def obstacle_normals(self):

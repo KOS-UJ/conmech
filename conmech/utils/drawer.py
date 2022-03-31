@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from conmech.helpers import cmh
+from conmech.helpers.config import Config
 
 
 class Drawer:
@@ -58,10 +59,10 @@ class Drawer:
             self.save_plot(save_format)
 
     @staticmethod
-    def save_plot(format: str):
+    def save_plot(format: str, config:Config):
         directory = Drawer.get_directory()
         cmh.create_folders(directory)
-        path = f"{directory}/{cmh.get_timestamp()}.{format}"
+        path = f"{directory}/{cmh.get_timestamp(config)}.{format}"
         plt.savefig(
             path,
             transparent=False,

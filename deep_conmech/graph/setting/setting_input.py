@@ -1,4 +1,5 @@
 import torch
+from conmech.helpers.config import Config
 from deep_conmech.common import *
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_randomized import *
@@ -6,6 +7,7 @@ from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from torch_geometric.data import Data
+from conmech.helpers.config import Config
 
 
 def L2_normalized_obstacle_correction(
@@ -78,18 +80,19 @@ def L2_obstacle_nvt(
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
     boundary_nodes_volume,
+    config
 ):  # np via torch
     value_torch = L2_normalized_obstacle_correction(
-        thh.to_torch_double(boundary_a).to(dch.DEVICE),
+        thh.to_torch_double(boundary_a).to(thh.device(config)),
         None,
-        thh.to_torch_double(C_boundary).to(dch.DEVICE),
-        thh.to_torch_double(E_boundary).to(dch.DEVICE),
-        thh.to_torch_double(boundary_v_old).to(dch.DEVICE),
-        thh.to_torch_double(boundary_nodes).to(dch.DEVICE),
-        thh.to_torch_long(boundary_normals).to(dch.DEVICE),
-        thh.to_torch_double(boundary_obstacle_nodes).to(dch.DEVICE),
-        thh.to_torch_double(boundary_obstacle_normals).to(dch.DEVICE),
-        thh.to_torch_double(boundary_nodes_volume).to(dch.DEVICE),
+        thh.to_torch_double(C_boundary).to(thh.device(config)),
+        thh.to_torch_double(E_boundary).to(thh.device(config)),
+        thh.to_torch_double(boundary_v_old).to(thh.device(config)),
+        thh.to_torch_double(boundary_nodes).to(thh.device(config)),
+        thh.to_torch_long(boundary_normals).to(thh.device(config)),
+        thh.to_torch_double(boundary_obstacle_nodes).to(thh.device(config)),
+        thh.to_torch_double(boundary_obstacle_normals).to(thh.device(config)),
+        thh.to_torch_double(boundary_nodes_volume).to(thh.device(config)),
     )
     value = thh.to_np_double(value_torch)
     return value  # .item()
@@ -102,6 +105,7 @@ class SettingInput(SettingTorch):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
+        config: Config,
         create_in_subprocess: bool,
     ):
         super().__init__(
@@ -109,6 +113,7 @@ class SettingInput(SettingTorch):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            config=config,
             create_in_subprocess=create_in_subprocess,
         )
 

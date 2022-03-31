@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.simulator.mesh.mesh import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
@@ -235,6 +236,7 @@ def plot_animation(
     plot_setting_paths: List[str],
     time_skip: float,
     save_path: str,
+    config:Config,
     t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
@@ -244,6 +246,7 @@ def plot_animation(
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
+        config = config,
         t_scale=t_scale,
     )
 

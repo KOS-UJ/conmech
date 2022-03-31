@@ -11,7 +11,12 @@ from deep_conmech.simulator.solver import Solver
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
-        self, all_scenarios: List[Scenario], solve_function, relative_path, num_workers,
+        self,
+        all_scenarios: List[Scenario],
+        solve_function,
+        relative_path,
+        num_workers,
+        config: Config,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -22,6 +27,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
             num_workers=num_workers,
+            config=config,
         )
         self.initialize_data()
 
@@ -60,7 +66,10 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         tqdm_description = f"Process {process_id}"
         assigned_data_count = self.get_data_count(assigned_scenarios)
         step_tqdm = cmh.get_tqdm(
-            range(assigned_data_count), tqdm_description, process_id
+            range(assigned_data_count),
+            config=self.config,
+            desc=tqdm_description,
+            position=process_id,
         )
         scenario = assigned_scenarios[0]
         for index in step_tqdm:
@@ -68,11 +77,15 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             ts = (index % episode_steps) + 1
             if ts == 1:
                 scenario = assigned_scenarios[int(index / episode_steps)]
-                setting = self.get_setting_input(scenario)
+                setting = self.get_setting_input(scenario=scenario, config=self.config)
 
                 tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
                 step_tqdm.set_description(tqdm_description)
-            if is_memory_overflow(step_tqdm, tqdm_description):
+            if is_memory_overflow(
+                config=self.config,
+                step_tqdm=step_tqdm,
+                tqdm_description=tqdm_description,
+            ):
                 return False
 
             current_time = ts * setting.time_step
@@ -96,13 +109,16 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, all_scenarios, solve_function, perform_data_update=False):
+    def __init__(
+        self, all_scenarios, solve_function, config: Config, perform_data_update=False
+    ):
         self.perform_data_update = perform_data_update
         super().__init__(
             all_scenarios=all_scenarios,
             solve_function=solve_function,
             relative_path="training_scenarios",
             num_workers=1,  # config.GENERATION_WORKERS,
+            config=config,
         )
 
     def update_data(self):
@@ -111,10 +127,11 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
 
 
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, all_scenarios, id):
+    def __init__(self, all_scenarios, id, config: Config):
         super().__init__(
             all_scenarios=all_scenarios,
             solve_function=Solver.solve_all,
             relative_path=f"validation/{id}",
             num_workers=1,  ###
+            config=config,
         )

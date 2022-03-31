@@ -6,11 +6,11 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 
 from conmech.dataclass.body_properties import (
-    DynamicBodyProperties, DynamicTemperatureBodyProperties,
-    StaticBodyProperties, StaticTemperatureBodyProperties)
+    DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.mesh_features import MeshFeatures
+from conmech.helpers.config import Config
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem
@@ -54,6 +54,7 @@ class ProblemSolver:
             ),
             body_prop=body_prop,
             schedule=Schedule(time_step=time_step, final_time=0.0),
+            normalize_by_rotation=False,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
         )
