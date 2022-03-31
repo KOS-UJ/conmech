@@ -16,7 +16,7 @@ from deep_conmech.graph.setting import setting_input
 from torch.utils.tensorboard.writer import SummaryWriter
 
 
-def get_writer(net: CustomGraphNet, config:TrainingConfig):
+def get_writer(net: CustomGraphNet, config: TrainingConfig):
     return SummaryWriter(
         f"./log/{config.CURRENT_TIME} \
 | tst {config.TEST} \
@@ -26,8 +26,10 @@ def get_writer(net: CustomGraphNet, config:TrainingConfig):
 | lr {config.INITIAL_LR} - {config.FINAL_LR} ({config.LR_GAMMA}) \
 | dr {config.DROPOUT_RATE} \
 | ah {config.ATTENTION_HEADS} \
-| bn {config.BATCH_NORM} \
-| ln {config.LAYER_NORM} \
+| _uds {config.USE_DATASET_STATS} \
+| _ibn {config.INPUT_BATCH_NORM} \
+| _bn {config.INTERNAL_BATCH_NORM} \
+| _ln {config.LAYER_NORM} \
 | l2l {config.L2_LOSS} \
 | ds {config.DATASET} \
 | md {config.MESH_DENSITY} ad {config.ADAPTIVE_TRAINING_MESH} \
@@ -102,7 +104,7 @@ class GraphModelDynamic:
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         start_time = time.time()
-        last_saving_time = start_time
+        last_valid_time = start_time
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
@@ -122,16 +124,15 @@ class GraphModelDynamic:
             self.scheduler.step()
 
             current_time = time.time()
-            elapsed_time = current_time - start_time
-            if epoch_number % self.config.VALIDATE_AT_EPOCHS == 0:
+            elapsed_time = current_time - last_valid_time
+            if elapsed_time > self.config.VALIDATE_AT_MINUTES * 60:
+                print(f"--Training time: {(elapsed_time / 60):.4f} min")
+                self.save_net()
                 self.validation_raport(
-                    examples_seen=examples_seen, elapsed_time=elapsed_time
+                    examples_seen=examples_seen
                 )
                 self.train_dataset.update_data()
-
-            if current_time > self.config.SAVE_AT_MINUTES * 60 + last_saving_time:
-                self.save_net()
-                last_saving_time = time.time()
+                last_valid_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
 
@@ -166,7 +167,10 @@ class GraphModelDynamic:
 
     @staticmethod
     def get_setting_function(
-        scenario: Scenario, config:TrainingConfig, randomize=False, create_in_subprocess: bool = False
+        scenario: Scenario,
+        config: TrainingConfig,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingInput:  # "SettingIterable":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
@@ -258,9 +262,9 @@ class GraphModelDynamic:
                 f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
             )
 
-    def validation_raport(self, examples_seen, elapsed_time):
+    def validation_raport(self, examples_seen):
         print("----VALIDATING----")
-        print(f"Time since training started: {(elapsed_time / 60):.4f} min")
+        start_time = time.time()
 
         mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
@@ -284,7 +288,9 @@ class GraphModelDynamic:
                 mean_loss_array[i],
                 examples_seen,
             )
-        print("---")
+
+        validation_time = time.time() - start_time
+        print(f"--Validation time: {(validation_time / 60):.4f}")
 
     #################
 
@@ -298,7 +304,7 @@ class GraphModelDynamic:
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
 
-        batch_cuda = batch.to(thh.device(self.config))
+        batch_cuda = batch.to(self.net.device)
         predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
 
         reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
@@ -384,9 +390,7 @@ class GraphModelDynamic:
 
     def use_true_solution(self, predicted_normalized_a, L2_args):
         function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
-            cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
-                thh.device(self.config)
-            ),
+            cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(self.net.device),
             **L2_args,
         ).item()
 
@@ -399,5 +403,5 @@ class GraphModelDynamic:
                 ),
                 dim=2,
             )
-        ).to(thh.device(self.config))
+        ).to(self.net.device)
         return predicted_normalized_a

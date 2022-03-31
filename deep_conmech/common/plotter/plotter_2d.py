@@ -340,7 +340,7 @@ def draw_parameters(current_time, setting, scale, ax):
     annotation = plotter_common.get_frame_annotation(
         current_time=current_time, setting=setting
     )
-    ax.text(x_max - 3.0 * scale, y_max - 1.0 * scale, s=annotation, **args)
+    ax.text(x_max - 4.0 * scale, y_max - 3.0 * scale, s=annotation, **args)
 
 
 def draw_triplot(nodes, setting, color, ax):

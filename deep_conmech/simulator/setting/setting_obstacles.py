@@ -148,20 +148,20 @@ def L2_obstacle(
     boundary_v_new = boundary_v_old + time_step * boundary_a
     boundary_nodes_new = boundary_nodes + time_step * boundary_v_new
 
-    args = (
-        boundary_nodes_new,
-        boundary_normals,
-        boundary_obstacle_nodes,
-        boundary_obstacle_normals,
-        boundary_v_new,
-        boundary_nodes_volume,
-        obstacle_prop.hardness,
-        obstacle_prop.friction,
-        time_step,
+    args = dict(
+        nodes=boundary_nodes_new,
+        nodes_normals=boundary_normals,
+        obstacle_nodes=boundary_obstacle_nodes,
+        obstacle_nodes_normals=boundary_obstacle_normals,
+        v=boundary_v_new,
+        nodes_volume=boundary_nodes_volume,
+        hardness=obstacle_prop.hardness,
+        friction=obstacle_prop.friction,
+        time_step=time_step,
     )
 
     is_numpy = isinstance(a, np.ndarray)
-    boundary_integral = integrate_numba(*args) if is_numpy else integrate(*args)
+    boundary_integral = integrate_numba(**args) if is_numpy else integrate(**args)
     return value + boundary_integral
 
 

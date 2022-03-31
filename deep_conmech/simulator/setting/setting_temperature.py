@@ -1,20 +1,50 @@
 import numpy as np
 from conmech.helpers import nph
 from conmech.helpers.config import Config
+from deep_conmech.simulator.setting import setting_obstacles
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+
+
+def obstacle_heat(
+    penetration_norm, tangential_velocity, heat_coeff,
+):
+    return (penetration_norm > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity)
+
+
+def integrate(
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    heat_coeff,
+):
+    penetration_norm = setting_obstacles.get_penetration_norm(
+        nodes, obstacle_nodes, obstacle_nodes_normals
+    )
+    v_tangential = nph.get_tangential(v, nodes_normals)
+
+    heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
+    result = (nodes_volume * heat).sum()
+    return result
 
 
 def L2_temperature(
     t, T, Q,
 ):
-    value = L2_new(t, T, Q)
-    return value
-
+    return L2_new(t, T, Q)
 
 class SettingTemperature(SettingIterable):
     def __init__(
-        self, mesh_data, body_prop, obstacle_prop, schedule, normalize_by_rotation:bool, create_in_subprocess,
+        self,
+        mesh_data,
+        body_prop,
+        obstacle_prop,
+        schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -88,7 +118,21 @@ class SettingTemperature(SettingIterable):
             C2T @ v_vector, dim=dimension, keepdims=True
         )  # here v_old_vector is column vector
         Q += (1 / self.time_step) * U @ t_old
+
+        obstacle_heat_integral = self.get_obstacle_heat_integral()
+        Q += obstacle_heat_integral
         return Q
+
+    def get_obstacle_heat_integral(self):
+        return integrate(
+            nodes=self.boundary_nodes,
+            nodes_normals=self.boundary_normals,
+            obstacle_nodes=self.boundary_obstacle_nodes,
+            obstacle_nodes_normals=self.boundary_obstacle_normals,
+            v=self.boundary_v_old,
+            nodes_volume=self.boundary_nodes_volume,
+            heat_coeff=0.01,  ##########################################
+        )
 
     def get_normalized_E_np(self, t):
         return self.get_E(
@@ -132,4 +176,3 @@ class SettingTemperature(SettingIterable):
     def iterate_self(self, a, t, randomized_inputs=False):
         self.set_t_old(t)
         return super().iterate_self(a=a)
-

@@ -39,17 +39,17 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
     return all_val_datasets
 
 
-def get_net(config: TrainingConfig):
-    statistics = None
-    net = CustomGraphNet(2, statistics=statistics, config=config).to(thh.device(config))
+def get_net(config: TrainingConfig, statistics):
+    net = CustomGraphNet(2, statistics=statistics, config=config)
+    net.to(thh.device(config))
+    #next(net.edge_encoder.children())[0]
     return net
 
 
 def train(config: TrainingConfig):
     train_dataset = get_train_dataset(config.DATASET, config=config)
-    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
-    # statistics = train_dataset.get_statistics()
-    net = get_net(config)
+    statistics = train_dataset.get_statistics() if config.USE_DATASET_STATS else None
+    net = get_net(config, statistics)
     all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()

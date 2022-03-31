@@ -30,7 +30,7 @@ class TrainingConfig(Config):
     VALIDATION_SCALE = 1.0
     PRINT_SCALE = 1.0
 
-    FINAL_TIME = 2 if TEST else 8
+    FINAL_TIME = 2 if TEST else 4 #8
 
     MESH_DENSITY = 8 if TEST else 16
     ADAPTIVE_TRAINING_MESH = False #True #############
@@ -58,8 +58,7 @@ class TrainingConfig(Config):
 
     ############
 
-    VALIDATE_AT_EPOCHS = 1 if TEST else 10
-    SAVE_AT_MINUTES = 1 if TEST else 20
+    VALIDATE_AT_MINUTES = 1 if TEST else 15
 
     DATASET = "scenarios"  # synthetic # scenarios
     L2_LOSS = True  #!#
@@ -70,8 +69,12 @@ class TrainingConfig(Config):
 
     ############
 
-    BATCH_NORM = True
+
+    USE_DATASET_STATS = False
+    INPUT_BATCH_NORM = False
+    INTERNAL_BATCH_NORM = False
     LAYER_NORM = True
+
     DROPOUT_RATE = None  # 0.0  # 0.1  # 0.2  0.05
     SKIP = True
     # GRADIENT_CLIP = 10.0

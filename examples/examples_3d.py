@@ -4,7 +4,7 @@ from deep_conmech.scenarios import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 
 
-def main(mesh_density=3, final_time=0.1, plot_animation=True):
+def main(mesh_density=3, final_time=1, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="twist_roll",

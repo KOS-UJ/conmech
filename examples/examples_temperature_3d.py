@@ -92,7 +92,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=5, final_time=0.3, plot_animation=True):
+def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
     all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))

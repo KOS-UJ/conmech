@@ -162,7 +162,7 @@ class BaseDatasetDynamic:
 
         nodes_data = torch.empty((0, SettingInput.nodes_data_dim()))
         edges_data = torch.empty((0, SettingInput.edges_data_dim()))
-        for data in cmh.get_tqdm(dataloader, desc="Calculating dataset statistics"):
+        for data in cmh.get_tqdm(dataloader, config=self.config, desc="Calculating dataset statistics"):
             nodes_data = torch.cat((nodes_data, data.x))
             edges_data = torch.cat((edges_data, data.edge_attr))
 
