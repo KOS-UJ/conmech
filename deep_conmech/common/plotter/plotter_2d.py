@@ -1,21 +1,14 @@
-import os
-import time
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from conmech.helpers import cmh
+from matplotlib import collections
+from matplotlib.patches import Rectangle
+
 from conmech.helpers.config import Config
-from deep_conmech.common import training_config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
-from matplotlib import animation, cm, collections
-from matplotlib.patches import Rectangle
-from matplotlib.ticker import LinearLocator
 
 
 def get_fig():
@@ -23,7 +16,7 @@ def get_fig():
 
 
 def get_axs(fig):
-    #axs = fig.add_subplot(1, 1, 1, facecolor="none")
+    # axs = fig.add_subplot(1, 1, 1, facecolor="none")
     axs = fig.add_axes([0.075, 0.15, 0.9, 0.8], facecolor="none")
     return axs
 
@@ -60,15 +53,15 @@ def plot_animation(
 
 
 def plot_frame(
-    fig,
-    axs,
-    setting: SettingRandomized,
-    current_time: float,
-    draw_detailed: bool = True,
-    base_setting: Optional[SettingRandomized] = None,
-    t_scale: Optional[np.ndarray] = None,
+        fig,
+        axs,
+        setting: SettingRandomized,
+        current_time: float,
+        draw_detailed: bool = True,
+        base_setting: Optional[SettingRandomized] = None,
+        t_scale: Optional[np.ndarray] = None,
 ):
-    ax=axs
+    ax = axs
     scale = setting.mesh_data.scale_x
     set_perspective(scale, ax=ax)
 
@@ -123,10 +116,10 @@ def plot_frame(
 
 
 def plot_temperature(
-    ax,
-    setting: SettingTemperature,
-    position,
-    cbar_settings: plotter_common.ColorbarSettings,
+        ax,
+        setting: SettingTemperature,
+        position,
+        cbar_settings: plotter_common.ColorbarSettings,
 ):
     add_annotation("TEMP", setting, position, ax)
     # vmin, vmax, cmap = plotter_common.get_t_data(t_scale)
@@ -214,7 +207,7 @@ def draw_normalized_obstacles(setting, position, ax):
 
 
 def draw_obstacle_resistance_normalized(setting, position, ax):
-    #draw_normalized_obstacles(setting, position, ax)
+    # draw_normalized_obstacles(setting, position, ax)
     draw_additional_setting("P", setting, position, ax)
     plot_arrows(
         setting.normalized_boundary_nodes + position,
@@ -339,7 +332,7 @@ def add_annotation(annotation, setting, position, ax):
 def draw_parameters(current_time, setting, scale, ax):
     x_max = ax.get_xlim()[1]
     y_max = ax.get_ylim()[1]
-    args = dict(color="w", fontsize=5,)
+    args = dict(color="w", fontsize=5, )
 
     annotation = plotter_common.get_frame_annotation(
         current_time=current_time, setting=setting

@@ -2,19 +2,19 @@ from dataclasses import dataclass
 from typing import Optional
 
 import psutil
+
 from conmech.helpers.config import Config
 
 
 @dataclass
 class TrainingData:
-
     TRAIN_SCALE: int = 1
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    FINAL_TIME: int = 8  #!# 2
+    FINAL_TIME: int = 8  # !# 2
 
-    MESH_DENSITY: int = 16  #!# 8
+    MESH_DENSITY: int = 16  # !# 8
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     ############
@@ -34,20 +34,20 @@ class TrainingData:
 
     ############
 
-    VALIDATE_AT_MINUTES: int = 10  #!# 1
+    VALIDATE_AT_MINUTES: int = 5  # !# 1
 
     DATASET: str = "scenarios"  # synthetic # scenarios
-    L2_LOSS: bool = True  #!#
-    BATCH_SIZE: int = 128  #!#
-    VALID_BATCH_SIZE: int = 128  #!#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 64  #!#  2 # 512
+    L2_LOSS: bool = True  # !#
+    BATCH_SIZE: int = 128  # !#
+    VALID_BATCH_SIZE: int = 128  # !#
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 64  # !#  2 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     ############
 
     USE_DATASET_STATS: bool = False
-    INPUT_BATCH_NORM: bool = False
-    INTERNAL_BATCH_NORM: bool = True
+    INPUT_BATCH_NORM: bool = True
+    INTERNAL_BATCH_NORM: bool = False
     LAYER_NORM: bool = True
 
     DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
@@ -69,7 +69,6 @@ class TrainingData:
 
 @dataclass
 class TrainingConfig(Config):
-
     td: TrainingData = TrainingData()
     DEVICE: str = "_"
     # torch.autograd.set_detect_anomaly(True)

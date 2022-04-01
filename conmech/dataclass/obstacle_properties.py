@@ -6,6 +6,7 @@ class ObstacleProperties:
     hardness: float
     friction: float
 
+
 @dataclass
 class TemperatureObstacleProperties(ObstacleProperties):
     heat: float

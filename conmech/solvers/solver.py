@@ -3,20 +3,19 @@ Created at 18.02.2021
 """
 import numpy as np
 
-
 from conmech.forces import Forces
 
 
 class Solver:
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         self.body_prop = body_prop
         self.contact_law = contact_law

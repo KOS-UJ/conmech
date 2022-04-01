@@ -2,19 +2,16 @@ import json
 import time
 from argparse import ArgumentError
 
-import numpy as np
 import torch
-from conmech.helpers import cmh
+from torch.utils.tensorboard.writer import SummaryWriter
+
 from deep_conmech import scenarios
-from deep_conmech.common import *
-from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data import data_base
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
-from torch.utils.tensorboard.writer import SummaryWriter
 
 
 def get_and_init_writer(config: TrainingConfig):
@@ -28,6 +25,7 @@ def get_and_init_writer(config: TrainingConfig):
     writer.add_text(f"{config.CURRENT_TIME}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
     return writer
 
+
 # | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
 # | dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
 # | vpes {config.EPISODE_STEPS} \
@@ -39,11 +37,11 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-        self,
-        train_dataset,
-        all_val_datasets,
-        net: CustomGraphNet,
-        config: TrainingConfig,
+            self,
+            train_dataset,
+            all_val_datasets,
+            net: CustomGraphNet,
+            config: TrainingConfig,
     ):
         self.config = config
         self.all_val_datasets = all_val_datasets
@@ -82,7 +80,7 @@ class GraphModelDynamic:
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
     def get_split(self, batch, index, dim, graph_sizes):
-        value = batch.x[:, index * dim : (index + 1) * dim]
+        value = batch.x[:, index * dim: (index + 1) * dim]
         value_split = value.split(graph_sizes)
         return value_split
 
@@ -155,10 +153,10 @@ class GraphModelDynamic:
 
     @staticmethod
     def get_setting_function(
-        scenario: Scenario,
-        config: TrainingConfig,
-        randomize=False,
-        create_in_subprocess: bool = False,
+            scenario: Scenario,
+            config: TrainingConfig,
+            randomize=False,
+            create_in_subprocess: bool = False,
     ) -> SettingInput:  # "SettingIterable":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
@@ -189,7 +187,7 @@ class GraphModelDynamic:
                 get_setting_function=GraphModelDynamic.get_setting_function,
             )
             print("---")
-        print(f"Plotting time: {int((time.time() - start_time)/60)} min")
+        print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
     #################
@@ -378,7 +376,8 @@ class GraphModelDynamic:
 
     def use_true_solution(self, predicted_normalized_a, L2_args):
         function = lambda normalized_a_vector: setting_input.L2_normalized_obstacle_correction(
-            cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(self.net.device),
+            cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
+                self.net.device),
             **L2_args,
         ).item()
 

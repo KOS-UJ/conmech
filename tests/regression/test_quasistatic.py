@@ -2,9 +2,10 @@
 Created at 21.08.2019
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
-from dataclasses import dataclass
 
 from conmech.problem_solver import Quasistatic as QuasistaticProblem
 from conmech.problems import Quasistatic
@@ -106,7 +107,6 @@ def generate_test_suits():
         [0.0, 0.0]
     ]
 
-
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
 
     # p = 0
@@ -183,7 +183,7 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
 def test_global_optimization_solver(
-    solving_method, setup, expected_displacement_vector
+        solving_method, setup, expected_displacement_vector
 ):
     runner = QuasistaticProblem(setup, solving_method)
     results = runner.solve(n_steps=32,

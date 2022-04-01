@@ -1,13 +1,13 @@
 import numpy as np
 from numba import njit
+
 from conmech.helpers import nph
 
 
 @njit
 def get_cross_points_legacy_ordered_numba(
-    points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+        points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
-
     index = 0
     for j in range(size_y - 1, -1, -1):
         for i in range(size_x - 1, -1, -1):
@@ -40,9 +40,8 @@ def get_cross_points_legacy_ordered_numba(
 
 @njit
 def get_cross_elements_numba(
-    points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+        points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
-
     index = 0
     for i in range(size_x):
         for j in range(size_y):
@@ -72,12 +71,12 @@ def get_cross_elements_numba(
             index += 1
 
 
-def get_cross_rectangle(mesh_density_x, mesh_density_y, scale_x, scale_y):
+def get_cross_rectangle(mesh_data):
     min = np.array((0.0, 0.0))
-    size_x = int(mesh_density_x)
-    size_y = int(mesh_density_y)
-    edge_len_x = scale_x / size_x
-    edge_len_y = scale_y / size_y
+    size_x = int(mesh_data.mesh_density_x)
+    size_y = int(mesh_data.mesh_density_y)
+    edge_len_x = mesh_data.scale_x / size_x
+    edge_len_y = mesh_data.scale_y / size_y
 
     points_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
     points = np.zeros((points_count, 2), dtype="float")

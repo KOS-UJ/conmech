@@ -5,14 +5,14 @@ from numba import njit
 @njit
 def get_alpha(x, p1, p2, p3):
     return ((p2[1] - p3[1]) * (x[0] - p3[0]) + (p3[0] - p2[0]) * (x[1] - p3[1])) / (
-        (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1])
+            (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1])
     )
 
 
 @njit
 def get_beta(x, p1, p2, p3):
     return ((p3[1] - p1[1]) * (x[0] - p3[0]) + (p1[0] - p3[0]) * (x[1] - p3[1])) / (
-        (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1])
+            (p2[1] - p3[1]) * (p1[0] - p3[0]) + (p3[0] - p2[0]) * (p1[1] - p3[1])
     )
 
 
@@ -21,7 +21,7 @@ def bigger_or_zero(data):
     return data > -1e-05
 
 
-#@njit
+# @njit
 def approximate_one(new_point, old_points, old_values, old_elements):
     closest_element = 0
     min_penality = None

@@ -4,6 +4,7 @@ Contact Mechanics Problem setups
 
 from dataclasses import dataclass
 from typing import Union, Tuple
+
 import numpy as np
 
 
@@ -18,7 +19,7 @@ class ContactLaw:
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization

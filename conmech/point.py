@@ -2,14 +2,14 @@
 Created at 22.08.2019
 """
 
-import numpy as np
 from typing import Tuple
+
+import numpy as np
 
 from conmech.grid import Grid
 
 
 class Point:
-
     GRID_POINT_DX = np.array([1., 1., -1., -1., -1., -1., 1., 1.]) * 0.5
     GRID_POINT_DY = np.array([-1., -1., -1., -1., 1., 1., 1., 1.]) * 0.5
     CROSS_POINT_DX = np.array([1., 0., -1., 0., 0., 0., 0., 0.])

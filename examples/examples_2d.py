@@ -1,3 +1,5 @@
+import numpy as np
+
 import deep_conmech.scenarios as scenarios
 from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import *

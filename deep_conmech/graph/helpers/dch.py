@@ -2,10 +2,11 @@
 deep_conmech helpers
 """
 import os
-import resource
 
 import pandas
 import psutil
+import resource
+
 from deep_conmech.common.training_config import TrainingConfig
 
 
@@ -17,9 +18,8 @@ def print_pandas(data):
 
 def get_used_memory_gb():
     return (
-        psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3
+            psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3
     )  # (b -> kb -> mb -> gb)
-
 
 
 def cuda_launch_blocking():

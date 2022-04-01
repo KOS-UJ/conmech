@@ -2,9 +2,9 @@
 Created at 18.02.2021
 """
 import math
-
-import scipy.optimize
 import numpy as np
+import scipy.optimize
+
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_cost_functional
 from conmech.solvers.solver_methods import make_cost_functional_temperature
@@ -12,14 +12,14 @@ from conmech.solvers.solver_methods import make_cost_functional_temperature
 
 class Optimization(Solver):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         super().__init__(
             mesh,
@@ -54,11 +54,11 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     def solve(
-        self,
-        initial_guess: np.ndarray,
-        *,
-        fixed_point_abs_tol: float = math.inf,
-        **kwargs
+            self,
+            initial_guess: np.ndarray,
+            *,
+            fixed_point_abs_tol: float = math.inf,
+            **kwargs
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))

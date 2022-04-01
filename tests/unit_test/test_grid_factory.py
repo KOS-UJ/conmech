@@ -4,10 +4,11 @@ Created at 12.04.2021
 
 import numpy as np
 import pytest
+
+from conmech.edge import Edge
 from conmech.grid import Grid
 from conmech.grid_factory import GridFactory
 from conmech.point import Point
-from conmech.edge import Edge
 
 
 class TestGridFactory:
@@ -18,8 +19,8 @@ class TestGridFactory:
         # Arrange
         grid = Grid()
         grid.Edges = np.zeros((5, 3))
-        x = [0.0, 1,    3, 0, -1, -3.14, 0, -1, -3.14]
-        y = [0.0, 1, -2.3, 5, 16,   -10, 5, 16,   -10]
+        x = [0.0, 1, 3, 0, -1, -3.14, 0, -1, -3.14]
+        y = [0.0, 1, -2.3, 5, 16, -10, 5, 16, -10]
         t = [Grid.CROSS, Grid.TOP, Grid.BOTTOM,
              Grid.RIGHT_BOTTOM_CORNER, Grid.LEFT_BOTTOM_CORNER, Grid.NORMAL_MIDDLE,
              Grid.CROSS, Grid.TOP, Grid.BOTTOM]

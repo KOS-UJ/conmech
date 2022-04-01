@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+
 from conmech.dataclass.mesh_data import MeshData
 from conmech.helpers import nph
-from conmech.helpers.config import Config
 from deep_conmech.simulator.mesh import mesh
 from deep_conmech.simulator.mesh.mesh import Mesh
 

@@ -10,8 +10,10 @@ from deep_conmech.common.training_config import TrainingConfig
 def device(training_config: TrainingConfig):
     return torch.device(training_config.DEVICE)
 
+
 def get_device_id():
     return "cuda" if torch.cuda.is_available() else "cpu"
+
 
 def set_precision(data):
     return data.float()
@@ -51,7 +53,6 @@ def max_norm(data):
 
 def rmse_torch(predicted, exact):
     return torch.sqrt(torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2))
-
 
 
 class MaxData:

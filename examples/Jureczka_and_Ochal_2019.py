@@ -6,11 +6,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from conmech.problem_solver import Static as StaticProblemSolver
+from conmech.problems import ContactLaw
 from conmech.problems import Static
 from conmech.utils.drawer import Drawer
-
-
-from conmech.problems import ContactLaw
 
 
 class JureczkaOchal2018(ContactLaw):
@@ -32,7 +30,7 @@ class JureczkaOchal2018(ContactLaw):
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization

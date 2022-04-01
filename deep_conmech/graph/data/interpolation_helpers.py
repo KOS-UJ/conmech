@@ -2,6 +2,7 @@ import random
 
 import numpy as np
 from numba import njit
+
 from conmech.helpers import nph
 
 
@@ -60,7 +61,7 @@ def interpolate_rotate(count, initial_nodes, randomization_scale, setting_scale_
     return interpolate_numba(
         count,
         initial_nodes,
-        get_corner_vectors_rotate(dim = initial_nodes.shape[1], scale=randomization_scale),
+        get_corner_vectors_rotate(dim=initial_nodes.shape[1], scale=randomization_scale),
         setting_scale_x,
         setting_scale_y,
     )
@@ -70,7 +71,7 @@ def interpolate_four(count, initial_nodes, randomization_scale, setting_scale_x,
     return interpolate_numba(
         count,
         initial_nodes,
-        get_corner_vectors_four(dim = initial_nodes.shape[1], scale=randomization_scale),
+        get_corner_vectors_four(dim=initial_nodes.shape[1], scale=randomization_scale),
         setting_scale_x,
         setting_scale_y
     )

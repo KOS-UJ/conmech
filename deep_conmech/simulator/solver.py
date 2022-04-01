@@ -1,21 +1,19 @@
-import copy
 import time
 from argparse import ArgumentError
-from ast import Tuple
 from typing import Callable, Optional
 
 import numpy as np
 import scipy
+from scipy import optimize
+
 from conmech.helpers import nph
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
-from scipy import optimize
 
 
 class Solver:
-
     """
         time used
         base (BFGS) - 178 / 1854
@@ -36,7 +34,7 @@ class Solver:
 
     @staticmethod
     def minimize(
-        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
+            function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
         return scipy.optimize.minimize(
             function,
@@ -46,7 +44,7 @@ class Solver:
 
     @staticmethod
     def solve(
-        setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
+            setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         cleaned_a, _ = Solver.solve_all(setting, initial_a)
         return cleaned_a
@@ -60,22 +58,23 @@ class Solver:
 
     @staticmethod
     def solve_with_temperature(
-        setting: SettingTemperature,
-        initial_a: Optional[np.ndarray] = None,
-        initial_t: Optional[np.ndarray] = None,
+            setting: SettingTemperature,
+            initial_a: Optional[np.ndarray] = None,
+            initial_t: Optional[np.ndarray] = None,
     ):
         uzawa = False
         max_iter = 10
-        i=0
+        i = 0
         normalized_a = None
         t = setting.t_old
-        while i<2 or np.allclose(last_normalized_a, normalized_a) == False and np.allclose(last_t, t) == False:
+        while i < 2 or np.allclose(last_normalized_a, normalized_a) == False and np.allclose(last_t,
+                                                                                             t) == False:
             last_normalized_a, last_t = normalized_a, t
             normalized_a = Solver.solve_acceleration_normalized(setting, t, initial_a)
             t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
-            i+=1
+            i += 1
             if i >= max_iter:
-               raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
+                raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
             if uzawa is False:
                 break
 
@@ -85,33 +84,36 @@ class Solver:
         return cleaned_a, cleaned_t
 
     @staticmethod
-    def solve_temperature(setting: SettingTemperature, normalized_a:np.ndarray, initial_t):
+    def solve_temperature(setting: SettingTemperature, normalized_a: np.ndarray, initial_t):
         t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
         cleaned_t = Solver.clean_temperature(setting, t)
         return cleaned_t
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: SettingIterable, t, initial_a: Optional[np.ndarray] = None
+            setting: SettingIterable, t, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if setting.is_coliding:
+        if setting.is_colliding:
             return Solver.solve_acceleration_normalized_optimization(setting, t, initial_a)
         else:
             return Solver.solve_acceleration_normalized_function(setting, t, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
-        setting: SettingTemperature, normalized_a:np.ndarray, initial_t: Optional[np.ndarray] = None
+            setting: SettingTemperature, normalized_a: np.ndarray,
+            initial_t: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if setting.is_coliding:
-            return Solver.solve_temperature_normalized_optimization(setting, normalized_a, initial_t)
+        if setting.is_colliding:
+            return Solver.solve_temperature_normalized_optimization(setting, normalized_a,
+                                                                    initial_t)
         else:
             return Solver.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
-    def solve_temperature_normalized_function(setting:SettingTemperature, normalized_a:np.ndarray, initial_t):
+    def solve_temperature_normalized_function(setting: SettingTemperature, normalized_a: np.ndarray,
+                                              initial_t):
         normalized_Q = setting.get_normalized_Q_np(normalized_a)
         t_vector = np.linalg.solve(setting.T, normalized_Q)
         return t_vector
@@ -157,9 +159,9 @@ class Solver:
 
     @staticmethod
     def solve_temperature_normalized_optimization(
-        setting: SettingTemperature,
-        normalized_a: np.ndarray,
-        initial_t_vector: np.ndarray,
+            setting: SettingTemperature,
+            normalized_a: np.ndarray,
+            initial_t_vector: np.ndarray,
     ):
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
@@ -191,7 +193,7 @@ class Solver:
     @staticmethod
     def complete_a_vector(setting, normalized_E_free, a_contact_vector):
         a_independent_vector = setting.free_x_free_inverted @ (
-            normalized_E_free - (setting.free_x_contact @ a_contact_vector)
+                normalized_E_free - (setting.free_x_contact @ a_contact_vector)
         )
 
         normalized_a = np.vstack(
@@ -204,10 +206,10 @@ class Solver:
 
     @staticmethod
     def complete_t_vector(
-        setting: SettingTemperature, normalized_Q_free, t_contact_vector
+            setting: SettingTemperature, normalized_Q_free, t_contact_vector
     ):
         t_independent_vector = setting.T_free_x_free_inverted @ (
-            normalized_Q_free - (setting.T_free_x_contact @ t_contact_vector)
+                normalized_Q_free - (setting.T_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 
-from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder, DynamicsBuilder
+from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
 
 ELEMENT_NODES_COUNT = 3
 CONNECTED_EDGES_COUNT = 2
@@ -44,9 +44,8 @@ def get_edges_features_matrix_numba(elements, nodes):
                 w21 = i_dPhY * j_dPhX
                 w22 = i_dPhY * j_dPhY
 
-                edges_features_matrix[
-                    :, element[i], element[j]
-                ] += element_volume * np.array([volume, u, v1, v2, w11, w12, w21, w22])
+                edges_features_matrix[:, element[i], element[j]] += \
+                    element_volume * np.array([volume, u, v1, v2, w11, w12, w21, w22])
 
     return edges_features_matrix, element_initial_volume
 
@@ -79,20 +78,18 @@ def shoelace_area_numba(points):
 @njit
 def denominator_numba(x_i, x_j1, x_j2):
     return (
-        x_i[1] * x_j1[0]
-        + x_j1[1] * x_j2[0]
-        + x_i[0] * x_j2[1]
-        - x_i[1] * x_j2[0]
-        - x_j2[1] * x_j1[0]
-        - x_i[0] * x_j1[1]
+            x_i[1] * x_j1[0]
+            + x_j1[1] * x_j2[0]
+            + x_i[0] * x_j2[1]
+            - x_i[1] * x_j2[0]
+            - x_j2[1] * x_j1[0]
+            - x_i[0] * x_j1[1]
     )
-
-
 
 
 class DynamicsBuilder2D(DynamicsBuilder):
     def get_edges_features_matrix(self, elements, nodes):
-        return get_edges_features_matrix_numba(elements,nodes)
+        return get_edges_features_matrix_numba(elements, nodes)
 
     @property
     def dimension(self) -> int:
@@ -105,11 +102,9 @@ class DynamicsBuilder2D(DynamicsBuilder):
         X21 = LA * W21 + MU * W12
         return np.block([[X11, X12], [X21, X22]])
 
-
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z], [Z, U]])
-
 
     def calculate_temperature_C(self, V1, V2, C_coef):
         Z = np.zeros_like(V1)
@@ -117,11 +112,10 @@ class DynamicsBuilder2D(DynamicsBuilder):
         X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2
         return np.block([[X11, Z], [Z, X22]])
 
-
     def calculate_temperature_K(self, W11, W12, W21, W22, K_coef):
         return (
-            K_coef[0][0] * W11
-            + K_coef[0][1] * W12
-            + K_coef[1][0] * W21
-            + K_coef[1][1] * W22
+                K_coef[0][0] * W11
+                + K_coef[0][1] * W12
+                + K_coef[1][0] * W21
+                + K_coef[1][1] * W22
         )

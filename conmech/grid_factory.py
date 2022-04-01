@@ -3,9 +3,10 @@ Created at 22.08.2019
 """
 
 import numpy as np
+
+from conmech.edge import Edge
 from conmech.grid import Grid
 from conmech.point import Point
-from conmech.edge import Edge
 
 
 class GridFactory:
@@ -183,8 +184,8 @@ class GridFactory:
         start_interior_edge = 0
         for i in range(len(grid.Edges)):
             edge = grid.Edges[i]
-            if edge[Edge.START] < start_interior and edge[Edge.STOP] < start_interior\
-                    or edge[Edge.START] == len(grid.Points) -1 and edge[Edge.STOP] == 0:
+            if edge[Edge.START] < start_interior and edge[Edge.STOP] < start_interior \
+                    or edge[Edge.START] == len(grid.Points) - 1 and edge[Edge.STOP] == 0:
                 GridFactory.swap_rows(grid.Edges, i, start_interior_edge)
                 start_interior_edge += 1
 
@@ -221,4 +222,3 @@ class GridFactory:
                 grid.edges_start[point] = i
                 point += 1
         grid.edges_start[-1] = grid.Points.shape[0]
-

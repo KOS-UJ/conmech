@@ -4,19 +4,18 @@ from conmech.dataclass.body_properties import StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
-from conmech.helpers.config import Config
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
 class MeshFeatures(Dynamics):
     def __init__(
-        self,
-        mesh_data: MeshData,
-        body_prop: StaticBodyProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        is_dirichlet: Callable,
-        is_contact: Callable,
+            self,
+            mesh_data: MeshData,
+            body_prop: StaticBodyProperties,
+            schedule: Schedule,
+            normalize_by_rotation: bool,
+            is_dirichlet: Callable,
+            is_contact: Callable,
     ):
         super().__init__(
             mesh_data=mesh_data,

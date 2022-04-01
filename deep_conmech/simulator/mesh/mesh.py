@@ -1,20 +1,16 @@
 from argparse import ArgumentError
 from typing import Callable
 
-import deep_conmech.common.training_config as training_config
-import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
-from conmech.dataclass.mesh_data import MeshData
-from conmech.helpers import nph
-from conmech.helpers.config import Config
 from numba import njit
 
-# import os, sys
-# sys.path.append(os.path.abspath('../'))
+import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
+from conmech.dataclass.mesh_data import MeshData
+from conmech.helpers import nph
 
 
-@njit  # (parallel=True)
+@njit
 def get_edges_matrix(nodes_count, elements):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
@@ -40,9 +36,6 @@ def get_edges_list_numba(edges_matrix):
     return edges
 
 
-######################################################
-
-
 @njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
@@ -51,8 +44,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
         if index in elements:
             index += 1
         else:
-            # print(f"Index {index} not in elements - fixing")
-            nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
+            nodes = np.vstack((nodes[:index], nodes[index + 1:]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
                     if elements[i, j] > index:
@@ -63,10 +55,10 @@ def remove_unconnected_nodes_numba(nodes, elements):
 
 @njit
 def move_boundary_nodes_to_start_numba(
-    unordered_points,
-    unordered_elements,
-    unordered_boundary_indices,
-    unordered_contact_indices,  # TODO: move to the top
+        unordered_points,
+        unordered_elements,
+        unordered_boundary_indices,
+        unordered_contact_indices,  # TODO: move to the top
 ):
     nodes_count = len(unordered_points)
     boundary_nodes_count = len(unordered_boundary_indices)
@@ -92,9 +84,6 @@ def move_boundary_nodes_to_start_numba(
     return points, elements, boundary_nodes_count
 
 
-######################################################
-
-
 @njit
 def list_all_faces_numba(sorted_elements):
     elements_count, element_size = sorted_elements.shape
@@ -103,9 +92,9 @@ def list_all_faces_numba(sorted_elements):
     opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
     i = 0
     for j in range(element_size):
-        faces[i : i + elements_count, :j] = sorted_elements[:, :j]
-        faces[i : i + elements_count, j:dim] = sorted_elements[:, j + 1 : element_size]
-        opposing_indices[i : i + elements_count] = sorted_elements[:, j]
+        faces[i: i + elements_count, :j] = sorted_elements[:, :j]
+        faces[i: i + elements_count, j:dim] = sorted_elements[:, j + 1: element_size]
+        opposing_indices[i: i + elements_count] = sorted_elements[:, j]
         i += elements_count
     return faces, opposing_indices
 
@@ -126,8 +115,8 @@ def make_get_contact_mask_numba(is_contact):
                 i
                 for i in range(len(boundary_faces))
                 if np.all(
-                    np.array([is_contact(node) for node in nodes[boundary_faces[i]]])
-                )
+                np.array([is_contact(node) for node in nodes[boundary_faces[i]]])
+            )
             ]
         )
 
@@ -158,9 +147,6 @@ def reorder_boundary_nodes(nodes, elements, is_contact):
         nodes, elements, boundary_indices, contact_indices
     )
     return nodes, elements
-
-
-######################################################
 
 
 @njit
@@ -197,9 +183,6 @@ def get_base(nodes, base_seed_indices, closest_seed_index):
     base_seed_initial_nodes = nodes[base_seed_indices]
     base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
     return nph.complete_base(base_seed, closest_seed_index)
-
-
-######################################################
 
 
 def get_unoriented_normals_2d(faces_nodes):
@@ -257,7 +240,7 @@ def element_volume_part_numba(face_nodes):
 
 @njit
 def get_boundary_nodes_data_numba(
-    boundary_faces_normals, boundary_faces, boundary_nodes_count, moved_nodes
+        boundary_faces_normals, boundary_faces, boundary_nodes_count, moved_nodes
 ):
     dim = boundary_faces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
@@ -279,17 +262,14 @@ def get_boundary_nodes_data_numba(
     return boundary_normals, boundary_nodes_volume
 
 
-################
-
-
 class Mesh:
     def __init__(
-        self,
-        mesh_data: MeshData,
-        normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
-        create_in_subprocess: bool = False,
+            self,
+            mesh_data: MeshData,
+            normalize_by_rotation: bool,
+            is_dirichlet: Callable = (lambda _: False),
+            is_contact: Callable = (lambda _: True),
+            create_in_subprocess: bool = False,
     ):
         self.mesh_data = mesh_data
         self.normalize_by_rotation = normalize_by_rotation
@@ -345,28 +325,29 @@ class Mesh:
         self.boundaries = None
 
         if not np.array_equal(
-            _boundary_indices, range(self.boundary_nodes_count)
+                _boundary_indices, range(self.boundary_nodes_count)
         ):
-            raise ArgumentError("Bad boundary ordering")
+            raise ValueError("Bad boundary ordering")
 
     @property
     def contact_indices(self):
         return slice(self.contact_nodes_count)
+
     @property
     def boundary_indices(self):
         return slice(self.boundary_nodes_count)
+
     @property
     def independent_indices(self):
         return slice(self.independent_nodes_count)
+
     @property
     def free_indices(self):
         return slice(self.contact_nodes_count, self.independent_nodes_count)
 
-
     @property
     def dimension(self):
         return self.mesh_data.dimension
-        
 
     def set_a_old(self, a):
         self.a_old = a

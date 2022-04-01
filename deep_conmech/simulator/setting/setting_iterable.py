@@ -8,20 +8,18 @@ from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
-from conmech.helpers.config import Config
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 class SettingIterable(SettingObstacles):
     def __init__(
-        self,
-        mesh_data: MeshData,
-        body_prop: DynamicBodyProperties,
-        obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess,
+            self,
+            mesh_data: MeshData,
+            body_prop: DynamicBodyProperties,
+            obstacle_prop: ObstacleProperties,
+            schedule: Schedule,
+            normalize_by_rotation: bool,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -31,7 +29,6 @@ class SettingIterable(SettingObstacles):
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-
 
     @property
     def input_v_old(self):
@@ -44,7 +41,6 @@ class SettingIterable(SettingObstacles):
     @property
     def input_forces(self):
         return self.normalized_forces
-
 
     def get_copy(self):
         setting = copy.deepcopy(self)
@@ -83,7 +79,6 @@ class SettingIterable(SettingObstacles):
         self.set_u_old(u)
         self.set_v_old(v)
         self.set_a_old(a)
-
 
 
     @staticmethod
@@ -132,13 +127,13 @@ class SettingIterable(SettingObstacles):
         self.is_dirichlet = None
 
         self.element_initial_volume = None
-        #self.const_volume = None
-        #self.const_elasticity = None
-        #self.const_viscosity = None
+        # self.const_volume = None
+        # self.const_elasticity = None
+        # self.const_viscosity = None
         self.ACC = None
         self.K = None
         self.C2T = None
-        #self.visco_plus_elast_times_ts = None
+        # self.visco_plus_elast_times_ts = None
 
         self.C_boundary = None
         self.free_x_contact = None
