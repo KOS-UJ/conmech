@@ -49,9 +49,10 @@ def plot_scenario(
         get_setting_function: Optional[Callable] = None,
 ):
     final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
-    all_settings_path = f"{final_catalog}/{scenario.id}_DATA"
-    cmh.create_folders(final_catalog)
-
+    animation_path = f"{final_catalog}/{scenario.id}.gif"
+    all_settings_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
+    cmh.create_folders(f"{final_catalog}/scenarios")
+     
     time_skip = config.PRINT_SKIP
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if save_all else 1
@@ -77,7 +78,7 @@ def plot_scenario(
         )
 
     if plot_animation:
-        plot_scenario_animation(scenario, config, final_catalog, time_skip, index_skip, plot_settings_count[0], all_settings_path)
+        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], all_settings_path)
 
     return all_settings_path
 
@@ -85,21 +86,20 @@ def plot_scenario(
 def plot_scenario_animation(
     scenario:Scenario,
     config: Config,
-    final_catalog: str,
+    animation_path: str,
     time_skip: float,
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str
 ):
-    #t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
-    t_scale = None
+    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_settings_count, all_settings_path)
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
         else plotter_3d.plot_animation
     )
     plot_function(
-        save_path=f"{final_catalog}/{scenario.id}.gif",
+        save_path=animation_path,
         config=config,
         time_skip=time_skip,
         index_skip=index_skip,

@@ -14,7 +14,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             solve_function,
             relative_path,
             num_workers,
-            config: Config,
+            config: TrainingConfig,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -42,19 +42,9 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         assigned_scenarios = get_assigned_scenarios(
             self.all_scenarios, num_workers, process_id
         )
-        # TODO: Will not work for nonequal assigned_data_counts
         assigned_data_count = self.get_data_count(assigned_scenarios)
-
         start_index = process_id * assigned_data_count
-        stop_index = start_index + assigned_data_count
-        assigned_data_range = range(start_index, stop_index)
-
-        indices_to_do = get_and_check_indices_to_do(
-            assigned_data_range, self.path, process_id
-        )
-        if not indices_to_do:
-            return True
-
+        
         return self.generate_scenario_data(assigned_scenarios, start_index, process_id)
 
     def generate_scenario_data(
@@ -70,37 +60,41 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             position=process_id,
         )
         scenario = assigned_scenarios[0]
-        for index in step_tqdm:
-            episode_steps = scenario.schedule.episode_steps
-            ts = (index % episode_steps) + 1
-            if ts == 1:
-                scenario = assigned_scenarios[int(index / episode_steps)]
-                setting = self.get_setting_input(scenario=scenario, config=self.config)
 
-                tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
-                step_tqdm.set_description(tqdm_description)
-            if is_memory_overflow(
-                    config=self.config,
-                    step_tqdm=step_tqdm,
-                    tqdm_description=tqdm_description,
-            ):
-                return False
+        settings_file, file_meta = SettingIterable.open_files_append_pickle(self.main_directory)
+        with settings_file, file_meta:
+            for index in step_tqdm:
+                episode_steps = scenario.schedule.episode_steps
+                ts = (index % episode_steps) + 1
+                if ts == 1:
+                    scenario = assigned_scenarios[int(index / episode_steps)]
+                    setting = self.get_setting_input(scenario=scenario, config=self.config)
 
-            current_time = ts * setting.time_step
-            forces = scenario.get_forces_by_function(setting, current_time)
-            setting.prepare(forces)
+                    tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
+                    step_tqdm.set_description(tqdm_description)
+                if is_memory_overflow(
+                        config=self.config,
+                        step_tqdm=step_tqdm,
+                        tqdm_description=tqdm_description,
+                ):
+                    return False
 
-            a, normalized_a = self.solve_function(setting)
-            exact_normalized_a_torch = thh.to_torch_double(normalized_a)
+                current_time = ts * setting.time_step
+                forces = scenario.get_forces_by_function(setting, current_time)
+                setting.prepare(forces)
 
-            self.save(setting, exact_normalized_a_torch, current_index)
-            self.check_and_print(
-                self.data_count, current_index, setting, step_tqdm, tqdm_description,
-            )
+                a, normalized_a = self.solve_function(setting)
+                exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
-            # setting = setting.get_copy()
-            setting.iterate_self(a)
-            current_index += 1
+                setting.append_pickle(settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+
+                self.check_and_print(
+                    self.data_count, current_index, setting, step_tqdm, tqdm_description,
+                )
+
+                # setting = setting.get_copy()
+                setting.iterate_self(a)
+                current_index += 1
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True
@@ -108,14 +102,14 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(
-            self, all_scenarios, solve_function, config: Config, perform_data_update=False
+            self, all_scenarios, solve_function, config: TrainingConfig, perform_data_update=False
     ):
         self.perform_data_update = perform_data_update
         super().__init__(
             all_scenarios=all_scenarios,
             solve_function=solve_function,
             relative_path="training_scenarios",
-            num_workers=1,  # config.GENERATION_WORKERS,
+            num_workers=config.GENERATION_WORKERS,
             config=config,
         )
 

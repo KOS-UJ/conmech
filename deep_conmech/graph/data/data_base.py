@@ -1,25 +1,22 @@
-import copy
 import re
 from os import listdir
 from os.path import isfile, join
 
-from deep_conmech.common.training_config import TrainingConfig
 import numpy as np
 import torch
-from torch_geometric.loader import DataLoader
-
 from conmech.helpers import cmh, mph
+from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
-from deep_conmech.graph.data.dataset_statistics import (
-    DatasetStatistics,
-    FeaturesStatistics,
-)
+from deep_conmech.common.training_config import TrainingConfig
+from deep_conmech.graph.data.dataset_statistics import (DatasetStatistics,
+                                                        FeaturesStatistics)
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
+from torch_geometric.loader import DataLoader
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -27,19 +24,7 @@ def print_dataset(dataset, cutoff, timestamp, description):
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
-    # for i in range(iterations):
-    #    plotter_mapper.plot_data_setting(batch.setting[i], i, timestamp)
 
-    # for _ in range(100):
-    #    setting.set_forces(np.random.uniform(
-    #        low= -config.FORCES_DATA_SCALE,
-    #        high= config.FORCES_DATA_SCALE,
-    #        size=(setting.nodes_count, dim)
-    #    ))
-    #    test_setting(setting)
-    #    a = setting.calculate_normalized()
-    #    setting.iterate(a)
-    # break
 
 
 def get_print_dataloader(dataset):
@@ -95,24 +80,6 @@ def get_process_data_range(process_id, data_part_count):
     return range(process_id * data_part_count, (process_id + 1) * data_part_count)
 
 
-def get_indices(path):
-    filenames = [f for f in listdir(path) if isfile(join(path, f))]
-    indices = [int(re.sub("[^0-9]", "", filename)) for filename in filenames]
-    return indices
-
-
-def get_indices_to_do(data_range, path):
-    indices_done = get_indices(path)
-    indices_to_do = list(set(data_range) - set(indices_done))
-    return indices_to_do
-
-
-def get_and_check_indices_to_do(data_range, path, process_id):
-    indices_to_do = get_indices_to_do(data_range, path)
-    if not indices_to_do:
-        cmh.get_tqdm(range(1), desc=f"Process {process_id} - done", position=process_id)
-    return indices_to_do
-
 
 def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     scenarios_count = len(all_scenarios)
@@ -141,10 +108,10 @@ class BaseDatasetDynamic:
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        self.num_workers = 1 ############################# num_workers
+        self.num_workers = num_workers
         self.config = config
 
-    def get_setting_input(self, scenario: Scenario, config: Config):
+    def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
@@ -191,18 +158,21 @@ class BaseDatasetDynamic:
         cmh.create_folders(self.main_directory)
         cmh.create_folders(self.images_directory)
 
-        #indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
-        #if not indices_to_do:
-        #    print(f"Taking prepared {self.relative_path} data")
-        #    return
-
-        result = False
-        while result is False:
-            result = mph.run_processes(
-                self.generate_data_process, (), self.num_workers,
-            )
-            if result is False:
-                print("Restarting data generation")
+        self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
+        if self.data_count == len(self.all_indices):
+            print("Taking prepared data")
+        else:
+            result = False
+            while result is False:
+                result = mph.run_processes(
+                    self.generate_data_process, (), self.num_workers,
+                )
+                if result is False:
+                    print("Restarting data generation")
+        
+            self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
+        
+        self.settings_file = SettingIterable.open_file_settings_read_pickle(self.data_path) # TODO: Close after training
 
     def generate_data_process(self, num_workers, process_id):
         pass
@@ -212,20 +182,16 @@ class BaseDatasetDynamic:
         return f"./datasets/{self.config.DATA_FOLDER}/{self.relative_path}"
 
     @property
+    def data_path(self):
+        return f"{self.main_directory}/DATA"
+
+    @property
     def images_directory(self):
         return f"{self.main_directory}/images"
 
 
-    '''
-    def save(self, setting, exact_normalized_a_torch, index):
-        setting_copy = copy.deepcopy(setting)
-        setting_copy.exact_normalized_a_torch = exact_normalized_a_torch
-        setting_copy.clear_save()
-        torch.save(setting_copy, self.get_setting_path(index))
-    '''
-
     def get_example(self, index):
-        setting = SettingIterable.load_index_pickle(self.main_directory, index)
+        setting = SettingIterable.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=self.settings_file)
         if self.randomize_at_load:
             setting.set_randomization(True)
             exact_normalized_a_torch = Solver.clean_acceleration(

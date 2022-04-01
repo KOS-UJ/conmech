@@ -139,17 +139,11 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = get_process_data_range(process_id, self.data_part_count)
 
-        indices_to_do = get_and_check_indices_to_do(
-            assigned_data_range, self.path, process_id
-        )
-        if not indices_to_do:
-            return True
-
         tqdm_description = (
             f"Process {process_id} - generating {self.relative_path} data"
         )
         step_tqdm = cmh.get_tqdm(
-            indices_to_do, desc=tqdm_description, config=self.config, position=process_id,
+            assigned_data_range, desc=tqdm_description, config=self.config, position=process_id,
         )
         for index in step_tqdm:
             if is_memory_overflow(step_tqdm, tqdm_description):
@@ -158,7 +152,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             setting, exact_normalized_a_torch = self.generate_setting(index)
             self.save(setting, exact_normalized_a_torch, index)
             self.check_and_print(
-                len(indices_to_do), index, setting, step_tqdm, tqdm_description
+                len(assigned_data_range), index, setting, step_tqdm, tqdm_description
             )
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")

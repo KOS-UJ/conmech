@@ -8,6 +8,7 @@ from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers import cmh
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
@@ -92,12 +93,15 @@ class SettingIterable(SettingObstacles):
     @staticmethod
     def get_all_indices_pickle(all_settings_path):
         all_indices = []
-        with open(f"{all_settings_path}.indices", 'rb') as file:
-            try:
-                while True:
-                    all_indices.append(pickle.load(file))
-            except EOFError:
-                pass
+        try:
+            with open(f"{all_settings_path}.indices", 'rb') as file:
+                try:
+                    while True:
+                        all_indices.append(pickle.load(file))
+                except EOFError:
+                    pass
+        except:        
+            pass
         return all_indices
 
 

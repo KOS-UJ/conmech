@@ -5,7 +5,7 @@ from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import *
 
 
-def main(mesh_density=3, final_time=1.10, plot_animation=True):
+def main(mesh_density=3, final_time=5, plot_animation=True):
     config=Config(SHELL=False)
     all_scenarios = [
         Scenario(
