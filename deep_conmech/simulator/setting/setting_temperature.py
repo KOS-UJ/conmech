@@ -136,7 +136,7 @@ class SettingTemperature(SettingIterable):
             obstacle_nodes_normals=self.boundary_obstacle_normals,
             v=self.boundary_v_old,
             nodes_volume=self.boundary_nodes_volume,
-            heat_coeff=0.01,  ##########################################
+            heat_coeff=self.obstacle_prop.heat
         )
 
     def get_normalized_E_np(self, t):

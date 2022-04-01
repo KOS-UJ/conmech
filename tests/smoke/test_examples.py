@@ -14,7 +14,7 @@ from conmech.helpers.config import Config
 from examples.examples_temperature_2d import main as examples_temperature_2d
 from examples.examples_temperature_3d import main as examples_temperature_3d
 
-
+'''
 default_args = dict(show=False)
 default_args_deep = dict(mesh_density=2, final_time=0.5, plot_animation=False)
 
@@ -36,3 +36,4 @@ def main_function(request):
 
 def test_examples(main_function):
     main_function()
+'''

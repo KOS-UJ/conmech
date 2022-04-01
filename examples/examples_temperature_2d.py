@@ -27,7 +27,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
                 is_adaptive=False,
             ),
             body_prop=temp_body_prop,
-            obstacle_prop=default_obstacle_prop,
+            obstacle_prop=default_temp_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0, 0]),
             obstacles=o_side,
@@ -73,7 +73,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
                 is_adaptive=False,
             ),
             body_prop=temp_body_prop,
-            obstacle_prop=default_obstacle_prop,
+            obstacle_prop=default_temp_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0, 0]),
             obstacles=o_side,
@@ -94,7 +94,7 @@ def get_polygon_scenarios(mesh_density, final_time):
             is_adaptive=False,
         ),
         body_prop=default_temp_body_prop,
-        obstacle_prop=default_obstacle_prop,
+        obstacle_prop=default_temp_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=forces_function,
         obstacles=obstacle,
@@ -117,10 +117,13 @@ def get_friction_scenarios(mesh_density, final_time):
             scale=[1],
             mesh_density=[mesh_density],
         ),
-        body_prop=default_temp_body_prop,
-        obstacle_prop=ObstacleProperties(hardness=100.0, friction=5.0),
+        body_prop=
+        get_temp_body_prop(
+            C_coeff=default_C_coeff, K_coeff=np.array([[0.01, 0], [0, 0.01]]),
+        ),
+        obstacle_prop=default_temp_obstacle_prop,
         schedule=Schedule(final_time=final_time),
-        forces_function=np.array([2.0, -0.5]),
+        forces_function=np.array([1.0, -0.5]),
         obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         heat_function=np.array([0]),
     )
@@ -130,7 +133,7 @@ def get_friction_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=4, final_time=3, plot_animation=True):
+def main(mesh_density=8, final_time=3, plot_animation=True):
     all_scenarios = []
     # all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
     # all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))

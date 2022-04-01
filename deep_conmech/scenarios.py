@@ -2,11 +2,10 @@ from typing import Any, Callable, Optional, Union
 
 import numpy as np
 from conmech.dataclass.body_properties import (
-    DynamicBodyProperties,
-    DynamicTemperatureBodyProperties,
-)
+    DynamicBodyProperties, DynamicTemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties
+from conmech.dataclass.obstacle_properties import (
+    ObstacleProperties, TemperatureObstacleProperties)
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
@@ -14,7 +13,8 @@ from conmech.helpers.config import Config
 from deep_conmech.common.training_config import TrainingConfig, TrainingData
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
 from deep_conmech.simulator.solver import Solver
 
 
@@ -94,7 +94,7 @@ class TemperatureScenario(Scenario):
         id: str,
         mesh_data: MeshData,
         body_prop: DynamicTemperatureBodyProperties,
-        obstacle_prop: ObstacleProperties,
+        obstacle_prop: TemperatureObstacleProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacles: Optional[np.ndarray],
@@ -136,11 +136,12 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
+###
+
 default_body_prop = DynamicBodyProperties(
     mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
-default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 
 default_C_coeff = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
 default_K_coeff = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
@@ -154,7 +155,6 @@ default_temp_body_prop = DynamicTemperatureBodyProperties(
     K_coeff=default_K_coeff,
 )
 
-
 def get_temp_body_prop(C_coeff, K_coeff):
     return DynamicTemperatureBodyProperties(
         mass_density=1.0,
@@ -166,6 +166,11 @@ def get_temp_body_prop(C_coeff, K_coeff):
         K_coeff=K_coeff,
     )
 
+###
+
+
+default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
+default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
 
 ####################################
 

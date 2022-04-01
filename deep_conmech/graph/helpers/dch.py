@@ -31,6 +31,6 @@ def set_memory_limit(config: TrainingConfig):
     rsrc = resource.RLIMIT_DATA
     soft, hard = resource.getrlimit(rsrc)
     new_limit_gb = config.TOTAL_MEMORY_LIMIT_GB
-    new_soft = new_limit_gb * 1024 ** 3
+    new_soft = int(new_limit_gb * 1024 ** 3)
     resource.setrlimit(rsrc, (new_soft, hard))
     print(f"Memory limit set to {new_limit_gb:.2f} GB")

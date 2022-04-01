@@ -12,9 +12,9 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    FINAL_TIME: int = 4#8  #!# 2
+    FINAL_TIME: int = 8  #!# 2
 
-    MESH_DENSITY: int = 5#16  #!# 8
+    MESH_DENSITY: int = 16  #!# 8
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     ############

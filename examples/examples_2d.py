@@ -1,9 +1,7 @@
 import deep_conmech.scenarios as scenarios
-from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.solver import Solver
 
 
 def main(mesh_density=3, final_time=10, plot_animation=True):
