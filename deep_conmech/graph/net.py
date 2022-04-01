@@ -8,7 +8,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from deep_conmech.common.training_data import TrainingData
+from deep_conmech.common.training_config import TrainingData
 from deep_conmech.graph.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
@@ -326,7 +326,7 @@ class CustomGraphNet(nn.Module):
             output_linear_dim=output_dim,
             statistics=None,
             batch_norm=td.INTERNAL_BATCH_NORM,
-            layer_norm=False, #############################
+            layer_norm=False,  #############################
             td=td,
         )
 

@@ -7,7 +7,6 @@ from deep_conmech.graph.setting.setting_randomized import *
 from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
-from torch_geometric.data import Data
 
 
 def L2_normalized_obstacle_correction(

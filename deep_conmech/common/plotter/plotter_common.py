@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Callable, List, Optional
 
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import animation
 from matplotlib.colors import ListedColormap
 

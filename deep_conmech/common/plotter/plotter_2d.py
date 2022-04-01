@@ -8,7 +8,6 @@ from matplotlib.patches import Rectangle
 from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 

@@ -9,7 +9,7 @@ from conmech.dataclass.obstacle_properties import ObstacleProperties, Temperatur
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
-from deep_conmech.common.training_data import TrainingData
+from deep_conmech.common.training_config import TrainingData
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.simulator.solver import Solver
@@ -161,6 +161,7 @@ def get_temp_body_prop(C_coeff, K_coeff):
         C_coeff=C_coeff,
         K_coeff=K_coeff,
     )
+
 
 ###
 

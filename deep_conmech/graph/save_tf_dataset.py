@@ -7,7 +7,6 @@ import tensorflow.compat.v1 as tf
 from deep_conmech.common import simulation_runner
 from deep_conmech.graph.helpers import dch
 from deep_conmech.scenarios import *
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
 
 tf.enable_eager_execution()

@@ -9,9 +9,9 @@ def obstacle_heat(
         penetration_norm, tangential_velocity, heat_coeff,
 ):
     return (
-        (penetration_norm > 0)
-        * heat_coeff
-        * nph.euclidean_norm(tangential_velocity, keepdims=True)
+            (penetration_norm > 0)
+            * heat_coeff
+            * nph.euclidean_norm(tangential_velocity, keepdims=True)
     )
 
 

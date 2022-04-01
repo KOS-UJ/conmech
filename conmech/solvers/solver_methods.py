@@ -132,7 +132,7 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
 
                 if n_id_0 < offset and n_id_1 < offset:
                     cost += length(n_0, n_1) * (
-                                jn(um_normal) + h(um_old_normal) * jt(um_tangential))
+                            jn(um_normal) + h(um_old_normal) * jt(um_tangential))
         return cost
 
     @numba.njit()

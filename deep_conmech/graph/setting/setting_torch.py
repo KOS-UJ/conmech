@@ -1,5 +1,3 @@
-import torch
-
 from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized

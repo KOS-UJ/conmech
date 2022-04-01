@@ -15,7 +15,6 @@ from deep_conmech.graph.data.dataset_statistics import (
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
 
 

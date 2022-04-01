@@ -12,3 +12,4 @@ networkx==2.6.3
 
 # deep conmech
 psutil==5.9.0
+pandas==1.3.5

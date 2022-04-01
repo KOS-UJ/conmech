@@ -1,5 +1,5 @@
-import numpy as np
 import numba
+import numpy as np
 
 from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
