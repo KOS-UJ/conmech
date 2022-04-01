@@ -12,9 +12,9 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    FINAL_TIME: int = 8  #!# 2
+    FINAL_TIME: int = 4#8  #!# 2
 
-    MESH_DENSITY: int = 16  #!# 8
+    MESH_DENSITY: int = 5#16  #!# 8
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     ############
@@ -34,7 +34,7 @@ class TrainingData:
 
     ############
 
-    VALIDATE_AT_MINUTES: int = 5  #!# 1
+    VALIDATE_AT_MINUTES: int = 10  #!# 1
 
     DATASET: str = "scenarios"  # synthetic # scenarios
     L2_LOSS: bool = True  #!#
@@ -46,8 +46,8 @@ class TrainingData:
     ############
 
     USE_DATASET_STATS: bool = False
-    INPUT_BATCH_NORM: bool = True
-    INTERNAL_BATCH_NORM: bool = False
+    INPUT_BATCH_NORM: bool = False
+    INTERNAL_BATCH_NORM: bool = True
     LAYER_NORM: bool = True
 
     DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05

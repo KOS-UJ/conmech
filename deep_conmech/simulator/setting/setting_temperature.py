@@ -9,7 +9,11 @@ from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 def obstacle_heat(
     penetration_norm, tangential_velocity, heat_coeff,
 ):
-    return (penetration_norm > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity)
+    return (
+        (penetration_norm > 0)
+        * heat_coeff
+        * nph.euclidean_norm(tangential_velocity, keepdims=True)
+    )
 
 
 def integrate(
@@ -27,7 +31,7 @@ def integrate(
     v_tangential = nph.get_tangential(v, nodes_normals)
 
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
-    result = (nodes_volume * heat).sum()
+    result = nodes_volume * heat
     return result
 
 
@@ -35,6 +39,7 @@ def L2_temperature(
     t, T, Q,
 ):
     return L2_new(t, T, Q)
+
 
 class SettingTemperature(SettingIterable):
     def __init__(
@@ -120,7 +125,7 @@ class SettingTemperature(SettingIterable):
         Q += (1 / self.time_step) * U @ t_old
 
         obstacle_heat_integral = self.get_obstacle_heat_integral()
-        #Q += obstacle_heat_integral
+        Q += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
         return Q
 
     def get_obstacle_heat_integral(self):

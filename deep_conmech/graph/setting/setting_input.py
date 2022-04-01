@@ -7,7 +7,6 @@ from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from torch_geometric.data import Data
-from conmech.helpers.config import Config
 
 
 def L2_normalized_obstacle_correction(
@@ -80,7 +79,7 @@ def L2_obstacle_nvt(
     boundary_obstacle_nodes,
     boundary_obstacle_normals,
     boundary_nodes_volume,
-    config
+    config,
 ):  # np via torch
     value_torch = L2_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device(config)),
@@ -163,16 +162,16 @@ class SettingInput(SettingTorch):
         return desc
 
     def get_nodes_data(self):
-        boundary_penetration = self.complete_boundary_data_with_zeros(
+        boundary_penetration = self.complete_boundary_data_with_zeros_torch(
             self.normalized_boundary_penetration_torch
         )
-        boundary_normals = self.complete_boundary_data_with_zeros(
+        boundary_normals = self.complete_boundary_data_with_zeros_torch(
             self.normalized_boundary_normals_torch
         )
-        boundary_v_tangential = self.complete_boundary_data_with_zeros(
+        boundary_v_tangential = self.complete_boundary_data_with_zeros_torch(
             self.normalized_boundary_v_tangential_torch
         )
-        boundary_volume = self.complete_boundary_data_with_zeros(
+        boundary_volume = self.complete_boundary_data_with_zeros_torch(
             self.boundary_nodes_volume_torch
         )
 
@@ -239,4 +238,3 @@ class SettingInput(SettingTorch):
             self.normalized_boundary_obstacle_normals,
             self.boundary_nodes_volume,
         )
-

@@ -64,7 +64,7 @@ def plot(config: TrainingConfig):
 
 def main(args: Namespace):
     print(f"MODE: {args.mode}")
-    device = "cpu" #thh.get_device_id()
+    device = thh.get_device_id()
     config = TrainingConfig(SHELL=args.shell, DEVICE=device)
     dch.set_memory_limit(config=config)
     print(f"Running using {config.DEVICE}")

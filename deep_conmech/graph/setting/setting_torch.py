@@ -24,12 +24,8 @@ class SettingTorch(SettingRandomized):
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
 
-    def complete_boundary_data_with_zeros(self, data):
-        completed_data = torch.zeros(
-            (self.nodes_count, data.shape[1]), dtype=data.dtype
-        )
-        completed_data[self.boundary_indices] = data
-        return completed_data
+    def complete_boundary_data_with_zeros_torch_torch(self, data):
+        return self.complete_boundary_data_with_zeros(data)
 
     @property
     def input_u_old_torch(self):
@@ -38,10 +34,6 @@ class SettingTorch(SettingRandomized):
     @property
     def input_v_old_torch(self):
         return thh.to_torch_double(self.input_v_old)
-
-    @property
-    def normalized_forces_mean_torch(self):
-        return thh.to_torch_double(self.normalized_forces_mean)
 
     @property
     def input_forces_torch(self):

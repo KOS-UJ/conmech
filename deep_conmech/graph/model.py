@@ -25,7 +25,7 @@ def get_and_init_writer(config: TrainingConfig):
         json_str = json.dumps(dictionary, indent=2)
         return "".join("\t" + line for line in json_str.splitlines(True))
 
-    writer.add_text(f"{config.CURRENT_TIME}", pretty_json(config.td), global_step=0)
+    writer.add_text(f"{config.CURRENT_TIME}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
     return writer
 
 # | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \

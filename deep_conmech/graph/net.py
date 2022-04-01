@@ -9,7 +9,7 @@ from deep_conmech.graph.data.dataset_statistics import (
 )
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from torch import layer_norm, nn
+from torch import nn
 from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
@@ -323,7 +323,7 @@ class CustomGraphNet(nn.Module):
             output_linear_dim=output_dim,
             statistics=None,
             batch_norm=td.INTERNAL_BATCH_NORM,
-            layer_norm=td.LAYER_NORM,
+            layer_norm=False, #############################
             td=td,
         )
 

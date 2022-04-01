@@ -8,7 +8,7 @@ class Config:
     SHELL: bool = False
     TIMESTAMP_SKIP = 10000
     RUN_TIMESTEMP: float = int(time.time() * TIMESTAMP_SKIP)
-    CURRENT_TIME: str = datetime.now().strftime("%d-%H.%M.%S")
+    CURRENT_TIME: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
     NORMALIZE_ROTATE = True
 

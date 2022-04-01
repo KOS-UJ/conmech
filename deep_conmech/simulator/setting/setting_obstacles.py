@@ -349,6 +349,11 @@ class SettingObstacles(SettingForces):
             self.time_step,
         )
 
+    def complete_boundary_data_with_zeros(self, data):
+        completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data[self.boundary_indices] = data
+        return completed_data
+
     @property
     def is_coliding(self):
         if self.obstacles is None:
