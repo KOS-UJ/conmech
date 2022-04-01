@@ -1,17 +1,17 @@
 from typing import Callable
 
 import numpy as np
+from numba import njit
+
 from conmech.dataclass.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
 )
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
-from conmech.helpers.config import Config
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
 from deep_conmech.simulator.mesh.mesh import Mesh
-from numba import njit
 
 
 @njit
@@ -29,15 +29,15 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 
 class Dynamics(Mesh):
     def __init__(
-        self,
-        mesh_data: MeshData,
-        body_prop: StaticBodyProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
-        with_schur_complement_matrices: bool = True,
-        create_in_subprocess: bool = False,
+            self,
+            mesh_data: MeshData,
+            body_prop: StaticBodyProperties,
+            schedule: Schedule,
+            normalize_by_rotation: bool,
+            is_dirichlet: Callable = (lambda _: False),
+            is_contact: Callable = (lambda _: True),
+            with_schur_complement_matrices: bool = True,
+            create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -88,9 +88,9 @@ class Dynamics(Mesh):
 
         if self.with_schur_complement_matrices:
             self.C = (
-                self.ACC
-                + (self.const_viscosity + self.const_elasticity * self.time_step)
-                * self.time_step
+                    self.ACC
+                    + (self.const_viscosity + self.const_elasticity * self.time_step)
+                    * self.time_step
             )
             (
                 self.C_boundary,

@@ -1,25 +1,23 @@
-import copy
+import numpy as np
 
-import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
 
 class SettingRandomized(SettingIterable):
     def __init__(
-        self,
-        mesh_data: MeshData,
-        body_prop: DynamicBodyProperties,
-        obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        config: TrainingConfig,
-        create_in_subprocess,
+            self,
+            mesh_data: MeshData,
+            body_prop: DynamicBodyProperties,
+            obstacle_prop: ObstacleProperties,
+            schedule: Schedule,
+            config: TrainingConfig,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -88,12 +86,12 @@ class SettingRandomized(SettingIterable):
     @property
     def a_correction(self):
         u_correction = self.config.td.U_NOISE_GAMMA * (
-            self.u_old_randomization / (self.time_step ** 2)
+                self.u_old_randomization / (self.time_step ** 2)
         )
         v_correction = (
-            (1.0 - self.config.td.U_NOISE_GAMMA)
-            * self.v_old_randomization
-            / self.time_step
+                (1.0 - self.config.td.U_NOISE_GAMMA)
+                * self.v_old_randomization
+                / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 

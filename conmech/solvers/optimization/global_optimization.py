@@ -3,6 +3,7 @@ Created 22.02.2021
 """
 
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -10,14 +11,14 @@ from conmech.solvers.optimization.optimization import Optimization
 
 class Global(Optimization):
     def __init__(
-        self,
-        grid,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            grid,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         super().__init__(
             grid,
@@ -64,14 +65,14 @@ class Static(Global):
 @Solvers.register("quasistatic", "global", "global optimization")
 class Quasistatic(Global):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         self.const_viscosity = mesh.const_viscosity
         super().__init__(
@@ -98,14 +99,14 @@ class Quasistatic(Global):
 @Solvers.register("dynamic", "global", "global optimization")
 class Dynamic(Quasistatic):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         self.dim = mesh.dimension
         self.ACC = mesh.ACC
@@ -124,8 +125,8 @@ class Dynamic(Quasistatic):
         )
 
         self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
-            : self.ind, : self.ind
-        ] + self.K[: self.ind, : self.ind]
+                                                         : self.ind, : self.ind
+                                                         ] + self.K[: self.ind, : self.ind]
 
         self.Q = self.recalculate_temperature()
 

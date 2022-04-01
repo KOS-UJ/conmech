@@ -2,9 +2,10 @@
 Created at 21.08.2019
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
-from dataclasses import dataclass
 
 from conmech.problem_solver import TDynamic as TDynamicProblem
 from conmech.problems import Dynamic

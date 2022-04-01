@@ -1,13 +1,12 @@
 import numpy as np
-from conmech.helpers import nph
-from conmech.helpers.config import Config
+
 from deep_conmech.simulator.setting import setting_obstacles
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
 
 def obstacle_heat(
-    penetration_norm, tangential_velocity, heat_coeff,
+        penetration_norm, tangential_velocity, heat_coeff,
 ):
     return (
         (penetration_norm > 0)
@@ -17,13 +16,13 @@ def obstacle_heat(
 
 
 def integrate(
-    nodes,
-    nodes_normals,
-    obstacle_nodes,
-    obstacle_nodes_normals,
-    v,
-    nodes_volume,
-    heat_coeff,
+        nodes,
+        nodes_normals,
+        obstacle_nodes,
+        obstacle_nodes_normals,
+        v,
+        nodes_volume,
+        heat_coeff,
 ):
     penetration_norm = setting_obstacles.get_penetration_norm(
         nodes, obstacle_nodes, obstacle_nodes_normals
@@ -36,20 +35,20 @@ def integrate(
 
 
 def L2_temperature(
-    t, T, Q,
+        t, T, Q,
 ):
     return L2_new(t, T, Q)
 
 
 class SettingTemperature(SettingIterable):
     def __init__(
-        self,
-        mesh_data,
-        body_prop,
-        obstacle_prop,
-        schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess,
+            self,
+            mesh_data,
+            body_prop,
+            obstacle_prop,
+            schedule,
+            normalize_by_rotation: bool,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -154,17 +153,17 @@ class SettingTemperature(SettingIterable):
         )
 
     def get_E(
-        self,
-        t,
-        forces,
-        u_old,
-        v_old,
-        const_volume,
-        const_elasticity,
-        const_viscosity,
-        time_step,
-        dimension,
-        C2T,
+            self,
+            t,
+            forces,
+            u_old,
+            v_old,
+            const_volume,
+            const_elasticity,
+            const_viscosity,
+            time_step,
+            dimension,
+            C2T,
     ):
         value = super().get_E(
             forces=forces,

@@ -1,18 +1,19 @@
 import torch
+
 from conmech.helpers.config import Config
-from deep_conmech.graph.helpers import dch, thh
+from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 
 
 class SettingTorch(SettingRandomized):
     def __init__(
-        self,
-        mesh_data,
-        body_prop,
-        obstacle_prop,
-        schedule,
-        config: Config,
-        create_in_subprocess,
+            self,
+            mesh_data,
+            body_prop,
+            obstacle_prop,
+            schedule,
+            config: Config,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,

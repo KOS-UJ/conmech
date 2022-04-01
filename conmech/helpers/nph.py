@@ -23,7 +23,7 @@ def unstack(vector, dim):
     return vector.reshape(-1, dim, order="F")
 
 
-def unstack_and_sum_columns(data, dim, keepdims = False):
+def unstack_and_sum_columns(data, dim, keepdims=False):
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 

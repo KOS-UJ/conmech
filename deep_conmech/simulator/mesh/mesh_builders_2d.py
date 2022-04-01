@@ -1,10 +1,8 @@
 from ctypes import ArgumentError
 
-# import dmsh
-# import optimesh
 import meshzoo
-import numpy as np
 import pygmsh
+
 from conmech.helpers import nph
 from deep_conmech.simulator.mesh.mesh_builders_helpers import *
 
@@ -22,6 +20,7 @@ def get_dmsh_rectangle(mesh_density, corners):
     min = nph.min(corners)
     max = nph.max(corners)
     geo = dmsh.Rectangle(min[0], max[0], min[1], max[1])
+
     # path = dmsh.Path([[0.4, 0.6], [0.6, 0.4]])
 
     def edge_size(x):
@@ -87,4 +86,3 @@ def get_pygmsh_elements_and_nodes(mesh_data):
 
     return nodes, elements  # , boundary_faces  # not in with
     # mesh.write("out.vtk")
-

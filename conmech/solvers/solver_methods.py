@@ -3,11 +3,10 @@ Created at 21.08.2019
 """
 from typing import Callable, Optional, Any
 
-import numpy as np
 import numba
+import numpy as np
 
 from conmech.vertex_utils import length
-
 
 DIMENSION = 2
 
@@ -19,7 +18,7 @@ def n_down(n0, n1):
     y = 1
     dx = n0[x] - n1[x]
     dy = n0[y] - n1[y]
-    norm = np.sqrt(dx**2 + dy**2)
+    norm = np.sqrt(dx ** 2 + dy ** 2)
     n = np.array([float(dy) / norm, float(-dx) / norm])
     if n[1] > 0:
         n = -n
@@ -71,9 +70,9 @@ def make_f(jn, jt, h):
 
                 edge_len = length(n_0, n_1)
                 j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) \
-                    + h(um_normal) * jt(um_tangential, v_tau_0)
+                      + h(um_normal) * jt(um_tangential, v_tau_0)
                 j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) \
-                    + h(um_normal) * jt(um_tangential, v_tau_1)
+                      + h(um_normal) * jt(um_tangential, v_tau_1)
 
                 if n_id_0 < offset:
                     contact_vector[n_id_0] += j_x
@@ -99,6 +98,7 @@ def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
         @numba.njit()
         def const(_):
             return value
+
         return const
     return numba.njit(func)
 
@@ -131,7 +131,8 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
                 um_tangential = um - um_normal * normal_vector
 
                 if n_id_0 < offset and n_id_1 < offset:
-                    cost += length(n_0, n_1) * (jn(um_normal) + h(um_old_normal) * jt(um_tangential))
+                    cost += length(n_0, n_1) * (
+                                jn(um_normal) + h(um_old_normal) * jt(um_tangential))
         return cost
 
     @numba.njit()
@@ -180,7 +181,7 @@ def make_cost_functional_temperature(
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundaries, T, Q, u_vector):
         result = 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
-               - contact_cost_functional(u_vector, nodes, contact_boundaries)
+                 - contact_cost_functional(u_vector, nodes, contact_boundaries)
         result = np.asarray(result).ravel()
         return result
 

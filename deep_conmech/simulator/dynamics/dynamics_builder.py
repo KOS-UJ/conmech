@@ -1,32 +1,30 @@
-from typing import Optional
-
 import numpy as np
+
 from conmech.dataclass.body_properties import (
     BodyProperties,
     DynamicBodyProperties,
-    DynamicTemperatureBodyProperties,
     StaticBodyProperties,
-    StaticTemperatureBodyProperties,
     TemperatureBodyProperties,
 )
 
 
 class DynamicsBuilder:
     def build_matrices(
-        self,
-        elements: np.ndarray,
-        nodes: np.ndarray,
-        independent_indices: slice,
-        body_prop: StaticBodyProperties,
+            self,
+            elements: np.ndarray,
+            nodes: np.ndarray,
+            independent_indices: slice,
+            body_prop: StaticBodyProperties,
     ):
         return self.get_matrices(
             elements, nodes, body_prop, independent_indices
         )
 
     def get_matrices(
-        self, elements, nodes, body_prop: BodyProperties, independent_indices
+            self, elements, nodes, body_prop: BodyProperties, independent_indices
     ):
-        edges_features_matrix, element_initial_volume = self.get_edges_features_matrix(elements, nodes)
+        edges_features_matrix, element_initial_volume = self.get_edges_features_matrix(elements,
+                                                                                       nodes)
 
         i = independent_indices
         const_volume = edges_features_matrix[0][i, i]
@@ -64,7 +62,6 @@ class DynamicsBuilder:
             K = None
 
         return element_initial_volume, const_volume, ACC, const_elasticity, const_viscosity, C2T, K
-
 
     @property
     def dimension(self) -> int:

@@ -16,21 +16,21 @@ class State:
     def set_displacement(self, displacement_vector: np.ndarray, t: float = 0):
         self.displacement = displacement_vector.reshape((2, -1)).T
         self.displaced_points[: self.mesh.independent_nodes_count, :2] = (
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
-            + self.displacement[:, :2]
+                self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
+                + self.displacement[:, :2]
         )
         self.time = t
 
     def set_velocity(
-        self, velocity_vector: np.ndarray, t: float = 0, *, update_displacement: bool
+            self, velocity_vector: np.ndarray, t: float = 0, *, update_displacement: bool
     ):
         self.velocity = velocity_vector.reshape((2, -1)).T
         if update_displacement:
             dt = t - self.time
             self.displacement += dt * self.velocity
             self.displaced_points[: self.mesh.independent_nodes_count, :2] = (
-                self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
-                + self.displacement[:, :2]
+                    self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
+                    + self.displacement[:, :2]
             )
         self.time = t
 

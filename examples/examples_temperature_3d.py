@@ -123,5 +123,6 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
         config=Config(SHELL=False),
     )
 
+
 if __name__ == "__main__":
     main()

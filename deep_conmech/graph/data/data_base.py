@@ -1,14 +1,12 @@
 import copy
 import re
-from dataclasses import dataclass
 from os import listdir
 from os.path import isfile, join
 
-import deep_conmech.common.training_config as training_config
-import numpy as np
 import torch
+from torch_geometric.loader import DataLoader
+
 from conmech.helpers import cmh, mph
-from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.graph.data.dataset_statistics import (
     DatasetStatistics,
@@ -19,7 +17,6 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
-from torch_geometric.loader import DataLoader
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -120,22 +117,22 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
         raise Exception("Cannot divide data generation work")
     assigned_scenarios_count = int(scenarios_count / num_workers)
     assigned_scenarios = all_scenarios[
-        process_id
-        * assigned_scenarios_count : (process_id + 1)
-        * assigned_scenarios_count
-    ]
+                         process_id
+                         * assigned_scenarios_count: (process_id + 1)
+                                                     * assigned_scenarios_count
+                         ]
     return assigned_scenarios
 
 
 class BaseDatasetDynamic:
     def __init__(
-        self,
-        dimension,
-        relative_path,
-        data_count,
-        randomize_at_load,
-        num_workers,
-        config: Config,
+            self,
+            dimension,
+            relative_path,
+            data_count,
+            randomize_at_load,
+            num_workers,
+            config: Config,
     ):
         self.dimension = dimension
         self.relative_path = relative_path
@@ -144,7 +141,7 @@ class BaseDatasetDynamic:
         self.num_workers = num_workers
         self.config = config
 
-    def get_setting_input(self, scenario: Scenario, config:Config):
+    def get_setting_input(self, scenario: Scenario, config: Config):
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
@@ -162,7 +159,8 @@ class BaseDatasetDynamic:
 
         nodes_data = torch.empty((0, SettingInput.nodes_data_dim()))
         edges_data = torch.empty((0, SettingInput.edges_data_dim()))
-        for data in cmh.get_tqdm(dataloader, config=self.config, desc="Calculating dataset statistics"):
+        for data in cmh.get_tqdm(dataloader, config=self.config,
+                                 desc="Calculating dataset statistics"):
             nodes_data = torch.cat((nodes_data, data.x))
             edges_data = torch.cat((edges_data, data.edge_attr))
 
@@ -250,7 +248,7 @@ class BaseDatasetDynamic:
         return data
 
     def check_and_print(
-        self, data_count, current_index, setting, step_tqdm, tqdm_description
+            self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
         cutoff = self.config.PRINT_DATA_CUTOFF
         relative_index = current_index % int(data_count * cutoff)

@@ -5,8 +5,9 @@ import os
 import shutil
 import time
 
-from conmech.helpers.config import Config
 from tqdm import tqdm
+
+from conmech.helpers.config import Config
 
 
 def get_timestamp(config: Config):

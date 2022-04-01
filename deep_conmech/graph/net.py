@@ -2,21 +2,24 @@ from argparse import ArgumentError
 from typing import Optional
 
 import torch
-from deep_conmech.common.training_config import TrainingConfig, TrainingData
-from deep_conmech.graph.data.dataset_statistics import (
-    DatasetStatistics,
-    FeaturesStatistics,
-)
-from deep_conmech.graph.helpers import dch, thh
-from deep_conmech.graph.setting.setting_input import SettingInput
 from torch import nn
 from torch.nn import Parameter
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
+from deep_conmech.common.training_data import TrainingData
+from deep_conmech.graph.data.dataset_statistics import (
+    DatasetStatistics,
+    FeaturesStatistics,
+)
+from deep_conmech.graph.helpers import thh
+from deep_conmech.graph.setting.setting_input import SettingInput
+
 # TODO: move
 ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
+
+
 # | ac {.ACTIVATION._get_name()} \
 
 
@@ -128,14 +131,14 @@ class DataNorm(nn.Module):
 
 class ForwardNet(nn.Module):
     def __init__(
-        self,
-        input_dim: int,
-        layers_count: int,
-        output_linear_dim: int,
-        statistics: Optional[FeaturesStatistics],
-        batch_norm: bool,
-        layer_norm: bool,
-        td: TrainingData,
+            self,
+            input_dim: int,
+            layers_count: int,
+            output_linear_dim: int,
+            statistics: Optional[FeaturesStatistics],
+            batch_norm: bool,
+            layer_norm: bool,
+            td: TrainingData,
     ):
         super().__init__()
         layers = []
@@ -288,7 +291,7 @@ class ProcessorLayer(MessagePassing):
 
 class CustomGraphNet(nn.Module):
     def __init__(
-        self, output_dim, statistics: Optional[DatasetStatistics], td: TrainingData,
+            self, output_dim, statistics: Optional[DatasetStatistics], td: TrainingData,
     ):
         super().__init__()
         self.td = td

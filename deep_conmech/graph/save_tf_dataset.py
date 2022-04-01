@@ -1,19 +1,15 @@
-import copy
-import enum
 import functools
 import json
 import os
 
-import numpy as np
 import tensorflow.compat.v1 as tf
-from conmech.helpers import cmh
-from deep_conmech.common import simulation_runner, training_config
-from deep_conmech.common.plotter import plotter_2d
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+
+from deep_conmech.common import simulation_runner
+from deep_conmech.graph.helpers import dch
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
-from deep_conmech.graph.helpers import dch
+
 tf.enable_eager_execution()
 
 
@@ -51,6 +47,7 @@ def _parse(proto, meta):
             raise ValueError("invalid data format")
         out[key] = data
     return out
+
 
 #########
 
@@ -92,7 +89,7 @@ def simulate(scenario):
 
 
 def prepare_data(all_setting_paths):
-    #all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
+    # all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
     base_setting = SettingIterable.load_pickle(all_setting_paths[0])
 
     elements = base_setting.elements[np.newaxis, ...].astype("int32")

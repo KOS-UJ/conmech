@@ -1,15 +1,13 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
-from deep_conmech.simulator.mesh.mesh import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def get_fig():
@@ -17,7 +15,7 @@ def get_fig():
 
 
 def get_one_ax(fig, rect, angle, distance):
-    #ax = fig.add_subplot(1, 1, 1, projection="3d", facecolor="none")
+    # ax = fig.add_subplot(1, 1, 1, projection="3d", facecolor="none")
     ax = fig.add_axes(rect, projection="3d", facecolor="none")
     ax.set_proj_type("ortho")
     ax.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
@@ -96,7 +94,7 @@ def draw_parameters(ax, setting, current_time):
 
     args = dict(color="w", fontsize=4)
     ax.text(
-        x_max-2.0, y_max-0.5, z_max+1.0, s=annotation, **args
+        x_max - 2.0, y_max - 0.5, z_max + 1.0, s=annotation, **args
     )  # zdir=None,
 
 
@@ -117,7 +115,7 @@ def draw_base_arrows(ax, base):
 
 
 def plot_subframe(fig, ax, setting, normalized_data, t_scale):
-    #draw_base_arrows(ax, setting.moved_base)
+    # draw_base_arrows(ax, setting.moved_base)
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
@@ -151,7 +149,7 @@ def plot_subframe(fig, ax, setting, normalized_data, t_scale):
 
 
 def plot_temperature(
-    fig, ax, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
+        fig, ax, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
 ):
     points = nodes.T
     ax.scatter(
@@ -226,11 +224,11 @@ def plot_obstacles(ax, setting, color):
 
 
 def plot_animation(
-    plot_setting_paths: List[str],
-    time_skip: float,
-    save_path: str,
-    config:Config,
-    t_scale: Optional[np.ndarray] = None,
+        plot_setting_paths: List[str],
+        time_skip: float,
+        save_path: str,
+        config: Config,
+        t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         plot_setting_paths=plot_setting_paths,
@@ -239,6 +237,6 @@ def plot_animation(
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
-        config = config,
+        config=config,
         t_scale=t_scale,
     )

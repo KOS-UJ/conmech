@@ -2,26 +2,26 @@ import os
 import time
 from typing import Callable, List, Optional
 
-from conmech.helpers import cmh
-from conmech.helpers.config import Config
-from deep_conmech.common import training_config
+from _pytest.config import Config
+
+from conmech.helpers import cmh, nph
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
+from deep_conmech.simulator.solver import Solver
 
 
 def run_examples(
-    all_scenarios,
-    file,
-    plot_animation,
-    config: Config,
-    simulate_dirty_data=False,
-    get_setting_function: Optional[Callable] = None,
+        all_scenarios,
+        file,
+        plot_animation,
+        config: Config,
+        simulate_dirty_data=False,
+        get_setting_function: Optional[Callable] = None,
 ):
     for i, scenario in enumerate(all_scenarios):
-        print(f"-----EXAMPLE {i+1}/{len(all_scenarios)}-----")
+        print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
         catalog = os.path.splitext(os.path.basename(file))[0].upper()
         plot_scenario(
             solve_function=scenario.get_solve_function(),
@@ -37,14 +37,14 @@ def run_examples(
 
 
 def plot_scenario(
-    solve_function,
-    scenario: Scenario,
-    catalog,
-    config: Config,
-    simulate_dirty_data=False,
-    plot_animation=True,
-    save_all=False,
-    get_setting_function: Optional[Callable] = None,
+        solve_function,
+        scenario: Scenario,
+        catalog,
+        config: Config,
+        simulate_dirty_data=False,
+        plot_animation=True,
+        save_all=False,
+        get_setting_function: Optional[Callable] = None,
 ):
     final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
     setting_catalog = f"{final_catalog}/settings"
@@ -87,11 +87,11 @@ def plot_scenario(
 
 
 def plot_scenario_animation(
-    scenario:Scenario,
-    plot_setting_paths: List[str],
-    final_catalog: str,
-    time_skip: float,
-    config: Config,
+        scenario: Scenario,
+        plot_setting_paths: List[str],
+        final_catalog: str,
+        time_skip: float,
+        config: Config,
 ):
     t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
     save_path = f"{final_catalog}/{scenario.id}.gif"
@@ -113,13 +113,13 @@ def plot_scenario_animation(
 
 
 def simulate(
-    compare_with_base_setting,
-    solve_function,
-    scenario: Scenario,
-    simulate_dirty_data: bool,
-    config: Config,
-    operation: Optional[Callable] = None,
-    get_setting_function: Optional[Callable] = None,
+        compare_with_base_setting,
+        solve_function,
+        scenario: Scenario,
+        simulate_dirty_data: bool,
+        config: Config,
+        operation: Optional[Callable] = None,
+        get_setting_function: Optional[Callable] = None,
 ) -> None:
     _get_setting_function = (
         scenario.get_setting
@@ -201,7 +201,7 @@ def simulate(
 
 
 def plot_setting(
-    current_time, setting, path, base_setting, draw_detailed, extension,
+        current_time, setting, path, base_setting, draw_detailed, extension,
 ):
     if setting.dimension == 2:
         fig = plotter_2d.get_fig()
@@ -222,6 +222,5 @@ def plot_setting(
             fig=fig, axs=axs, setting=setting, current_time=current_time
         )
         plotter_common.plt_save(path, extension)
-
 
 ############################

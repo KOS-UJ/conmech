@@ -1,10 +1,6 @@
-import numba
-import numpy as np
 from conmech.helpers import nph
-from conmech.helpers.config import Config
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
-from numba import njit
 
 
 def L2_new(a, C, E):
@@ -16,7 +12,7 @@ def L2_new(a, C, E):
 
 class SettingForces(Dynamics):
     def __init__(
-        self, mesh_data, body_prop, schedule, normalize_by_rotation: bool, create_in_subprocess,
+            self, mesh_data, body_prop, schedule, normalize_by_rotation: bool, create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -66,22 +62,22 @@ class SettingForces(Dynamics):
         )
 
     def get_E(
-        self,
-        forces,
-        u_old,
-        v_old,
-        const_volume,
-        const_elasticity,
-        const_viscosity,
-        time_step,
+            self,
+            forces,
+            u_old,
+            v_old,
+            const_volume,
+            const_elasticity,
+            const_viscosity,
+            time_step,
     ):
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 
         F_vector = nph.stack_column(const_volume @ forces)
         E = (
-            F_vector
-            - (const_viscosity + const_elasticity * time_step) @ v_old_vector
-            - const_elasticity @ u_old_vector
+                F_vector
+                - (const_viscosity + const_elasticity * time_step) @ v_old_vector
+                - const_elasticity @ u_old_vector
         )
         return E

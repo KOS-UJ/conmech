@@ -1,7 +1,6 @@
 from argparse import ArgumentError
 from typing import List
 
-from deep_conmech.common import training_config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
@@ -11,12 +10,12 @@ from deep_conmech.simulator.solver import Solver
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
-        self,
-        all_scenarios: List[Scenario],
-        solve_function,
-        relative_path,
-        num_workers,
-        config: Config,
+            self,
+            all_scenarios: List[Scenario],
+            solve_function,
+            relative_path,
+            num_workers,
+            config: Config,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -60,7 +59,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         return self.generate_scenario_data(assigned_scenarios, start_index, process_id)
 
     def generate_scenario_data(
-        self, assigned_scenarios: List[Scenario], start_index=0, process_id=1,
+            self, assigned_scenarios: List[Scenario], start_index=0, process_id=1,
     ):
         current_index = start_index
         tqdm_description = f"Process {process_id}"
@@ -82,9 +81,9 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                 tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
                 step_tqdm.set_description(tqdm_description)
             if is_memory_overflow(
-                config=self.config,
-                step_tqdm=step_tqdm,
-                tqdm_description=tqdm_description,
+                    config=self.config,
+                    step_tqdm=step_tqdm,
+                    tqdm_description=tqdm_description,
             ):
                 return False
 
@@ -110,7 +109,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
 class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
     def __init__(
-        self, all_scenarios, solve_function, config: Config, perform_data_update=False
+            self, all_scenarios, solve_function, config: Config, perform_data_update=False
     ):
         self.perform_data_update = perform_data_update
         super().__init__(

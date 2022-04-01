@@ -1,8 +1,7 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 
-import deep_conmech.scenarios as scenarios
-from deep_conmech.common.training_config import TrainingConfig, TrainingData
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data.data_scenario import *
 from deep_conmech.graph.data.data_synthetic import *
 from deep_conmech.graph.helpers import dch
@@ -90,10 +89,6 @@ if __name__ == "__main__":
     )  # Python 3.9+
     args = parser.parse_args()
     main(args)
-
-
-
-
 
 '''
 import torch

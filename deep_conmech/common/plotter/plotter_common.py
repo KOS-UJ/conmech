@@ -1,39 +1,32 @@
-import os
-import time
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
-from conmech.helpers.config import Config
+from typing import Callable, List, Optional
 
-import deep_conmech.common.training_config as training_config
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
-from conmech.helpers import cmh
-from deep_conmech.scenarios import Scenario, TemperatureScenario
-from deep_conmech.simulator.setting.setting_forces import *
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
-from matplotlib import animation, cm, collections
+from matplotlib import animation
 from matplotlib.colors import ListedColormap
-from matplotlib.patches import Rectangle
-from matplotlib.ticker import LinearLocator
 
-#TODO: Move to config
+from conmech.helpers import cmh
+from conmech.helpers.config import Config
+from deep_conmech.scenarios import Scenario, TemperatureScenario
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+
+# TODO: Move to config
 dpi = 800
-savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0) # "#24292E"
-
+savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
 
 
 @dataclass
 class ColorbarSettings:
-    vmin:float
-    vmax:float
+    vmin: float
+    vmax: float
     cmap: ListedColormap
-    
+
     @property
     def mappable(self):
         norm = matplotlib.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
-
 
 
 def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
@@ -44,19 +37,21 @@ def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
     )
     return np.array([np.min(temperatures), np.max(temperatures)])
 
+
 def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
-     # magma plasma cool coolwarm
+    # magma plasma cool coolwarm
     lim_small = 0.2
     lim_big = 10
 
-    if(t_scale[0] > -lim_small and t_scale[1] < lim_small):
-        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool) #coolwarm
+    if (t_scale[0] > -lim_small and t_scale[1] < lim_small):
+        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)  # coolwarm
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
+
 
 def plot_colorbar(fig, axs, cbar_settings):
     for ax in axs:
         position = ax.get_position()
-        if(position.p0[0] > 0.1):
+        if (position.p0[0] > 0.1):
             position.p0[0] *= 0.8
         position.p1[0] *= 0.9
         ax.set_position(position)
@@ -66,6 +61,7 @@ def plot_colorbar(fig, axs, cbar_settings):
     cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=ax)
     cbar.outline.set_edgecolor("w")
     cbar.outline.set_linewidth(0.2)
+
 
 def set_ax(ax):
     for spine in ax.spines.values():
@@ -100,20 +96,21 @@ def plt_save(path, extension):
 
 
 def plot_animation(
-    plot_setting_paths: List[str],
-    time_skip: float,
-    save_path: str,
-    get_axs: Callable,
-    plot_frame: Callable,
-    fig,
-    config: Config,
-    t_scale: Optional[np.ndarray] = None
+        plot_setting_paths: List[str],
+        time_skip: float,
+        save_path: str,
+        get_axs: Callable,
+        plot_frame: Callable,
+        fig,
+        config: Config,
+        t_scale: Optional[np.ndarray] = None
 ):
     # frac_skip = config.PRINT_SKIP
     # skip = int(frac_skip // scenario.time_step)
     frames_count = len(plot_setting_paths)  # // skip
     fps = int(1 / time_skip)
-    animation_tqdm = cmh.get_tqdm(iterable=range(frames_count+1), config=config, desc="Generating animation")
+    animation_tqdm = cmh.get_tqdm(iterable=range(frames_count + 1), config=config,
+                                  desc="Generating animation")
 
     def animate(step):
         current_time = step * time_skip
@@ -129,8 +126,9 @@ def plot_animation(
         fig, animate, frames=frames_count
     )  # , interval=scenario.final_time)
     ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
-    #animation_tqdm.close()
+    # animation_tqdm.close()
     plt.close()
+
 
 def get_frame_annotation(setting, current_time):
     return f"""time: {str(round(current_time, 1))}

@@ -1,15 +1,12 @@
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
-import numpy as np
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from deep_conmech import scenarios
-from deep_conmech.common import training_config
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.simulator.solver import Solver
 from deep_conmech.simulator.setting.setting_forces import *
-from torch_geometric.loader import DataLoader
+from deep_conmech.simulator.solver import Solver
 
 
 def create_forces(config, setting):

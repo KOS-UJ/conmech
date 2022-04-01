@@ -2,11 +2,11 @@
 Created at 21.08.2019
 """
 
-
 from typing import Callable
-import numpy as np
-from conmech.helpers import nph
 
+import numpy as np
+
+from conmech.helpers import nph
 from conmech.vertex_utils import length
 
 

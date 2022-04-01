@@ -1,4 +1,3 @@
-import os
 from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import *
 from deep_conmech.simulator.mesh.mesh_builders_3d import *

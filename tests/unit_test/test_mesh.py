@@ -4,6 +4,7 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
+
 from conmech.features.boundaries import identify_surfaces, get_boundaries
 
 
@@ -26,10 +27,12 @@ def test_identify_surfaces():
 def generate_test_suits():
     def is_dirichlet(x):
         return x[0] < 4
+
     expected_dirichlet = [[2, 3, 1]]
 
     def is_contact(x):
         return x[1] % 2 == 0
+
     expected_contact = [[4, 8, 6, 2]]
 
     expected_neumann = [[1, 7, 9, 4]]
@@ -39,10 +42,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return x[0] < 5 or x[0] % 2 != 0
+
     expected_dirichlet = [[2, 3, 1, 7, 9, 4]]
 
     def is_contact(x):
         return x[0] % 2 == 0
+
     expected_contact = [[4, 8, 6, 2]]
 
     expected_neumann = []
@@ -52,10 +57,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return False
+
     expected_dirichlet = []
 
     def is_contact(x):
         return True
+
     expected_contact = [[6, 2, 3, 1, 7, 9, 4, 8]]
 
     expected_neumann = []
@@ -65,10 +72,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return x[0] % 2 != 0
+
     expected_dirichlet = [[3, 1, 7, 9]]
 
     def is_contact(x):
         return x[0] % 2 == 0
+
     expected_contact = [[4, 8, 6, 2]]
 
     expected_neumann = [[2, 3], [9, 4]]
@@ -78,10 +87,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return x[0] == 8 or x[0] == 6
+
     expected_dirichlet = [[8, 6]]
 
     def is_contact(x):
         return False
+
     expected_contact = []
 
     expected_neumann = [[6, 2, 3, 1, 7, 9, 4, 8]]
@@ -91,10 +102,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return False
+
     expected_dirichlet = []
 
     def is_contact(x):
         return False
+
     expected_contact = []
 
     expected_neumann = [[6, 2, 3, 1, 7, 9, 4, 8]]
@@ -104,10 +117,12 @@ def generate_test_suits():
 
     def is_dirichlet(x):
         return x[0] < 4
+
     expected_dirichlet = [[2, 3, 1]]
 
     def is_contact(x):
         return False
+
     expected_contact = []
 
     expected_neumann = [[1, 7, 9, 4, 8, 6, 2]]

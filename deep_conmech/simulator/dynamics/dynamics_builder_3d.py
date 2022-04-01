@@ -1,6 +1,7 @@
 import numpy as np
-from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
 from numba import njit
+
+from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
 
 ELEMENT_NODES_COUNT = 4
 CONNECTED_EDGES_COUNT = 3
@@ -54,25 +55,25 @@ def get_edges_features_matrix_numba(elements, nodes):
                 w33 = i_dPhZ * j_dPhZ
 
                 edges_features_matrix[:, element[i], element[j]] += (
-                    element_volume
-                    * np.array(
-                        [
-                            volume,
-                            u,
-                            v1,
-                            v2,
-                            v3,
-                            w11,
-                            w12,
-                            w13,
-                            w21,
-                            w22,
-                            w23,
-                            w31,
-                            w32,
-                            w33,
-                        ]
-                    )
+                        element_volume
+                        * np.array(
+                    [
+                        volume,
+                        u,
+                        v1,
+                        v2,
+                        v3,
+                        w11,
+                        w12,
+                        w13,
+                        w21,
+                        w22,
+                        w23,
+                        w31,
+                        w32,
+                        w33,
+                    ]
+                )
                 )
 
     return edges_features_matrix, element_initial_volume
@@ -89,28 +90,28 @@ def get_integral_parts_numba(element_nodes, element_index):
     element_volume = np.abs(dm) / 6.0
 
     x_sub = (
-        x_j1[2] * x_j2[1]
-        - x_j1[1] * x_j2[2]
-        - x_j1[2] * x_j3[1]
-        + x_j2[2] * x_j3[1]
-        + x_j1[1] * x_j3[2]
-        - x_j2[1] * x_j3[2]
+            x_j1[2] * x_j2[1]
+            - x_j1[1] * x_j2[2]
+            - x_j1[2] * x_j3[1]
+            + x_j2[2] * x_j3[1]
+            + x_j1[1] * x_j3[2]
+            - x_j2[1] * x_j3[2]
     )
     y_sub = (
-        x_j1[0] * x_j2[2]
-        - x_j1[2] * x_j2[0]
-        + x_j1[2] * x_j3[0]
-        - x_j2[2] * x_j3[0]
-        - x_j1[0] * x_j3[2]
-        + x_j2[0] * x_j3[2]
+            x_j1[0] * x_j2[2]
+            - x_j1[2] * x_j2[0]
+            + x_j1[2] * x_j3[0]
+            - x_j2[2] * x_j3[0]
+            - x_j1[0] * x_j3[2]
+            + x_j2[0] * x_j3[2]
     )
     z_sub = (
-        x_j1[1] * x_j2[0]
-        - x_j1[0] * x_j2[1]
-        - x_j1[1] * x_j3[0]
-        + x_j2[1] * x_j3[0]
-        + x_j1[0] * x_j3[1]
-        - x_j2[0] * x_j3[1]
+            x_j1[1] * x_j2[0]
+            - x_j1[0] * x_j2[1]
+            - x_j1[1] * x_j3[0]
+            + x_j2[1] * x_j3[0]
+            + x_j1[0] * x_j3[1]
+            - x_j2[0] * x_j3[1]
     )
 
     dPhX = x_sub / dm
@@ -123,48 +124,45 @@ def get_integral_parts_numba(element_nodes, element_index):
 @njit
 def denominator_numba(x_i, x_j1, x_j2, x_j3):
     return (
-        x_i[2] * x_j1[1] * x_j2[0]
-        - x_i[1] * x_j1[2] * x_j2[0]
-        - x_i[2] * x_j1[0] * x_j2[1]
-        + x_i[0] * x_j1[2] * x_j2[1]
-        + x_i[1] * x_j1[0] * x_j2[2]
-        - x_i[0] * x_j1[1] * x_j2[2]
-        - x_i[2] * x_j1[1] * x_j3[0]
-        + x_i[1] * x_j1[2] * x_j3[0]
-        + x_i[2] * x_j2[1] * x_j3[0]
-        - x_j1[2] * x_j2[1] * x_j3[0]
-        - x_i[1] * x_j2[2] * x_j3[0]
-        + x_j1[1] * x_j2[2] * x_j3[0]
-        + x_i[2] * x_j1[0] * x_j3[1]
-        - x_i[0] * x_j1[2] * x_j3[1]
-        - x_i[2] * x_j2[0] * x_j3[1]
-        + x_j1[2] * x_j2[0] * x_j3[1]
-        + x_i[0] * x_j2[2] * x_j3[1]
-        - x_j1[0] * x_j2[2] * x_j3[1]
-        - x_i[1] * x_j1[0] * x_j3[2]
-        + x_i[0] * x_j1[1] * x_j3[2]
-        + x_i[1] * x_j2[0] * x_j3[2]
-        - x_j1[1] * x_j2[0] * x_j3[2]
-        - x_i[0] * x_j2[1] * x_j3[2]
-        + x_j1[0] * x_j2[1] * x_j3[2]
+            x_i[2] * x_j1[1] * x_j2[0]
+            - x_i[1] * x_j1[2] * x_j2[0]
+            - x_i[2] * x_j1[0] * x_j2[1]
+            + x_i[0] * x_j1[2] * x_j2[1]
+            + x_i[1] * x_j1[0] * x_j2[2]
+            - x_i[0] * x_j1[1] * x_j2[2]
+            - x_i[2] * x_j1[1] * x_j3[0]
+            + x_i[1] * x_j1[2] * x_j3[0]
+            + x_i[2] * x_j2[1] * x_j3[0]
+            - x_j1[2] * x_j2[1] * x_j3[0]
+            - x_i[1] * x_j2[2] * x_j3[0]
+            + x_j1[1] * x_j2[2] * x_j3[0]
+            + x_i[2] * x_j1[0] * x_j3[1]
+            - x_i[0] * x_j1[2] * x_j3[1]
+            - x_i[2] * x_j2[0] * x_j3[1]
+            + x_j1[2] * x_j2[0] * x_j3[1]
+            + x_i[0] * x_j2[2] * x_j3[1]
+            - x_j1[0] * x_j2[2] * x_j3[1]
+            - x_i[1] * x_j1[0] * x_j3[2]
+            + x_i[0] * x_j1[1] * x_j3[2]
+            + x_i[1] * x_j2[0] * x_j3[2]
+            - x_j1[1] * x_j2[0] * x_j3[2]
+            - x_i[0] * x_j2[1] * x_j3[2]
+            + x_j1[0] * x_j2[1] * x_j3[2]
     )
-
-
-
 
 
 class DynamicsBuilder3D(DynamicsBuilder):
 
     def get_edges_features_matrix(self, elements, nodes):
-        return get_edges_features_matrix_numba(elements,nodes)
+        return get_edges_features_matrix_numba(elements, nodes)
 
     @property
     def dimension(self) -> int:
         return 3
 
     def calculate_constitutive_matrices(self,
-        W11, W12, W13, W21, W22, W23, W31, W32, W33, MU, LA
-    ):
+                                        W11, W12, W13, W21, W22, W23, W31, W32, W33, MU, LA
+                                        ):
         X11 = (2 * MU + LA) * W11 + MU * W22 + LA * W33
         X22 = MU * W11 + (2 * MU + LA) * W22 + LA * W33
         X33 = MU * W11 + LA * W22 + (2 * MU + LA) * W33
@@ -183,7 +181,6 @@ class DynamicsBuilder3D(DynamicsBuilder):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
-
     def calculate_temperature_C(self, V1, V2, V3, C_coef):
         Z = np.zeros_like(V1)
         X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2 + C_coef[0][2] * V3
@@ -193,13 +190,13 @@ class DynamicsBuilder3D(DynamicsBuilder):
 
     def calculate_temperature_K(self, W11, W12, W13, W21, W22, W23, W31, W32, W33, K_coef):
         return (
-            K_coef[0][0] * W11
-            + K_coef[0][1] * W12
-            + K_coef[0][2] * W13
-            + K_coef[1][0] * W21
-            + K_coef[1][1] * W22
-            + K_coef[1][2] * W23
-            + K_coef[2][0] * W31
-            + K_coef[2][1] * W32
-            + K_coef[2][2] * W33
+                K_coef[0][0] * W11
+                + K_coef[0][1] * W12
+                + K_coef[0][2] * W13
+                + K_coef[1][0] * W21
+                + K_coef[1][1] * W22
+                + K_coef[1][2] * W23
+                + K_coef[2][0] * W31
+                + K_coef[2][1] * W32
+                + K_coef[2][2] * W33
         )

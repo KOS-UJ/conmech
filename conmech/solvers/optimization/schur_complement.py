@@ -11,14 +11,14 @@ from conmech.solvers.optimization.optimization import Optimization
 
 class SchurComplement(Optimization):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         super().__init__(
             mesh,
@@ -46,7 +46,7 @@ class SchurComplement(Optimization):
 
     @staticmethod
     def calculate_schur_complement_matrices(
-        matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
+            matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
     ):
         def get_sliced(matrix_split, indices_height, indices_width):
             matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
@@ -68,26 +68,26 @@ class SchurComplement(Optimization):
         # CiiINV
         free_x_free_inverted = np.linalg.inv(free_x_free)
         matrix_boundary = contact_x_contact - contact_x_free @ (
-            free_x_free_inverted @ free_x_contact
+                free_x_free_inverted @ free_x_contact
         )
 
         return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
 
     @staticmethod
     def calculate_schur_complement_vector(
-        vector: np.ndarray,
-        dimension: int,
-        contact_indices: slice,
-        free_indices: slice,
-        free_x_free_inverted: np.ndarray,
-        contact_x_free: np.ndarray,
+            vector: np.ndarray,
+            dimension: int,
+            contact_indices: slice,
+            free_indices: slice,
+            free_x_free_inverted: np.ndarray,
+            contact_x_free: np.ndarray,
     ):
         vector_split = nph.unstack(vector, dimension)
-        #Et
+        # Et
         vector_contact = nph.stack_column(vector_split[contact_indices, :])
-        #Ei
+        # Ei
         vector_free = nph.stack_column(vector_split[free_indices, :])
-        #E_boundary
+        # E_boundary
         vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
         return vector_boundary, vector_free
 
@@ -108,7 +108,7 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free #TODO: refactor to remove T
+        return point_forces.T, forces_free  # TODO: refactor to remove T
 
     def get_C(self):
         raise NotImplementedError()
@@ -128,11 +128,11 @@ class SchurComplement(Optimization):
         return self._point_forces
 
     def solve(
-        self,
-        initial_guess: np.ndarray,
-        *,
-        fixed_point_abs_tol: float = math.inf,
-        **kwargs
+            self,
+            initial_guess: np.ndarray,
+            *,
+            fixed_point_abs_tol: float = math.inf,
+            **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         solution_contact = super().solve(
@@ -194,14 +194,14 @@ class Static(SchurComplement):
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         self.const_viscosity = mesh.const_viscosity
         self.dim = mesh.dimension
@@ -229,14 +229,14 @@ class Quasistatic(SchurComplement):
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(Quasistatic):
     def __init__(
-        self,
-        mesh,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            mesh,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         self.dim = mesh.dimension
         self.ACC = mesh.ACC
@@ -255,8 +255,8 @@ class Dynamic(Quasistatic):
         )
 
         T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.K[
-            : self.ind, : self.ind
-        ]
+                                                                      : self.ind, : self.ind
+                                                                      ]
 
         (
             self._point_temperature,
@@ -331,4 +331,4 @@ class Dynamic(Quasistatic):
             contact_x_free=self.T_contact_x_free,
             free_x_free_inverted=self.T_free_x_free_inverted,
         )
-        return Q.reshape(-1), Q_free.reshape(-1) #TODO: refactor to remove reshape
+        return Q.reshape(-1), Q_free.reshape(-1)  # TODO: refactor to remove reshape

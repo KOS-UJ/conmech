@@ -8,6 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
@@ -59,7 +60,7 @@ class Drawer:
             self.save_plot(save_format)
 
     @staticmethod
-    def save_plot(format: str, config:Config):
+    def save_plot(format: str, config: Config):
         directory = Drawer.get_directory()
         cmh.create_folders(directory)
         path = f"{directory}/{cmh.get_timestamp(config)}.{format}"
@@ -97,7 +98,7 @@ class Drawer:
 
         n_layers = 100
         ax.tricontourf(x, y, self.mesh.elements, field, n_layers, cmap=plt.cm.magma,
-                             vmin=v_min, vmax=v_max)
+                       vmin=v_min, vmax=v_max)
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=plt.cm.magma, norm=plt.Normalize(vmin=v_min, vmax=v_max))

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional
 
 import numpy as np
 
@@ -8,15 +7,18 @@ import numpy as np
 class BodyProperties:
     mass_density: float
 
+
 @dataclass
 class StaticBodyProperties(BodyProperties):
     mu: float
     lambda_: float
 
+
 @dataclass
 class DynamicBodyProperties(StaticBodyProperties):
     theta: float
     zeta: float
+
 
 @dataclass
 class TemperatureBodyProperties:
@@ -27,6 +29,8 @@ class TemperatureBodyProperties:
 @dataclass
 class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyProperties):
     pass
+
+
 @dataclass
 class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
     pass
