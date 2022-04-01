@@ -1,5 +1,7 @@
 import copy
 import pickle
+from io import BufferedRandom, BufferedReader
+from typing import List
 
 import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.dataclass.body_properties import DynamicBodyProperties
@@ -84,19 +86,48 @@ class SettingIterable(SettingObstacles):
 
 
 
-    def save_pickle(self, path: str) -> None:
-        with open(f"{path}.st", "wb") as file:
-            setting_copy = copy.deepcopy(self)
-            setting_copy.clear_save()
-            pickle.dump(setting_copy, file)
+    @staticmethod
+    def open_files_append_pickle(path: str):
+        return open(f"{path}.settings", 'ab+'), open(f"{path}.indices", 'ab+')
 
     @staticmethod
-    def load_pickle(path: str):
-        with open(f"{path}.st", "rb") as file:
-            setting = pickle.load(file)
-            return setting
+    def open_file_settings_read_pickle(path: str):
+        return open(f"{path}.settings", 'rb')
 
-    def clear_save(self):
+    @staticmethod
+    def get_all_indices_pickle(all_settings_path):
+        all_indices = []
+        with open(f"{all_settings_path}.indices", 'rb') as file:
+            try:
+                while True:
+                    all_indices.append(pickle.load(file))
+            except EOFError:
+                pass
+        return all_indices
+
+
+
+    def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
+        setting_copy = copy.deepcopy(self)
+        setting_copy.clear_save(for_plot=True)
+
+        index = settings_file.tell()
+        pickle.dump(setting_copy, settings_file)
+        pickle.dump(index, file_meta)
+
+        
+    @staticmethod
+    def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
+        byte_index = all_indices[index]
+        #with open(f"{path}.settings", 'rb') as file:
+        settings_file.seek(byte_index)
+        setting = pickle.load(settings_file)
+        return setting
+
+
+
+
+    def clear_save(self, for_plot=False):
         self.is_contact = None
         self.is_dirichlet = None
 
@@ -119,3 +150,5 @@ class SettingIterable(SettingObstacles):
         self.T_contact_x_free = None
         self.T_free_x_free_inverted = None
 
+        #if for_plot:
+        #    self.C = None

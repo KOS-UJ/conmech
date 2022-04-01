@@ -1,10 +1,9 @@
 import copy
 import re
-from dataclasses import dataclass
 from os import listdir
 from os.path import isfile, join
 
-import deep_conmech.common.training_config as training_config
+from deep_conmech.common.training_config import TrainingConfig
 import numpy as np
 import torch
 from conmech.helpers import cmh, mph
@@ -18,6 +17,7 @@ from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
 from torch_geometric.loader import DataLoader
 
@@ -80,7 +80,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
     )
 
 
-def is_memory_overflow(config: training_config.TrainingConfig, step_tqdm, tqdm_description):
+def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
         f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
@@ -110,7 +110,7 @@ def get_indices_to_do(data_range, path):
 def get_and_check_indices_to_do(data_range, path, process_id):
     indices_to_do = get_indices_to_do(data_range, path)
     if not indices_to_do:
-        thh.get_tqdm(range(1), desc=f"Process {process_id} - done", position=process_id)
+        cmh.get_tqdm(range(1), desc=f"Process {process_id} - done", position=process_id)
     return indices_to_do
 
 
@@ -135,13 +135,13 @@ class BaseDatasetDynamic:
         data_count,
         randomize_at_load,
         num_workers,
-        config: Config,
+        config: TrainingConfig,
     ):
         self.dimension = dimension
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        self.num_workers = num_workers
+        self.num_workers = 1 ############################# num_workers
         self.config = config
 
     def get_setting_input(self, scenario: Scenario, config:Config):
@@ -182,22 +182,19 @@ class BaseDatasetDynamic:
 
     def clear_and_initialize_data(self):
         print(f"Clearing {self.relative_path} data")
-        cmh.clear_folder(self.images_path)
-        cmh.clear_folder(self.data_path)
-        cmh.clear_folder(self.path)
+        cmh.clear_folder(self.main_directory)
+        cmh.clear_folder(self.images_directory)
         self.initialize_data()
 
     def initialize_data(self):
-        cmh.create_folders(self.path)
-        cmh.create_folders(self.data_path)
-        cmh.create_folders(self.images_path)
+        cmh.create_folders(self.main_directory)
+        cmh.create_folders(self.images_directory)
 
-        indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
-        if not indices_to_do:
-            print(f"Taking prepared {self.relative_path} data")
-            return
+        #indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
+        #if not indices_to_do:
+        #    print(f"Taking prepared {self.relative_path} data")
+        #    return
 
-        # print(f"Missing {self.relative_path} data")
         result = False
         while result is False:
             result = mph.run_processes(
@@ -210,31 +207,24 @@ class BaseDatasetDynamic:
         pass
 
     @property
-    def path(self):
+    def main_directory(self):
         return f"./datasets/{self.config.DATA_FOLDER}/{self.relative_path}"
 
     @property
-    def images_path(self):
-        return f"{self.path}/images"
+    def images_directory(self):
+        return f"{self.main_directory}/images"
 
-    @property
-    def data_path(self):
-        return f"{self.path}/data"
 
-    def get_setting_path(self, index):
-        return f"{self.data_path}/setting_{index}.pt"
-
+    '''
     def save(self, setting, exact_normalized_a_torch, index):
         setting_copy = copy.deepcopy(setting)
         setting_copy.exact_normalized_a_torch = exact_normalized_a_torch
         setting_copy.clear_save()
         torch.save(setting_copy, self.get_setting_path(index))
-
-    def load(self, index):
-        return torch.load(self.get_setting_path(index))
+    '''
 
     def get_example(self, index):
-        setting = self.load(index)
+        setting = SettingIterable.load_index_pickle(self.main_directory, index)
         if self.randomize_at_load:
             setting.set_randomization(True)
             exact_normalized_a_torch = Solver.clean_acceleration(
@@ -258,7 +248,7 @@ class BaseDatasetDynamic:
             step_tqdm.set_description(
                 f"{tqdm_description} - printing data {current_index}"
             )
-            self.plot_data_setting(setting, current_index, self.images_path)
+            self.plot_data_setting(setting, current_index, self.images_directory)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 

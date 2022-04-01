@@ -226,19 +226,23 @@ def plot_obstacles(ax, setting, color):
 
 
 def plot_animation(
-    plot_setting_paths: List[str],
-    time_skip: float,
     save_path: str,
-    config:Config,
+    config: Config,
+    time_skip: float,
+    index_skip: int,
+    plot_settings_count:int,
+    all_settings_path:str,
     t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
-        plot_setting_paths=plot_setting_paths,
-        time_skip=time_skip,
-        save_path=save_path,
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
+        save_path=save_path,
         config = config,
-        t_scale=t_scale,
+        time_skip=time_skip,
+        index_skip=index_skip,
+        plot_settings_count=plot_settings_count,
+        all_settings_path=all_settings_path,
+        t_scale=t_scale
     )

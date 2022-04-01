@@ -1,10 +1,9 @@
 import deep_conmech.scenarios as scenarios
 from deep_conmech.common import simulation_runner
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.scenarios import *
 
 
-def main(mesh_density=3, final_time=10, plot_animation=True):
+def main(mesh_density=3, final_time=1.10, plot_animation=True):
     config=Config(SHELL=False)
     all_scenarios = [
         Scenario(
