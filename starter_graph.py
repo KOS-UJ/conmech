@@ -89,31 +89,3 @@ if __name__ == "__main__":
     )  # Python 3.9+
     args = parser.parse_args()
     main(args)
-
-'''
-import torch
-x = torch.tensor([0, 1, 2, 3, 4])
-a = torch.rand(2,3,4,5)
-b = torch.zeros(37)
-torch.save({"a": a, "b":b, "x", x}, 'tensors.pt')
-
-#To append to a pickle file
-import pickle
-
-p={1:2}
-q={3:4}
-filename="picklefile"
-with open(filename, 'a+') as fp:
-    pickle.dump(p,fp)
-    pickle.dump(q,fp)
-
-
-#To load from pickle file
-data = []
-with open(filename, 'rb') as fr:
-    try:
-        while True:
-            data.append(pickle.load(fr))
-    except EOFError:
-        pass
-'''

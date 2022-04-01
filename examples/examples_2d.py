@@ -2,11 +2,11 @@ import numpy as np
 
 import deep_conmech.scenarios as scenarios
 from deep_conmech.common import simulation_runner
-from deep_conmech.scenarios import Config, Scenario, MeshData, Schedule, ObstacleProperties
+from deep_conmech.scenarios import *
 
 
-def main(mesh_density=3, final_time=10, plot_animation=True):
-    config = Config(SHELL=False)
+def main(mesh_density=3, final_time=1.10, plot_animation=True):
+    config=Config(SHELL=False)
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",

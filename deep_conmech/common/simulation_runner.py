@@ -7,6 +7,8 @@ from _pytest.config import Config
 from conmech.helpers import cmh, nph
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
+from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 from deep_conmech.simulator.solver import Solver
@@ -47,65 +49,63 @@ def plot_scenario(
         get_setting_function: Optional[Callable] = None,
 ):
     final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
-    setting_catalog = f"{final_catalog}/settings"
-    cmh.create_folders(setting_catalog)
+    all_settings_path = f"{final_catalog}/{scenario.id}_DATA"
+    cmh.create_folders(final_catalog)
+
     time_skip = config.PRINT_SKIP
-    plot_setting_paths = []
-    all_setting_paths = []
+    ts = int(time_skip / scenario.time_step)
+    index_skip = ts if save_all else 1
+    plot_settings_count = [0]
 
-    def operation_save(current_time, setting, base_setting, a, base_a):
-        path = f"{setting_catalog}/time_{current_time:.4f}"
-        setting_path = f"{path}"
+    settings_file, file_meta = SettingIterable.open_files_append_pickle(all_settings_path)
+    with settings_file, file_meta:
+        step = [0] #TODO: Clean
+        def operation_save(current_time: float, setting : SettingIterable, base_setting, a, base_a):
+            step[0] += 1
+            if save_all or step[0] % ts == 0: 
+                setting.append_pickle(settings_file=settings_file, file_meta=file_meta)
+                plot_settings_count[0]+=1
 
-        is_selected = time_skip is None or nph.close_modulo(current_time, time_skip)
-        if save_all or is_selected:
-            setting.save_pickle(setting_path)
-            if is_selected:
-                plot_setting_paths.append(setting_path)
-            all_setting_paths.append(setting_path)
-
-            # if draw_base:
-            #    setting.save_pickle(f"{path}_base_setting")
-
-    simulate(
-        compare_with_base_setting=False,
-        solve_function=solve_function,
-        scenario=scenario,
-        simulate_dirty_data=simulate_dirty_data,
-        config=config,
-        operation=operation_save if plot_animation else None,
-        get_setting_function=get_setting_function,
-    )
+        simulate(
+            compare_with_base_setting=False,
+            solve_function=solve_function,
+            scenario=scenario,
+            simulate_dirty_data=simulate_dirty_data,
+            config=config,
+            operation=operation_save if plot_animation else None,
+            get_setting_function=get_setting_function,
+        )
 
     if plot_animation:
-        plot_scenario_animation(scenario, plot_setting_paths, final_catalog, time_skip, config)
+        plot_scenario_animation(scenario, config, final_catalog, time_skip, index_skip, plot_settings_count[0], all_settings_path)
 
-    if not save_all:
-        cmh.clear_folder(setting_catalog)
-
-    return all_setting_paths
+    return all_settings_path
 
 
 def plot_scenario_animation(
-        scenario: Scenario,
-        plot_setting_paths: List[str],
-        final_catalog: str,
-        time_skip: float,
-        config: Config,
+    scenario:Scenario,
+    config: Config,
+    final_catalog: str,
+    time_skip: float,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str
 ):
-    t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
-    save_path = f"{final_catalog}/{scenario.id}.gif"
+    #t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
+    t_scale = None
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
         else plotter_3d.plot_animation
     )
     plot_function(
-        plot_setting_paths=plot_setting_paths,
-        time_skip=time_skip,
-        save_path=save_path,
+        save_path=f"{final_catalog}/{scenario.id}.gif",
         config=config,
-        t_scale=t_scale,
+        time_skip=time_skip,
+        index_skip=index_skip,
+        plot_settings_count=plot_settings_count,
+        all_settings_path=all_settings_path,
+        t_scale=t_scale
     )
 
 

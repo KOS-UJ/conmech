@@ -75,10 +75,7 @@ class SettingRandomized(SettingIterable):
     def input_u_old(self):  # normalized_randomized_u_old
         return self.normalized_u_old + self.normalized_u_old_randomization
 
-    @property
-    def normalized_forces_mean(self):
-        return np.mean(self.normalized_forces, axis=0)
-
+  
     @property
     def input_forces(self):
         return self.normalized_forces  # - self.normalized_forces_mean
