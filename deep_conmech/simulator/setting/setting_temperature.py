@@ -128,6 +128,8 @@ class SettingTemperature(SettingIterable):
         return Q
 
     def get_obstacle_heat_integral(self):
+        if self.obstacles is None:
+            return np.zeros_like(self.boundary_nodes_volume)
         return integrate(
             nodes=self.boundary_nodes,
             nodes_normals=self.boundary_normals,
