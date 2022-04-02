@@ -198,7 +198,8 @@ class GraphModelDynamic:
 
         loss, loss_array_np, batch = self.E(batch)
         loss.backward()
-        # self.clip_gradients()
+        if (self.config.td.GRADIENT_CLIP is not None):
+            self.clip_gradients(self.config.td.GRADIENT_CLIP)
         self.optimizer.step()
 
         return loss_array_np
@@ -211,14 +212,12 @@ class GraphModelDynamic:
 
         return loss_array_np
 
-    def clip_gradients(self):
-        """clip_grad_norm (which is actually deprecated in favor of clip_grad_norm_ 
-        following the more consistent syntax of a trailing _ when in-place modification is performed)"""
+    def clip_gradients(self, max_norm:float):
         parameters = self.net.parameters()
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
-        torch.nn.utils.clip_grad_norm_(parameters, self.config.td.GRADIENT_CLIP)
+        torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
     #################
 

@@ -350,6 +350,7 @@ class SettingObstacles(SettingForces):
         )
 
     def complete_boundary_data_with_zeros(self, data):
+        #return np.resize(data, (self.nodes_count, data.shape[1])) 
         completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[self.boundary_indices] = data
         return completed_data

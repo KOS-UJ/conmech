@@ -34,11 +34,11 @@ class TrainingData:
 
     ############
 
-    VALIDATE_AT_MINUTES: int = 5  # !# 1
+    VALIDATE_AT_MINUTES: int = 5
 
     DATASET: str = "scenarios"  # synthetic # scenarios
-    L2_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 128  # !#
+    L2_LOSS: bool = True  #!#
+    BATCH_SIZE: int = 128  #!#
     VALID_BATCH_SIZE: int = 128  # !#
     SYNTHETIC_BATCHES_IN_EPOCH: int = 64  # !#  2 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
@@ -52,7 +52,7 @@ class TrainingData:
 
     DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
     SKIP: bool = True
-    # GRADIENT_CLIP = 10.0
+    GRADIENT_CLIP = 10.0 # None
 
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 

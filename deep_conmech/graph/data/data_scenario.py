@@ -44,24 +44,17 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         )
         assigned_data_count = self.get_data_count(assigned_scenarios)
         start_index = process_id * assigned_data_count
-        
-        return self.generate_scenario_data(assigned_scenarios, start_index, process_id)
-
-    def generate_scenario_data(
-            self, assigned_scenarios: List[Scenario], start_index=0, process_id=1,
-    ):
         current_index = start_index
-        tqdm_description = f"Process {process_id}"
         assigned_data_count = self.get_data_count(assigned_scenarios)
         step_tqdm = cmh.get_tqdm(
             range(assigned_data_count),
             config=self.config,
-            desc=tqdm_description,
+            desc=f"Process {process_id}",
             position=process_id,
         )
         scenario = assigned_scenarios[0]
 
-        settings_file, file_meta = SettingIterable.open_files_append_pickle(self.main_directory)
+        settings_file, file_meta = SettingIterable.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
@@ -119,11 +112,11 @@ class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
 
 
 class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, all_scenarios, id, config: Config):
+    def __init__(self, all_scenarios, id, config: TrainingConfig):
         super().__init__(
             all_scenarios=all_scenarios,
             solve_function=Solver.solve_all,
             relative_path=f"validation/{id}",
-            num_workers=1,  ###
+            num_workers=config.GENERATION_WORKERS,
             config=config,
         )

@@ -118,7 +118,7 @@ class BaseDatasetDynamic:
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
             config=config,
-            create_in_subprocess=False,  #####
+            create_in_subprocess=False,
         )
         setting.set_randomization(False)
         setting.set_obstacles(scenario.obstacles)
@@ -160,7 +160,7 @@ class BaseDatasetDynamic:
 
         self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
         if self.data_count == len(self.all_indices):
-            print("Taking prepared data")
+            print(f"Taking prepared {self.relative_path} data")
         else:
             result = False
             while result is False:

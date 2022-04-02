@@ -2,9 +2,8 @@ import os
 import time
 from typing import Callable, List, Optional
 
-from _pytest.config import Config
-
 from conmech.helpers import cmh, nph
+from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_forces import *
