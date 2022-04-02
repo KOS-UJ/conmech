@@ -1,164 +1,94 @@
-import deep_conmech.scenarios as scenarios
-from deep_conmech.graph.data.data_scenario import *
-from deep_conmech.graph.data.data_synthetic import *
+import argparse
+from argparse import ArgumentParser, Namespace
+
+from deep_conmech import scenarios
+from deep_conmech.common.training_config import TrainingConfig
+from deep_conmech.graph.data.data_scenario import ValidationScenarioDatasetDynamic, \
+    TrainingScenariosDatasetDynamic
+from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.simulator.solver import Solver
 
 
-def main():
-    dch.set_memory_limit()
-    # torch.multiprocessing.set_start_method('spawn')
-    # path = "output/10-22.57.40/16445595359197 - MODEL.pt"
-    path = None
+def get_train_dataset(dataset_type, config: TrainingConfig):
+    if dataset_type == "synthetic":
+        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, config=config)
+    elif dataset_type == "scenarios":
+        train_dataset = TrainingScenariosDatasetDynamic(
+            scenarios.all_train(config.td), Solver.solve_all, config=config
+        )
+    else:
+        raise ValueError("Bad dataset type")
+    return train_dataset
 
-    train_dataset = TrainingScenariosDatasetDynamic(
-        scenarios.all_train, Calculator.solve_all
-    )
-    # nodes_statistics, edges_statistics = train_dataset.get_statistics()
-    nodes_statistics, edges_statistics = None, None
-    net = CustomGraphNet(2, nodes_statistics, edges_statistics).to(thh.device)
 
-    # train_dataset = TrainingSyntheticDatasetDynamic(dimension=2)
-    # train_dataset = TrainingScenariosDatasetDynamic(scenarios.all_train, net.solve_all, update_data=True)
-    all_val_datasets = [
-        ValidationScenarioDatasetDynamic([scenario], scenario.id)
-        for scenario in scenarios.all_validation
-    ]
+def get_all_val_datasets(train_dataset, config: TrainingConfig):
+    all_val_datasets = []
+    all_val_datasets.append(train_dataset)
     all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(scenarios.all_validation, "ALL")
+        ValidationScenarioDatasetDynamic(
+            scenarios.all_validation(config.td), "ALL", config=config
+        )
     )
-    #val_stat = [dataset.get_statistics() for dataset in all_val_datasets]
-    #nodes_statistics.describe()["forces_norm"]["mean"]
-    #mean_val = np.mean(
+    # all_val_datasets.extend(
     #    [
-    #        val_stat[i][0].describe()["forces_norm"]["mean"]
-    #        for i, _ in enumerate(scenarios.all_validation)
+    #        ValidationScenarioDatasetDynamic([scenario], scenario.id)
+    #        for scenario in scenarios.all_validation
     #    ]
-    #)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, scenarios.all_print, net)
-    if path is not None:
-        model.load(path)
-        model.print_raport()
+    # )
+    return all_val_datasets
 
+
+def get_net_and_dataset(config: TrainingConfig):
+    train_dataset = get_train_dataset(config.td.DATASET, config=config)
+    statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+    net = CustomGraphNet(2, statistics=statistics, td=config.td)
+    net.to(thh.device(config))
+    return net, train_dataset
+
+
+def train(config: TrainingConfig):
+    net, train_dataset = get_net_and_dataset(config)
+    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
+    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
 
 
+def plot(config: TrainingConfig):
+    net, _ = get_net_and_dataset(config=config)
+    path = GraphModelDynamic.get_newest_saved_model_path()
+    net.load(path)
+    all_print_datasets = scenarios.all_print(config.td)
+    GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
+
+
+def main(args: Namespace):
+    print(f"MODE: {args.mode}")
+    device = thh.get_device_id()
+    config = TrainingConfig(SHELL=args.shell, DEVICE=device)
+    dch.set_memory_limit(config=config)
+    print(f"Running using {config.DEVICE}")
+
+    if "train" in args.mode:
+        train(config)
+    if args.mode == "plot":
+        plot(config)
+
+
 if __name__ == "__main__":
-    main()
-
-#remove ACC, use stacked U
-#add tests
-#new branch
-
-#constitutive_velocity
-#displacement_matrix lhs
-#displacement_vector rhs
-
-    # change name boundary to contact
-    # ball falling from staircase
-    # check different time steps (and mesh sizes)
-    # standardize boundary indices and initial_vector
-
-#############################################
-# add friction and normal response (separately or together) to 2d and 3d
-
-# change names: base settings to body and setting obstacle to scene
-
-# we use Lagrangian description (https://en.wikipedia.org/wiki/Continuum_mechanics#Lagrangian_description)
-
-
-#####################################
-
-# run_conmech_static()
-# run_graph_static()
-
-# train_forces_functions = [
-#    examples.f_rotate,
-#    examples.f_push,
-#    examples.reverse(examples.f_rotate),
-#    examples.reverse(examples.f_push)
-# ]
-
-
-# TODO:
-
-# give network get_edges_features_list
-
-# podawac v wymnozone przez ts
-
-# wyswietlac dane < cutoff w getitem z nowymi randomizacjami
-
-
-# print data from folder
-
-# print based on validation dataset
-
-# równo rozdzielić generowanie danych na workery (zamiast tego że każdy sprawdza)
-
-# check if results are different if we set v_old, u_old instead of v_new, u_new in integral
-
-# check conmech dirty - if it works with obstacle (add noise-correction to penetration?)
-
-
-# in batch getittem randomly choose from original folder / folder  with generated settings
-
-
-# set training set as validation - check if it will learn well
-# decide between float and double
-# add a_normalized_mean - make it work and check if it helps
-# decide on imputs - function
-
-# replace synthetic data with data produced by model
-
-
-# add boundary conditions (as another graph or inside L2)
-# add temperature
-
-# add adaptivitiy prediction
-
-# Add noise to points, U and V and set target to denoised setting - check if it makes sence with A.2.2
-# Add Batchnorm at start
-# remove self edgestime
-# more message steps
-
-
-##################
-
-
-# do not randomize when printing and evaluating
-
-# change loss function - sqrt of it (?)
-
-# add virtual node
-# ~2000 nodes
-# 500 time steps
-
-# normalize embeddings with L2 (check if LayerNorm does that )
-
-# DRAWING:
-# a * ts * ts
-# v * ts
-# u
-# wszystko * scalar (10)
-
-
-# przy liczniu u brać pod uwagę aktualne v * ts (podobnie z v (?))
-
-
-# actual timestamp to file name
-
-# multiple mesh sizes + pygmesh
-# train on small domain, test on much bigger
-
-# (Recurrent model - worse generalization)
-
-# other body shapes
-
-# spectral graphs
-
-# this model gives us gradients - check
-
-# adaptive mesh using another net
-
-# dodać więcej parametrów do grafu - jak lambda, mu, typ cząstki itd.
+    # torch.multiprocessing.set_start_method('spawn')
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["train", "plot"],
+        default="train",
+        help="Running mode of aplication",
+    )
+    parser.add_argument(
+        "--shell", action=argparse.BooleanOptionalAction, default=False
+    )  # Python 3.9+
+    args = parser.parse_args()
+    main(args)

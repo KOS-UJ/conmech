@@ -3,13 +3,14 @@ Created at 18.02.2021
 """
 
 import numpy as np
+
 from conmech.solvers.solver_methods import make_f
 
 
 class Validator:
     def __init__(self, solver, error_tolerance: float = 1):
         self.error_tolerance = error_tolerance
-        self.B = solver.B
+        self.const_elasticity = solver.const_elasticity
         self.forces = solver.forces
         self.f = make_f(
             jn=solver.contact_law.subderivative_normal_direction,
@@ -23,7 +24,7 @@ class Validator:
                 solution,
                 state.mesh.initial_nodes,
                 state.mesh.boundaries.contact,
-                self.B,
+                self.const_elasticity,
                 self.forces.F_vector
             )
         )

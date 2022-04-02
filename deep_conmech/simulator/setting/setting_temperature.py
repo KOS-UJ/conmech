@@ -1,129 +1,186 @@
 import numpy as np
+
 from conmech.helpers import nph
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
+from conmech.solvers import SchurComplement
+from deep_conmech.simulator.setting import setting_obstacles
+from deep_conmech.simulator.setting.setting_forces import L2_new
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+
+
+def obstacle_heat(
+        penetration_norm, tangential_velocity, heat_coeff,
+):
+    return (
+            (penetration_norm > 0)
+            * heat_coeff
+            * nph.euclidean_norm(tangential_velocity, keepdims=True)
+    )
+
+
+def integrate(
+        nodes,
+        nodes_normals,
+        obstacle_nodes,
+        obstacle_nodes_normals,
+        v,
+        nodes_volume,
+        heat_coeff,
+):
+    penetration_norm = setting_obstacles.get_penetration_norm(
+        nodes, obstacle_nodes, obstacle_nodes_normals
+    )
+    v_tangential = nph.get_tangential(v, nodes_normals)
+
+    heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
+    result = nodes_volume * heat
+    return result
 
 
 def L2_temperature(
-    t, T, Q,
+        t, T, Q,
 ):
-    value = L2_new(t, T, Q)
-    return value
+    return L2_new(t, T, Q)
 
 
-class SettingTemperature(SettingRandomized):
+class SettingTemperature(SettingIterable):
     def __init__(
-        self, mesh_data, body_prop, obstacle_prop, schedule, create_in_subprocess,
+            self,
+            mesh_data,
+            body_prop,
+            obstacle_prop,
+            schedule,
+            normalize_by_rotation: bool,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         self.t_old = np.zeros((self.nodes_count, 1))
+        self.heat = None
 
-    def get_normalized_L2_temperature_np(self):
-        return lambda normalized_boundary_t_vector: L2_temperature(
-            nph.unstack(normalized_boundary_t_vector, 1),
-            self.T_boundary,
-            self.normalized_Q_boundary,
+    def get_normalized_L2_temperature_np(self, normalized_a):
+        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(
+            normalized_a
+        )
+        return (
+            lambda normalized_boundary_t_vector: L2_temperature(
+                nph.unstack(normalized_boundary_t_vector, 1),
+                self.T_boundary,
+                normalized_Q_boundary,
+            ),
+            normalized_Q_free,
         )
 
-    def prepare(self, forces):
+    def prepare(self, forces, heat):
         super().prepare(forces)
-        self.set_all_normalized_Q_np()
+        self.heat = heat
+
+    def clear(self):
+        super().clear()
+        self.heat = None
 
     def set_t_old(self, t):
         self.t_old = t
 
-    def clear(self):
-        super().clear()
-        # self.forces = None
-
-    def set_a_old(self, a):
-        self.clear_all_Q()
-        super().set_a_old(a)
-
-    def set_v_old(self, v):
-        self.clear_all_Q()
-        super().set_v_old(v)
-
-    def set_u_old(self, u):
-        self.clear_all_Q()
-        super().set_u_old(u)
-
-    def clear_all_Q(self):
-        self.normalized_Q = None
-        self.normalized_Q_free = None
-        self.normalized_Q_boundary = None
-
-    def set_all_normalized_Q_np(self):
-        self.normalized_Q = self.get_normalized_Q_np()
+    def get_all_normalized_Q_np(self, normalized_a):
+        normalized_Q = self.get_normalized_Q_np(normalized_a)
         (
-            self.normalized_Q_boundary,
-            self.normalized_Q_free,
+            normalized_Q_boundary,
+            normalized_Q_free,
         ) = SchurComplement.calculate_schur_complement_vector(
-            vector=self.normalized_Q,
+            vector=normalized_Q,
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
             free_x_free_inverted=self.T_free_x_free_inverted,
             contact_x_free=self.T_contact_x_free,
         )
+        return normalized_Q_boundary, normalized_Q_free
 
-    def get_normalized_Q_np(self):
+    def get_normalized_Q_np(self, normalized_a):
         return self.get_Q(
-            dimension=self.dimension,
-            t_old=self.t_old,
+            a=normalized_a,
             v_old=self.normalized_v_old,
+            heat=self.heat,
+            t_old=self.t_old,
+            const_volume=self.const_volume,
             C2T=self.C2T,
             U=self.ACC[self.independent_indices, self.independent_indices],
+            dimension=self.dimension,
+            time_step=self.time_step,
         )
 
-    def get_Q(self, dimension, t_old, v_old, C2T, U):
-        v_old_vector = nph.stack_column(v_old)
+    def get_Q(self, a, v_old, heat, t_old, const_volume, C2T, U, dimension, time_step):
+        v = v_old + a * time_step
+        v_vector = nph.stack_column(v)
 
-        Q = (-1) * nph.unstack_and_sum_columns(
-            C2T @ v_old_vector, dim=dimension, keepdims=True
+        Q = nph.stack_column(const_volume @ heat)
+        Q += (-1) * nph.unstack_and_sum_columns(
+            C2T @ v_vector, dim=dimension, keepdims=True
         )  # here v_old_vector is column vector
         Q += (1 / self.time_step) * U @ t_old
+
+        obstacle_heat_integral = self.get_obstacle_heat_integral()
+        Q += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
         return Q
 
-    def get_normalized_E_np(self):
+    def get_obstacle_heat_integral(self):
+        if self.obstacles is None:
+            return np.zeros_like(self.boundary_nodes_volume)
+        return integrate(
+            nodes=self.boundary_nodes,
+            nodes_normals=self.boundary_normals,
+            obstacle_nodes=self.boundary_obstacle_nodes,
+            obstacle_nodes_normals=self.boundary_obstacle_normals,
+            v=self.boundary_v_old,
+            nodes_volume=self.boundary_nodes_volume,
+            heat_coeff=self.obstacle_prop.heat
+        )
+
+    def get_normalized_E_np(self, t):
         return self.get_E(
+            t=t,
             forces=self.normalized_forces,
             u_old=self.normalized_u_old,
             v_old=self.normalized_v_old,
-            VOL=self.VOL,
-            A_plus_B_times_ts=self.A_plus_B_times_ts,
-            B=self.B,
+            const_volume=self.const_volume,
+            const_elasticity=self.const_elasticity,
+            const_viscosity=self.const_viscosity,
+            time_step=self.time_step,
             dimension=self.dimension,
             C2T=self.C2T,
         )
 
-    def get_E(self, forces, u_old, v_old, VOL, A_plus_B_times_ts, B, dimension, C2T):
-        value = super().get_E(forces, u_old, v_old, VOL, A_plus_B_times_ts, B)
-        value += C2T.T @ np.tile(self.t_old, (dimension, 1))
+    def get_E(
+            self,
+            t,
+            forces,
+            u_old,
+            v_old,
+            const_volume,
+            const_elasticity,
+            const_viscosity,
+            time_step,
+            dimension,
+            C2T,
+    ):
+        value = super().get_E(
+            forces=forces,
+            u_old=u_old,
+            v_old=v_old,
+            const_volume=const_volume,
+            const_elasticity=const_elasticity,
+            const_viscosity=const_viscosity,
+            time_step=time_step,
+        )
+        value += C2T.T @ np.tile(t, (dimension, 1))
         return value
 
     def iterate_self(self, a, t, randomized_inputs=False):
         self.set_t_old(t)
-        return super().iterate_self(a=a, randomized_inputs=randomized_inputs)
-
-    @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
-        setting = SettingTemperature(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_randomization(randomize)
-        setting.set_obstacles(scenario.obstacles)
-        return setting
+        return super().iterate_self(a=a)

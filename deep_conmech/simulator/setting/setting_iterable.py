@@ -1,33 +1,46 @@
 import copy
-from conmech.dataclass.body_properties import BodyProperties
+import pickle
+from io import BufferedReader
+from typing import List
+
+import deep_conmech.simulator.mesh.remesher as remesher
+from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
-
-import deep_conmech.simulator.mesh.remesher as remesher
-from conmech.helpers import nph
-from deep_conmech.common import config
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.scenarios import Scenario
 
 
 class SettingIterable(SettingObstacles):
     def __init__(
-        self,
-        mesh_data: MeshData,
-        body_prop: BodyProperties,
-        obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        create_in_subprocess,
+            self,
+            mesh_data: MeshData,
+            body_prop: DynamicBodyProperties,
+            obstacle_prop: ObstacleProperties,
+            schedule: Schedule,
+            normalize_by_rotation: bool,
+            create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
+
+    @property
+    def input_v_old(self):
+        return self.normalized_v_old
+
+    @property
+    def input_u_old(self):
+        return self.normalized_u_old
+
+    @property
+    def input_forces(self):
+        return self.normalized_forces
 
     def get_copy(self):
         setting = copy.deepcopy(self)
@@ -67,18 +80,63 @@ class SettingIterable(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
+    @staticmethod
+    def open_files_append_pickle(path: str):
+        return open(f"{path}.settings", 'ab+'), open(f"{path}.indices", 'ab+')
 
     @staticmethod
-    def get_setting(
-        scenario: Scenario, randomize: bool = False, create_in_subprocess: bool = False
-    ):
-        setting = SettingIterable(
-            mesh_data=scenario.mesh_data,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            create_in_subprocess=create_in_subprocess,
-        )
-        setting.set_randomization(randomize)
-        setting.set_obstacles(scenario.obstacles)
+    def open_file_settings_read_pickle(path: str):
+        return open(f"{path}.settings", 'rb')
+
+    @staticmethod
+    def get_all_indices_pickle(all_settings_path):
+        all_indices = []
+        with open(f"{all_settings_path}.indices", 'rb') as file:
+            try:
+                while True:
+                    all_indices.append(pickle.load(file))
+            except EOFError:
+                pass
+        return all_indices
+
+    def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
+        setting_copy = copy.deepcopy(self)
+        setting_copy.clear_save(for_plot=True)
+
+        index = settings_file.tell()
+        pickle.dump(setting_copy, settings_file)
+        pickle.dump(index, file_meta)
+
+    @staticmethod
+    def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
+        byte_index = all_indices[index]
+        # with open(f"{path}.settings", 'rb') as file:
+        settings_file.seek(byte_index)
+        setting = pickle.load(settings_file)
         return setting
+
+    def clear_save(self, for_plot=False):
+        self.is_contact = None
+        self.is_dirichlet = None
+
+        self.element_initial_volume = None
+        # self.const_volume = None
+        # self.const_elasticity = None
+        # self.const_viscosity = None
+        self.ACC = None
+        self.K = None
+        self.C2T = None
+        # self.visco_plus_elast_times_ts = None
+
+        self.C_boundary = None
+        self.free_x_contact = None
+        self.contact_x_free = None
+        self.free_x_free_inverted = None
+
+        self.T_boundary = None
+        self.T_free_x_contact = None
+        self.T_contact_x_free = None
+        self.T_free_x_free_inverted = None
+
+        # if for_plot:
+        #    self.C = None

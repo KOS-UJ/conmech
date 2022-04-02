@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional
 
 import numpy as np
 
@@ -7,10 +6,31 @@ import numpy as np
 @dataclass
 class BodyProperties:
     mass_density: float
+
+
+@dataclass
+class StaticBodyProperties(BodyProperties):
     mu: float
     lambda_: float
-    theta: Optional[float] = None
-    zeta: Optional[float] = None
 
-    C_coeff = [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-    K_coeff = [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+
+@dataclass
+class DynamicBodyProperties(StaticBodyProperties):
+    theta: float
+    zeta: float
+
+
+@dataclass
+class TemperatureBodyProperties:
+    C_coeff: np.ndarray
+    K_coeff: np.ndarray
+
+
+@dataclass
+class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyProperties):
+    pass
+
+
+@dataclass
+class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
+    pass

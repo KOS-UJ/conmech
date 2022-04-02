@@ -26,7 +26,6 @@ class Boundaries:
     def identify_boundaries_and_reorder_vertices(
             vertices, elements, is_contact, is_dirichlet
     ) -> Tuple["Boundaries", np.ndarray, np.ndarray]:
-
         boundaries = identify_surfaces(elements, len(vertices))
         # move contact vertices to the beginning
         vertices, elements, boundaries = reorder(
@@ -112,10 +111,10 @@ def get_condition_boundaries_neumann(
         vertices: np.ndarray
 ) -> List[np.ndarray]:
     def boundary_change(prev: int, curr: int):
-        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr])\
-            and not predicate_1(vertices[prev]) \
-            or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
-            and not predicate_0(vertices[prev])
+        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr]) \
+               and not predicate_1(vertices[prev]) \
+               or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
+               and not predicate_0(vertices[prev])
 
     def no_conditions(curr: int):
         return not predicate_0(vertices[curr]) and not predicate_1(vertices[curr])
@@ -123,7 +122,6 @@ def get_condition_boundaries_neumann(
     condition_boundaries = []
     for boundary in boundaries:
         first_id = None
-        condition_identified = False
         i = 1
         while i < len(boundary):
             if boundary_change(boundary[i - 1], boundary[i]) \
@@ -137,7 +135,6 @@ def get_condition_boundaries_neumann(
 
                 if first_id is None:
                     first_id = len(condition_boundaries)
-                condition_identified = True
                 condition_boundaries.append(np.asarray(condition_boundary))
             i += 1
         merge_first_and_last(first_id, boundary, condition_boundaries)
@@ -191,7 +188,7 @@ def identify_surfaces(elements, vertex_num):
 
                 v_next = surface_edges[v]
 
-            surfaces.append(surface[:curr+1].copy())
+            surfaces.append(surface[:curr + 1].copy())
 
     return surfaces
 

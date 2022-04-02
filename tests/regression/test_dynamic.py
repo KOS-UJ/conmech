@@ -2,9 +2,10 @@
 Created at 21.08.2019
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
-from dataclasses import dataclass
 
 from conmech.problem_solver import Dynamic as DynamicProblem
 from conmech.problems import Dynamic
@@ -106,7 +107,6 @@ def generate_test_suits():
         [0.0, 0.0]
     ]
 
-
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
 
     # p = 0
@@ -116,7 +116,6 @@ def generate_test_suits():
 
     def inner_forces(x, y):
         return np.array([0, -0.2])
-
 
     setup_0_m02_p_0.inner_forces = inner_forces
 
@@ -184,7 +183,7 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
 def test_global_optimization_solver(
-    solving_method, setup, expected_displacement_vector
+        solving_method, setup, expected_displacement_vector
 ):
     runner = DynamicProblem(setup, solving_method)
     results = runner.solve(n_steps=32,

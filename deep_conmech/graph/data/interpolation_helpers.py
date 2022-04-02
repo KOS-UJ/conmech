@@ -2,6 +2,7 @@ import random
 
 import numpy as np
 from numba import njit
+
 from conmech.helpers import nph
 
 
@@ -12,7 +13,7 @@ def weighted_mean_numba(v1, v2, scale):
 
 @njit
 def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
-    min = [0.0, 0.0]  #########
+    min = [0.0, 0.0]  # TODO #65
     x_scale = (initial_point[0] - min[0]) / scale_x
     y_scale = (initial_point[1] - min[1]) / scale_y
 
@@ -60,7 +61,7 @@ def interpolate_rotate(count, initial_nodes, randomization_scale, setting_scale_
     return interpolate_numba(
         count,
         initial_nodes,
-        get_corner_vectors_rotate(dim = initial_nodes.shape[1], scale=randomization_scale),
+        get_corner_vectors_rotate(dim=initial_nodes.shape[1], scale=randomization_scale),
         setting_scale_x,
         setting_scale_y,
     )
@@ -70,7 +71,7 @@ def interpolate_four(count, initial_nodes, randomization_scale, setting_scale_x,
     return interpolate_numba(
         count,
         initial_nodes,
-        get_corner_vectors_four(dim = initial_nodes.shape[1], scale=randomization_scale),
+        get_corner_vectors_four(dim=initial_nodes.shape[1], scale=randomization_scale),
         setting_scale_x,
         setting_scale_y
     )

@@ -1,20 +1,20 @@
-import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 import numpy as np
+
+import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers import nph, cmh
 from deep_conmech import scenarios
-from deep_conmech.common import config
-from deep_conmech.graph.data.data_base import *
+from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_process_data_range, \
+    get_and_check_indices_to_do, is_memory_overflow
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.simulator.calculator import Calculator
-from deep_conmech.simulator.setting.setting_forces import *
-from torch_geometric.loader import DataLoader
+from deep_conmech.simulator.solver import Solver
 
 
-def create_forces(setting):
+def create_forces(config, setting):
     if interpolation_helpers.decide(config.DATA_ZERO_FORCES):
-        forces = np.zeros([setting.nodes_count, setting.dim])
+        forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             setting.nodes_count,
@@ -26,7 +26,7 @@ def create_forces(setting):
     return forces
 
 
-def create_u_old(setting):
+def create_u_old(config, setting):
     u_old = interpolation_helpers.interpolate_four(
         setting.nodes_count,
         setting.initial_nodes,
@@ -37,7 +37,7 @@ def create_u_old(setting):
     return u_old
 
 
-def create_v_old(setting):
+def create_v_old(config, setting):
     if interpolation_helpers.decide(config.DATA_ROTATE_VELOCITY):
         v_old = interpolation_helpers.interpolate_rotate(
             setting.nodes_count,
@@ -57,9 +57,9 @@ def create_v_old(setting):
     return v_old
 
 
-def create_obstacles(setting):
+def create_obstacles(config, setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dim, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
@@ -71,15 +71,15 @@ def create_mesh_type():
     )
 
 
-def create_obstacles(setting):
+def create_obstacles(config, setting):
     obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dim, 1, config.OBSTACLE_ORIGIN_SCALE
+        setting.dimension, 1, config.OBSTACLE_ORIGIN_SCALE
     )
     obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
 
 
-def get_base_setting(mesh_type):
+def get_base_setting(config, mesh_type):
     return SettingInput(
         mesh_data=MeshData(
             mesh_type=mesh_type,
@@ -87,15 +87,16 @@ def get_base_setting(mesh_type):
             scale=[config.TRAIN_SCALE],
             is_adaptive=config.ADAPTIVE_TRAINING_MESH,
         ),
-        body_prop=scenarios.body_prop,
-        obstacle_prop=scenarios.obstacle_prop,
+        body_prop=scenarios.default_body_prop,
+        obstacle_prop=scenarios.default_obstacle_prop,
         schedule=Schedule(final_time=config.FINAL_TIME),
+        config=config,
         create_in_subprocess=False,
     )
 
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
-    def __init__(self, dimension):
+    def __init__(self, config, dimension):
         num_workers = config.GENERATION_WORKERS
         data_count = config.SYNTHETIC_SOLVERS_COUNT
 
@@ -109,18 +110,19 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             data_count=data_count,
             randomize_at_load=True,
             num_workers=num_workers,
+            config=config
         )
         self.initialize_data()
 
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
-        setting = get_base_setting(mesh_type)
+        setting = get_base_setting(self.config, mesh_type)
         # setting.set_randomization(True)
 
         obstacles_unnormaized = create_obstacles(setting)
-        forces = create_forces(setting)
-        u_old = create_u_old(setting)
-        v_old = create_v_old(setting)
+        forces = create_forces(self.config, setting)
+        u_old = create_u_old(self.config, setting)
+        v_old = create_v_old(self.config, setting)
 
         setting.set_obstacles(obstacles_unnormaized)
         setting.set_u_old(u_old)
@@ -129,7 +131,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         add_label = False
         if add_label:
-            normalized_a = Calculator.solve_normalized(setting)
+            normalized_a = Solver.solve_normalized(setting)
             exact_normalized_a_torch = thh.to_torch_double(normalized_a)
         else:
             exact_normalized_a_torch = None
@@ -150,7 +152,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             f"Process {process_id} - generating {self.relative_path} data"
         )
         step_tqdm = cmh.get_tqdm(
-            indices_to_do, desc=tqdm_description, position=process_id,
+            indices_to_do, desc=tqdm_description, config=self.config, position=process_id,
         )
         for index in step_tqdm:
             if is_memory_overflow(step_tqdm, tqdm_description):
@@ -164,25 +166,3 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True
-
-
-class StepDataset:
-    def __init__(self, batch_size):
-        self.all_data = [None] * batch_size
-
-    def set(self, i, setting):
-        self.all_data[i] = setting.data
-
-    def __getitem__(self, index):
-        return self.all_data[index]
-
-    def __len__(self):
-        return len(self.all_data)
-
-    def get_dataloader(self):
-        return DataLoader(
-            dataset=self,
-            batch_size=len(self),
-            shuffle=False,
-            # num_workers=1,
-        )

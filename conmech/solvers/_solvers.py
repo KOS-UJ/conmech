@@ -1,9 +1,7 @@
-
-
 from conmech.problems import Problem, \
-                             Static as StaticProblem, \
-                             Quasistatic as QuasistaticProblem, \
-                             Dynamic as DynamicProblem
+    Static as StaticProblem, \
+    Quasistatic as QuasistaticProblem, \
+    Dynamic as DynamicProblem
 
 
 class Solvers:
@@ -26,6 +24,7 @@ class Solvers:
                     assert lower_name not in dyn  # name already taken
                     dyn[lower_name] = solver
             return solver
+
         return add_to_dict
 
     @staticmethod

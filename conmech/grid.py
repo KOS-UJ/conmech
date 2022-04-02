@@ -5,8 +5,8 @@ Created at 22.08.2019
 @author: Piotr Bartman
 """
 
-import numpy as np
 import numba
+import numpy as np
 
 
 class Grid:

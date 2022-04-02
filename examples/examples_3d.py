@@ -1,19 +1,33 @@
-from deep_conmech.common.plotter import plotter_mapper
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import *
-from deep_conmech.simulator.calculator import Calculator
-from deep_conmech.simulator.mesh.mesh_builders_3d import *
+import numpy as np
+
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
+from conmech.helpers.config import Config
+from deep_conmech.common import simulation_runner
+from deep_conmech.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
+    m_ball_3d, m_twist_3d, m_cube_3d
 
 
-def main(mesh_density=4, final_time=3.0):
+def main(mesh_density=3, final_time=1, plot_animation=True):
     all_scenarios = [
+        Scenario(
+            id="twist_roll",
+            mesh_data=MeshData(
+                dimension=3, mesh_type=m_twist_3d, scale=[1], mesh_density=[mesh_density]
+            ),
+            body_prop=default_body_prop,
+            obstacle_prop=default_obstacle_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0.0, 0.0, -0.5]),
+            obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
+        ),
         Scenario(
             id="ball_roll",
             mesh_data=MeshData(
                 dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[mesh_density]
             ),
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
+            body_prop=default_body_prop,
+            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, 0.0, -0.5]),
             obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
@@ -23,8 +37,8 @@ def main(mesh_density=4, final_time=3.0):
             mesh_data=MeshData(
                 dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[mesh_density]
             ),
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
+            body_prop=default_body_prop,
+            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
             obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
@@ -34,24 +48,20 @@ def main(mesh_density=4, final_time=3.0):
             mesh_data=MeshData(
                 dimension=3, mesh_type=m_cube_3d, scale=[1], mesh_density=[mesh_density]
             ),
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
+            body_prop=default_body_prop,
+            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
             obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
         ),
     ]
 
-    for scenario in all_scenarios:
-        plotter_mapper.print_one_dynamic(
-            Calculator.solve,
-            scenario,
-            SettingRandomized.get_setting,
-            catalog="EXAMPLES 3D",
-            simulate_dirty_data=False,
-            draw_base=False,
-            draw_detailed=True,
-        )
+    simulation_runner.run_examples(
+        all_scenarios=all_scenarios,
+        file=__file__,
+        plot_animation=plot_animation,
+        config=Config(SHELL=False)
+    )
 
 
 if __name__ == "__main__":

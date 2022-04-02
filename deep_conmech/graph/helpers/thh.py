@@ -1,21 +1,18 @@
 '''
 torch helpers
 '''
-import os
 import numpy as np
 import torch
-# print(numba.cuda.gpus)
+
+from deep_conmech.common.training_config import TrainingConfig
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# torch.autograd.set_detect_anomaly(True)
-print(f"Running using {device}")
+def device(training_config: TrainingConfig):
+    return torch.device(training_config.DEVICE)
 
 
-def cuda_launch_blocking():
-    print("CUDA_LAUNCH_BLOCKING !!!!")
-    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+def get_device_id():
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def set_precision(data):
@@ -56,7 +53,6 @@ def max_norm(data):
 
 def rmse_torch(predicted, exact):
     return torch.sqrt(torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2))
-
 
 
 class MaxData:

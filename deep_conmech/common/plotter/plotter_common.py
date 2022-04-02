@@ -1,22 +1,76 @@
-import os
-import time
-from typing import Callable, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Callable, List, Optional
 
-import deep_conmech.common.config as config
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
+
 from conmech.helpers import cmh
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
-from matplotlib import animation, cm, collections
-from matplotlib.patches import Rectangle
-from matplotlib.ticker import LinearLocator
+from conmech.helpers.config import Config
+from deep_conmech.scenarios import Scenario, TemperatureScenario
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+
+# TODO: Move to config
+dpi = 800
+savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
 
 
-dpi = 600
-savefig_args = dict(transparent=False, facecolor="#24292E", pad_inches=0.0)
+@dataclass
+class ColorbarSettings:
+    vmin: float
+    vmax: float
+    cmap: ListedColormap
 
+    @property
+    def mappable(self):
+        norm = matplotlib.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
+        return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
+
+
+def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
+    if isinstance(scenario, TemperatureScenario) is False:
+        return None
+    temperatures = np.array(
+        [SettingIterable.load_pickle(path).t_old for path in plot_setting_paths]
+    )
+    return np.array([np.min(temperatures), np.max(temperatures)])
+
+
+def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
+    # magma plasma cool coolwarm
+    lim_small = 0.2
+    lim_big = 10
+
+    if (t_scale[0] > -lim_small and t_scale[1] < lim_small):
+        return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)  # coolwarm
+    return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
+
+
+def plot_colorbar(fig, axs, cbar_settings):
+    for ax in axs:
+        position = ax.get_position()
+        if (position.p0[0] > 0.1):
+            position.p0[0] *= 0.8
+        position.p1[0] *= 0.9
+        ax.set_position(position)
+
+    ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    set_ax(ax)
+    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=ax)
+    cbar.outline.set_edgecolor("w")
+    cbar.outline.set_linewidth(0.2)
+
+
+def set_ax(ax):
+    for spine in ax.spines.values():
+        spine.set_edgecolor("w")
+        spine.set_linewidth(0.2)
+    ax.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
+
+
+# TODO #66
 
 def prepare_for_arrows(starts, vectors):
     nodes_count = len(starts)
@@ -34,36 +88,53 @@ def prepare_for_arrows(starts, vectors):
     return starts[mask].T, scaled_vectors[mask].T
 
 
-
-
 def plt_save(path, extension):
-    plt.savefig(path, **savefig_args, format=extension, dpi=dpi) #, bbox_inches="tight"
+    plt.savefig(
+        path, **savefig_args, format=extension, dpi=dpi
+    )  # , bbox_inches="tight"
     plt.close()
 
 
 def plot_animation(
-    scenario: Scenario,
-    all_settings: List[SettingRandomized],
-    path: str,
-    get_axs: Callable,
-    plot_frame: Callable,
-    fig,
+        get_axs: Callable,
+        plot_frame: Callable,
+        fig,
+        save_path: str,
+        config: Config,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str,
+        t_scale: Optional[np.ndarray] = None,
 ):
-    frac_skip = config.PRINT_SKIP
-    skip = int(frac_skip // scenario.time_step)
-    frames_count = len(all_settings) // skip
-    fps = int(1 / frac_skip)
+    fps = int(1 / time_skip)
+    animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count + 1), config=config,
+                                  desc="Generating animation")
 
-    def animate(num):
-        i = num * skip
-        current_time = scenario.time_step * num
-        fig.clf()
-        axs = get_axs(fig)
-        plot_frame(all_settings[i], current_time, axs)#, current_time), ax)
-        return fig
+    settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
+    all_indices = SettingIterable.get_all_indices_pickle(all_settings_path)
 
-    ani = animation.FuncAnimation(
-        fig, animate, frames=frames_count
-    )  # , interval=scenario.final_time)
-    ani.save(path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+    with settings_file:
+        def animate(step):
+            animation_tqdm.update(1)
+            fig.clf()
+            axs = get_axs(fig)
+            setting = SettingIterable.load_index_pickle(index=step * index_skip,
+                                                        all_indices=all_indices,
+                                                        settings_file=settings_file)
+            plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip,
+                       t_scale=t_scale)
+            return fig
+
+        ani = animation.FuncAnimation(
+            fig, animate, frames=plot_settings_count
+        )  # , interval=scenario.final_time)
+
+        ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+        # animation_tqdm.close()
     plt.close()
+
+
+def get_frame_annotation(setting, current_time):
+    return f"""time: {str(round(current_time, 1))}
+nodes: {str(setting.nodes_count)}"""
