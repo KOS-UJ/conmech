@@ -12,9 +12,9 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    FINAL_TIME: float = 8  # !# 2
+    FINAL_TIME: float = 8  # !# 3 #8
 
-    MESH_DENSITY: int = 16  # !# 8
+    MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     ############
@@ -74,7 +74,7 @@ class TrainingConfig(Config):
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
 
-    DATALOADER_WORKERS = 1 #4
+    DATALOADER_WORKERS = 4
     GENERATION_WORKERS = 1 #2
 
     ############
@@ -85,5 +85,8 @@ class TrainingConfig(Config):
 
     ############
 
-    DATA_FOLDER: str = f"{td.MESH_DENSITY}"
+    DATA_FOLDER: str = f"{td.DATASET}_{td.MESH_DENSITY}_{td.FINAL_TIME}"
     PRINT_DATA_CUTOFF: float = 0.1
+
+    LOG_DATASET_STATS = True
+    LOAD_DATASET_TO_RAM = True

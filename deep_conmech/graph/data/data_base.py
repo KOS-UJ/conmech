@@ -1,6 +1,8 @@
+import os
 import re
 from os import listdir
 from os.path import isfile, join
+from typing import Optional
 
 import numpy as np
 import torch
@@ -97,15 +99,15 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 class BaseDatasetDynamic:
     def __init__(
         self,
-        dimension,
-        relative_path,
-        data_count,
-        randomize_at_load,
-        num_workers,
+        dimension:int,
+        description: str,
+        data_count:int,
+        randomize_at_load:bool,
+        num_workers:int,
         config: TrainingConfig,
     ):
         self.dimension = dimension
-        self.relative_path = relative_path
+        self.description = description
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
@@ -149,7 +151,7 @@ class BaseDatasetDynamic:
         pass
 
     def clear_and_initialize_data(self):
-        print(f"Clearing {self.relative_path} data")
+        print(f"Clearing {self.data_id} data")
         cmh.clear_folder(self.main_directory)
         cmh.clear_folder(self.images_directory)
         self.initialize_data()
@@ -160,7 +162,10 @@ class BaseDatasetDynamic:
 
         self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
         if self.data_count == len(self.all_indices):
-            print(f"Taking prepared {self.relative_path} data")
+            settings_path = f"{self.data_path}.settings"
+            file_size_gb = os.path.getsize(settings_path) / 1024 ** 3 
+            print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
+            
         else:
             result = False
             while result is False:
@@ -172,17 +177,23 @@ class BaseDatasetDynamic:
         
             self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
         
-        self.settings_file = SettingIterable.open_file_settings_read_pickle(self.data_path) # TODO: Close after training
-        #self.all_settings = SettingIterable.get_iterator_pickle(self.data_path)
+        self.loaded_settings =self.load_data_to_ram() if self.config.LOAD_DATASET_TO_RAM else None
 
+    def load_data_to_ram(self):
+        setting_tqdm = cmh.get_tqdm(iterable=SettingIterable.get_iterator_pickle(self.data_path), config=self.config, desc="Loading dataset to RAM")
+        self.loaded_settings = [setting for setting in setting_tqdm] 
 
 
     def generate_data_process(self, num_workers, process_id):
         pass
 
     @property
+    def data_id(self):
+        return f"{self.config.DATA_FOLDER}_{self.description}"
+
+    @property
     def main_directory(self):
-        return f"./datasets/{self.config.DATA_FOLDER}/{self.relative_path}"
+        return f"./datasets/{self.data_id}/"
 
     @property
     def data_path(self):
@@ -194,8 +205,12 @@ class BaseDatasetDynamic:
 
 
     def get_example(self, index):
-        #setting = self.all_settings(index)
-        setting = SettingIterable.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=self.settings_file)
+        if self.loaded_settings is not None:
+            setting = self.loaded_settings[index]
+        else:
+            with SettingIterable.open_file_settings_read_pickle(self.data_path) as file:
+                setting = SettingIterable.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=file)
+        
         if self.randomize_at_load:
             setting.set_randomization(True)
             exact_normalized_a_torch = Solver.clean_acceleration(
@@ -231,7 +246,7 @@ class BaseDatasetDynamic:
 
     def plot_data_setting(self, setting, filename, catalog):
         cmh.create_folders(catalog)
-        extension = "png"  # pdf
+        extension = "png" # pdf
         path = f"{catalog}/{filename}.{extension}"
         simulation_runner.plot_setting(
             current_time=0,

@@ -9,12 +9,13 @@ from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 
 
+
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
         train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, config=config)
     elif dataset_type == "scenarios":
-        train_dataset = TrainingScenariosDatasetDynamic(
-            scenarios.all_train(config.td), Solver.solve_all, config=config
+        train_dataset = ScenariosDatasetDynamic(
+            all_scenarios=scenarios.all_train(config.td), solve_function=Solver.solve_all, description="all", num_workers=config.GENERATION_WORKERS, config=config
         )
     else:
         raise ArgumentError("Bad dataset type")
@@ -24,11 +25,11 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
 def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
-    all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(
-            scenarios.all_validation(config.td), "ALL", config=config
-        )
-    )
+    #all_val_datasets.append(
+    #    ScenariosDatasetDynamic(
+    #        all_scenarios=scenarios.all_validation(config.td), solve_function=Solver.solve_all, relative_path="ALL", num_workers=config.GENERATION_WORKERS, config=config
+    #    )
+    #)
     # all_val_datasets.extend(
     #    [
     #        ValidationScenarioDatasetDynamic([scenario], scenario.id)

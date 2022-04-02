@@ -335,6 +335,10 @@ class CustomGraphNet(nn.Module):
         return next(self.parameters()).device
 
     @property
+    def statistics(self):
+        return self.statistics
+        
+    @property
     def node_statistics(self):
         return self.node_encoder.statistics
 

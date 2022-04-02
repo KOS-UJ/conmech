@@ -1,27 +1,28 @@
 from argparse import ArgumentError
-from typing import List
+from typing import Callable, List, Optional
 
 from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.solver import Solver
 
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
             self,
             all_scenarios: List[Scenario],
-            solve_function,
-            relative_path,
-            num_workers,
+            solve_function: Callable,
+            description: str,
+            num_workers: int,
             config: TrainingConfig,
+            perform_data_update:bool=False,
     ):
+        self.perform_data_update = perform_data_update
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
 
         super().__init__(
             self.check_and_get_dimension(all_scenarios),
-            relative_path=relative_path,
+            description=description,
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
             num_workers=num_workers,
@@ -63,7 +64,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                     scenario = assigned_scenarios[int(index / episode_steps)]
                     setting = self.get_setting_input(scenario=scenario, config=self.config)
 
-                    tqdm_description = f"Process {process_id}: Generating {self.relative_path} {scenario.id} data"
+                    tqdm_description = f"Process {process_id}: Generating {scenario.id} data"
                     step_tqdm.set_description(tqdm_description)
                 if is_memory_overflow(
                         config=self.config,
@@ -93,30 +94,6 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         return True
 
 
-class TrainingScenariosDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(
-            self, all_scenarios, solve_function, config: TrainingConfig, perform_data_update=False
-    ):
-        self.perform_data_update = perform_data_update
-        super().__init__(
-            all_scenarios=all_scenarios,
-            solve_function=solve_function,
-            relative_path="training_scenarios",
-            num_workers=config.GENERATION_WORKERS,
-            config=config,
-        )
-
     def update_data(self):
         if self.perform_data_update:
             self.clear_and_initialize_data()
-
-
-class ValidationScenarioDatasetDynamic(ScenariosDatasetDynamic):
-    def __init__(self, all_scenarios, id, config: TrainingConfig):
-        super().__init__(
-            all_scenarios=all_scenarios,
-            solve_function=Solver.solve_all,
-            relative_path=f"validation/{id}",
-            num_workers=config.GENERATION_WORKERS,
-            config=config,
-        )
