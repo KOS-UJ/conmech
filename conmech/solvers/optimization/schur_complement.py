@@ -30,8 +30,8 @@ class SchurComplement(Optimization):
             friction_bound,
         )
 
-        self.contact_ids = slice(0, mesh.contact_count)
-        self.free_ids = slice(mesh.contact_count, mesh.independent_nodes_count)
+        self.contact_ids = slice(0, mesh.contact_nodes_count)
+        self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
 
         # ADDED When working with velocity v, forces_contact depend on u
 

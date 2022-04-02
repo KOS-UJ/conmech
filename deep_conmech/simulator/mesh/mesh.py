@@ -1,17 +1,18 @@
 from argparse import ArgumentError
-from typing import Callable
-
-import numba
-import numpy as np
-from numba import njit
+from dataclasses import dataclass
+from typing import Callable, Optional
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
+import numba
+import numpy as np
 from conmech.dataclass.mesh_data import MeshData
+from conmech.features.boundaries import Boundaries
 from conmech.helpers import nph
+from numba import njit
 
 
 @njit
-def get_edges_matrix(nodes_count, elements):
+def get_edges_matrix(nodes_count:int, elements:np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
     for element in elements:  # TODO: prange?
@@ -176,7 +177,7 @@ def get_base_seed_indices_numba(nodes):
         result = get_closest_to_axis_numba(nodes, i)
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
-    return base_seed_indices, np.argmin(errors)
+    return base_seed_indices, int(np.argmin(errors))
 
 
 def get_base(nodes, base_seed_indices, closest_seed_index):
@@ -262,6 +263,35 @@ def get_boundary_nodes_data_numba(
     return boundary_normals, boundary_nodes_volume
 
 
+
+
+
+
+@dataclass
+class MeshState:
+    at = np.ndarray
+
+    initial_nodes: at = np.empty(0)
+    elements: at = np.empty(0)
+    edges: at = np.empty(0)
+
+    boundary_faces: at = np.empty(0)
+    boundary_internal_indices: at = np.empty(0)
+
+    contact_nodes_count: int = 0
+    dirichlet_nodes_count: int = 0
+    boundary_nodes_count: int = 0
+
+    base_seed_indices: at = np.empty(0)
+    closest_seed_index: int = 0
+
+    boundaries: Optional[Boundaries] = None
+
+    u_old: at = np.empty(0)
+    v_old: at = np.empty(0)
+    a_old: at = np.empty(0)
+
+
 class Mesh:
     def __init__(
             self,
@@ -273,16 +303,18 @@ class Mesh:
     ):
         self.mesh_data = mesh_data
         self.normalize_by_rotation = normalize_by_rotation
+        self.create_in_subprocess = create_in_subprocess
         self.is_dirichlet = is_dirichlet
         self.is_contact = is_contact
-        self.create_in_subprocess = create_in_subprocess
 
-        self.set_mesh()
+        self.state = self.get_state(self.is_dirichlet, self.is_contact)
 
     def remesh(self):
-        self.set_mesh()
+        self.state = self.get_state(self.is_dirichlet, self.is_contact)
 
-    def set_mesh(self):
+    def get_state(self, is_dirichlet, is_contact):
+        state = MeshState() 
+
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_data=self.mesh_data, create_in_subprocess=self.create_in_subprocess,
         )
@@ -290,44 +322,109 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        self.reorganize_boundaries(unordered_nodes, unordered_elements)
+        self.reorganize_boundaries(state, unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
-            self.initial_nodes
+        state.base_seed_indices, state.closest_seed_index = get_base_seed_indices_numba(
+            state.initial_nodes
         )
 
-        self.edges_matrix = get_edges_matrix(self.nodes_count, self.elements)
-        self.edges = get_edges_list_numba(self.edges_matrix)
+        edges_matrix = get_edges_matrix(nodes_count=len(state.initial_nodes), elements=state.elements)
+        state.edges = get_edges_list_numba(edges_matrix)
 
-        self.u_old = np.zeros_like(self.initial_nodes)
-        self.v_old = np.zeros_like(self.initial_nodes)
-        self.a_old = np.zeros_like(self.initial_nodes)
+        state.u_old = np.zeros_like(state.initial_nodes)
+        state.v_old = np.zeros_like(state.initial_nodes)
+        state.a_old = np.zeros_like(state.initial_nodes)
 
         self.clear()
+        return state
 
-    def reorganize_boundaries(self, unordered_nodes, unordered_elements):
+    def reorganize_boundaries(self, state, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
         (
-            self.initial_nodes,
-            self.elements,
-        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, self.is_contact)
+            state.initial_nodes,
+            state.elements,
+        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, is_contact)
         (
-            self.boundary_faces,
+            state.boundary_faces,
             _boundary_indices,
             _contact_indices,
-            self.boundary_internal_indices,
-        ) = get_boundary_faces(self.initial_nodes, self.elements, self.is_contact)
+            state.boundary_internal_indices,
+        ) = get_boundary_faces(state.initial_nodes, state.elements, is_contact)
 
-        self.independent_nodes_count = self.nodes_count
-        self.contact_nodes_count = len(_contact_indices)
-        self.boundary_nodes_count = len(_boundary_indices)
-        self.free_nodes_count = self.independent_nodes_count - self.contact_nodes_count
-
-        self.boundaries = None
+        state.contact_nodes_count = len(_contact_indices)
+        state.dirichlet_nodes_count = 0
+        state.boundary_nodes_count = len(_boundary_indices)
 
         if not np.array_equal(
-                _boundary_indices, range(self.boundary_nodes_count)
+            _boundary_indices, range(state.boundary_nodes_count)
         ):
             raise ValueError("Bad boundary ordering")
+
+    ##########
+
+    @property
+    def edges(self):
+        return self.state.edges
+
+    @property
+    def initial_nodes(self):
+        return self.state.initial_nodes
+
+    @property
+    def boundary_nodes_count(self):
+        return self.state.boundary_nodes_count
+
+    @property
+    def boundary_faces(self):
+        return self.state.boundary_faces
+
+    @property
+    def boundary_internal_indices(self):
+        return self.state.boundary_internal_indices
+
+    @property
+    def base_seed_indices(self):
+        return self.state.base_seed_indices
+
+    @property
+    def closest_seed_index(self):
+        return self.state.closest_seed_index
+
+    @property
+    def dirichlet_nodes_count(self):
+        return self.state.dirichlet_nodes_count
+
+    @property
+    def contact_nodes_count(self):
+        return self.state.contact_nodes_count
+
+    @property
+    def elements(self):
+        return self.state.elements
+
+    @property
+    def u_old(self):
+        return self.state.u_old
+
+    @property
+    def v_old(self):
+        return self.state.v_old
+        
+    @property
+    def a_old(self):
+        return self.state.a_old
+
+
+    ##########
+
+    @property
+    def independent_nodes_count(self):
+        return self.nodes_count - self.dirichlet_nodes_count
+        
+    @property
+    def free_nodes_count(self):
+        return self.independent_nodes_count - self.contact_nodes_count # neumann
+
+
 
     @property
     def contact_indices(self):
@@ -350,13 +447,13 @@ class Mesh:
         return self.mesh_data.dimension
 
     def set_a_old(self, a):
-        self.a_old = a
+        self.state.a_old = a
 
     def set_v_old(self, v):
-        self.v_old = v
+        self.state.v_old = v
 
     def set_u_old(self, u):
-        self.u_old = u
+        self.state.u_old = u
 
     def prepare(self):
         boundary_faces_normals = get_boundary_faces_normals(

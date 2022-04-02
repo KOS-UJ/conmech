@@ -1,7 +1,10 @@
 import copy
+from dataclasses import dataclass
 import pickle
 from io import BufferedRandom, BufferedReader
 from typing import List
+
+import numpy as np
 
 import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.dataclass.body_properties import DynamicBodyProperties
@@ -105,10 +108,10 @@ class SettingIterable(SettingObstacles):
         return all_indices
 
 
-
     def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
         setting_copy = copy.deepcopy(self)
-        setting_copy.clear_save(for_plot=True)
+        setting_copy.clear_save()
+        #setting_copy = SettingInfo(C=self.C)
 
         index = settings_file.tell()
         pickle.dump(setting_copy, settings_file)
@@ -133,7 +136,7 @@ class SettingIterable(SettingObstacles):
                     break
 
 
-    def clear_save(self, for_plot=False):
+    def clear_save(self):
         self.is_contact = None
         self.is_dirichlet = None
 
@@ -158,3 +161,7 @@ class SettingIterable(SettingObstacles):
 
         #if for_plot:
         #    self.C = None
+
+@dataclass
+class SettingInfo:
+    C: np.ndarray

@@ -9,13 +9,12 @@ from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 
 
-
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, config=config)
+        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, description="all", config=config)
     elif dataset_type == "scenarios":
         train_dataset = ScenariosDatasetDynamic(
-            all_scenarios=scenarios.all_train(config.td), solve_function=Solver.solve_all, description="all", num_workers=config.GENERATION_WORKERS, config=config
+            all_scenarios=scenarios.all_train(config.td), solve_function=Solver.solve_all, description="all", config=config
         )
     else:
         raise ArgumentError("Bad dataset type")

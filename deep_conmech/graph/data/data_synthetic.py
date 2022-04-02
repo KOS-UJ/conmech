@@ -85,7 +85,7 @@ def get_base_setting(config, mesh_type):
 
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
-    def __init__(self, config:TrainingConfig, dimension:int):
+    def __init__(self, description: str, config:TrainingConfig, dimension:int):
         num_workers = config.GENERATION_WORKERS
         data_count = config.td.SYNTHETIC_SOLVERS_COUNT
 
@@ -95,7 +95,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
 
         super().__init__(
             dimension=dimension,
-            relative_path="training_synthetic",
+            description=description,
             data_count=data_count,
             randomize_at_load=True,
             num_workers=num_workers,
@@ -128,7 +128,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         assigned_data_range = get_process_data_range(process_id, self.data_part_count)
 
         tqdm_description = (
-            f"Process {process_id} - generating {self.relative_path} data"
+            f"Process {process_id} - generating {self.data_id} data"
         )
         step_tqdm = cmh.get_tqdm(
             assigned_data_range, desc=tqdm_description, config=self.config, position=process_id,

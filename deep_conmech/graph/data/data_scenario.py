@@ -12,7 +12,6 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             all_scenarios: List[Scenario],
             solve_function: Callable,
             description: str,
-            num_workers: int,
             config: TrainingConfig,
             perform_data_update:bool=False,
     ):
@@ -25,7 +24,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
             description=description,
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
-            num_workers=num_workers,
+            num_workers=config.GENERATION_WORKERS,
             config=config,
         )
         self.initialize_data()

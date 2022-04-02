@@ -133,12 +133,12 @@ def get_friction_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=5, final_time=3, plot_animation=True):
+def main(mesh_density=2, final_time=3, plot_animation=True): #5
     all_scenarios = []
     all_scenarios.extend(get_friction_scenarios(mesh_density, final_time))
-    all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
-    all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
-    all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
+    #all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
+    #all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    #all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
 
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,

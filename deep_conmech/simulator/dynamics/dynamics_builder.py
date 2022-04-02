@@ -23,8 +23,7 @@ class DynamicsBuilder:
     def get_matrices(
             self, elements, nodes, body_prop: BodyProperties, independent_indices
     ):
-        edges_features_matrix, element_initial_volume = self.get_edges_features_matrix(elements,
-                                                                                       nodes)
+        edges_features_matrix, element_initial_volume = self.get_edges_features_matrix(elements, nodes)
 
         i = independent_indices
         const_volume = edges_features_matrix[0][i, i]
