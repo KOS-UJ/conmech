@@ -14,10 +14,7 @@ def get_meshzoo_rectangle(mesh_data):
         variant="zigzag",
     )
     return points, elements
-
-
-# TODO #66
-
+    
 
 def get_pygmsh_elements_and_nodes(mesh_data):
     with pygmsh.geo.Geometry() as geom:

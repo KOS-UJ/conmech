@@ -17,7 +17,7 @@ class TrainingData:
     MESH_DENSITY: int = 8  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
-    # TODO #66
+    
 
     FORCES_RANDOM_SCALE: int = 10  # TODO #65: 1.3
     OBSTACLE_ORIGIN_SCALE: int = 2 * TRAIN_SCALE
@@ -32,7 +32,7 @@ class TrainingData:
     U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
     V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
 
-    # TODO #66
+    
 
     VALIDATE_AT_MINUTES: int = 10
 
@@ -42,7 +42,7 @@ class TrainingData:
     SYNTHETIC_BATCHES_IN_EPOCH: int = 4  # !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
-    # TODO #66
+    
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True
@@ -76,13 +76,13 @@ class TrainingConfig(Config):
     DATALOADER_WORKERS = 4
     GENERATION_WORKERS = 1 #2
 
-    # TODO #66
+    
 
     TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
     GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / GENERATION_WORKERS, 2)
 
-    # TODO #66
+    
 
     PRINT_DATA_CUTOFF: float = 0.1
 

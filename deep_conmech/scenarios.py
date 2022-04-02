@@ -131,8 +131,6 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
-# TODO #66
-
 default_body_prop = DynamicBodyProperties(
     mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
 )
@@ -162,8 +160,6 @@ def get_temp_body_prop(C_coeff, K_coeff):
         K_coeff=K_coeff,
     )
 
-
-# TODO #66
 
 
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)

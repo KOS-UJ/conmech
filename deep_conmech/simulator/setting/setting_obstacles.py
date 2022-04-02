@@ -25,9 +25,6 @@ def get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals):
 get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
 
 
-# TODO #66
-
-
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm ** 2) * ((1.0 / time_step) ** 2)
 
