@@ -1,12 +1,13 @@
 import numpy as np
-
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
-from deep_conmech.scenarios import default_temp_body_prop, get_temp_body_prop, default_K_coeff, \
-    TemperatureScenario, m_rectangle, default_temp_obstacle_prop, o_side, default_C_coeff, m_circle, \
-    o_front, f_rotate_fast, m_polygon
+from deep_conmech.scenarios import (TemperatureScenario, default_C_coeff,
+                                    default_K_coeff, default_temp_body_prop,
+                                    default_temp_obstacle_prop, f_rotate_fast,
+                                    get_temp_body_prop, m_circle, m_polygon,
+                                    m_rectangle, o_front, o_side)
 
 
 def get_C_temp_scenarios(mesh_density, final_time):

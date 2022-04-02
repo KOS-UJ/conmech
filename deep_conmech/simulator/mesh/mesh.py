@@ -1,4 +1,5 @@
 from ctypes import ArgumentError
+from re import M
 from typing import Callable
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
@@ -192,104 +193,79 @@ class Mesh:
     ):
         self.mesh_data = mesh_data
         self.normalize_by_rotation = normalize_by_rotation
-        self.create_in_subprocess = create_in_subprocess
-        self.is_dirichlet = is_dirichlet
-        self.is_contact = is_contact
 
-        self.state_dict = self.get_state_dict(self.is_dirichlet, self.is_contact)
+        self.initial_nodes: np.ndarray
+        self.elements: np.ndarray
+        self.edges: np.ndarray
 
-    def remesh(self):
-        self.state_dict = self.get_state_dict(self.is_dirichlet, self.is_contact)
+        self.boundary_faces: np.ndarray
+        self.boundary_internal_indices: np.ndarray
 
-    def get_state_dict(self, is_dirichlet, is_contact):
-        state_dict = dict() 
+        self.contact_nodes_count:int
+        self.dirichlet_nodes_count:int
+        self.boundary_nodes_count:int
 
+        self.base_seed_indices: np.ndarray
+        self.closest_seed_index: int
+
+        self.reinitialize_data(mesh_data, is_dirichlet, is_contact, create_in_subprocess)
+
+
+    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
+        self.reinitialize_data(self.mesh_data, is_dirichlet, is_contact, create_in_subprocess)
+
+
+
+    def reorganize_boundaries(self, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
+        (
+            self.initial_nodes,
+            self.elements,
+        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, is_contact)
+        (
+            self.boundary_faces,
+            _boundary_indices,
+            _contact_indices,
+            self.boundary_internal_indices,
+        ) = get_boundary_faces(self.initial_nodes, self.elements, is_contact)
+
+        self.contact_nodes_count = len(_contact_indices)
+        self.dirichlet_nodes_count = 0
+        self.boundary_nodes_count = len(_boundary_indices)
+
+        if not np.array_equal(
+            _boundary_indices, range(self.boundary_nodes_count)
+        ):
+            raise ValueError("Bad boundary ordering")
+     
+
+    def reinitialize_data(self, mesh_data, is_dirichlet, is_contact, create_in_subprocess):
         input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_data=self.mesh_data, create_in_subprocess=self.create_in_subprocess,
+            mesh_data=mesh_data, create_in_subprocess=create_in_subprocess,
         )
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
 
-        self.reorganize_boundaries(state_dict, unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        self.reorganize_boundaries(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
-        state_dict["base_seed_indices"], state_dict["closest_seed_index"] = get_base_seed_indices_numba(
-            state_dict["initial_nodes"]
+        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
+            self.initial_nodes
         )
 
-        edges_matrix = get_edges_matrix(nodes_count=len(state_dict["initial_nodes"]), elements=state_dict["elements"])
-        state_dict["edges"] = get_edges_list_numba(edges_matrix)
+        edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
+        self.edges = get_edges_list_numba(edges_matrix)
 
-        return state_dict
 
-    def reorganize_boundaries(self, state_dict, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
-        (
-            state_dict["initial_nodes"],
-            state_dict["elements"],
-        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, is_contact)
-        (
-            state_dict["boundary_faces"],
-            _boundary_indices,
-            _contact_indices,
-            state_dict["boundary_internal_indices"],
-        ) = get_boundary_faces(state_dict["initial_nodes"], state_dict["elements"], is_contact)
 
-        state_dict["contact_nodes_count"] = len(_contact_indices)
-        state_dict["dirichlet_nodes_count"] = 0
-        state_dict["boundary_nodes_count"] = len(_boundary_indices)
 
-        if not np.array_equal(
-            _boundary_indices, range(state_dict["boundary_nodes_count"])
-        ):
-            raise ValueError("Bad boundary ordering")
+    def get_state_dict(self):
+        return vars(self)
 
-    
-    
+    def load_state_dict(self, state_dict):
+        for key, attr in state_dict.items():
+            self.__setattr__(key, attr)
 
-    @property
-    def edges(self):
-        return self.state_dict["edges"]
 
-    @property
-    def initial_nodes(self):
-        return self.state_dict["initial_nodes"]
-
-    @property
-    def boundary_nodes_count(self):
-        return self.state_dict["boundary_nodes_count"]
-
-    @property
-    def boundary_faces(self):
-        return self.state_dict["boundary_faces"]
-
-    @property
-    def boundary_internal_indices(self):
-        return self.state_dict["boundary_internal_indices"]
-
-    @property
-    def base_seed_indices(self):
-        return self.state_dict["base_seed_indices"]
-
-    @property
-    def closest_seed_index(self):
-        return self.state_dict["closest_seed_index"]
-
-    @property
-    def dirichlet_nodes_count(self):
-        return self.state_dict["dirichlet_nodes_count"]
-
-    @property
-    def contact_nodes_count(self):
-        return self.state_dict["contact_nodes_count"]
-
-    @property
-    def elements(self):
-        return self.state_dict["elements"]
-
-    @property
-    def boundaries(self):
-        return self.state_dict["boundaries"]
-                
 
 
     @property

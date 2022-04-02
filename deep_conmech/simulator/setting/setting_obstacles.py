@@ -1,6 +1,5 @@
 import numba
 import numpy as np
-
 from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
@@ -191,8 +190,12 @@ class SettingObstacles(SettingForces):
             create_in_subprocess=create_in_subprocess,
         )
         self.obstacle_prop = obstacle_prop
+
         self.obstacles = None
         self.clear()
+
+
+
 
     def prepare(self, forces):
         super().prepare(forces)
@@ -205,7 +208,7 @@ class SettingObstacles(SettingForces):
         super().clear()
         self.boundary_obstacle_nodes_indices = None
 
-    def set_obstacles(self, obstacles_unnormalized):
+    def normalize_and_set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         if obstacles_unnormalized is not None:
             self.obstacles[0, ...] = nph.normalize_euclidean_numba(
@@ -303,7 +306,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_indices]
+        return self.normalized_nodes[self.boundary_indices]
 
     @property
     def boundary_penetration_norm(self):

@@ -3,20 +3,22 @@ import json
 import os
 
 import numpy as np
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
 import tensorflow.compat.v1 as tf
-
+from conmech.helpers import cmh, pkh
+from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.helpers import dch
-from deep_conmech.scenarios import Scenario, m_polygon, default_body_prop, default_obstacle_prop, \
-    f_rotate, o_side
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.scenarios import (Scenario, default_body_prop,
+                                    default_obstacle_prop, f_rotate, m_polygon,
+                                    o_side)
 from deep_conmech.simulator.solver import Solver
 
 tf.enable_eager_execution()
 
 
-# TODO #66
 
 
 def load_data(meta_path, data_path):
@@ -52,7 +54,7 @@ def _parse(proto, meta):
     return out
 
 
-# TODO #66
+
 
 def save_tf_data(data, path: str):
     writer = tf.io.TFRecordWriter(path)
@@ -94,11 +96,11 @@ def simulate(config:Config,scenario):
 
 def prepare_data(config:TrainingConfig, data_path:str):
 
-    all_indices = SettingIterable.get_all_indices_pickle(data_path)
+    all_indices = pkh.get_all_indices_pickle(data_path)
     data_count = len(all_indices)
-    settings_file = SettingIterable.open_file_settings_read_pickle(data_path)
+    settings_file = pkh.open_file_settings_read_pickle(data_path)
     with settings_file:
-        load_function = lambda index : SettingIterable.load_index_pickle(index=index, all_indices=all_indices, settings_file=settings_file)
+        load_function = lambda index : pkh.load_index_pickle(index=index, all_indices=all_indices, settings_file=settings_file)
         base_setting = load_function(index=0)
         elements = base_setting.elements[np.newaxis, ...].astype("int32")
         initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
@@ -173,7 +175,7 @@ def main():
     for mode in ["train", "test", "valid"]:
         data_path = f"{directory}/{mode}.tfrecord"
         save_tf_data(data, data_path)
-        
+
     print("DONE")
 
 

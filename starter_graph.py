@@ -3,8 +3,7 @@ from argparse import ArgumentParser, Namespace
 
 from deep_conmech import scenarios
 from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.graph.data.data_scenario import ValidationScenarioDatasetDynamic, \
-    TrainingScenariosDatasetDynamic
+from deep_conmech.graph.data.data_scenario import ScenariosDatasetDynamic
 from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic

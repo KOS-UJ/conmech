@@ -6,10 +6,10 @@ from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
-class SettingRandomized(SettingIterable):
+class SettingRandomized(SettingObstacles):
     def __init__(
             self,
             mesh_data: MeshData,

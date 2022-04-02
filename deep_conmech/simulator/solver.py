@@ -1,5 +1,5 @@
 import time
-from argparse import ArgumentError
+from ctypes import ArgumentError
 from typing import Callable, Optional
 
 import numpy as np
@@ -8,7 +8,7 @@ from scipy import optimize
 
 from conmech.helpers import nph
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 
@@ -50,7 +50,7 @@ class Solver:
         return cleaned_a
 
     @staticmethod
-    def solve_all(setting: SettingIterable, initial_a: Optional[np.ndarray] = None):
+    def solve_all(setting: SettingObstacles, initial_a: Optional[np.ndarray] = None):
         normalized_a = Solver.solve_acceleration_normalized(setting, None, initial_a)
         normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
         cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
@@ -91,7 +91,7 @@ class Solver:
 
     @staticmethod
     def solve_acceleration_normalized(
-            setting: SettingIterable, t, initial_a: Optional[np.ndarray] = None
+            setting: SettingObstacles, t, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
@@ -161,7 +161,7 @@ class Solver:
     def solve_temperature_normalized_optimization(
             setting: SettingTemperature,
             normalized_a: np.ndarray,
-            initial_t_vector: np.ndarray,
+            initial_t_vector: Optional[np.ndarray] = None,
     ):
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
@@ -175,7 +175,7 @@ class Solver:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(setting: SettingIterable, normalized_a):
+    def clean_acceleration(setting: SettingObstacles, normalized_a):
         if normalized_a is None:
             return None
         if isinstance(setting, SettingRandomized) == False:

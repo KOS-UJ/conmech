@@ -2,12 +2,12 @@ import os
 import time
 from typing import Callable, Optional
 
-from conmech.helpers import cmh, nph
+from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 from deep_conmech.simulator.solver import Solver
@@ -57,15 +57,15 @@ def plot_scenario(
     index_skip = ts if save_all else 1
     plot_settings_count = [0]
 
-    settings_file, file_meta = SettingIterable.open_files_append_pickle(data_path)
+    settings_file, file_meta = pkh.open_files_append_pickle(data_path)
     with settings_file, file_meta:
         step = [0]  # TODO: Clean
 
-        def operation_save(current_time: float, setting: SettingIterable, base_setting, a, base_a):
+        def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
             step[0] += 1
             plot_index = step[0] % ts == 0
             if save_all or plot_index: 
-                setting.append_pickle(settings_file=settings_file, file_meta=file_meta)
+                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
             if plot_index:
                 plot_settings_count[0]+=1
 

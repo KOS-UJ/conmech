@@ -1,6 +1,6 @@
 import json
 import time
-from argparse import ArgumentError
+from ctypes import ArgumentError
 from typing import Optional
 
 import numpy as np
@@ -19,7 +19,7 @@ from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.solver import Solver
-
+from deep_conmech.graph.data.dataset_statistics import DatasetStatistics
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
     writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")
@@ -171,7 +171,7 @@ class GraphModelDynamic:
             config: TrainingConfig,
             randomize=False,
             create_in_subprocess: bool = False,
-    ) -> SettingInput:  # "SettingIterable":
+    ) -> SettingInput:  # "SettingObstacles":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
@@ -181,7 +181,7 @@ class GraphModelDynamic:
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
-        setting.set_obstacles(scenario.obstacles)
+        setting.normalize_and_set_obstacles(scenario.obstacles)
         return setting
 
     @staticmethod

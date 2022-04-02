@@ -1,21 +1,16 @@
 import os
-import re
-from os import listdir
-from os.path import isfile, join
-from typing import Optional
 
 import numpy as np
 import torch
-from conmech.helpers import cmh, mph
+from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data.dataset_statistics import (DatasetStatistics,
                                                         FeaturesStatistics)
-from deep_conmech.graph.helpers import dch, thh
+from deep_conmech.graph.helpers import dch
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
 from torch_geometric.loader import DataLoader
 
@@ -62,7 +57,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  # TODO #65
+        pin_memory=True, # TODO: #65
     )
 
 
@@ -122,7 +117,7 @@ class BaseDatasetDynamic:
             create_in_subprocess=False,
         )
         setting.set_randomization(False)
-        setting.set_obstacles(scenario.obstacles)
+        setting.normalize_and_set_obstacles(scenario.obstacles)
         return setting
 
     def get_statistics(self):
@@ -159,7 +154,7 @@ class BaseDatasetDynamic:
         cmh.create_folders(self.main_directory)
         cmh.create_folders(self.images_directory)
 
-        self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
+        self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         if self.data_count == len(self.all_indices):
             settings_path = f"{self.data_path}.settings"
             file_size_gb = os.path.getsize(settings_path) / 1024 ** 3 
@@ -174,13 +169,13 @@ class BaseDatasetDynamic:
                 if result is False:
                     print("Restarting data generation")
         
-            self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
+            self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         
         self.loaded_settings =self.load_data_to_ram() if self.config.LOAD_DATASET_TO_RAM else None
 
     def load_data_to_ram(self):
-        setting_tqdm = cmh.get_tqdm(iterable=SettingIterable.get_iterator_pickle(self.data_path), config=self.config, desc="Loading dataset to RAM")
-        self.loaded_settings = [setting for setting in setting_tqdm]
+        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Loading dataset to RAM")
+        self.loaded_settings = [setting for setting in setting_tqdm] 
 
 
     def generate_data_process(self, num_workers, process_id):
@@ -202,12 +197,13 @@ class BaseDatasetDynamic:
     def images_directory(self):
         return f"{self.main_directory}/images"
 
+
     def get_example(self, index):
         if self.loaded_settings is not None:
             setting = self.loaded_settings[index]
         else:
-            with SettingIterable.open_file_settings_read_pickle(self.data_path) as file:
-                setting = SettingIterable.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=file)
+            with pkh.open_file_settings_read_pickle(self.data_path) as file:
+                setting = pkh.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=file)
         
         if self.randomize_at_load:
             setting.set_randomization(True)

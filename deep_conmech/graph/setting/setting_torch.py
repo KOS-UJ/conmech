@@ -71,8 +71,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_initial_nodes)
 
     @property
-    def normalized_points_torch(self):
-        return thh.to_torch_double(self.normalized_points)
+    def normalized_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_nodes)
 
     @property
     def normalized_forces_torch(self):

@@ -1,5 +1,9 @@
 import numpy as np
 import torch
+from conmech.dataclass.body_properties import DynamicBodyProperties
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.obstacle_properties import ObstacleProperties
+from conmech.dataclass.schedule import Schedule
 
 from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import thh
@@ -39,7 +43,7 @@ def L2_normalized_obstacle_correction(
     )
 
 
-# TODO #66
+
 
 
 @njit

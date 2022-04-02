@@ -1,12 +1,12 @@
-from argparse import ArgumentError
-from typing import Callable, List, Optional
+from ctypes import ArgumentError
+from typing import Callable, List
 
 import numpy as np
 
-from conmech.helpers import cmh
-from conmech.helpers.config import Config
+from conmech.helpers import cmh, pkh
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
-    get_and_check_indices_to_do, is_memory_overflow
+    is_memory_overflow
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
 
@@ -59,7 +59,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         )
         scenario = assigned_scenarios[0]
 
-        settings_file, file_meta = SettingIterable.open_files_append_pickle(self.data_path)
+        settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
@@ -84,7 +84,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                 a, normalized_a = self.solve_function(setting)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
-                setting.append_pickle(settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
 
                 self.check_and_print(
                     self.data_count, current_index, setting, step_tqdm, tqdm_description,

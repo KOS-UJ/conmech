@@ -1,14 +1,13 @@
+import copy
 from ctypes import ArgumentError
-from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-from conmech.dataclass.body_properties import StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
 from conmech.solvers.solver_methods import njit
-from deep_conmech.simulator.dynamics.dynamics import Dynamics
+from deep_conmech.simulator.mesh.mesh import Mesh
 
 
 
@@ -100,62 +99,90 @@ def element_volume_part_numba(face_nodes):
 
 
 
-class SettingPosition(Dynamics):
+class BodyPosition(Mesh):
     def __init__(
             self,
             mesh_data: MeshData,
-            body_prop: StaticBodyProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,
             is_dirichlet: Callable = (lambda _: False),
             is_contact: Callable = (lambda _: True),
-            with_schur_complement_matrices: bool = True,
             create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
-            body_prop=body_prop,
-            schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
-            with_schur_complement_matrices=with_schur_complement_matrices,
             create_in_subprocess=create_in_subprocess,
         )
 
-        self.state_dict["u_old"] = np.zeros_like(self.initial_nodes)
-        self.state_dict["v_old"] = np.zeros_like(self.initial_nodes)
-        self.state_dict["a_old"] = np.zeros_like(self.initial_nodes)
+        self.schedule = schedule
+        self.u_old = np.zeros_like(self.initial_nodes)
+        self.v_old = np.zeros_like(self.initial_nodes)
+        self.a_old = np.zeros_like(self.initial_nodes)
         self.clear()
 
 
-    def remesh(self):
-        super().remesh()
+    def remesh(self, *args):
+        super().remesh(*args)
         self.clear()
-
-
-    @property
-    def u_old(self):
-        return self.state_dict["u_old"]
-
-    @property
-    def v_old(self):
-        return self.state_dict["v_old"]
-        
-    @property
-    def a_old(self):
-        return self.state_dict["a_old"]
 
 
 
     def set_a_old(self, a):
-        self.state_dict["a_old"] = a
+        self.a_old = a
 
     def set_v_old(self, v):
-        self.state_dict["v_old"] = v
+        self.v_old = v
 
     def set_u_old(self, u):
-        self.state_dict["u_old"] = u
+        self.u_old = u
+
+
+
+    @property
+    def time_step(self):
+        return self.schedule.time_step
+
+
+    def get_copy(self):
+        return copy.deepcopy(self)
+        
+
+    def iterate_self(self, a, randomized_inputs=False):
+        v = self.v_old + self.time_step * a
+        u = self.u_old + self.time_step * v
+
+        self.set_u_old(u)
+        self.set_v_old(v)
+        self.set_a_old(a)
+
+        self.clear()
+        return self
+
+    def remesh_self(self):
+        old_initial_nodes = self.initial_nodes.copy()
+        old_elements = self.elements.copy()
+        u_old = self.u_old.copy()
+        v_old = self.v_old.copy()
+        a_old = self.a_old.copy()
+
+        self.remesh()
+
+        u = remesher.approximate_all_numba(
+            self.initial_nodes, old_initial_nodes, u_old, old_elements
+        )
+        v = remesher.approximate_all_numba(
+            self.initial_nodes, old_initial_nodes, v_old, old_elements
+        )
+        a = remesher.approximate_all_numba(
+            self.initial_nodes, old_initial_nodes, a_old, old_elements
+        )
+
+        self.set_u_old(u)
+        self.set_v_old(v)
+        self.set_a_old(a)
 
 
 
@@ -183,7 +210,7 @@ class SettingPosition(Dynamics):
         return self.initial_nodes + self.u_old
 
     @property
-    def normalized_points(self):
+    def normalized_nodes(self):
         return self.normalize_rotate(self.moved_nodes - self.mean_moved_nodes)
 
     @property
@@ -192,7 +219,7 @@ class SettingPosition(Dynamics):
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_indices]
+        return self.normalized_nodes[self.boundary_indices]
 
     @property
     def normalized_boundary_normals(self):
@@ -212,12 +239,12 @@ class SettingPosition(Dynamics):
         return self.moved_nodes[self.edges]
 
     @property
-    def edges_normalized_points(self):
-        return self.normalized_points[self.edges]
+    def edges_normalized_nodes(self):
+        return self.normalized_nodes[self.edges]
 
     @property
-    def elements_normalized_points(self):
-        return self.normalized_points[self.elements]
+    def elements_normalized_nodes(self):
+        return self.normalized_nodes[self.elements]
 
     @property
     def boundary_centers(self):
@@ -235,7 +262,7 @@ class SettingPosition(Dynamics):
 
     @property
     def normalized_u_old(self):
-        return self.normalized_points - self.normalized_initial_nodes
+        return self.normalized_nodes - self.normalized_initial_nodes
 
     @property
     def origin_u_old(self):
@@ -264,3 +291,12 @@ class SettingPosition(Dynamics):
             self.boundary_nodes_count,
             self.moved_nodes,
         )
+
+
+    @property
+    def input_v_old(self):
+        return self.normalized_v_old
+
+    @property
+    def input_u_old(self):
+        return self.normalized_u_old

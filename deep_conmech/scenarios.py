@@ -10,7 +10,7 @@ from conmech.dataclass.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from deep_conmech.common.training_config import TrainingData
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.simulator.solver import Solver
 
@@ -60,8 +60,8 @@ class Scenario:
 
     def get_setting(
             self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
-    ) -> SettingIterable:
-        setting = SettingIterable(
+    ) -> SettingObstacles:
+        setting = SettingObstacles(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
@@ -69,7 +69,7 @@ class Scenario:
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.set_obstacles(self.obstacles)
+        setting.normalize_and_set_obstacles(self.obstacles)
         return setting
 
     @property
@@ -125,7 +125,7 @@ class TemperatureScenario(Scenario):
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.set_obstacles(self.obstacles)
+        setting.normalize_and_set_obstacles(self.obstacles)
         return setting
 
 

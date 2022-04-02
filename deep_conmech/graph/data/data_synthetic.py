@@ -1,14 +1,11 @@
-import numpy as np
-
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
-from conmech.helpers import nph, cmh
 from deep_conmech import scenarios
-from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_process_data_range, \
-    get_and_check_indices_to_do, is_memory_overflow
+from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
 
 
@@ -116,7 +113,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         u_old = create_u_old(self.config, setting)
         v_old = create_v_old(self.config, setting)
 
-        setting.set_obstacles(obstacles_unnormaized)
+        setting.normalize_and_set_obstacles(obstacles_unnormaized)
         setting.set_u_old(u_old)
         setting.set_v_old(v_old)
         setting.prepare(forces)
@@ -144,7 +141,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
                     return False
 
                 setting, exact_normalized_a_torch = self.generate_setting(index)
-                setting.append_pickle(settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+                SettingIterable.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
 
                 self.check_and_print(
                     len(assigned_data_range), index, setting, step_tqdm, tqdm_description

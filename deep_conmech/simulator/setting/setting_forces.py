@@ -1,7 +1,6 @@
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
-from deep_conmech.simulator.setting.setting_position import SettingPosition
 
 
 def L2_new(a, C, E):
@@ -11,7 +10,7 @@ def L2_new(a, C, E):
     return value
 
 
-class SettingForces(SettingPosition):
+class SettingForces(Dynamics):
     def __init__(
             self, mesh_data, body_prop, schedule, normalize_by_rotation: bool, create_in_subprocess,
     ):
@@ -23,6 +22,7 @@ class SettingForces(SettingPosition):
             create_in_subprocess=create_in_subprocess,
         )
         self.forces = None
+
 
     @property
     def normalized_forces(self):
@@ -82,3 +82,8 @@ class SettingForces(SettingPosition):
                 - const_elasticity @ u_old_vector
         )
         return E
+
+
+    @property
+    def input_forces(self):
+        return self.normalized_forces

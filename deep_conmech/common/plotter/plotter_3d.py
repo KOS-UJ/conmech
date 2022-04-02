@@ -130,7 +130,7 @@ def plot_subframe(fig, ax, setting, normalized_data, t_scale):
         plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", ax=ax)
     plot_obstacles(ax, setting, "tab:orange")
 
-    shifted_normalized_nodes = setting.normalized_points + np.array([0, 2.0, 0])
+    shifted_normalized_nodes = setting.normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(starts=shifted_normalized_nodes, vectors=data, ax=ax)
         plot_mesh(
