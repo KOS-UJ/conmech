@@ -4,13 +4,12 @@ from typing import Callable, List, Optional
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import animation
-from matplotlib.colors import ListedColormap
-
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from deep_conmech.scenarios import Scenario, TemperatureScenario
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
 
 # TODO: Move to config
 dpi = 800
@@ -29,12 +28,18 @@ class ColorbarSettings:
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
 
 
-def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
+def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all_settings_path: str):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
-    temperatures = np.array(
-        [SettingIterable.load_pickle(path).t_old for path in plot_setting_paths]
-    )
+    #TODO: Refactor (repetition from plot_animation)
+    temperatures_list = []
+    all_indices = SettingIterable.get_all_indices_pickle(all_settings_path)
+    settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
+    with settings_file:
+        for step in range(plot_settings_count):
+            setting = SettingIterable.load_index_pickle(index=step * index_skip, all_indices=all_indices, settings_file=settings_file)
+            temperatures_list.append(setting.t_old)
+    temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
 
 
@@ -111,9 +116,8 @@ def plot_animation(
     animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count + 1), config=config,
                                   desc="Generating animation")
 
-    settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
     all_indices = SettingIterable.get_all_indices_pickle(all_settings_path)
-
+    settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         def animate(step):
             animation_tqdm.update(1)

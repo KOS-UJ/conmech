@@ -1,13 +1,17 @@
 import copy
+from dataclasses import dataclass
 import pickle
 from io import BufferedReader
 from typing import List
+
+import numpy as np
 
 import deep_conmech.simulator.mesh.remesher as remesher
 from conmech.dataclass.body_properties import DynamicBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.obstacle_properties import ObstacleProperties
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers import cmh
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
@@ -91,17 +95,21 @@ class SettingIterable(SettingObstacles):
     @staticmethod
     def get_all_indices_pickle(all_settings_path):
         all_indices = []
-        with open(f"{all_settings_path}.indices", 'rb') as file:
-            try:
-                while True:
-                    all_indices.append(pickle.load(file))
-            except EOFError:
-                pass
+        try:
+            with open(f"{all_settings_path}.indices", 'rb') as file:
+                try:
+                    while True:
+                        all_indices.append(pickle.load(file))
+                except EOFError:
+                    pass
+        except:        
+            pass
         return all_indices
 
     def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
         setting_copy = copy.deepcopy(self)
-        setting_copy.clear_save(for_plot=True)
+        setting_copy.clear_save()
+        #setting_copy = SettingInfo(C=self.C)
 
         index = settings_file.tell()
         pickle.dump(setting_copy, settings_file)
@@ -110,12 +118,21 @@ class SettingIterable(SettingObstacles):
     @staticmethod
     def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
         byte_index = all_indices[index]
-        # with open(f"{path}.settings", 'rb') as file:
         settings_file.seek(byte_index)
         setting = pickle.load(settings_file)
         return setting
 
-    def clear_save(self, for_plot=False):
+    @staticmethod
+    def get_iterator_pickle(path: str):
+        with open(f"{path}.settings", "rb") as file:
+            while True:
+                try:
+                    yield pickle.load(file)
+                except EOFError:
+                    break
+
+
+    def clear_save(self):
         self.is_contact = None
         self.is_dirichlet = None
 
@@ -140,3 +157,7 @@ class SettingIterable(SettingObstacles):
 
         # if for_plot:
         #    self.C = None
+
+@dataclass
+class SettingInfo:
+    C: np.ndarray

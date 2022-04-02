@@ -12,10 +12,10 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    FINAL_TIME: int = 8  # !# 2
-
-    MESH_DENSITY: int = 16  # !# 8
-    ADAPTIVE_TRAINING_MESH: bool = False  # True # TODO #65
+    DATASET: str = "scenarios"  # synthetic # scenarios
+    FINAL_TIME: float = 5  # !# 5 #8
+    MESH_DENSITY: int = 8  # !# 8 #16
+    ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     # TODO #66
 
@@ -34,13 +34,12 @@ class TrainingData:
 
     # TODO #66
 
-    VALIDATE_AT_MINUTES: int = 5  # !# 1
+    VALIDATE_AT_MINUTES: int = 10
 
-    DATASET: str = "scenarios"  # synthetic # scenarios
-    L2_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 128  # !#
+    L2_LOSS: bool = True  #!#
+    BATCH_SIZE: int = 128  #!#
     VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 64  # !#  2 # 512
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 4  # !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     # TODO #66
@@ -52,7 +51,7 @@ class TrainingData:
 
     DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
     SKIP: bool = True
-    # GRADIENT_CLIP = 10.0
+    GRADIENT_CLIP = 10.0 # None
 
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 
@@ -75,7 +74,7 @@ class TrainingConfig(Config):
     # print(numba.cuda.gpus)
 
     DATALOADER_WORKERS = 4
-    GENERATION_WORKERS = 2
+    GENERATION_WORKERS = 1 #2
 
     # TODO #66
 
@@ -85,5 +84,14 @@ class TrainingConfig(Config):
 
     # TODO #66
 
-    DATA_FOLDER: str = f"{td.MESH_DENSITY}"
     PRINT_DATA_CUTOFF: float = 0.1
+
+    LOG_DATASET_STATS = True
+    LOAD_DATASET_TO_RAM = True
+
+    ############
+    
+    @property
+    def DATA_FOLDER(self):
+        data_size = self.td.SYNTHETIC_SOLVERS_COUNT if self.td.DATASET == "synthetic" else self.td.FINAL_TIME
+        return f"{self.td.DATASET}_{self.td.MESH_DENSITY}_{data_size}"
