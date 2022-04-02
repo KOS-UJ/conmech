@@ -3,16 +3,22 @@ import time
 from argparse import ArgumentError
 from typing import Optional
 
+import numpy as np
 import torch
 from torch.utils.tensorboard.writer import SummaryWriter
 
+from conmech.helpers import cmh, nph
+from conmech.helpers.config import Config
 from deep_conmech import scenarios
+from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data import data_base
-from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
+from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.scenarios import Scenario
+from deep_conmech.simulator.solver import Solver
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
@@ -80,7 +86,7 @@ class GraphModelDynamic:
     def lr(self):
         return float(self.scheduler.get_last_lr()[0])
 
-    def graph_sizes(self, batch):
+    def graph_sizes(self, batch, np=None):
         graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 
@@ -92,7 +98,7 @@ class GraphModelDynamic:
         value_split = value.split(graph_sizes)
         return value_split
 
-    ################
+    # TODO #66
 
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
@@ -130,7 +136,7 @@ class GraphModelDynamic:
 
             # print(prof.key_averages().table(row_limit=10))
 
-    ################
+    # TODO #66
 
     def save_net(self):
         print("----SAVING----")
@@ -140,7 +146,7 @@ class GraphModelDynamic:
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
 
-    ################
+    # TODO #66
 
     @staticmethod
     def get_newest_saved_model_path():
@@ -198,7 +204,7 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    #################
+    # TODO #66
 
     def train_step(self, batch):
         self.net.train()
@@ -227,7 +233,7 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
-    #################
+    # TODO #66
 
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
@@ -285,7 +291,7 @@ class GraphModelDynamic:
         validation_time = time.time() - start_time
         print(f"--Validation time: {(validation_time / 60):.4f} min")
 
-    #################
+    # TODO #66
 
     def E(self, batch, test_using_true_solution=False):
         # graph_couts = [1 for i in range(batch.num_graphs)]

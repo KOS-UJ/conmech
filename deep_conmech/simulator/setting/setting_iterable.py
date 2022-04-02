@@ -1,7 +1,7 @@
 import copy
 from dataclasses import dataclass
 import pickle
-from io import BufferedRandom, BufferedReader
+from io import BufferedReader
 from typing import List
 
 import numpy as np
@@ -84,7 +84,6 @@ class SettingIterable(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
-
     @staticmethod
     def open_files_append_pickle(path: str):
         return open(f"{path}.settings", 'ab+'), open(f"{path}.indices", 'ab+')
@@ -107,7 +106,6 @@ class SettingIterable(SettingObstacles):
             pass
         return all_indices
 
-
     def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
         setting_copy = copy.deepcopy(self)
         setting_copy.clear_save()
@@ -117,14 +115,12 @@ class SettingIterable(SettingObstacles):
         pickle.dump(setting_copy, settings_file)
         pickle.dump(index, file_meta)
 
-        
     @staticmethod
     def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
         byte_index = all_indices[index]
         settings_file.seek(byte_index)
         setting = pickle.load(settings_file)
         return setting
-
 
     @staticmethod
     def get_iterator_pickle(path: str):
@@ -159,7 +155,7 @@ class SettingIterable(SettingObstacles):
         self.T_contact_x_free = None
         self.T_free_x_free_inverted = None
 
-        #if for_plot:
+        # if for_plot:
         #    self.C = None
 
 @dataclass

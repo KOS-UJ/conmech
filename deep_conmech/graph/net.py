@@ -177,7 +177,7 @@ class ForwardNet(nn.Module):
             BasicBlock(
                 in_channels=td.LATENT_DIM,
                 out_channels=output_linear_dim,
-                bias=True,  ################################################################
+                bias=True,  # TODO #65
                 # batch_norm=False,
                 activation=False,
                 dropout_rate=False,
@@ -326,7 +326,7 @@ class CustomGraphNet(nn.Module):
             output_linear_dim=output_dim,
             statistics=None,
             batch_norm=td.INTERNAL_BATCH_NORM,
-            layer_norm=False,  #############################
+            layer_norm=False,  # TODO #65
             td=td,
         )
 
@@ -361,7 +361,7 @@ class CustomGraphNet(nn.Module):
         output = self.decoder(node_latents)
         return output
 
-    ################
+    # TODO #66
 
     def save(self, path):
         torch.save(self.state_dict(), path)
@@ -370,7 +370,7 @@ class CustomGraphNet(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
-    ################
+    # TODO #66
 
     def solve_all(self, setting):
         self.eval()

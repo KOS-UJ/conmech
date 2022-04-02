@@ -11,7 +11,7 @@ from deep_conmech.common.training_config import TrainingConfig
 
 
 def print_pandas(data):
-    name = f"{data=}".split("=")[0]
+    name = f"{data}=".split("=")[0]
     print(f">>> {name} <<<")
     print(pandas.DataFrame(data).round(4))
 

@@ -1,6 +1,11 @@
+import numpy as np
+
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
+from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
-from deep_conmech.scenarios import *
-from deep_conmech.simulator.mesh.mesh_builders_3d import *
+from deep_conmech.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
+    m_ball_3d, m_twist_3d, m_cube_3d
 
 
 def main(mesh_density=3, final_time=1, plot_animation=True):

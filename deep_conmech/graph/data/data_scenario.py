@@ -1,7 +1,12 @@
 from argparse import ArgumentError
 from typing import Callable, List, Optional
 
-from deep_conmech.graph.data.data_base import *
+import numpy as np
+
+from conmech.helpers import cmh
+from conmech.helpers.config import Config
+from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
+    get_and_check_indices_to_do, is_memory_overflow
 from deep_conmech.graph.helpers import thh
 from deep_conmech.scenarios import Scenario
 

@@ -1,6 +1,7 @@
 import meshzoo
 import numpy as np
 import pygmsh
+
 from conmech.dataclass.mesh_data import MeshData
 from deep_conmech.simulator.mesh import mesh_builders_helpers
 

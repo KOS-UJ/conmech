@@ -1,7 +1,9 @@
 import numpy as np
 
+from conmech.helpers import nph
+from conmech.solvers import SchurComplement
 from deep_conmech.simulator.setting import setting_obstacles
-from deep_conmech.simulator.setting.setting_forces import *
+from deep_conmech.simulator.setting.setting_forces import L2_new
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 
 

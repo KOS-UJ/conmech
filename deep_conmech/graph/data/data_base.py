@@ -15,7 +15,6 @@ from deep_conmech.graph.data.dataset_statistics import (DatasetStatistics,
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
 from torch_geometric.loader import DataLoader
@@ -63,7 +62,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  ############################
+        pin_memory=True,  # TODO #65
     )
 
 
@@ -181,7 +180,7 @@ class BaseDatasetDynamic:
 
     def load_data_to_ram(self):
         setting_tqdm = cmh.get_tqdm(iterable=SettingIterable.get_iterator_pickle(self.data_path), config=self.config, desc="Loading dataset to RAM")
-        self.loaded_settings = [setting for setting in setting_tqdm] 
+        self.loaded_settings = [setting for setting in setting_tqdm]
 
 
     def generate_data_process(self, num_workers, process_id):
@@ -202,7 +201,6 @@ class BaseDatasetDynamic:
     @property
     def images_directory(self):
         return f"{self.main_directory}/images"
-
 
     def get_example(self, index):
         if self.loaded_settings is not None:

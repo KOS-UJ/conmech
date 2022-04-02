@@ -1,11 +1,11 @@
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
-from deep_conmech.simulator.mesh.mesh_builders_3d import *
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 
@@ -224,20 +224,20 @@ def plot_obstacles(ax, setting, color):
 
 
 def plot_animation(
-    save_path: str,
-    config: Config,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count:int,
-    all_settings_path:str,
-    t_scale: Optional[np.ndarray] = None,
+        save_path: str,
+        config: Config,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str,
+        t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
         save_path=save_path,
-        config = config,
+        config=config,
         time_skip=time_skip,
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,

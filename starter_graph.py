@@ -1,12 +1,15 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 
+from deep_conmech import scenarios
 from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.graph.data.data_scenario import *
-from deep_conmech.graph.data.data_synthetic import *
-from deep_conmech.graph.helpers import dch
+from deep_conmech.graph.data.data_scenario import ValidationScenarioDatasetDynamic, \
+    TrainingScenariosDatasetDynamic
+from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
+from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.simulator.solver import Solver
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):
@@ -17,7 +20,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             all_scenarios=scenarios.all_train(config.td), solve_function=Solver.solve_all, description="all", config=config
         )
     else:
-        raise ArgumentError("Bad dataset type")
+        raise ValueError("Bad dataset type")
     return train_dataset
 
 

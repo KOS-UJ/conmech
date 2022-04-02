@@ -1,12 +1,12 @@
 import os
 import time
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
+
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
@@ -59,8 +59,9 @@ def plot_scenario(
 
     settings_file, file_meta = SettingIterable.open_files_append_pickle(data_path)
     with settings_file, file_meta:
-        step = [0] #TODO: Clean
-        def operation_save(current_time: float, setting : SettingIterable, base_setting, a, base_a):
+        step = [0]  # TODO: Clean
+
+        def operation_save(current_time: float, setting: SettingIterable, base_setting, a, base_a):
             step[0] += 1
             plot_index = step[0] % ts == 0
             if save_all or plot_index: 
@@ -110,7 +111,7 @@ def plot_scenario_animation(
     )
 
 
-########
+# TODO #66
 
 
 def simulate(
@@ -176,7 +177,7 @@ def simulate(
             )
 
             start_time = time.time()
-            base_a = Solver.solve(base_setting)  ## save in setting
+            base_a = Solver.solve(base_setting)  # TODO: #65: save in setting
             comparison_time += time.time() - start_time
 
         if operation is not None:
@@ -190,7 +191,7 @@ def simulate(
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
 
-        # setting.remesh_self() ####################################################
+        # setting.remesh_self() # TODO #65
 
     # comparison_str = (
     #    f" | Comparison time: {comparison_time}" if compare_with_base_setting else ""
@@ -198,7 +199,7 @@ def simulate(
     # print(f"    Solver time : {solver_time}{comparison_str}")
 
 
-########
+# TODO #66
 
 
 def plot_setting(
@@ -223,5 +224,3 @@ def plot_setting(
             fig=fig, axs=axs, setting=setting, current_time=current_time
         )
         plotter_common.plt_save(path, extension)
-
-############################

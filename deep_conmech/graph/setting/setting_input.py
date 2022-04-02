@@ -1,9 +1,9 @@
+import numpy as np
 import torch
+
 from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import thh
-from deep_conmech.graph.setting.setting_randomized import *
 from deep_conmech.graph.setting.setting_torch import SettingTorch
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from numba import njit
 from torch_geometric.data import Data
@@ -39,7 +39,7 @@ def L2_normalized_obstacle_correction(
     )
 
 
-#################################
+# TODO #66
 
 
 @njit
@@ -66,7 +66,7 @@ def get_edges_data(
     return edges_data
 
 
-###################################3
+# TODO #66
 
 
 def L2_obstacle_nvt(
