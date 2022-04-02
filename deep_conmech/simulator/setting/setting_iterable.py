@@ -118,12 +118,19 @@ class SettingIterable(SettingObstacles):
     @staticmethod
     def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
         byte_index = all_indices[index]
-        #with open(f"{path}.settings", 'rb') as file:
         settings_file.seek(byte_index)
         setting = pickle.load(settings_file)
         return setting
 
 
+    @staticmethod
+    def get_iterator_pickle(path: str):
+        with open(f"{path}.settings", "rb") as file:
+            while True:
+                try:
+                    yield pickle.load(file)
+                except EOFError:
+                    break
 
 
     def clear_save(self, for_plot=False):

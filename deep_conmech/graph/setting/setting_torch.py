@@ -26,6 +26,7 @@ class SettingTorch(SettingRandomized):
 
 
     def complete_boundary_data_with_zeros_torch(self, data):
+        #data.resize... (?)
         completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[self.boundary_indices] = data
         return completed_data

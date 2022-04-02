@@ -34,7 +34,7 @@ class TrainingData:
 
     ############
 
-    VALIDATE_AT_MINUTES: int = 5
+    VALIDATE_AT_MINUTES: int = 10
 
     DATASET: str = "scenarios"  # synthetic # scenarios
     L2_LOSS: bool = True  #!#

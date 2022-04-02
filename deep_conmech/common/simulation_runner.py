@@ -49,7 +49,7 @@ def plot_scenario(
 ):
     final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
     animation_path = f"{final_catalog}/{scenario.id}.gif"
-    all_settings_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
+    data_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
     cmh.create_folders(f"{final_catalog}/scenarios")
      
     time_skip = config.PRINT_SKIP
@@ -57,13 +57,15 @@ def plot_scenario(
     index_skip = ts if save_all else 1
     plot_settings_count = [0]
 
-    settings_file, file_meta = SettingIterable.open_files_append_pickle(all_settings_path)
+    settings_file, file_meta = SettingIterable.open_files_append_pickle(data_path)
     with settings_file, file_meta:
         step = [0] #TODO: Clean
         def operation_save(current_time: float, setting : SettingIterable, base_setting, a, base_a):
             step[0] += 1
-            if save_all or step[0] % ts == 0: 
+            plot_index = step[0] % ts == 0
+            if save_all or plot_index: 
                 setting.append_pickle(settings_file=settings_file, file_meta=file_meta)
+            if plot_index:
                 plot_settings_count[0]+=1
 
         simulate(
@@ -77,9 +79,9 @@ def plot_scenario(
         )
 
     if plot_animation:
-        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], all_settings_path)
+        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], data_path)
 
-    return all_settings_path
+    return data_path
 
 
 def plot_scenario_animation(

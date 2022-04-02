@@ -173,6 +173,9 @@ class BaseDatasetDynamic:
             self.all_indices = SettingIterable.get_all_indices_pickle(self.data_path)
         
         self.settings_file = SettingIterable.open_file_settings_read_pickle(self.data_path) # TODO: Close after training
+        #self.all_settings = SettingIterable.get_iterator_pickle(self.data_path)
+
+
 
     def generate_data_process(self, num_workers, process_id):
         pass
@@ -191,6 +194,7 @@ class BaseDatasetDynamic:
 
 
     def get_example(self, index):
+        #setting = self.all_settings(index)
         setting = SettingIterable.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=self.settings_file)
         if self.randomize_at_load:
             setting.set_randomization(True)
