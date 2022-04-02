@@ -1,6 +1,5 @@
-from argparse import ArgumentError
-from dataclasses import dataclass
-from typing import Callable, Optional
+from ctypes import ArgumentError
+from typing import Callable
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
@@ -180,116 +179,6 @@ def get_base_seed_indices_numba(nodes):
     return base_seed_indices, int(np.argmin(errors))
 
 
-def get_base(nodes, base_seed_indices, closest_seed_index):
-    base_seed_initial_nodes = nodes[base_seed_indices]
-    base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
-    return nph.complete_base(base_seed, closest_seed_index)
-
-
-def get_unoriented_normals_2d(faces_nodes):
-    tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
-
-    unoriented_normals = nph.get_tangential_2d(
-        nph.normalize_euclidean_numba(head_nodes - tail_nodes)
-    )
-    return tail_nodes, unoriented_normals
-
-
-def get_unoriented_normals_3d(faces_nodes):
-    tail_nodes, head_nodes1, head_nodes2 = [faces_nodes[:, i, :] for i in range(3)]
-
-    unoriented_normals = nph.normalize_euclidean_numba(
-        np.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
-    )
-    return tail_nodes, unoriented_normals
-
-
-def get_boundary_faces_normals(moved_nodes, boundary_faces, boundary_internal_indices):
-    dim = moved_nodes.shape[1]
-    faces_nodes = moved_nodes[boundary_faces]
-
-    if dim == 2:
-        tail_nodes, unoriented_normals = get_unoriented_normals_2d(faces_nodes)
-    elif dim == 3:
-        tail_nodes, unoriented_normals = get_unoriented_normals_3d(faces_nodes)
-    else:
-        raise ArgumentError
-
-    internal_nodes = moved_nodes[boundary_internal_indices]
-    external_orientation = (-1) * np.sign(
-        nph.elementwise_dot(
-            internal_nodes - tail_nodes, unoriented_normals, keepdims=True
-        )
-    )
-    return unoriented_normals * external_orientation
-
-
-@njit
-def element_volume_part_numba(face_nodes):
-    dim = face_nodes.shape[1]
-    nodes_count = face_nodes.shape[0]
-    if dim == 2:
-        volume = nph.euclidean_norm_numba(face_nodes[0] - face_nodes[1])
-    elif dim == 3:
-        volume = 0.5 * nph.euclidean_norm_numba(
-            np.cross(face_nodes[1] - face_nodes[0], face_nodes[2] - face_nodes[0])
-        )
-    else:
-        raise ArgumentError
-    return volume / nodes_count
-
-
-@njit
-def get_boundary_nodes_data_numba(
-        boundary_faces_normals, boundary_faces, boundary_nodes_count, moved_nodes
-):
-    dim = boundary_faces_normals.shape[1]
-    boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
-    boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
-
-    for i in range(boundary_nodes_count):
-        node_faces_count = 0
-        for j in range(len(boundary_faces)):
-            if np.any(boundary_faces[j] == i):
-                node_faces_count += 1
-                boundary_normals[i] += boundary_faces_normals[j]
-
-                face_nodes = moved_nodes[boundary_faces[j]]
-                boundary_nodes_volume[i] += element_volume_part_numba(face_nodes)
-
-        boundary_normals[i] /= node_faces_count
-
-    boundary_normals = nph.normalize_euclidean_numba(boundary_normals)
-    return boundary_normals, boundary_nodes_volume
-
-
-
-
-
-
-@dataclass
-class MeshState:
-    at = np.ndarray
-
-    initial_nodes: at = np.empty(0)
-    elements: at = np.empty(0)
-    edges: at = np.empty(0)
-
-    boundary_faces: at = np.empty(0)
-    boundary_internal_indices: at = np.empty(0)
-
-    contact_nodes_count: int = 0
-    dirichlet_nodes_count: int = 0
-    boundary_nodes_count: int = 0
-
-    base_seed_indices: at = np.empty(0)
-    closest_seed_index: int = 0
-
-    boundaries: Optional[Boundaries] = None
-
-    u_old: at = np.empty(0)
-    v_old: at = np.empty(0)
-    a_old: at = np.empty(0)
 
 
 class Mesh:
@@ -307,13 +196,13 @@ class Mesh:
         self.is_dirichlet = is_dirichlet
         self.is_contact = is_contact
 
-        self.state = self.get_state(self.is_dirichlet, self.is_contact)
+        self.state_dict = self.get_state_dict(self.is_dirichlet, self.is_contact)
 
     def remesh(self):
-        self.state = self.get_state(self.is_dirichlet, self.is_contact)
+        self.state_dict = self.get_state_dict(self.is_dirichlet, self.is_contact)
 
-    def get_state(self, is_dirichlet, is_contact):
-        state = MeshState() 
+    def get_state_dict(self, is_dirichlet, is_contact):
+        state_dict = dict() 
 
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_data=self.mesh_data, create_in_subprocess=self.create_in_subprocess,
@@ -322,104 +211,91 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        self.reorganize_boundaries(state, unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        self.reorganize_boundaries(state_dict, unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
-        state.base_seed_indices, state.closest_seed_index = get_base_seed_indices_numba(
-            state.initial_nodes
+        state_dict["base_seed_indices"], state_dict["closest_seed_index"] = get_base_seed_indices_numba(
+            state_dict["initial_nodes"]
         )
 
-        edges_matrix = get_edges_matrix(nodes_count=len(state.initial_nodes), elements=state.elements)
-        state.edges = get_edges_list_numba(edges_matrix)
+        edges_matrix = get_edges_matrix(nodes_count=len(state_dict["initial_nodes"]), elements=state_dict["elements"])
+        state_dict["edges"] = get_edges_list_numba(edges_matrix)
 
-        state.u_old = np.zeros_like(state.initial_nodes)
-        state.v_old = np.zeros_like(state.initial_nodes)
-        state.a_old = np.zeros_like(state.initial_nodes)
+        return state_dict
 
-        self.clear()
-        return state
-
-    def reorganize_boundaries(self, state, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
+    def reorganize_boundaries(self, state_dict, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
         (
-            state.initial_nodes,
-            state.elements,
+            state_dict["initial_nodes"],
+            state_dict["elements"],
         ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, is_contact)
         (
-            state.boundary_faces,
+            state_dict["boundary_faces"],
             _boundary_indices,
             _contact_indices,
-            state.boundary_internal_indices,
-        ) = get_boundary_faces(state.initial_nodes, state.elements, is_contact)
+            state_dict["boundary_internal_indices"],
+        ) = get_boundary_faces(state_dict["initial_nodes"], state_dict["elements"], is_contact)
 
-        state.contact_nodes_count = len(_contact_indices)
-        state.dirichlet_nodes_count = 0
-        state.boundary_nodes_count = len(_boundary_indices)
+        state_dict["contact_nodes_count"] = len(_contact_indices)
+        state_dict["dirichlet_nodes_count"] = 0
+        state_dict["boundary_nodes_count"] = len(_boundary_indices)
 
         if not np.array_equal(
-            _boundary_indices, range(state.boundary_nodes_count)
+            _boundary_indices, range(state_dict["boundary_nodes_count"])
         ):
             raise ValueError("Bad boundary ordering")
 
-    ##########
+    
+    
 
     @property
     def edges(self):
-        return self.state.edges
+        return self.state_dict["edges"]
 
     @property
     def initial_nodes(self):
-        return self.state.initial_nodes
+        return self.state_dict["initial_nodes"]
 
     @property
     def boundary_nodes_count(self):
-        return self.state.boundary_nodes_count
+        return self.state_dict["boundary_nodes_count"]
 
     @property
     def boundary_faces(self):
-        return self.state.boundary_faces
+        return self.state_dict["boundary_faces"]
 
     @property
     def boundary_internal_indices(self):
-        return self.state.boundary_internal_indices
+        return self.state_dict["boundary_internal_indices"]
 
     @property
     def base_seed_indices(self):
-        return self.state.base_seed_indices
+        return self.state_dict["base_seed_indices"]
 
     @property
     def closest_seed_index(self):
-        return self.state.closest_seed_index
+        return self.state_dict["closest_seed_index"]
 
     @property
     def dirichlet_nodes_count(self):
-        return self.state.dirichlet_nodes_count
+        return self.state_dict["dirichlet_nodes_count"]
 
     @property
     def contact_nodes_count(self):
-        return self.state.contact_nodes_count
+        return self.state_dict["contact_nodes_count"]
 
     @property
     def elements(self):
-        return self.state.elements
+        return self.state_dict["elements"]
 
     @property
-    def u_old(self):
-        return self.state.u_old
+    def boundaries(self):
+        return self.state_dict["boundaries"]
+                
 
-    @property
-    def v_old(self):
-        return self.state.v_old
-        
-    @property
-    def a_old(self):
-        return self.state.a_old
-
-
-    ##########
 
     @property
     def independent_nodes_count(self):
         return self.nodes_count - self.dirichlet_nodes_count
-        
+
     @property
     def free_nodes_count(self):
         return self.independent_nodes_count - self.contact_nodes_count # neumann
@@ -446,112 +322,20 @@ class Mesh:
     def dimension(self):
         return self.mesh_data.dimension
 
-    def set_a_old(self, a):
-        self.state.a_old = a
 
-    def set_v_old(self, v):
-        self.state.v_old = v
-
-    def set_u_old(self, u):
-        self.state.u_old = u
-
-    def prepare(self):
-        boundary_faces_normals = get_boundary_faces_normals(
-            self.moved_nodes, self.boundary_faces, self.boundary_internal_indices
-        )
-        (
-            self.boundary_normals,
-            self.boundary_nodes_volume,
-        ) = get_boundary_nodes_data_numba(
-            boundary_faces_normals,
-            self.boundary_faces,
-            self.boundary_nodes_count,
-            self.moved_nodes,
-        )
-
-    def clear(self):
-        self.boundary_normals = None
-        self.boundary_nodes_volume = None
-
-    @property
-    def boundary_nodes(self):
-        return self.moved_nodes[self.boundary_indices]
-
-    @property
-    def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_indices]
-
-    @property
-    def normalized_boundary_normals(self):
-        return self.normalize_rotate(self.boundary_normals)
-
-    @property
-    def normalized_a_old(self):
-        return self.normalize_rotate(self.a_old)
-
-    @property
-    def mean_moved_nodes(self):
-        return np.mean(self.moved_nodes, axis=0)
 
     @property
     def mean_initial_nodes(self):
         return np.mean(self.initial_nodes, axis=0)
 
-    @property
-    def normalized_points(self):
-        return self.normalize_rotate(self.moved_nodes - self.mean_moved_nodes)
 
     @property
     def normalized_initial_nodes(self):
         return self.initial_nodes - self.mean_initial_nodes
 
-    @property
-    def rotated_v_old(self):
-        return self.normalize_rotate(self.v_old)
 
-    @property
-    def normalized_v_old(self):
-        return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))
 
-    @property
-    def normalized_u_old(self):
-        return self.normalized_points - self.normalized_initial_nodes
 
-    @property
-    def origin_u_old(self):
-        return self.denormalize_rotate(self.normalized_u_old)
-
-    @property
-    def moved_nodes(self):
-        return self.initial_nodes + self.u_old
-
-    @property
-    def moved_base(self):
-        return get_base(
-            self.moved_nodes, self.base_seed_indices, self.closest_seed_index
-        )
-
-    def normalize_rotate(self, vectors):
-        return (
-            nph.get_in_base(vectors, self.moved_base)
-            if self.normalize_by_rotation
-            else vectors
-        )
-
-    def denormalize_rotate(self, vectors):
-        return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
-
-    @property
-    def edges_moved_nodes(self):
-        return self.moved_nodes[self.edges]
-
-    @property
-    def edges_normalized_points(self):
-        return self.normalized_points[self.edges]
-
-    @property
-    def elements_normalized_points(self):
-        return self.normalized_points[self.elements]
 
     @property
     def nodes_count(self):
@@ -564,10 +348,6 @@ class Mesh:
     @property
     def inner_nodes_count(self):
         return self.nodes_count - self.boundary_nodes_count
-
-    @property
-    def boundary_centers(self):
-        return np.mean(self.moved_nodes[self.boundary_faces], axis=1)
 
     @property
     def edges_number(self):

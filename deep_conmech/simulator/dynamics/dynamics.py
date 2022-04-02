@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
@@ -27,6 +28,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
     return edges_features
 
 
+
 class Dynamics(Mesh):
     def __init__(
             self,
@@ -50,11 +52,11 @@ class Dynamics(Mesh):
         self.schedule = schedule
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
-        self.reinitialize_matrices()
+        self.initialize_matrices()
 
     def remesh(self):
         super().remesh()
-        self.reinitialize_matrices()
+        self.initialize_matrices()
 
     @property
     def time_step(self):
@@ -64,7 +66,7 @@ class Dynamics(Mesh):
     def with_temperature(self):
         return isinstance(self.body_prop, TemperatureBodyProperties)
 
-    def reinitialize_matrices(self):
+    def initialize_matrices(self):
         builder = (
             dynamics_builder_2d.DynamicsBuilder2D()
             if self.dimension == 2
@@ -81,7 +83,7 @@ class Dynamics(Mesh):
             self.K,
         ) = builder.build_matrices(
             elements=self.elements,
-            nodes=self.normalized_points,
+            nodes=self.initial_nodes,
             body_prop=self.body_prop,
             independent_indices=self.independent_indices,
         )

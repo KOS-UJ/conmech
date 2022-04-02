@@ -31,20 +31,20 @@ class MeshFeatures(Dynamics):
     def reorganize_boundaries(self, state, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
         (
             state.boundaries,
-            state.state.initial_nodes,
+            state.initial_nodes,
             state.elements,
         ) = Boundaries.identify_boundaries_and_reorder_vertices(
             unordered_nodes, unordered_elements, is_contact, is_dirichlet
         )
 
         dirichlet_nodes_count = 0
-        for vertex in reversed(self.initial_nodes):
+        for vertex in reversed(state.initial_nodes):
             if not is_dirichlet(vertex):
                 break
             dirichlet_nodes_count += 1
 
         contact_nodes_count = 0
-        for vertex in self.initial_nodes:
+        for vertex in state.initial_nodes:
             if not is_contact(vertex):
                 break
             contact_nodes_count += 1
