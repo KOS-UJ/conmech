@@ -7,7 +7,6 @@ from typing import Callable
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.vertex_utils import length
 
 
 class Forces:
@@ -51,7 +50,7 @@ class Forces:
                 v0 = neumann_boundary[i - 1]
                 v1 = neumann_boundary[i]
 
-                edge_length = length(
+                edge_length = nph.length(
                     self.mesh.initial_nodes[v0], self.mesh.initial_nodes[v1]
                 )
                 v_mid = (self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]) / 2

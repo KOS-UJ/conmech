@@ -31,13 +31,16 @@ def get_all_indices_pickle(all_settings_path):
 
 
 def internal_load_pickle(settings_file):
-    state_dict = pickle.load(settings_file) # return state_dict
+    #return pickle.load(settings_file)
+    
+    state_dict = pickle.load(settings_file)
     module_name = state_dict.pop("MODULE", None)
     class_name = state_dict.pop("CLASS", None)
     setting_class = getattr(sys.modules[module_name], class_name) # __name__
     setting = setting_class.__new__(setting_class)
     setting.load_state_dict(state_dict)
     return setting
+    
 
 
 def append_pickle(setting, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
@@ -46,6 +49,7 @@ def append_pickle(setting, settings_file: BufferedReader, file_meta: BufferedRea
     state_dict["MODULE"] = setting.__module__
     state_dict["CLASS"] = setting.__class__.__name__
     pickle.dump(state_dict, settings_file) #self #copy.deepcopy(self)
+    #pickle.dump(setting, settings_file)
     pickle.dump(index, file_meta)
 
 

@@ -86,7 +86,7 @@ class GraphModelDynamic:
     def lr(self):
         return float(self.scheduler.get_last_lr()[0])
 
-    def graph_sizes(self, batch, np=None):
+    def graph_sizes(self, batch):
         graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 

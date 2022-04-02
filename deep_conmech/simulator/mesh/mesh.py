@@ -1,12 +1,9 @@
-from ctypes import ArgumentError
-from re import M
 from typing import Callable
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
-from conmech.features.boundaries import Boundaries
 from conmech.helpers import nph
 from numba import njit
 
@@ -52,6 +49,9 @@ def remove_unconnected_nodes_numba(nodes, elements):
                         elements[i, j] -= 1
             nodes_count -= 1
     return nodes, elements
+
+
+
 
 
 @njit
@@ -148,6 +148,9 @@ def reorder_boundary_nodes(nodes, elements, is_contact):
         nodes, elements, boundary_indices, contact_indices
     )
     return nodes, elements
+
+
+
 
 
 @njit

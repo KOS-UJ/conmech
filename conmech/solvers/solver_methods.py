@@ -2,11 +2,11 @@
 Created at 21.08.2019
 """
 from typing import Callable, Optional, Any
+from helpers import nph
 
 import numba
 import numpy as np
 
-from conmech.vertex_utils import length
 
 DIMENSION = 2
 
@@ -68,7 +68,7 @@ def make_f(jn, jt, h):
                 v_tau_1 = np.asarray([0 - normal_vector[0] * normal_vector[1],
                                       1 - normal_vector[1] * normal_vector[1]])
 
-                edge_len = length(n_0, n_1)
+                edge_len = nph.length(n_0, n_1)
                 j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) \
                       + h(um_normal) * jt(um_tangential, v_tau_0)
                 j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) \
@@ -131,7 +131,7 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
                 um_tangential = um - um_normal * normal_vector
 
                 if n_id_0 < offset and n_id_1 < offset:
-                    cost += length(n_0, n_1) * (
+                    cost += nph.length(n_0, n_1) * (
                             jn(um_normal) + h(um_old_normal) * jt(um_tangential))
         return cost
 
@@ -175,7 +175,7 @@ def make_cost_functional_temperature(
                 if n_id_0 < offset and n_id_1 < offset:
                     # cost += edgeLength * (hn(uNmL, tmL)
                     #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-                    cost += length(n_0, n_1) * h(np.linalg.norm(um_tangential))
+                    cost += nph.length(n_0, n_1) * h(np.linalg.norm(um_tangential))
         return cost
 
     @numba.njit()
