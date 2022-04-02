@@ -90,7 +90,7 @@ class GraphModelDynamic:
         value_split = value.split(graph_sizes)
         return value_split
 
-    ################
+    # TODO #66
 
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
@@ -128,7 +128,7 @@ class GraphModelDynamic:
 
             # print(prof.key_averages().table(row_limit=10))
 
-    ################
+    # TODO #66
 
     def save_net(self):
         print("----SAVING----")
@@ -138,7 +138,7 @@ class GraphModelDynamic:
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
 
-    ################
+    # TODO #66
 
     @staticmethod
     def get_newest_saved_model_path():
@@ -196,7 +196,7 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    #################
+    # TODO #66
 
     def train_step(self, batch):
         self.net.train()
@@ -226,7 +226,7 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, self.config.td.GRADIENT_CLIP)
 
-    #################
+    # TODO #66
 
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
@@ -284,7 +284,7 @@ class GraphModelDynamic:
         validation_time = time.time() - start_time
         print(f"--Validation time: {(validation_time / 60):.4f} min")
 
-    #################
+    # TODO #66
 
     def E(self, batch, test_using_true_solution=False):
         # graph_couts = [1 for i in range(batch.num_graphs)]

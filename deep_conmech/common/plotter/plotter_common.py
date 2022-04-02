@@ -70,7 +70,7 @@ def set_ax(ax):
     ax.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
 
 
-########
+# TODO #66
 
 def prepare_for_arrows(starts, vectors):
     nodes_count = len(starts)

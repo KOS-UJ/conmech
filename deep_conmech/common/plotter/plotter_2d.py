@@ -356,7 +356,7 @@ def triplot(nodes, elements, color, ax):
     ax.triplot(nodes[:, 0], nodes[:, 1], elements, color=color, linewidth=0.1)
 
 
-##############
+# TODO #66
 
 
 def draw_edges_data(position, setting, ax):
@@ -407,7 +407,7 @@ def draw_data_at_vertices(setting, features, position, ax):
         )
 
 
-###################
+# TODO #66
 
 
 def plot_simple_data(elements, nodes, path):

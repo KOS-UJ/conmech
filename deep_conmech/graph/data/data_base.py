@@ -75,7 +75,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  ############################
+        pin_memory=True,  # TODO #65
     )
 
 
@@ -140,7 +140,7 @@ class BaseDatasetDynamic:
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        self.num_workers = 1  ############################# num_workers
+        self.num_workers = 1  # TODO #65 num_workers
         self.config = config
 
     def get_setting_input(self, scenario: Scenario, config: Config):
@@ -150,7 +150,7 @@ class BaseDatasetDynamic:
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
             config=config,
-            create_in_subprocess=False,  #####
+            create_in_subprocess=False,  # TODO #65
         )
         setting.set_randomization(False)
         setting.set_obstacles(scenario.obstacles)

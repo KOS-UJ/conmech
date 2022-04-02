@@ -13,7 +13,7 @@ def weighted_mean_numba(v1, v2, scale):
 
 @njit
 def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
-    min = [0.0, 0.0]  #########
+    min = [0.0, 0.0]  # TODO #65
     x_scale = (initial_point[0] - min[0]) / scale_x
     y_scale = (initial_point[1] - min[1]) / scale_y
 

@@ -110,7 +110,7 @@ def plot_scenario_animation(
     )
 
 
-########
+# TODO #66
 
 
 def simulate(
@@ -176,7 +176,7 @@ def simulate(
             )
 
             start_time = time.time()
-            base_a = Solver.solve(base_setting)  ## save in setting
+            base_a = Solver.solve(base_setting)  # TODO: #65: save in setting
             comparison_time += time.time() - start_time
 
         if operation is not None:
@@ -190,7 +190,7 @@ def simulate(
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)
 
-        # setting.remesh_self() ####################################################
+        # setting.remesh_self() # TODO #65
 
     # comparison_str = (
     #    f" | Comparison time: {comparison_time}" if compare_with_base_setting else ""
@@ -198,7 +198,7 @@ def simulate(
     # print(f"    Solver time : {solver_time}{comparison_str}")
 
 
-########
+# TODO #66
 
 
 def plot_setting(
@@ -223,5 +223,3 @@ def plot_setting(
             fig=fig, axs=axs, setting=setting, current_time=current_time
         )
         plotter_common.plt_save(path, extension)
-
-############################

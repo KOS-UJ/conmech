@@ -42,7 +42,7 @@ def L2_normalized_obstacle_correction(
     )
 
 
-#################################
+# TODO #66
 
 
 @njit
@@ -69,7 +69,7 @@ def get_edges_data(
     return edges_data
 
 
-###################################3
+# TODO #66
 
 
 def L2_obstacle_nvt(

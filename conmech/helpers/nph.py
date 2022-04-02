@@ -41,7 +41,7 @@ def close_modulo(value, divider):
     return np.allclose(value % divider, 0.0) or np.allclose(value % divider, divider)
 
 
-###################
+# TODO #66
 
 
 def euclidean_norm(vector, keepdims=False):
@@ -88,7 +88,7 @@ def get_tangential_numba(vector, normal):
     return tangential_vector
 
 
-###################
+# TODO #66
 
 
 def get_tangential_2d(normal):
@@ -133,7 +133,7 @@ def get_in_base(vectors, base):
     return vectors @ base.T
 
 
-###################
+# TODO #66
 
 
 @njit

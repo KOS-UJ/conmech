@@ -19,7 +19,7 @@ from deep_conmech.simulator.solver import Solver
 tf.enable_eager_execution()
 
 
-#########
+# TODO #66
 
 
 def load_data(meta_path, data_path):
@@ -55,7 +55,7 @@ def _parse(proto, meta):
     return out
 
 
-#########
+# TODO #66
 
 def save_tf_data(data, path: str):
     writer = tf.io.TFRecordWriter(path)
