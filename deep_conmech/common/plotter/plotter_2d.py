@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,20 +30,20 @@ def set_perspective(scale, ax):
 
 
 def plot_animation(
-    save_path: str,
-    config: Config,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count:int,
-    all_settings_path:str,
-    t_scale: Optional[np.ndarray] = None,
+        save_path: str,
+        config: Config,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str,
+        t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         get_axs=get_axs,
         plot_frame=plot_frame,
         fig=get_fig(),
         save_path=save_path,
-        config = config,
+        config=config,
         time_skip=time_skip,
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,

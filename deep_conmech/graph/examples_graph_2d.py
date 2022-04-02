@@ -1,5 +1,6 @@
 import deep_conmech.scenarios as scenarios
 from deep_conmech.common import simulation_runner
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.model import GraphModelDynamic
 
 

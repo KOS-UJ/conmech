@@ -1,6 +1,6 @@
 import copy
 import pickle
-from io import BufferedRandom, BufferedReader
+from io import BufferedReader
 from typing import List
 
 import deep_conmech.simulator.mesh.remesher as remesher
@@ -80,7 +80,6 @@ class SettingIterable(SettingObstacles):
         self.set_v_old(v)
         self.set_a_old(a)
 
-
     @staticmethod
     def open_files_append_pickle(path: str):
         return open(f"{path}.settings", 'ab+'), open(f"{path}.indices", 'ab+')
@@ -100,8 +99,6 @@ class SettingIterable(SettingObstacles):
                 pass
         return all_indices
 
-
-
     def append_pickle(self, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
         setting_copy = copy.deepcopy(self)
         setting_copy.clear_save(for_plot=True)
@@ -110,17 +107,13 @@ class SettingIterable(SettingObstacles):
         pickle.dump(setting_copy, settings_file)
         pickle.dump(index, file_meta)
 
-        
     @staticmethod
     def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
         byte_index = all_indices[index]
-        #with open(f"{path}.settings", 'rb') as file:
+        # with open(f"{path}.settings", 'rb') as file:
         settings_file.seek(byte_index)
         setting = pickle.load(settings_file)
         return setting
-
-
-
 
     def clear_save(self, for_plot=False):
         self.is_contact = None
@@ -145,5 +138,5 @@ class SettingIterable(SettingObstacles):
         self.T_contact_x_free = None
         self.T_free_x_free_inverted = None
 
-        #if for_plot:
+        # if for_plot:
         #    self.C = None

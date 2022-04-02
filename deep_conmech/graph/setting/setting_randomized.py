@@ -75,7 +75,6 @@ class SettingRandomized(SettingIterable):
     def input_u_old(self):  # normalized_randomized_u_old
         return self.normalized_u_old + self.normalized_u_old_randomization
 
-  
     @property
     def input_forces(self):
         return self.normalized_forces  # - self.normalized_forces_mean

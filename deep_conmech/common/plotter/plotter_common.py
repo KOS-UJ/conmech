@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -96,19 +96,20 @@ def plt_save(path, extension):
 
 
 def plot_animation(
-    get_axs: Callable,
-    plot_frame: Callable,
-    fig,
-    save_path: str,
-    config: Config,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count:int,
-    all_settings_path: str,
-    t_scale: Optional[np.ndarray] = None,
+        get_axs: Callable,
+        plot_frame: Callable,
+        fig,
+        save_path: str,
+        config: Config,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str,
+        t_scale: Optional[np.ndarray] = None,
 ):
     fps = int(1 / time_skip)
-    animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count+1), config=config, desc="Generating animation")
+    animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count + 1), config=config,
+                                  desc="Generating animation")
 
     settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
     all_indices = SettingIterable.get_all_indices_pickle(all_settings_path)
@@ -118,16 +119,19 @@ def plot_animation(
             animation_tqdm.update(1)
             fig.clf()
             axs = get_axs(fig)
-            setting = SettingIterable.load_index_pickle(index=step * index_skip, all_indices=all_indices, settings_file=settings_file)
-            plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale)
+            setting = SettingIterable.load_index_pickle(index=step * index_skip,
+                                                        all_indices=all_indices,
+                                                        settings_file=settings_file)
+            plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip,
+                       t_scale=t_scale)
             return fig
 
         ani = animation.FuncAnimation(
             fig, animate, frames=plot_settings_count
         )  # , interval=scenario.final_time)
-        
+
         ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
-        #animation_tqdm.close()
+        # animation_tqdm.close()
     plt.close()
 
 

@@ -2,16 +2,22 @@ import json
 import time
 from argparse import ArgumentError
 
+import numpy as np
 import torch
 from torch.utils.tensorboard.writer import SummaryWriter
 
+from conmech.helpers import cmh, nph
+from conmech.helpers.config import Config
 from deep_conmech import scenarios
+from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data import data_base
-from deep_conmech.graph.data.data_base import *
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
+from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.scenarios import Scenario
+from deep_conmech.simulator.solver import Solver
 
 
 def get_and_init_writer(config: TrainingConfig):
@@ -72,7 +78,7 @@ class GraphModelDynamic:
     def lr(self):
         return float(self.scheduler.get_last_lr()[0])
 
-    def graph_sizes(self, batch):
+    def graph_sizes(self, batch, np=None):
         graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 

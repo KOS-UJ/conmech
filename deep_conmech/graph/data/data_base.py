@@ -1,23 +1,22 @@
-import copy
 import re
 from os import listdir
 from os.path import isfile, join
 
-from deep_conmech.common.training_config import TrainingConfig
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph
+from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
 )
-from deep_conmech.graph.helpers import dch, thh
+from deep_conmech.graph.helpers import dch
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
 
@@ -129,19 +128,19 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 
 class BaseDatasetDynamic:
     def __init__(
-        self,
-        dimension,
-        relative_path,
-        data_count,
-        randomize_at_load,
-        num_workers,
-        config: TrainingConfig,
+            self,
+            dimension,
+            relative_path,
+            data_count,
+            randomize_at_load,
+            num_workers,
+            config: TrainingConfig,
     ):
         self.dimension = dimension
         self.relative_path = relative_path
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
-        self.num_workers = 1 ############################# num_workers
+        self.num_workers = 1  ############################# num_workers
         self.config = config
 
     def get_setting_input(self, scenario: Scenario, config: Config):
@@ -191,8 +190,8 @@ class BaseDatasetDynamic:
         cmh.create_folders(self.main_directory)
         cmh.create_folders(self.images_directory)
 
-        #indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
-        #if not indices_to_do:
+        # indices_to_do = get_indices_to_do(range(self.data_count), self.data_path)
+        # if not indices_to_do:
         #    print(f"Taking prepared {self.relative_path} data")
         #    return
 
@@ -214,7 +213,6 @@ class BaseDatasetDynamic:
     @property
     def images_directory(self):
         return f"{self.main_directory}/images"
-
 
     '''
     def save(self, setting, exact_normalized_a_torch, index):

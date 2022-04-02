@@ -1,8 +1,9 @@
 import numpy as np
+from numba import njit
+
 from conmech.dataclass.mesh_data import MeshData
 from deep_conmech.graph.data.interpolation_helpers import \
     interpolate_point_numba
-from numba import njit
 
 
 @njit

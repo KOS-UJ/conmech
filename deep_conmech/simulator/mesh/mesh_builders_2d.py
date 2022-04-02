@@ -16,7 +16,6 @@ def get_meshzoo_rectangle(mesh_data):
     return points, elements
 
 
-
 ###############################
 
 

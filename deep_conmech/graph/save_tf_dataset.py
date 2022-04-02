@@ -2,11 +2,18 @@ import functools
 import json
 import os
 
+import numpy as np
 import tensorflow.compat.v1 as tf
 
+from conmech.dataclass.mesh_data import MeshData
+from conmech.dataclass.schedule import Schedule
+from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
+from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.helpers import dch
-from deep_conmech.scenarios import *
+from deep_conmech.scenarios import Scenario, m_polygon, default_body_prop, default_obstacle_prop, \
+    f_rotate, o_side
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.solver import Solver
 
 tf.enable_eager_execution()

@@ -1,11 +1,14 @@
+import numpy as np
+
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
+from conmech.helpers import nph, cmh
 from deep_conmech import scenarios
-from deep_conmech.graph.data.data_base import *
+from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_process_data_range, \
+    get_and_check_indices_to_do, is_memory_overflow
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.simulator.setting.setting_forces import *
 from deep_conmech.simulator.solver import Solver
 
 
