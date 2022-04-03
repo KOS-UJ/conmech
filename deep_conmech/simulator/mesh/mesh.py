@@ -4,6 +4,7 @@ import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
+from conmech.features.boundaries_builder import BoundariesBuilder, BoundariesData
 from conmech.helpers import nph
 from numba import njit
 
@@ -50,104 +51,6 @@ def remove_unconnected_nodes_numba(nodes, elements):
             nodes_count -= 1
     return nodes, elements
 
-
-
-
-
-@njit
-def move_boundary_nodes_to_start_numba(
-        unordered_points,
-        unordered_elements,
-        unordered_boundary_indices,
-        unordered_contact_indices,  # TODO: move to the top
-):
-    nodes_count = len(unordered_points)
-    boundary_nodes_count = len(unordered_boundary_indices)
-
-    points = np.zeros((nodes_count, unordered_points.shape[1]))
-    elements = -(unordered_elements.copy() + 1)
-
-    boundary_index = 0
-    inner_index = nodes_count - 1
-    for old_index in range(nodes_count):
-        point = unordered_points[old_index]
-
-        if old_index in unordered_boundary_indices:
-            new_index = boundary_index
-            boundary_index += 1
-        else:
-            new_index = inner_index
-            inner_index -= 1
-
-        points[new_index] = point
-        elements = np.where(elements == -(old_index + 1), new_index, elements)
-
-    return points, elements, boundary_nodes_count
-
-
-@njit
-def list_all_faces_numba(sorted_elements):
-    elements_count, element_size = sorted_elements.shape
-    dim = element_size - 1
-    faces = np.zeros((element_size * elements_count, dim), dtype=np.int64)
-    opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
-    i = 0
-    for j in range(element_size):
-        faces[i: i + elements_count, :j] = sorted_elements[:, :j]
-        faces[i: i + elements_count, j:dim] = sorted_elements[:, j + 1: element_size]
-        opposing_indices[i: i + elements_count] = sorted_elements[:, j]
-        i += elements_count
-    return faces, opposing_indices
-
-
-def extract_unique_elements(elements, opposing_indices):
-    _, indices, count = np.unique(
-        elements, axis=0, return_index=True, return_counts=True
-    )
-    unique_indices = indices[count == 1]
-    return elements[unique_indices], opposing_indices[unique_indices]
-
-
-def make_get_contact_mask_numba(is_contact):
-    @njit
-    def get_contact_mask_numba(nodes, boundary_faces):
-        return np.array(
-            [
-                i
-                for i in range(len(boundary_faces))
-                if np.all(
-                np.array([is_contact(node) for node in nodes[boundary_faces[i]]])
-            )
-            ]
-        )
-
-    return get_contact_mask_numba
-
-
-def get_boundary_faces(nodes, elements, is_contact):
-    elements.sort(axis=1)
-    faces, opposing_indices = list_all_faces_numba(sorted_elements=elements)
-    boundary_faces, boundary_internal_indices = extract_unique_elements(
-        faces, opposing_indices
-    )
-    boundary_indices = np.unique(boundary_faces.flatten(), axis=0)
-
-    get_contact_mask_numba = make_get_contact_mask_numba(njit(is_contact))
-    mask = get_contact_mask_numba(nodes, boundary_faces)
-    contact_faces = boundary_faces[mask]
-    contact_indices = np.unique(contact_faces.flatten(), axis=0)
-
-    return boundary_faces, boundary_indices, contact_indices, boundary_internal_indices
-
-
-def reorder_boundary_nodes(nodes, elements, is_contact):
-    _, boundary_indices, contact_indices, _ = get_boundary_faces(
-        nodes, elements, is_contact
-    )
-    nodes, elements, _ = move_boundary_nodes_to_start_numba(
-        nodes, elements, boundary_indices, contact_indices
-    )
-    return nodes, elements
 
 
 
@@ -201,12 +104,7 @@ class Mesh:
         self.elements: np.ndarray
         self.edges: np.ndarray
 
-        self.boundary_faces: np.ndarray
-        self.boundary_internal_indices: np.ndarray
-
-        self.contact_nodes_count:int
-        self.dirichlet_nodes_count:int
-        self.boundary_nodes_count:int
+        self.boundaries_data: BoundariesData
 
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
@@ -218,27 +116,6 @@ class Mesh:
         self.reinitialize_data(self.mesh_data, is_dirichlet, is_contact, create_in_subprocess)
 
 
-
-    def reorganize_boundaries(self, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
-        (
-            self.initial_nodes,
-            self.elements,
-        ) = reorder_boundary_nodes(unordered_nodes, unordered_elements, is_contact)
-        (
-            self.boundary_faces,
-            _boundary_indices,
-            _contact_indices,
-            self.boundary_internal_indices,
-        ) = get_boundary_faces(self.initial_nodes, self.elements, is_contact)
-
-        self.contact_nodes_count = len(_contact_indices)
-        self.dirichlet_nodes_count = 0
-        self.boundary_nodes_count = len(_boundary_indices)
-
-        if not np.array_equal(
-            _boundary_indices, range(self.boundary_nodes_count)
-        ):
-            raise ValueError("Bad boundary ordering")
      
 
     def reinitialize_data(self, mesh_data, is_dirichlet, is_contact, create_in_subprocess):
@@ -249,6 +126,7 @@ class Mesh:
             input_nodes, input_elements
         )
 
+        self.initial_nodes, self.elements, self.boundaries_data = BoundariesBuilder.identify_boundaries_and_reorder_nodes(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
         self.reorganize_boundaries(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
@@ -259,6 +137,9 @@ class Mesh:
         self.edges = get_edges_list_numba(edges_matrix)
 
 
+    def reorganize_boundaries(self, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
+        pass
+
 
 
     def get_state_dict(self):
@@ -268,6 +149,28 @@ class Mesh:
         for key, attr in state_dict.items():
             self.__setattr__(key, attr)
 
+
+
+    @property
+    def boundary_faces(self):
+        return self.boundaries_data.boundary_faces
+
+    @property
+    def boundary_internal_indices(self):
+        return self.boundaries_data.boundary_internal_indices
+
+        
+    @property
+    def contact_nodes_count(self):
+        return self.boundaries_data.contact_nodes_count
+        
+    @property
+    def dirichlet_nodes_count(self):
+        return self.boundaries_data.dirichlet_nodes_count
+        
+    @property
+    def boundary_nodes_count(self):
+        return self.boundaries_data.boundary_nodes_count
 
 
 

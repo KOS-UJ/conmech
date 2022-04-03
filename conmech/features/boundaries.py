@@ -8,14 +8,6 @@ import numpy as np
 
 
 class Boundaries:
-    """
-    Rules:
-    - Each boundary must have at least ONE EDGE (two vertices).
-    - We indicate only dirichlet and contact boundaries, rest of them are assumed to be neumann.
-    - Creating one-edge neumann boundaries shows warning. (not implemented, TODO #35 )
-    """
-
-    # CDN: Contact, Dirichlet, Neumann
     def __init__(self, all_, contact, dirichlet, neumann):
         self.all = all_
         self.contact = np.asarray(contact, dtype=np.int32)

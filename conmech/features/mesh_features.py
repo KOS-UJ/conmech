@@ -4,6 +4,7 @@ from conmech.dataclass.body_properties import StaticBodyProperties
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
 from conmech.features.boundaries import Boundaries
+from conmech.features.boundaries_builder import BoundariesBuilder, BoundariesData
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
@@ -36,19 +37,5 @@ class MeshFeatures(Dynamics):
         ) = Boundaries.identify_boundaries_and_reorder_vertices(
             unordered_nodes, unordered_elements, is_contact, is_dirichlet
         )
-
-        dirichlet_nodes_count = 0
-        for vertex in reversed(self.initial_nodes):
-            if not is_dirichlet(vertex):
-                break
-            dirichlet_nodes_count += 1
-
-        contact_nodes_count = 0
-        for vertex in self.initial_nodes:
-            if not is_contact(vertex):
-                break
-            contact_nodes_count += 1
         
-        self.dirichlet_nodes_count = dirichlet_nodes_count
-        self.contact_nodes_count = contact_nodes_count
 
