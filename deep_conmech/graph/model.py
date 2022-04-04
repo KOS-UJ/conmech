@@ -325,7 +325,7 @@ class GraphModelDynamic:
         normalized_boundary_obstacle_normals_split = batch.normalized_boundary_obstacle_normals.split(
             boundary_nodes_counts
         )
-        boundary_nodes_volume_split = batch.boundary_nodes_volume.split(
+        surface_per_boundary_node_split = batch.surface_per_boundary_node.split(
             boundary_nodes_counts
         )
 
@@ -349,7 +349,7 @@ class GraphModelDynamic:
                 boundary_normals=normalized_boundary_normals_split[i],
                 boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
                 boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
-                boundary_nodes_volume=boundary_nodes_volume_split[i],
+                surface_per_boundary_node=surface_per_boundary_node_split[i],
                 obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
             )

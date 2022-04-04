@@ -135,8 +135,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_boundary_v_tangential)
 
     @property
-    def boundary_nodes_volume_torch(self):
-        return thh.to_torch_double(self.boundary_nodes_volume)
+    def surface_per_boundary_node_torch(self):
+        return thh.to_torch_double(self.surface_per_boundary_node)
 
     def get_normalized_E_torch(self):
         return thh.to_torch_double(self.get_normalized_E_np(None))

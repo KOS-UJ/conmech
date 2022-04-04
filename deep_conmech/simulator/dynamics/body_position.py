@@ -56,16 +56,20 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
     )
     return unoriented_normals * external_orientation
 
-
+#TODO:
+#@njit
+#def get_node_surfaces_numba(node_index, boundary_surfaces):
+#    for boundary_surface in boundary_surfaces:
+#        if np.any(boundary_surface == node_index):
+#            boundary_normals[i] += boundary_surfaces_normals[j]
 
 
 @njit
-def get_boundary_nodes_data_numba(
-        boundary_surfaces_normals, boundary_surfaces, boundary_nodes_count, moved_nodes
+def get_boundary_nodes_normals_numba(
+    boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
 ):
     dim = boundary_surfaces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
-    boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for i in range(boundary_nodes_count):
         node_faces_count = 0
@@ -74,13 +78,27 @@ def get_boundary_nodes_data_numba(
                 node_faces_count += 1
                 boundary_normals[i] += boundary_surfaces_normals[j]
 
-                face_nodes = moved_nodes[boundary_surface]
-                boundary_nodes_volume[i] += element_volume_part_numba(face_nodes)
-
         boundary_normals[i] /= node_faces_count
 
     boundary_normals = nph.normalize_euclidean_numba(boundary_normals)
-    return boundary_normals, boundary_nodes_volume
+    return boundary_normals
+
+
+@njit
+def get_surface_per_boundary_node_numba(
+    boundary_surfaces, boundary_nodes_count, moved_nodes
+):
+    surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
+
+    for i in range(boundary_nodes_count):
+        for _, boundary_surface in enumerate(boundary_surfaces):
+            if np.any(boundary_surface == i):
+                face_nodes = moved_nodes[boundary_surface]
+                surface_per_boundary_node[i] += element_volume_part_numba(face_nodes)
+
+    return surface_per_boundary_node
+
+
 
 @njit
 def element_volume_part_numba(face_nodes):
@@ -271,26 +289,20 @@ class BodyPosition(Mesh):
 
 
 
-
-
     def clear(self):
         self.boundary_normals = None
-        self.boundary_nodes_volume = None
+        self.surface_per_boundary_node = None
 
 
     def prepare(self):
+        #TODO: lazily eval
+    
         boundary_surfaces_normals = get_boundary_surfaces_normals(
             self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
         )
-        (
-            self.boundary_normals,
-            self.boundary_nodes_volume,
-        ) = get_boundary_nodes_data_numba(
-            boundary_surfaces_normals,
-            self.boundary_surfaces,
-            self.boundary_nodes_count,
-            self.moved_nodes,
-        )
+
+        self.boundary_normals = get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals)
+        self.surface_per_boundary_node = get_surface_per_boundary_node_numba(self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes)
 
 
     @property

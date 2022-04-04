@@ -1,11 +1,11 @@
 
 
-from conmech.features.boundaries_builder import identify_surfaces_numba
+from conmech.features.boundaries_builder import identify_surfaces
 
 
 def standard_boundary_nodes(nodes, elements):
     """
-    Return nodes indices counter-clockwise for standard bod (rectangle) with first node in (0, 0).
+    Return nodes indices counter-clockwise for standard body (rectangle) with first node in (0, 0).
 
     For body:
 
@@ -17,7 +17,7 @@ def standard_boundary_nodes(nodes, elements):
 
     result is [id5, id3, id4, id1]
     """
-    boundaries = identify_surfaces_numba(elements)#, len(nodes))
+    boundaries = identify_surfaces(elements, len(nodes))
     assert len(boundaries) == 1
     boundary = boundaries[0][:-1]  # without closure
     standard_boundary = []

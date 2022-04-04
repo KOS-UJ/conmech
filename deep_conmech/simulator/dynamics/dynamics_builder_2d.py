@@ -47,6 +47,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 edges_features_matrix[:, element[i], element[j]] += \
                     element_volume * np.array([volume, u, v1, v2, w11, w12, w21, w22])
 
+    # Performance TIP: we need only sparse, triangular matrix (?)
     return edges_features_matrix, element_initial_volume
 
 

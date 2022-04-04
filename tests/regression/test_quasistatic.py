@@ -185,6 +185,7 @@ def generate_test_suits():
 def test_global_optimization_solver(
         solving_method, setup, expected_displacement_vector
 ):
+    #TODO: Duplicated neumann node  in old boundary construction
     runner = QuasistaticProblem(setup, solving_method)
     results = runner.solve(n_steps=32,
                            initial_displacement=setup.initial_displacement,

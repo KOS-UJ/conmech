@@ -131,14 +131,14 @@ class SettingTemperature(SettingObstacles):
 
     def get_obstacle_heat_integral(self):
         if self.obstacles is None:
-            return np.zeros_like(self.boundary_nodes_volume)
+            return np.zeros_like(self.surface_per_boundary_node)
         return integrate(
             nodes=self.boundary_nodes,
             nodes_normals=self.boundary_normals,
             obstacle_nodes=self.boundary_obstacle_nodes,
             obstacle_nodes_normals=self.boundary_obstacle_normals,
             v=self.boundary_v_old,
-            nodes_volume=self.boundary_nodes_volume,
+            nodes_volume=self.surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat
         )
 

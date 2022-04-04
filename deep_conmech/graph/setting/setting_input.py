@@ -23,7 +23,7 @@ def L2_normalized_obstacle_correction(
         boundary_normals,
         boundary_obstacle_nodes,
         boundary_obstacle_normals,
-        boundary_nodes_volume,
+        surface_per_boundary_node,
         obstacle_prop,
         time_step,
 ):
@@ -37,7 +37,7 @@ def L2_normalized_obstacle_correction(
         boundary_normals=boundary_normals,
         boundary_obstacle_nodes=boundary_obstacle_nodes,
         boundary_obstacle_normals=boundary_obstacle_normals,
-        boundary_nodes_volume=boundary_nodes_volume,
+        surface_per_boundary_node=surface_per_boundary_node,
         obstacle_prop=obstacle_prop,
         time_step=time_step,
     )
@@ -82,7 +82,7 @@ def L2_obstacle_nvt(
         boundary_normals,
         boundary_obstacle_nodes,
         boundary_obstacle_normals,
-        boundary_nodes_volume,
+        surface_per_boundary_node,
         config
 ):  # np via torch
     value_torch = L2_normalized_obstacle_correction(
@@ -95,7 +95,7 @@ def L2_obstacle_nvt(
         thh.to_torch_long(boundary_normals).to(thh.device(config)),
         thh.to_torch_double(boundary_obstacle_nodes).to(thh.device(config)),
         thh.to_torch_double(boundary_obstacle_normals).to(thh.device(config)),
-        thh.to_torch_double(boundary_nodes_volume).to(thh.device(config)),
+        thh.to_torch_double(surface_per_boundary_node).to(thh.device(config)),
     )
     value = thh.to_np_double(value_torch)
     return value  # .item()
@@ -176,7 +176,7 @@ class SettingInput(SettingTorch):
             self.normalized_boundary_v_tangential_torch
         )
         boundary_volume = self.complete_boundary_data_with_zeros_torch(
-            self.boundary_nodes_volume_torch
+            self.surface_per_boundary_node_torch
         )
 
         nodes_data = torch.hstack(
@@ -213,7 +213,7 @@ class SettingInput(SettingTorch):
             normalized_boundary_normals=self.normalized_boundary_normals_torch,
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
             normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
-            boundary_nodes_volume=self.boundary_nodes_volume_torch,
+            surface_per_boundary_node=self.surface_per_boundary_node_torch,
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1
@@ -240,5 +240,5 @@ class SettingInput(SettingTorch):
             self.normalized_boundary_normals,
             self.normalized_boundary_obstacle_nodes,
             self.normalized_boundary_obstacle_normals,
-            self.boundary_nodes_volume,
+            self.surface_per_boundary_node,
         )
