@@ -4,9 +4,9 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-from conmech.features.boundaries import get_boundaries
+from conmech.boundaries_builder import get_boundaries
 
-from conmech.features.boundaries_builder import identify_surfaces
+from conmech.boundaries_builder import identify_surfaces
 
 
 

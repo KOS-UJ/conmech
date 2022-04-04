@@ -1,6 +1,6 @@
 
 
-from conmech.features.boundaries_builder import identify_surfaces
+from conmech.boundaries_builder import identify_surfaces
 
 
 def standard_boundary_nodes(nodes, elements):

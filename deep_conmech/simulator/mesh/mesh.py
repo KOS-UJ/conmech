@@ -4,7 +4,7 @@ import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
-from conmech.features.boundaries_builder import (BoundariesBuilder,
+from conmech.boundaries_builder import (BoundariesBuilder,
                                                  BoundariesData)
 from conmech.helpers import nph
 from numba import njit

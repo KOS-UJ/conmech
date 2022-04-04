@@ -7,8 +7,18 @@ from typing import Callable, List, Tuple
 
 import numba
 import numpy as np
-from conmech.features.boundaries import Boundaries
 from conmech.solvers.solver_methods import njit
+
+
+
+class Boundaries:
+    def __init__(self, all_, contact, dirichlet, neumann):
+        self.all = all_
+        self.contact = np.asarray(contact, dtype=np.int32)
+        self.dirichlet = np.asarray(dirichlet, dtype=np.int32)
+        self.neumann = np.asarray(neumann, dtype=np.int32)
+
+
 
 
 @njit
@@ -164,8 +174,8 @@ class BoundariesBuilder:
         #####
         '''
         (
-            initial_nodes_new,
-            elements_new,
+            initial_nodes,
+            elements,
             boundary_nodes_count,
             contact_nodes_count,
             dirichlet_nodes_count
@@ -177,32 +187,18 @@ class BoundariesBuilder:
             boundary_surfaces,
             boundary_internal_indices,
             *_
-        ) = get_boundary_surfaces_new(elements_new)
+        ) = get_boundary_surfaces_new(elements)
 
 
-        contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes_new, is_contact)
-        dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes_new, is_dirichlet)
-        neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes_new, lambda n: not is_contact(n) and not is_dirichlet(n))
-
-        
-        #####
-        boundaries = identify_surfaces(unordered_elements, len(unordered_nodes))
-        # move contact vertices to the beginning
-        initial_nodes, elements, boundaries = reorder(
-            unordered_nodes, unordered_elements, boundaries, is_contact, to_end=False)
-        # move dirichlet vertices to the end
-        initial_nodes, elements, boundaries = reorder(
-            initial_nodes, elements, boundaries, is_dirichlet, to_end=True)
-
-        contact_boundaries, dirichlet_boundaries, neumann_boundaries = get_boundaries(is_contact, is_dirichlet, boundaries, initial_nodes)
-
-        #####
+        contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
+        dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_dirichlet)
+        neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n))
         
         bd = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count,boundary_internal_indices=boundary_internal_indices)
         
         '''
         
-        boundaries, vertices, elements = Boundaries.identify_boundaries_and_reorder_vertices(unordered_nodes, unordered_elements, is_contact=is_contact, is_dirichlet=is_dirichlet)
+        boundaries, vertices, elements = identify_boundaries_and_reorder_vertices(unordered_nodes, unordered_elements, is_contact=is_contact, is_dirichlet=is_dirichlet)
 
         bd = BoundariesData(contact_surfaces=None, neumann_surfaces=None, dirichlet_surfaces=None, 
             contact_nodes_count=boundaries.contact.size, neumann_nodes_count=boundaries.neumann.size, dirichlet_nodes_count=boundaries.dirichlet.size, 
@@ -239,7 +235,132 @@ def extract_ordered_boundary_indices_2d(surface_edges):
 #    return [indices]
 
 
-#####
+###########
+
+
+
+
+def identify_boundaries_and_reorder_vertices(
+        vertices, elements, is_contact, is_dirichlet
+) -> Tuple["Boundaries", np.ndarray, np.ndarray]:
+    boundaries = identify_surfaces(elements, len(vertices))
+    # move contact vertices to the beginning
+    vertices, elements, boundaries = reorder(
+        vertices, elements, boundaries, is_contact, to_end=False)
+    # move dirichlet vertices to the end
+    vertices, elements, boundaries = reorder(
+        vertices, elements, boundaries, is_dirichlet, to_end=True)
+
+    return Boundaries(
+        boundaries,
+        *get_boundaries(is_contact, is_dirichlet, boundaries, vertices)
+    ), vertices, elements
+
+
+def get_boundaries(
+        is_contact: Callable[[np.ndarray], bool],
+        is_dirichlet: Callable[[np.ndarray], bool],
+        boundaries: List[np.ndarray],
+        vertices: np.ndarray
+) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
+    contact_boundaries = get_condition_boundaries(
+        is_contact, boundaries, vertices)
+    dirichlet_boundaries = get_condition_boundaries(
+        is_dirichlet, boundaries, vertices)
+    neumann_boundaries = get_condition_boundaries_neumann(
+        is_contact, is_dirichlet, boundaries, vertices)
+
+    # TODO #35
+
+    # TODO: TEMPORARY FIX
+    # neumann_boundaries = np.unique(neumann_boundaries)
+
+    return contact_boundaries, dirichlet_boundaries, neumann_boundaries
+
+
+def get_condition_boundaries(
+        predicate: Callable,
+        boundaries: List[np.ndarray],
+        vertices: np.ndarray
+) -> List[np.ndarray]:
+    condition_boundaries = []
+    for boundary in boundaries:
+        first_id = None
+        i = 0
+        while i < len(boundary):
+            if predicate(vertices[boundary[i]]):
+                condition_boundary = []
+                while i < len(boundary) and predicate(vertices[boundary[i]]):
+                    condition_boundary.append(boundary[i])
+                    i += 1
+
+                if first_id is None:
+                    first_id = len(condition_boundaries)
+
+                condition_boundaries.append(np.asarray(condition_boundary))
+            i += 1
+        merge_first_and_last(first_id, boundary, condition_boundaries)
+
+    single_vertex_boundaries = []
+    for condition_boundary in condition_boundaries:
+        if len(condition_boundary) < 2:
+            single_vertex_boundaries.append(condition_boundaries)
+    if single_vertex_boundaries:
+        raise AssertionError(
+            "Following boundaries do not contain even one edge (two vertices):\n" +
+            str(single_vertex_boundaries)
+        )
+
+    return condition_boundaries
+
+
+def merge_first_and_last(first_id, boundary, condition_boundaries):
+    if first_id is not None and first_id != len(condition_boundaries) - 1 \
+            and condition_boundaries[first_id][0] == boundary[0] \
+            and condition_boundaries[-1][-1] == boundary[-1]:
+        condition_boundaries[-1] = np.concatenate(
+            (condition_boundaries[-1], condition_boundaries[first_id]))
+        if first_id != len(condition_boundaries) - 1:
+            del condition_boundaries[first_id]
+
+
+def get_condition_boundaries_neumann(
+        predicate_0: Callable,
+        predicate_1: Callable,
+        boundaries: List[np.ndarray],
+        vertices: np.ndarray
+) -> List[np.ndarray]:
+    def boundary_change(prev: int, curr: int):
+        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr]) \
+               and not predicate_1(vertices[prev]) \
+               or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
+               and not predicate_0(vertices[prev])
+
+    def no_conditions(curr: int):
+        return not predicate_0(vertices[curr]) and not predicate_1(vertices[curr])
+
+    condition_boundaries = []
+    for boundary in boundaries:
+        first_id = None
+        i = 1
+        while i < len(boundary):
+            if boundary_change(boundary[i - 1], boundary[i]) \
+                    or i == 1 and no_conditions(boundary[i - 1]):
+                condition_boundary = [boundary[i - 1]]  # greedy
+                while i < len(boundary) and no_conditions(boundary[i]):
+                    condition_boundary.append(boundary[i])
+                    i += 1
+                if i < len(boundary):  # greedy
+                    condition_boundary.append(boundary[i])
+
+                if first_id is None:
+                    first_id = len(condition_boundaries)
+                condition_boundaries.append(np.asarray(condition_boundary))
+            i += 1
+        merge_first_and_last(first_id, boundary, condition_boundaries)
+
+    return condition_boundaries
+
 
 def identify_surfaces(elements, vertex_num):
     # Performance TIP: we need only sparse, triangular matrix
@@ -291,110 +412,6 @@ def identify_surfaces(elements, vertex_num):
 
     return surfaces
 
-###
-
-def get_boundaries(
-        is_contact: Callable[[np.ndarray], bool],
-        is_dirichlet: Callable[[np.ndarray], bool],
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
-    contact_boundaries = get_condition_boundaries(
-        is_contact, boundaries, vertices)
-    dirichlet_boundaries = get_condition_boundaries(
-        is_dirichlet, boundaries, vertices)
-    neumann_boundaries = get_condition_boundaries_neumann(
-        is_contact, is_dirichlet, boundaries, vertices)
-
-    # TODO #35
-
-    return contact_boundaries, dirichlet_boundaries, neumann_boundaries
-
-
-def get_condition_boundaries(
-        predicate: Callable,
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> List[np.ndarray]:
-    condition_boundaries = []
-    for boundary in boundaries:
-        first_id = None
-        i = 0
-        while i < len(boundary):
-            if predicate(vertices[boundary[i]]):
-                condition_boundary = []
-                while i < len(boundary) and predicate(vertices[boundary[i]]):
-                    condition_boundary.append(boundary[i])
-                    i += 1
-
-                if first_id is None:
-                    first_id = len(condition_boundaries)
-
-                condition_boundaries.append(np.asarray(condition_boundary))
-            i += 1
-        merge_first_and_last(first_id, boundary, condition_boundaries)
-
-    single_vertex_boundaries = []
-    for condition_boundary in condition_boundaries:
-        if len(condition_boundary) < 2:
-            single_vertex_boundaries.append(condition_boundaries)
-    if single_vertex_boundaries:
-        raise AssertionError(
-            "Following boundaries do not contain even one edge (two vertices):\n" +
-            str(single_vertex_boundaries)
-        )
-
-    return condition_boundaries
-
-
-def merge_first_and_last(first_id, boundary, condition_boundaries):
-    if first_id is not None and first_id != len(condition_boundaries) - 1 \
-            and condition_boundaries[first_id][0] == boundary[0] \
-            and condition_boundaries[-1][-1] == boundary[-1]:
-        condition_boundaries[-1] = np.concatenate(
-            (condition_boundaries[-1], condition_boundaries[first_id]))
-        if first_id != len(condition_boundaries) - 1:
-            del condition_boundaries[first_id]
-
-
-
-def get_condition_boundaries_neumann(
-        predicate_0: Callable,
-        predicate_1: Callable,
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> List[np.ndarray]:
-    def boundary_change(prev: int, curr: int):
-        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr]) \
-               and not predicate_1(vertices[prev]) \
-               or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
-               and not predicate_0(vertices[prev])
-
-    def no_conditions(curr: int):
-        return not predicate_0(vertices[curr]) and not predicate_1(vertices[curr])
-
-    condition_boundaries = []
-    for boundary in boundaries:
-        first_id = None
-        i = 1
-        while i < len(boundary):
-            if boundary_change(boundary[i - 1], boundary[i]) \
-                    or i == 1 and no_conditions(boundary[i - 1]):
-                condition_boundary = [boundary[i - 1]]  # greedy
-                while i < len(boundary) and no_conditions(boundary[i]):
-                    condition_boundary.append(boundary[i])
-                    i += 1
-                if i < len(boundary):  # greedy
-                    condition_boundary.append(boundary[i])
-
-                if first_id is None:
-                    first_id = len(condition_boundaries)
-                condition_boundaries.append(np.asarray(condition_boundary))
-            i += 1
-        merge_first_and_last(first_id, boundary, condition_boundaries)
-
-    return condition_boundaries
-
 
 def reorder(vertices: np.ndarray, elements: np.ndarray, boundaries, predicate, to_end: bool):
     # Possible improvement: keep condition boundary vertices together
@@ -424,3 +441,4 @@ def apply_predicates(vertices, boundary_vertices, value_pred, ascending):
     for i in boundary_vertices:
         result[i] = ascending == value_pred(vertices[i])
     return result
+
