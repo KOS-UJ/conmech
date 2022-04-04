@@ -1,30 +1,11 @@
 from typing import Callable
 
-import numpy as np
-from numba import njit
-
-from conmech.properties.body_properties import (
-    StaticBodyProperties,
-    TemperatureBodyProperties,
-)
+from conmech.properties.body_properties import StaticBodyProperties, TemperatureBodyProperties
 from conmech.mesh.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
+from deep_conmech.simulator.dynamics.factory.dynamics_factory_method import get_dynamics
 from deep_conmech.simulator.mesh.mesh import Mesh
-
-
-@njit
-def get_edges_features_list_numba(edges_number, edges_features_matrix):
-    nodes_count = len(edges_features_matrix[0])
-    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
-    e = 0
-    for i in range(nodes_count):
-        for j in range(nodes_count):
-            if np.any(edges_features_matrix[i, j]):
-                edges_features[e] = edges_features_matrix[i, j]
-                e += 1
-    return edges_features
 
 
 class Dynamics(Mesh):
@@ -50,6 +31,10 @@ class Dynamics(Mesh):
         self.schedule = schedule
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
+        # Schur-complement method cache
+        self.C = None
+        self.T = None
+
         self.reinitialize_matrices()
 
     def remesh(self):
@@ -65,12 +50,6 @@ class Dynamics(Mesh):
         return isinstance(self.body_prop, TemperatureBodyProperties)
 
     def reinitialize_matrices(self):
-        builder = (
-            dynamics_builder_2d.DynamicsBuilder2D()
-            if self.dimension == 2
-            else dynamics_builder_3d.DynamicsBuilder3D()
-        )
-
         (
             self.element_initial_volume,
             self.const_volume,
@@ -79,7 +58,7 @@ class Dynamics(Mesh):
             self.const_viscosity,
             self.C2T,
             self.K,
-        ) = builder.build_matrices(
+        ) = get_dynamics(
             elements=self.elements,
             nodes=self.normalized_points,
             body_prop=self.body_prop,
