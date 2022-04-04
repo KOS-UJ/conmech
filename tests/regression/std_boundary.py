@@ -1,4 +1,6 @@
-from conmech.features.boundaries import identify_surfaces
+
+
+from conmech.features.boundaries_builder import identify_surfaces_numba
 
 
 def standard_boundary_nodes(nodes, elements):
@@ -15,7 +17,7 @@ def standard_boundary_nodes(nodes, elements):
 
     result is [id5, id3, id4, id1]
     """
-    boundaries = identify_surfaces(elements, len(nodes))
+    boundaries = identify_surfaces_numba(elements)#, len(nodes))
     assert len(boundaries) == 1
     boundary = boundaries[0][:-1]  # without closure
     standard_boundary = []

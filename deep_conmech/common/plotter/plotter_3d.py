@@ -165,8 +165,8 @@ def plot_temperature(
 
 
 def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
-    boundary_faces_nodes = nodes[setting.boundary_faces]
-    nodes_temperature = setting.t_old[setting.boundary_faces]
+    boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
+    nodes_temperature = setting.t_old[setting.boundary_surfaces]
     faces_temperature = np.mean(nodes_temperature, axis=1)
 
     facecolors = cbar_settings.mappable.to_rgba(
@@ -174,7 +174,7 @@ def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
     )  # plt.cm.jet(faces_temperature)
     ax.add_collection3d(
         Poly3DCollection(
-            boundary_faces_nodes,
+            boundary_surfaces_nodes,
             # edgecolors=,
             linewidths=0.1,
             facecolors=facecolors,
@@ -184,10 +184,10 @@ def plot_main_temperature(fig, ax, nodes, setting, cbar_settings):
 
 
 def plot_mesh(nodes, setting, color, ax):
-    boundary_faces_nodes = nodes[setting.boundary_faces]
+    boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
     ax.add_collection3d(
         Poly3DCollection(
-            boundary_faces_nodes,
+            boundary_surfaces_nodes,
             edgecolors=color,
             linewidths=0.1,
             facecolors=color,

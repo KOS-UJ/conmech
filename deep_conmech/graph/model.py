@@ -271,12 +271,12 @@ class GraphModelDynamic:
                 dataset=dataset,
                 dataloader_function=data_base.get_valid_dataloader,
                 step_function=self.test_step,
-                description=dataset.relative_path,
+                description=dataset.data_id,
             )
             mean_loss_array += loss_array / len(self.all_val_datasets)
             for i in range(self.labels_count):
                 self.writer.add_scalar(
-                    f"Loss/Validation/{dataset.relative_path}/{self.loss_labels[i]}",
+                    f"Loss/Validation/{dataset.data_id}/{self.loss_labels[i]}",
                     loss_array[i],
                     examples_seen,
                 )

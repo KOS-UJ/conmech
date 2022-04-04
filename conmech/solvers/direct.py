@@ -47,7 +47,7 @@ class Direct(Solver):
             initial_guess,
             args=(
                 self.mesh.initial_nodes,
-                self.mesh.boundaries.contact,
+                self.mesh.contact,
                 self.const_elasticity,
                 self.forces.F_vector,
             ),

@@ -4,7 +4,8 @@ import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from conmech.dataclass.mesh_data import MeshData
-from conmech.features.boundaries_builder import BoundariesBuilder, BoundariesData
+from conmech.features.boundaries_builder import (BoundariesBuilder,
+                                                 BoundariesData)
 from conmech.helpers import nph
 from numba import njit
 
@@ -152,14 +153,18 @@ class Mesh:
 
 
     @property
-    def boundary_faces(self):
-        return self.boundaries_data.boundary_faces
+    def boundary_surfaces(self):
+        return self.boundaries_data.boundary_surfaces
 
     @property
     def boundary_internal_indices(self):
         return self.boundaries_data.boundary_internal_indices
 
         
+    @property
+    def boundary_nodes_count(self):
+        return self.boundaries_data.boundary_nodes_count
+
     @property
     def contact_nodes_count(self):
         return self.boundaries_data.contact_nodes_count
@@ -168,11 +173,10 @@ class Mesh:
     def dirichlet_nodes_count(self):
         return self.boundaries_data.dirichlet_nodes_count
         
+
     @property
-    def boundary_nodes_count(self):
-        return self.boundaries_data.boundary_nodes_count
-
-
+    def neumann_nodes_count(self):
+        return self.boundaries_data.neumann_nodes_count
 
     @property
     def independent_nodes_count(self):
@@ -180,17 +184,27 @@ class Mesh:
 
     @property
     def free_nodes_count(self):
-        return self.independent_nodes_count - self.contact_nodes_count # neumann
+        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count # TODO: CHECK
 
 
+
+
+    @property
+    def boundary_indices(self):
+        return slice(self.boundary_nodes_count)
 
     @property
     def contact_indices(self):
         return slice(self.contact_nodes_count)
 
     @property
-    def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
+    def neumann_indices(self):
+        return slice(self.contact_nodes_count, self.contact_nodes_count + self.neumann_nodes_count)
+
+    @property
+    def dirichlet_indices(self):
+        return slice(self.nodes_count - self.boundary_nodes_count, self.nodes_count)
+
 
     @property
     def independent_indices(self):
@@ -199,6 +213,29 @@ class Mesh:
     @property
     def free_indices(self):
         return slice(self.contact_nodes_count, self.independent_nodes_count)
+
+
+
+    # for conmech
+
+    @property
+    def contact(self):
+        return self.get_boundary_part(self.contact_indices)
+
+    @property
+    def neumann(self):
+        return self.get_boundary_part(self.neumann_indices)
+
+    @property
+    def dirichlet(self):
+        return self.get_boundary_part(self.dirichlet_indices)
+
+
+    def get_boundary_part(self, indices):
+        return np.array([range(self.nodes_count)[indices]])
+
+
+
 
     @property
     def dimension(self):
@@ -224,8 +261,8 @@ class Mesh:
         return len(self.initial_nodes)
 
     @property
-    def boundary_faces_count(self):
-        return len(self.boundary_faces)
+    def boundary_surfaces_count(self):
+        return len(self.boundary_surfaces)
 
     @property
     def inner_nodes_count(self):

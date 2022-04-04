@@ -99,12 +99,12 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_long(self.boundary_nodes_count)
 
     @property
-    def boundary_faces_count_torch(self):
-        return thh.to_torch_long(self.boundary_faces_count)
+    def boundary_surfaces_count_torch(self):
+        return thh.to_torch_long(self.boundary_surfaces_count)
 
     @property
-    def boundary_faces_torch(self):
-        return thh.to_torch_long(self.boundary_faces)
+    def boundary_surfaces_torch(self):
+        return thh.to_torch_long(self.boundary_surfaces)
 
     @property
     def normalized_boundary_v_old_torch(self):

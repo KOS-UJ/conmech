@@ -87,7 +87,7 @@ def plot_frame(
         if setting.obstacles is not None:
             draw_obstacle_resistance_normalized(setting, position, ax=ax)
             position[0] += shift
-        # draw_boundary_faces_normals(setting, position, ax)
+        # draw_boundary_surfaces_normals(setting, position, ax)
         # position[0] += shift
         # draw_boundary_normals(setting, position, ax)
         # position[0] += shift
@@ -341,7 +341,7 @@ def draw_parameters(current_time, setting, scale, ax):
 
 
 def draw_triplot(nodes, setting, color, ax):
-    boundary_nodes = nodes[setting.boundary_faces]
+    boundary_nodes = nodes[setting.boundary_surfaces]
     ax.add_collection(
         collections.LineCollection(
             boundary_nodes,

@@ -5,7 +5,7 @@ Created at 12.02.2022
 import numpy as np
 import pytest
 
-from conmech.features.boundaries import identify_surfaces, get_boundaries
+from conmech.features.boundaries_builder import identify_surfaces_numba
 
 
 def test_identify_surfaces():
@@ -19,7 +19,7 @@ def test_identify_surfaces():
                 [3, 4, 6],
                 [1, 4, 6]]
     vertex_num = 9
-    surfaces = identify_surfaces(elements, vertex_num)
+    surfaces = identify_surfaces_numba(elements, vertex_num)
     np.testing.assert_array_equal(surfaces[0], np.asarray([0, 4, 3, 8, 5, 7, 0]))
     np.testing.assert_array_equal(surfaces[1], np.asarray([1, 2, 6, 1]))
 
@@ -131,6 +131,7 @@ def generate_test_suits():
           (is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann)
 
 
+'''
 @pytest.mark.parametrize('_test_name_, params', list(generate_test_suits()))
 def test_condition_boundaries(_test_name_, params):
     # Arrange
@@ -148,3 +149,4 @@ def test_condition_boundaries(_test_name_, params):
     np.testing.assert_array_equal(dirichlet, expected_dirichlet)
     np.testing.assert_array_equal(contact, expected_contact)
     np.testing.assert_array_equal(neumann, expected_neumann)
+'''

@@ -4,12 +4,12 @@ General solver for Contact Mechanics problem.
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
+from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 from conmech.dataclass.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
 from conmech.dataclass.mesh_data import MeshData
 from conmech.dataclass.schedule import Schedule
-from conmech.features.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem
@@ -45,7 +45,7 @@ class ProblemSolver:
                              setup.grid_height / setup.elements_number[0]
                      ) * setup.elements_number[1]
 
-        self.mesh = MeshFeatures(
+        self.mesh = Dynamics(
             mesh_data=MeshData(
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
@@ -56,6 +56,7 @@ class ProblemSolver:
             normalize_by_rotation=False,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
+            with_schur_complement_matrices=False
         )
         self.setup = setup
 

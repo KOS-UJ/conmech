@@ -37,9 +37,9 @@ def get_unoriented_normals_3d(faces_nodes):
     return tail_nodes, unoriented_normals
 
 
-def get_boundary_faces_normals(moved_nodes, boundary_faces, boundary_internal_indices):
+def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_internal_indices):
     dim = moved_nodes.shape[1]
-    faces_nodes = moved_nodes[boundary_faces]
+    faces_nodes = moved_nodes[boundary_surfaces]
 
     if dim == 2:
         tail_nodes, unoriented_normals = get_unoriented_normals_2d(faces_nodes)
@@ -61,20 +61,20 @@ def get_boundary_faces_normals(moved_nodes, boundary_faces, boundary_internal_in
 
 @njit
 def get_boundary_nodes_data_numba(
-        boundary_faces_normals, boundary_faces, boundary_nodes_count, moved_nodes
+        boundary_surfaces_normals, boundary_surfaces, boundary_nodes_count, moved_nodes
 ):
-    dim = boundary_faces_normals.shape[1]
+    dim = boundary_surfaces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
     boundary_nodes_volume = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for i in range(boundary_nodes_count):
         node_faces_count = 0
-        for j in range(len(boundary_faces)):
-            if np.any(boundary_faces[j] == i):
+        for j, boundary_surface in enumerate(boundary_surfaces):
+            if np.any(boundary_surface == i):
                 node_faces_count += 1
-                boundary_normals[i] += boundary_faces_normals[j]
+                boundary_normals[i] += boundary_surfaces_normals[j]
 
-                face_nodes = moved_nodes[boundary_faces[j]]
+                face_nodes = moved_nodes[boundary_surface]
                 boundary_nodes_volume[i] += element_volume_part_numba(face_nodes)
 
         boundary_normals[i] /= node_faces_count
@@ -248,7 +248,7 @@ class BodyPosition(Mesh):
 
     @property
     def boundary_centers(self):
-        return np.mean(self.moved_nodes[self.boundary_faces], axis=1)
+        return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
 
 
 
@@ -279,15 +279,15 @@ class BodyPosition(Mesh):
 
 
     def prepare(self):
-        boundary_faces_normals = get_boundary_faces_normals(
-            self.moved_nodes, self.boundary_faces, self.boundary_internal_indices
+        boundary_surfaces_normals = get_boundary_surfaces_normals(
+            self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
         )
         (
             self.boundary_normals,
             self.boundary_nodes_volume,
         ) = get_boundary_nodes_data_numba(
-            boundary_faces_normals,
-            self.boundary_faces,
+            boundary_surfaces_normals,
+            self.boundary_surfaces,
             self.boundary_nodes_count,
             self.moved_nodes,
         )

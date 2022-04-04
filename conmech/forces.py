@@ -44,7 +44,7 @@ class Forces:
 
         # np.allclose(self.F2,  self.F)
 
-        for neumann_boundary in self.mesh.boundaries.neumann:
+        for neumann_boundary in self.mesh.neumann:
 
             for i in range(1, len(neumann_boundary)):
                 v0 = neumann_boundary[i - 1]

@@ -61,7 +61,7 @@ def get_pygmsh_elements_and_nodes(mesh_data):
 
         mesh_builders_helpers.set_mesh_size(geom, mesh_data)
         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 2)
-        # boundary_faces = geom_mesh.cells[0].data.astype("long").copy()
+        # boundary_surfaces = geom_mesh.cells[0].data.astype("long").copy()
 
     return nodes, elements
     # mesh.write("out.vtk")
