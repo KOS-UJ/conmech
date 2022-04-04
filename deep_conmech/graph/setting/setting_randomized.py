@@ -1,9 +1,9 @@
 import numpy as np
 
-from conmech.dataclass.body_properties import DynamicBodyProperties
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.schedule import Schedule
+from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.simulator.setting.setting_iterable import SettingIterable
@@ -12,7 +12,7 @@ from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 class SettingRandomized(SettingIterable):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: DynamicBodyProperties,
             obstacle_prop: ObstacleProperties,
             schedule: Schedule,

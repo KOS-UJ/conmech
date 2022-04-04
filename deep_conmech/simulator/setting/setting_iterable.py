@@ -4,17 +4,17 @@ from io import BufferedReader
 from typing import List
 
 import deep_conmech.simulator.mesh.remesher as remesher
-from conmech.dataclass.body_properties import DynamicBodyProperties
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.schedule import Schedule
+from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
+from conmech.properties.schedule import Schedule
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 class SettingIterable(SettingObstacles):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: DynamicBodyProperties,
             obstacle_prop: ObstacleProperties,
             schedule: Schedule,

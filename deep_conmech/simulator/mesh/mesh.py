@@ -6,7 +6,7 @@ import numpy as np
 from numba import njit
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
-from conmech.dataclass.mesh_data import MeshData
+from conmech.mesh.mesh_properties import MeshProperties
 from conmech.helpers import nph
 
 
@@ -265,7 +265,7 @@ def get_boundary_nodes_data_numba(
 class Mesh:
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             normalize_by_rotation: bool,
             is_dirichlet: Callable = (lambda _: False),
             is_contact: Callable = (lambda _: True),

@@ -1,6 +1,6 @@
 import numpy as np
 
-from conmech.dataclass.body_properties import (
+from conmech.properties.body_properties import (
     BodyProperties,
     DynamicBodyProperties,
     StaticBodyProperties,

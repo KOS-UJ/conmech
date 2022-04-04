@@ -3,12 +3,12 @@ from typing import Callable
 import numpy as np
 from numba import njit
 
-from conmech.dataclass.body_properties import (
+from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
 )
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
 from deep_conmech.simulator.mesh.mesh import Mesh
@@ -30,7 +30,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class Dynamics(Mesh):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: StaticBodyProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,
