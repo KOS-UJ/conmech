@@ -47,39 +47,44 @@ def plot_scenario(
         save_all=False,
         get_setting_function: Optional[Callable] = None,
 ):
-    final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
-    animation_path = f"{final_catalog}/{scenario.id}.gif"
-    data_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
-    cmh.create_folders(f"{final_catalog}/scenarios")
-     
     time_skip = config.PRINT_SKIP
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if save_all else 1
     plot_settings_count = [0]
 
-    settings_file, file_meta = pkh.open_files_append_pickle(data_path)
-    with settings_file, file_meta:
-        step = [0]  # TODO: Clean
+    save_files = plot_animation or save_all
+    if save_files:
+        final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
+        data_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
+        cmh.create_folders(f"{final_catalog}/scenarios")
+    else:
+        final_catalog = ""
+        data_path = ""
 
-        def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
-            step[0] += 1
-            plot_index = step[0] % ts == 0
-            if save_all or plot_index: 
+    step = [0]  # TODO: Clean
+
+    def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
+        step[0] += 1
+        plot_index = step[0] % ts == 0
+        if save_all or plot_index: 
+            settings_file, file_meta = pkh.open_files_append_pickle(data_path)
+            with settings_file, file_meta:
                 pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
-            if plot_index:
-                plot_settings_count[0]+=1
+        if plot_index:
+            plot_settings_count[0]+=1
 
-        simulate(
-            compare_with_base_setting=False,
-            solve_function=solve_function,
-            scenario=scenario,
-            simulate_dirty_data=simulate_dirty_data,
-            config=config,
-            operation=operation_save if plot_animation else None,
-            get_setting_function=get_setting_function,
-        )
+    simulate(
+        compare_with_base_setting=False,
+        solve_function=solve_function,
+        scenario=scenario,
+        simulate_dirty_data=simulate_dirty_data,
+        config=config,
+        operation=operation_save if save_files else None,
+        get_setting_function=get_setting_function,
+    )
 
     if plot_animation:
+        animation_path = f"{final_catalog}/{scenario.id}.gif"
         plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], data_path)
 
     return data_path

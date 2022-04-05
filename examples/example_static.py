@@ -4,6 +4,7 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
+from conmech.helpers.config import Config
 
 from conmech.problem_solver import Static as StaticProblemSolver
 from conmech.problems import Static
@@ -46,7 +47,8 @@ def main(show: bool):
 
     state = runner.solve(verbose=True,
                          initial_displacement=setup.initial_displacement)
-    Drawer(state).draw(show=show)
+    config = Config()
+    Drawer(state=state, config=config).draw(show=show)
 
 
 if __name__ == "__main__":

@@ -8,23 +8,22 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
 
 class Drawer:
 
-    def __init__(self, state):
+    def __init__(self, state, config: Config):
         self.state = state
+        self.config = config
         self.mesh = state.mesh
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+ 
+    def get_directory(self):
+        return f"./output/{self.config.CURRENT_TIME} - DRAWING"
 
-    @staticmethod
-    def get_directory():
-        return f"./output/DRAWING {cmh.CURRENT_TIME}"
-
-    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="pdf"):
+    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
         f, ax = plt.subplots()
 
         if hasattr(self.state, "temperature"):
@@ -37,12 +36,13 @@ class Drawer:
         self.draw_mesh(self.mesh.initial_nodes, ax, label='Original',
                        node_color='0.6', edge_color='0.8')
 
-        self.draw_mesh(self.state.displaced_points, ax, label='Deformed', node_color="k")
-        self.draw_boundary(self.state.displaced_points[self.mesh.contact_indices], ax,
+        nodes = self.state.displaced_points
+        self.draw_mesh(nodes, ax, label='Deformed', node_color="k")
+        self.draw_boundary(edges=self.mesh.contact_surfaces, nodes=nodes, ax=ax,
                            edge_color="b")
-        self.draw_boundary(self.state.displaced_points[self.mesh.dirichlet_indices], ax,
+        self.draw_boundary(edges=self.mesh.dirichlet_surfaces, nodes=nodes, ax=ax,
                            edge_color="r")
-        self.draw_boundary(self.state.displaced_points[self.mesh.neumann_indices], ax,
+        self.draw_boundary(edges=self.mesh.neumann_surfaces, nodes=nodes, ax=ax,
                            edge_color="g")
 
         # turns on axis, since networkx turn them off
@@ -56,11 +56,10 @@ class Drawer:
         if save:
             self.save_plot(save_format)
 
-    @staticmethod
-    def save_plot(format: str, config: Config):
-        directory = Drawer.get_directory()
+    def save_plot(self, format):
+        directory = self.get_directory()
         cmh.create_folders(directory)
-        path = f"{directory}/{cmh.get_timestamp(config)}.{format}"
+        path = f"{directory}/{cmh.get_timestamp(self.config)}.{format}"
         plt.savefig(
             path,
             transparent=False,
@@ -81,10 +80,10 @@ class Drawer:
         nx.draw(graph, pos=nodes, label=label, node_color=node_color,
                 edge_color=edge_color, node_size=self.node_size, ax=ax)
 
-    def draw_boundary(self, nodes, ax, label="", node_color='k', edge_color='k'):
+    def draw_boundary(self, edges, nodes, ax, label="", node_color='k', edge_color='k'):
         graph = nx.Graph()
-        for i in range(1, len(nodes)):
-            graph.add_edge(i - 1, i)
+        for edge in edges:
+            graph.add_edge(edge[0], edge[1])
 
         nx.draw(graph, pos=nodes, label=label, node_color=node_color,
                 edge_color=edge_color, node_size=self.node_size, ax=ax, width=6)

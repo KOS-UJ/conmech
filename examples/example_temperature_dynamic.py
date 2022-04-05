@@ -1,9 +1,11 @@
 """
 Created at 21.08.2019
 """
+from argparse import ArgumentParser
 from dataclasses import dataclass
 
 import numpy as np
+from conmech.helpers.config import Config
 
 from conmech.problem_solver import TDynamic as TDynamicProblemSolver
 from conmech.problems import Dynamic
@@ -80,7 +82,7 @@ class TDynamicSetup(Dynamic):
         return False
 
 
-def main(show: bool):
+def main(show: bool, save: bool):
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
@@ -93,9 +95,19 @@ def main(show: bool):
     for state in states:
         T_max = max(T_max, np.max(state.temperature))
         T_min = min(T_min, np.min(state.temperature))
+    config = Config()
     for state in states:
-        Drawer(state).draw(temp_max=T_max, temp_min=T_min, show=show)
-
+        Drawer(state=state, config=config).draw(temp_max=T_max, temp_min=T_min, show=show, save=save)
+        
 
 if __name__ == "__main__":
-    main(show=True)
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["show", "save"],
+        default="show",
+    )
+    args = parser.parse_args()
+    save = args.mode == 'save'
+    main(show=not save, save=save)

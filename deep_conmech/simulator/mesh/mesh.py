@@ -161,6 +161,10 @@ class Mesh:
     def neumann_surfaces(self):
         return self.boundaries_data.neumann_surfaces
 
+    @property
+    def dirichlet_surfaces(self):
+        return self.boundaries_data.dirichlet_surfaces
+
 
     @property
     def boundary_internal_indices(self):

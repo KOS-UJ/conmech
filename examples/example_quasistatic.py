@@ -4,6 +4,7 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
+from conmech.helpers.config import Config
 
 from conmech.problem_solver import Quasistatic as QuasistaticProblemSolver
 from conmech.problems import Quasistatic
@@ -50,8 +51,9 @@ def main(show: bool):
     states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True,
                           initial_displacement=setup.initial_displacement,
                           initial_velocity=setup.initial_velocity)
+    config = Config()
     for state in states:
-        Drawer(state).draw(show=show)
+        Drawer(state=state, config=config).draw(show=show)
 
 
 if __name__ == "__main__":
