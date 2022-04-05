@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from conmech.boundaries_builder import get_boundaries
 
-from conmech.boundaries_builder import identify_surfaces
+from conmech.boundaries_builder import identify_surfaces, identify_surfaces_new
 
 
 
@@ -23,6 +23,7 @@ def test_identify_surfaces():
                 [1, 4, 6]]
     vertex_num = 9
     surfaces = identify_surfaces(elements, vertex_num)
+    surfaces_new = identify_surfaces_new(np.array(elements), vertex_num)
     np.testing.assert_array_equal(surfaces[0], np.asarray([0, 4, 3, 8, 5, 7, 0]))
     np.testing.assert_array_equal(surfaces[1], np.asarray([1, 2, 6, 1]))
 
