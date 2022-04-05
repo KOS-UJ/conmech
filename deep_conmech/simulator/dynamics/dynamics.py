@@ -1,15 +1,14 @@
-from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-from conmech.dataclass.body_properties import (StaticBodyProperties,
-                                               TemperatureBodyProperties)
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.body_properties import (StaticBodyProperties,
+                                                TemperatureBodyProperties)
+from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics import (dynamics_builder_2d,
-                                             dynamics_builder_3d)
 from deep_conmech.simulator.dynamics.body_position import BodyPosition
+from deep_conmech.simulator.dynamics.factory.dynamics_factory_method import \
+    get_dynamics
 from numba import njit
 
 
@@ -70,12 +69,12 @@ class Dynamics(BodyPosition):
         self.T_contact_x_free:np.ndarray
         self.T_free_x_free_inverted:np.ndarray
 
-        self.initialize_matrices()
+        self.reinitialize_matrices()
 
 
     def remesh(self):
         super().remesh()
-        self.initialize_matrices()
+        self.reinitialize_matrices()
 
 
     def reinitialize_matrices(self):

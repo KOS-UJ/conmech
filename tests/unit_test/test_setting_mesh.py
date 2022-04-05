@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conmech.dataclass.schedule import Schedule
+from conmech.properties.schedule import Schedule
 
 from conmech.mesh.mesh_properties import MeshProperties
 from conmech.helpers import nph
