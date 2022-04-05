@@ -171,8 +171,7 @@ class BoundariesBuilder:
     def identify_boundaries_and_reorder_nodes(
         unordered_nodes, unordered_elements, is_dirichlet, is_contact
     ) -> Tuple[np.ndarray, np.ndarray, BoundariesData]:
-        #####
-        '''
+
         (
             initial_nodes,
             elements,
@@ -194,10 +193,8 @@ class BoundariesBuilder:
         dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_dirichlet)
         neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n))
         
-        bd = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count,boundary_internal_indices=boundary_internal_indices)
-        
-        '''
-        
+        bd1 = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count,boundary_internal_indices=boundary_internal_indices, boundaries=None)
+
         boundaries, vertices, elements = identify_boundaries_and_reorder_vertices(unordered_nodes, unordered_elements, is_contact=is_contact, is_dirichlet=is_dirichlet)
 
         bd = BoundariesData(contact_surfaces=None, neumann_surfaces=None, dirichlet_surfaces=None, 
@@ -271,11 +268,19 @@ def get_boundaries(
         is_contact, is_dirichlet, boundaries, vertices)
 
     # TODO #35
-
+    
     # TODO: TEMPORARY FIX
-    # neumann_boundaries = np.unique(neumann_boundaries)
+    return fix_boundaries(contact_boundaries), fix_boundaries(dirichlet_boundaries), fix_boundaries(neumann_boundaries)
 
-    return contact_boundaries, dirichlet_boundaries, neumann_boundaries
+def fix_boundaries(boundaries):
+    boundaries_fixed = []
+    for boundary in boundaries:
+        boundary_fixed = []
+        for index in boundary:
+            if index not in boundary_fixed:
+                boundary_fixed.append(index)
+        boundaries_fixed.append(np.array(boundary_fixed))
+    return boundaries_fixed
 
 
 def get_condition_boundaries(
