@@ -80,14 +80,14 @@ def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
         nodes, elements, lambda _: True, to_top=True
     )
     # then move contact nodes to the top
-    nodes, elements, cotact_nodes_count = reorder(
+    nodes, elements, contact_nodes_count = reorder(
         nodes, elements, is_contact, to_top=True
     )
     # finally move dirichlet nodes to the bottom
     nodes, elements, dirichlet_nodes_count = reorder(
         nodes, elements, is_dirichlet, to_top=False
     )
-    return nodes, elements, boundary_nodes_count, cotact_nodes_count, dirichlet_nodes_count
+    return nodes, elements, boundary_nodes_count, contact_nodes_count, dirichlet_nodes_count
 
 
 
@@ -192,11 +192,14 @@ class BoundariesBuilder:
         dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_dirichlet)
         neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n))
         
-        boundaries = identify_boundaries(vertices=initial_nodes, elements=elements, boundary_surfaces=boundary_surfaces, is_contact=is_contact, is_dirichlet=is_dirichlet)
+        
+        #boundaries = identify_boundaries(vertices=initial_nodes, elements=elements, boundary_surfaces=boundary_surfaces, is_contact=is_contact, is_dirichlet=is_dirichlet)
+
+        boundaries_new = identify_boundaries_new(contact_surfaces, dirichlet_surfaces, neumann_surfaces)
 
         bd = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, 
             contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count, 
-            boundary_internal_indices=boundary_internal_indices, boundaries=boundaries)
+            boundary_internal_indices=boundary_internal_indices, boundaries=boundaries_new)
 
         return initial_nodes, elements, bd
 
@@ -225,14 +228,18 @@ def extract_boundary_path_2d(boundary_edges, start_node = 0):
 
 def extract_boundary_paths(elements):
     boundary_surfaces, *_ = get_boundary_surfaces(elements)
+    return extract_boundary_paths_new(boundary_surfaces=boundary_surfaces, loop_paths=True)
+
+def extract_boundary_paths_new(boundary_surfaces, loop_paths):
     boundary_indices_to_visit = extract_boundary_indices(boundary_surfaces)
 
     boundary_paths = []
     while len(boundary_indices_to_visit) > 0:
         start_node = boundary_indices_to_visit[0]
         visited_path = extract_boundary_path_2d(boundary_surfaces, start_node=start_node)
-        looped_path_indices = np.append(visited_path, visited_path[0])
-        boundary_paths.append(looped_path_indices)
+        if loop_paths:
+            visited_path = np.append(visited_path, visited_path[0])
+        boundary_paths.append(visited_path)
         boundary_indices_to_visit =  list(set(boundary_indices_to_visit) - set(visited_path))
 
     return boundary_paths
@@ -241,16 +248,25 @@ def extract_boundary_paths(elements):
 ###########
 
 
+def identify_boundaries_new(contact_surfaces, dirichlet_surfaces, neumann_surfaces):
+    contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
+    dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
+    neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
+
+    return Boundaries(
+        contact=contact, dirichlet=dirichlet, neumann=neumann
+    )
+        
 
 
 def identify_boundaries(
         vertices, elements, boundary_surfaces, is_contact, is_dirichlet
 ) -> Tuple["Boundaries", np.ndarray, np.ndarray]:
 
-    boundaries_new = extract_boundary_paths(elements)
+    boundaries = extract_boundary_paths(elements)
 
     return Boundaries(
-        *get_boundaries(is_contact=is_contact, is_dirichlet=is_dirichlet, boundaries=boundaries_new, vertices=vertices)
+        *get_boundaries(is_contact=is_contact, is_dirichlet=is_dirichlet, boundaries=boundaries, vertices=vertices)
     )
 
 
@@ -271,6 +287,7 @@ def get_boundaries(
 
     # TODO: TEMPORARY FIX
     return fix_boundaries(contact_boundaries), fix_boundaries(dirichlet_boundaries), fix_boundaries(neumann_boundaries)
+
 
 def fix_boundaries(boundaries):
     boundaries_fixed = []

@@ -203,7 +203,7 @@ class Mesh:
 
     @property
     def dirichlet_indices(self):
-        return slice(self.nodes_count - self.boundary_nodes_count, self.nodes_count)
+        return slice(self.nodes_count - self.dirichlet_nodes_count, self.nodes_count)
 
 
     @property
