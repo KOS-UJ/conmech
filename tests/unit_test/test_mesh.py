@@ -4,7 +4,7 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-from conmech.boundaries_builder import (BoundariesBuilder,
+from conmech.mesh.boundaries_builder import (BoundariesBuilder,
                                         extract_boundary_paths_from_elements)
 
 

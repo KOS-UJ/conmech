@@ -6,9 +6,9 @@ from dataclasses import dataclass
 import numpy as np
 from conmech.helpers.config import Config
 
-from conmech.problem_solver import Static as StaticProblemSolver
+from conmech.simulations.problem_solver import Static as StaticProblemSolver
 from conmech.problems import Static
-from conmech.utils.drawer import Drawer
+from conmech.plotting.drawer import Drawer
 from examples.p_slope_contact_law import make_slope_contact_law
 
 

@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
-from conmech.properties.schedule import Schedule
-
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.dynamics.body_position import BodyPosition
 from conmech.helpers import nph
-from deep_conmech.simulator.dynamics.body_position import BodyPosition
-from deep_conmech.simulator.mesh import mesh
+from conmech.mesh import mesh
+from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 
 
 @pytest.mark.parametrize("scale_x, scale_y", ((1, 1), (2, 3), (5, 1)))

@@ -3,9 +3,9 @@ import pytest
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech import scenarios
-from deep_conmech.common.simulation_runner import run_scenario
-from deep_conmech.scenarios import TemperatureScenario
+from conmech.properties import scenarios
+from conmech.simulations.simulation_runner import run_scenario
+from conmech.properties.scenarios import TemperatureScenario
 
 
 def generate_test_suits():

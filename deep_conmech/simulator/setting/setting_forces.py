@@ -1,6 +1,6 @@
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics.dynamics import Dynamics
+from conmech.dynamics.dynamics import Dynamics
 
 
 def L2_new(a, C, E):

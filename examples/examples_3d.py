@@ -3,8 +3,8 @@ import numpy as np
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
-from deep_conmech.common import simulation_runner
-from deep_conmech.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
+from conmech.simulations import simulation_runner
+from conmech.properties.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
     m_ball_3d, m_twist_3d, m_cube_3d
 
 

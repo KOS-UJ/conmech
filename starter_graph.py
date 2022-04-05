@@ -1,14 +1,14 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 
-from deep_conmech import scenarios
-from deep_conmech.common.training_config import TrainingConfig
+from conmech.properties import scenarios
+from deep_conmech.training_config import TrainingConfig
 from deep_conmech.graph.data.data_scenario import ScenariosDatasetDynamic
 from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
 from deep_conmech.graph.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.simulator.solver import Solver
+from conmech.simulations.solver import Solver
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):

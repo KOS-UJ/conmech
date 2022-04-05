@@ -5,7 +5,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph
-from deep_conmech.common.training_config import TrainingConfig
+from deep_conmech.training_config import TrainingConfig
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 

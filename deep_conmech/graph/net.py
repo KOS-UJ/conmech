@@ -8,12 +8,12 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from deep_conmech.common.training_config import TrainingData
-from deep_conmech.graph.data.dataset_statistics import (
+from deep_conmech.training_config import TrainingData
+from deep_conmech.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
 )
-from deep_conmech.graph.helpers import thh
+from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 
 # TODO: move

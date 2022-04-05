@@ -9,17 +9,17 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
-from deep_conmech import scenarios
-from deep_conmech.common import simulation_runner
-from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.graph.data import data_base
-from deep_conmech.graph.helpers import thh
+from conmech.properties import scenarios
+from conmech.simulations import simulation_runner
+from deep_conmech.training_config import TrainingConfig
+from deep_conmech.data import data_base
+from deep_conmech.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.solver import Solver
-from deep_conmech.graph.data.dataset_statistics import DatasetStatistics
+from conmech.properties.scenarios import Scenario
+from conmech.simulations.solver import Solver
+from deep_conmech.data.dataset_statistics import DatasetStatistics
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
     writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")

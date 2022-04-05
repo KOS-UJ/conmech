@@ -1,12 +1,12 @@
 import numpy as np
 
-import deep_conmech.scenarios as scenarios
-from deep_conmech.scenarios import Scenario
+import conmech.properties.scenarios as scenarios
+from conmech.properties.scenarios import Scenario
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
-from deep_conmech.common import simulation_runner
+from conmech.simulations import simulation_runner
 
 def main(mesh_density=3, final_time=5, plot_animation=True):
     config=Config(SHELL=False)

@@ -5,7 +5,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.graph.helpers import thh
+from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
 from numba import njit
