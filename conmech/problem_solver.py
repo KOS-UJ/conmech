@@ -5,11 +5,11 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from conmech.dataclass.body_properties import (
+from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
-from conmech.features.mesh_features import MeshFeatures
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
+from conmech.mesh.mesh_features import MeshFeatures
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem
@@ -46,7 +46,7 @@ class ProblemSolver:
                      ) * setup.elements_number[1]
 
         self.mesh = MeshFeatures(
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],

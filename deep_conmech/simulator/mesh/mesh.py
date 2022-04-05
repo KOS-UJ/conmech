@@ -5,8 +5,10 @@ from typing import Callable
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
-from conmech.dataclass.mesh_data import MeshData
-from conmech.features.boundaries import Boundaries
+from numba import njit
+
+import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
+from conmech.mesh.mesh_properties import MeshProperties
 from conmech.helpers import nph
 from numba import njit
 
@@ -185,7 +187,7 @@ def get_base_seed_indices_numba(nodes):
 class Mesh:
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             normalize_by_rotation: bool,
             is_dirichlet: Callable = (lambda _: False),
             is_contact: Callable = (lambda _: True),

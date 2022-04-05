@@ -2,9 +2,9 @@ import numpy as np
 
 import deep_conmech.scenarios as scenarios
 from deep_conmech.scenarios import Scenario
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 
@@ -13,7 +13,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.m_circle,
                 scale=[1],
@@ -29,7 +29,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             id="circle_flat_A_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.m_circle,
                 scale=[1],
@@ -43,7 +43,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             id="circle_flat_B_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.m_circle,
                 scale=[1],
@@ -57,7 +57,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             id="circle_flat_C_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.m_circle,
                 scale=[1],
@@ -71,7 +71,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             id="rectangle_flat_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.m_rectangle,
                 scale=[1],

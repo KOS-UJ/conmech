@@ -1,7 +1,7 @@
 import numpy as np
 
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
@@ -12,7 +12,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
     all_scenarios = [
         Scenario(
             id="twist_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3, mesh_type=m_twist_3d, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
@@ -23,7 +23,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             id="ball_roll",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
@@ -34,7 +34,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             id="ball_throw",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3, mesh_type=m_ball_3d, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
@@ -45,7 +45,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             id="cube_throw",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3, mesh_type=m_cube_3d, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,

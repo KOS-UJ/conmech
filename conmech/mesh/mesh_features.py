@@ -1,16 +1,16 @@
 from typing import Callable
 
-from conmech.dataclass.body_properties import StaticBodyProperties
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
-from conmech.features.boundaries import Boundaries
+from conmech.properties.body_properties import StaticBodyProperties
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
+from conmech.mesh.boundaries import Boundaries
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
 class MeshFeatures(Dynamics):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: StaticBodyProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,

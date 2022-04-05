@@ -1,7 +1,7 @@
 import numpy as np
 
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import default_temp_body_prop, default_K_coeff, get_temp_body_prop, \
@@ -29,7 +29,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             id=f"C_{i}",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3,
                 mesh_type=m_cube_3d,
                 scale=[1],
@@ -80,7 +80,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             id=f"K_{i}",
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 dimension=3,
                 mesh_type=m_cube_3d,
                 scale=[1],
@@ -106,7 +106,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
         [
             TemperatureScenario(
                 id="temperature_3d_cube_throw",
-                mesh_data=MeshData(
+                mesh_data=MeshProperties(
                     dimension=3,
                     mesh_type=m_cube_3d,
                     scale=[1],

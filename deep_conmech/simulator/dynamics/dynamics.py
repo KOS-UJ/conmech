@@ -30,7 +30,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class Dynamics(BodyPosition):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: StaticBodyProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,
@@ -78,13 +78,7 @@ class Dynamics(BodyPosition):
         self.initialize_matrices()
 
 
-    def initialize_matrices(self):
-        builder = (
-            dynamics_builder_2d.DynamicsBuilder2D()
-            if self.dimension == 2
-            else dynamics_builder_3d.DynamicsBuilder3D()
-        )
-
+    def reinitialize_matrices(self):
         (
             self.element_initial_volume,
             self.const_volume,
@@ -93,7 +87,7 @@ class Dynamics(BodyPosition):
             self.const_viscosity,
             self.C2T,
             self.K,
-        ) = builder.build_matrices(
+        ) = get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
             body_prop=self.body_prop,
