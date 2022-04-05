@@ -1,15 +1,14 @@
-from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-from conmech.dataclass.body_properties import (StaticBodyProperties,
-                                               TemperatureBodyProperties)
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.body_properties import (StaticBodyProperties,
+                                                TemperatureBodyProperties)
+from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics import (dynamics_builder_2d,
-                                             dynamics_builder_3d)
 from deep_conmech.simulator.dynamics.body_position import BodyPosition
+from deep_conmech.simulator.dynamics.factory.dynamics_factory_method import \
+    get_dynamics
 from numba import njit
 
 
@@ -30,7 +29,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class Dynamics(BodyPosition):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: StaticBodyProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,
@@ -70,21 +69,15 @@ class Dynamics(BodyPosition):
         self.T_contact_x_free:np.ndarray
         self.T_free_x_free_inverted:np.ndarray
 
-        self.initialize_matrices()
+        self.reinitialize_matrices()
 
 
     def remesh(self):
         super().remesh()
-        self.initialize_matrices()
+        self.reinitialize_matrices()
 
 
-    def initialize_matrices(self):
-        builder = (
-            dynamics_builder_2d.DynamicsBuilder2D()
-            if self.dimension == 2
-            else dynamics_builder_3d.DynamicsBuilder3D()
-        )
-
+    def reinitialize_matrices(self):
         (
             self.element_initial_volume,
             self.const_volume,
@@ -93,7 +86,7 @@ class Dynamics(BodyPosition):
             self.const_viscosity,
             self.C2T,
             self.K,
-        ) = builder.build_matrices(
+        ) = get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
             body_prop=self.body_prop,

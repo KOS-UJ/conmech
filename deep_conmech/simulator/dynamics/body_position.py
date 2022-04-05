@@ -3,12 +3,11 @@ from ctypes import ArgumentError
 from typing import Callable
 
 import numpy as np
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
 from conmech.helpers import nph
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.solvers.solver_methods import njit
 from deep_conmech.simulator.mesh.mesh import Mesh
-
 
 
 def get_base(nodes, base_seed_indices, closest_seed_index):
@@ -120,7 +119,7 @@ def element_volume_part_numba(face_nodes):
 class BodyPosition(Mesh):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             schedule: Schedule,
             normalize_by_rotation: bool,
             is_dirichlet: Callable = (lambda _: False),

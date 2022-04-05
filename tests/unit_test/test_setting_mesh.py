@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
+from conmech.properties.schedule import Schedule
 
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
 from conmech.helpers import nph
 from deep_conmech.simulator.dynamics.body_position import BodyPosition
 from deep_conmech.simulator.mesh import mesh
@@ -13,7 +13,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
     setting = BodyPosition(
-        mesh_data=MeshData(
+        mesh_data=MeshProperties(
             mesh_type="meshzoo_rectangle", mesh_density=[3, 3], scale=[scale_x, scale_y]
         ),
         schedule=Schedule(1),
@@ -33,7 +33,7 @@ def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
     setting = BodyPosition(
-        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]),
+        mesh_data=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]),
         schedule=Schedule(1),
         normalize_by_rotation=True,
     )

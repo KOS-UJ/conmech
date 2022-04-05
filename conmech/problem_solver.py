@@ -6,10 +6,10 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
-from conmech.dataclass.body_properties import (
+from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
 from conmech.problems import Quasistatic as QuasistaticProblem

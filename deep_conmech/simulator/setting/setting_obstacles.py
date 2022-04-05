@@ -1,9 +1,10 @@
 import numba
 import numpy as np
-from conmech.dataclass.body_properties import DynamicBodyProperties
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties
-from conmech.dataclass.schedule import Schedule
+
+from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers import nph
 from deep_conmech.simulator.setting.setting_forces import L2_new, SettingForces
 
@@ -175,7 +176,7 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 class SettingObstacles(SettingForces):
     def __init__(
             self,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: DynamicBodyProperties,
             obstacle_prop: ObstacleProperties,
             schedule: Schedule,

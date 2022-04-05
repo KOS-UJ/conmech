@@ -1,20 +1,26 @@
 import numpy as np
 from numba import njit
 
-from deep_conmech.simulator.dynamics.dynamics_builder import DynamicsBuilder
+from deep_conmech.simulator.dynamics.factory._abstract_dynamics_factory import \
+    AbstractDynamicsFactory
 
+
+DIMENSION = 2
 ELEMENT_NODES_COUNT = 3
 CONNECTED_EDGES_COUNT = 2
 INT_PH = 1 / ELEMENT_NODES_COUNT
+U_DIVIDER = 12
+FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION ** 2
+VOLUME_DIVIDER = 2
 
 
-@njit  # (parallel=True)
+@njit
 def get_edges_features_matrix_numba(elements, nodes):
     # integral of phi over the element (in 2D: 1/3, in 3D: 1/4)
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
 
-    edges_features_matrix = np.zeros((8, nodes_count, nodes_count), dtype=np.double)
+    edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: prange?
@@ -33,7 +39,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
                 # divide by edge count - info about each triangle is "sent" to node via all connected edges
                 # (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
-                u = (1 + (i == j)) / 12.0
+                u = (1 + (i == j)) / U_DIVIDER
                 # in 3D: divide by 10 or 20, in 2D: divide by 6 or 12
 
                 v1 = INT_PH * j_dPhX
@@ -44,8 +50,13 @@ def get_edges_features_matrix_numba(elements, nodes):
                 w21 = i_dPhY * j_dPhX
                 w22 = i_dPhY * j_dPhY
 
-                edges_features_matrix[:, element[i], element[j]] += \
-                    element_volume * np.array([volume, u, v1, v2, w11, w12, w21, w22])
+                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array([
+                    volume,
+                    u,
+                    v1, v2,
+                    w11, w12,
+                    w21, w22
+                ])
 
     # Performance TIP: we need only sparse, triangular matrix (?)
     return edges_features_matrix, element_initial_volume
@@ -57,7 +68,7 @@ def get_integral_parts_numba(element_nodes, element_index):
     x_j1, x_j2 = list(element_nodes[np.arange(ELEMENT_NODES_COUNT) != element_index])
 
     dm = denominator_numba(x_i, x_j1, x_j2)
-    element_volume = np.abs(dm) / 2.0  # = np.abs(dm) / 2.0 = shoelace_area
+    element_volume = np.abs(dm) / VOLUME_DIVIDER
 
     y_sub = x_j2[1] - x_j1[1]
     x_sub = x_j1[0] - x_j2[0]
@@ -88,35 +99,35 @@ def denominator_numba(x_i, x_j1, x_j2):
     )
 
 
-class DynamicsBuilder2D(DynamicsBuilder):
+class DynamicsFactory2D(AbstractDynamicsFactory):
     def get_edges_features_matrix(self, elements, nodes):
         return get_edges_features_matrix_numba(elements, nodes)
 
     @property
     def dimension(self) -> int:
-        return 2
+        return DIMENSION
 
-    def calculate_constitutive_matrices(self, W11, W12, W21, W22, MU, LA):
-        X11 = (2 * MU + LA) * W11 + MU * W22
-        X22 = MU * W11 + (2 * MU + LA) * W22
-        X12 = MU * W21 + LA * W12
-        X21 = LA * W21 + MU * W12
+    def calculate_constitutive_matrices(self, W, MU, LA):
+        X11 = (2 * MU + LA) * W[0, 0] + MU * W[1, 1]
+        X22 = MU * W[0, 0] + (2 * MU + LA) * W[1, 1]
+        X12 = MU * W[1, 0] + LA * W[0, 1]
+        X21 = LA * W[1, 0] + MU * W[0, 1]
         return np.block([[X11, X12], [X21, X22]])
 
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z], [Z, U]])
 
-    def calculate_temperature_C(self, V1, V2, C_coef):
-        Z = np.zeros_like(V1)
-        X11 = C_coef[0][0] * V1 + C_coef[0][1] * V2
-        X22 = C_coef[1][0] * V1 + C_coef[1][1] * V2
+    def calculate_temperature_C(self, V, C_coef):
+        Z = np.zeros_like(V[1])
+        X11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1]
+        X22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1]
         return np.block([[X11, Z], [Z, X22]])
 
-    def calculate_temperature_K(self, W11, W12, W21, W22, K_coef):
+    def calculate_temperature_K(self, W, K_coef):
         return (
-                K_coef[0][0] * W11
-                + K_coef[0][1] * W12
-                + K_coef[1][0] * W21
-                + K_coef[1][1] * W22
+                K_coef[0][0] * W[0, 0]
+                + K_coef[0][1] * W[0, 1]
+                + K_coef[1][0] * W[1, 0]
+                + K_coef[1][1] * W[1, 1]
         )
