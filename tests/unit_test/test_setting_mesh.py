@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from conmech.properties.schedule import Schedule
 
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.helpers import nph
 from deep_conmech.simulator.dynamics.body_position import BodyPosition
 from deep_conmech.simulator.mesh import mesh

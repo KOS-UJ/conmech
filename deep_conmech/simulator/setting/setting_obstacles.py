@@ -2,7 +2,7 @@ import numba
 import numpy as np
 
 from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph

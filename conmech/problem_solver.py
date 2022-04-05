@@ -8,7 +8,7 @@ from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.problems import Dynamic as DynamicProblem
 from conmech.problems import Problem
@@ -46,7 +46,7 @@ class ProblemSolver:
                      ) * setup.elements_number[1]
 
         self.mesh = Dynamics(
-            mesh_data=MeshData(
+            mesh_data=MeshProperties(
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],

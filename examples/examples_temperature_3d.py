@@ -1,6 +1,6 @@
 import numpy as np
 
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner

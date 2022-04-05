@@ -4,7 +4,7 @@ from typing import Callable
 
 import numpy as np
 from conmech.helpers import nph
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.solver_methods import njit
 from deep_conmech.simulator.mesh.mesh import Mesh

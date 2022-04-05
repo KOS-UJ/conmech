@@ -1,7 +1,7 @@
 from typing import Callable
 
 import numpy as np
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.body_properties import (StaticBodyProperties,
                                                 TemperatureBodyProperties)
 from conmech.properties.schedule import Schedule

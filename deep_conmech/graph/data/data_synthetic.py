@@ -1,5 +1,5 @@
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph, cmh
 from deep_conmech import scenarios

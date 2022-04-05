@@ -1,7 +1,7 @@
 import numpy as np
 from numba import njit
 
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.graph.data.interpolation_helpers import \
     interpolate_point_numba
 

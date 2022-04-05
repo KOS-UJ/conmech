@@ -5,7 +5,7 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner

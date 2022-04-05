@@ -1,12 +1,10 @@
 import numpy as np
 import torch
-from torch_geometric.data import Data
-
+from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_torch import SettingTorch
 from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle

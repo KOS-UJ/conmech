@@ -2,7 +2,7 @@ import numpy as np
 
 import deep_conmech.scenarios as scenarios
 from deep_conmech.scenarios import Scenario
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config

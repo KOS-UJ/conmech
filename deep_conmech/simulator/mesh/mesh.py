@@ -1,4 +1,5 @@
 from typing import Callable
+from conmech.boundaries_builder import BoundariesBuilder, BoundariesData
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
 import numba
@@ -6,7 +7,7 @@ import numpy as np
 from numba import njit
 
 import deep_conmech.simulator.mesh.mesh_builders as mesh_builders
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.helpers import nph
 from numba import njit
 
@@ -129,7 +130,6 @@ class Mesh:
         )
 
         self.initial_nodes, self.elements, self.boundaries_data = BoundariesBuilder.identify_boundaries_and_reorder_nodes(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
-        self.reorganize_boundaries(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -137,10 +137,6 @@ class Mesh:
 
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
-
-
-    def reorganize_boundaries(self, unordered_nodes, unordered_elements, is_dirichlet, is_contact):
-        pass
 
 
 

@@ -2,7 +2,7 @@ import meshzoo
 import numpy as np
 import pygmsh
 
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.simulator.mesh import mesh_builders_helpers
 
 
