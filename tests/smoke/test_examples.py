@@ -28,7 +28,7 @@ test_suits = {
     "examples_temperature_3d": lambda: examples_temperature_3d(**default_args_deep),
 }
 
-'''
+
 @pytest.fixture(params=list(test_suits.keys()))
 def main_function(request):
     return test_suits[request.param]
@@ -36,4 +36,3 @@ def main_function(request):
 
 def test_examples(main_function):
     main_function()
-'''

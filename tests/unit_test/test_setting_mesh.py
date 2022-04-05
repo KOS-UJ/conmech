@@ -7,7 +7,7 @@ from conmech.helpers import nph
 from deep_conmech.simulator.dynamics.body_position import BodyPosition
 from deep_conmech.simulator.mesh import mesh
 
-'''
+
 @pytest.mark.parametrize("scale_x, scale_y", ((1, 1), (2, 3), (5, 1)))
 def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
@@ -72,4 +72,3 @@ def test_remove_unconnected_nodes():
     expected_elements = np.array([[1, 0], [0, 2], [1, 2]])
     np.testing.assert_array_equal(expected_nodes, cleaned_nodes)
     np.testing.assert_array_equal(expected_elements, cleaned_elements)
-'''

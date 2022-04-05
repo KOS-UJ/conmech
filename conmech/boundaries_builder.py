@@ -11,14 +11,6 @@ from conmech.solvers.solver_methods import njit
 
 
 
-class Boundaries:
-    def __init__(self, contact, dirichlet, neumann):
-        self.contact = np.asarray(contact, dtype=np.int32)
-        self.dirichlet = np.asarray(dirichlet, dtype=np.int32)
-        self.neumann = np.asarray(neumann, dtype=np.int32)
-
-
-
 
 @njit
 def identify_surfaces_numba(sorted_elements):
@@ -157,7 +149,9 @@ class BoundariesData:
     def boundary_nodes_count(self):
         return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
-    boundaries:Boundaries
+    contact: np.ndarray
+    dirichlet: np.ndarray
+    neumann: np.ndarray
 
 class BoundariesBuilder:
     """
@@ -192,14 +186,14 @@ class BoundariesBuilder:
         dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_dirichlet)
         neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n))
         
-        
-        #boundaries = identify_boundaries(vertices=initial_nodes, elements=elements, boundary_surfaces=boundary_surfaces, is_contact=is_contact, is_dirichlet=is_dirichlet)
 
-        boundaries_new = identify_boundaries_new(contact_surfaces, dirichlet_surfaces, neumann_surfaces)
+        contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
+        dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
+        neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
 
         bd = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, 
             contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count, 
-            boundary_internal_indices=boundary_internal_indices, boundaries=boundaries_new)
+            boundary_internal_indices=boundary_internal_indices, contact=contact, dirichlet=dirichlet, neumann=neumann)
 
         return initial_nodes, elements, bd
 
@@ -247,139 +241,28 @@ def extract_boundary_paths_new(boundary_surfaces, loop_paths):
 
 ###########
 
-
-def identify_boundaries_new(contact_surfaces, dirichlet_surfaces, neumann_surfaces):
-    contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
-    dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
-    neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
-
-    return Boundaries(
-        contact=contact, dirichlet=dirichlet, neumann=neumann
-    )
-        
-
-
-def identify_boundaries(
-        vertices, elements, boundary_surfaces, is_contact, is_dirichlet
-) -> Tuple["Boundaries", np.ndarray, np.ndarray]:
-
-    boundaries = extract_boundary_paths(elements)
-
-    return Boundaries(
-        *get_boundaries(is_contact=is_contact, is_dirichlet=is_dirichlet, boundaries=boundaries, vertices=vertices)
-    )
-
-
-def get_boundaries(
+'''
+def get_boundaries_new(
         is_contact: Callable[[np.ndarray], bool],
         is_dirichlet: Callable[[np.ndarray], bool],
         boundaries: List[np.ndarray],
         vertices: np.ndarray
 ) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
-    contact_boundaries = get_condition_boundaries(
-        is_contact, boundaries, vertices)
-    dirichlet_boundaries = get_condition_boundaries(
-        is_dirichlet, boundaries, vertices)
-    neumann_boundaries = get_condition_boundaries_neumann(
-        is_contact, is_dirichlet, boundaries, vertices)
 
-    # TODO #35
-
-    # TODO: TEMPORARY FIX
-    return fix_boundaries(contact_boundaries), fix_boundaries(dirichlet_boundaries), fix_boundaries(neumann_boundaries)
-
-
-def fix_boundaries(boundaries):
-    boundaries_fixed = []
+    boundary_surfaces = []
     for boundary in boundaries:
-        boundary_fixed = []
-        for index in boundary:
-            if index not in boundary_fixed:
-                boundary_fixed.append(index)
-        boundaries_fixed.append(np.array(boundary_fixed))
-    return boundaries_fixed
+        for i in range(len(boundary) - 1):
+            boundary_surfaces.append(np.array([boundary[i],boundary[i+1]]))
+        boundary_surfaces.append(np.array([boundary[-1],boundary[0]]))
 
+    boundary_surfaces = np.array(boundary_surfaces)
 
-
-def get_condition_boundaries(
-        predicate: Callable,
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> List[np.ndarray]:
-    condition_boundaries = []
-    for boundary in boundaries:
-        first_id = None
-        i = 0
-        while i < len(boundary):
-            if predicate(vertices[boundary[i]]):
-                condition_boundary = []
-                while i < len(boundary) and predicate(vertices[boundary[i]]):
-                    condition_boundary.append(boundary[i])
-                    i += 1
-
-                if first_id is None:
-                    first_id = len(condition_boundaries)
-
-                condition_boundaries.append(np.asarray(condition_boundary))
-            i += 1
-        merge_first_and_last(first_id, boundary, condition_boundaries)
-
-    single_vertex_boundaries = []
-    for condition_boundary in condition_boundaries:
-        if len(condition_boundary) < 2:
-            single_vertex_boundaries.append(condition_boundaries)
-    if single_vertex_boundaries:
-        raise AssertionError(
-            "Following boundaries do not contain even one edge (two vertices):\n" +
-            str(single_vertex_boundaries)
-        )
-
-    return condition_boundaries
-
-
-def merge_first_and_last(first_id, boundary, condition_boundaries):
-    if first_id is not None and first_id != len(condition_boundaries) - 1 \
-            and condition_boundaries[first_id][0] == boundary[0] \
-            and condition_boundaries[-1][-1] == boundary[-1]:
-        condition_boundaries[-1] = np.concatenate(
-            (condition_boundaries[-1], condition_boundaries[first_id]))
-        if first_id != len(condition_boundaries) - 1:
-            del condition_boundaries[first_id]
-
-
-def get_condition_boundaries_neumann(
-        predicate_0: Callable,
-        predicate_1: Callable,
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> List[np.ndarray]:
-    def boundary_change(prev: int, curr: int):
-        return predicate_0(vertices[prev]) and not predicate_0(vertices[curr]) \
-               and not predicate_1(vertices[prev]) \
-               or predicate_1(vertices[prev]) and not predicate_1(vertices[curr]) \
-               and not predicate_0(vertices[prev])
-
-    def no_conditions(curr: int):
-        return not predicate_0(vertices[curr]) and not predicate_1(vertices[curr])
-
-    condition_boundaries = []
-    for boundary in boundaries:
-        first_id = None
-        i = 1
-        while i < len(boundary):
-            if boundary_change(boundary[i - 1], boundary[i]) \
-                    or i == 1 and no_conditions(boundary[i - 1]):
-                condition_boundary = [boundary[i - 1]]  # greedy
-                while i < len(boundary) and no_conditions(boundary[i]):
-                    condition_boundary.append(boundary[i])
-                    i += 1
-                if i < len(boundary):  # greedy
-                    condition_boundary.append(boundary[i])
-
-                if first_id is None:
-                    first_id = len(condition_boundaries)
-                condition_boundaries.append(np.asarray(condition_boundary))
-            i += 1
-        merge_first_and_last(first_id, boundary, condition_boundaries)
-
-    return condition_boundaries
+    contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, is_contact)
+    dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, is_dirichlet)
+    neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, lambda n: not is_contact(n) and not is_dirichlet(n))
+    
+    contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
+    dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
+    neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
+    return contact, dirichlet, neumann 
+'''

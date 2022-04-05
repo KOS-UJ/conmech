@@ -221,17 +221,17 @@ class Mesh:
     @property
     def contact(self):
         #return self.get_boundary_part(self.contact_indices)
-        return self.boundaries_data.boundaries.contact
+        return self.boundaries_data.contact
 
     @property
     def neumann(self):
         #return self.get_boundary_part(self.neumann_indices)
-        return self.boundaries_data.boundaries.neumann
+        return self.boundaries_data.neumann
 
     @property
     def dirichlet(self):
         #return self.get_boundary_part(self.dirichlet_indices)
-        return self.boundaries_data.boundaries.dirichlet
+        return self.boundaries_data.dirichlet
 
 
     def get_boundary_part(self, indices):
