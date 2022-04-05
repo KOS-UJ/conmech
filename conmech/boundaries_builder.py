@@ -81,7 +81,7 @@ def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     )
     # then move contact nodes to the top
     nodes, elements, cotact_nodes_count = reorder(
-        nodes, elements, lambda n: is_contact(n) and not is_dirichlet(n), to_top=True #############################
+        nodes, elements, is_contact, to_top=True
     )
     # finally move dirichlet nodes to the bottom
     nodes, elements, dirichlet_nodes_count = reorder(
@@ -203,8 +203,8 @@ class BoundariesBuilder:
 
 ##############################################################
 #for legacy tests
-def extract_ordered_boundary_indices_2d(boundary_edges):
-    visited_nodes = [] 
+def extract_boundary_path_2d(boundary_edges, start_node = 0):
+    visited_path = [] 
 
     def get_neighbours(node):
         node_edges = boundary_edges[np.any(boundary_edges == node, axis=1)]
@@ -213,21 +213,29 @@ def extract_ordered_boundary_indices_2d(boundary_edges):
         return neighbours
 
     def dfs(node):
-        if node not in visited_nodes:
-            visited_nodes.append(node)
+        if node not in visited_path:
+            visited_path.append(node)
             for neighbour in get_neighbours(node):
                 dfs(neighbour)
 
-    dfs(boundary_edges[0,0])
+    dfs(start_node)
 
-    return np.array(visited_nodes)
+    return np.array(visited_path)
 
 
-def identify_surfaces_new(elements, vertex_num=None): #TODO: only works with one-part boundaries
+def extract_boundary_paths(elements):
     boundary_surfaces, *_ = get_boundary_surfaces(elements)
-    indices = extract_ordered_boundary_indices_2d(boundary_surfaces)
-    indices = np.append(indices, indices[0])
-    return [indices]
+    boundary_indices_to_visit = extract_boundary_indices(boundary_surfaces)
+
+    boundary_paths = []
+    while len(boundary_indices_to_visit) > 0:
+        start_node = boundary_indices_to_visit[0]
+        visited_path = extract_boundary_path_2d(boundary_surfaces, start_node=start_node)
+        looped_path_indices = np.append(visited_path, visited_path[0])
+        boundary_paths.append(looped_path_indices)
+        boundary_indices_to_visit =  list(set(boundary_indices_to_visit) - set(visited_path))
+
+    return boundary_paths
 
 
 ###########
@@ -239,7 +247,7 @@ def identify_boundaries(
         vertices, elements, boundary_surfaces, is_contact, is_dirichlet
 ) -> Tuple["Boundaries", np.ndarray, np.ndarray]:
 
-    boundaries_new = identify_surfaces_new(elements)
+    boundaries_new = extract_boundary_paths(elements)
 
     return Boundaries(
         *get_boundaries(is_contact=is_contact, is_dirichlet=is_dirichlet, boundaries=boundaries_new, vertices=vertices)
@@ -358,56 +366,3 @@ def get_condition_boundaries_neumann(
         merge_first_and_last(first_id, boundary, condition_boundaries)
 
     return condition_boundaries
-
-
-def identify_surfaces(elements, vertex_num):
-    # Performance TIP: we need only sparse, triangular matrix
-    edges = np.zeros((vertex_num, vertex_num))
-    for element in elements:
-        edges[element[0], element[1]] += 1
-        edges[element[1], element[0]] += 1
-        edges[element[1], element[2]] += 1
-        edges[element[2], element[1]] += 1
-        edges[element[0], element[2]] += 1
-        edges[element[2], element[0]] += 1
-
-    surface_edges = np.zeros((vertex_num, 2), dtype=int) - 1
-    for i in range(vertex_num):
-        first_found = 0
-        for j in range(vertex_num):
-            if edges[i, j] == 1:
-                surface_edges[i, first_found] = j
-                first_found = 1
-
-
-    surfaces = []
-    for i in range(vertex_num):
-        if surface_edges[i, 0] != -1:
-            surface = np.zeros(vertex_num + 1, dtype=int) - 1
-            curr = 0
-            surface[curr] = i
-            v = surface_edges[i, 0]
-            v_next = surface_edges[v]
-            surface_edges[i, 0] = -1
-
-            while True:
-                curr += 1
-                surface[curr] = v
-
-                if v_next[0] == surface[curr - 1]:
-                    v = v_next[1]
-                else:
-                    v = v_next[0]
-
-                v_next[0] = -1
-                v_next[1] = -1
-
-                if v == -1:
-                    break
-
-                v_next = surface_edges[v]
-
-            surfaces.append(surface[:curr + 1].copy())
-
-    return surfaces
-
