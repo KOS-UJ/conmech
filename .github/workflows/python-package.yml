@@ -26,9 +26,8 @@ jobs:
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
-      - run: pip install -r requirements-deep.txt
 
       - if: matrix.platform == 'ubuntu-latest'
         run: sudo apt-get install -y python3-gmsh
 
-      - run: PYTHONPATH=. pytest -p no:unraisableexception
+      - run: PYTHONPATH=. pytest --ignore=tests/deep -p no:unraisableexception

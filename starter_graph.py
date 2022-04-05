@@ -73,6 +73,7 @@ def main(args: Namespace):
     if "train" in args.mode:
         train(config)
     if args.mode == "plot":
+        config.LOAD_DATASET_TO_RAM = False
         plot(config)
 
 

@@ -171,7 +171,12 @@ class BaseDatasetDynamic:
         
             self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         
-        self.loaded_data = self.load_data_to_ram() if self.config.LOAD_DATASET_TO_RAM else None
+        if self.config.LOAD_DATASET_TO_RAM:
+            self.loaded_data = self.load_data_to_ram()
+        else:
+            self.loaded_data = None
+            print("Loading data from disc")
+     
 
     def load_data_to_ram(self):
         setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Preprocessing and loading dataset to RAM")

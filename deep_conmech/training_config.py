@@ -12,7 +12,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "scenarios"  # synthetic # scenarios
+    DATASET: str = "synthetic"  # synthetic # scenarios
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 12  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
@@ -39,7 +39,7 @@ class TrainingData:
     L2_LOSS: bool = True  #!#
     BATCH_SIZE: int = 128  #!#
     VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 4  # !# 64 # 512
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 8  # !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     

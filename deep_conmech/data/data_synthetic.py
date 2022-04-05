@@ -135,14 +135,14 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
             assigned_data_range, desc=tqdm_description, config=self.config, position=process_id,
         )
 
-        settings_file, file_meta = SettingIterable.open_files_append_pickle(self.data_path)
+        settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
                 if is_memory_overflow(config=self.config, step_tqdm=step_tqdm, tqdm_description=tqdm_description):
                     return False
 
                 setting, exact_normalized_a_torch = self.generate_setting(index)
-                SettingIterable.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
 
                 self.check_and_print(
                     len(assigned_data_range), index, setting, step_tqdm, tqdm_description
