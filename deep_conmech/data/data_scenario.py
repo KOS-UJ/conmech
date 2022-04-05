@@ -5,9 +5,9 @@ import numpy as np
 
 from conmech.helpers import cmh, pkh
 from deep_conmech.training_config import TrainingConfig
-from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
+from deep_conmech.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
     is_memory_overflow
-from deep_conmech.graph.helpers import thh
+from deep_conmech.helpers import thh
 from conmech.properties.scenarios import Scenario
 
 

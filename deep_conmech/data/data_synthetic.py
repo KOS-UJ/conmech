@@ -1,10 +1,10 @@
-import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
+import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph, cmh
 from conmech.properties import scenarios
-from deep_conmech.graph.data.data_base import *
-from deep_conmech.graph.helpers import thh
+from deep_conmech.data.data_base import *
+from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.setting.setting_forces import *
 from conmech.simulations.solver import Solver

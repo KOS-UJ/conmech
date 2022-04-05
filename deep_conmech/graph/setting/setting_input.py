@@ -212,7 +212,7 @@ class SettingInput(SettingTorch):
             normalized_boundary_normals=self.get_normalized_boundary_normals_torch(),
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
             normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
-            surface_per_boundary_node=self.get_surface_per_boundary_node_torch(),
+            surf_per_boundary_node=self.get_surface_per_boundary_node_torch(),
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1

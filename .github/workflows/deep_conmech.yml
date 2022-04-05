@@ -12,21 +12,18 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ 3.7, 3.8, 3.9 ]
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-python@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.10
 
-      - run: pip install pytest
-      - run: pip install -r requirements.txt
-      - run: pip install -r requirements-deep.txt
+      - run: |
+          pip install pytest
+      - run: |
+          pip install -r requirements.txt
 
       - if: matrix.platform == 'ubuntu-latest'
         run: sudo apt-get install -y python3-gmsh

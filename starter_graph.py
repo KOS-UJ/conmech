@@ -3,9 +3,9 @@ from argparse import ArgumentParser, Namespace
 
 from conmech.properties import scenarios
 from deep_conmech.training_config import TrainingConfig
-from deep_conmech.graph.data.data_scenario import ScenariosDatasetDynamic
-from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
-from deep_conmech.graph.helpers import dch, thh
+from deep_conmech.data.data_scenario import ScenariosDatasetDynamic
+from deep_conmech.data.data_synthetic import TrainingSyntheticDatasetDynamic
+from deep_conmech.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 from conmech.simulations.solver import Solver

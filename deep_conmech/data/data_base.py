@@ -175,8 +175,7 @@ class BaseDatasetDynamic:
 
     def load_data_to_ram(self):
         setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Preprocessing and loading dataset to RAM")
-        self.loaded_data = [self.preprocess_example(setting, index) for setting, index in setting_tqdm] 
-
+        return [self.preprocess_example(setting, index) for index, setting in enumerate(setting_tqdm)] 
 
     def generate_data_process(self, num_workers, process_id):
         pass
@@ -187,7 +186,7 @@ class BaseDatasetDynamic:
 
     @property
     def main_directory(self):
-        return f"./datasets/{self.data_id}/"
+        return f"./datasets/{self.data_id}"
 
     @property
     def data_path(self):
