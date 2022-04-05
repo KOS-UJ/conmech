@@ -70,7 +70,7 @@ class Optimization(Solver):
                 args=(
                     old_solution,
                     self.mesh.initial_nodes,
-                    self.mesh.contact,
+                    self.mesh.contact_surfaces,
                     self.point_relations,
                     self.point_forces,
                 ),
@@ -86,7 +86,7 @@ class Optimization(Solver):
     def solve_t(self, initial_guess: np.ndarray, velocity: np.ndarray) -> np.ndarray:
         loss_args = (
             self.mesh.initial_nodes,
-            self.mesh.contact,
+            self.mesh.contact_surfaces,
             self.T,  # TODO #48
             self.Q,  # TODO #48
             velocity,

@@ -44,20 +44,18 @@ class Forces:
 
         # np.allclose(self.F2,  self.F)
 
-        for neumann_boundary in self.mesh.neumann:
+        for edge in self.mesh.neumann_surfaces:
+            v0 = edge[0]
+            v1 = edge[1]
 
-            for i in range(1, len(neumann_boundary)):
-                v0 = neumann_boundary[i - 1]
-                v1 = neumann_boundary[i]
+            edge_length = nph.length(
+                self.mesh.initial_nodes[v0], self.mesh.initial_nodes[v1]
+            )
+            v_mid = (self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]) / 2
 
-                edge_length = nph.length(
-                    self.mesh.initial_nodes[v0], self.mesh.initial_nodes[v1]
-                )
-                v_mid = (self.mesh.initial_nodes[v0] + self.mesh.initial_nodes[v1]) / 2
+            f_neumann = self.outer_forces(*v_mid) * edge_length / 2
 
-                f_neumann = self.outer_forces(*v_mid) * edge_length / 2
-
-                F[v0] += f_neumann
-                F[v1] += f_neumann
+            F[v0] += f_neumann
+            F[v1] += f_neumann
 
         self.F = F[: self.mesh.independent_nodes_count, :]

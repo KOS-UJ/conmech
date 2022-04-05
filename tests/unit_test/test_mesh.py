@@ -5,12 +5,12 @@ Created at 12.02.2022
 import numpy as np
 import pytest
 
-from conmech.boundaries_builder import extract_boundary_paths
+from conmech.boundaries_builder import extract_boundary_paths_from_elements
 
 
 
 def test_identify_surfaces():
-    elements = [[0, 1, 4],
+    elements = np.array([[0, 1, 4],
                 [0, 1, 7],
                 [1, 2, 7],
                 [2, 5, 7],
@@ -18,8 +18,8 @@ def test_identify_surfaces():
                 [2, 6, 8],
                 [3, 6, 8],
                 [3, 4, 6],
-                [1, 4, 6]]
-    boundary_paths = extract_boundary_paths(np.array(elements))
+                [1, 4, 6]])
+    boundary_paths = extract_boundary_paths_from_elements(elements)
     np.testing.assert_array_equal(boundary_paths[0], np.asarray([0, 4, 3, 8, 5, 7, 0]))
     np.testing.assert_array_equal(boundary_paths[1], np.asarray([1, 2, 6, 1]))
 

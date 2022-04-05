@@ -38,15 +38,12 @@ class Drawer:
                        node_color='0.6', edge_color='0.8')
 
         self.draw_mesh(self.state.displaced_points, ax, label='Deformed', node_color="k")
-        for contact_boundary in self.mesh.contact:
-            self.draw_boundary(self.state.displaced_points[contact_boundary], ax,
-                               edge_color="b")
-        for dirichlet_boundary in self.mesh.dirichlet:
-            self.draw_boundary(self.state.displaced_points[dirichlet_boundary], ax,
-                               edge_color="r")
-        for dirichlet_boundary in self.mesh.neumann:
-            self.draw_boundary(self.state.displaced_points[dirichlet_boundary], ax,
-                               edge_color="g")
+        self.draw_boundary(self.state.displaced_points[self.mesh.contact_indices], ax,
+                           edge_color="b")
+        self.draw_boundary(self.state.displaced_points[self.mesh.dirichlet_indices], ax,
+                           edge_color="r")
+        self.draw_boundary(self.state.displaced_points[self.mesh.neumann_indices], ax,
+                           edge_color="g")
 
         # turns on axis, since networkx turn them off
         plt.axis('on')

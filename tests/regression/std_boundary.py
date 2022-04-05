@@ -1,6 +1,6 @@
 
 
-from conmech.boundaries_builder import extract_boundary_paths
+from conmech.boundaries_builder import extract_boundary_paths_from_elements
 
 
 def standard_boundary_nodes(nodes, elements):
@@ -17,7 +17,7 @@ def standard_boundary_nodes(nodes, elements):
 
     result is [id5, id3, id4, id1]
     """
-    boundaries = extract_boundary_paths(elements)
+    boundaries = extract_boundary_paths_from_elements(elements)
     assert len(boundaries) == 1
     boundary = boundaries[0][:-1]  # without closure
     standard_boundary = []

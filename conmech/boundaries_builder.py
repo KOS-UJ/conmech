@@ -2,13 +2,11 @@
 Created at 16.02.2022
 """
 from dataclasses import dataclass
-from platform import node
-from typing import Callable, List, Tuple
+from typing import Callable, Tuple
 
 import numba
 import numpy as np
 from conmech.solvers.solver_methods import njit
-
 
 
 
@@ -47,8 +45,8 @@ def get_boundary_surfaces(elements):
         faces, opposing_indices
     )
     boundary_indices = extract_boundary_indices(boundary_surfaces)
-    #boundary_indices = extract_ordered_boundary_indices_2d(boundary_surfaces)
     return boundary_surfaces, boundary_internal_indices, boundary_indices
+
 
 def extract_boundary_indices(boundary_surfaces):
     return np.unique(boundary_surfaces.flatten(), axis=0)
@@ -149,15 +147,12 @@ class BoundariesData:
     def boundary_nodes_count(self):
         return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
-    contact: np.ndarray
-    dirichlet: np.ndarray
-    neumann: np.ndarray
 
 class BoundariesBuilder:
     """
     Rules:
     - We indicate only dirichlet and contact boundaries, rest of them are assumed to be neumann.
-    - Indicies of contact boundary nodes are first, then neumann nodes, and indices of dirichlet nodes are at the end
+    - Indicies of contact boundary nodes are placed first, then neumann nodes, and indices of dirichlet nodes are at the end
     """
 
     @staticmethod
@@ -181,26 +176,35 @@ class BoundariesBuilder:
             *_
         ) = get_boundary_surfaces(elements)
 
-
         contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
         dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_dirichlet)
         neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n))
         
-
-        contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
-        dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
-        neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
-
         bd = BoundariesData(contact_surfaces=contact_surfaces, neumann_surfaces=neumann_surfaces, dirichlet_surfaces=dirichlet_surfaces, 
             contact_nodes_count=contact_nodes_count, neumann_nodes_count=neumann_nodes_count, dirichlet_nodes_count=dirichlet_nodes_count, 
-            boundary_internal_indices=boundary_internal_indices, contact=contact, dirichlet=dirichlet, neumann=neumann)
+            boundary_internal_indices=boundary_internal_indices)
 
         return initial_nodes, elements, bd
 
 
-##############################################################
-#for legacy tests
-def extract_boundary_path_2d(boundary_edges, start_node = 0):
+
+#For tests
+
+def extract_boundary_paths_from_elements(elements):
+    boundary_surfaces, *_ = get_boundary_surfaces(elements)
+    boundary_indices_to_visit = extract_boundary_indices(boundary_surfaces)
+
+    boundary_paths = []
+    while len(boundary_indices_to_visit) > 0:
+        start_node = boundary_indices_to_visit[0]
+        visited_path = extract_boundary_path(boundary_surfaces, start_node=start_node)
+        visited_path = np.append(visited_path, visited_path[0])
+        boundary_paths.append(visited_path)
+        boundary_indices_to_visit =  list(set(boundary_indices_to_visit) - set(visited_path))
+
+    return boundary_paths
+
+def extract_boundary_path(boundary_edges, start_node = 0):
     visited_path = [] 
 
     def get_neighbours(node):
@@ -218,51 +222,3 @@ def extract_boundary_path_2d(boundary_edges, start_node = 0):
     dfs(start_node)
 
     return np.array(visited_path)
-
-
-def extract_boundary_paths(elements):
-    boundary_surfaces, *_ = get_boundary_surfaces(elements)
-    return extract_boundary_paths_new(boundary_surfaces=boundary_surfaces, loop_paths=True)
-
-def extract_boundary_paths_new(boundary_surfaces, loop_paths):
-    boundary_indices_to_visit = extract_boundary_indices(boundary_surfaces)
-
-    boundary_paths = []
-    while len(boundary_indices_to_visit) > 0:
-        start_node = boundary_indices_to_visit[0]
-        visited_path = extract_boundary_path_2d(boundary_surfaces, start_node=start_node)
-        if loop_paths:
-            visited_path = np.append(visited_path, visited_path[0])
-        boundary_paths.append(visited_path)
-        boundary_indices_to_visit =  list(set(boundary_indices_to_visit) - set(visited_path))
-
-    return boundary_paths
-
-
-###########
-
-'''
-def get_boundaries_new(
-        is_contact: Callable[[np.ndarray], bool],
-        is_dirichlet: Callable[[np.ndarray], bool],
-        boundaries: List[np.ndarray],
-        vertices: np.ndarray
-) -> Tuple[List[np.ndarray], List[np.ndarray], List[np.ndarray]]:
-
-    boundary_surfaces = []
-    for boundary in boundaries:
-        for i in range(len(boundary) - 1):
-            boundary_surfaces.append(np.array([boundary[i],boundary[i+1]]))
-        boundary_surfaces.append(np.array([boundary[-1],boundary[0]]))
-
-    boundary_surfaces = np.array(boundary_surfaces)
-
-    contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, is_contact)
-    dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, is_dirichlet)
-    neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, vertices, lambda n: not is_contact(n) and not is_dirichlet(n))
-    
-    contact = extract_boundary_paths_new(contact_surfaces, loop_paths=False)
-    dirichlet = extract_boundary_paths_new(dirichlet_surfaces, loop_paths=False)
-    neumann = extract_boundary_paths_new(neumann_surfaces, loop_paths=False)
-    return contact, dirichlet, neumann 
-'''
