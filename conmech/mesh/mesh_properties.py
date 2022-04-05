@@ -3,7 +3,7 @@ from typing import List
 
 
 @dataclass
-class MeshData:
+class MeshProperties:
     mesh_type: str
     mesh_density: List[float]
     scale: List[float]

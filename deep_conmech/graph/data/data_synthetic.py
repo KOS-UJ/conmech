@@ -1,8 +1,8 @@
 import numpy as np
 
 import deep_conmech.graph.data.interpolation_helpers as interpolation_helpers
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers import nph, cmh
 from deep_conmech import scenarios
 from deep_conmech.graph.data.data_base import BaseDatasetDynamic, get_process_data_range, \
@@ -81,7 +81,7 @@ def create_obstacles(config, setting):
 
 def get_base_setting(config, mesh_type):
     return SettingInput(
-        mesh_data=MeshData(
+        mesh_data=MeshProperties(
             mesh_type=mesh_type,
             mesh_density=[config.MESH_DENSITY],
             scale=[config.TRAIN_SCALE],

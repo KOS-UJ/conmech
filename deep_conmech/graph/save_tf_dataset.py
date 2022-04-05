@@ -5,8 +5,8 @@ import os
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
@@ -147,7 +147,7 @@ def main():
 
     scenario = Scenario(
         "polygon_rotate",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[1],

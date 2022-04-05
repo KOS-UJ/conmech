@@ -2,11 +2,11 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 
-from conmech.dataclass.body_properties import DynamicBodyProperties, \
+from conmech.properties.body_properties import DynamicBodyProperties, \
     DynamicTemperatureBodyProperties
-from conmech.dataclass.mesh_data import MeshData
-from conmech.dataclass.obstacle_properties import ObstacleProperties, TemperatureObstacleProperties
-from conmech.dataclass.schedule import Schedule
+from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties, TemperatureObstacleProperties
+from conmech.properties.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from deep_conmech.common.training_config import TrainingData
@@ -19,7 +19,7 @@ class Scenario:
     def __init__(
             self,
             id: str,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: DynamicBodyProperties,
             obstacle_prop: ObstacleProperties,
             schedule: Schedule,
@@ -89,7 +89,7 @@ class TemperatureScenario(Scenario):
     def __init__(
             self,
             id: str,
-            mesh_data: MeshData,
+            mesh_data: MeshProperties,
             body_prop: DynamicTemperatureBodyProperties,
             obstacle_prop: TemperatureObstacleProperties,
             schedule: Schedule,
@@ -247,7 +247,7 @@ def f_rotate_3d(ip, mp, md, t):
 def circle_slope(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         id="circle_slope",
-        mesh_data=MeshData(
+        mesh_data=MeshProperties(
             dimension=2,
             mesh_type=m_circle,
             scale=[scale],
@@ -265,7 +265,7 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time):
 def spline_right(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         id="spline_right",
-        mesh_data=MeshData(
+        mesh_data=MeshProperties(
             dimension=2,
             mesh_type=m_spline,
             scale=[scale],
@@ -283,7 +283,7 @@ def spline_right(mesh_density, scale, is_adaptive, final_time):
 def circle_left(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "circle_left",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_circle,
             scale=[scale],
@@ -301,7 +301,7 @@ def circle_left(mesh_density, scale, is_adaptive, final_time):
 def polygon_left(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_left",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
@@ -319,7 +319,7 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time):
 def polygon_slope(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_slope",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
@@ -337,7 +337,7 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time):
 def circle_rotate(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "circle_rotate",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_circle,
             scale=[scale],
@@ -355,7 +355,7 @@ def circle_rotate(mesh_density, scale, is_adaptive, final_time):
 def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_rotate",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
@@ -373,7 +373,7 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
 def polygon_stay(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_stay",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],
@@ -391,7 +391,7 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time):
 def polygon_two(mesh_density, scale, is_adaptive, final_time):
     return Scenario(
         "polygon_two",
-        MeshData(
+        MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
             scale=[scale],

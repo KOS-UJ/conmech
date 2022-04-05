@@ -1,8 +1,11 @@
 import numpy as np
 
-from conmech.dataclass.mesh_data import MeshData
-from deep_conmech.simulator.dynamics import dynamics_builder_2d, dynamics_builder_3d
+from conmech.mesh.mesh_properties import MeshProperties
 from deep_conmech.simulator.mesh import mesh_builders
+from deep_conmech.simulator.dynamics.factory._dynamics_factory_2d import \
+    get_edges_features_matrix_numba as sut_2d
+from deep_conmech.simulator.dynamics.factory._dynamics_factory_3d import \
+    get_edges_features_matrix_numba as sut_3d
 
 
 def test_matrices_2d_integrals():
@@ -11,14 +14,14 @@ def test_matrices_2d_integrals():
     scale_y = 3
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshData(mesh_type="meshzoo_rectangle", mesh_density=[3],
-                           scale=[scale_x, scale_y]),
-    )
-    edges_features_matrix, element_initial_volume = dynamics_builder_2d.get_edges_features_matrix_numba(
-        elements=elements, nodes=initial_nodes
+        mesh_data=MeshProperties(mesh_type="meshzoo_rectangle", mesh_density=[3],
+                                 scale=[scale_x, scale_y]),
     )
 
-    # Act and Assert
+    # Act
+    edges_features_matrix, element_initial_volume = sut_2d(elements=elements, nodes=initial_nodes)
+
+    # Assert
     np.testing.assert_allclose(element_initial_volume.sum(), area)
 
     VOL = edges_features_matrix[0]
@@ -38,13 +41,13 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshData(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
-    )
-    edges_features_matrix, element_initial_volume = dynamics_builder_3d.get_edges_features_matrix_numba(
-        elements=elements, nodes=initial_nodes
+        mesh_data=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
     )
 
-    # Act and Assert
+    # Act
+    edges_features_matrix, element_initial_volume = sut_3d(elements=elements, nodes=initial_nodes)
+
+    # Assert
     np.testing.assert_allclose(element_initial_volume.sum(), 1)
 
     VOL = edges_features_matrix[0]
