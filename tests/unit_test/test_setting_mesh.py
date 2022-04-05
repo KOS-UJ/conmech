@@ -19,13 +19,13 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         schedule=Schedule(1),
         normalize_by_rotation=True
     )
-    setting.prepare()
 
     # Act and Assert
-    np.testing.assert_allclose(setting.surface_per_boundary_node.sum(), volume)
+    np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
+    boundary_normals = setting.get_boundary_normals()
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(setting.boundary_normals),
-        np.ones(len(setting.boundary_normals)),
+        nph.euclidean_norm_numba(boundary_normals),
+        np.ones(len(boundary_normals)),
     )
 
 
@@ -37,13 +37,13 @@ def test_boundary_nodes_data_3d():
         schedule=Schedule(1),
         normalize_by_rotation=True,
     )
-    setting.prepare()
 
     # Act and Assert
-    np.testing.assert_allclose(setting.surface_per_boundary_node.sum(), volume)
+    np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
+    boundary_normals = setting.get_boundary_normals()
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(setting.boundary_normals),
-        np.ones(len(setting.boundary_normals)),
+        nph.euclidean_norm_numba(boundary_normals),
+        np.ones(len(boundary_normals)),
     )
 
 

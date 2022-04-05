@@ -218,19 +218,21 @@ class SettingObstacles(SettingForces):
 
     def get_normalized_L2_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
+        normalized_boundary_normals = self.get_normalized_boundary_normals()
+        surface_per_boundary_node = self.get_surface_per_boundary_node()
         return (
             lambda normalized_boundary_a_vector: L2_obstacle(
-                nph.unstack(normalized_boundary_a_vector, self.dimension),
-                self.C_boundary,
-                normalized_E_boundary,
-                self.normalized_boundary_v_old,
-                self.normalized_boundary_nodes,
-                self.normalized_boundary_normals,
-                self.normalized_boundary_obstacle_nodes,
-                self.normalized_boundary_obstacle_normals,
-                self.surface_per_boundary_node,
-                self.obstacle_prop,
-                self.time_step,
+                a=nph.unstack(normalized_boundary_a_vector, self.dimension),
+                C=self.C_boundary,
+                E=normalized_E_boundary,
+                boundary_v_old=self.normalized_boundary_v_old,
+                boundary_nodes=self.normalized_boundary_nodes,
+                boundary_normals=normalized_boundary_normals,
+                boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes,
+                boundary_obstacle_normals=self.normalized_boundary_obstacle_normals,
+                surface_per_boundary_node=surface_per_boundary_node,
+                obstacle_prop=self.obstacle_prop,
+                time_step=self.time_step,
             ),
             normalized_E_free,
         )
@@ -325,15 +327,13 @@ class SettingObstacles(SettingForces):
     def normalized_boundary_penetration(self):
         return self.normalize_rotate(self.boundary_penetration)
 
-    @property
-    def normalized_boundary_v_tangential(self):
+    def get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
-            self.normalized_boundary_v_old, self.normalized_boundary_normals
+            self.normalized_boundary_v_old, self.get_normalized_boundary_normals()
         ) * (self.boundary_penetration_norm > 0)
 
-    @property
-    def boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_v_old, self.boundary_normals)
+    def get_boundary_v_tangential(self):
+        return nph.get_tangential(self.boundary_v_old, self.get_boundary_normals())
 
     @property
     def resistance_normal(self):
@@ -341,11 +341,10 @@ class SettingObstacles(SettingForces):
             self.boundary_penetration_norm, self.obstacle_prop.hardness, self.time_step
         )
 
-    @property
-    def resistance_tangential(self):
+    def get_resistance_tangential(self):
         return obstacle_resistance_potential_tangential(
             self.boundary_penetration_norm,
-            self.boundary_v_tangential,
+            self.get_boundary_v_tangential(),
             self.obstacle_prop.friction,
             self.time_step,
         )

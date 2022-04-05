@@ -4,10 +4,10 @@ import os
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-
+from conmech.helpers import cmh, pkh
+from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.helpers import dch
@@ -84,14 +84,15 @@ def to_dict(type, array):
     return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
 
 
-def simulate(config:Config,scenario):
-    return simulation_runner.plot_scenario(
+def simulate(config:Config, scenario) -> str:
+    _, data_path = simulation_runner.run_scenario(
         solve_function=Solver.solve,
         scenario=scenario,
         catalog="SAVE_TF",
         config=config,
         save_all=True
     )
+    return data_path
 
 
 def prepare_data(config:TrainingConfig, data_path:str):

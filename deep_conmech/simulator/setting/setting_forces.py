@@ -29,11 +29,9 @@ class SettingForces(Dynamics):
         return self.normalize_rotate(self.forces)
 
     def prepare(self, forces):
-        super().prepare()
         self.forces = forces
 
     def clear(self):
-        super().clear()
         self.forces = None
 
     def get_all_normalized_E_np(self, t):

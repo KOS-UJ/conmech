@@ -69,7 +69,7 @@ def get_edges_data(
     return edges_data
 
 
-# TODO #66
+
 
 
 def L2_obstacle_nvt(
@@ -169,13 +169,13 @@ class SettingInput(SettingTorch):
             self.normalized_boundary_penetration_torch
         )
         boundary_normals = self.complete_boundary_data_with_zeros_torch(
-            self.normalized_boundary_normals_torch
+            self.get_normalized_boundary_normals_torch()
         )
         boundary_v_tangential = self.complete_boundary_data_with_zeros_torch(
-            self.normalized_boundary_v_tangential_torch
+            self.get_normalized_boundary_v_tangential_torch()
         )
         boundary_volume = self.complete_boundary_data_with_zeros_torch(
-            self.surface_per_boundary_node_torch
+            self.get_surface_per_boundary_node_torch()
         )
 
         nodes_data = torch.hstack(
@@ -209,10 +209,10 @@ class SettingInput(SettingTorch):
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
             normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
-            normalized_boundary_normals=self.normalized_boundary_normals_torch,
+            normalized_boundary_normals=self.get_normalized_boundary_normals_torch(),
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
             normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
-            surface_per_boundary_node=self.surface_per_boundary_node_torch,
+            surface_per_boundary_node=self.get_surface_per_boundary_node_torch(),
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1
@@ -230,14 +230,16 @@ class SettingInput(SettingTorch):
         return data
 
     def normalized_L2_obstacle_nvt(self, normalized_boundary_a_vector):
+        normalized_boundary_normals = self.get_normalized_boundary_normals()
+        surface_per_boundary_node = self.get_surface_per_boundary_node()
         return L2_obstacle_nvt(
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_nodes,
-            self.normalized_boundary_normals,
+            normalized_boundary_normals,
             self.normalized_boundary_obstacle_nodes,
             self.normalized_boundary_obstacle_normals,
-            self.surface_per_boundary_node,
+            surface_per_boundary_node,
         )

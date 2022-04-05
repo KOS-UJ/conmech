@@ -171,11 +171,11 @@ class BaseDatasetDynamic:
         
             self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         
-        self.loaded_settings =self.load_data_to_ram() if self.config.LOAD_DATASET_TO_RAM else None
+        self.loaded_data = self.load_data_to_ram() if self.config.LOAD_DATASET_TO_RAM else None
 
     def load_data_to_ram(self):
-        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Loading dataset to RAM")
-        self.loaded_settings = [setting for setting in setting_tqdm] 
+        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Preprocessing and loading dataset to RAM")
+        self.loaded_data = [self.preprocess_example(setting, index) for setting, index in setting_tqdm] 
 
 
     def generate_data_process(self, num_workers, process_id):
@@ -199,12 +199,16 @@ class BaseDatasetDynamic:
 
 
     def get_example(self, index):
-        if self.loaded_settings is not None:
-            setting = self.loaded_settings[index]
+        if self.loaded_data is not None:
+            return self.loaded_data[index]
         else:
             with pkh.open_file_settings_read_pickle(self.data_path) as file:
                 setting = pkh.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=file)
+        data = self.preprocess_example(setting, index)
+        return data
         
+
+    def preprocess_example(self, setting, index):
         if self.randomize_at_load:
             setting.set_randomization(True)
             exact_normalized_a_torch = Solver.clean_acceleration(
@@ -218,6 +222,8 @@ class BaseDatasetDynamic:
             f"{cmh.get_timestamp(self.config)} - {index}", exact_normalized_a_torch
         )
         return data
+
+
 
     def check_and_print(
             self, data_count, current_index, setting, step_tqdm, tqdm_description

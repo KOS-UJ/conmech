@@ -191,7 +191,7 @@ class GraphModelDynamic:
         timestamp = cmh.get_timestamp(config)
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
-            simulation_runner.plot_scenario(
+            simulation_runner.run_scenario(
                 solve_function=net.solve,
                 scenario=scenario,
                 config=config,
@@ -315,7 +315,7 @@ class GraphModelDynamic:
         normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
             boundary_nodes_counts
         )
-        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(
+        normalized_boundary_normals_split = batch.get_normalized_boundary_normals().split(
             boundary_nodes_counts
         )
 

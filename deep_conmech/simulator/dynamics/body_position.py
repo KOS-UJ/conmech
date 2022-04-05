@@ -55,13 +55,6 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
     )
     return unoriented_normals * external_orientation
 
-#TODO:
-#@njit
-#def get_node_surfaces_numba(node_index, boundary_surfaces):
-#    for boundary_surface in boundary_surfaces:
-#        if np.any(boundary_surface == node_index):
-#            boundary_normals[i] += boundary_surfaces_normals[j]
-
 
 @njit
 def get_boundary_nodes_normals_numba(
@@ -69,15 +62,13 @@ def get_boundary_nodes_normals_numba(
 ):
     dim = boundary_surfaces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
+    node_faces_count = np.zeros((boundary_nodes_count, 1), dtype=np.int32)
 
-    for i in range(boundary_nodes_count):
-        node_faces_count = 0
-        for j, boundary_surface in enumerate(boundary_surfaces):
-            if np.any(boundary_surface == i):
-                node_faces_count += 1
-                boundary_normals[i] += boundary_surfaces_normals[j]
+    for i, boundary_surface in enumerate(boundary_surfaces):
+        boundary_normals[boundary_surface] += boundary_surfaces_normals[i]
+        node_faces_count[boundary_surface] += 1
 
-        boundary_normals[i] /= node_faces_count
+    boundary_normals /= node_faces_count
 
     boundary_normals = nph.normalize_euclidean_numba(boundary_normals)
     return boundary_normals
@@ -89,11 +80,9 @@ def get_surface_per_boundary_node_numba(
 ):
     surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
-    for i in range(boundary_nodes_count):
-        for _, boundary_surface in enumerate(boundary_surfaces):
-            if np.any(boundary_surface == i):
-                face_nodes = moved_nodes[boundary_surface]
-                surface_per_boundary_node[i] += element_volume_part_numba(face_nodes)
+    for boundary_surface in boundary_surfaces:
+        face_nodes = moved_nodes[boundary_surface]
+        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
 
     return surface_per_boundary_node
 
@@ -138,13 +127,10 @@ class BodyPosition(Mesh):
         self.u_old = np.zeros_like(self.initial_nodes)
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
-        self.clear()
 
 
     def remesh(self, *args):
         super().remesh(*args)
-        self.clear()
-
 
 
     def set_a_old(self, a):
@@ -175,7 +161,6 @@ class BodyPosition(Mesh):
         self.set_v_old(v)
         self.set_a_old(a)
 
-        self.clear()
         return self
 
     def remesh_self(self):
@@ -238,9 +223,8 @@ class BodyPosition(Mesh):
     def normalized_boundary_nodes(self):
         return self.normalized_nodes[self.boundary_indices]
 
-    @property
-    def normalized_boundary_normals(self):
-        return self.normalize_rotate(self.boundary_normals)
+    def get_normalized_boundary_normals(self):
+        return self.normalize_rotate(self.get_boundary_normals())
 
     @property
     def normalized_a_old(self):
@@ -287,21 +271,15 @@ class BodyPosition(Mesh):
 
 
 
-
-    def clear(self):
-        self.boundary_normals = None
-        self.surface_per_boundary_node = None
-
-
-    def prepare(self):
-        #TODO: lazily eval
-    
+    def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
             self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
         )
+        return get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals)
 
-        self.boundary_normals = get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals)
-        self.surface_per_boundary_node = get_surface_per_boundary_node_numba(self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes)
+    def get_surface_per_boundary_node(self):
+        return get_surface_per_boundary_node_numba(self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes)
+
 
 
     @property

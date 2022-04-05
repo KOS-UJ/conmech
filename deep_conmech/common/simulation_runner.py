@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
@@ -24,7 +24,7 @@ def run_examples(
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
         catalog = os.path.splitext(os.path.basename(file))[0].upper()
-        plot_scenario(
+        run_scenario(
             solve_function=scenario.get_solve_function(),
             scenario=scenario,
             catalog=catalog,
@@ -37,7 +37,7 @@ def run_examples(
     print("DONE")
 
 
-def plot_scenario(
+def run_scenario(
         solve_function,
         scenario: Scenario,
         catalog,
@@ -46,7 +46,7 @@ def plot_scenario(
         plot_animation=True,
         save_all=False,
         get_setting_function: Optional[Callable] = None,
-):
+) -> Tuple[SettingObstacles, str]:
     time_skip = config.PRINT_SKIP
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if save_all else 1
@@ -73,7 +73,7 @@ def plot_scenario(
         if plot_index:
             plot_settings_count[0]+=1
 
-    simulate(
+    setting = simulate(
         compare_with_base_setting=False,
         solve_function=solve_function,
         scenario=scenario,
@@ -87,7 +87,7 @@ def plot_scenario(
         animation_path = f"{final_catalog}/{scenario.id}.gif"
         plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], data_path)
 
-    return data_path
+    return setting, data_path
 
 
 def plot_scenario_animation(
@@ -127,7 +127,7 @@ def simulate(
         config: Config,
         operation: Optional[Callable] = None,
         get_setting_function: Optional[Callable] = None,
-) -> None:
+) -> SettingObstacles:
     _get_setting_function = (
         scenario.get_setting
         if get_setting_function is None
@@ -202,9 +202,8 @@ def simulate(
     #    f" | Comparison time: {comparison_time}" if compare_with_base_setting else ""
     # )
     # print(f"    Solver time : {solver_time}{comparison_str}")
+    return setting
 
-
-# TODO #66
 
 
 def plot_setting(

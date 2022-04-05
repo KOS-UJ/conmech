@@ -220,7 +220,7 @@ def draw_boundary_normals(setting, position, ax):
     draw_additional_setting("N", setting, position, ax)
     plot_arrows(
         setting.normalized_boundary_nodes + position,
-        setting.normalized_boundary_normals,
+        setting.get_normalized_boundary_normals(),
         ax,
     )
 
@@ -229,14 +229,14 @@ def draw_boundary_v_tangential(setting, position, ax):
     draw_additional_setting("V_TNG", setting, position, ax)
     plot_arrows(
         setting.normalized_boundary_nodes + position,
-        setting.normalized_boundary_v_tangential,
+        setting.get_normalized_boundary_v_tangential(),
         ax,
     )
 
 
 def draw_boundary_resistance_normal(setting, position, ax):
     draw_additional_setting("RES_N", setting, position, ax)
-    data = setting.normalized_boundary_normals * setting.resistance_normal / 100
+    data = setting.get_normalized_boundary_normals() * setting.resistance_normal / 100
     plot_arrows(
         setting.normalized_boundary_nodes + position, data, ax,
     )
@@ -244,7 +244,7 @@ def draw_boundary_resistance_normal(setting, position, ax):
 
 def draw_boundary_resistance_tangential(setting, position, ax):
     draw_additional_setting("RES_T", setting, position, ax)
-    data = setting.normalized_boundary_normals * setting.resistance_tangential / 100
+    data = setting.get_normalized_boundary_normals() * setting.get_resistance_tangential() / 100
     plot_arrows(
         setting.normalized_boundary_nodes + position, data, ax,
     )

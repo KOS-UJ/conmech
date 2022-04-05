@@ -13,3 +13,5 @@ class Config:
     NORMALIZE_ROTATE = True
 
     PRINT_SKIP = 0.1
+
+    PLOT_TESTS = False
