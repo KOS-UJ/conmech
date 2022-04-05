@@ -82,7 +82,7 @@ class TDynamicSetup(Dynamic):
         return False
 
 
-def main(show: bool, save: bool):
+def main(show: bool=True, save: bool=False):
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 

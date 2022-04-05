@@ -4,9 +4,8 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-
-from conmech.boundaries_builder import extract_boundary_paths_from_elements
-
+from conmech.boundaries_builder import (BoundariesBuilder,
+                                        extract_boundary_paths_from_elements)
 
 
 def test_identify_surfaces():
@@ -24,7 +23,7 @@ def test_identify_surfaces():
     np.testing.assert_array_equal(boundary_paths[1], np.asarray([1, 2, 6, 1]))
 
 
-def generate_test_suits():
+def generate_test_suits_old():
     def is_dirichlet(x):
         return x[0] < 4
 
@@ -130,22 +129,53 @@ def generate_test_suits():
     yield "dirichlet in the middle", \
           (is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann)
 
-'''
+
+
+
+unordered_nodes = np.asarray([
+    [1.,1.], [0.,0.], [0.,2.], [2.,2.], [2.,0.]
+])
+unordered_elements = np.asarray([[1,2,0],[2,3,0],[3,4,0],[4,1,0]])
+
+
+
+def generate_test_suits():
+    def is_dirichlet(x):
+        return x[0] == 0
+
+    def is_contact(x):
+        return x[1] == 0
+
+    expected_contact_surfaces = np.array([[1,4]])
+
+    expected_neumann_surfaces = np.array([[2,3], [3,4]])
+
+    expected_dirichlet_surfaces = np.array([[1,2]])
+
+    yield "standard triple", \
+          (is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces, expected_dirichlet_surfaces)
+
+
+
+
 
 @pytest.mark.parametrize('_test_name_, params', list(generate_test_suits()))
 def test_condition_boundaries(_test_name_, params):
     # Arrange
-    is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann = params
-    vertices = np.asarray([
-        [0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [8, 8], [9, 9]
-    ])
-    boundaries = [np.asarray([1, 3, 2, 6, 8, 4, 9, 7])] # [np.asarray([6, 2, 3, 1, 7, 9, 4, 8])]
+    is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces, expected_dirichlet_surfaces = params
 
     # Act
-    contact, dirichlet, neumann = get_boundaries_new(is_contact, is_dirichlet, boundaries, vertices)
+    initial_nodes, elements, boundaries_data = BoundariesBuilder.identify_boundaries_and_reorder_nodes(
+        unordered_nodes, unordered_elements, is_dirichlet, is_contact
+    ) 
 
     # Assert
-    np.testing.assert_array_equal(dirichlet, expected_dirichlet)
-    np.testing.assert_array_equal(contact, expected_contact)
-    np.testing.assert_array_equal(neumann, expected_neumann)
-'''
+    def unify_edges(boundary):
+        return frozenset([frozenset([str(np.sort(node)) for node in edge]) for edge in boundary])
+
+    def compare_surfaces(actual_surfaces, expected_surfaces):
+        return unify_edges(initial_nodes[actual_surfaces]) == unify_edges(unordered_nodes[expected_surfaces])
+
+    assert compare_surfaces(boundaries_data.contact_surfaces, expected_contact_surfaces) 
+    assert compare_surfaces(boundaries_data.neumann_surfaces, expected_neumann_surfaces) 
+    assert compare_surfaces(boundaries_data.dirichlet_surfaces, expected_dirichlet_surfaces) 

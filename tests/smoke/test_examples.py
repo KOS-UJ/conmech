@@ -13,7 +13,7 @@ from examples.examples_3d import main as examples_3d
 from examples.examples_temperature_2d import main as examples_temperature_2d
 from examples.examples_temperature_3d import main as examples_temperature_3d
 
-default_args = dict(show=False)
+default_args = dict(show=False, save=False)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
 
 test_suits = {

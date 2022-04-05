@@ -44,7 +44,7 @@ class DynamicSetup(Dynamic):
         return x[0] == 0
 
 
-def main(show: bool):
+def main(show: bool=True, save: bool=False):
     setup = DynamicSetup()
     runner = DynamicProblemSolver(setup, solving_method="schur")
 
@@ -53,7 +53,7 @@ def main(show: bool):
                           initial_velocity=setup.initial_velocity)
     config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(show=show)
+        Drawer(state=state, config=config).draw(show=show, save=save)
 
 
 if __name__ == "__main__":
