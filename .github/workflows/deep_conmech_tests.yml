@@ -6,12 +6,12 @@ defaults:
 
 on:
   push:
-    branches: '*'
+    branches: [ master ]
   pull_request:
-    branches: '*'
+    branches: [ master ]
 
 jobs:
-  run_deep_conmech_tests:
+  run_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,7 +23,7 @@ jobs:
       - run: pip install pytest
       - run: pip install -r requirements.txt
       
-      - run: pip install -r requirements-deep.txt
+      - run: cat requirements-deep.txt | sed -e '/^\s*#.*$/d' -e '/^\s*$/d' | xargs -n 1 pip install
 
       - run: sudo apt-get install -y python3-gmsh
 
