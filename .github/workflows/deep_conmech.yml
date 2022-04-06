@@ -1,4 +1,4 @@
-name: Build Status
+name: Deep Conmech Tests
 
 defaults:
   run:
@@ -6,12 +6,12 @@ defaults:
 
 on:
   push:
-    branches: '*' #[ master ]
+    branches: '*'
   pull_request:
-    branches: '*' #[ master ]
+    branches: '*'
 
 jobs:
-  build:
+  run_deep_conmech_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -22,10 +22,9 @@ jobs:
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
-      - run: pip install torch==1.11.0
+      
       - run: pip install -r requirements-deep.txt
 
-      - if: matrix.platform == 'ubuntu-latest'
-        run: sudo apt-get install -y python3-gmsh
+      - run: sudo apt-get install -y python3-gmsh
 
       - run: PYTHONPATH=. pytest tests/deep -p no:unraisableexception
