@@ -110,8 +110,8 @@ class Dynamic(Quasistatic):
     ):
         self.dim = mesh.dimension
         self.ACC = mesh.ACC
-        self.K = mesh.K
-        self.C2T = mesh.C2T
+        self.thermal_conductivity = mesh.thermal_conductivity
+        self.thermal_expansion = mesh.thermal_expansion
         self.ind = mesh.independent_nodes_count
         self.t_vector = np.zeros(self.ind)
         super().__init__(
@@ -126,7 +126,7 @@ class Dynamic(Quasistatic):
 
         self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
                                                          : self.ind, : self.ind
-                                                         ] + self.K[: self.ind, : self.ind]
+                                                         ] + self.thermal_conductivity[: self.ind, : self.ind]
 
         self.Q = self.recalculate_temperature()
 
@@ -142,7 +142,7 @@ class Dynamic(Quasistatic):
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += np.tile(self.t_vector, self.dim) @ self.C2T
+        X += self.thermal_expansion.T @ self.t_vector
 
         return self.forces.F_vector + X
 
@@ -152,7 +152,7 @@ class Dynamic(Quasistatic):
         self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        X = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
+        X = (-1) * self.thermal_expansion @ self.v_vector
 
         X += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
 
