@@ -1,10 +1,10 @@
 # deep conmech
-psuti==5.9.0
-pandas==1.4.1
+psutil>=5.9.0
+pandas>=1.4.1
 
-torch==1.11.0
-torch-geometric==2.0.4
-tensorboard==2.8.0
+torch>=1.11.0
+torch-geometric>=2.0.4
+tensorboard>=2.8.0
 
 # TF dataset saving
-#tensorflow==2.8.0
+#tensorflow>=2.8.0
