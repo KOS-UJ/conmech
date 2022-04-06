@@ -22,7 +22,7 @@ jobs:
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
-      = run: pip install torch==1.11.0
+      - run: pip install torch==1.11.0
       - run: pip install -r requirements-deep.txt
 
       - if: matrix.platform == 'ubuntu-latest'
