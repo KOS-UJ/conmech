@@ -20,11 +20,12 @@ jobs:
         with:
           python-version: 3.9
 
+      - run: pip install --upgrade pip
+
       - run: pip install pytest
       - run: pip install -r requirements.txt
-      
-      - run: cat requirements-deep.txt | sed -e '/^\s*#.*$/d' -e '/^\s*$/d' | xargs -n 1 pip install
-
       - run: sudo apt-get install -y python3-gmsh
+      
+      - run: pip install -r requirements-deep.txt
 
       - run: PYTHONPATH=. pytest tests/deep -p no:unraisableexception

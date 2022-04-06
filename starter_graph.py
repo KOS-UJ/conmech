@@ -1,22 +1,23 @@
 import argparse
 from argparse import ArgumentParser, Namespace
 
-from conmech.properties import scenarios
-from deep_conmech.training_config import TrainingConfig
+from conmech.scenarios import scenarios
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.data_scenario import ScenariosDatasetDynamic
 from deep_conmech.data.data_synthetic import TrainingSyntheticDatasetDynamic
-from deep_conmech.helpers import dch, thh
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from conmech.simulations.solver import Solver
+from deep_conmech.helpers import dch, thh
+from deep_conmech.training_config import TrainingConfig
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, description="all", config=config)
+        train_dataset = TrainingSyntheticDatasetDynamic(description="train", dimension=2, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config)
     elif dataset_type == "scenarios":
         train_dataset = ScenariosDatasetDynamic(
-            all_scenarios=scenarios.all_train(config.td), solve_function=Solver.solve_all, description="all", config=config
+            description="train", all_scenarios=scenarios.all_train(config.td), solve_function=Calculator.solve_all, 
+            perform_data_update=False, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
         )
     else:
         raise ValueError("Bad dataset type")
@@ -26,17 +27,12 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
 def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
     all_val_datasets.append(train_dataset)
-    #all_val_datasets.append(
-    #    ScenariosDatasetDynamic(
-    #        all_scenarios=scenarios.all_validation(config.td), solve_function=Solver.solve_all, relative_path="ALL", num_workers=config.GENERATION_WORKERS, config=config
-    #    )
-    #)
-    # all_val_datasets.extend(
-    #    [
-    #        ValidationScenarioDatasetDynamic([scenario], scenario.id)
-    #        for scenario in scenarios.all_validation
-    #    ]
-    # )
+    all_val_datasets.append(
+        ScenariosDatasetDynamic(
+            description="val", all_scenarios=scenarios.all_validation(config.td), solve_function=Calculator.solve_all,
+            perform_data_update=False, load_to_ram=False, config=config
+        )
+    )
     return all_val_datasets
 
 
@@ -73,7 +69,6 @@ def main(args: Namespace):
     if "train" in args.mode:
         train(config)
     if args.mode == "plot":
-        config.LOAD_DATASET_TO_RAM = False
         plot(config)
 
 

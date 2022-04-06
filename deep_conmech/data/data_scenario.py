@@ -8,28 +8,30 @@ from deep_conmech.training_config import TrainingConfig
 from deep_conmech.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
     is_memory_overflow
 from deep_conmech.helpers import thh
-from conmech.properties.scenarios import Scenario
+from conmech.scenarios.scenarios import Scenario
 
 
 class ScenariosDatasetDynamic(BaseDatasetDynamic):
     def __init__(
             self,
+            description: str,
             all_scenarios: List[Scenario],
             solve_function: Callable,
-            description: str,
+            perform_data_update:bool,
+            load_to_ram: bool,
             config: TrainingConfig,
-            perform_data_update:bool=False,
     ):
         self.perform_data_update = perform_data_update
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
 
         super().__init__(
-            self.check_and_get_dimension(all_scenarios),
             description=description,
+            dimension=self.check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
             num_workers=config.GENERATION_WORKERS,
+            load_to_ram=load_to_ram,
             config=config,
         )
         self.initialize_data()
@@ -68,7 +70,7 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                     scenario = assigned_scenarios[int(index / episode_steps)]
                     setting = self.get_setting_input(scenario=scenario, config=self.config)
 
-                    tqdm_description = f"Process {process_id}: Generating {scenario.id} data"
+                    tqdm_description = f"Process {process_id}: Generating {self.description} {scenario.id} data"
                     step_tqdm.set_description(tqdm_description)
                 if is_memory_overflow(
                         config=self.config,

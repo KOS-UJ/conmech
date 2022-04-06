@@ -4,8 +4,8 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-from conmech.mesh.boundaries_builder import (
-    BoundariesBuilder, extract_boundary_paths_from_elements)
+from conmech.mesh.boundaries_factory import (
+    BoundariesFactory, extract_boundary_paths_from_elements)
 
 
 def test_identify_surfaces():
@@ -166,7 +166,7 @@ def test_condition_boundaries(_test_name_, params):
     is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces, expected_dirichlet_surfaces = params
 
     # Act
-    initial_nodes, elements, boundaries_data = BoundariesBuilder.identify_boundaries_and_reorder_nodes(
+    initial_nodes, elements, boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
         unordered_nodes, unordered_elements, is_dirichlet, is_contact
     ) 
 

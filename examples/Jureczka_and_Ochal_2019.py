@@ -7,8 +7,8 @@ import numpy as np
 from conmech.helpers.config import Config
 
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
-from conmech.problems import ContactLaw
-from conmech.problems import Static
+from conmech.scenarios.problems import ContactLaw
+from conmech.scenarios.problems import Static
 from conmech.plotting.drawer import Drawer
 
 

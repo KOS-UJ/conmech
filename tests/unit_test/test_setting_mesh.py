@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conmech.dynamics.body_position import BodyPosition
+from conmech.state.body_position import BodyPosition
 from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.properties.mesh_properties import MeshProperties

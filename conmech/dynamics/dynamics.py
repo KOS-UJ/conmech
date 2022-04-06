@@ -6,7 +6,7 @@ from conmech.properties.body_properties import (StaticBodyProperties,
                                                 TemperatureBodyProperties)
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from conmech.dynamics.body_position import BodyPosition
+from conmech.state.body_position import BodyPosition
 from conmech.dynamics.factory.dynamics_factory_method import \
     get_dynamics
 from numba import njit

@@ -1,6 +1,6 @@
 
 
-from conmech.mesh.boundaries_builder import extract_boundary_paths_from_elements
+from conmech.mesh.boundaries_factory import extract_boundary_paths_from_elements
 
 
 def standard_boundary_nodes(nodes, elements):

@@ -11,10 +11,10 @@ from conmech.properties.schedule import Schedule
 from conmech.simulations import simulation_runner
 from deep_conmech.training_config import TrainingConfig
 from deep_conmech.graph.helpers import dch
-from conmech.properties.scenarios import (Scenario, default_body_prop,
+from conmech.scenarios.scenarios import (Scenario, default_body_prop,
                                     default_obstacle_prop, f_rotate, m_polygon,
                                     o_side)
-from conmech.simulations.solver import Solver
+from conmech.solvers.calculator import Calculator
 
 tf.enable_eager_execution()
 
@@ -86,7 +86,7 @@ def to_dict(type, array):
 
 def simulate(config:Config, scenario) -> str:
     _, data_path = simulation_runner.run_scenario(
-        solve_function=Solver.solve,
+        solve_function=Calculator.solve,
         scenario=scenario,
         catalog="SAVE_TF",
         config=config,

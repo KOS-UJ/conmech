@@ -9,47 +9,45 @@ import numpy as np
 from conmech.solvers.solver_methods import njit
 
 
-
 @njit
 def identify_surfaces_numba(sorted_elements):
     elements_count, element_size = sorted_elements.shape
     dim = element_size - 1
-    faces = np.zeros((element_size * elements_count, dim), dtype=np.int64)
+    surfaces = np.zeros((element_size * elements_count, dim), dtype=np.int64)
     opposing_indices = np.zeros((element_size * elements_count), dtype=np.int64)
     i = 0
     for j in range(element_size):
         # exclude each node from sorted elements and get all combinations to obtain surfaces
-        faces[i: i + elements_count, :j] = sorted_elements[:, :j]
-        faces[i: i + elements_count, j:dim] = sorted_elements[:, j + 1: element_size]
+        surfaces[i: i + elements_count, :j] = sorted_elements[:, :j]
+        surfaces[i: i + elements_count, j:dim] = sorted_elements[:, j + 1: element_size]
         opposing_indices[i: i + elements_count] = sorted_elements[:, j]
         i += elements_count
-    return faces, opposing_indices
-
-
-    
-def extract_unique_elements(elements, opposing_indices):
-    _, indices, count = np.unique(
-        elements, axis=0, return_index=True, return_counts=True
-    )
-    unique_indices = indices[count == 1]
-    return elements[unique_indices], opposing_indices[unique_indices]
-
+    return surfaces, opposing_indices
 
 
 
 
 def get_boundary_surfaces(elements):
     elements.sort(axis=1)
-    faces, opposing_indices = identify_surfaces_numba(sorted_elements=elements)
+    surfaces, opposing_indices = identify_surfaces_numba(sorted_elements=elements)
+    # boundaries are created by unique surfaces
     boundary_surfaces, boundary_internal_indices = extract_unique_elements(
-        faces, opposing_indices
+        surfaces, opposing_indices
     )
-    boundary_indices = extract_boundary_indices(boundary_surfaces)
+    boundary_indices = extract_unique_indices(boundary_surfaces)
     return boundary_surfaces, boundary_internal_indices, boundary_indices
 
 
-def extract_boundary_indices(boundary_surfaces):
-    return np.unique(boundary_surfaces.flatten(), axis=0)
+def extract_unique_indices(surfaces):
+    return np.unique(surfaces.flatten(), axis=0)
+
+
+def extract_unique_elements(elements, opposing_indices):
+    _, indices, count = np.unique(
+        elements, axis=0, return_index=True, return_counts=True
+    )
+    unique_indices = indices[count == 1]
+    return elements[unique_indices], opposing_indices[unique_indices]
 
 
 
@@ -148,7 +146,7 @@ class BoundariesData:
         return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
 
-class BoundariesBuilder:
+class BoundariesFactory:
     """
     Rules:
     - We indicate only dirichlet and contact boundaries, rest of them are assumed to be neumann.
@@ -192,7 +190,7 @@ class BoundariesBuilder:
 
 def extract_boundary_paths_from_elements(elements):
     boundary_surfaces, *_ = get_boundary_surfaces(elements)
-    boundary_indices_to_visit = extract_boundary_indices(boundary_surfaces)
+    boundary_indices_to_visit = extract_unique_indices(boundary_surfaces)
 
     boundary_paths = []
     while len(boundary_indices_to_visit) > 0:

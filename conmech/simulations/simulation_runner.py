@@ -6,11 +6,11 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
-from conmech.properties.scenarios import Scenario
+from conmech.scenarios.scenarios import Scenario
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
-from conmech.simulations.solver import Solver
+from conmech.solvers.calculator import Calculator
 
 
 def run_examples(
@@ -181,7 +181,7 @@ def simulate(
             )
 
             start_time = time.time()
-            base_a = Solver.solve(base_setting)  # TODO: #65: save in setting
+            base_a = Calculator.solve(base_setting)  # TODO: #65: save in setting
             comparison_time += time.time() - start_time
 
         if operation is not None:

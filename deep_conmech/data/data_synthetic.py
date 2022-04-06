@@ -2,12 +2,12 @@ import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph, cmh
-from conmech.properties import scenarios
+from conmech.scenarios import scenarios
 from deep_conmech.data.data_base import *
 from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.setting.setting_forces import *
-from conmech.simulations.solver import Solver
+from conmech.solvers.calculator import Calculator
 
 
 def create_forces(config, setting):
@@ -86,7 +86,7 @@ def get_base_setting(config, mesh_type):
 
 
 class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
-    def __init__(self, description: str, config:TrainingConfig, dimension:int):
+    def __init__(self, description: str, dimension:int, load_to_ram:bool, config:TrainingConfig):
         num_workers = config.GENERATION_WORKERS
         data_count = config.td.SYNTHETIC_SOLVERS_COUNT
 
@@ -95,11 +95,12 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         self.data_part_count = int(data_count / num_workers)
 
         super().__init__(
-            dimension=dimension,
             description=description,
+            dimension=dimension,
             data_count=data_count,
             randomize_at_load=True,
             num_workers=num_workers,
+            load_to_ram=load_to_ram,
             config=config
         )
         self.initialize_data()
@@ -120,7 +121,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         setting.prepare(forces)
 
         add_label = False
-        exact_normalized_a_torch = thh.to_torch_double(Solver.solve(setting)) if add_label else None
+        exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(setting)) if add_label else None
 
         return setting, exact_normalized_a_torch
 

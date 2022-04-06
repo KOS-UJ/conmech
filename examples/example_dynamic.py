@@ -7,7 +7,7 @@ import numpy as np
 from conmech.helpers.config import Config
 
 from conmech.simulations.problem_solver import Dynamic as DynamicProblemSolver
-from conmech.problems import Dynamic
+from conmech.scenarios.problems import Dynamic
 from conmech.plotting.drawer import Drawer
 from examples.p_slope_contact_law import make_slope_contact_law
 

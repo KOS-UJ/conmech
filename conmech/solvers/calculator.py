@@ -13,7 +13,7 @@ from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 
 
-class Solver:
+class Calculator:
     """
         time used
         base (BFGS) - 178 / 1854
@@ -46,14 +46,14 @@ class Solver:
     def solve(
             setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
-        cleaned_a, _ = Solver.solve_all(setting, initial_a)
+        cleaned_a, _ = Calculator.solve_all(setting, initial_a)
         return cleaned_a
 
     @staticmethod
     def solve_all(setting: SettingObstacles, initial_a: Optional[np.ndarray] = None):
-        normalized_a = Solver.solve_acceleration_normalized(setting, None, initial_a)
-        normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
-        cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
+        normalized_a = Calculator.solve_acceleration_normalized(setting, None, initial_a)
+        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
+        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
@@ -70,23 +70,23 @@ class Solver:
         while i < 2 or np.allclose(last_normalized_a, normalized_a) == False and np.allclose(last_t,
                                                                                              t) == False:
             last_normalized_a, last_t = normalized_a, t
-            normalized_a = Solver.solve_acceleration_normalized(setting, t, initial_a)
-            t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
+            normalized_a = Calculator.solve_acceleration_normalized(setting, t, initial_a)
+            t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
                 raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
             if uzawa is False:
                 break
 
-        normalized_cleaned_a = Solver.clean_acceleration(setting, normalized_a)
-        cleaned_a = Solver.denormalize(setting, normalized_cleaned_a)
-        cleaned_t = Solver.clean_temperature(setting, t)
+        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
+        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
+        cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_a, cleaned_t
 
     @staticmethod
     def solve_temperature(setting: SettingTemperature, normalized_a: np.ndarray, initial_t):
-        t = Solver.solve_temperature_normalized(setting, normalized_a, initial_t)
-        cleaned_t = Solver.clean_temperature(setting, t)
+        t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
+        cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_t
 
     @staticmethod
@@ -95,9 +95,9 @@ class Solver:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
-            return Solver.solve_acceleration_normalized_optimization(setting, t, initial_a)
+            return Calculator.solve_acceleration_normalized_optimization(setting, t, initial_a)
         else:
-            return Solver.solve_acceleration_normalized_function(setting, t, initial_a)
+            return Calculator.solve_acceleration_normalized_function(setting, t, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -106,10 +106,10 @@ class Solver:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
-            return Solver.solve_temperature_normalized_optimization(setting, normalized_a,
+            return Calculator.solve_temperature_normalized_optimization(setting, normalized_a,
                                                                     initial_t)
         else:
-            return Solver.solve_temperature_normalized_function(setting, normalized_a, initial_t)
+            return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
     def solve_temperature_normalized_function(setting: SettingTemperature, normalized_a: np.ndarray,
@@ -122,7 +122,7 @@ class Solver:
     def solve_acceleration_normalized_function(setting, t, initial_a=None):
         normalized_E = setting.get_normalized_E_np(t)
         normalized_a_vector = np.linalg.solve(setting.C, normalized_E)
-        # print(f"Quality: {np.sum(np.mean(C@v_vector-E))}")
+        # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
@@ -138,7 +138,7 @@ class Solver:
 
         tstart = time.time()
         cost_function, normalized_E_free = setting.get_normalized_L2_obstacle_np(t)
-        normalized_boundary_a_vector_np = Solver.minimize(
+        normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )
         t_np = time.time() - tstart
@@ -151,7 +151,7 @@ class Solver:
         """
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
-        normalized_a_vector = Solver.complete_a_vector(
+        normalized_a_vector = Calculator.complete_a_vector(
             setting, normalized_E_free, normalized_boundary_a_vector
         )
 
@@ -166,10 +166,10 @@ class Solver:
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
         cost_function, normalized_Q_free = setting.get_normalized_L2_temperature_np(normalized_a)
-        boundary_t_vector_np = Solver.minimize(cost_function, initial_t_boundary_vector)
+        boundary_t_vector_np = Calculator.minimize(cost_function, initial_t_boundary_vector)
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)
-        t_vector = Solver.complete_t_vector(
+        t_vector = Calculator.complete_t_vector(
             setting, normalized_Q_free, boundary_t_vector
         )
         return t_vector

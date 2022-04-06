@@ -4,7 +4,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from conmech.simulations import simulation_runner
-from conmech.properties.scenarios import (TemperatureScenario, default_C_coeff,
+from conmech.scenarios.scenarios import (TemperatureScenario, default_C_coeff,
                                     default_K_coeff, default_temp_body_prop,
                                     default_temp_obstacle_prop, f_rotate_fast,
                                     get_temp_body_prop, m_circle, m_polygon,

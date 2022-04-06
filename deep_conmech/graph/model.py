@@ -9,7 +9,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
-from conmech.properties import scenarios
+from conmech.scenarios import scenarios
 from conmech.simulations import simulation_runner
 from deep_conmech.training_config import TrainingConfig
 from deep_conmech.data import data_base
@@ -17,8 +17,8 @@ from deep_conmech.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
-from conmech.properties.scenarios import Scenario
-from conmech.simulations.solver import Solver
+from conmech.scenarios.scenarios import Scenario
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
@@ -104,7 +104,7 @@ class GraphModelDynamic:
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
         start_time = time.time()
-        last_valid_time = start_time
+        last_save_time = start_time
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
@@ -124,15 +124,17 @@ class GraphModelDynamic:
             self.scheduler.step()
 
             current_time = time.time()
-            elapsed_time = current_time - last_valid_time
-            if elapsed_time > self.config.td.VALIDATE_AT_MINUTES * 60:
-                print(f"--Training time: {(elapsed_time / 60):.4f} min")
+            elapsed_time = current_time - last_save_time
+            if elapsed_time > self.config.td.SAVE_AT_MINUTES * 60:
+                #print(f"--Training time: {(elapsed_time / 60):.4f} min")
                 self.save_net()
+                last_save_time = time.time()
+
+            if epoch_number % self.config.td.VALIDATE_AT_EPOCHS == 0:
                 self.validation_raport(
                     examples_seen=examples_seen
                 )
                 self.train_dataset.update_data()
-                last_valid_time = time.time()
 
             # print(prof.key_averages().table(row_limit=10))
 
@@ -397,7 +399,7 @@ class GraphModelDynamic:
         # @v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
         predicted_normalized_a = thh.to_torch_double(
             nph.unstack(
-                Solver.minimize(
+                Calculator.minimize(
                     function,
                     thh.to_np_double(torch.zeros_like(predicted_normalized_a)),
                 ),

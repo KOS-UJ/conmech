@@ -1,18 +1,19 @@
 from typing import Callable, Optional, Union
 
 import numpy as np
-
-from conmech.properties.body_properties import DynamicBodyProperties, \
-    DynamicTemperatureBodyProperties
-from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.obstacle_properties import ObstacleProperties, TemperatureObstacleProperties
-from conmech.properties.schedule import Schedule
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
-from deep_conmech.training_config import TrainingData
+from conmech.properties.body_properties import (
+    DynamicBodyProperties, DynamicTemperatureBodyProperties)
+from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import (
+    ObstacleProperties, TemperatureObstacleProperties)
+from conmech.properties.schedule import Schedule
+from conmech.solvers.calculator import Calculator
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
-from conmech.simulations.solver import Solver
+from deep_conmech.simulator.setting.setting_temperature import \
+    SettingTemperature
+from deep_conmech.training_config import TrainingData
 
 
 class Scenario:
@@ -56,7 +57,7 @@ class Scenario:
         )
 
     def get_solve_function(self):
-        return Solver.solve
+        return Calculator.solve
 
     def get_setting(
             self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
@@ -112,7 +113,7 @@ class TemperatureScenario(Scenario):
         return Scenario.get_by_function(self.heat_function, setting, current_time)
 
     def get_solve_function(self):
-        return Solver.solve_with_temperature
+        return Calculator.solve_with_temperature
 
     def get_setting(
             self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
@@ -402,18 +403,22 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time):
     )
 
 
+
+
 def get_data(**args):
     return [
-        polygon_rotate(**args),
         polygon_two(**args),
-        circle_slope(**args),
         spline_right(**args),
         circle_left(**args),
-        polygon_left(**args),
         circle_rotate(**args),
-        polygon_rotate(**args),
-        polygon_rotate(**args),
         polygon_stay(**args),
+    ]
+
+def get_valid_data(**args):
+    return [
+        polygon_left(**args),
+        polygon_rotate(**args),
+        circle_slope(**args),
     ]
 
 
@@ -427,7 +432,7 @@ def all_train(td: TrainingData):
 
 
 def all_validation(td: TrainingData):
-    return get_data(
+    return get_valid_data(
         mesh_density=td.MESH_DENSITY,
         scale=td.VALIDATION_SCALE,
         is_adaptive=False,
@@ -435,17 +440,21 @@ def all_validation(td: TrainingData):
     )
 
 
-def print_args(td: TrainingData):
-    return dict(
+
+def all_print(td: TrainingData):
+    print_args = dict(
         mesh_density=td.MESH_DENSITY,
         scale=td.PRINT_SCALE,
         is_adaptive=False,
         final_time=td.FINAL_TIME,
     )
-
-
-def all_print(td: TrainingData):
     return [
+        *get_valid_data(
+            mesh_density=td.MESH_DENSITY,
+            scale=td.PRINT_SCALE,
+            is_adaptive=False,
+            final_time=td.FINAL_TIME,
+        ),
         *get_data(
             mesh_density=td.MESH_DENSITY,
             scale=td.PRINT_SCALE,

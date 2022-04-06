@@ -1,7 +1,7 @@
 import numpy as np
 
-import conmech.properties.scenarios as scenarios
-from conmech.properties.scenarios import Scenario
+import conmech.scenarios.scenarios as scenarios
+from conmech.scenarios.scenarios import Scenario
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule

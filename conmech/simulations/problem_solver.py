@@ -10,14 +10,14 @@ from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.problems import Dynamic as DynamicProblem
-from conmech.problems import Problem
-from conmech.problems import Quasistatic as QuasistaticProblem
-from conmech.problems import Static as StaticProblem
+from conmech.scenarios.problems import Dynamic as DynamicProblem
+from conmech.scenarios.problems import Problem
+from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
+from conmech.scenarios.problems import Static as StaticProblem
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
-from conmech.state import State, TemperatureState
+from conmech.state.state import State, TemperatureState
 
 
 class ProblemSolver:

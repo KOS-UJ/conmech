@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
-from conmech.properties.scenarios import Scenario, TemperatureScenario
+from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 from matplotlib import animation
 from matplotlib.colors import ListedColormap
 

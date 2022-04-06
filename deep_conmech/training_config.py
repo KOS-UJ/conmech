@@ -11,14 +11,14 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # scenarios
+    DATASET: str = "scenarios"  # synthetic # scenarios
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
 
     
 
-    FORCES_RANDOM_SCALE: int = 10  # TODO #65: 1.3
+    FORCES_RANDOM_SCALE: int = 10  # 1.3
     OBSTACLE_ORIGIN_SCALE: int = 2 * TRAIN_SCALE
 
     DATA_ZERO_FORCES: float = 0.5
@@ -33,7 +33,8 @@ class TrainingData:
 
     
 
-    VALIDATE_AT_MINUTES: int = 10
+    SAVE_AT_MINUTES: int = 10
+    VALIDATE_AT_EPOCHS: int = 20
 
     L2_LOSS: bool = True  #!#
     BATCH_SIZE: int = 128  #!#
@@ -54,7 +55,7 @@ class TrainingData:
 
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 
-    INITIAL_LR: float = 1e-3  # 1e-4 # 1e-5
+    INITIAL_LR: float = 1e-3 # 1e-3  # 1e-4 # 1e-5
     LR_GAMMA: float = 1.0  # 0.999
     FINAL_LR: float = 1e-6
 
@@ -86,10 +87,10 @@ class TrainingConfig(Config):
     PRINT_DATA_CUTOFF: float = 0.1
 
     LOG_DATASET_STATS = True
-    LOAD_DATASET_TO_RAM = True
+    LOAD_TRAIN_DATASET_TO_RAM = True
 
     
     @property
     def DATA_FOLDER(self):
         data_size = self.td.SYNTHETIC_SOLVERS_COUNT if self.td.DATASET == "synthetic" else self.td.FINAL_TIME
-        return f"{self.td.DATASET}_{self.td.MESH_DENSITY}_{data_size}"
+        return f"{self.td.DATASET}_m:{self.td.MESH_DENSITY}_s:{data_size}_a:{self.td.ADAPTIVE_TRAINING_MESH}"

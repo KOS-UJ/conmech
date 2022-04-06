@@ -1,5 +1,5 @@
 from typing import Callable
-from conmech.mesh.boundaries_builder import BoundariesBuilder, BoundariesData
+from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
 
 import conmech.mesh.mesh_builders as mesh_builders
 import numba
@@ -129,7 +129,7 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        self.initial_nodes, self.elements, self.boundaries_data = BoundariesBuilder.identify_boundaries_and_reorder_nodes(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        self.initial_nodes, self.elements, self.boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes

@@ -10,8 +10,8 @@ from deep_conmech.data.dataset_statistics import (DatasetStatistics,
                                                         FeaturesStatistics)
 from deep_conmech.helpers import dch
 from deep_conmech.graph.setting.setting_input import SettingInput
-from conmech.properties.scenarios import Scenario
-from conmech.simulations.solver import Solver
+from conmech.scenarios.scenarios import Scenario
+from conmech.solvers.calculator import Calculator
 from torch_geometric.loader import DataLoader
 
 
@@ -64,7 +64,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - using {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB} GB RAM"
     )
     memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
@@ -93,18 +93,20 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 class BaseDatasetDynamic:
     def __init__(
         self,
-        dimension:int,
         description: str,
+        dimension:int,
         data_count:int,
         randomize_at_load:bool,
         num_workers:int,
-        config: TrainingConfig,
+        load_to_ram: bool,
+        config: TrainingConfig
     ):
         self.dimension = dimension
         self.description = description
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
+        self.load_to_ram = load_to_ram
         self.config = config
 
     def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
@@ -171,7 +173,7 @@ class BaseDatasetDynamic:
         
             self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         
-        if self.config.LOAD_DATASET_TO_RAM:
+        if self.load_to_ram:
             self.loaded_data = self.load_data_to_ram()
         else:
             self.loaded_data = None
@@ -215,7 +217,7 @@ class BaseDatasetDynamic:
     def preprocess_example(self, setting, index):
         if self.randomize_at_load:
             setting.set_randomization(True)
-            exact_normalized_a_torch = Solver.clean_acceleration(
+            exact_normalized_a_torch = Calculator.clean_acceleration(
                 setting, setting.exact_normalized_a_torch
             )
         else:
