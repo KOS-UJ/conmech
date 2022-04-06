@@ -241,9 +241,11 @@ def f_rotate_3d(ip, mp, md, t):
     return np.array([0.0, 0.0, 0.0])
 
 
-def circle_slope(mesh_density, scale, is_adaptive, final_time):
+
+
+def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        id="circle_slope",
+        id=f"circle_slope{tag}",
         mesh_data=MeshProperties(
             dimension=2,
             mesh_type=m_circle,
@@ -259,9 +261,9 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def spline_right(mesh_density, scale, is_adaptive, final_time):
+def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        id="spline_right",
+        id=f"spline_right{tag}",
         mesh_data=MeshProperties(
             dimension=2,
             mesh_type=m_spline,
@@ -277,9 +279,9 @@ def spline_right(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def circle_left(mesh_density, scale, is_adaptive, final_time):
+def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "circle_left",
+        f"circle_left{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_circle,
@@ -295,9 +297,9 @@ def circle_left(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_left(mesh_density, scale, is_adaptive, final_time):
+def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "polygon_left",
+        f"polygon_left{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
@@ -313,9 +315,9 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_slope(mesh_density, scale, is_adaptive, final_time):
+def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "polygon_slope",
+        f"polygon_slope{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
@@ -331,9 +333,9 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def circle_rotate(mesh_density, scale, is_adaptive, final_time):
+def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "circle_rotate",
+        f"circle_rotate{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_circle,
@@ -349,9 +351,9 @@ def circle_rotate(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
+def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "polygon_rotate",
+        f"polygon_rotate{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
@@ -367,9 +369,9 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_stay(mesh_density, scale, is_adaptive, final_time):
+def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "polygon_stay",
+        f"polygon_stay{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
@@ -385,9 +387,9 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time):
     )
 
 
-def polygon_two(mesh_density, scale, is_adaptive, final_time):
+def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        "polygon_two",
+        f"polygon_two{tag}",
         MeshProperties(
             dimension=2,
             mesh_type=m_polygon,
@@ -405,25 +407,28 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time):
 
 
 
-def get_data(**args):
+
+def get_train_data(**args):
+    tag="_train"
     return [
-        polygon_two(**args),
-        spline_right(**args),
-        circle_left(**args),
-        circle_rotate(**args),
-        polygon_stay(**args),
+        polygon_two(**args, tag=tag),
+        spline_right(**args, tag=tag),
+        circle_left(**args, tag=tag),
+        circle_rotate(**args, tag=tag),
+        polygon_stay(**args, tag=tag),
     ]
 
 def get_valid_data(**args):
+    tag="_val"
     return [
-        polygon_left(**args),
-        polygon_rotate(**args),
-        circle_slope(**args),
+        polygon_left(**args, tag=tag),
+        polygon_rotate(**args, tag=tag),
+        circle_slope(**args, tag=tag),
     ]
 
 
 def all_train(td: TrainingData):
-    return get_data(
+    return get_train_data(
         mesh_density=td.MESH_DENSITY,
         scale=td.TRAIN_SCALE,
         is_adaptive=td.ADAPTIVE_TRAINING_MESH,
@@ -455,7 +460,7 @@ def all_print(td: TrainingData):
             is_adaptive=False,
             final_time=td.FINAL_TIME,
         ),
-        *get_data(
+        *get_train_data(
             mesh_density=td.MESH_DENSITY,
             scale=td.PRINT_SCALE,
             is_adaptive=False,

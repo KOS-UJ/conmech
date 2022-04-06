@@ -1,10 +1,12 @@
 import argparse
 from argparse import ArgumentParser, Namespace
+from typing import Optional
 
 from conmech.scenarios import scenarios
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.data_scenario import ScenariosDatasetDynamic
 from deep_conmech.data.data_synthetic import TrainingSyntheticDatasetDynamic
+from deep_conmech.data.dataset_statistics import DatasetStatistics
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import dch, thh
@@ -36,23 +38,30 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
     return all_val_datasets
 
 
-def get_net_and_dataset(config: TrainingConfig):
-    train_dataset = get_train_dataset(config.td.DATASET, config=config)
-    statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+def get_net(statistics : Optional[DatasetStatistics], config: TrainingConfig):
     net = CustomGraphNet(2, statistics=statistics, td=config.td)
     net.to(thh.device(config))
-    return net, train_dataset
+    return net
 
 
 def train(config: TrainingConfig):
-    net, train_dataset = get_net_and_dataset(config)
+    train_dataset = get_train_dataset(config.td.DATASET, config=config)
+    statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+    net = get_net(statistics, config)
     all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
 
 
 def plot(config: TrainingConfig):
-    net, _ = get_net_and_dataset(config=config)
+    if config.td.USE_DATASET_STATS:
+        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        statistics = train_dataset.get_statistics()
+    else:
+        statistics = None
+
+    net = get_net(statistics, config)
+
     path = GraphModelDynamic.get_newest_saved_model_path()
     net.load(path)
     all_print_datasets = scenarios.all_print(config.td)
