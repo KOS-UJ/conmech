@@ -3,7 +3,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph, cmh
 from conmech.scenarios import scenarios
-from deep_conmech.data.data_base import *
+from deep_conmech.data.base_dataset import *
 from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.simulator.setting.setting_forces import *
@@ -85,7 +85,7 @@ def get_base_setting(config, mesh_type):
     )
 
 
-class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
+class SyntheticDataset(BaseDataset):
     def __init__(self, description: str, dimension:int, load_to_ram:bool, config:TrainingConfig):
         num_workers = config.GENERATION_WORKERS
         data_count = config.td.SYNTHETIC_SOLVERS_COUNT
@@ -95,7 +95,7 @@ class TrainingSyntheticDatasetDynamic(BaseDatasetDynamic):
         self.data_part_count = int(data_count / num_workers)
 
         super().__init__(
-            description=description,
+            description=f"{description}_synthetic",
             dimension=dimension,
             data_count=data_count,
             randomize_at_load=True,

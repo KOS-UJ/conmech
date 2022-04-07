@@ -5,23 +5,21 @@ import numpy as np
 
 from conmech.helpers import cmh, pkh
 from deep_conmech.training_config import TrainingConfig
-from deep_conmech.data.data_base import BaseDatasetDynamic, get_assigned_scenarios, \
+from deep_conmech.data.base_dataset import BaseDataset, get_assigned_scenarios, \
     is_memory_overflow
 from deep_conmech.helpers import thh
 from conmech.scenarios.scenarios import Scenario
 
 
-class ScenariosDatasetDynamic(BaseDatasetDynamic):
+class ScenariosDataset(BaseDataset):
     def __init__(
             self,
             description: str,
             all_scenarios: List[Scenario],
             solve_function: Callable,
-            perform_data_update:bool,
             load_to_ram: bool,
             config: TrainingConfig,
     ):
-        self.perform_data_update = perform_data_update
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
 
@@ -53,14 +51,15 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
         start_index = process_id * assigned_data_count
         current_index = start_index
         assigned_data_count = self.get_data_count(assigned_scenarios)
+        tqdm_description = f"P{process_id}: Generating {self.description}"
         step_tqdm = cmh.get_tqdm(
             range(assigned_data_count),
             config=self.config,
-            desc=f"Process {process_id}",
+            desc=tqdm_description,
             position=process_id,
         )
         scenario = assigned_scenarios[0]
-
+        
         settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
@@ -70,8 +69,6 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
                     scenario = assigned_scenarios[int(index / episode_steps)]
                     setting = self.get_setting_input(scenario=scenario, config=self.config)
 
-                    tqdm_description = f"Process {process_id}: Generating {self.description} {scenario.id} data"
-                    step_tqdm.set_description(tqdm_description)
                 if is_memory_overflow(
                         config=self.config,
                         step_tqdm=step_tqdm,
@@ -98,8 +95,3 @@ class ScenariosDatasetDynamic(BaseDatasetDynamic):
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True
-
-
-    def update_data(self):
-        if self.perform_data_update:
-            self.clear_and_initialize_data()

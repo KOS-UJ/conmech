@@ -64,7 +64,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - using {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB} GB RAM"
+        f"{tqdm_description} - mem usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
     memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
@@ -90,7 +90,7 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
-class BaseDatasetDynamic:
+class BaseDataset:
     def __init__(
         self,
         description: str,
@@ -108,6 +108,7 @@ class BaseDatasetDynamic:
         self.num_workers = num_workers
         self.load_to_ram = load_to_ram
         self.config = config
+        self.set_version = 0
 
     def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
         setting = SettingInput(
@@ -146,12 +147,6 @@ class BaseDatasetDynamic:
     def update_data(self):
         pass
 
-    def clear_and_initialize_data(self):
-        print(f"Clearing {self.data_id} data")
-        cmh.clear_folder(self.main_directory)
-        cmh.clear_folder(self.images_directory)
-        self.initialize_data()
-
     def initialize_data(self):
         cmh.create_folders(self.main_directory)
         cmh.create_folders(self.images_directory)
@@ -189,7 +184,9 @@ class BaseDatasetDynamic:
 
     @property
     def data_id(self):
-        return f"{self.config.DATA_FOLDER}_{self.description}"
+        td = self.config.td
+        data_size = td.SYNTHETIC_SOLVERS_COUNT if td.DATASET == "synthetic" else td.FINAL_TIME
+        return f"{self.description}_m:{td.MESH_DENSITY}_s:{data_size}_a:{td.ADAPTIVE_TRAINING_MESH}"
 
     @property
     def main_directory(self):
@@ -197,11 +194,11 @@ class BaseDatasetDynamic:
 
     @property
     def data_path(self):
-        return f"{self.main_directory}/DATA"
+        return f"{self.main_directory}/DATA_{self.set_version}"
 
     @property
     def images_directory(self):
-        return f"{self.main_directory}/images"
+        return f"{self.main_directory}/images_{self.set_version}"
 
 
     def get_example(self, index):

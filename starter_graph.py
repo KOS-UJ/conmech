@@ -3,51 +3,26 @@ from argparse import ArgumentParser, Namespace
 from typing import Optional
 
 from conmech.scenarios import scenarios
-from conmech.solvers.calculator import Calculator
-from deep_conmech.data.data_scenario import ScenariosDatasetDynamic
-from deep_conmech.data.data_synthetic import TrainingSyntheticDatasetDynamic
+from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
+from deep_conmech.data.live_dataset import LiveDataset
+from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import dch, thh
 from deep_conmech.training_config import TrainingConfig
 
 
-def get_train_dataset(dataset_type, config: TrainingConfig):
-    if dataset_type == "synthetic":
-        train_dataset = TrainingSyntheticDatasetDynamic(description="train", dimension=2, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config)
-    elif dataset_type == "scenarios":
-        train_dataset = ScenariosDatasetDynamic(
-            description="train", all_scenarios=scenarios.all_train(config.td), solve_function=Calculator.solve_all, 
-            perform_data_update=False, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
-        )
-    else:
-        raise ValueError("Bad dataset type")
-    return train_dataset
-
-
-def get_all_val_datasets(train_dataset, config: TrainingConfig):
-    all_val_datasets = []
-    all_val_datasets.append(train_dataset)
-    all_val_datasets.append(
-        ScenariosDatasetDynamic(
-            description="val", all_scenarios=scenarios.all_validation(config.td), solve_function=Calculator.solve_all,
-            perform_data_update=False, load_to_ram=False, config=config
-        )
-    )
-    return all_val_datasets
-
-
-def get_net(statistics : Optional[DatasetStatistics], config: TrainingConfig):
-    net = CustomGraphNet(2, statistics=statistics, td=config.td)
-    net.to(thh.device(config))
-    return net
-
-
 def train(config: TrainingConfig):
-    train_dataset = get_train_dataset(config.td.DATASET, config=config)
-    statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
-    net = get_net(statistics, config)
+    if config.td.DATASET == "live":
+        net = get_net(None, config)
+        train_dataset = get_live_train_dataset(config=config, net=net)
+    else:
+        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+        net = get_net(statistics, config)
+
+
     all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
@@ -66,6 +41,49 @@ def plot(config: TrainingConfig):
     net.load(path)
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
+
+
+
+
+def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
+    return LiveDataset(
+        description="train", all_scenarios=scenarios.all_train(config.td), net=net, 
+        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
+    )
+
+
+def get_train_dataset(dataset_type, config: TrainingConfig):
+    if dataset_type == "synthetic":
+        train_dataset = SyntheticDataset(description="train", dimension=2, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config)
+    elif dataset_type == "scenarios":
+        train_dataset = CalculatorDataset(
+            description="train", all_scenarios=scenarios.all_train(config.td),
+            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
+        )
+    else:
+        raise ValueError("Bad dataset type")
+    return train_dataset
+
+
+def get_all_val_datasets(train_dataset, config: TrainingConfig):
+    all_val_datasets = []
+    if config.td.DATASET != "live":
+        all_val_datasets.append(train_dataset)
+    all_val_datasets.append(
+        CalculatorDataset(
+            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False, config=config
+        )
+    )
+    return all_val_datasets
+
+
+def get_net(statistics : Optional[DatasetStatistics], config: TrainingConfig):
+    net = CustomGraphNet(2, statistics=statistics, td=config.td)
+    net.to(thh.device(config))
+    return net
+
+
+
 
 
 def main(args: Namespace):

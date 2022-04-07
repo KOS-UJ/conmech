@@ -11,7 +11,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "scenarios"  # synthetic # scenarios
+    DATASET: str = "live"  # synthetic # scenarios # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True #############
@@ -88,9 +88,3 @@ class TrainingConfig(Config):
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True
-
-    
-    @property
-    def DATA_FOLDER(self):
-        data_size = self.td.SYNTHETIC_SOLVERS_COUNT if self.td.DATASET == "synthetic" else self.td.FINAL_TIME
-        return f"{self.td.DATASET}_m:{self.td.MESH_DENSITY}_s:{data_size}_a:{self.td.ADAPTIVE_TRAINING_MESH}"

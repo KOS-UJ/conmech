@@ -12,7 +12,7 @@ from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
 from conmech.simulations import simulation_runner
 from deep_conmech.training_config import TrainingConfig
-from deep_conmech.data import data_base
+from deep_conmech.data import base_dataset
 from deep_conmech.helpers import thh
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.setting import setting_input
@@ -114,7 +114,7 @@ class GraphModelDynamic:
 
             loss_array, es = self.iterate_dataset(
                 dataset=self.train_dataset,
-                dataloader_function=data_base.get_train_dataloader,
+                dataloader_function=base_dataset.get_train_dataloader,
                 step_function=self.train_step,
                 description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
             )
@@ -271,7 +271,7 @@ class GraphModelDynamic:
         for dataset in self.all_val_datasets:
             loss_array, _ = self.iterate_dataset(
                 dataset=dataset,
-                dataloader_function=data_base.get_valid_dataloader,
+                dataloader_function=base_dataset.get_valid_dataloader,
                 step_function=self.test_step,
                 description=dataset.data_id,
             )
