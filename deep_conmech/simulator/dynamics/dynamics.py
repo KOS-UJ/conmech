@@ -1,14 +1,32 @@
 from typing import Callable
 
-from conmech.properties.body_properties import StaticBodyProperties, TemperatureBodyProperties
+import numpy as np
 from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.body_properties import (StaticBodyProperties,
+                                                TemperatureBodyProperties)
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics.factory.dynamics_factory_method import get_dynamics
-from deep_conmech.simulator.mesh.mesh import Mesh
+from deep_conmech.simulator.dynamics.body_position import BodyPosition
+from deep_conmech.simulator.dynamics.factory.dynamics_factory_method import \
+    get_dynamics
+from numba import njit
 
 
-class Dynamics(Mesh):
+@njit
+def get_edges_features_list_numba(edges_number, edges_features_matrix):
+    nodes_count = len(edges_features_matrix[0])
+    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
+    e = 0
+    for i in range(nodes_count):
+        for j in range(nodes_count):
+            if np.any(edges_features_matrix[i, j]):
+                edges_features[e] = edges_features_matrix[i, j]
+                e += 1
+    return edges_features
+
+
+
+class Dynamics(BodyPosition):
     def __init__(
             self,
             mesh_data: MeshProperties,
@@ -22,32 +40,42 @@ class Dynamics(Mesh):
     ):
         super().__init__(
             mesh_data=mesh_data,
+            schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
         )
         self.body_prop = body_prop
-        self.schedule = schedule
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
-        # Schur-complement method cache
-        self.C = None
-        self.T = None
+        self.element_initial_volume:np.ndarray
+        self.const_volume:np.ndarray
+        self.ACC:np.ndarray
+        self.const_elasticity:np.ndarray
+        self.const_viscosity:np.ndarray
+        self.C2T:np.ndarray
+        self.K:np.ndarray
+
+        self.C:np.ndarray
+        self.C_boundary:np.ndarray
+        self.free_x_contact:np.ndarray
+        self.contact_x_free:np.ndarray
+        self.free_x_free_inverted:np.ndarray
+
+        self.T:np.ndarray
+        self.T_boundary:np.ndarray
+        self.T_free_x_contact:np.ndarray
+        self.T_contact_x_free:np.ndarray
+        self.T_free_x_free_inverted:np.ndarray
 
         self.reinitialize_matrices()
+
 
     def remesh(self):
         super().remesh()
         self.reinitialize_matrices()
 
-    @property
-    def time_step(self):
-        return self.schedule.time_step
-
-    @property
-    def with_temperature(self):
-        return isinstance(self.body_prop, TemperatureBodyProperties)
 
     def reinitialize_matrices(self):
         (
@@ -60,7 +88,7 @@ class Dynamics(Mesh):
             self.K,
         ) = get_dynamics(
             elements=self.elements,
-            nodes=self.normalized_points,
+            nodes=self.moved_nodes,
             body_prop=self.body_prop,
             independent_indices=self.independent_indices,
         )
@@ -97,3 +125,8 @@ class Dynamics(Mesh):
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,
                 )
+
+
+    @property
+    def with_temperature(self):
+        return isinstance(self.body_prop, TemperatureBodyProperties)

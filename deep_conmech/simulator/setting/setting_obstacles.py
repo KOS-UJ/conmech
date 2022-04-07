@@ -25,9 +25,6 @@ def get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals):
 get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
 
 
-# TODO #66
-
-
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm ** 2) * ((1.0 / time_step) ** 2)
 
@@ -194,8 +191,12 @@ class SettingObstacles(SettingForces):
             create_in_subprocess=create_in_subprocess,
         )
         self.obstacle_prop = obstacle_prop
+
         self.obstacles = None
         self.clear()
+
+
+
 
     def prepare(self, forces):
         super().prepare(forces)
@@ -208,7 +209,7 @@ class SettingObstacles(SettingForces):
         super().clear()
         self.boundary_obstacle_nodes_indices = None
 
-    def set_obstacles(self, obstacles_unnormalized):
+    def normalize_and_set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         if obstacles_unnormalized is not None:
             self.obstacles[0, ...] = nph.normalize_euclidean_numba(
@@ -306,7 +307,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_indices]
+        return self.normalized_nodes[self.boundary_indices]
 
     @property
     def boundary_penetration_norm(self):
@@ -350,6 +351,7 @@ class SettingObstacles(SettingForces):
         )
 
     def complete_boundary_data_with_zeros(self, data):
+        # TODO: #65 return np.resize(data, (self.nodes_count, data.shape[1])) 
         completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[self.boundary_indices] = data
         return completed_data

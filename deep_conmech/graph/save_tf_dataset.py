@@ -11,15 +11,14 @@ from conmech.helpers import cmh
 from deep_conmech.common import simulation_runner
 from deep_conmech.common.training_config import TrainingConfig
 from deep_conmech.graph.helpers import dch
-from deep_conmech.scenarios import Scenario, m_polygon, default_body_prop, default_obstacle_prop, \
-    f_rotate, o_side
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.scenarios import (Scenario, default_body_prop,
+                                    default_obstacle_prop, f_rotate, m_polygon,
+                                    o_side)
 from deep_conmech.simulator.solver import Solver
 
 tf.enable_eager_execution()
 
 
-# TODO #66
 
 
 def load_data(meta_path, data_path):
@@ -55,7 +54,7 @@ def _parse(proto, meta):
     return out
 
 
-# TODO #66
+
 
 def save_tf_data(data, path: str):
     writer = tf.io.TFRecordWriter(path)
@@ -85,31 +84,37 @@ def to_dict(type, array):
     return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
 
 
-def simulate(scenario):
+def simulate(config:Config,scenario):
     return simulation_runner.plot_scenario(
         solve_function=Solver.solve,
         scenario=scenario,
         catalog="SAVE_TF",
+        config=config,
         save_all=True
     )
 
 
-def prepare_data(all_setting_paths):
-    # all_settings = [SettingIterable.load_pickle(path) for path in all_setting_paths]
-    base_setting = SettingIterable.load_pickle(all_setting_paths[0])
+def prepare_data(config:TrainingConfig, data_path:str):
 
-    elements = base_setting.elements[np.newaxis, ...].astype("int32")
-    initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
-    node_type = np.zeros(
-        (1, base_setting.nodes_count, 1), dtype="int32"
-    )  # TODO: Mask boundary points
+    all_indices = pkh.get_all_indices_pickle(data_path)
+    data_count = len(all_indices)
+    settings_file = pkh.open_file_settings_read_pickle(data_path)
+    with settings_file:
+        load_function = lambda index : pkh.load_index_pickle(index=index, all_indices=all_indices, settings_file=settings_file)
+        base_setting = load_function(index=0)
+        elements = base_setting.elements[np.newaxis, ...].astype("int32")
+        initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
+        node_type = np.zeros(
+            (1, base_setting.nodes_count, 1), dtype="int32"
+        )  # TODO #65: Mask boundary points
 
-    moved_nodes_list = []
-    forces_list = []
-    for path in cmh.get_tqdm(all_setting_paths, desc="Preparing data to save"):
-        setting = SettingIterable.load_pickle(path)
-        moved_nodes_list.append(setting.moved_nodes)
-        forces_list.append(setting.forces)
+        moved_nodes_list = []
+        forces_list = []
+    
+        for index in cmh.get_tqdm(range(data_count), config=config, desc="Preparing data to save"):
+            setting = load_function(index=index)
+            moved_nodes_list.append(setting.moved_nodes)
+            forces_list.append(setting.forces)
     moved_nodes = np.array(moved_nodes_list, dtype="float32")
     forces = np.array(forces_list, dtype="float32")
 
@@ -125,7 +130,7 @@ def prepare_data(all_setting_paths):
             world_pos=to_dict("dynamic", moved_nodes),
         ),
         field_names=["cells", "node_type", "mesh_pos", "forces", "world_pos"],
-        trajectory_length=len(all_setting_paths),
+        trajectory_length=data_count,
     )
 
     data = dict(
@@ -161,8 +166,8 @@ def main():
         obstacles=o_side,
     )
 
-    all_setting_paths = simulate(scenario)
-    meta, data = prepare_data(all_setting_paths)
+    data_path = simulate(config=config, scenario=scenario)
+    meta, data = prepare_data(config=config, data_path=data_path)
 
     meta_path = os.path.join(directory, "meta.json")
     save_meta(meta, meta_path)
@@ -170,6 +175,8 @@ def main():
     for mode in ["train", "test", "valid"]:
         data_path = f"{directory}/{mode}.tfrecord"
         save_tf_data(data, data_path)
+
+    print("DONE")
 
 
 if __name__ == "__main__":

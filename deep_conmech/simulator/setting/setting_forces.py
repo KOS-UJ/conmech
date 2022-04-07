@@ -23,6 +23,7 @@ class SettingForces(Dynamics):
         )
         self.forces = None
 
+
     @property
     def normalized_forces(self):
         return self.normalize_rotate(self.forces)
@@ -81,3 +82,8 @@ class SettingForces(Dynamics):
                 - const_elasticity @ u_old_vector
         )
         return E
+
+
+    @property
+    def input_forces(self):
+        return self.normalized_forces

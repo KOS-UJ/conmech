@@ -4,13 +4,11 @@ from typing import Callable, List, Optional
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import animation
-from matplotlib.colors import ListedColormap
-
-from conmech.helpers import cmh
+from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from deep_conmech.scenarios import Scenario, TemperatureScenario
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
 
 # TODO: Move to config
 dpi = 800
@@ -29,12 +27,18 @@ class ColorbarSettings:
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
 
 
-def get_t_scale(scenario: Scenario, plot_setting_paths: List[str]):
+def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all_settings_path: str):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
-    temperatures = np.array(
-        [SettingIterable.load_pickle(path).t_old for path in plot_setting_paths]
-    )
+    #TODO #65: Refactor (same code in plot_animation)
+    temperatures_list = []
+    all_indices = pkh.get_all_indices_pickle(all_settings_path)
+    settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
+    with settings_file:
+        for step in range(plot_settings_count):
+            setting = pkh.load_index_pickle(index=step * index_skip, all_indices=all_indices, settings_file=settings_file)
+            temperatures_list.append(setting.t_old)
+    temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
 
 
@@ -69,8 +73,6 @@ def set_ax(ax):
         spine.set_linewidth(0.2)
     ax.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
 
-
-# TODO #66
 
 def prepare_for_arrows(starts, vectors):
     nodes_count = len(starts)
@@ -111,15 +113,14 @@ def plot_animation(
     animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count + 1), config=config,
                                   desc="Generating animation")
 
-    settings_file = SettingIterable.open_file_settings_read_pickle(all_settings_path)
-    all_indices = SettingIterable.get_all_indices_pickle(all_settings_path)
-
+    all_indices = pkh.get_all_indices_pickle(all_settings_path)
+    settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         def animate(step):
             animation_tqdm.update(1)
             fig.clf()
             axs = get_axs(fig)
-            setting = SettingIterable.load_index_pickle(index=step * index_skip,
+            setting = pkh.load_index_pickle(index=step * index_skip,
                                                         all_indices=all_indices,
                                                         settings_file=settings_file)
             plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip,

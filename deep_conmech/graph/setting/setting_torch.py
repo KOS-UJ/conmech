@@ -1,3 +1,4 @@
+import torch
 from conmech.helpers.config import Config
 from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
@@ -23,8 +24,11 @@ class SettingTorch(SettingRandomized):
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
 
-    def complete_boundary_data_with_zeros_torch_torch(self, data):
-        return self.complete_boundary_data_with_zeros(data)
+
+    def complete_boundary_data_with_zeros_torch(self, data):
+        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data[self.boundary_indices] = data
+        return completed_data
 
     @property
     def input_u_old_torch(self):
@@ -67,8 +71,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_initial_nodes)
 
     @property
-    def normalized_points_torch(self):
-        return thh.to_torch_double(self.normalized_points)
+    def normalized_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_nodes)
 
     @property
     def normalized_forces_torch(self):

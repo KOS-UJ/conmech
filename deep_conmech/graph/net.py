@@ -335,6 +335,10 @@ class CustomGraphNet(nn.Module):
         return next(self.parameters()).device
 
     @property
+    def statistics(self):
+        return self.statistics
+        
+    @property
     def node_statistics(self):
         return self.node_encoder.statistics
 
@@ -357,7 +361,7 @@ class CustomGraphNet(nn.Module):
         output = self.decoder(node_latents)
         return output
 
-    # TODO #66
+
 
     def save(self, path):
         torch.save(self.state_dict(), path)
@@ -366,7 +370,7 @@ class CustomGraphNet(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
-    # TODO #66
+
 
     def solve_all(self, setting):
         self.eval()
