@@ -2,12 +2,12 @@ import os
 import time
 from typing import Callable, Optional
 
-from conmech.helpers import cmh, pkh
-from conmech.helpers.config import Config
+from _pytest.config import Config
 
+from conmech.helpers import cmh
 from deep_conmech.common.plotter import plotter_2d, plotter_3d, plotter_common
 from deep_conmech.scenarios import Scenario
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.simulator.setting.setting_iterable import SettingIterable
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
 from deep_conmech.simulator.solver import Solver
@@ -48,26 +48,23 @@ def plot_scenario(
         get_setting_function: Optional[Callable] = None,
 ):
     final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
-    animation_path = f"{final_catalog}/{scenario.id}.gif"
-    data_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
-    cmh.create_folders(f"{final_catalog}/scenarios")
-     
+    all_settings_path = f"{final_catalog}/{scenario.id}_DATA"
+    cmh.create_folders(final_catalog)
+
     time_skip = config.PRINT_SKIP
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if save_all else 1
     plot_settings_count = [0]
 
-    settings_file, file_meta = pkh.open_files_append_pickle(data_path)
+    settings_file, file_meta = SettingIterable.open_files_append_pickle(all_settings_path)
     with settings_file, file_meta:
         step = [0]  # TODO: Clean
 
-        def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
+        def operation_save(current_time: float, setting: SettingIterable, base_setting, a, base_a):
             step[0] += 1
-            plot_index = step[0] % ts == 0
-            if save_all or plot_index: 
-                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
-            if plot_index:
-                plot_settings_count[0]+=1
+            if save_all or step[0] % ts == 0:
+                setting.append_pickle(settings_file=settings_file, file_meta=file_meta)
+                plot_settings_count[0] += 1
 
         simulate(
             compare_with_base_setting=False,
@@ -80,28 +77,30 @@ def plot_scenario(
         )
 
     if plot_animation:
-        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], data_path)
+        plot_scenario_animation(scenario, config, final_catalog, time_skip, index_skip,
+                                plot_settings_count[0], all_settings_path)
 
-    return data_path
+    return all_settings_path
 
 
 def plot_scenario_animation(
-    scenario:Scenario,
-    config: Config,
-    animation_path: str,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str
+        scenario: Scenario,
+        config: Config,
+        final_catalog: str,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str
 ):
-    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_settings_count, all_settings_path)
+    # t_scale = plotter_common.get_t_scale(scenario, plot_setting_paths)
+    t_scale = None
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
         else plotter_3d.plot_animation
     )
     plot_function(
-        save_path=animation_path,
+        save_path=f"{final_catalog}/{scenario.id}.gif",
         config=config,
         time_skip=time_skip,
         index_skip=index_skip,

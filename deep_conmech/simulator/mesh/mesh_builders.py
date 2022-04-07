@@ -1,7 +1,4 @@
 from ctypes import ArgumentError
-from typing import Tuple
-
-import numpy as np
 
 from conmech.mesh.mesh_properties import MeshProperties
 from conmech.helpers import mph
@@ -11,7 +8,7 @@ from deep_conmech.simulator.mesh import mesh_builders_legacy, mesh_builders_2d, 
 def build_mesh(
         mesh_data: MeshProperties,
         create_in_subprocess=False,
-) -> Tuple[np.ndarray, np.ndarray]:
+):
     if "cross" in mesh_data.mesh_type:
         return mesh_builders_legacy.get_cross_rectangle(mesh_data)
     elif "meshzoo" in mesh_data.mesh_type:

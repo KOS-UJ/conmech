@@ -8,8 +8,9 @@ from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 
-def main(mesh_density=3, final_time=5, plot_animation=True):
-    config=Config(SHELL=False)
+
+def main(mesh_density=3, final_time=1.10, plot_animation=True):
+    config = Config(SHELL=False)
     all_scenarios = [
         Scenario(
             id="circle_slide_roll",

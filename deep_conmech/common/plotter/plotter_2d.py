@@ -2,13 +2,13 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import collections
+from matplotlib.patches import Rectangle
+
 from conmech.helpers.config import Config
 from deep_conmech.common.plotter import plotter_common
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
-from matplotlib import collections
-from matplotlib.patches import Rectangle
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
 def get_fig():
@@ -123,7 +123,7 @@ def plot_temperature(
 ):
     add_annotation("TEMP", setting, position, ax)
     # vmin, vmax, cmap = plotter_common.get_t_data(t_scale)
-    points = (setting.normalized_nodes + position).T
+    points = (setting.normalized_points + position).T
     ax.scatter(
         *points,
         c=setting.t_old,
@@ -315,11 +315,11 @@ def draw_a(setting, position, ax):
 
 def draw_data(annotation, data, setting, position, ax):
     draw_additional_setting(annotation, setting, position, ax)
-    plot_arrows(setting.normalized_nodes + position, data, ax)
+    plot_arrows(setting.normalized_points + position, data, ax)
 
 
 def draw_additional_setting(annotation, setting, position, ax):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:blue", ax)
+    draw_triplot(setting.normalized_points + position, setting, "tab:blue", ax)
     add_annotation(annotation, setting, position, ax)
 
 
@@ -368,13 +368,13 @@ def draw_vertices_data(position, setting, ax):
 
 
 def draw_data_at_edges(setting, features, position, ax):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:orange", ax)
+    draw_triplot(setting.normalized_points + position, setting, "tab:orange", ax)
 
-    centers = np.sum(setting.edges_normalized_nodes + position, axis=1) / 2.0
-    vertices = setting.edges_normalized_nodes[:, 0] + position
+    centers = np.sum(setting.edges_normalized_points + position, axis=1) / 2.0
+    vertices = setting.edges_normalized_points[:, 0] + position
     points = (centers + vertices) / 2.0
 
-    for i in range(len(setting.edges_normalized_nodes)):
+    for i in range(len(setting.edges_normalized_points)):
         feature = np.around(features[i], 2)
         # np.set_printoptions(precision=3)
         ax.text(
@@ -390,10 +390,10 @@ def draw_data_at_edges(setting, features, position, ax):
 
 
 def draw_data_at_vertices(setting, features, position, ax):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:orange", ax)
+    draw_triplot(setting.normalized_points + position, setting, "tab:orange", ax)
 
-    points = setting.normalized_nodes + position
-    for i in range(len(setting.normalized_nodes)):
+    points = setting.normalized_points + position
+    for i in range(len(setting.normalized_points)):
         feature = np.around(features[i], 2)
         ax.text(
             points[i, 0] - 0.04,

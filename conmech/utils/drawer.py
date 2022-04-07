@@ -30,7 +30,7 @@ class Drawer:
         if hasattr(self.state, "temperature"):
             temperature = np.concatenate((
                 self.state.temperature[:],
-                np.zeros(self.mesh.dirichlet_nodes_count)  # TODO #60
+                np.zeros(self.mesh.dirichlet_count)  # TODO #60
             ))
             self.draw_field(temperature, temp_min, temp_max, ax, f)
 
