@@ -5,10 +5,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from conmech.problem_solver import Static as StaticProblemSolver
-from conmech.problems import ContactLaw
-from conmech.problems import Static
-from conmech.utils.drawer import Drawer
+from conmech.helpers.config import Config
+from conmech.plotting.drawer import Drawer
+from conmech.scenarios.problems import ContactLaw
+from conmech.scenarios.problems import Static
+from conmech.simulations.problem_solver import Static as StaticProblemSolver
 
 
 class JureczkaOchal2018(ContactLaw):
@@ -74,13 +75,14 @@ class StaticSetup(Static):
         return x[0] == 0
 
 
-def main(show: bool):
+def main(show: bool = True, save: bool = False):
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(verbose=True, fixed_point_abs_tol=0.001,
                          initial_displacement=setup.initial_displacement)
-    Drawer(state).draw(show=show)
+    config = Config()
+    Drawer(state=state, config=config).draw(show=show, save=save)
 
 
 if __name__ == "__main__":

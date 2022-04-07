@@ -1,23 +1,63 @@
 import argparse
 from argparse import ArgumentParser, Namespace
+from typing import Optional
 
-from deep_conmech import scenarios
-from deep_conmech.common.training_config import TrainingConfig
-from deep_conmech.graph.data.data_scenario import ValidationScenarioDatasetDynamic, \
-    TrainingScenariosDatasetDynamic
-from deep_conmech.graph.data.data_synthetic import TrainingSyntheticDatasetDynamic
-from deep_conmech.graph.helpers import dch, thh
+from conmech.scenarios import scenarios
+from deep_conmech.data.calculator_dataset import CalculatorDataset
+from deep_conmech.data.dataset_statistics import DatasetStatistics
+from deep_conmech.data.live_dataset import LiveDataset
+from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.simulator.solver import Solver
+from deep_conmech.helpers import dch, thh
+from deep_conmech.training_config import TrainingConfig
+
+
+def train(config: TrainingConfig):
+    if config.td.DATASET == "live":
+        net = get_net(None, config)
+        train_dataset = get_live_train_dataset(config=config, net=net)
+    else:
+        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+        net = get_net(statistics, config)
+
+    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
+    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
+    model.train()
+
+
+def plot(config: TrainingConfig):
+    if config.td.USE_DATASET_STATS:
+        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        statistics = train_dataset.get_statistics()
+    else:
+        statistics = None
+
+    net = get_net(statistics, config)
+
+    path = GraphModelDynamic.get_newest_saved_model_path()
+    net.load(path)
+    all_print_datasets = scenarios.all_print(config.td)
+    GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
+
+
+def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
+    return LiveDataset(
+        description="train", all_scenarios=scenarios.all_train(config.td), net=net,
+        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
+    )
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = TrainingSyntheticDatasetDynamic(dimension=2, config=config)
+        train_dataset = SyntheticDataset(description="train", dimension=2,
+                                         load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+                                         config=config)
     elif dataset_type == "scenarios":
-        train_dataset = TrainingScenariosDatasetDynamic(
-            scenarios.all_train(config.td), Solver.solve_all, config=config
+        train_dataset = CalculatorDataset(
+            description="train", all_scenarios=scenarios.all_train(config.td),
+            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
         )
     else:
         raise ValueError("Bad dataset type")
@@ -26,42 +66,21 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
 
 def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
-    all_val_datasets.append(train_dataset)
+    if config.td.DATASET != "live":
+        all_val_datasets.append(train_dataset)
     all_val_datasets.append(
-        ValidationScenarioDatasetDynamic(
-            scenarios.all_validation(config.td), "ALL", config=config
+        CalculatorDataset(
+            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False,
+            config=config
         )
     )
-    # all_val_datasets.extend(
-    #    [
-    #        ValidationScenarioDatasetDynamic([scenario], scenario.id)
-    #        for scenario in scenarios.all_validation
-    #    ]
-    # )
     return all_val_datasets
 
 
-def get_net_and_dataset(config: TrainingConfig):
-    train_dataset = get_train_dataset(config.td.DATASET, config=config)
-    statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
+def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
     net = CustomGraphNet(2, statistics=statistics, td=config.td)
     net.to(thh.device(config))
-    return net, train_dataset
-
-
-def train(config: TrainingConfig):
-    net, train_dataset = get_net_and_dataset(config)
-    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
-    model.train()
-
-
-def plot(config: TrainingConfig):
-    net, _ = get_net_and_dataset(config=config)
-    path = GraphModelDynamic.get_newest_saved_model_path()
-    net.load(path)
-    all_print_datasets = scenarios.all_print(config.td)
-    GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
+    return net
 
 
 def main(args: Namespace):

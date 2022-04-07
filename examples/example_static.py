@@ -5,9 +5,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from conmech.problem_solver import Static as StaticProblemSolver
-from conmech.problems import Static
-from conmech.utils.drawer import Drawer
+from conmech.helpers.config import Config
+from conmech.plotting.drawer import Drawer
+from conmech.scenarios.problems import Static
+from conmech.simulations.problem_solver import Static as StaticProblemSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -40,13 +41,14 @@ class StaticSetup(Static):
         return x[0] == 0
 
 
-def main(show: bool):
+def main(show: bool = True, save: bool = False):
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "direct")
 
     state = runner.solve(verbose=True,
                          initial_displacement=setup.initial_displacement)
-    Drawer(state).draw(show=show)
+    config = Config()
+    Drawer(state=state, config=config).draw(show=show, save=save)
 
 
 if __name__ == "__main__":

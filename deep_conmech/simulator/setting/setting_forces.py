@@ -1,9 +1,9 @@
+from conmech.dynamics.dynamics import Dynamics
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from deep_conmech.simulator.dynamics.dynamics import Dynamics
 
 
-def L2_new(a, C, E):
+def energy_new(a, C, E):
     a_vector = nph.stack_column(a)
     first = 0.5 * (C @ a_vector) - E
     value = first.reshape(-1) @ a_vector
@@ -28,11 +28,9 @@ class SettingForces(Dynamics):
         return self.normalize_rotate(self.forces)
 
     def prepare(self, forces):
-        super().prepare()
         self.forces = forces
 
     def clear(self):
-        super().clear()
         self.forces = None
 
     def get_all_normalized_E_np(self, t):
@@ -81,3 +79,7 @@ class SettingForces(Dynamics):
                 - const_elasticity @ u_old_vector
         )
         return E
+
+    @property
+    def input_forces(self):
+        return self.normalized_forces

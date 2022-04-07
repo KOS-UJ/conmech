@@ -1,4 +1,4 @@
-from conmech.problems import Problem, \
+from conmech.scenarios.problems import Problem, \
     Static as StaticProblem, \
     Quasistatic as QuasistaticProblem, \
     Dynamic as DynamicProblem

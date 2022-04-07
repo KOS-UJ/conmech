@@ -1,11 +1,11 @@
 import numpy as np
 
-from conmech.mesh.mesh_properties import MeshProperties
-from deep_conmech.simulator.mesh import mesh_builders
-from deep_conmech.simulator.dynamics.factory._dynamics_factory_2d import \
+from conmech.dynamics.factory._dynamics_factory_2d import \
     get_edges_features_matrix_numba as sut_2d
-from deep_conmech.simulator.dynamics.factory._dynamics_factory_3d import \
+from conmech.dynamics.factory._dynamics_factory_3d import \
     get_edges_features_matrix_numba as sut_3d
+from conmech.mesh import mesh_builders
+from conmech.properties.mesh_properties import MeshProperties
 
 
 def test_matrices_2d_integrals():

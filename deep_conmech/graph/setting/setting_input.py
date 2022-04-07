@@ -1,18 +1,19 @@
 import numpy as np
 import torch
+from numba import njit
 from torch_geometric.data import Data
 
+from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers.config import Config
-from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_torch import SettingTorch
-from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
+from deep_conmech.helpers import thh
+from deep_conmech.simulator.setting.setting_obstacles import energy_obstacle
 
 
-def L2_normalized_obstacle_correction(
+def energy_normalized_obstacle_correction(
         cleaned_a,
         a_correction,
         C,
@@ -22,12 +23,12 @@ def L2_normalized_obstacle_correction(
         boundary_normals,
         boundary_obstacle_nodes,
         boundary_obstacle_normals,
-        boundary_nodes_volume,
+        surface_per_boundary_node,
         obstacle_prop,
         time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return L2_obstacle(
+    return energy_obstacle(
         a=a,
         C=C,
         E=E,
@@ -36,13 +37,10 @@ def L2_normalized_obstacle_correction(
         boundary_normals=boundary_normals,
         boundary_obstacle_nodes=boundary_obstacle_nodes,
         boundary_obstacle_normals=boundary_obstacle_normals,
-        boundary_nodes_volume=boundary_nodes_volume,
+        surface_per_boundary_node=surface_per_boundary_node,
         obstacle_prop=obstacle_prop,
         time_step=time_step,
     )
-
-
-# TODO #66
 
 
 @njit
@@ -69,10 +67,7 @@ def get_edges_data(
     return edges_data
 
 
-# TODO #66
-
-
-def L2_obstacle_nvt(
+def energy_obstacle_nvt(
         boundary_a,
         C_boundary,
         E_boundary,
@@ -81,10 +76,10 @@ def L2_obstacle_nvt(
         boundary_normals,
         boundary_obstacle_nodes,
         boundary_obstacle_normals,
-        boundary_nodes_volume,
+        surface_per_boundary_node,
         config
 ):  # np via torch
-    value_torch = L2_normalized_obstacle_correction(
+    value_torch = energy_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device(config)),
         None,
         thh.to_torch_double(C_boundary).to(thh.device(config)),
@@ -94,7 +89,7 @@ def L2_obstacle_nvt(
         thh.to_torch_long(boundary_normals).to(thh.device(config)),
         thh.to_torch_double(boundary_obstacle_nodes).to(thh.device(config)),
         thh.to_torch_double(boundary_obstacle_normals).to(thh.device(config)),
-        thh.to_torch_double(boundary_nodes_volume).to(thh.device(config)),
+        thh.to_torch_double(surface_per_boundary_node).to(thh.device(config)),
     )
     value = thh.to_np_double(value_torch)
     return value  # .item()
@@ -169,13 +164,13 @@ class SettingInput(SettingTorch):
             self.normalized_boundary_penetration_torch
         )
         boundary_normals = self.complete_boundary_data_with_zeros_torch(
-            self.normalized_boundary_normals_torch
+            self.get_normalized_boundary_normals_torch()
         )
         boundary_v_tangential = self.complete_boundary_data_with_zeros_torch(
-            self.normalized_boundary_v_tangential_torch
+            self.get_normalized_boundary_v_tangential_torch()
         )
         boundary_volume = self.complete_boundary_data_with_zeros_torch(
-            self.boundary_nodes_volume_torch
+            self.get_surface_per_boundary_node_torch()
         )
 
         nodes_data = torch.hstack(
@@ -209,10 +204,10 @@ class SettingInput(SettingTorch):
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,
             normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
-            normalized_boundary_normals=self.normalized_boundary_normals_torch,
+            normalized_boundary_normals=self.get_normalized_boundary_normals_torch(),
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
             normalized_boundary_obstacle_normals=self.normalized_boundary_obstacle_normals_torch,
-            boundary_nodes_volume=self.boundary_nodes_volume_torch,
+            surf_per_boundary_node=self.get_surface_per_boundary_node_torch(),
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1
@@ -229,15 +224,17 @@ class SettingInput(SettingTorch):
         """
         return data
 
-    def normalized_L2_obstacle_nvt(self, normalized_boundary_a_vector):
-        return L2_obstacle_nvt(
+    def normalized_energy_obstacle_nvt(self, normalized_boundary_a_vector):
+        normalized_boundary_normals = self.get_normalized_boundary_normals()
+        surface_per_boundary_node = self.get_surface_per_boundary_node()
+        return energy_obstacle_nvt(
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.C_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_nodes,
-            self.normalized_boundary_normals,
+            normalized_boundary_normals,
             self.normalized_boundary_obstacle_nodes,
             self.normalized_boundary_obstacle_normals,
-            self.boundary_nodes_volume,
+            surface_per_boundary_node,
         )

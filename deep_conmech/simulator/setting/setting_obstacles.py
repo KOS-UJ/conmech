@@ -1,12 +1,12 @@
 import numba
 import numpy as np
 
+from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.mesh.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers import nph
-from deep_conmech.simulator.setting.setting_forces import L2_new, SettingForces
+from deep_conmech.simulator.setting.setting_forces import energy_new, SettingForces
 
 
 def get_penetration_norm_internal(
@@ -23,9 +23,6 @@ def get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals):
 
 
 get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
-
-
-# TODO #66
 
 
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
@@ -127,7 +124,7 @@ def integrate_numba(
     return result
 
 
-def L2_obstacle(
+def energy_obstacle(
         a,
         C,
         E,
@@ -136,11 +133,11 @@ def L2_obstacle(
         boundary_normals,
         boundary_obstacle_nodes,
         boundary_obstacle_normals,
-        boundary_nodes_volume: np.ndarray,
+        surface_per_boundary_node: np.ndarray,
         obstacle_prop: ObstacleProperties,
         time_step: float,
 ):
-    value = L2_new(a, C, E)
+    value = energy_new(a, C, E)
 
     boundary_nodes_count = boundary_v_old.shape[0]
     boundary_a = a[:boundary_nodes_count, :]  # TODO: boundary slice
@@ -154,7 +151,7 @@ def L2_obstacle(
         obstacle_nodes=boundary_obstacle_nodes,
         obstacle_nodes_normals=boundary_obstacle_normals,
         v=boundary_v_new,
-        nodes_volume=boundary_nodes_volume,
+        nodes_volume=surface_per_boundary_node,
         hardness=obstacle_prop.hardness,
         friction=obstacle_prop.friction,
         time_step=time_step,
@@ -194,6 +191,7 @@ class SettingObstacles(SettingForces):
             create_in_subprocess=create_in_subprocess,
         )
         self.obstacle_prop = obstacle_prop
+
         self.obstacles = None
         self.clear()
 
@@ -208,28 +206,30 @@ class SettingObstacles(SettingForces):
         super().clear()
         self.boundary_obstacle_nodes_indices = None
 
-    def set_obstacles(self, obstacles_unnormalized):
+    def normalize_and_set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         if obstacles_unnormalized is not None:
             self.obstacles[0, ...] = nph.normalize_euclidean_numba(
                 self.obstacles[0, ...]
             )
 
-    def get_normalized_L2_obstacle_np(self, t=None):
+    def get_normalized_energy_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
+        normalized_boundary_normals = self.get_normalized_boundary_normals()
+        surface_per_boundary_node = self.get_surface_per_boundary_node()
         return (
-            lambda normalized_boundary_a_vector: L2_obstacle(
-                nph.unstack(normalized_boundary_a_vector, self.dimension),
-                self.C_boundary,
-                normalized_E_boundary,
-                self.normalized_boundary_v_old,
-                self.normalized_boundary_nodes,
-                self.normalized_boundary_normals,
-                self.normalized_boundary_obstacle_nodes,
-                self.normalized_boundary_obstacle_normals,
-                self.boundary_nodes_volume,
-                self.obstacle_prop,
-                self.time_step,
+            lambda normalized_boundary_a_vector: energy_obstacle(
+                a=nph.unstack(normalized_boundary_a_vector, self.dimension),
+                C=self.C_boundary,
+                E=normalized_E_boundary,
+                boundary_v_old=self.normalized_boundary_v_old,
+                boundary_nodes=self.normalized_boundary_nodes,
+                boundary_normals=normalized_boundary_normals,
+                boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes,
+                boundary_obstacle_normals=self.normalized_boundary_obstacle_normals,
+                surface_per_boundary_node=surface_per_boundary_node,
+                obstacle_prop=self.obstacle_prop,
+                time_step=self.time_step,
             ),
             normalized_E_free,
         )
@@ -306,7 +306,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_points[self.boundary_indices]
+        return self.normalized_nodes[self.boundary_indices]
 
     @property
     def boundary_penetration_norm(self):
@@ -324,15 +324,13 @@ class SettingObstacles(SettingForces):
     def normalized_boundary_penetration(self):
         return self.normalize_rotate(self.boundary_penetration)
 
-    @property
-    def normalized_boundary_v_tangential(self):
+    def get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
-            self.normalized_boundary_v_old, self.normalized_boundary_normals
+            self.normalized_boundary_v_old, self.get_normalized_boundary_normals()
         ) * (self.boundary_penetration_norm > 0)
 
-    @property
-    def boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_v_old, self.boundary_normals)
+    def get_boundary_v_tangential(self):
+        return nph.get_tangential(self.boundary_v_old, self.get_boundary_normals())
 
     @property
     def resistance_normal(self):
@@ -340,16 +338,16 @@ class SettingObstacles(SettingForces):
             self.boundary_penetration_norm, self.obstacle_prop.hardness, self.time_step
         )
 
-    @property
-    def resistance_tangential(self):
+    def get_resistance_tangential(self):
         return obstacle_resistance_potential_tangential(
             self.boundary_penetration_norm,
-            self.boundary_v_tangential,
+            self.get_boundary_v_tangential(),
             self.obstacle_prop.friction,
             self.time_step,
         )
 
     def complete_boundary_data_with_zeros(self, data):
+        # return np.resize(data, (self.nodes_count, data.shape[1]))
         completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[self.boundary_indices] = data
         return completed_data

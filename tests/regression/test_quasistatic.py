@@ -7,8 +7,9 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-from conmech.problem_solver import Quasistatic as QuasistaticProblem
-from conmech.problems import Quasistatic
+from conmech.scenarios.problems import Quasistatic
+from conmech.simulations.problem_solver import \
+    Quasistatic as QuasistaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.regression.std_boundary import standard_boundary_nodes
 
@@ -185,6 +186,7 @@ def generate_test_suits():
 def test_global_optimization_solver(
         solving_method, setup, expected_displacement_vector
 ):
+    # TODO: #65 Duplicated neumann node  in old boundary construction
     runner = QuasistaticProblem(setup, solving_method)
     results = runner.solve(n_steps=32,
                            initial_displacement=setup.initial_displacement,

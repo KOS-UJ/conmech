@@ -6,8 +6,8 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-from conmech.problem_solver import Static as StaticProblem
-from conmech.problems import Static
+from conmech.scenarios.problems import Static
+from conmech.simulations.problem_solver import Static as StaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.regression.std_boundary import standard_boundary_nodes
 

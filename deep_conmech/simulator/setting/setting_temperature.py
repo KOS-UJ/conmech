@@ -3,8 +3,8 @@ import numpy as np
 from conmech.helpers import nph
 from conmech.solvers import SchurComplement
 from deep_conmech.simulator.setting import setting_obstacles
-from deep_conmech.simulator.setting.setting_forces import L2_new
-from deep_conmech.simulator.setting.setting_iterable import SettingIterable
+from deep_conmech.simulator.setting.setting_forces import energy_new
+from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 def obstacle_heat(
@@ -36,13 +36,13 @@ def integrate(
     return result
 
 
-def L2_temperature(
+def energy_temperature(
         t, T, Q,
 ):
-    return L2_new(t, T, Q)
+    return energy_new(t, T, Q)
 
 
-class SettingTemperature(SettingIterable):
+class SettingTemperature(SettingObstacles):
     def __init__(
             self,
             mesh_data,
@@ -63,12 +63,12 @@ class SettingTemperature(SettingIterable):
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None
 
-    def get_normalized_L2_temperature_np(self, normalized_a):
+    def get_normalized_energy_temperature_np(self, normalized_a):
         normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(
             normalized_a
         )
         return (
-            lambda normalized_boundary_t_vector: L2_temperature(
+            lambda normalized_boundary_t_vector: energy_temperature(
                 nph.unstack(normalized_boundary_t_vector, 1),
                 self.T_boundary,
                 normalized_Q_boundary,
@@ -130,15 +130,17 @@ class SettingTemperature(SettingIterable):
         return Q
 
     def get_obstacle_heat_integral(self):
+        surface_per_boundary_node = self.get_surface_per_boundary_node()
         if self.obstacles is None:
-            return np.zeros_like(self.boundary_nodes_volume)
+            return np.zeros_like(surface_per_boundary_node)
+        boundary_normals = self.get_boundary_normals()
         return integrate(
             nodes=self.boundary_nodes,
-            nodes_normals=self.boundary_normals,
+            nodes_normals=boundary_normals,
             obstacle_nodes=self.boundary_obstacle_nodes,
             obstacle_nodes_normals=self.boundary_obstacle_normals,
             v=self.boundary_v_old,
-            nodes_volume=self.boundary_nodes_volume,
+            nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat
         )
 

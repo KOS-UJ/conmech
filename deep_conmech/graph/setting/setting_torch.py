@@ -1,6 +1,8 @@
+import torch
+
 from conmech.helpers.config import Config
-from deep_conmech.graph.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.helpers import thh
 
 
 class SettingTorch(SettingRandomized):
@@ -23,8 +25,10 @@ class SettingTorch(SettingRandomized):
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
 
-    def complete_boundary_data_with_zeros_torch_torch(self, data):
-        return self.complete_boundary_data_with_zeros(data)
+    def complete_boundary_data_with_zeros_torch(self, data):
+        completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data[self.boundary_indices] = data
+        return completed_data
 
     @property
     def input_u_old_torch(self):
@@ -67,8 +71,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_initial_nodes)
 
     @property
-    def normalized_points_torch(self):
-        return thh.to_torch_double(self.normalized_points)
+    def normalized_nodes_torch(self):
+        return thh.to_torch_double(self.normalized_nodes)
 
     @property
     def normalized_forces_torch(self):
@@ -95,12 +99,12 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_long(self.boundary_nodes_count)
 
     @property
-    def boundary_faces_count_torch(self):
-        return thh.to_torch_long(self.boundary_faces_count)
+    def boundary_surfaces_count_torch(self):
+        return thh.to_torch_long(self.boundary_surfaces_count)
 
     @property
-    def boundary_faces_torch(self):
-        return thh.to_torch_long(self.boundary_faces)
+    def boundary_surfaces_torch(self):
+        return thh.to_torch_long(self.boundary_surfaces)
 
     @property
     def normalized_boundary_v_old_torch(self):
@@ -110,9 +114,8 @@ class SettingTorch(SettingRandomized):
     def normalized_boundary_nodes_torch(self):
         return thh.to_torch_double(self.normalized_boundary_nodes)
 
-    @property
-    def normalized_boundary_normals_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_normals)
+    def get_normalized_boundary_normals_torch(self):
+        return thh.to_torch_double(self.get_normalized_boundary_normals())
 
     @property
     def normalized_boundary_obstacle_nodes_torch(self):
@@ -126,13 +129,11 @@ class SettingTorch(SettingRandomized):
     def normalized_boundary_obstacle_normals_torch(self):
         return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
 
-    @property
-    def normalized_boundary_v_tangential_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_v_tangential)
+    def get_normalized_boundary_v_tangential_torch(self):
+        return thh.to_torch_double(self.get_normalized_boundary_v_tangential())
 
-    @property
-    def boundary_nodes_volume_torch(self):
-        return thh.to_torch_double(self.boundary_nodes_volume)
+    def get_surface_per_boundary_node_torch(self):
+        return thh.to_torch_double(self.get_surface_per_boundary_node())
 
     def get_normalized_E_torch(self):
         return thh.to_torch_double(self.get_normalized_E_np(None))

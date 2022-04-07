@@ -5,7 +5,7 @@ from typing import Type
 
 import numpy as np
 
-from conmech.problems import ContactLaw
+from conmech.scenarios.problems import ContactLaw
 
 
 def make_slope_contact_law(slope: float) -> Type[ContactLaw]:

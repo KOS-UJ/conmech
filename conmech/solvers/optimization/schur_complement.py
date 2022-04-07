@@ -30,8 +30,8 @@ class SchurComplement(Optimization):
             friction_bound,
         )
 
-        self.contact_ids = slice(0, mesh.contact_count)
-        self.free_ids = slice(mesh.contact_count, mesh.independent_nodes_count)
+        self.contact_ids = slice(0, mesh.contact_nodes_count)
+        self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
 
         # ADDED When working with velocity v, forces_contact depend on u
 
@@ -108,7 +108,7 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free  # TODO: refactor to remove T
+        return point_forces.T, forces_free  # TODO: #65 refactor to remove T
 
     def get_C(self):
         raise NotImplementedError()

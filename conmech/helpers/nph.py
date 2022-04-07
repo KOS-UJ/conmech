@@ -41,9 +41,6 @@ def close_modulo(value, divider):
     return np.allclose(value % divider, 0.0) or np.allclose(value % divider, divider)
 
 
-# TODO #66
-
-
 def euclidean_norm(vector, keepdims=False):
     data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
     if isinstance(data, np.ndarray):
@@ -88,9 +85,6 @@ def get_tangential_numba(vector, normal):
     return tangential_vector
 
 
-# TODO #66
-
-
 def get_tangential_2d(normal):
     return np.array((normal[..., 1], -normal[..., 0])).T
 
@@ -107,7 +101,7 @@ def complete_base(base_seed, closest_seed_index=0):
             unnormalized_rolled_base, closest_seed_index, axis=0
         )
     else:
-        raise ArgumentError()
+        raise ArgumentError
     base = normalize_euclidean_numba(unnormalized_base)
     return base
 
@@ -133,9 +127,6 @@ def get_in_base(vectors, base):
     return vectors @ base.T
 
 
-# TODO #66
-
-
 @njit
 def len_x_numba(corners):
     return corners[2] - corners[0]
@@ -156,9 +147,9 @@ def max_numba(corners):
     return [corners[2], corners[3]]
 
 
-# TODO: @numba.njit(inline='always') - when using small function inside other numba
-# TODO: Use numba.njit(...)
-# TODO : use slice instead of int
+# TODO: #65 @numba.njit(inline='always') - when using small function inside other numba
+# TODO: #65 Use numba.njit(...)
+# TODO: #65 use slice instead of int
 
 
 @njit
@@ -176,13 +167,18 @@ def get_random_normal(dim, nodes_count, scale):
 
 
 @njit
-def get_random_normal_circle_numba(dim, nodes_count, scale):
+def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     result = np.zeros((nodes_count, dim))
     for i in range(nodes_count):
         alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
+        r = np.abs(np.random.normal(loc=0.0, scale=randomization_scale * 0.5))
         result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
     return result
+
+
+@njit(inline="always")  # TODO: #65 Probably remove
+def length(p1, p2):
+    return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
 
 """

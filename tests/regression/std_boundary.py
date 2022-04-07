@@ -1,9 +1,9 @@
-from conmech.mesh.boundaries import identify_surfaces
+from conmech.mesh.boundaries_factory import extract_boundary_paths_from_elements
 
 
 def standard_boundary_nodes(nodes, elements):
     """
-    Return nodes indices counter-clockwise for standard bod (rectangle) with first node in (0, 0).
+    Return nodes indices counter-clockwise for standard body (rectangle) with first node in (0, 0).
 
     For body:
 
@@ -15,7 +15,7 @@ def standard_boundary_nodes(nodes, elements):
 
     result is [id5, id3, id4, id1]
     """
-    boundaries = identify_surfaces(elements, len(nodes))
+    boundaries = extract_boundary_paths_from_elements(elements)
     assert len(boundaries) == 1
     boundary = boundaries[0][:-1]  # without closure
     standard_boundary = []

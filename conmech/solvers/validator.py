@@ -23,7 +23,7 @@ class Validator:
             self.f(
                 solution,
                 state.mesh.initial_nodes,
-                state.mesh.boundaries.contact,
+                state.mesh.contact_boundary,
                 self.const_elasticity,
                 self.forces.F_vector
             )

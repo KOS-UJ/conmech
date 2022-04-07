@@ -1,12 +1,14 @@
 import numpy as np
 
-from conmech.mesh.mesh_properties import MeshProperties
-from conmech.properties.schedule import Schedule
 from conmech.helpers.config import Config
-from deep_conmech.common import simulation_runner
-from deep_conmech.scenarios import default_temp_body_prop, get_temp_body_prop, default_K_coeff, \
-    TemperatureScenario, m_rectangle, default_temp_obstacle_prop, o_side, default_C_coeff, m_circle, \
-    o_front, f_rotate_fast, m_polygon
+from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
+from conmech.scenarios.scenarios import (TemperatureScenario, default_C_coeff,
+                                         default_K_coeff, default_temp_body_prop,
+                                         default_temp_obstacle_prop, f_rotate_fast,
+                                         get_temp_body_prop, m_circle, m_polygon,
+                                         m_rectangle, o_front, o_side)
+from conmech.simulations import simulation_runner
 
 
 def get_C_temp_scenarios(mesh_density, final_time):
@@ -140,12 +142,12 @@ def get_friction_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=8, final_time=3, plot_animation=True):
+def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
-    # all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
-    # all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
-    # all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_friction_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
 
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
