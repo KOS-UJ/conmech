@@ -15,7 +15,7 @@ class TrainingData:
     DATASET: str = "scenarios"  # synthetic # scenarios
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 8  # !# 8 #16
-    ADAPTIVE_TRAINING_MESH: bool = False  # True #############
+    ADAPTIVE_TRAINING_MESH: bool = False  # True
 
     
 
@@ -88,8 +88,6 @@ class TrainingConfig(Config):
 
     LOG_DATASET_STATS = True
     LOAD_DATASET_TO_RAM = True
-
-    ############
     
     @property
     def DATA_FOLDER(self):

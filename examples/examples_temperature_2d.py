@@ -1,8 +1,7 @@
 import numpy as np
-
+from conmech.helpers.config import Config
 from conmech.mesh.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers.config import Config
 from deep_conmech.common import simulation_runner
 from deep_conmech.scenarios import (TemperatureScenario, default_C_coeff,
                                     default_K_coeff, default_temp_body_prop,
@@ -142,12 +141,12 @@ def get_friction_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=2, final_time=3, plot_animation=True): #5
+def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
     all_scenarios.extend(get_friction_scenarios(mesh_density, final_time))
-    #all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
-    #all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
-    #all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_polygon_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
 
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
