@@ -1,7 +1,6 @@
 import json
 import time
-from ctypes import ArgumentError
-from typing import Optional
+from argparse import ArgumentError
 
 import numpy as np
 import torch
@@ -19,29 +18,23 @@ from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.scenarios import Scenario
 from deep_conmech.simulator.solver import Solver
-from deep_conmech.graph.data.dataset_statistics import DatasetStatistics
 
-def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
+
+def get_and_init_writer(config: TrainingConfig):
     writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")
-    print("Logging data...")
-    
+
     def pretty_json(value):
         dictionary = vars(value)
         json_str = json.dumps(dictionary, indent=2)
         return "".join("\t" + line for line in json_str.splitlines(True))
 
     writer.add_text(f"{config.CURRENT_TIME}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
-
-    if statistics is not None:
-        edge_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.CURRENT_TIME}_EDGE_STATS.txt", edge_statistics_str, global_step=0)
-
-        node_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.CURRENT_TIME}_NODE_STATS.txt", node_statistics_str, global_step=0)
-
-
-
     return writer
+
+
+# | ung {config.U_NOISE_GAMMA} - rf u {config.U_IN_RANDOM_FACTOR} v {config.V_IN_RANDOM_FACTOR} \
+# | dzf {training_config.DATA_ZERO_FORCES} drv {training_config.DATA_ROTATE_VELOCITY}  \
+# | vpes {config.EPISODE_STEPS} \
 
 
 class ErrorResult:
@@ -60,8 +53,7 @@ class GraphModelDynamic:
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        statistics = train_dataset.get_statistics() if config.LOG_DATASET_STATS else None
-        self.writer = get_and_init_writer(statistics, self.config)
+        self.writer = get_and_init_writer(self.config)
         self.loss_labels = [
             "L2",
             "L2_diff",
@@ -171,7 +163,7 @@ class GraphModelDynamic:
             config: TrainingConfig,
             randomize=False,
             create_in_subprocess: bool = False,
-    ) -> SettingInput:  # "SettingObstacles":
+    ) -> SettingInput:  # "SettingIterable":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
             body_prop=scenario.body_prop,
@@ -181,7 +173,7 @@ class GraphModelDynamic:
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
-        setting.normalize_and_set_obstacles(scenario.obstacles)
+        setting.set_obstacles(scenario.obstacles)
         return setting
 
     @staticmethod
@@ -212,8 +204,7 @@ class GraphModelDynamic:
 
         loss, loss_array_np, batch = self.E(batch)
         loss.backward()
-        if (self.config.td.GRADIENT_CLIP is not None):
-            self.clip_gradients(self.config.td.GRADIENT_CLIP)
+        # self.clip_gradients()
         self.optimizer.step()
 
         return loss_array_np
@@ -226,12 +217,14 @@ class GraphModelDynamic:
 
         return loss_array_np
 
-    def clip_gradients(self, max_norm:float):
+    def clip_gradients(self):
+        """clip_grad_norm (which is actually deprecated in favor of clip_grad_norm_ 
+        following the more consistent syntax of a trailing _ when in-place modification is performed)"""
         parameters = self.net.parameters()
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
-        torch.nn.utils.clip_grad_norm_(parameters, max_norm)
+        torch.nn.utils.clip_grad_norm_(parameters, self.config.td.GRADIENT_CLIP)
 
     # TODO #66
 

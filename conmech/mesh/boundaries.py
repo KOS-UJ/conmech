@@ -155,11 +155,11 @@ def identify_surfaces(elements, vertex_num):
 
     surface_edges = np.zeros((vertex_num, 2), dtype=int) - 1
     for i in range(vertex_num):
-        first_found = 0
+        first_founded = 0
         for j in range(vertex_num):
             if edges[i, j] == 1:
-                surface_edges[i, first_found] = j
-                first_found = 1
+                surface_edges[i, first_founded] = j
+                first_founded = 1
 
     surfaces = []
     for i in range(vertex_num):
