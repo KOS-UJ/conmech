@@ -23,14 +23,14 @@ def get_edges_features_matrix_numba(elements, nodes):
     edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
 
-    for element_index in range(elements_count):  # TODO: prange?
+    for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
         element_points = nodes[element]
 
-        # TODO: Get rid of repetition (?)
+        # TODO: #65 Get rid of repetition (?)
         for i in range(element_size):
             i_dPhX, i_dPhY, element_volume = get_integral_parts_numba(element_points, i)
-            # TODO: Avoid repetition
+            # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
 
             for j in range(element_size):

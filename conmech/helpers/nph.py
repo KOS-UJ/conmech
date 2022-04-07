@@ -155,9 +155,9 @@ def max_numba(corners):
     return [corners[2], corners[3]]
 
 
-# TODO: @numba.njit(inline='always') - when using small function inside other numba
-# TODO: Use numba.njit(...)
-# TODO : use slice instead of int
+# TODO: #65 @numba.njit(inline='always') - when using small function inside other numba
+# TODO: #65 Use numba.njit(...)
+# TODO: #65 use slice instead of int
 
 
 @njit
@@ -186,7 +186,7 @@ def get_random_normal_circle_numba(dim, nodes_count, scale):
 
 
 
-@njit(inline="always") #TODO: Probably remove
+@njit(inline="always") # TODO: #65 Probably remove
 def length(p1, p2):
     return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 

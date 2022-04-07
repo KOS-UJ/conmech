@@ -11,10 +11,10 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "live"  # synthetic # scenarios # live
+    DATASET: str = "scenarios"  # synthetic # scenarios # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
-    ADAPTIVE_TRAINING_MESH: bool = False  # True #############
+    ADAPTIVE_TRAINING_MESH: bool = False  # True
 
     
 

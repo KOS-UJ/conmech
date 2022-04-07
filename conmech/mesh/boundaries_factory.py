@@ -52,12 +52,12 @@ def extract_unique_elements(elements, opposing_indices):
 
 
 def apply_predicate_to_surfaces(surfaces, nodes, predicate:Callable):
-    mask = [predicate(m) for m in np.mean(nodes[surfaces], axis=1)] #TODO: Use numba (?)
+    mask = [predicate(m) for m in np.mean(nodes[surfaces], axis=1)] #TODO: #65 Use numba (?)
     return surfaces[mask]
 
 def apply_predicate_to_boundary_nodes(elements, nodes, predicate:Callable):
     *_, boundary_indices = get_boundary_surfaces(elements)
-    mask = [predicate(n) for n in nodes[boundary_indices]] #TODO: Use numba (?)
+    mask = [predicate(n) for n in nodes[boundary_indices]] #TODO: #65 Use numba (?)
     return boundary_indices[mask]
 
     

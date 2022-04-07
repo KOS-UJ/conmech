@@ -10,7 +10,7 @@ from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 from matplotlib import animation
 from matplotlib.colors import ListedColormap
 
-# TODO: Move to config
+# TODO: #65 Move to config
 dpi = 800
 savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
 
@@ -30,7 +30,7 @@ class ColorbarSettings:
 def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all_settings_path: str):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
-    #TODO: Refactor (repetition from plot_animation)
+    # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
     all_indices = pkh.get_all_indices_pickle(all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)

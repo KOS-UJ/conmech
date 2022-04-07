@@ -2,8 +2,8 @@
 Created at 22.02.2021
 """
 import math
-import numpy as np
 
+import numpy as np
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -108,7 +108,7 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free  # TODO: refactor to remove T
+        return point_forces.T, forces_free  # TODO: #65 refactor to remove T
 
     def get_C(self):
         raise NotImplementedError()

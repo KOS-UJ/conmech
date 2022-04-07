@@ -39,7 +39,7 @@ class Problem:
     mu_coef: float
     la_coef: float
     contact_law: ContactLaw
-    dynamism: str = None  # TODO: remove
+    dynamism: str = None  # TODO: #65 remove
 
     @staticmethod
     def initial_displacement(x: np.ndarray) -> np.ndarray:

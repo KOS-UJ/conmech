@@ -61,7 +61,7 @@ def run_scenario(
         final_catalog = ""
         data_path = ""
 
-    step = [0]  # TODO: Clean
+    step = [0]  # TODO: #65 Clean
 
     def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
         step[0] += 1
@@ -181,7 +181,7 @@ def simulate(
             )
 
             start_time = time.time()
-            base_a = Calculator.solve(base_setting)  # TODO: #65: save in setting
+            base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
             comparison_time += time.time() - start_time
 
         if operation is not None:

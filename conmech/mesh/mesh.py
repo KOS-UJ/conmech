@@ -16,7 +16,7 @@ from numba import njit
 def get_edges_matrix(nodes_count:int, elements:np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
-    for element in elements:  # TODO: prange?
+    for element in elements:  # TODO: #65 prange?
         for i in range(element_vertices_number):
             for j in range(element_vertices_number):
                 if i != j:
@@ -194,7 +194,7 @@ class Mesh:
 
     @property
     def free_nodes_count(self):
-        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count # TODO: CHECK
+        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count # TODO: #65 CHECK
 
 
 

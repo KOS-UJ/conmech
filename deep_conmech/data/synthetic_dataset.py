@@ -1,13 +1,15 @@
+import numpy as np
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers import nph, cmh
+from conmech.helpers import nph, cmh, pkh
 from conmech.scenarios import scenarios
-from deep_conmech.data.base_dataset import *
+from deep_conmech.data import base_dataset
+from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from deep_conmech.simulator.setting.setting_forces import *
 from conmech.solvers.calculator import Calculator
+from deep_conmech.training_config import TrainingConfig
 
 
 def create_forces(config, setting):
@@ -105,12 +107,12 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_count(self):
-        return config.td.SYNTHETIC_SOLVERS_COUNT
+        return TrainingConfig.td.SYNTHETIC_SOLVERS_COUNT
 
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
         setting = get_base_setting(self.config, mesh_type)
-        setting.set_randomization(False) #TODO: Check
+        setting.set_randomization(False) #TODO #65: Check
 
         obstacles_unnormaized = create_obstacles(self.config, setting)
         forces = create_forces(self.config, setting)
@@ -129,7 +131,7 @@ class SyntheticDataset(BaseDataset):
 
 
     def generate_data_process(self, num_workers, process_id):
-        assigned_data_range = get_process_data_range(process_id, self.data_part_count)
+        assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)
 
         tqdm_description = (
             f"Process {process_id} - generating {self.data_id} data"
@@ -141,7 +143,7 @@ class SyntheticDataset(BaseDataset):
         settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
-                if is_memory_overflow(config=self.config, step_tqdm=step_tqdm, tqdm_description=tqdm_description):
+                if base_dataset.is_memory_overflow(config=self.config, step_tqdm=step_tqdm, tqdm_description=tqdm_description):
                     return False
 
                 setting, exact_normalized_a_torch = self.generate_setting(index)

@@ -75,7 +75,7 @@ class ProblemSolver:
     def solving_method(self, value):
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
-        # TODO: fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
+        # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
