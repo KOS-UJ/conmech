@@ -122,9 +122,9 @@ def reorder_numba(
 
 @dataclass
 class BoundariesData:
-    contact_surfaces: np.ndarray
-    neumann_surfaces: np.ndarray
-    dirichlet_surfaces: np.ndarray
+    contact_boundary: np.ndarray
+    neumann_boundary: np.ndarray
+    dirichlet_boundary: np.ndarray
 
     contact_nodes_count: int
     neumann_nodes_count: int
@@ -135,7 +135,7 @@ class BoundariesData:
     @property
     def boundary_surfaces(self):
         return np.unique(
-            np.vstack((self.contact_surfaces, self.neumann_surfaces, self.dirichlet_surfaces)),
+            np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
             axis=1)
 
     @property
@@ -171,16 +171,16 @@ class BoundariesFactory:
             *_
         ) = get_boundary_surfaces(elements)
 
-        contact_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
-        dirichlet_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
+        contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
+        dirichlet_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
                                                          is_dirichlet)
-        neumann_surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
+        neumann_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
                                                        lambda n: not is_contact(
                                                            n) and not is_dirichlet(n))
 
-        boundaries_data = BoundariesData(contact_surfaces=contact_surfaces,
-                                         neumann_surfaces=neumann_surfaces,
-                                         dirichlet_surfaces=dirichlet_surfaces,
+        boundaries_data = BoundariesData(contact_boundary=contact_boundary,
+                                         neumann_boundary=neumann_boundary,
+                                         dirichlet_boundary=dirichlet_boundary,
                                          contact_nodes_count=contact_nodes_count,
                                          neumann_nodes_count=neumann_nodes_count,
                                          dirichlet_nodes_count=dirichlet_nodes_count,

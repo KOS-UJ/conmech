@@ -44,11 +44,11 @@ def make_f(jn, jt, h):
     h = numba.njit(h)
 
     @numba.njit()
-    def contact_part(u_vector, nodes, contact_surfaces):
+    def contact_part(u_vector, nodes, contact_boundary):
         contact_vector = np.zeros_like(u_vector)
         offset = len(u_vector) // DIMENSION
 
-        for edge in contact_surfaces:
+        for edge in contact_boundary:
             n_id_0 = edge[0]
             n_id_1 = edge[1]
             n_0 = nodes[n_id_0]
@@ -84,8 +84,8 @@ def make_f(jn, jt, h):
         return contact_vector
 
     @numba.njit()
-    def f(u_vector, vertices, contact_surfaces, B, F_vector):
-        c_part = contact_part(u_vector, vertices, contact_surfaces)
+    def f(u_vector, vertices, contact_boundary, B, F_vector):
+        c_part = contact_part(u_vector, vertices, contact_boundary)
         result = np.dot(B, u_vector) + c_part - F_vector
         return result
 
@@ -108,11 +108,11 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
     h = njit(h)
 
     @numba.njit()
-    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_surfaces):
+    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary):
         cost = 0
         offset = len(u_vector) // DIMENSION
 
-        for edge in contact_surfaces:
+        for edge in contact_boundary:
             n_id_0 = edge[0]
             n_id_1 = edge[1]
             n_0 = nodes[n_id_0]
@@ -134,8 +134,8 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
         return cost
 
     @numba.njit()
-    def cost_functional(u_vector, u_vector_old, nodes, contact_surfaces, C, E):
-        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_surfaces)
+    def cost_functional(u_vector, u_vector_old, nodes, contact_boundary, C, E):
+        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
         result = (0.5 * np.dot(np.dot(C, u_vector), u_vector) - np.dot(E, u_vector)
                   + ju)
         result = np.asarray(result).ravel()
@@ -151,11 +151,11 @@ def make_cost_functional_temperature(
     h = numba.njit(h)
 
     @numba.njit()
-    def contact_cost_functional(u_vector, nodes, contact_surfaces):
+    def contact_cost_functional(u_vector, nodes, contact_boundary):
         cost = 0
         offset = len(u_vector) // DIMENSION
 
-        for edge in contact_surfaces:
+        for edge in contact_boundary:
             n_id_0 = edge[0]
             n_id_1 = edge[1]
             n_0 = nodes[n_id_0]
@@ -176,9 +176,9 @@ def make_cost_functional_temperature(
         return cost
 
     @numba.njit()
-    def cost_functional(temp_vector, nodes, contact_surfaces, T, Q, u_vector):
+    def cost_functional(temp_vector, nodes, contact_boundary, T, Q, u_vector):
         result = 0.5 * np.dot(np.dot(T, temp_vector), temp_vector) - np.dot(Q, temp_vector) \
-                 - contact_cost_functional(u_vector, nodes, contact_surfaces)
+                 - contact_cost_functional(u_vector, nodes, contact_boundary)
         result = np.asarray(result).ravel()
         return result
 

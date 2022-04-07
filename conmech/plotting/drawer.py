@@ -39,11 +39,11 @@ class Drawer:
 
         nodes = self.state.displaced_points
         self.draw_mesh(nodes, ax, label='Deformed', node_color="k")
-        self.draw_boundary(edges=self.mesh.contact_surfaces, nodes=nodes, ax=ax,
+        self.draw_boundary(edges=self.mesh.contact_boundary, nodes=nodes, ax=ax,
                            edge_color="b")
-        self.draw_boundary(edges=self.mesh.dirichlet_surfaces, nodes=nodes, ax=ax,
+        self.draw_boundary(edges=self.mesh.dirichlet_boundary, nodes=nodes, ax=ax,
                            edge_color="r")
-        self.draw_boundary(edges=self.mesh.neumann_surfaces, nodes=nodes, ax=ax,
+        self.draw_boundary(edges=self.mesh.neumann_boundary, nodes=nodes, ax=ax,
                            edge_color="g")
 
         # turns on axis, since networkx turn them off

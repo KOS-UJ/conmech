@@ -139,16 +139,16 @@ class Mesh:
         return self.boundaries_data.boundary_surfaces
 
     @property
-    def contact_surfaces(self):
-        return self.boundaries_data.contact_surfaces
+    def contact_boundary(self):
+        return self.boundaries_data.contact_boundary
 
     @property
-    def neumann_surfaces(self):
-        return self.boundaries_data.neumann_surfaces
+    def neumann_boundary(self):
+        return self.boundaries_data.neumann_boundary
 
     @property
-    def dirichlet_surfaces(self):
-        return self.boundaries_data.dirichlet_surfaces
+    def dirichlet_boundary(self):
+        return self.boundaries_data.dirichlet_boundary
 
     @property
     def boundary_internal_indices(self):

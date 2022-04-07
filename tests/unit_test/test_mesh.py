@@ -145,21 +145,21 @@ def generate_test_suits():
     def is_contact(x):
         return x[1] == 0
 
-    expected_contact_surfaces = np.array([[1, 4]])
+    expected_contact_boundary = np.array([[1, 4]])
 
-    expected_neumann_surfaces = np.array([[2, 3], [3, 4]])
+    expected_neumann_boundary = np.array([[2, 3], [3, 4]])
 
-    expected_dirichlet_surfaces = np.array([[1, 2]])
+    expected_dirichlet_boundary = np.array([[1, 2]])
 
     yield "standard triple", \
-          (is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces,
-           expected_dirichlet_surfaces)
+          (is_dirichlet, is_contact, expected_contact_boundary, expected_neumann_boundary,
+           expected_dirichlet_boundary)
 
 
 @pytest.mark.parametrize('_test_name_, params', list(generate_test_suits()))
 def test_condition_boundaries(_test_name_, params):
     # Arrange
-    is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces, expected_dirichlet_surfaces = params
+    is_dirichlet, is_contact, expected_contact_boundary, expected_neumann_boundary, expected_dirichlet_boundary = params
 
     # Act
     initial_nodes, elements, boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
@@ -174,6 +174,6 @@ def test_condition_boundaries(_test_name_, params):
         return unify_edges(initial_nodes[actual_surfaces]) == unify_edges(
             unordered_nodes[expected_surfaces])
 
-    assert compare_surfaces(boundaries_data.contact_surfaces, expected_contact_surfaces)
-    assert compare_surfaces(boundaries_data.neumann_surfaces, expected_neumann_surfaces)
-    assert compare_surfaces(boundaries_data.dirichlet_surfaces, expected_dirichlet_surfaces)
+    assert compare_surfaces(boundaries_data.contact_boundary, expected_contact_boundary)
+    assert compare_surfaces(boundaries_data.neumann_boundary, expected_neumann_boundary)
+    assert compare_surfaces(boundaries_data.dirichlet_boundary, expected_dirichlet_boundary)
