@@ -3,7 +3,7 @@ from conmech.solvers.optimization.schur_complement import SchurComplement
 from conmech.dynamics.dynamics import Dynamics
 
 
-def L2_new(a, C, E):
+def energy_new(a, C, E):
     a_vector = nph.stack_column(a)
     first = 0.5 * (C @ a_vector) - E
     value = first.reshape(-1) @ a_vector

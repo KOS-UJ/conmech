@@ -137,7 +137,7 @@ class Calculator:
             )
 
         tstart = time.time()
-        cost_function, normalized_E_free = setting.get_normalized_L2_obstacle_np(t)
+        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(t)
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )
@@ -145,7 +145,7 @@ class Calculator:
         """
         tstart = time.time()
         normalized_boundary_a_vector_nvt = Calculator.minimize(
-            setting.normalized_L2_obstacle_nvt, initial_boundary_vector
+            setting.normalized_energy_obstacle_nvt, initial_boundary_vector
         ) 
         t_nvt = time.time() - tstart
         """
@@ -165,7 +165,7 @@ class Calculator:
     ):
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
-        cost_function, normalized_Q_free = setting.get_normalized_L2_temperature_np(normalized_a)
+        cost_function, normalized_Q_free = setting.get_normalized_energy_temperature_np(normalized_a)
         boundary_t_vector_np = Calculator.minimize(cost_function, initial_t_boundary_vector)
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)

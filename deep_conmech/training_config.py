@@ -35,8 +35,9 @@ class TrainingData:
 
     SAVE_AT_MINUTES: int = 10
     VALIDATE_AT_EPOCHS: int = 20
+    UPDATE_AT_EPOCHS: int = 100
 
-    L2_LOSS: bool = True  #!#
+    USE_ENERGY_AS_LOSS: bool = True  #!#
     BATCH_SIZE: int = 128  #!#
     VALID_BATCH_SIZE: int = 128  # !#
     SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # !# 64 # 512

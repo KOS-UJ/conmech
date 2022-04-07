@@ -4,14 +4,14 @@ import numpy as np
 import torch
 from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
-from conmech.simulations import simulation_runner
-from deep_conmech.training_config import TrainingConfig
-from deep_conmech.data.dataset_statistics import (DatasetStatistics,
-                                                        FeaturesStatistics)
-from deep_conmech.helpers import dch
-from deep_conmech.graph.setting.setting_input import SettingInput
 from conmech.scenarios.scenarios import Scenario
+from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
+from deep_conmech.data.dataset_statistics import (DatasetStatistics,
+                                                  FeaturesStatistics)
+from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.helpers import dch
+from deep_conmech.training_config import TrainingConfig
 from torch_geometric.loader import DataLoader
 
 
@@ -64,7 +64,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - mem usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
     )
     memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
@@ -95,7 +95,6 @@ class BaseDataset:
         self,
         description: str,
         dimension:int,
-        data_count:int,
         randomize_at_load:bool,
         num_workers:int,
         load_to_ram: bool,
@@ -103,12 +102,15 @@ class BaseDataset:
     ):
         self.dimension = dimension
         self.description = description
-        self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.load_to_ram = load_to_ram
         self.config = config
         self.set_version = 0
+
+    @property
+    def data_count(self):
+        pass
 
     def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
         setting = SettingInput(
@@ -148,7 +150,6 @@ class BaseDataset:
         pass
 
     def initialize_data(self):
-        cmh.create_folders(self.main_directory)
         cmh.create_folders(self.images_directory)
 
         self.all_indices = pkh.get_all_indices_pickle(self.data_path)
@@ -158,6 +159,9 @@ class BaseDataset:
             print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
             
         else:
+            cmh.clear_folder(self.main_directory)
+            cmh.create_folders(self.images_directory)
+
             result = False
             while result is False:
                 result = mph.run_processes(
@@ -176,7 +180,8 @@ class BaseDataset:
      
 
     def load_data_to_ram(self):
-        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path), config=self.config, desc="Preprocessing and loading dataset to RAM")
+        data_count = len(self.all_indices)
+        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path, data_count), config=self.config, desc="Preprocessing and loading dataset to RAM")
         return [self.preprocess_example(setting, index) for index, setting in enumerate(setting_tqdm)] 
 
     def generate_data_process(self, num_workers, process_id):
@@ -235,7 +240,7 @@ class BaseDataset:
         relative_index = current_index % int(data_count * cutoff)
         if relative_index == 0:
             step_tqdm.set_description(
-                f"{tqdm_description} - printing data {current_index}"
+                f"{tqdm_description} - plotting index {current_index}"
             )
             self.plot_data_setting(setting, current_index, self.images_directory)
         if relative_index == 1:

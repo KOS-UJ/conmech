@@ -1,4 +1,5 @@
 from ctypes import ArgumentError
+from pkgutil import get_data
 from typing import Callable, List
 
 import numpy as np
@@ -26,7 +27,6 @@ class ScenariosDataset(BaseDataset):
         super().__init__(
             description=description,
             dimension=self.check_and_get_dimension(all_scenarios),
-            data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
             num_workers=config.GENERATION_WORKERS,
             load_to_ram=load_to_ram,
@@ -42,6 +42,10 @@ class ScenariosDataset(BaseDataset):
 
     def get_data_count(self, scenarios):
         return np.sum([s.schedule.episode_steps for s in scenarios])
+
+    @property
+    def data_count(self):
+        return self.get_data_count(self.all_scenarios)
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(

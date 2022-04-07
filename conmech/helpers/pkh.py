@@ -60,10 +60,10 @@ def load_index_pickle(index: int, all_indices: List[int], settings_file: Buffere
     return setting
 
 
-def get_iterator_pickle(path: str):
+def get_iterator_pickle(path: str, data_count: int):
     with open(f"{path}.settings", "rb") as file:
-        while True:
-            try:
-                yield internal_load_pickle(file)
-            except EOFError:
-                break
+        for i in range(data_count):
+            #try:
+            yield internal_load_pickle(file)
+            #except EOFError:
+            #    break

@@ -6,7 +6,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.helpers import nph
-from deep_conmech.simulator.setting.setting_forces import L2_new, SettingForces
+from deep_conmech.simulator.setting.setting_forces import energy_new, SettingForces
 
 
 def get_penetration_norm_internal(
@@ -124,7 +124,7 @@ def integrate_numba(
     return result
 
 
-def L2_obstacle(
+def energy_obstacle(
         a,
         C,
         E,
@@ -137,7 +137,7 @@ def L2_obstacle(
         obstacle_prop: ObstacleProperties,
         time_step: float,
 ):
-    value = L2_new(a, C, E)
+    value = energy_new(a, C, E)
 
     boundary_nodes_count = boundary_v_old.shape[0]
     boundary_a = a[:boundary_nodes_count, :]  # TODO: boundary slice
@@ -216,12 +216,12 @@ class SettingObstacles(SettingForces):
                 self.obstacles[0, ...]
             )
 
-    def get_normalized_L2_obstacle_np(self, t=None):
+    def get_normalized_energy_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
         normalized_boundary_normals = self.get_normalized_boundary_normals()
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         return (
-            lambda normalized_boundary_a_vector: L2_obstacle(
+            lambda normalized_boundary_a_vector: energy_obstacle(
                 a=nph.unstack(normalized_boundary_a_vector, self.dimension),
                 C=self.C_boundary,
                 E=normalized_E_boundary,

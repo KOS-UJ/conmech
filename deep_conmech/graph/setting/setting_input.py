@@ -7,12 +7,12 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_torch import SettingTorch
-from deep_conmech.simulator.setting.setting_obstacles import L2_obstacle
+from deep_conmech.simulator.setting.setting_obstacles import energy_obstacle
 from numba import njit
 from torch_geometric.data import Data
 
 
-def L2_normalized_obstacle_correction(
+def energy_normalized_obstacle_correction(
         cleaned_a,
         a_correction,
         C,
@@ -27,7 +27,7 @@ def L2_normalized_obstacle_correction(
         time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return L2_obstacle(
+    return energy_obstacle(
         a=a,
         C=C,
         E=E,
@@ -72,7 +72,7 @@ def get_edges_data(
 
 
 
-def L2_obstacle_nvt(
+def energy_obstacle_nvt(
         boundary_a,
         C_boundary,
         E_boundary,
@@ -84,7 +84,7 @@ def L2_obstacle_nvt(
         surface_per_boundary_node,
         config
 ):  # np via torch
-    value_torch = L2_normalized_obstacle_correction(
+    value_torch = energy_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device(config)),
         None,
         thh.to_torch_double(C_boundary).to(thh.device(config)),
@@ -229,10 +229,10 @@ class SettingInput(SettingTorch):
         """
         return data
 
-    def normalized_L2_obstacle_nvt(self, normalized_boundary_a_vector):
+    def normalized_energy_obstacle_nvt(self, normalized_boundary_a_vector):
         normalized_boundary_normals = self.get_normalized_boundary_normals()
         surface_per_boundary_node = self.get_surface_per_boundary_node()
-        return L2_obstacle_nvt(
+        return energy_obstacle_nvt(
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.C_boundary,
             self.normalized_E_boundary,

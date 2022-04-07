@@ -88,22 +88,24 @@ def get_base_setting(config, mesh_type):
 class SyntheticDataset(BaseDataset):
     def __init__(self, description: str, dimension:int, load_to_ram:bool, config:TrainingConfig):
         num_workers = config.GENERATION_WORKERS
-        data_count = config.td.SYNTHETIC_SOLVERS_COUNT
 
-        if data_count % num_workers != 0:
+        if self.data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
-        self.data_part_count = int(data_count / num_workers)
+        self.data_part_count = int(self.data_count / num_workers)
 
         super().__init__(
             description=f"{description}_synthetic",
             dimension=dimension,
-            data_count=data_count,
             randomize_at_load=True,
             num_workers=num_workers,
             load_to_ram=load_to_ram,
             config=config
         )
         self.initialize_data()
+
+    @property
+    def data_count(self):
+        return config.td.SYNTHETIC_SOLVERS_COUNT
 
     def generate_setting(self, index):
         mesh_type = create_mesh_type()

@@ -54,14 +54,14 @@ def test_simulation(scenario, expected_boundary_nodes):
         scenario=scenario,
         catalog=f"TEST_{scenario.id}",
         simulate_dirty_data=False,
-        plot_animation=config.PLOT_TESTS,
+        plot_animation=True, #config.PLOT_TESTS,
         config=config,
     )    
 
     np.set_printoptions(precision=8, suppress=True)
-    assert 1 == 1
-    '''
+    #assert 1 == 1
+    #'''
     np.testing.assert_array_almost_equal(
         setting.boundary_nodes, expected_boundary_nodes, decimal=3
     )
-    '''
+    #'''
