@@ -52,8 +52,8 @@ def get_corner_vectors_rotate(dim, scale):
     return corner_vectors
 
 
-def get_corner_vectors_four(dim, scale):
-    corner_vectors = nph.get_random_normal_circle_numba(dim, 4, scale)
+def get_corner_vectors_four(dim, randomization_scale):
+    corner_vectors = nph.get_random_normal_circle_numba(dim, 4, randomization_scale)
     return corner_vectors
 
 
@@ -68,10 +68,14 @@ def interpolate_rotate(count, initial_nodes, randomization_scale, setting_scale_
 
 
 def interpolate_four(count, initial_nodes, randomization_scale, setting_scale_x, setting_scale_y):
-    return interpolate_numba(
-        count,
-        initial_nodes,
-        get_corner_vectors_four(dim=initial_nodes.shape[1], scale=randomization_scale),
-        setting_scale_x,
-        setting_scale_y
+    vector = np.random.uniform(low=0.0, high=randomization_scale, size=(1, initial_nodes.shape[1]))
+    base = np.repeat(vector, initial_nodes.shape[0], axis=0)
+    corners_randomization_scale = randomization_scale / 10
+    corners = interpolate_numba(
+        count=count,
+        initial_nodes=initial_nodes,
+        corner_vectors=get_corner_vectors_four(dim=initial_nodes.shape[1], randomization_scale=corners_randomization_scale),
+        scale_x=setting_scale_x,
+        scale_y=setting_scale_y
     )
+    return base + corners

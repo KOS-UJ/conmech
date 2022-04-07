@@ -64,12 +64,12 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB}"
     )
-    memory_overflow = memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
 
 
 def get_process_data_range(process_id, data_part_count):
@@ -159,6 +159,7 @@ class BaseDataset:
             print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
             
         else:
+            print("Clearing old data")
             cmh.clear_folder(self.main_directory)
             cmh.create_folders(self.images_directory)
 
@@ -236,8 +237,7 @@ class BaseDataset:
     def check_and_print(
             self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
-        cutoff = self.config.PRINT_DATA_CUTOFF
-        relative_index = current_index % int(data_count * cutoff)
+        relative_index = current_index % int(data_count * self.config.PLOT_DATA_PERCENTAGE)
         if relative_index == 0:
             step_tqdm.set_description(
                 f"{tqdm_description} - plotting index {current_index}"

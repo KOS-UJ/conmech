@@ -11,15 +11,15 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "scenarios"  # synthetic # scenarios # live
+    DATASET: str = "synthetic"  # synthetic # scenarios # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
 
     
 
-    FORCES_RANDOM_SCALE: int = 10  # 1.3
-    OBSTACLE_ORIGIN_SCALE: int = 2 * TRAIN_SCALE
+    FORCES_RANDOM_SCALE: int = 4
+    OBSTACLE_ORIGIN_SCALE: int = 3 * TRAIN_SCALE
 
     DATA_ZERO_FORCES: float = 0.5
     DATA_ROTATE_VELOCITY: float = 0.5
@@ -75,17 +75,17 @@ class TrainingConfig(Config):
     # print(numba.cuda.gpus)
 
     DATALOADER_WORKERS = 4
-    GENERATION_WORKERS = 1 #2
+    SYNTHETIC_GENERATION_WORKERS = 2
 
     
 
     TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
-    GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / GENERATION_WORKERS, 2)
+    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2)
 
     
 
-    PRINT_DATA_CUTOFF: float = 0.1
+    PLOT_DATA_PERCENTAGE: float = 0.01 #0.1
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True

@@ -11,28 +11,33 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 from conmech.solvers.calculator import Calculator
 from deep_conmech.training_config import TrainingConfig
 
+def create_mesh_type():
+    return interpolation_helpers.choose(
+        ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]
+    )
+
 
 def create_forces(config, setting):
     if interpolation_helpers.decide(config.td.DATA_ZERO_FORCES):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
-            setting.nodes_count,
-            setting.initial_nodes,
-            config.td.FORCES_RANDOM_SCALE,
-            setting.mesh_data.scale_x,
-            setting.mesh_data.scale_y,
+            count=setting.nodes_count,
+            initial_nodes=setting.initial_nodes,
+            randomization_scale=config.td.FORCES_RANDOM_SCALE,
+            setting_scale_x=setting.mesh_data.scale_x,
+            setting_scale_y=setting.mesh_data.scale_y,
         )
     return forces
 
 
 def create_u_old(config, setting):
     u_old = interpolation_helpers.interpolate_four(
-        setting.nodes_count,
-        setting.initial_nodes,
-        config.td.U_RANDOM_SCALE,
-        setting.mesh_data.scale_x,
-        setting.mesh_data.scale_y,
+        count=setting.nodes_count,
+        initial_nodes=setting.initial_nodes,
+        randomization_scale=config.td.U_RANDOM_SCALE,
+        setting_scale_x=setting.mesh_data.scale_x,
+        setting_scale_y=setting.mesh_data.scale_y,
     )
     return u_old
 
@@ -47,20 +52,6 @@ def create_v_old(config, setting):
         setting.mesh_data.scale_y,
     )
     return v_old
-
-
-def create_obstacles(config, setting):
-    obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, config.td.OBSTACLE_ORIGIN_SCALE
-    )
-    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
-    return np.stack((obstacle_normals_unnormaized, obstacle_origins))
-
-
-def create_mesh_type():
-    return interpolation_helpers.choose(
-        ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]
-    )
 
 
 def create_obstacles(config, setting):
@@ -89,7 +80,7 @@ def get_base_setting(config, mesh_type):
 
 class SyntheticDataset(BaseDataset):
     def __init__(self, description: str, dimension:int, load_to_ram:bool, config:TrainingConfig):
-        num_workers = config.GENERATION_WORKERS
+        num_workers = config.SYNTHETIC_GENERATION_WORKERS
 
         if self.data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")

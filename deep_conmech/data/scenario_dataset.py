@@ -28,7 +28,7 @@ class ScenariosDataset(BaseDataset):
             description=description,
             dimension=self.check_and_get_dimension(all_scenarios),
             randomize_at_load=True,
-            num_workers=config.GENERATION_WORKERS,
+            num_workers=1,
             load_to_ram=load_to_ram,
             config=config,
         )

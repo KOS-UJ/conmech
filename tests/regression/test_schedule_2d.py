@@ -20,13 +20,13 @@ def generate_test_suits():
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=1.5),
+        schedule=Schedule(final_time=0.2), #1.5),
         forces_function=np.array([0.0, -0.5]),
         obstacles=np.array(
             [[[0.7, 1.0]], [[0.0, 0.1]]]
         ),
     )
-
+    '''
     expected_boundary_nodes = [
        [ 1.09670439,  0.0700615 ],
        [ 0.51874802,  0.7207986 ],
@@ -41,6 +41,23 @@ def generate_test_suits():
        [ 0.72052413, -0.25791514],
        [ 0.95457633, -0.14578926]
     ]
+    '''
+
+    expected_boundary_nodes = [
+       [ 1.       ,  0.4895   ],
+       [ 0.25     ,  0.9225127],
+       [ 0.25     ,  0.0564873],
+       [ 0.9330127,  0.7395   ],
+       [ 0.75     ,  0.9225127],
+       [ 0.5      ,  0.9895   ],
+       [ 0.0669873,  0.7395   ],
+       [-0.       ,  0.4895   ],
+       [ 0.0669873,  0.2395   ],
+       [ 0.5      , -0.0105   ],
+       [ 0.75     ,  0.0564873],
+       [ 0.9330127,  0.2395   ]
+    ]
+
 
     yield scenario, expected_boundary_nodes
 
@@ -54,14 +71,12 @@ def test_simulation(scenario, expected_boundary_nodes):
         scenario=scenario,
         catalog=f"TEST_{scenario.id}",
         simulate_dirty_data=False,
-        plot_animation=True, #config.PLOT_TESTS,
+        plot_animation=config.PLOT_TESTS,
         config=config,
     )    
 
     np.set_printoptions(precision=8, suppress=True)
-    assert 1 == 1
-    '''
     np.testing.assert_array_almost_equal(
         setting.boundary_nodes, expected_boundary_nodes, decimal=3
     )
-    '''
+    
