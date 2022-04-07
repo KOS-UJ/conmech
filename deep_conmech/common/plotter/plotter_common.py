@@ -30,7 +30,7 @@ class ColorbarSettings:
 def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all_settings_path: str):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
-    #TODO: Refactor (repetition from plot_animation)
+    #TODO #65: Refactor (same code in plot_animation)
     temperatures_list = []
     all_indices = pkh.get_all_indices_pickle(all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
