@@ -5,6 +5,8 @@ from typing import Optional
 
 import numpy as np
 import torch
+from torch.utils.tensorboard.writer import SummaryWriter
+
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
@@ -18,13 +20,12 @@ from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
-from torch.utils.tensorboard.writer import SummaryWriter
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
     writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")
     print("Logging data...")
-    
+
     def pretty_json(value):
         dictionary = vars(value)
         json_str = json.dumps(dictionary, indent=2)
@@ -38,8 +39,6 @@ def get_and_init_writer(statistics: Optional[DatasetStatistics], config: Trainin
 
         node_statistics_str = statistics.edges_statistics.describe().to_json()
         writer.add_text(f"{config.CURRENT_TIME}_NODE_STATS.txt", node_statistics_str, global_step=0)
-
-
 
     return writer
 
@@ -126,7 +125,7 @@ class GraphModelDynamic:
             current_time = time.time()
             elapsed_time = current_time - last_save_time
             if elapsed_time > self.config.td.SAVE_AT_MINUTES * 60:
-                #print(f"--Training time: {(elapsed_time / 60):.4f} min")
+                # print(f"--Training time: {(elapsed_time / 60):.4f} min")
                 self.save_net()
                 last_save_time = time.time()
 
@@ -144,7 +143,6 @@ class GraphModelDynamic:
         self.train_dataset.update_data()
         print(f"--")
 
-
     def save_net(self):
         print("----SAVING----")
         timestamp = cmh.get_timestamp(self.config)
@@ -152,8 +150,6 @@ class GraphModelDynamic:
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
-
-
 
     @staticmethod
     def get_newest_saved_model_path():
@@ -233,7 +229,7 @@ class GraphModelDynamic:
 
         return loss_array_np
 
-    def clip_gradients(self, max_norm:float):
+    def clip_gradients(self, max_norm: float):
         parameters = self.net.parameters()
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_

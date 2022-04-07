@@ -2,8 +2,8 @@ import meshzoo
 import numpy as np
 import pygmsh
 
-from conmech.properties.mesh_properties import MeshProperties
 from conmech.mesh import mesh_builders_helpers
+from conmech.properties.mesh_properties import MeshProperties
 
 
 def get_meshzoo_cube(mesh_data: MeshProperties):

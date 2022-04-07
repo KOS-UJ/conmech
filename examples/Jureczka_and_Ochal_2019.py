@@ -4,12 +4,12 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-from conmech.helpers.config import Config
 
-from conmech.simulations.problem_solver import Static as StaticProblemSolver
+from conmech.helpers.config import Config
+from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw
 from conmech.scenarios.problems import Static
-from conmech.plotting.drawer import Drawer
+from conmech.simulations.problem_solver import Static as StaticProblemSolver
 
 
 class JureczkaOchal2018(ContactLaw):
@@ -75,7 +75,7 @@ class StaticSetup(Static):
         return x[0] == 0
 
 
-def main(show: bool=True, save: bool=False):
+def main(show: bool = True, save: bool = False):
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "schur")
 

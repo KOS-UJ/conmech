@@ -3,11 +3,12 @@ from ctypes import ArgumentError
 from typing import Callable
 
 import numpy as np
+
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.solver_methods import njit
-from conmech.mesh.mesh import Mesh
 
 
 def get_base(nodes, base_seed_indices, closest_seed_index):
@@ -16,8 +17,6 @@ def get_base(nodes, base_seed_indices, closest_seed_index):
     return nph.complete_base(base_seed, closest_seed_index)
 
 
-
-    
 def get_unoriented_normals_2d(faces_nodes):
     tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
 
@@ -58,7 +57,7 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
 
 @njit
 def get_boundary_nodes_normals_numba(
-    boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
+        boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
 ):
     dim = boundary_surfaces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
@@ -76,7 +75,7 @@ def get_boundary_nodes_normals_numba(
 
 @njit
 def get_surface_per_boundary_node_numba(
-    boundary_surfaces, boundary_nodes_count, moved_nodes
+        boundary_surfaces, boundary_nodes_count, moved_nodes
 ):
     surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
@@ -85,7 +84,6 @@ def get_surface_per_boundary_node_numba(
         surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
 
     return surface_per_boundary_node
-
 
 
 @njit
@@ -101,8 +99,6 @@ def element_volume_part_numba(face_nodes):
     else:
         raise ArgumentError
     return volume / nodes_count
-
-
 
 
 class BodyPosition(Mesh):
@@ -128,10 +124,8 @@ class BodyPosition(Mesh):
         self.v_old = np.zeros_like(self.initial_nodes)
         self.a_old = np.zeros_like(self.initial_nodes)
 
-
     def remesh(self, *args):
         super().remesh(*args)
-
 
     def set_a_old(self, a):
         self.a_old = a
@@ -142,16 +136,12 @@ class BodyPosition(Mesh):
     def set_u_old(self, u):
         self.u_old = u
 
-
-
     @property
     def time_step(self):
         return self.schedule.time_step
 
-
     def get_copy(self):
         return copy.deepcopy(self)
-        
 
     def iterate_self(self, a, randomized_inputs=False):
         v = self.v_old + self.time_step * a
@@ -186,15 +176,12 @@ class BodyPosition(Mesh):
         self.set_v_old(v)
         self.set_a_old(a)
 
-
-
-
     @property
     def moved_base(self):
         return get_base(
             self.moved_nodes, self.base_seed_indices, self.closest_seed_index
         )
-        
+
     def normalize_rotate(self, vectors):
         return (
             nph.get_in_base(vectors, self.moved_base)
@@ -204,8 +191,6 @@ class BodyPosition(Mesh):
 
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
-
-
 
     @property
     def moved_nodes(self):
@@ -234,7 +219,6 @@ class BodyPosition(Mesh):
     def mean_moved_nodes(self):
         return np.mean(self.moved_nodes, axis=0)
 
-
     @property
     def edges_moved_nodes(self):
         return self.moved_nodes[self.edges]
@@ -250,8 +234,6 @@ class BodyPosition(Mesh):
     @property
     def boundary_centers(self):
         return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
-
-
 
     @property
     def rotated_v_old(self):
@@ -269,18 +251,16 @@ class BodyPosition(Mesh):
     def origin_u_old(self):
         return self.denormalize_rotate(self.normalized_u_old)
 
-
-
     def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
             self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
         )
-        return get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals)
+        return get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count,
+                                                boundary_surfaces_normals)
 
     def get_surface_per_boundary_node(self):
-        return get_surface_per_boundary_node_numba(self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes)
-
-
+        return get_surface_per_boundary_node_numba(self.boundary_surfaces,
+                                                   self.boundary_nodes_count, self.moved_nodes)
 
     @property
     def input_v_old(self):

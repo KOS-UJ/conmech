@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import psutil
+
 from conmech.helpers.config import Config
 
 
@@ -16,8 +17,6 @@ class TrainingData:
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
 
-    
-
     FORCES_RANDOM_SCALE: int = 10  # 1.3
     OBSTACLE_ORIGIN_SCALE: int = 2 * TRAIN_SCALE
 
@@ -31,19 +30,15 @@ class TrainingData:
     U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
     V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
 
-    
-
     SAVE_AT_MINUTES: int = 10
     VALIDATE_AT_EPOCHS: int = 20
     UPDATE_AT_EPOCHS: int = 100
 
-    USE_ENERGY_AS_LOSS: bool = True  #!#
-    BATCH_SIZE: int = 128  #!#
+    USE_ENERGY_AS_LOSS: bool = True  # !#
+    BATCH_SIZE: int = 128  # !#
     VALID_BATCH_SIZE: int = 128  # !#
     SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
-
-    
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True
@@ -52,11 +47,11 @@ class TrainingData:
 
     DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
     SKIP: bool = True
-    GRADIENT_CLIP = 10.0 # None
+    GRADIENT_CLIP = 10.0  # None
 
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 
-    INITIAL_LR: float = 1e-3 # 1e-3  # 1e-4 # 1e-5
+    INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
     LR_GAMMA: float = 1.0  # 0.999
     FINAL_LR: float = 1e-6
 
@@ -75,15 +70,11 @@ class TrainingConfig(Config):
     # print(numba.cuda.gpus)
 
     DATALOADER_WORKERS = 4
-    GENERATION_WORKERS = 1 #2
-
-    
+    GENERATION_WORKERS = 1  # 2
 
     TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
     GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / GENERATION_WORKERS, 2)
-
-    
 
     PRINT_DATA_CUTOFF: float = 0.1
 

@@ -8,6 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
@@ -19,7 +20,7 @@ class Drawer:
         self.config = config
         self.mesh = state.mesh
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
- 
+
     def get_directory(self):
         return f"./output/{self.config.CURRENT_TIME} - DRAWING"
 

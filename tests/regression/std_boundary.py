@@ -1,5 +1,3 @@
-
-
 from conmech.mesh.boundaries_factory import extract_boundary_paths_from_elements
 
 

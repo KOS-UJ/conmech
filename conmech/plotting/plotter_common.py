@@ -1,14 +1,15 @@
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
+
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
-from matplotlib import animation
-from matplotlib.colors import ListedColormap
 
 # TODO: #65 Move to config
 dpi = 800
@@ -27,7 +28,8 @@ class ColorbarSettings:
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
 
 
-def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all_settings_path: str):
+def get_t_scale(scenario: Scenario, index_skip: int, plot_settings_count: int,
+                all_settings_path: str):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
@@ -36,7 +38,8 @@ def get_t_scale(scenario: Scenario, index_skip:int, plot_settings_count:int, all
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         for step in range(plot_settings_count):
-            setting = pkh.load_index_pickle(index=step * index_skip, all_indices=all_indices, settings_file=settings_file)
+            setting = pkh.load_index_pickle(index=step * index_skip, all_indices=all_indices,
+                                            settings_file=settings_file)
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
@@ -121,8 +124,8 @@ def plot_animation(
             fig.clf()
             axs = get_axs(fig)
             setting = pkh.load_index_pickle(index=step * index_skip,
-                                                        all_indices=all_indices,
-                                                        settings_file=settings_file)
+                                            all_indices=all_indices,
+                                            settings_file=settings_file)
             plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip,
                        t_scale=t_scale)
             return fig

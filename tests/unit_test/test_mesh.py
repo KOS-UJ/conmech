@@ -4,6 +4,7 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
+
 from conmech.mesh.boundaries_factory import (
     BoundariesFactory, extract_boundary_paths_from_elements)
 
@@ -28,7 +29,7 @@ def generate_test_suits_old():
     def is_dirichlet(x):
         return x[0] < 4
 
-    expected_dirichlet = [[1, 3, 2]] # [[2, 3, 1]]
+    expected_dirichlet = [[1, 3, 2]]  # [[2, 3, 1]]
 
     def is_contact(x):
         return x[1] % 2 == 0
@@ -63,7 +64,7 @@ def generate_test_suits_old():
     def is_contact(x):
         return True
 
-    expected_contact = [[1, 3, 2, 6, 8, 4, 9, 7]] # [[6, 2, 3, 1, 7, 9, 4, 8]] 
+    expected_contact = [[1, 3, 2, 6, 8, 4, 9, 7]]  # [[6, 2, 3, 1, 7, 9, 4, 8]]
 
     expected_neumann = []
 
@@ -95,7 +96,7 @@ def generate_test_suits_old():
 
     expected_contact = []
 
-    expected_neumann = [[1, 3, 2, 6, 8, 4, 9, 7]] # [[6, 2, 3, 1, 7, 9, 4, 8]] 
+    expected_neumann = [[1, 3, 2, 6, 8, 4, 9, 7]]  # [[6, 2, 3, 1, 7, 9, 4, 8]]
 
     yield "one edge dirichlet beginning-end", \
           (is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann)
@@ -110,7 +111,7 @@ def generate_test_suits_old():
 
     expected_contact = []
 
-    expected_neumann = [[1, 3, 2, 6, 8, 4, 9, 7]] # [[6, 2, 3, 1, 7, 9, 4, 8]] 
+    expected_neumann = [[1, 3, 2, 6, 8, 4, 9, 7]]  # [[6, 2, 3, 1, 7, 9, 4, 8]]
 
     yield "only neumann", \
           (is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann)
@@ -118,7 +119,7 @@ def generate_test_suits_old():
     def is_dirichlet(x):
         return x[0] < 4
 
-    expected_dirichlet = [[1, 3, 2]] # [[2, 3, 1]]
+    expected_dirichlet = [[1, 3, 2]]  # [[2, 3, 1]]
 
     def is_contact(x):
         return False
@@ -131,13 +132,10 @@ def generate_test_suits_old():
           (is_dirichlet, is_contact, expected_dirichlet, expected_contact, expected_neumann)
 
 
-
-
 unordered_nodes = np.asarray([
-    [1.,1.], [0.,0.], [0.,2.], [2.,2.], [2.,0.]
+    [1., 1.], [0., 0.], [0., 2.], [2., 2.], [2., 0.]
 ])
-unordered_elements = np.asarray([[1,2,0],[2,3,0],[3,4,0],[4,1,0]])
-
+unordered_elements = np.asarray([[1, 2, 0], [2, 3, 0], [3, 4, 0], [4, 1, 0]])
 
 
 def generate_test_suits():
@@ -147,17 +145,15 @@ def generate_test_suits():
     def is_contact(x):
         return x[1] == 0
 
-    expected_contact_surfaces = np.array([[1,4]])
+    expected_contact_surfaces = np.array([[1, 4]])
 
-    expected_neumann_surfaces = np.array([[2,3], [3,4]])
+    expected_neumann_surfaces = np.array([[2, 3], [3, 4]])
 
-    expected_dirichlet_surfaces = np.array([[1,2]])
+    expected_dirichlet_surfaces = np.array([[1, 2]])
 
     yield "standard triple", \
-          (is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces, expected_dirichlet_surfaces)
-
-
-
+          (is_dirichlet, is_contact, expected_contact_surfaces, expected_neumann_surfaces,
+           expected_dirichlet_surfaces)
 
 
 @pytest.mark.parametrize('_test_name_, params', list(generate_test_suits()))
@@ -168,15 +164,16 @@ def test_condition_boundaries(_test_name_, params):
     # Act
     initial_nodes, elements, boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
         unordered_nodes, unordered_elements, is_dirichlet, is_contact
-    ) 
+    )
 
     # Assert
     def unify_edges(boundary):
         return frozenset([frozenset([str(np.sort(node)) for node in edge]) for edge in boundary])
 
     def compare_surfaces(actual_surfaces, expected_surfaces):
-        return unify_edges(initial_nodes[actual_surfaces]) == unify_edges(unordered_nodes[expected_surfaces])
+        return unify_edges(initial_nodes[actual_surfaces]) == unify_edges(
+            unordered_nodes[expected_surfaces])
 
-    assert compare_surfaces(boundaries_data.contact_surfaces, expected_contact_surfaces) 
-    assert compare_surfaces(boundaries_data.neumann_surfaces, expected_neumann_surfaces) 
-    assert compare_surfaces(boundaries_data.dirichlet_surfaces, expected_dirichlet_surfaces) 
+    assert compare_surfaces(boundaries_data.contact_surfaces, expected_contact_surfaces)
+    assert compare_surfaces(boundaries_data.neumann_surfaces, expected_neumann_surfaces)
+    assert compare_surfaces(boundaries_data.dirichlet_surfaces, expected_dirichlet_surfaces)

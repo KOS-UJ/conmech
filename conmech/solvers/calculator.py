@@ -107,9 +107,10 @@ class Calculator:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
             return Calculator.solve_temperature_normalized_optimization(setting, normalized_a,
-                                                                    initial_t)
+                                                                        initial_t)
         else:
-            return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
+            return Calculator.solve_temperature_normalized_function(setting, normalized_a,
+                                                                    initial_t)
 
     @staticmethod
     def solve_temperature_normalized_function(setting: SettingTemperature, normalized_a: np.ndarray,
@@ -165,7 +166,8 @@ class Calculator:
     ):
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
-        cost_function, normalized_Q_free = setting.get_normalized_energy_temperature_np(normalized_a)
+        cost_function, normalized_Q_free = setting.get_normalized_energy_temperature_np(
+            normalized_a)
         boundary_t_vector_np = Calculator.minimize(cost_function, initial_t_boundary_vector)
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)

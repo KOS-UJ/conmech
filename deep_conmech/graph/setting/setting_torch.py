@@ -1,7 +1,8 @@
 import torch
+
 from conmech.helpers.config import Config
-from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.helpers import thh
 
 
 class SettingTorch(SettingRandomized):
@@ -23,7 +24,6 @@ class SettingTorch(SettingRandomized):
             create_in_subprocess=create_in_subprocess,
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
-
 
     def complete_boundary_data_with_zeros_torch(self, data):
         completed_data = torch.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)

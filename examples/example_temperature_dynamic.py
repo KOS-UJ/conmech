@@ -5,11 +5,11 @@ from argparse import ArgumentParser
 from dataclasses import dataclass
 
 import numpy as np
-from conmech.helpers.config import Config
 
-from conmech.simulations.problem_solver import TDynamic as TDynamicProblemSolver
-from conmech.scenarios.problems import Dynamic
+from conmech.helpers.config import Config
 from conmech.plotting.drawer import Drawer
+from conmech.scenarios.problems import Dynamic
+from conmech.simulations.problem_solver import TDynamic as TDynamicProblemSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -82,7 +82,7 @@ class TDynamicSetup(Dynamic):
         return False
 
 
-def main(show: bool=True, save: bool=False):
+def main(show: bool = True, save: bool = False):
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
@@ -97,8 +97,9 @@ def main(show: bool=True, save: bool=False):
         T_min = min(T_min, np.min(state.temperature))
     config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(temp_max=T_max, temp_min=T_min, show=show, save=save)
-        
+        Drawer(state=state, config=config).draw(temp_max=T_max, temp_min=T_min, show=show,
+                                                save=save)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser()

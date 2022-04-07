@@ -2,11 +2,11 @@
 Created at 21.08.2019
 """
 from typing import Callable, Optional, Any
-from conmech.helpers import nph
 
 import numba
 import numpy as np
 
+from conmech.helpers import nph
 
 DIMENSION = 2
 

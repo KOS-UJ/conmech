@@ -1,9 +1,10 @@
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.solvers import SchurComplement
 from deep_conmech.simulator.setting import setting_obstacles
+from deep_conmech.simulator.setting.setting_forces import energy_new
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_forces import energy_new 
 
 
 def obstacle_heat(
@@ -61,7 +62,6 @@ class SettingTemperature(SettingObstacles):
         )
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None
-
 
     def get_normalized_energy_temperature_np(self, normalized_a):
         normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(

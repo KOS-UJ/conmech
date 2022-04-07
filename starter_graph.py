@@ -22,7 +22,6 @@ def train(config: TrainingConfig):
         statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
         net = get_net(statistics, config)
 
-
     all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
@@ -43,18 +42,18 @@ def plot(config: TrainingConfig):
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
 
-
-
 def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
     return LiveDataset(
-        description="train", all_scenarios=scenarios.all_train(config.td), net=net, 
+        description="train", all_scenarios=scenarios.all_train(config.td), net=net,
         load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
     )
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = SyntheticDataset(description="train", dimension=2, load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config)
+        train_dataset = SyntheticDataset(description="train", dimension=2,
+                                         load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+                                         config=config)
     elif dataset_type == "scenarios":
         train_dataset = CalculatorDataset(
             description="train", all_scenarios=scenarios.all_train(config.td),
@@ -71,19 +70,17 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
         all_val_datasets.append(train_dataset)
     all_val_datasets.append(
         CalculatorDataset(
-            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False, config=config
+            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False,
+            config=config
         )
     )
     return all_val_datasets
 
 
-def get_net(statistics : Optional[DatasetStatistics], config: TrainingConfig):
+def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
     net = CustomGraphNet(2, statistics=statistics, td=config.td)
     net.to(thh.device(config))
     return net
-
-
-
 
 
 def main(args: Namespace):

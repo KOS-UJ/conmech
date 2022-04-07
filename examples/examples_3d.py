@@ -1,11 +1,12 @@
 import numpy as np
 
+from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers.config import Config
-from conmech.simulations import simulation_runner
-from conmech.scenarios.scenarios import Scenario, default_body_prop, default_obstacle_prop, f_rotate_3d, \
+from conmech.scenarios.scenarios import Scenario, default_body_prop, default_obstacle_prop, \
+    f_rotate_3d, \
     m_ball_3d, m_twist_3d, m_cube_3d
+from conmech.simulations import simulation_runner
 
 
 def main(mesh_density=3, final_time=1, plot_animation=True):
