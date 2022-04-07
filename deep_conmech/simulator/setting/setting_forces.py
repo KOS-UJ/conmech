@@ -1,6 +1,6 @@
+from conmech.dynamics.dynamics import Dynamics
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from conmech.dynamics.dynamics import Dynamics
 
 
 def energy_new(a, C, E):
@@ -22,7 +22,6 @@ class SettingForces(Dynamics):
             create_in_subprocess=create_in_subprocess,
         )
         self.forces = None
-
 
     @property
     def normalized_forces(self):
@@ -80,7 +79,6 @@ class SettingForces(Dynamics):
                 - const_elasticity @ u_old_vector
         )
         return E
-
 
     @property
     def input_forces(self):

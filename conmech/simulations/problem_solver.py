@@ -4,8 +4,8 @@ General solver for Contact Mechanics problem.
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-from conmech.dynamics.dynamics import Dynamics
 
+from conmech.dynamics.dynamics import Dynamics
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties, StaticTemperatureBodyProperties)
 from conmech.properties.mesh_properties import MeshProperties

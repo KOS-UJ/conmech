@@ -1,6 +1,7 @@
 from typing import Callable, Optional, Union
 
 import numpy as np
+
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
@@ -162,7 +163,6 @@ def get_temp_body_prop(C_coeff, K_coeff):
     )
 
 
-
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
 
@@ -239,8 +239,6 @@ def f_rotate_3d(ip, mp, md, t):
         scale = ip[1] * ip[2]
         return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
-
-
 
 
 def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
@@ -405,11 +403,8 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-
-
-
 def get_train_data(**args):
-    tag="_train"
+    tag = "_train"
     return [
         polygon_two(**args, tag=tag),
         spline_right(**args, tag=tag),
@@ -418,8 +413,9 @@ def get_train_data(**args):
         polygon_stay(**args, tag=tag),
     ]
 
+
 def get_valid_data(**args):
-    tag="_val"
+    tag = "_val"
     return [
         polygon_left(**args, tag=tag),
         polygon_rotate(**args, tag=tag),
@@ -443,7 +439,6 @@ def all_validation(td: TrainingData):
         is_adaptive=False,
         final_time=td.FINAL_TIME,
     )
-
 
 
 def all_print(td: TrainingData):

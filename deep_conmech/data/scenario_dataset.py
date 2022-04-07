@@ -1,15 +1,14 @@
 from ctypes import ArgumentError
-from pkgutil import get_data
 from typing import Callable, List
 
 import numpy as np
 
 from conmech.helpers import cmh, pkh
-from deep_conmech.training_config import TrainingConfig
+from conmech.scenarios.scenarios import Scenario
 from deep_conmech.data.base_dataset import BaseDataset, get_assigned_scenarios, \
     is_memory_overflow
 from deep_conmech.helpers import thh
-from conmech.scenarios.scenarios import Scenario
+from deep_conmech.training_config import TrainingConfig
 
 
 class ScenariosDataset(BaseDataset):
@@ -63,7 +62,7 @@ class ScenariosDataset(BaseDataset):
             position=process_id,
         )
         scenario = assigned_scenarios[0]
-        
+
         settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
@@ -87,7 +86,8 @@ class ScenariosDataset(BaseDataset):
                 a, normalized_a = self.solve_function(setting)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
-                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+                pkh.append_pickle(setting=setting, settings_file=settings_file,
+                                  file_meta=file_meta)  # exact_normalized_a_torch
 
                 self.check_and_print(
                     self.data_count, current_index, setting, step_tqdm, tqdm_description,

@@ -1,14 +1,15 @@
 import numpy as np
+
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
+from conmech.helpers import nph, cmh, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers import nph, cmh, pkh
 from conmech.scenarios import scenarios
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
-from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
-from conmech.solvers.calculator import Calculator
+from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 def create_mesh_type():
@@ -43,7 +44,8 @@ def create_u_old(config, setting):
 
 
 def create_v_old(config, setting):
-    function = interpolation_helpers.interpolate_rotate if interpolation_helpers.decide(config.td.DATA_ROTATE_VELOCITY) else interpolation_helpers.interpolate_four
+    function = interpolation_helpers.interpolate_rotate if interpolation_helpers.decide(
+        config.td.DATA_ROTATE_VELOCITY) else interpolation_helpers.interpolate_four
     v_old = function(
         setting.nodes_count,
         setting.initial_nodes,
@@ -79,7 +81,7 @@ def get_base_setting(config, mesh_type):
 
 
 class SyntheticDataset(BaseDataset):
-    def __init__(self, description: str, dimension:int, load_to_ram:bool, config:TrainingConfig):
+    def __init__(self, description: str, dimension: int, load_to_ram: bool, config: TrainingConfig):
         num_workers = config.SYNTHETIC_GENERATION_WORKERS
 
         if self.data_count % num_workers != 0:
@@ -103,7 +105,7 @@ class SyntheticDataset(BaseDataset):
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
         setting = get_base_setting(self.config, mesh_type)
-        setting.set_randomization(False) #TODO #65: Check
+        setting.set_randomization(False)  # TODO #65: Check
 
         obstacles_unnormaized = create_obstacles(self.config, setting)
         forces = create_forces(self.config, setting)
@@ -116,10 +118,10 @@ class SyntheticDataset(BaseDataset):
         setting.prepare(forces)
 
         add_label = False
-        exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(setting)) if add_label else None
+        exact_normalized_a_torch = thh.to_torch_double(
+            Calculator.solve(setting)) if add_label else None
 
         return setting, exact_normalized_a_torch
-
 
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)
@@ -134,11 +136,13 @@ class SyntheticDataset(BaseDataset):
         settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
-                if base_dataset.is_memory_overflow(config=self.config, step_tqdm=step_tqdm, tqdm_description=tqdm_description):
+                if base_dataset.is_memory_overflow(config=self.config, step_tqdm=step_tqdm,
+                                                   tqdm_description=tqdm_description):
                     return False
 
                 setting, exact_normalized_a_torch = self.generate_setting(index)
-                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta) # exact_normalized_a_torch
+                pkh.append_pickle(setting=setting, settings_file=settings_file,
+                                  file_meta=file_meta)  # exact_normalized_a_torch
 
                 self.check_and_print(
                     len(assigned_data_range), index, setting, step_tqdm, tqdm_description

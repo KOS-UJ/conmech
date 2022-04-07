@@ -3,9 +3,9 @@ from typing import Tuple
 
 import numpy as np
 
-from conmech.properties.mesh_properties import MeshProperties
 from conmech.helpers import mph
 from conmech.mesh import mesh_builders_legacy, mesh_builders_2d, mesh_builders_3d
+from conmech.properties.mesh_properties import MeshProperties
 
 
 def build_mesh(

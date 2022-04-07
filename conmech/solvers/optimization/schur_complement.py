@@ -2,8 +2,8 @@
 Created at 22.02.2021
 """
 import math
-
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization

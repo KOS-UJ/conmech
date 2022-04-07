@@ -1,9 +1,7 @@
 import numpy as np
 from numba import njit
 
-from conmech.dynamics.factory._abstract_dynamics_factory import \
-    AbstractDynamicsFactory
-
+from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
 
 DIMENSION = 3
 ELEMENT_NODES_COUNT = 4
@@ -20,7 +18,8 @@ def get_edges_features_matrix_numba(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
 
-    edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double)
+    edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count),
+                                     dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: #65 prange?

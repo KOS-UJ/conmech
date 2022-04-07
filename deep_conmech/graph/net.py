@@ -8,13 +8,13 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from deep_conmech.training_config import TrainingData
 from deep_conmech.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
 )
-from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.helpers import thh
+from deep_conmech.training_config import TrainingData
 
 # TODO: move
 ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
@@ -337,7 +337,7 @@ class CustomGraphNet(nn.Module):
     @property
     def statistics(self):
         return self.statistics
-        
+
     @property
     def node_statistics(self):
         return self.node_encoder.statistics
@@ -361,16 +361,12 @@ class CustomGraphNet(nn.Module):
         output = self.decoder(node_latents)
         return output
 
-
-
     def save(self, path):
         torch.save(self.state_dict(), path)
 
     def load(self, path):
         self.load_state_dict(torch.load(path))
         self.eval()
-
-
 
     def solve_all(self, setting):
         self.eval()

@@ -44,7 +44,7 @@ class Forces:
 
         # np.allclose(self.F2,  self.F)
 
-        for edge in self.mesh.neumann_surfaces:
+        for edge in self.mesh.neumann_boundary:
             v0 = edge[0]
             v1 = edge[1]
 

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -9,7 +10,6 @@ from conmech.simulations.simulation_runner import run_scenario
 
 
 def generate_test_suits():
-
     scenario = Scenario(
         id="circle_slide_roll",
         mesh_data=MeshProperties(
@@ -28,18 +28,18 @@ def generate_test_suits():
     )
     '''
     expected_boundary_nodes = [
-       [ 1.09670439,  0.0700615 ],
-       [ 0.51874802,  0.7207986 ],
-       [ 0.26366884, -0.06828732],
-       [ 1.11060891,  0.32856888],
-       [ 0.99402219,  0.56024451],
-       [ 0.77757494,  0.70261436],
-       [ 0.28733568,  0.60572044],
-       [ 0.14549146,  0.39166315],
-       [ 0.13608484,  0.14131729],
-       [ 0.46416333, -0.22844126],
-       [ 0.72052413, -0.25791514],
-       [ 0.95457633, -0.14578926]
+        [1.09670439, 0.0700615],
+        [0.51874802, 0.7207986],
+        [0.26366884, -0.06828732],
+        [1.11060891, 0.32856888],
+        [0.99402219, 0.56024451],
+        [0.77757494, 0.70261436],
+        [0.28733568, 0.60572044],
+        [0.14549146, 0.39166315],
+        [0.13608484, 0.14131729],
+        [0.46416333, -0.22844126],
+        [0.72052413, -0.25791514],
+        [0.95457633, -0.14578926]
     ]
     '''
 
@@ -64,8 +64,7 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("scenario, expected_boundary_nodes", list(generate_test_suits()))
 def test_simulation(scenario, expected_boundary_nodes):
-
-    config=Config()
+    config = Config()
     setting, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         scenario=scenario,
@@ -73,7 +72,7 @@ def test_simulation(scenario, expected_boundary_nodes):
         simulate_dirty_data=False,
         plot_animation=config.PLOT_TESTS,
         config=config,
-    )    
+    )
 
     np.set_printoptions(precision=8, suppress=True)
     np.testing.assert_array_almost_equal(

@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 import torch
+from torch_geometric.loader import DataLoader
+
 from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario
@@ -12,7 +14,6 @@ from deep_conmech.data.dataset_statistics import (DatasetStatistics,
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
-from torch_geometric.loader import DataLoader
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -20,7 +21,6 @@ def print_dataset(dataset, cutoff, timestamp, description):
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
-
 
 
 def get_print_dataloader(dataset):
@@ -57,7 +57,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True, # TODO: #65
+        pin_memory=True,  # TODO: #65
     )
 
 
@@ -76,7 +76,6 @@ def get_process_data_range(process_id, data_part_count):
     return range(process_id * data_part_count, (process_id + 1) * data_part_count)
 
 
-
 def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     scenarios_count = len(all_scenarios)
     if scenarios_count % num_workers != 0:
@@ -92,13 +91,13 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
 
 class BaseDataset:
     def __init__(
-        self,
-        description: str,
-        dimension:int,
-        randomize_at_load:bool,
-        num_workers:int,
-        load_to_ram: bool,
-        config: TrainingConfig
+            self,
+            description: str,
+            dimension: int,
+            randomize_at_load: bool,
+            num_workers: int,
+            load_to_ram: bool,
+            config: TrainingConfig
     ):
         self.dimension = dimension
         self.description = description
@@ -155,9 +154,9 @@ class BaseDataset:
         self.all_indices = pkh.get_all_indices_pickle(self.data_path)
         if self.data_count == len(self.all_indices):
             settings_path = f"{self.data_path}.settings"
-            file_size_gb = os.path.getsize(settings_path) / 1024 ** 3 
+            file_size_gb = os.path.getsize(settings_path) / 1024 ** 3
             print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
-            
+
         else:
             print("Clearing old data")
             cmh.clear_folder(self.main_directory)
@@ -170,20 +169,22 @@ class BaseDataset:
                 )
                 if result is False:
                     print("Restarting data generation")
-        
+
             self.all_indices = pkh.get_all_indices_pickle(self.data_path)
-        
+
         if self.load_to_ram:
             self.loaded_data = self.load_data_to_ram()
         else:
             self.loaded_data = None
             print("Loading data from disc")
-     
 
     def load_data_to_ram(self):
         data_count = len(self.all_indices)
-        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path, data_count), config=self.config, desc="Preprocessing and loading dataset to RAM")
-        return [self.preprocess_example(setting, index) for index, setting in enumerate(setting_tqdm)] 
+        setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path, data_count),
+                                    config=self.config,
+                                    desc="Preprocessing and loading dataset to RAM")
+        return [self.preprocess_example(setting, index) for index, setting in
+                enumerate(setting_tqdm)]
 
     def generate_data_process(self, num_workers, process_id):
         pass
@@ -206,16 +207,15 @@ class BaseDataset:
     def images_directory(self):
         return f"{self.main_directory}/images_{self.set_version}"
 
-
     def get_example(self, index):
         if self.loaded_data is not None:
             return self.loaded_data[index]
         else:
             with pkh.open_file_settings_read_pickle(self.data_path) as file:
-                setting = pkh.load_index_pickle(index=index, all_indices=self.all_indices, settings_file=file)
+                setting = pkh.load_index_pickle(index=index, all_indices=self.all_indices,
+                                                settings_file=file)
         data = self.preprocess_example(setting, index)
         return data
-        
 
     def preprocess_example(self, setting, index):
         if self.randomize_at_load:
@@ -231,8 +231,6 @@ class BaseDataset:
             f"{cmh.get_timestamp(self.config)} - {index}", exact_normalized_a_torch
         )
         return data
-
-
 
     def check_and_print(
             self, data_count, current_index, setting, step_tqdm, tqdm_description
@@ -254,7 +252,7 @@ class BaseDataset:
 
     def plot_data_setting(self, setting, filename, catalog):
         cmh.create_folders(catalog)
-        extension = "png" # pdf
+        extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
         simulation_runner.plot_setting(
             current_time=0,

@@ -4,21 +4,20 @@ import os
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from deep_conmech.graph.helpers import dch
+
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.simulations import simulation_runner
-from deep_conmech.training_config import TrainingConfig
-from deep_conmech.graph.helpers import dch
 from conmech.scenarios.scenarios import (Scenario, default_body_prop,
-                                    default_obstacle_prop, f_rotate, m_polygon,
-                                    o_side)
+                                         default_obstacle_prop, f_rotate, m_polygon,
+                                         o_side)
+from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
+from deep_conmech.training_config import TrainingConfig
 
 tf.enable_eager_execution()
-
-
 
 
 def load_data(meta_path, data_path):
@@ -54,8 +53,6 @@ def _parse(proto, meta):
     return out
 
 
-
-
 def save_tf_data(data, path: str):
     writer = tf.io.TFRecordWriter(path)
 
@@ -84,7 +81,7 @@ def to_dict(type, array):
     return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
 
 
-def simulate(config:Config, scenario) -> str:
+def simulate(config: Config, scenario) -> str:
     _, data_path = simulation_runner.run_scenario(
         solve_function=Calculator.solve,
         scenario=scenario,
@@ -95,13 +92,13 @@ def simulate(config:Config, scenario) -> str:
     return data_path
 
 
-def prepare_data(config:TrainingConfig, data_path:str):
-
+def prepare_data(config: TrainingConfig, data_path: str):
     all_indices = pkh.get_all_indices_pickle(data_path)
     data_count = len(all_indices)
     settings_file = pkh.open_file_settings_read_pickle(data_path)
     with settings_file:
-        load_function = lambda index : pkh.load_index_pickle(index=index, all_indices=all_indices, settings_file=settings_file)
+        load_function = lambda index: pkh.load_index_pickle(index=index, all_indices=all_indices,
+                                                            settings_file=settings_file)
         base_setting = load_function(index=0)
         elements = base_setting.elements[np.newaxis, ...].astype("int32")
         initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
@@ -111,7 +108,7 @@ def prepare_data(config:TrainingConfig, data_path:str):
 
         moved_nodes_list = []
         forces_list = []
-    
+
         for index in cmh.get_tqdm(range(data_count), config=config, desc="Preparing data to save"):
             setting = load_function(index=index)
             moved_nodes_list.append(setting.moved_nodes)

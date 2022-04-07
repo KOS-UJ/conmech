@@ -1,11 +1,11 @@
 import numba
 import numpy as np
 
+from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers import nph
 from deep_conmech.simulator.setting.setting_forces import energy_new, SettingForces
 
 
@@ -195,9 +195,6 @@ class SettingObstacles(SettingForces):
         self.obstacles = None
         self.clear()
 
-
-
-
     def prepare(self, forces):
         super().prepare(forces)
         if self.obstacles is not None:
@@ -350,7 +347,7 @@ class SettingObstacles(SettingForces):
         )
 
     def complete_boundary_data_with_zeros(self, data):
-        #return np.resize(data, (self.nodes_count, data.shape[1])) 
+        # return np.resize(data, (self.nodes_count, data.shape[1]))
         completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[self.boundary_indices] = data
         return completed_data

@@ -1,15 +1,16 @@
 import numpy as np
 import torch
+from numba import njit
+from torch_geometric.data import Data
+
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.helpers import thh
 from deep_conmech.graph.setting.setting_torch import SettingTorch
+from deep_conmech.helpers import thh
 from deep_conmech.simulator.setting.setting_obstacles import energy_obstacle
-from numba import njit
-from torch_geometric.data import Data
 
 
 def energy_normalized_obstacle_correction(
@@ -42,9 +43,6 @@ def energy_normalized_obstacle_correction(
     )
 
 
-
-
-
 @njit
 def set_diff(data, position, row, i, j):
     vector = data[j] - data[i]
@@ -67,9 +65,6 @@ def get_edges_data(
         set_diff(v_old, 6, edges_data[e], i, j)
         set_diff(forces, 9, edges_data[e], i, j)
     return edges_data
-
-
-
 
 
 def energy_obstacle_nvt(

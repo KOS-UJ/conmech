@@ -4,13 +4,12 @@ from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
-
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
+from conmech.solvers.calculator import Calculator
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 from deep_conmech.simulator.setting.setting_temperature import \
     SettingTemperature
-from conmech.solvers.calculator import Calculator
 
 
 def run_examples(
@@ -66,12 +65,12 @@ def run_scenario(
     def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
         step[0] += 1
         plot_index = step[0] % ts == 0
-        if save_all or plot_index: 
+        if save_all or plot_index:
             settings_file, file_meta = pkh.open_files_append_pickle(data_path)
             with settings_file, file_meta:
                 pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
         if plot_index:
-            plot_settings_count[0]+=1
+            plot_settings_count[0] += 1
 
     setting = simulate(
         compare_with_base_setting=False,
@@ -85,21 +84,23 @@ def run_scenario(
 
     if plot_animation:
         animation_path = f"{final_catalog}/{scenario.id}.gif"
-        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip, plot_settings_count[0], data_path)
+        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip,
+                                plot_settings_count[0], data_path)
 
     return setting, data_path
 
 
 def plot_scenario_animation(
-    scenario:Scenario,
-    config: Config,
-    animation_path: str,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str
+        scenario: Scenario,
+        config: Config,
+        animation_path: str,
+        time_skip: float,
+        index_skip: int,
+        plot_settings_count: int,
+        all_settings_path: str
 ):
-    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_settings_count, all_settings_path)
+    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_settings_count,
+                                         all_settings_path)
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
@@ -114,8 +115,6 @@ def plot_scenario_animation(
         all_settings_path=all_settings_path,
         t_scale=t_scale
     )
-
-
 
 
 def simulate(
@@ -202,7 +201,6 @@ def simulate(
     # )
     # print(f"    Solver time : {solver_time}{comparison_str}")
     return setting
-
 
 
 def plot_setting(

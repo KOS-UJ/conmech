@@ -41,9 +41,6 @@ def close_modulo(value, divider):
     return np.allclose(value % divider, 0.0) or np.allclose(value % divider, divider)
 
 
-
-
-
 def euclidean_norm(vector, keepdims=False):
     data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
     if isinstance(data, np.ndarray):
@@ -88,9 +85,6 @@ def get_tangential_numba(vector, normal):
     return tangential_vector
 
 
-
-
-
 def get_tangential_2d(normal):
     return np.array((normal[..., 1], -normal[..., 0])).T
 
@@ -131,8 +125,6 @@ def orthogonalize_gram_schmidt(vectors):
 
 def get_in_base(vectors, base):
     return vectors @ base.T
-
-
 
 
 @njit
@@ -184,12 +176,9 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     return result
 
 
-
-
-@njit(inline="always") # TODO: #65 Probably remove
+@njit(inline="always")  # TODO: #65 Probably remove
 def length(p1, p2):
     return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
-
 
 
 """

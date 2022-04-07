@@ -1,14 +1,14 @@
 import numpy as np
 
+from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.helpers.config import Config
-from conmech.simulations import simulation_runner
 from conmech.scenarios.scenarios import (TemperatureScenario, default_C_coeff,
-                                    default_K_coeff, default_temp_body_prop,
-                                    default_temp_obstacle_prop, f_rotate_fast,
-                                    get_temp_body_prop, m_circle, m_polygon,
-                                    m_rectangle, o_front, o_side)
+                                         default_K_coeff, default_temp_body_prop,
+                                         default_temp_obstacle_prop, f_rotate_fast,
+                                         get_temp_body_prop, m_circle, m_polygon,
+                                         m_rectangle, o_front, o_side)
+from conmech.simulations import simulation_runner
 
 
 def get_C_temp_scenarios(mesh_density, final_time):

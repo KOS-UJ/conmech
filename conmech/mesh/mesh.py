@@ -1,19 +1,17 @@
 from typing import Callable
-from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
 
-import conmech.mesh.mesh_builders as mesh_builders
 import numba
 import numpy as np
 from numba import njit
 
 import conmech.mesh.mesh_builders as mesh_builders
-from conmech.properties.mesh_properties import MeshProperties
 from conmech.helpers import nph
-from numba import njit
+from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
+from conmech.properties.mesh_properties import MeshProperties
 
 
 @njit
-def get_edges_matrix(nodes_count:int, elements:np.ndarray):
+def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
     for element in elements:  # TODO: #65 prange?
@@ -55,10 +53,6 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
-
-
-
-
 @njit
 def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
@@ -89,8 +83,6 @@ def get_base_seed_indices_numba(nodes):
     return base_seed_indices, int(np.argmin(errors))
 
 
-
-
 class Mesh:
     def __init__(
             self,
@@ -114,12 +106,8 @@ class Mesh:
 
         self.reinitialize_data(mesh_data, is_dirichlet, is_contact, create_in_subprocess)
 
-
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_data, is_dirichlet, is_contact, create_in_subprocess)
-
-
-     
 
     def reinitialize_data(self, mesh_data, is_dirichlet, is_contact, create_in_subprocess):
         input_nodes, input_elements = mesh_builders.build_mesh(
@@ -129,7 +117,8 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        self.initial_nodes, self.elements, self.boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        self.initial_nodes, self.elements, self.boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
+            unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -138,8 +127,6 @@ class Mesh:
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
-
-
     def get_state_dict(self):
         return vars(self)
 
@@ -147,30 +134,26 @@ class Mesh:
         for key, attr in state_dict.items():
             self.__setattr__(key, attr)
 
-
-
     @property
     def boundary_surfaces(self):
         return self.boundaries_data.boundary_surfaces
 
     @property
-    def contact_surfaces(self):
-        return self.boundaries_data.contact_surfaces
+    def contact_boundary(self):
+        return self.boundaries_data.contact_boundary
 
     @property
-    def neumann_surfaces(self):
-        return self.boundaries_data.neumann_surfaces
+    def neumann_boundary(self):
+        return self.boundaries_data.neumann_boundary
 
     @property
-    def dirichlet_surfaces(self):
-        return self.boundaries_data.dirichlet_surfaces
-
+    def dirichlet_boundary(self):
+        return self.boundaries_data.dirichlet_boundary
 
     @property
     def boundary_internal_indices(self):
         return self.boundaries_data.boundary_internal_indices
 
-        
     @property
     def boundary_nodes_count(self):
         return self.boundaries_data.boundary_nodes_count
@@ -178,11 +161,10 @@ class Mesh:
     @property
     def contact_nodes_count(self):
         return self.boundaries_data.contact_nodes_count
-        
+
     @property
     def dirichlet_nodes_count(self):
         return self.boundaries_data.dirichlet_nodes_count
-        
 
     @property
     def neumann_nodes_count(self):
@@ -194,10 +176,7 @@ class Mesh:
 
     @property
     def free_nodes_count(self):
-        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count # TODO: #65 CHECK
-
-
-
+        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count  # TODO: #65 CHECK
 
     @property
     def boundary_indices(self):
@@ -215,7 +194,6 @@ class Mesh:
     def dirichlet_indices(self):
         return slice(self.nodes_count - self.dirichlet_nodes_count, self.nodes_count)
 
-
     @property
     def independent_indices(self):
         return slice(self.independent_nodes_count)
@@ -224,26 +202,17 @@ class Mesh:
     def free_indices(self):
         return slice(self.contact_nodes_count, self.independent_nodes_count)
 
-
-
     @property
     def dimension(self):
         return self.mesh_data.dimension
-
-
 
     @property
     def mean_initial_nodes(self):
         return np.mean(self.initial_nodes, axis=0)
 
-
     @property
     def normalized_initial_nodes(self):
         return self.initial_nodes - self.mean_initial_nodes
-
-
-
-
 
     @property
     def nodes_count(self):
