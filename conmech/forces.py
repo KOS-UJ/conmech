@@ -46,9 +46,9 @@ class Forces:
             p_1 = self.mesh.initial_nodes[element[1]]
             p_2 = self.mesh.initial_nodes[element[2]]
 
-            f_0 = self.inter_forces(*p_0)
-            f_1 = self.inter_forces(*p_1)
-            f_2 = self.inter_forces(*p_2)
+            f_0 = self.inter_forces(p_0)
+            f_1 = self.inter_forces(p_1)
+            f_2 = self.inter_forces(p_2)
 
             f_mean = (f_0 + f_1 + f_2) / 3
 
@@ -66,7 +66,7 @@ class Forces:
             )
             v_mid = (self.mesh.initial_nodes[v_0] + self.mesh.initial_nodes[v_1]) / 2
 
-            f_neumann = self.outer_forces(*v_mid) * edge_length / 2
+            f_neumann = self.outer_forces(v_mid) * edge_length / 2
 
             self._forces[v_0] += f_neumann
             self._forces[v_1] += f_neumann

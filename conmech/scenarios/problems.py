@@ -46,11 +46,11 @@ class Problem:
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -68,11 +68,11 @@ class Problem:
 
 class Static(Problem):
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -98,11 +98,11 @@ class Quasistatic(Problem):
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -132,11 +132,11 @@ class Dynamic(Problem):
         return np.zeros_like(len(x))
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod

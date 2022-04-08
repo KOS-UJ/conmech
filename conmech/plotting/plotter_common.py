@@ -56,25 +56,25 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
 
 
 def plot_colorbar(fig, axs, cbar_settings):
-    for ax in axs:
-        position = ax.get_position()
+    for axes in axs:
+        position = axes.get_position()
         if (position.p0[0] > 0.1):
             position.p0[0] *= 0.8
         position.p_1[0] *= 0.9
-        ax.set_position(position)
+        axes.set_position(position)
 
-    ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
-    set_ax(ax)
-    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=ax)
+    axes = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    set_ax(axes)
+    cbar = fig.colorbar(mappable=cbar_settings.mappable, cax=axes)
     cbar.outline.set_edgecolor("w")
     cbar.outline.set_linewidth(0.2)
 
 
-def set_ax(ax):
-    for spine in ax.spines.values():
+def set_ax(axes):
+    for spine in axes.spines.values():
         spine.set_edgecolor("w")
         spine.set_linewidth(0.2)
-    ax.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
+    axes.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
 
 
 def prepare_for_arrows(starts, vectors):

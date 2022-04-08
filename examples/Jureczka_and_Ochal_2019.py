@@ -51,11 +51,11 @@ class StaticSetup(Static):
     contact_law: ... = JureczkaOchal2018
 
     @staticmethod
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([-1.2, -0.8])
 
     @staticmethod
-    def outer_forces(x, y):
+    def outer_forces(x):
         return np.array([0, 0])
 
     @staticmethod

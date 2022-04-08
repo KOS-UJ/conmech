@@ -271,10 +271,10 @@ class Dynamic(Quasistatic):
         )
 
         # TODO #50
-        # def inner_forces(x, y):
+        # def inner_forces(x):
         #     return 0.1 * (1.25 - abs(x - 1.25) + 0.5 - abs(y - 0.5))
         #
-        # def outer_forces(x, y):
+        # def outer_forces(x):
         #     return 0
         #
         # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
