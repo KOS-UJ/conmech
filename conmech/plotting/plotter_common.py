@@ -60,7 +60,7 @@ def plot_colorbar(fig, axs, cbar_settings):
         position = ax.get_position()
         if (position.p0[0] > 0.1):
             position.p0[0] *= 0.8
-        position.p1[0] *= 0.9
+        position.p_1[0] *= 0.9
         ax.set_position(position)
 
     ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])

@@ -185,8 +185,8 @@ class Calculator:
         return normalized_a + setting.normalized_a_correction
 
     @staticmethod
-    def clean_temperature(setting, t):
-        return t if t is not None else None  # + setting.normalized_a_correction #TODO
+    def clean_temperature(_setting, temperature):
+        return temperature if temperature is not None else None
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):

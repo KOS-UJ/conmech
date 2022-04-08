@@ -151,19 +151,19 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         return DIMENSION
 
     def calculate_constitutive_matrices(self,
-                                        W, MU, LA
+                                        W, mu, lambda_
                                         ):
-        X11 = (2 * MU + LA) * W[0, 0] + MU * W[1, 1] + LA * W[2, 2]
-        X22 = MU * W[0, 0] + (2 * MU + LA) * W[1, 1] + LA * W[2, 2]
-        X33 = MU * W[0, 0] + LA * W[1, 1] + (2 * MU + LA) * W[2, 2]
+        X11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1] + lambda_ * W[2, 2]
+        X22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1] + lambda_ * W[2, 2]
+        X33 = mu * W[0, 0] + lambda_ * W[1, 1] + (2 * mu + lambda_) * W[2, 2]
 
-        X21 = MU * W[1, 0] + LA * W[0, 1]
-        X31 = MU * W[2, 0] + LA * W[0, 2]
-        X32 = MU * W[2, 1] + LA * W[1, 2]
+        X21 = mu * W[1, 0] + lambda_ * W[0, 1]
+        X31 = mu * W[2, 0] + lambda_ * W[0, 2]
+        X32 = mu * W[2, 1] + lambda_ * W[1, 2]
 
-        X12 = LA * W[1, 0] + MU * W[0, 1]
-        X13 = LA * W[2, 0] + MU * W[0, 2]
-        X23 = LA * W[2, 1] + MU * W[1, 2]
+        X12 = lambda_ * W[1, 0] + mu * W[0, 1]
+        X13 = lambda_ * W[2, 0] + mu * W[0, 2]
+        X23 = lambda_ * W[2, 1] + mu * W[1, 2]
 
         return np.block([[X11, X12, X13], [X21, X22, X23], [X31, X32, X33]])
 

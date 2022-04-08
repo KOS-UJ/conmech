@@ -32,7 +32,7 @@ class Solver:
         self.const_elasticity = mesh.const_elasticity
 
         self.forces = Forces(mesh, inner_forces, outer_forces)
-        self.forces.setF()
+        self.forces.update_forces()
 
     def __str__(self):
         raise NotImplementedError()

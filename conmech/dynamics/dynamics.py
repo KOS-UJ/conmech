@@ -15,13 +15,13 @@ from conmech.state.body_position import BodyPosition
 @njit
 def get_edges_features_list_numba(edges_number, edges_features_matrix):
     nodes_count = len(edges_features_matrix[0])
-    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
-    e = 0
+    edges_features = np.zeros((edges_number + nodes_count, 8))
+    edge_id = 0
     for i in range(nodes_count):
         for j in range(nodes_count):
             if np.any(edges_features_matrix[i, j]):
-                edges_features[e] = edges_features_matrix[i, j]
-                e += 1
+                edges_features[edge_id] = edges_features_matrix[i, j]
+                edge_id += 1
     return edges_features
 
 
@@ -53,8 +53,8 @@ class Dynamics(BodyPosition):
         self.ACC: np.ndarray
         self.const_elasticity: np.ndarray
         self.const_viscosity: np.ndarray
-        self.C2T: np.ndarray
-        self.K: np.ndarray
+        self.thermal_expansion: np.ndarray
+        self.thermal_conductivity: np.ndarray
 
         self.C: np.ndarray
         self.C_boundary: np.ndarray
@@ -81,8 +81,8 @@ class Dynamics(BodyPosition):
             self.ACC,
             self.const_elasticity,
             self.const_viscosity,
-            self.C2T,
-            self.K,
+            self.thermal_expansion,
+            self.thermal_conductivity,
         ) = get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
@@ -110,7 +110,7 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.T = (1 / self.time_step) * self.ACC[i, i] + self.K[i, i]
+                self.T = (1 / self.time_step) * self.ACC[i, i] + self.thermal_conductivity[i, i]
                 (
                     self.T_boundary,
                     self.T_free_x_contact,

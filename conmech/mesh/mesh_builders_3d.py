@@ -7,6 +7,7 @@ from conmech.properties.mesh_properties import MeshProperties
 
 
 def get_meshzoo_cube(mesh_data: MeshProperties):
+    # pylint: disable=no-member
     nodes, elements = meshzoo.cube_tetra(
         np.linspace(0.0, 1.0, mesh_data.mesh_density_x),
         np.linspace(0.0, 1.0, mesh_data.mesh_density_x),
@@ -16,6 +17,7 @@ def get_meshzoo_cube(mesh_data: MeshProperties):
 
 
 def get_meshzoo_ball(mesh_data: MeshProperties):
+    # pylint: disable=no-member
     nodes, elements = meshzoo.ball_tetra(mesh_data.mesh_density_x)
     return mesh_builders_helpers.normalize_nodes(nodes), elements
 

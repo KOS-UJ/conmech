@@ -59,7 +59,7 @@ class Static(Global):
         return self.const_elasticity
 
     def get_right_hand_side(self):
-        return self.forces.F_vector
+        return self.forces.forces_vector
 
 
 @Solvers.register("quasistatic", "global", "global optimization")
@@ -89,7 +89,7 @@ class Quasistatic(Global):
         return self.const_viscosity
 
     def get_right_hand_side(self):
-        return self.forces.F_vector - self.const_elasticity @ self.u_vector.T
+        return self.forces.forces_vector - self.const_elasticity @ self.u_vector.T
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -110,8 +110,8 @@ class Dynamic(Quasistatic):
     ):
         self.dim = mesh.dimension
         self.ACC = mesh.ACC
-        self.K = mesh.K
-        self.C2T = mesh.C2T
+        self.thermal_conductivity = mesh.thermal_conductivity
+        self.thermal_expansion = mesh.thermal_expansion
         self.ind = mesh.independent_nodes_count
         self.t_vector = np.zeros(self.ind)
         super().__init__(
@@ -126,7 +126,7 @@ class Dynamic(Quasistatic):
 
         self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
                                                          : self.ind, : self.ind
-                                                         ] + self.K[: self.ind, : self.ind]
+                                                         ] + self.thermal_conductivity[: self.ind, : self.ind]
 
         self.Q = self.recalculate_temperature()
 
@@ -142,9 +142,9 @@ class Dynamic(Quasistatic):
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += np.tile(self.t_vector, self.dim) @ self.C2T
+        X += np.tile(self.t_vector, self.dim) @ self.thermal_expansion
 
-        return self.forces.F_vector + X
+        return self.forces.forces_vector + X
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -152,7 +152,7 @@ class Dynamic(Quasistatic):
         self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        X = (-1) * nph.unstack_and_sum_columns(self.C2T @ self.v_vector, dim=self.dim)
+        X = (-1) * nph.unstack_and_sum_columns(self.thermal_expansion @ self.v_vector, dim=self.dim)
 
         X += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
 

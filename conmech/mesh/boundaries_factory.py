@@ -147,7 +147,8 @@ class BoundariesFactory:
     """
     Rules:
     - We indicate only dirichlet and contact boundaries, rest of them are assumed to be neumann.
-    - Indicies of contact boundary nodes are placed first, then neumann nodes, and indices of dirichlet nodes are at the end
+    - Indices of contact boundary nodes are placed first, then neumann nodes, and indices of
+      dirichlet nodes are at the end
     """
 
     @staticmethod

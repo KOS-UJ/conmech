@@ -1,7 +1,7 @@
 """
 conmech helpers
 """
-import os≤
+import os
 import shutil
 import time
 

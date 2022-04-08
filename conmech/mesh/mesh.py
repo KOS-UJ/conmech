@@ -117,8 +117,9 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        self.initial_nodes, self.elements, self.boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-            unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        self.initial_nodes, self.elements, self.boundaries_data = \
+            BoundariesFactory.identify_boundaries_and_reorder_nodes(
+                unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -176,7 +177,8 @@ class Mesh:
 
     @property
     def free_nodes_count(self):
-        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count  # TODO: #65 CHECK
+        # TODO: #65 CHECK
+        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count
 
     @property
     def boundary_indices(self):

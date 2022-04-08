@@ -188,7 +188,7 @@ class Static(SchurComplement):
         return self.const_elasticity
 
     def get_E_split(self):
-        return self.forces.F
+        return self.forces.forces
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
@@ -219,7 +219,7 @@ class Quasistatic(SchurComplement):
         return self.const_viscosity
 
     def get_E_split(self):
-        return self.forces.F - nph.unstack(self.const_elasticity @ self.u_vector.T, dim=self.dim)
+        return self.forces.forces - nph.unstack(self.const_elasticity @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -240,8 +240,8 @@ class Dynamic(Quasistatic):
     ):
         self.dim = mesh.dimension
         self.ACC = mesh.ACC
-        self.C2T = mesh.C2T
-        self.K = mesh.K
+        self.thermal_expansion = mesh.thermal_expansion
+        self.thermal_conductivity = mesh.thermal_conductivity
         self.ind = mesh.independent_nodes_count
         self.t_vector = np.zeros(self.ind)
         super().__init__(
@@ -254,7 +254,7 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.K[
+        T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.thermal_conductivity[
                                                                       : self.ind, : self.ind
                                                                       ]
 
@@ -306,9 +306,9 @@ class Dynamic(Quasistatic):
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += np.tile(self.t_vector, self.dim) @ self.C2T  # TODO: Check if not -1 *
+        X += np.tile(self.t_vector, self.dim) @ self.thermal_expansion  # TODO: Check if not -1 *
 
-        return self.forces.F + nph.unstack(X, dim=self.dim)
+        return self.forces.forces + nph.unstack(X, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -317,7 +317,7 @@ class Dynamic(Quasistatic):
 
     def recalculate_temperature(self):
         QBig = (-1) * nph.unstack_and_sum_columns(
-            self.C2T @ self.v_vector, dim=self.dim
+            self.thermal_expansion @ self.v_vector, dim=self.dim
         )
 
         QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector

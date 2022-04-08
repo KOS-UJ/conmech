@@ -49,7 +49,7 @@ class Direct(Solver):
                 self.mesh.initial_nodes,
                 self.mesh.contact_boundary,
                 self.const_elasticity,
-                self.forces.F_vector,
+                self.forces.forces_vector,
             ),
         )
         return np.asarray(result)

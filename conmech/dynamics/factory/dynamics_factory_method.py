@@ -53,10 +53,10 @@ def get_dynamics(
     ACC = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        C2T = factory.calculate_temperature_C(V, body_prop.C_coeff)
-        K = factory.calculate_temperature_K(W, body_prop.K_coeff)
+        thermal_expansion = factory.calculate_temperature_C(V, body_prop.C_coeff)
+        thermal_conductivity = factory.calculate_temperature_K(W, body_prop.K_coeff)
     else:
-        C2T = None
-        K = None
+        thermal_expansion = None
+        thermal_conductivity = None
 
-    return element_initial_volume, const_volume, ACC, const_elasticity, const_viscosity, C2T, K
+    return element_initial_volume, const_volume, ACC, const_elasticity, const_viscosity, thermal_expansion, thermal_conductivity

@@ -177,8 +177,8 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
 
 
 @njit(inline="always")  # TODO: #65 Probably remove
-def length(p1, p2):
-    return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+def length(p_1, p_2):
+    return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
 
 
 """

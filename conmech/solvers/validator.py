@@ -25,7 +25,7 @@ class Validator:
                 state.mesh.initial_nodes,
                 state.mesh.contact_boundary,
                 self.const_elasticity,
-                self.forces.F_vector
+                self.forces.forces_vector
             )
         )
         quality = quality_inv ** -1

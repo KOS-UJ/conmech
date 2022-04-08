@@ -106,11 +106,11 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
     def dimension(self) -> int:
         return DIMENSION
 
-    def calculate_constitutive_matrices(self, W, MU, LA):
-        X11 = (2 * MU + LA) * W[0, 0] + MU * W[1, 1]
-        X22 = MU * W[0, 0] + (2 * MU + LA) * W[1, 1]
-        X12 = MU * W[1, 0] + LA * W[0, 1]
-        X21 = LA * W[1, 0] + MU * W[0, 1]
+    def calculate_constitutive_matrices(self, W, mu, lambda_):
+        X11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
+        X22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
+        X12 = mu * W[1, 0] + lambda_ * W[0, 1]
+        X21 = lambda_ * W[1, 0] + mu * W[0, 1]
         return np.block([[X11, X12], [X21, X22]])
 
     def calculate_acceleration(self, U, density):

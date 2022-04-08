@@ -130,7 +130,7 @@ class ProblemSolver:
             )
 
             if self.coordinates == "displacement":
-                state.set_displacement(solution, t=self.step_solver.currentTime)
+                state.set_displacement(solution, time=self.step_solver.currentTime)
                 self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
