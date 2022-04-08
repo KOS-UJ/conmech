@@ -95,7 +95,7 @@ class Drawer:
 
         n_layers = 100
         axes.tricontourf(x, y, self.mesh.elements, field, n_layers, cmap=plt.cm.magma,
-                       vmin=v_min, vmax=v_max)
+                         vmin=v_min, vmax=v_max)
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=plt.cm.magma, norm=plt.Normalize(vmin=v_min, vmax=v_max))

@@ -20,7 +20,7 @@ def generate_test_suits():
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=0.2), #1.5),
+        schedule=Schedule(final_time=0.2),  # 1.5),
         forces_function=np.array([0.0, -0.5]),
         obstacles=np.array(
             [[[0.7, 1.0]], [[0.0, 0.1]]]
@@ -44,20 +44,19 @@ def generate_test_suits():
     '''
 
     expected_boundary_nodes = [
-       [ 1.       ,  0.4895   ],
-       [ 0.25     ,  0.9225127],
-       [ 0.25     ,  0.0564873],
-       [ 0.9330127,  0.7395   ],
-       [ 0.75     ,  0.9225127],
-       [ 0.5      ,  0.9895   ],
-       [ 0.0669873,  0.7395   ],
-       [-0.       ,  0.4895   ],
-       [ 0.0669873,  0.2395   ],
-       [ 0.5      , -0.0105   ],
-       [ 0.75     ,  0.0564873],
-       [ 0.9330127,  0.2395   ]
+        [1., 0.4895],
+        [0.25, 0.9225127],
+        [0.25, 0.0564873],
+        [0.9330127, 0.7395],
+        [0.75, 0.9225127],
+        [0.5, 0.9895],
+        [0.0669873, 0.7395],
+        [-0., 0.4895],
+        [0.0669873, 0.2395],
+        [0.5, -0.0105],
+        [0.75, 0.0564873],
+        [0.9330127, 0.2395]
     ]
-
 
     yield scenario, expected_boundary_nodes
 

@@ -25,11 +25,11 @@ class Solver:
 
         # Added
         self.time_step = time_step
-        self.currentTime = 0
+        self.current_time = 0
         self.u_vector = np.zeros([self.mesh.independent_nodes_count * 2])
         self.v_vector = np.zeros([self.mesh.independent_nodes_count * 2])
 
-        self.const_elasticity = mesh.const_elasticity
+        self.elasticity = mesh.elasticity
 
         self.forces = Forces(mesh, inner_forces, outer_forces)
         self.forces.update_forces()

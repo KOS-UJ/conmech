@@ -2,7 +2,6 @@ from typing import Callable
 
 import numba
 import numpy as np
-from numba import njit
 
 import conmech.mesh.mesh_builders as mesh_builders
 from conmech.helpers import nph

@@ -2,7 +2,6 @@ import random
 
 import numba
 import numpy as np
-from numba import njit
 
 from conmech.helpers import nph
 
@@ -75,7 +74,8 @@ def interpolate_four(count, initial_nodes, randomization_scale, setting_scale_x,
     corners = interpolate_numba(
         count=count,
         initial_nodes=initial_nodes,
-        corner_vectors=get_corner_vectors_four(dim=initial_nodes.shape[1], randomization_scale=corners_randomization_scale),
+        corner_vectors=get_corner_vectors_four(dim=initial_nodes.shape[1],
+                                               randomization_scale=corners_randomization_scale),
         scale_x=setting_scale_x,
         scale_y=setting_scale_y
     )

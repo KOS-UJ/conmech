@@ -24,7 +24,7 @@ def get_all_indices_pickle(all_settings_path):
                     all_indices.append(pickle.load(file))
             except EOFError:
                 pass
-    except:
+    except IOError:
         pass
     return all_indices
 
@@ -60,7 +60,7 @@ def load_index_pickle(index: int, all_indices: List[int], settings_file: Buffere
 
 def get_iterator_pickle(path: str, data_count: int):
     with open(f"{path}.settings", "rb") as file:
-        for i in range(data_count):
+        for _ in range(data_count):
             # try:
             yield internal_load_pickle(file)
             # except EOFError:

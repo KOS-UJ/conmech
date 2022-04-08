@@ -7,8 +7,6 @@ from typing import Callable, Tuple
 import numba
 import numpy as np
 
-from conmech.solvers.solver_methods import njit
-
 
 @numba.njit
 def identify_surfaces_numba(sorted_elements):

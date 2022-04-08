@@ -31,16 +31,18 @@ class ProblemSolver:
         self.thermal_expansion_coefficients = np.array([[0.5, 0.0, 0.0],
                                                         [0.0, 0.5, 0.0],
                                                         [0.0, 0.0, 0.5]])
-        self.thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0], 
-                                                           [0.0, 0.1, 0.0], 
+        self.thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0],
+                                                           [0.0, 0.1, 0.0],
                                                            [0.0, 0.0, 0.1]])
 
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = DynamicTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, theta=setup.th_coef,
-            zeta=setup.ze_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients, thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+            zeta=setup.ze_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
         ) if with_time else StaticTemperatureBodyProperties(
-            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients,
+            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef,
+            thermal_expansion_coefficients=self.thermal_expansion_coefficients,
             thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
         )
         time_step = setup.time_step if with_time else 0
@@ -84,7 +86,8 @@ class ProblemSolver:
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0,
-                thermal_expansion_coefficients=self.thermal_expansion_coefficients, thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+                thermal_expansion_coefficients=self.thermal_expansion_coefficients,
+                thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             body_prop = DynamicTemperatureBodyProperties(
@@ -121,8 +124,8 @@ class ProblemSolver:
         :param verbose: show prints
         :return: state
         """
-        for i in range(n_steps):
-            self.step_solver.currentTime += self.step_solver.time_step
+        for _ in range(n_steps):
+            self.step_solver.current_time += self.step_solver.time_step
 
             solution = self.find_solution(
                 self.step_solver,
@@ -134,11 +137,11 @@ class ProblemSolver:
             )
 
             if self.coordinates == "displacement":
-                state.set_displacement(solution, time=self.step_solver.currentTime)
+                state.set_displacement(solution, time=self.step_solver.current_time)
                 self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
-                    solution, update_displacement=True, t=self.step_solver.currentTime
+                    solution, update_displacement=True, t=self.step_solver.current_time
                 )
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
@@ -382,8 +385,8 @@ class TDynamic(ProblemSolver):
         output_step = np.diff(output_step)
         results = []
         for n in output_step:
-            for i in range(n):
-                self.step_solver.currentTime += self.step_solver.time_step
+            for _ in range(n):
+                self.step_solver.current_time += self.step_solver.time_step
 
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
@@ -395,7 +398,7 @@ class TDynamic(ProblemSolver):
                     state.set_velocity(
                         solution[:],
                         update_displacement=True,
-                        t=self.step_solver.currentTime,
+                        t=self.step_solver.current_time,
                     )
                     state.set_temperature(solution_t)
                     # self.step_solver.iterate(solution)

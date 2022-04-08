@@ -2,7 +2,6 @@ from typing import Callable
 
 import numba
 import numpy as np
-from numba import njit
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
 from conmech.properties.body_properties import (StaticBodyProperties,
@@ -50,10 +49,10 @@ class Dynamics(BodyPosition):
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.element_initial_volume: np.ndarray
-        self.const_volume: np.ndarray
+        self.volume: np.ndarray
         self.ACC: np.ndarray
-        self.const_elasticity: np.ndarray
-        self.const_viscosity: np.ndarray
+        self.elasticity: np.ndarray
+        self.viscosity: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
 
@@ -78,10 +77,10 @@ class Dynamics(BodyPosition):
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
-            self.const_volume,
+            self.volume,
             self.ACC,
-            self.const_elasticity,
-            self.const_viscosity,
+            self.elasticity,
+            self.viscosity,
             self.thermal_expansion,
             self.thermal_conductivity,
         ) = get_dynamics(
@@ -94,7 +93,7 @@ class Dynamics(BodyPosition):
         if self.with_schur_complement_matrices:
             self.C = (
                     self.ACC
-                    + (self.const_viscosity + self.const_elasticity * self.time_step)
+                    + (self.viscosity + self.elasticity * self.time_step)
                     * self.time_step
             )
             (

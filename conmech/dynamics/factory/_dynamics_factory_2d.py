@@ -1,6 +1,5 @@
 import numba
 import numpy as np
-from numba import njit
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
 
@@ -37,8 +36,8 @@ def get_edges_features_matrix_numba(elements, nodes):
                 j_dPhX, j_dPhY, _ = get_integral_parts_numba(element_points, j)
 
                 volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
-                # divide by edge count - info about each triangle is "sent" to node via all connected edges
-                # (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
+                # divide by edge count - info about each triangle is "sent" to node via all
+                # connected edges (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
                 u = (1 + (i == j)) / U_DIVIDER
                 # in 3D: divide by 10 or 20, in 2D: divide by 6 or 12
 

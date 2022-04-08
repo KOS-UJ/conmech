@@ -12,6 +12,7 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
+
 def create_mesh_type():
     return interpolation_helpers.choose(
         ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]

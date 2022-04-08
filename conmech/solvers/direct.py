@@ -7,7 +7,7 @@ import scipy.optimize
 
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_f
+from conmech.solvers.solver_methods import make_equation
 
 
 @Solvers.register("static", "direct")
@@ -32,7 +32,7 @@ class Direct(Solver):
             friction_bound,
         )
 
-        self.f = make_f(
+        self.f = make_equation(
             jn=contact_law.subderivative_normal_direction,
             jt=contact_law.regularized_subderivative_tangential_direction,
             h=friction_bound,
@@ -48,7 +48,7 @@ class Direct(Solver):
             args=(
                 self.mesh.initial_nodes,
                 self.mesh.contact_boundary,
-                self.const_elasticity,
+                self.elasticity,
                 self.forces.forces_vector,
             ),
         )

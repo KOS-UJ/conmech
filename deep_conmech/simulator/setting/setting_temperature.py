@@ -108,14 +108,15 @@ class SettingTemperature(SettingObstacles):
             v_old=self.normalized_v_old,
             heat=self.heat,
             t_old=self.t_old,
-            const_volume=self.const_volume,
+            const_volume=self.volume,
             thermal_expansion=self.thermal_expansion,
             U=self.ACC[self.independent_indices, self.independent_indices],
             dimension=self.dimension,
             time_step=self.time_step,
         )
 
-    def get_Q(self, a, v_old, heat, t_old, const_volume, thermal_expansion, U, dimension, time_step):
+    def get_Q(self, a, v_old, heat, t_old, const_volume, thermal_expansion, U, dimension,
+              time_step):
         v = v_old + a * time_step
         v_vector = nph.stack_column(v)
 
@@ -148,9 +149,9 @@ class SettingTemperature(SettingObstacles):
             forces=self.normalized_forces,
             u_old=self.normalized_u_old,
             v_old=self.normalized_v_old,
-            const_volume=self.const_volume,
-            const_elasticity=self.const_elasticity,
-            const_viscosity=self.const_viscosity,
+            const_volume=self.volume,
+            elasticity=self.elasticity,
+            viscosity=self.viscosity,
             time_step=self.time_step,
             dimension=self.dimension,
             thermal_expansion=self.thermal_expansion,
@@ -163,8 +164,8 @@ class SettingTemperature(SettingObstacles):
             u_old,
             v_old,
             const_volume,
-            const_elasticity,
-            const_viscosity,
+            elasticity,
+            viscosity,
             time_step,
             dimension,
             thermal_expansion,
@@ -174,8 +175,8 @@ class SettingTemperature(SettingObstacles):
             u_old=u_old,
             v_old=v_old,
             const_volume=const_volume,
-            const_elasticity=const_elasticity,
-            const_viscosity=const_viscosity,
+            elasticity=elasticity,
+            viscosity=viscosity,
             time_step=time_step,
         )
         value += thermal_expansion.T @ t

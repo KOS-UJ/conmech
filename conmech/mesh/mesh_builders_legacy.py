@@ -1,6 +1,5 @@
 import numba
 import numpy as np
-from numba import njit
 
 from conmech.helpers import nph
 
@@ -73,7 +72,7 @@ def get_cross_elements_numba(
 
 
 def get_cross_rectangle(mesh_data):
-    min = np.array((0.0, 0.0))
+    min_ = np.array((0.0, 0.0))
     size_x = int(mesh_data.mesh_density_x)
     size_y = int(mesh_data.mesh_density_y)
     edge_len_x = mesh_data.scale_x / size_x
@@ -86,9 +85,9 @@ def get_cross_rectangle(mesh_data):
     elements = np.zeros((elements_count, 3), dtype="long")
 
     get_cross_points_legacy_ordered_numba(
-        points, size_x, size_y, edge_len_x, edge_len_y, min
+        points, size_x, size_y, edge_len_x, edge_len_y, min_
     )
     get_cross_elements_numba(
-        points, elements, size_x, size_y, edge_len_x, edge_len_y, min
+        points, elements, size_x, size_y, edge_len_x, edge_len_y, min_
     )
     return points, elements

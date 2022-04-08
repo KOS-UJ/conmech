@@ -39,7 +39,7 @@ class Calculator:
         return scipy.optimize.minimize(
             function,
             initial_vector,
-            method="L-BFGS-B",  # POWELL, L-BFGS-B, options={"disp": True}
+            method="L-BFGS-B",
         ).x
 
     @staticmethod
@@ -67,8 +67,9 @@ class Calculator:
         i = 0
         normalized_a = None
         t = setting.t_old
-        while i < 2 or np.allclose(last_normalized_a, normalized_a) == False and np.allclose(last_t,
-                                                                                             t) == False:
+        while i < 2 \
+                or not np.allclose(last_normalized_a, normalized_a) \
+                and not np.allclose(last_t, t):
             last_normalized_a, last_t = normalized_a, t
             normalized_a = Calculator.solve_acceleration_normalized(setting, t, initial_a)
             t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
@@ -137,19 +138,10 @@ class Calculator:
                 initial_a[setting.boundary_indices]
             )
 
-        tstart = time.time()
         cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(t)
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )
-        t_np = time.time() - tstart
-        """
-        tstart = time.time()
-        normalized_boundary_a_vector_nvt = Calculator.minimize(
-            setting.normalized_energy_obstacle_nvt, initial_boundary_vector
-        ) 
-        t_nvt = time.time() - tstart
-        """
 
         normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
         normalized_a_vector = Calculator.complete_a_vector(
@@ -180,7 +172,7 @@ class Calculator:
     def clean_acceleration(setting: SettingObstacles, normalized_a):
         if normalized_a is None:
             return None
-        if isinstance(setting, SettingRandomized) == False:
+        if not isinstance(setting, SettingRandomized):
             return normalized_a
         return normalized_a + setting.normalized_a_correction
 

@@ -87,7 +87,7 @@ class Optimization(Solver):
         loss_args = (
             self.mesh.initial_nodes,
             self.mesh.contact_boundary,
-            self.T,  # TODO #48
+            self.node_temperature,  # TODO #48
             self.Q,  # TODO #48
             velocity,
         )

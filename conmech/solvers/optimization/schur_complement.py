@@ -93,7 +93,7 @@ class SchurComplement(Optimization):
 
     def recalculate_displacement(self):
         return SchurComplement.calculate_schur_complement_matrices(
-            matrix=self.get_C(),
+            matrix=self.get_left_hand_side(),
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
@@ -101,7 +101,7 @@ class SchurComplement(Optimization):
 
     def recalculate_forces(self):
         point_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
-            vector=self.get_E_split(),
+            vector=self.get_right_hand_side(),
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
@@ -110,10 +110,10 @@ class SchurComplement(Optimization):
         )
         return point_forces.T, forces_free  # TODO: #65 refactor to remove T
 
-    def get_C(self):
+    def get_left_hand_side(self):
         raise NotImplementedError()
 
-    def get_E_split(self):
+    def get_right_hand_side(self):
         raise NotImplementedError()
 
     def __str__(self):
@@ -184,10 +184,10 @@ class SchurComplement(Optimization):
 
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
-    def get_C(self):
-        return self.const_elasticity
+    def get_left_hand_side(self):
+        return self.elasticity
 
-    def get_E_split(self):
+    def get_right_hand_side(self):
         return self.forces.forces
 
 
@@ -203,7 +203,7 @@ class Quasistatic(SchurComplement):
             contact_law,
             friction_bound,
     ):
-        self.const_viscosity = mesh.const_viscosity
+        self.viscosity = mesh.viscosity
         self.dim = mesh.dimension
         super().__init__(
             mesh,
@@ -215,11 +215,12 @@ class Quasistatic(SchurComplement):
             friction_bound,
         )
 
-    def get_C(self):
-        return self.const_viscosity
+    def get_left_hand_side(self):
+        return self.viscosity
 
-    def get_E_split(self):
-        return self.forces.forces - nph.unstack(self.const_elasticity @ self.u_vector.T, dim=self.dim)
+    def get_right_hand_side(self):
+        return self.forces.forces - nph.unstack(self.elasticity @ self.u_vector.T,
+                                                dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -295,20 +296,20 @@ class Dynamic(Quasistatic):
     #     state.set_velocity(velocity_vector=velocity)
 
     @property
-    def T(self):
+    def node_temperature(self):
         return self._point_temperature
 
-    def get_C(self):
-        return self.const_viscosity + (1 / self.time_step) * self.ACC
+    def get_left_hand_side(self):
+        return self.viscosity + (1 / self.time_step) * self.ACC
 
-    def get_E_split(self):
-        X = -1 * self.const_elasticity @ self.u_vector
+    def get_right_hand_side(self):
+        A = -1 * self.elasticity @ self.u_vector
 
-        X += (1 / self.time_step) * self.ACC @ self.v_vector
+        A += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += self.thermal_expansion.T @ self.t_vector  # TODO: Check if not -1 *
+        A += self.thermal_expansion.T @ self.t_vector  # TODO: Check if not -1 *
 
-        return self.forces.forces + nph.unstack(X, dim=self.dim)
+        return self.forces.forces + nph.unstack(A, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -316,18 +317,17 @@ class Dynamic(Quasistatic):
         self.Q, self.Q_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        QBig = (-1) * self.thermal_expansion @ self.v_vector
+        A = (-1) * self.thermal_expansion @ self.v_vector
 
+        A += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
+        # A = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
-        QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
-        # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
-
-        Q, Q_free = SchurComplement.calculate_schur_complement_vector(
-            vector=QBig,
+        A_contact, A_free = SchurComplement.calculate_schur_complement_vector(
+            vector=A,
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.T_contact_x_free,
             free_x_free_inverted=self.T_free_x_free_inverted,
         )
-        return Q.reshape(-1), Q_free.reshape(-1)  # TODO: refactor to remove reshape
+        return A_contact.reshape(-1), A_free.reshape(-1)  # TODO: refactor to remove reshape

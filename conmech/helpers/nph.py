@@ -148,8 +148,8 @@ def max_numba(corners):
 
 @numba.njit
 def get_point_index_numba(point, points):
-    for i in range(len(points)):
-        if np.sum(np.abs(point - points[i])) < 0.0001:
+    for i, p in enumerate(points):
+        if np.sum(np.abs(point - p)) < 0.0001:
             return i
     raise ArgumentError
 
@@ -174,22 +174,19 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
 
-
-"""
-@numba.njit
-def calculate_angle_numba(new_up_vector):
-    old_up_vector = np.array([0., 1.])
-    angle = (2 * (new_up_vector[0] >= 0) - 1) * np.arccos(np.dot(new_up_vector, old_up_vector))
-    return angle
-
-@numba.njit
-def rotate_numba(vectors, angle):
-    s = np.sin(angle)
-    c = np.cos(angle)
-
-    rotated_vectors = np.zeros_like(vectors)
-    rotated_vectors[:, 0] = vectors[:, 0] * c - vectors[:, 1] * s
-    rotated_vectors[:, 1] = vectors[:, 0] * s + vectors[:, 1] * c
-    
-    return rotated_vectors
-"""
+# @numba.njit
+# def calculate_angle_numba(new_up_vector):
+#     old_up_vector = np.array([0., 1.])
+#     angle = (2 * (new_up_vector[0] >= 0) - 1) * np.arccos(np.dot(new_up_vector, old_up_vector))
+#     return angle
+#
+# @numba.njit
+# def rotate_numba(vectors, angle):
+#     s = np.sin(angle)
+#     c = np.cos(angle)
+#
+#     rotated_vectors = np.zeros_like(vectors)
+#     rotated_vectors[:, 0] = vectors[:, 0] * c - vectors[:, 1] * s
+#     rotated_vectors[:, 1] = vectors[:, 0] * s + vectors[:, 1] * c
+#
+#     return rotated_vectors

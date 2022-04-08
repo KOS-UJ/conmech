@@ -34,7 +34,7 @@ def get_dynamics(
          for k in range(factory.dimension)
          ])
 
-    const_elasticity = (
+    elasticity = (
         factory.calculate_constitutive_matrices(
             W, body_prop.mu, body_prop.lambda_
         )
@@ -42,7 +42,7 @@ def get_dynamics(
         else None
     )
 
-    const_viscosity = (
+    viscosity = (
         factory.calculate_constitutive_matrices(
             W, body_prop.theta, body_prop.zeta
         )
@@ -53,10 +53,15 @@ def get_dynamics(
     ACC = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion = factory.calculate_thermal_expansion(V, body_prop.thermal_expansion_coefficients)
-        thermal_conductivity = factory.calculate_thermal_conductivity(W, body_prop.thermal_conductivity_coefficients)
+        thermal_expansion = \
+            factory.calculate_thermal_expansion(V,
+                                                body_prop.thermal_expansion_coefficients)
+        thermal_conductivity = \
+            factory.calculate_thermal_conductivity(W,
+                                                   body_prop.thermal_conductivity_coefficients)
     else:
         thermal_expansion = None
         thermal_conductivity = None
 
-    return element_initial_volume, const_volume, ACC, const_elasticity, const_viscosity, thermal_expansion, thermal_conductivity
+    return (element_initial_volume, const_volume, ACC,
+            elasticity, viscosity, thermal_expansion, thermal_conductivity)

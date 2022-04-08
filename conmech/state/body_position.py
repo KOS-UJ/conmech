@@ -9,7 +9,6 @@ from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.solver_methods import njit
 
 
 def get_base(nodes, base_seed_indices, closest_seed_index):

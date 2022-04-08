@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from numba import njit
 from torch_geometric.data import Data
 
 from conmech.helpers.config import Config

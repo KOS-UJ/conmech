@@ -53,9 +53,9 @@ class SettingForces(Dynamics):
             forces=self.normalized_forces,
             u_old=self.normalized_u_old,
             v_old=self.normalized_v_old,
-            const_volume=self.const_volume,
-            const_elasticity=self.const_elasticity,
-            const_viscosity=self.const_viscosity,
+            const_volume=self.volume,
+            elasticity=self.elasticity,
+            viscosity=self.viscosity,
             time_step=self.time_step,
         )
 
@@ -65,8 +65,8 @@ class SettingForces(Dynamics):
             u_old,
             v_old,
             const_volume,
-            const_elasticity,
-            const_viscosity,
+            elasticity,
+            viscosity,
             time_step,
     ):
         u_old_vector = nph.stack_column(u_old)
@@ -75,8 +75,8 @@ class SettingForces(Dynamics):
         F_vector = nph.stack_column(const_volume @ forces)
         E = (
                 F_vector
-                - (const_viscosity + const_elasticity * time_step) @ v_old_vector
-                - const_elasticity @ u_old_vector
+                - (viscosity + elasticity * time_step) @ v_old_vector
+                - elasticity @ u_old_vector
         )
         return E
 

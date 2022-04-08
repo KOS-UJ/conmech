@@ -77,7 +77,8 @@ def get_K_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
-    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, t: float):
+    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
+                 t: float):
         x_scaled = initial_node[0] / mesh_data.scale_x
         y_scaled = initial_node[1] / mesh_data.scale_y
         z_scaled = initial_node[2] / mesh_data.scale_z

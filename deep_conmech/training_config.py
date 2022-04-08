@@ -17,8 +17,6 @@ class TrainingData:
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
 
-    
-
     FORCES_RANDOM_SCALE: int = 4
     OBSTACLE_ORIGIN_SCALE: int = 3 * TRAIN_SCALE
 
@@ -74,15 +72,12 @@ class TrainingConfig(Config):
     DATALOADER_WORKERS = 4
     SYNTHETIC_GENERATION_WORKERS = 2
 
-    
-
     TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
-    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2)
+    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round(
+        (TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2)
 
-    
-
-    PLOT_DATA_PERCENTAGE: float = 0.01 #0.1
+    PLOT_DATA_PERCENTAGE: float = 0.01  # 0.1
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True

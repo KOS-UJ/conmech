@@ -3,8 +3,10 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (TemperatureScenario, default_thermal_expansion_coefficients,
-                                         default_thermal_conductivity_coefficients, default_temp_body_prop,
+from conmech.scenarios.scenarios import (TemperatureScenario,
+                                         default_thermal_expansion_coefficients,
+                                         default_thermal_conductivity_coefficients,
+                                         default_temp_body_prop,
                                          default_temp_obstacle_prop, f_rotate_fast,
                                          get_temp_body_prop, M_CIRCLE, M_POLYGON,
                                          M_RECTANGLE, o_front, o_side)
@@ -15,14 +17,17 @@ def get_C_temp_scenarios(mesh_density, final_time):
     C_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array([[1.5, 0], [0, 0.5]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_expansion_coefficients=np.array([[1.5, 0], [0, 0.5]]),
+            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array([[1.0, -0.5], [-0.5, 1.0]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_expansion_coefficients=np.array([[1.0, -0.5], [-0.5, 1.0]]),
+            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array([[1.0, 0.5], [-0.5, 1.0]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_expansion_coefficients=np.array([[1.0, 0.5], [-0.5, 1.0]]),
+            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
     ]
     return [
@@ -50,21 +55,26 @@ def get_K_temp_scenarios(mesh_density, final_time):
     K_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.5, 0], [0, 0.5]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=np.array([[0.5, 0], [0, 0.5]]),
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, 0.1], [0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=np.array([[0.1, 0.1], [0.1, 0.1]]),
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, -0.1], [-0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=np.array([[0.1, -0.1], [-0.1, 0.1]]),
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, -0.1], [0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=np.array([[0.1, -0.1], [0.1, 0.1]]),
         ),
     ]
 
-    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, t: float):
+    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
+                 t: float):
         x_scaled = initial_node[0] / mesh_data.scale_x
         y_scaled = initial_node[1] / mesh_data.scale_y
         if x_scaled < 0.1 and y_scaled < 0.1:
@@ -128,7 +138,8 @@ def get_friction_scenarios(mesh_density, final_time):
         ),
         body_prop=
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.01, 0], [0, 0.01]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=np.array([[0.01, 0], [0, 0.01]]),
         ),
         obstacle_prop=default_temp_obstacle_prop,
         schedule=Schedule(final_time=final_time),

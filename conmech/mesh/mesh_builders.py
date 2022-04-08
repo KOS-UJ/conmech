@@ -14,7 +14,8 @@ def build_mesh(
 ) -> Tuple[np.ndarray, np.ndarray]:
     if "cross" in mesh_data.mesh_type:
         return mesh_builders_legacy.get_cross_rectangle(mesh_data)
-    elif "meshzoo" in mesh_data.mesh_type:
+
+    if "meshzoo" in mesh_data.mesh_type:
         if "3d" in mesh_data.mesh_type:
             if "cube" in mesh_data.mesh_type:
                 return mesh_builders_3d.get_meshzoo_cube(mesh_data)
@@ -23,7 +24,7 @@ def build_mesh(
         else:
             return mesh_builders_2d.get_meshzoo_rectangle(mesh_data)
 
-    elif "pygmsh" in mesh_data.mesh_type:
+    if "pygmsh" in mesh_data.mesh_type:
         if "3d" in mesh_data.mesh_type:
             if "polygon" in mesh_data.mesh_type:
                 inner_function = lambda: mesh_builders_3d.get_pygmsh_polygon(
@@ -37,5 +38,4 @@ def build_mesh(
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
-    else:
-        raise ArgumentError()
+    raise NotImplementedError(f"Not implemented mesh type: {mesh_data.mesh_type}")

@@ -4,7 +4,6 @@ Created 22.02.2021
 
 import numpy as np
 
-from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -56,7 +55,7 @@ class Global(Optimization):
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
     def get_left_hand_side(self):
-        return self.const_elasticity
+        return self.elasticity
 
     def get_right_hand_side(self):
         return self.forces.forces_vector
@@ -74,7 +73,7 @@ class Quasistatic(Global):
             contact_law,
             friction_bound,
     ):
-        self.const_viscosity = mesh.const_viscosity
+        self.viscosity = mesh.viscosity
         super().__init__(
             mesh,
             inner_forces,
@@ -86,10 +85,10 @@ class Quasistatic(Global):
         )
 
     def get_left_hand_side(self):
-        return self.const_viscosity
+        return self.viscosity
 
     def get_right_hand_side(self):
-        return self.forces.forces_vector - self.const_elasticity @ self.u_vector.T
+        return self.forces.forces_vector - self.elasticity @ self.u_vector.T
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -126,25 +125,26 @@ class Dynamic(Quasistatic):
 
         self._point_temperature = (1 / self.time_step) * self.mesh.ACC[
                                                          : self.ind, : self.ind
-                                                         ] + self.thermal_conductivity[: self.ind, : self.ind]
+                                                         ] + self.thermal_conductivity[: self.ind,
+                                                             : self.ind]
 
         self.Q = self.recalculate_temperature()
 
     @property
-    def T(self):
+    def node_temperature(self):
         return self._point_temperature
 
     def get_left_hand_side(self):
-        return self.const_viscosity + (1 / self.time_step) * self.ACC
+        return self.viscosity + (1 / self.time_step) * self.ACC
 
     def get_right_hand_side(self):
-        X = -1 * self.const_elasticity @ self.u_vector
+        A = -1 * self.elasticity @ self.u_vector
 
-        X += (1 / self.time_step) * self.ACC @ self.v_vector
+        A += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += self.thermal_expansion.T @ self.t_vector
+        A += self.thermal_expansion.T @ self.t_vector
 
-        return self.forces.forces_vector + X
+        return self.forces.forces_vector + A
 
     def iterate(self, velocity):
         super(Global, self).iterate(velocity)
@@ -152,8 +152,8 @@ class Dynamic(Quasistatic):
         self.Q = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        X = (-1) * self.thermal_expansion @ self.v_vector
+        A = (-1) * self.thermal_expansion @ self.v_vector
 
-        X += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
+        A += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
 
-        return X
+        return A

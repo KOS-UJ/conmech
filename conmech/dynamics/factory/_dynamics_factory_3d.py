@@ -1,6 +1,5 @@
 import numba
 import numpy as np
-from numba import njit
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
 
@@ -156,17 +155,17 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
                                         ):
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1] + lambda_ * W[2, 2]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1] + lambda_ * W[2, 2]
-        X33 = mu * W[0, 0] + lambda_ * W[1, 1] + (2 * mu + lambda_) * W[2, 2]
+        A_33 = mu * W[0, 0] + lambda_ * W[1, 1] + (2 * mu + lambda_) * W[2, 2]
 
         A_21 = mu * W[1, 0] + lambda_ * W[0, 1]
-        X31 = mu * W[2, 0] + lambda_ * W[0, 2]
-        X32 = mu * W[2, 1] + lambda_ * W[1, 2]
+        A_31 = mu * W[2, 0] + lambda_ * W[0, 2]
+        A_32 = mu * W[2, 1] + lambda_ * W[1, 2]
 
         A_12 = lambda_ * W[1, 0] + mu * W[0, 1]
-        X13 = lambda_ * W[2, 0] + mu * W[0, 2]
-        X23 = lambda_ * W[2, 1] + mu * W[1, 2]
+        A_13 = lambda_ * W[2, 0] + mu * W[0, 2]
+        A_23 = lambda_ * W[2, 1] + mu * W[1, 2]
 
-        return np.block([[A_11, A_12, X13], [A_21, A_22, X23], [X31, X32, X33]])
+        return np.block([[A_11, A_12, A_13], [A_21, A_22, A_23], [A_31, A_32, A_33]])
 
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
@@ -175,8 +174,8 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
     def calculate_thermal_expansion(self, V, C_coef):
         A_11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1] + C_coef[0][2] * V[2]
         A_22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1] + C_coef[1][2] * V[2]
-        X33 = C_coef[2][0] * V[0] + C_coef[2][1] * V[1] + C_coef[2][2] * V[2]
-        return np.block([A_11, A_22, X33])
+        A_33 = C_coef[2][0] * V[0] + C_coef[2][1] * V[1] + C_coef[2][2] * V[2]
+        return np.block([A_11, A_22, A_33])
 
     def calculate_thermal_conductivity(self, W, K_coef):
         return (
