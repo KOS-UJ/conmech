@@ -50,7 +50,7 @@ def get_dynamics(
         else None
     )
 
-    ACC = factory.calculate_acceleration(U, body_prop.mass_density)
+    acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
         thermal_expansion = \
@@ -63,5 +63,5 @@ def get_dynamics(
         thermal_expansion = None
         thermal_conductivity = None
 
-    return (element_initial_volume, const_volume, ACC,
+    return (element_initial_volume, const_volume, acceleration_operator,
             elasticity, viscosity, thermal_expansion, thermal_conductivity)

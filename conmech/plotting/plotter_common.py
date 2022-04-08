@@ -12,7 +12,7 @@ from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 
 # TODO: #65 Move to config
-dpi = 800
+DPI = 800
 savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
 
 
@@ -50,7 +50,7 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     lim_small = 0.2
     lim_big = 10
 
-    if (t_scale[0] > -lim_small and t_scale[1] < lim_small):
+    if t_scale[0] > -lim_small and t_scale[1] < lim_small:
         return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)  # coolwarm
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
@@ -58,7 +58,7 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
 def plot_colorbar(fig, axs, cbar_settings):
     for axes in axs:
         position = axes.get_position()
-        if (position.p0[0] > 0.1):
+        if position.p0[0] > 0.1:
             position.p0[0] *= 0.8
         position.p_1[0] *= 0.9
         axes.set_position(position)
@@ -95,7 +95,7 @@ def prepare_for_arrows(starts, vectors):
 
 def plt_save(path, extension):
     plt.savefig(
-        path, **savefig_args, format=extension, dpi=dpi
+        path, **savefig_args, format=extension, dpi=DPI
     )  # , bbox_inches="tight"
     plt.close()
 
@@ -134,7 +134,7 @@ def plot_animation(
             fig, animate, frames=plot_settings_count
         )  # , interval=scenario.final_time)
 
-        ani.save(save_path, writer=None, fps=fps, dpi=dpi, savefig_kwargs=savefig_args)
+        ani.save(save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
         # animation_tqdm.close()
     plt.close()
 

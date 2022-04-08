@@ -70,7 +70,7 @@ class SettingTemperature(SettingObstacles):
         return (
             lambda normalized_boundary_t_vector: energy_temperature(
                 nph.unstack(normalized_boundary_t_vector, 1),
-                self.T_boundary,
+                self.temperature_boundary,
                 normalized_Q_boundary,
             ),
             normalized_Q_free,
@@ -97,8 +97,8 @@ class SettingTemperature(SettingObstacles):
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.T_free_x_free_inverted,
-            contact_x_free=self.T_contact_x_free,
+            free_x_free_inverted=self.temperature_free_x_free_inverted,
+            contact_x_free=self.temperature_contact_x_free,
         )
         return normalized_Q_boundary, normalized_Q_free
 
@@ -110,7 +110,7 @@ class SettingTemperature(SettingObstacles):
             t_old=self.t_old,
             const_volume=self.volume,
             thermal_expansion=self.thermal_expansion,
-            U=self.ACC[self.independent_indices, self.independent_indices],
+            U=self.acceleration_operator[self.independent_indices, self.independent_indices],
             dimension=self.dimension,
             time_step=self.time_step,
         )
@@ -182,6 +182,6 @@ class SettingTemperature(SettingObstacles):
         value += thermal_expansion.T @ t
         return value
 
-    def iterate_self(self, a, t, randomized_inputs=False):
+    def iterate_self(self, acceleration, t, randomized_inputs=False):
         self.set_t_old(t)
-        return super().iterate_self(a=a)
+        return super().iterate_self(acceleration=acceleration)

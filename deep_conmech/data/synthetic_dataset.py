@@ -114,8 +114,8 @@ class SyntheticDataset(BaseDataset):
         v_old = create_v_old(self.config, setting)
 
         setting.normalize_and_set_obstacles(obstacles_unnormaized)
-        setting.set_u_old(u_old)
-        setting.set_v_old(v_old)
+        setting.set_displacement_old(u_old)
+        setting.set_velocity_old(v_old)
         setting.prepare(forces)
 
         add_label = False

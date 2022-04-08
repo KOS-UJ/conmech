@@ -68,7 +68,6 @@ def get_axs(fig):
 def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
     for axes in axs:
         plot_subframe(
-            fig=fig,
             axes=axes,
             setting=setting,
             normalized_data=[
@@ -114,13 +113,12 @@ def draw_base_arrows(axes, base):
     axes.quiver(*z, *(base[2]), arrow_length_ratio=0.1, color="g")
 
 
-def plot_subframe(fig, axes, setting, normalized_data, t_scale):
+def plot_subframe(axes, setting, normalized_data, t_scale):
     # draw_base_arrows(axes, setting.moved_base)
 
     if isinstance(setting, SettingTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plot_main_temperature(
-            fig,
             axes,
             nodes=setting.moved_nodes,
             setting=setting,
@@ -140,7 +138,6 @@ def plot_subframe(fig, axes, setting, normalized_data, t_scale):
 
     if isinstance(setting, SettingTemperature):
         plot_temperature(
-            fig=fig,
             axes=axes,
             nodes=shifted_normalized_nodes,
             setting=setting,
@@ -149,7 +146,7 @@ def plot_subframe(fig, axes, setting, normalized_data, t_scale):
 
 
 def plot_temperature(
-        fig, axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
+        axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
 ):
     points = nodes.T
     axes.scatter(
@@ -164,18 +161,15 @@ def plot_temperature(
     )
 
 
-def plot_main_temperature(fig, axes, nodes, setting, cbar_settings):
+def plot_main_temperature(axes, nodes, setting, cbar_settings):
     boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
     nodes_temperature = setting.t_old[setting.boundary_surfaces]
     faces_temperature = np.mean(nodes_temperature, axis=1)
 
-    facecolors = cbar_settings.mappable.to_rgba(
-        faces_temperature
-    )  # plt.cm.jet(faces_temperature)
+    facecolors = cbar_settings.mappable.to_rgba(faces_temperature)
     axes.add_collection3d(
         Poly3DCollection(
             boundary_surfaces_nodes,
-            # edgecolors=,
             linewidths=0.1,
             facecolors=facecolors,
             alpha=0.2,
@@ -214,7 +208,6 @@ def plot_obstacles(axes, setting, color):
 
     X, Y = np.meshgrid(x_rng, y_rng)
     Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
-    col = (Z[0, :] > -1.2) & (Z[0, :] < 3.2)
     mask = (Z > -1.2) * (Z < 3.2)
 
     axes.plot_surface(X * mask, Y * mask, Z * mask, color=color, alpha=alpha)

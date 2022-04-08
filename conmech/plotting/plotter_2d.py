@@ -70,7 +70,7 @@ def plot_frame(
         cbar_settings = plotter_common.get_t_data(t_scale)
         plotter_common.plot_colorbar(fig, axs=[axes], cbar_settings=cbar_settings)
         draw_main_temperature(
-            fig=fig, axes=axes, setting=setting, cbar_settings=cbar_settings
+            axes=axes, setting=setting, cbar_settings=cbar_settings
         )
     else:
         draw_main_displaced(setting, axes=axes)
@@ -123,7 +123,6 @@ def plot_temperature(
         cbar_settings: plotter_common.ColorbarSettings,
 ):
     add_annotation("TEMP", setting, position, axes)
-    # vmin, vmax, cmap = plotter_common.get_t_data(t_scale)
     points = (setting.normalized_nodes + position).T
     axes.scatter(
         *points,
@@ -137,10 +136,10 @@ def plot_temperature(
     )
 
 
-def draw_main_temperature(fig, axes, setting, cbar_settings):
+def draw_main_temperature(axes, setting, cbar_settings):
     draw_main_obstacles(setting, axes)
-    values = axes.tricontourf(
-        *(setting.moved_nodes.T),
+    axes.tricontourf(
+        *setting.moved_nodes.T,
         setting.elements,
         setting.t_old.reshape(-1),
         cmap=cbar_settings.cmap,
@@ -154,8 +153,8 @@ def draw_obstacles(obstacle_origins, obstacle_normals, position, color, axes):
     obstacles_tangient = np.hstack(
         (-obstacle_normals[:, 1, None], obstacle_normals[:, 0, None])
     )
-    for i in range(len(obstacle_origins)):
-        bias = obstacle_origins[i] + position
+    for i, obstacle_origin in enumerate(obstacle_origins):
+        bias = obstacle_origin + position
         axes.arrow(
             *bias,
             *obstacle_normals[i],
@@ -165,15 +164,13 @@ def draw_obstacles(obstacle_origins, obstacle_normals, position, color, axes):
             length_includes_head=True,
             head_width=0.01,
         )
-        line = axes.axline(
+        axes.axline(
             bias,
             obstacles_tangient[i] + bias,
             color=f"tab:{color}",
             alpha=0.4,
             linewidth=0.4,
         )
-        # axes.fill_between(bias, obstacles_tangient[i] + bias)
-
 
 def plot_arrows(starts, vectors, axes):
     prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(
@@ -208,7 +205,6 @@ def draw_normalized_obstacles(setting, position, axes):
 
 
 def draw_obstacle_resistance_normalized(setting, position, axes):
-    # draw_normalized_obstacles(setting, position, axes)
     draw_additional_setting("P", setting, position, axes)
     plot_arrows(
         setting.normalized_boundary_nodes + position,
@@ -269,7 +265,6 @@ def draw_rectangle(axes, position, scale_x, scale_y):
 def draw_main_displaced(setting, axes):
     position = np.array([0.0, 0.0])
     draw_displaced(setting, position, "orange", axes)
-    # draw_points(setting.moved_reference_points, position, "orange", axes)
     if setting.obstacles is not None:
         draw_obstacles(
             setting.obstacle_origins, setting.obstacle_normals, position, "orange", axes,
@@ -406,9 +401,6 @@ def draw_data_at_vertices(setting, features, position, axes):
             rotation=30,
             color="w",
         )
-
-
-# TODO #66
 
 
 def plot_simple_data(elements, nodes, path):

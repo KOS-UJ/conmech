@@ -240,7 +240,7 @@ class Dynamic(Quasistatic):
             friction_bound,
     ):
         self.dim = mesh.dimension
-        self.ACC = mesh.ACC
+        self.acceleration_operator = mesh.acceleration_operator
         self.thermal_expansion = mesh.thermal_expansion
         self.thermal_conductivity = mesh.thermal_conductivity
         self.ind = mesh.independent_nodes_count
@@ -255,7 +255,7 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        T = (1 / self.time_step) * self.ACC[: self.ind, : self.ind] + self.thermal_conductivity[
+        T = (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] + self.thermal_conductivity[
                                                                       : self.ind, : self.ind
                                                                       ]
 
@@ -300,12 +300,12 @@ class Dynamic(Quasistatic):
         return self._point_temperature
 
     def get_left_hand_side(self):
-        return self.viscosity + (1 / self.time_step) * self.ACC
+        return self.viscosity + (1 / self.time_step) * self.acceleration_operator
 
     def get_right_hand_side(self):
         A = -1 * self.elasticity @ self.u_vector
 
-        A += (1 / self.time_step) * self.ACC @ self.v_vector
+        A += (1 / self.time_step) * self.acceleration_operator @ self.v_vector
 
         A += self.thermal_expansion.T @ self.t_vector  # TODO: Check if not -1 *
 
@@ -319,7 +319,7 @@ class Dynamic(Quasistatic):
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
 
-        A += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
+        A += (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
         # A = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         A_contact, A_free = SchurComplement.calculate_schur_complement_vector(

@@ -141,7 +141,7 @@ class ProblemSolver:
                 self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
-                    solution, update_displacement=True, t=self.step_solver.current_time
+                    solution, update_displacement=True, time=self.step_solver.current_time
                 )
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
@@ -262,7 +262,7 @@ class Quasistatic(ProblemSolver):
         state = State(self.mesh)
         state.displacement[:] = initial_displacement(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
-        state.velocity[:] = initial_displacement(
+        state.velocity[:] = initial_velocity(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
 
         solution = state.velocity.reshape(2, -1)
@@ -298,6 +298,7 @@ class Dynamic(ProblemSolver):
             initial_velocity: Callable,
             output_step: Optional[iter] = None,
             verbose: bool = False,
+            **kwargs
     ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
@@ -370,7 +371,7 @@ class TDynamic(ProblemSolver):
         state = TemperatureState(self.mesh)
         state.displacement[:] = initial_displacement(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
-        state.velocity[:] = initial_displacement(
+        state.velocity[:] = initial_velocity(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
         state.temperature[:] = initial_temperature(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
@@ -398,7 +399,7 @@ class TDynamic(ProblemSolver):
                     state.set_velocity(
                         solution[:],
                         update_displacement=True,
-                        t=self.step_solver.current_time,
+                        time=self.step_solver.current_time,
                     )
                     state.set_temperature(solution_t)
                     # self.step_solver.iterate(solution)

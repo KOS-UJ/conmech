@@ -57,7 +57,8 @@ class Scenario:
             desc=f"{desc} {self.name}",
         )
 
-    def get_solve_function(self):
+    @staticmethod
+    def get_solve_function():
         return Calculator.solve
 
     def get_setting(

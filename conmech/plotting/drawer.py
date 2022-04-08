@@ -25,14 +25,14 @@ class Drawer:
         return f"./output/{self.config.CURRENT_TIME} - DRAWING"
 
     def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
-        f, axes = plt.subplots()
+        fig, axes = plt.subplots()
 
         if hasattr(self.state, "temperature"):
             temperature = np.concatenate((
                 self.state.temperature[:],
                 np.zeros(self.mesh.dirichlet_nodes_count)  # TODO #60
             ))
-            self.draw_field(temperature, temp_min, temp_max, axes, f)
+            self.draw_field(temperature, temp_min, temp_max, axes, fig)
 
         self.draw_mesh(self.mesh.initial_nodes, axes, label='Original',
                        node_color='0.6', edge_color='0.8')
@@ -50,22 +50,22 @@ class Drawer:
         plt.axis('on')
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        f.set_size_inches(self.mesh.mesh_data.scale_x * 12, self.mesh.mesh_data.scale_y * 10)
+        fig.set_size_inches(self.mesh.mesh_data.scale_x * 12, self.mesh.mesh_data.scale_y * 10)
 
         if show:
             plt.show()
         if save:
             self.save_plot(save_format)
 
-    def save_plot(self, format):
+    def save_plot(self, format_):
         directory = self.get_directory()
         cmh.create_folders(directory)
-        path = f"{directory}/{cmh.get_timestamp(self.config)}.{format}"
+        path = f"{directory}/{cmh.get_timestamp(self.config)}.{format_}"
         plt.savefig(
             path,
             transparent=False,
             bbox_inches="tight",
-            format=format,
+            format=format_,
             pad_inches=0.1,
             dpi=800
         )
@@ -89,7 +89,7 @@ class Drawer:
         nx.draw(graph, pos=nodes, label=label, node_color=node_color,
                 edge_color=edge_color, node_size=self.node_size, ax=axes, width=6)
 
-    def draw_field(self, field, v_min, v_max, axes, f):
+    def draw_field(self, field, v_min, v_max, axes, fig):
         x = self.state.displaced_points[:, 0]
         y = self.state.displaced_points[:, 1]
 
@@ -100,4 +100,4 @@ class Drawer:
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=plt.cm.magma, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        f.colorbar(sm)
+        fig.colorbar(sm)

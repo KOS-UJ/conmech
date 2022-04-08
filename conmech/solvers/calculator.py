@@ -1,4 +1,3 @@
-import time
 from ctypes import ArgumentError
 from typing import Callable, Optional
 
@@ -97,8 +96,7 @@ class Calculator:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
             return Calculator.solve_acceleration_normalized_optimization(setting, t, initial_a)
-        else:
-            return Calculator.solve_acceleration_normalized_function(setting, t, initial_a)
+        return Calculator.solve_acceleration_normalized_function(setting, t, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -107,23 +105,21 @@ class Calculator:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
-            return Calculator.solve_temperature_normalized_optimization(setting, normalized_a,
-                                                                        initial_t)
-        else:
-            return Calculator.solve_temperature_normalized_function(setting, normalized_a,
-                                                                    initial_t)
+            return Calculator.solve_temperature_normalized_optimization(
+                setting, normalized_a, initial_t)
+        return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
     def solve_temperature_normalized_function(setting: SettingTemperature, normalized_a: np.ndarray,
                                               initial_t):
         normalized_Q = setting.get_normalized_Q_np(normalized_a)
-        t_vector = np.linalg.solve(setting.T, normalized_Q)
+        t_vector = np.linalg.solve(setting.lhs_temperature, normalized_Q)
         return t_vector
 
     @staticmethod
     def solve_acceleration_normalized_function(setting, t, initial_a=None):
         normalized_E = setting.get_normalized_E_np(t)
-        normalized_a_vector = np.linalg.solve(setting.C, normalized_E)
+        normalized_a_vector = np.linalg.solve(setting.lhs, normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
@@ -202,8 +198,8 @@ class Calculator:
     def complete_t_vector(
             setting: SettingTemperature, normalized_Q_free, t_contact_vector
     ):
-        t_independent_vector = setting.T_free_x_free_inverted @ (
-                normalized_Q_free - (setting.T_free_x_contact @ t_contact_vector)
+        t_independent_vector = setting.temperature_free_x_free_inverted @ (
+                normalized_Q_free - (setting.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

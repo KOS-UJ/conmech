@@ -120,21 +120,21 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self.u_old = np.zeros_like(self.initial_nodes)
-        self.v_old = np.zeros_like(self.initial_nodes)
-        self.a_old = np.zeros_like(self.initial_nodes)
+        self.displacement_old = np.zeros_like(self.initial_nodes)
+        self.velocity_old = np.zeros_like(self.initial_nodes)
+        self.acceleration_old = np.zeros_like(self.initial_nodes)
 
     def remesh(self, *args):
         super().remesh(*args)
 
-    def set_a_old(self, a):
-        self.a_old = a
+    def set_acceleration_old(self, acceleration):
+        self.acceleration_old = acceleration
 
-    def set_v_old(self, v):
-        self.v_old = v
+    def set_velocity_old(self, velocity):
+        self.velocity_old = velocity
 
-    def set_u_old(self, u):
-        self.u_old = u
+    def set_displacement_old(self, displacement):
+        self.displacement_old = displacement
 
     @property
     def time_step(self):
@@ -143,38 +143,15 @@ class BodyPosition(Mesh):
     def get_copy(self):
         return copy.deepcopy(self)
 
-    def iterate_self(self, a, randomized_inputs=False):
-        v = self.v_old + self.time_step * a
-        u = self.u_old + self.time_step * v
+    def iterate_self(self, acceleration, randomized_inputs=False):
+        velocity = self.velocity_old + self.time_step * acceleration
+        displacement = self.displacement_old + self.time_step * velocity
 
-        self.set_u_old(u)
-        self.set_v_old(v)
-        self.set_a_old(a)
+        self.set_displacement_old(displacement)
+        self.set_velocity_old(velocity)
+        self.set_acceleration_old(acceleration)
 
         return self
-
-    def remesh_self(self):
-        old_initial_nodes = self.initial_nodes.copy()
-        old_elements = self.elements.copy()
-        u_old = self.u_old.copy()
-        v_old = self.v_old.copy()
-        a_old = self.a_old.copy()
-
-        self.remesh()
-
-        u = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, u_old, old_elements
-        )
-        v = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, v_old, old_elements
-        )
-        a = remesher.approximate_all_numba(
-            self.initial_nodes, old_initial_nodes, a_old, old_elements
-        )
-
-        self.set_u_old(u)
-        self.set_v_old(v)
-        self.set_a_old(a)
 
     @property
     def moved_base(self):
@@ -194,7 +171,7 @@ class BodyPosition(Mesh):
 
     @property
     def moved_nodes(self):
-        return self.initial_nodes + self.u_old
+        return self.initial_nodes + self.displacement_old
 
     @property
     def normalized_nodes(self):
@@ -213,7 +190,7 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_a_old(self):
-        return self.normalize_rotate(self.a_old)
+        return self.normalize_rotate(self.acceleration_old)
 
     @property
     def mean_moved_nodes(self):
@@ -237,11 +214,11 @@ class BodyPosition(Mesh):
 
     @property
     def rotated_v_old(self):
-        return self.normalize_rotate(self.v_old)
+        return self.normalize_rotate(self.velocity_old)
 
     @property
     def normalized_v_old(self):
-        return self.normalize_rotate(self.v_old - np.mean(self.v_old, axis=0))
+        return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
 
     @property
     def normalized_u_old(self):

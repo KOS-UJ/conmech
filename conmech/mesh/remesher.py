@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 
 
@@ -48,8 +49,7 @@ def approximate_one(new_point, old_points, old_values, old_elements):
 def approximate_all_numba(new_points, old_points, old_values, old_elements):
     new_values = np.zeros_like(new_points)
 
-    for i in range(len(new_points)):
-        new_point = new_points[i]
+    for i, new_point in enumerate(new_points):
         new_value = approximate_one(new_point, old_points, old_values, old_elements)
         new_values[i] = new_value
 

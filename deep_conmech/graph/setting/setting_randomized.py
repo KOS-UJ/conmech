@@ -103,6 +103,6 @@ class SettingRandomized(SettingObstacles):
         self.u_old_randomization = np.zeros_like(self.initial_nodes)
         self.randomized_inputs = False
 
-    def iterate_self(self, a, randomized_inputs=False):
+    def iterate_self(self, acceleration, randomized_inputs=False):
         self.set_randomization(randomized_inputs)
-        super().iterate_self(a)
+        super().iterate_self(acceleration)

@@ -50,23 +50,25 @@ class Dynamics(BodyPosition):
 
         self.element_initial_volume: np.ndarray
         self.volume: np.ndarray
-        self.ACC: np.ndarray
+        self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
 
-        self.C: np.ndarray
-        self.C_boundary: np.ndarray
+        self.lhs: np.ndarray
+        # TODO: move to schur
+        self.lhs_boundary: np.ndarray
         self.free_x_contact: np.ndarray
         self.contact_x_free: np.ndarray
         self.free_x_free_inverted: np.ndarray
 
-        self.T: np.ndarray
-        self.T_boundary: np.ndarray
-        self.T_free_x_contact: np.ndarray
-        self.T_contact_x_free: np.ndarray
-        self.T_free_x_free_inverted: np.ndarray
+        self.lhs_temperature: np.ndarray
+        # TODO: move to schur
+        self.temperature_boundary: np.ndarray
+        self.temperature_free_x_contact: np.ndarray
+        self.temperature_contact_x_free: np.ndarray
+        self.temperature_free_x_free_inverted: np.ndarray
 
         self.reinitialize_matrices()
 
@@ -78,7 +80,7 @@ class Dynamics(BodyPosition):
         (
             self.element_initial_volume,
             self.volume,
-            self.ACC,
+            self.acceleration_operator,
             self.elasticity,
             self.viscosity,
             self.thermal_expansion,
@@ -91,18 +93,18 @@ class Dynamics(BodyPosition):
         )
 
         if self.with_schur_complement_matrices:
-            self.C = (
-                    self.ACC
+            self.lhs = (
+                    self.acceleration_operator
                     + (self.viscosity + self.elasticity * self.time_step)
                     * self.time_step
             )
             (
-                self.C_boundary,
+                self.lhs_boundary,
                 self.free_x_contact,
                 self.contact_x_free,
                 self.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=self.C,
+                matrix=self.lhs,
                 dimension=self.dimension,
                 contact_indices=self.contact_indices,
                 free_indices=self.free_indices,
@@ -110,14 +112,15 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.T = (1 / self.time_step) * self.ACC[i, i] + self.thermal_conductivity[i, i]
+                self.lhs_temperature = (1 / self.time_step) * self.acceleration_operator[i, i] \
+                                       + self.thermal_conductivity[i, i]
                 (
-                    self.T_boundary,
-                    self.T_free_x_contact,
-                    self.T_contact_x_free,
-                    self.T_free_x_free_inverted,
+                    self.temperature_boundary,
+                    self.temperature_free_x_contact,
+                    self.temperature_contact_x_free,
+                    self.temperature_free_x_free_inverted,
                 ) = SchurComplement.calculate_schur_complement_matrices(
-                    matrix=self.T,
+                    matrix=self.lhs_temperature,
                     dimension=1,
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,

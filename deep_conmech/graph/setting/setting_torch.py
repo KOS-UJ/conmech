@@ -60,7 +60,7 @@ class SettingTorch(SettingRandomized):
 
     @property
     def C_torch(self):
-        return thh.to_torch_double(self.C)
+        return thh.to_torch_double(self.lhs)
 
     @property
     def initial_nodes_torch(self):

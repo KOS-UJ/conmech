@@ -36,8 +36,8 @@ def get_edges_features_matrix_numba(elements, nodes):
                 j_dPhX, j_dPhY, j_dPhZ, _ = get_integral_parts_numba(element_points, j)
 
                 volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
-                # divide by edge count - info about each triangle is "sent" to node via all connected edges
-                # (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
+                # divide by edge count - info about each triangle is "sent" to node via
+                # all connected edges (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
                 u = (1 + (i == j)) / U_DIVIDER
                 # in 3D: divide by 10 or 20, in 2D: divide by 6 or 12
 
@@ -171,21 +171,21 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
-    def calculate_thermal_expansion(self, V, C_coef):
-        A_11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1] + C_coef[0][2] * V[2]
-        A_22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1] + C_coef[1][2] * V[2]
-        A_33 = C_coef[2][0] * V[0] + C_coef[2][1] * V[1] + C_coef[2][2] * V[2]
+    def calculate_thermal_expansion(self, V, coeff):
+        A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1] + coeff[0][2] * V[2]
+        A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1] + coeff[1][2] * V[2]
+        A_33 = coeff[2][0] * V[0] + coeff[2][1] * V[1] + coeff[2][2] * V[2]
         return np.block([A_11, A_22, A_33])
 
-    def calculate_thermal_conductivity(self, W, K_coef):
+    def calculate_thermal_conductivity(self, W, coeff):
         return (
-                K_coef[0][0] * W[0, 0]
-                + K_coef[0][1] * W[0, 1]
-                + K_coef[0][2] * W[0, 2]
-                + K_coef[1][0] * W[1, 0]
-                + K_coef[1][1] * W[1, 1]
-                + K_coef[1][2] * W[1, 2]
-                + K_coef[2][0] * W[2, 0]
-                + K_coef[2][1] * W[2, 1]
-                + K_coef[2][2] * W[2, 2]
+                coeff[0][0] * W[0, 0]
+                + coeff[0][1] * W[0, 1]
+                + coeff[0][2] * W[0, 2]
+                + coeff[1][0] * W[1, 0]
+                + coeff[1][1] * W[1, 1]
+                + coeff[1][2] * W[1, 2]
+                + coeff[2][0] * W[2, 0]
+                + coeff[2][1] * W[2, 1]
+                + coeff[2][2] * W[2, 2]
         )

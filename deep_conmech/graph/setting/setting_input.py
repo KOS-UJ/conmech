@@ -228,7 +228,7 @@ class SettingInput(SettingTorch):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         return energy_obstacle_nvt(
             nph.unstack(normalized_boundary_a_vector, self.dim),
-            self.C_boundary,
+            self.lhs_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_nodes,
