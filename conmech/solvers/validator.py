@@ -15,7 +15,7 @@ class Validator:
         self.rhs = make_equation(
             jn=solver.contact_law.subderivative_normal_direction,
             jt=solver.contact_law.regularized_subderivative_tangential_direction,
-            h=solver.friction_bound,
+            h_functional=solver.friction_bound,
         )
 
     def validate(self, state, solution) -> float:

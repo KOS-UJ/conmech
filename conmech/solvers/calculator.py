@@ -2,8 +2,7 @@ from ctypes import ArgumentError
 from typing import Callable, Optional
 
 import numpy as np
-import scipy
-from scipy import optimize
+import scipy.optimize
 
 from conmech.helpers import nph
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized

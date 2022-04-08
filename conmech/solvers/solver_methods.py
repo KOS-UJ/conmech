@@ -38,10 +38,10 @@ def interpolate_point_between(node_id_0, node_id_1, vector, dimension=DIMENSION)
     return result
 
 
-def make_equation(jn, jt, h):
+def make_equation(jn, jt, h_functional):
     jn = numba.njit(jn)
     jt = numba.njit(jt)
-    h = numba.njit(h)
+    h_functional = numba.njit(h_functional)
 
     @numba.njit()
     def contact_part(u_vector, nodes, contact_boundary):
@@ -69,9 +69,9 @@ def make_equation(jn, jt, h):
 
             edge_len = nph.length(n_0, n_1)
             j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) \
-                  + h(um_normal) * jt(um_tangential, v_tau_0)
+                  + h_functional(um_normal) * jt(um_tangential, v_tau_0)
             j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) \
-                  + h(um_normal) * jt(um_tangential, v_tau_1)
+                  + h_functional(um_normal) * jt(um_tangential, v_tau_1)
 
             if n_id_0 < offset:
                 contact_vector[n_id_0] += j_x
@@ -102,10 +102,11 @@ def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
     return numba.njit(func)
 
 
-def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optional[Callable] = None):
+def make_cost_functional(jn: Callable, jt: Optional[Callable] = None,
+                         h_functional: Optional[Callable] = None):
     jn = njit(jn)
     jt = njit(jt)
-    h = njit(h)
+    h_functional = njit(h_functional)
 
     @numba.njit()
     def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary):
@@ -130,7 +131,7 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
 
             if n_id_0 < offset and n_id_1 < offset:
                 cost += nph.length(n_0, n_1) * (
-                        jn(um_normal) + h(um_old_normal) * jt(um_tangential))
+                        jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential))
         return cost
 
     @numba.njit()
@@ -145,10 +146,10 @@ def make_cost_functional(jn: Callable, jt: Optional[Callable] = None, h: Optiona
 
 
 def make_cost_functional_temperature(
-        hn: Callable, ht: Optional[Callable] = None, h: Optional[Callable] = None):
+        hn: Callable, ht: Optional[Callable] = None, h_functional: Optional[Callable] = None):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
-    h = numba.njit(h)
+    h_functional = numba.njit(h_functional)
 
     @numba.njit()
     def contact_cost_functional(u_vector, nodes, contact_boundary):
@@ -172,7 +173,7 @@ def make_cost_functional_temperature(
             if n_id_0 < offset and n_id_1 < offset:
                 # cost += edgeLength * (hn(uNmL, tmL)
                 #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-                cost += nph.length(n_0, n_1) * h(np.linalg.norm(um_tangential))
+                cost += nph.length(n_0, n_1) * h_functional(np.linalg.norm(um_tangential))
         return cost
 
     @numba.njit()

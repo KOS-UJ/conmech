@@ -35,11 +35,11 @@ class Optimization(Solver):
             jt=contact_law.potential_tangential_direction
             if hasattr(contact_law, "potential_tangential_direction")
             else None,
-            h=friction_bound,
+            h_functional=friction_bound,
         )
         if hasattr(contact_law, "h_temp"):
             self.loss_temp = make_cost_functional_temperature(
-                h=contact_law.h_temp, hn=contact_law.h_nu, ht=contact_law.h_tau
+                h_functional=contact_law.h_temp, hn=contact_law.h_nu, ht=contact_law.h_tau
             )
 
     def __str__(self):
@@ -87,8 +87,10 @@ class Optimization(Solver):
         loss_args = (
             self.mesh.initial_nodes,
             self.mesh.contact_boundary,
-            self.node_temperature,  # TODO #48
-            self.Q,  # TODO #48
+            # pylint: disable=no-member # TODO #48
+            self.node_temperature,
+            # pylint: disable=no-member # TODO #48
+            self.temperature_rhs,
             velocity,
         )
         # TODO #33

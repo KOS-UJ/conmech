@@ -32,10 +32,10 @@ class Direct(Solver):
             friction_bound,
         )
 
-        self.f = make_equation(
+        self.equation = make_equation(
             jn=contact_law.subderivative_normal_direction,
             jt=contact_law.regularized_subderivative_tangential_direction,
-            h=friction_bound,
+            h_functional=friction_bound,
         )
 
     def __str__(self):
@@ -43,7 +43,7 @@ class Direct(Solver):
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
         result = scipy.optimize.fsolve(
-            self.f,
+            self.equation,
             initial_guess,
             args=(
                 self.mesh.initial_nodes,

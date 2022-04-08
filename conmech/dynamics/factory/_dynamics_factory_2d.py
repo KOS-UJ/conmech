@@ -28,12 +28,15 @@ def get_edges_features_matrix_numba(elements, nodes):
 
         # TODO: #65 Get rid of repetition (?)
         for i in range(element_size):
-            i_dPhX, i_dPhY, element_volume = get_integral_parts_numba(element_points, i)
+            i_integrals = get_integral_parts_numba(element_points, i)
+            i_d_phi_vec = i_integrals[:DIMENSION]
+            element_volume = i_integrals[DIMENSION]
             # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
 
             for j in range(element_size):
-                j_dPhX, j_dPhY, _ = get_integral_parts_numba(element_points, j)
+                j_integrals = get_integral_parts_numba(element_points, j)
+                j_d_phi_vec = j_integrals[:DIMENSION]
 
                 volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
                 # divide by edge count - info about each triangle is "sent" to node via all
@@ -41,20 +44,16 @@ def get_edges_features_matrix_numba(elements, nodes):
                 u = (1 + (i == j)) / U_DIVIDER
                 # in 3D: divide by 10 or 20, in 2D: divide by 6 or 12
 
-                v1 = INT_PH * j_dPhX
-                v2 = INT_PH * j_dPhY
+                v = [INT_PH * j_d_phi for j_d_phi in j_d_phi_vec]
 
-                w11 = i_dPhX * j_dPhX
-                w12 = i_dPhX * j_dPhY
-                w21 = i_dPhY * j_dPhX
-                w22 = i_dPhY * j_dPhY
+                w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
                 edges_features_matrix[:, element[i], element[j]] += element_volume * np.array([
                     volume,
                     u,
-                    v1, v2,
-                    w11, w12,
-                    w21, w22
+                    v[0], v[1],
+                    w[0][0], w[0][1],
+                    w[1][0], w[1][1],
                 ])
 
     # Performance TIP: we need only sparse, triangular matrix (?)

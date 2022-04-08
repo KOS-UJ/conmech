@@ -91,7 +91,7 @@ class Quasistatic(Global):
         return self.forces.forces_vector - self.elasticity @ self.u_vector.T
 
     def iterate(self, velocity):
-        super(Global, self).iterate(velocity)
+        super().iterate(velocity)
         self._point_forces = self.recalculate_forces()
 
 
@@ -128,7 +128,7 @@ class Dynamic(Quasistatic):
                                                          ] + self.thermal_conductivity[: self.ind,
                                                              : self.ind]
 
-        self.Q = self.recalculate_temperature()
+        self.temperature_rhs = self.recalculate_temperature()
 
     @property
     def node_temperature(self):
@@ -147,13 +147,14 @@ class Dynamic(Quasistatic):
         return self.forces.forces_vector + A
 
     def iterate(self, velocity):
-        super(Global, self).iterate(velocity)
+        super().iterate(velocity)
         self._point_forces = self.recalculate_forces()
-        self.Q = self.recalculate_temperature()
+        self.temperature_rhs = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
 
-        A += (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
+        A += (1 / self.time_step) * \
+             self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
 
         return A

@@ -280,7 +280,7 @@ class Dynamic(Quasistatic):
         # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
         # self.inner_temperature.setF()
 
-        self.Q, self.Q_free = self.recalculate_temperature()
+        self.temperature_rhs, self.Q_free = self.recalculate_temperature()
 
     # def solve(
     #     self,
@@ -313,7 +313,7 @@ class Dynamic(Quasistatic):
     def iterate(self, velocity):
         super().iterate(velocity)
         self._point_forces, self.forces_free = self.recalculate_forces()
-        self.Q, self.Q_free = self.recalculate_temperature()
+        self.temperature_rhs, self.Q_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector

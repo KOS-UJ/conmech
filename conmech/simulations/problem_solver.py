@@ -28,22 +28,22 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.thermal_expansion_coefficients = np.array([[0.5, 0.0, 0.0],
-                                                        [0.0, 0.5, 0.0],
-                                                        [0.0, 0.0, 0.5]])
-        self.thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0],
-                                                           [0.0, 0.1, 0.0],
-                                                           [0.0, 0.0, 0.1]])
+        self.thermal_expansion = np.array([[0.5, 0.0, 0.0],
+                                           [0.0, 0.5, 0.0],
+                                           [0.0, 0.0, 0.5]])
+        self.thermal_conductivity = np.array([[0.1, 0.0, 0.0],
+                                              [0.0, 0.1, 0.0],
+                                              [0.0, 0.0, 0.1]])
 
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = DynamicTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, theta=setup.th_coef,
-            zeta=setup.ze_coef, thermal_expansion=self.thermal_expansion_coefficients,
-            thermal_conductivity=self.thermal_conductivity_coefficients
+            zeta=setup.ze_coef, thermal_expansion=self.thermal_expansion,
+            thermal_conductivity=self.thermal_conductivity
         ) if with_time else StaticTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef,
-            thermal_expansion=self.thermal_expansion_coefficients,
-            thermal_conductivity=self.thermal_conductivity_coefficients
+            thermal_expansion=self.thermal_expansion,
+            thermal_conductivity=self.thermal_conductivity
         )
         time_step = setup.time_step if with_time else 0
 
@@ -86,8 +86,8 @@ class ProblemSolver:
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0,
-                thermal_expansion=self.thermal_expansion_coefficients,
-                thermal_conductivity=self.thermal_conductivity_coefficients
+                thermal_expansion=self.thermal_expansion,
+                thermal_conductivity=self.thermal_conductivity
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             body_prop = DynamicTemperatureBodyProperties(
@@ -96,8 +96,8 @@ class ProblemSolver:
                 theta=self.setup.th_coef,
                 zeta=self.setup.ze_coef,
                 mass_density=1.0,
-                thermal_expansion=self.thermal_expansion_coefficients,
-                thermal_conductivity=self.thermal_conductivity_coefficients
+                thermal_expansion=self.thermal_expansion,
+                thermal_conductivity=self.thermal_conductivity
             )
             time_step = self.setup.time_step
         else:
@@ -114,7 +114,7 @@ class ProblemSolver:
         )
         self.validator = Validator(self.step_solver)
 
-    def solve(self, *args, **kwargs):
+    def solve(self, **kwargs):
         raise NotImplementedError()
 
     def run(self, solution, state, n_steps: int, verbose: bool = False, **kwargs):
@@ -205,8 +205,10 @@ class Static(ProblemSolver):
         self.coordinates = "displacement"
         self.solving_method = solving_method
 
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
     def solve(
-            self, initial_displacement: Callable, verbose: bool = False, **kwargs
+            self, *, initial_displacement: Callable, verbose: bool = False, **kwargs
     ) -> State:
         """
         :param initial_displacement: for the solver
@@ -238,13 +240,17 @@ class Quasistatic(ProblemSolver):
         self.coordinates = "velocity"
         self.solving_method = solving_method
 
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
     def solve(
             self,
+            *,
             n_steps: int,
             initial_displacement: Callable,
             initial_velocity: Callable,
             output_step: Optional[iter] = None,
             verbose: bool = False,
+            **kwargs
     ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
@@ -291,8 +297,11 @@ class Dynamic(ProblemSolver):
         self.coordinates = "velocity"
         self.solving_method = solving_method
 
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
     def solve(
             self,
+            *,
             n_steps: int,
             initial_displacement: Callable,
             initial_velocity: Callable,
@@ -316,7 +325,7 @@ class Dynamic(ProblemSolver):
         state = State(self.mesh)
         state.displacement[:] = initial_displacement(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
-        state.velocity[:] = initial_displacement(
+        state.velocity[:] = initial_velocity(
             self.mesh.initial_nodes[:self.mesh.independent_nodes_count])
 
         solution = state.velocity.reshape(2, -1)
@@ -345,14 +354,18 @@ class TDynamic(ProblemSolver):
         self.coordinates = "velocity"
         self.solving_method = solving_method
 
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
     def solve(
             self,
+            *,
             n_steps: int,
             initial_displacement: Callable,
             initial_velocity: Callable,
             initial_temperature: Callable,
             output_step: Optional[iter] = None,
             verbose: bool = False,
+            **kwargs
     ) -> List[TemperatureState]:
         """
         :param n_steps: number of time-step in simulation
