@@ -11,7 +11,7 @@ from conmech.scenarios.problems import Quasistatic
 from conmech.simulations.problem_solver import \
     Quasistatic as QuasistaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
-from tests.regression.std_boundary import standard_boundary_nodes
+from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(
