@@ -11,7 +11,7 @@ from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (Scenario, default_body_prop,
-                                         default_obstacle_prop, f_rotate, m_polygon,
+                                         default_obstacle_prop, f_rotate, M_POLYGON,
                                          o_side)
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
@@ -152,7 +152,7 @@ def main():
         "polygon_rotate",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[1],
             mesh_density=[32],
             is_adaptive=False,

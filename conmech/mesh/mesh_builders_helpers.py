@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 from numba import njit
 
@@ -6,7 +7,7 @@ from deep_conmech.data.interpolation_helpers import \
     interpolate_point_numba
 
 
-@njit
+@numba.njit
 def random_corner_mesh_size(mesh_density):
     scale = mesh_density * 0.8
     random_data = np.random.rand(4)

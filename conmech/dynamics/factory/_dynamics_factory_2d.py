@@ -1,3 +1,4 @@
+import numba
 import numpy as np
 from numba import njit
 
@@ -12,7 +13,7 @@ FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION ** 2
 VOLUME_DIVIDER = 2
 
 
-@njit
+@numba.njit
 def get_edges_features_matrix_numba(elements, nodes):
     # integral of phi over the element (in 2D: 1/3, in 3D: 1/4)
     nodes_count = len(nodes)
@@ -61,7 +62,7 @@ def get_edges_features_matrix_numba(elements, nodes):
     return edges_features_matrix, element_initial_volume
 
 
-@njit
+@numba.njit
 def get_integral_parts_numba(element_nodes, element_index):
     x_i = element_nodes[element_index]
     x_j1, x_j2 = list(element_nodes[np.arange(ELEMENT_NODES_COUNT) != element_index])
@@ -78,7 +79,7 @@ def get_integral_parts_numba(element_nodes, element_index):
     return dPhX, dPhY, element_volume
 
 
-@njit
+@numba.njit
 def shoelace_area_numba(points):
     x = points[:, 0].copy()
     y = points[:, 1].copy()
@@ -86,7 +87,7 @@ def shoelace_area_numba(points):
     return area
 
 
-@njit
+@numba.njit
 def denominator_numba(x_i, x_j1, x_j2):
     return (
             x_i[1] * x_j1[0]

@@ -1,17 +1,18 @@
 import random
 
+import numba
 import numpy as np
 from numba import njit
 
 from conmech.helpers import nph
 
 
-@njit
+@numba.njit
 def weighted_mean_numba(v1, v2, scale):
     return v1 * (1 - scale) + v2 * scale
 
 
-@njit
+@numba.njit
 def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
     min = [0.0, 0.0]  # TODO #65
     x_scale = (initial_point[0] - min[0]) / scale_x
@@ -24,7 +25,7 @@ def interpolate_point_numba(initial_point, corner_vectors, scale_x, scale_y):
     return scaled
 
 
-@njit
+@numba.njit
 def interpolate_numba(count, initial_nodes, corner_vectors, scale_x, scale_y):
     dim = initial_nodes.shape[1]
     result = np.zeros((count, dim))

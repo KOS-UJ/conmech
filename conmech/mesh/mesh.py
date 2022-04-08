@@ -10,7 +10,7 @@ from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
 from conmech.properties.mesh_properties import MeshProperties
 
 
-@njit
+@numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
@@ -22,7 +22,7 @@ def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     return edges_matrix
 
 
-@njit
+@numba.njit
 def get_edges_list_numba(edges_matrix):
     nodes_count = edges_matrix.shape[0]
     edges = np.array(
@@ -36,7 +36,7 @@ def get_edges_list_numba(edges_matrix):
     return edges
 
 
-@njit
+@numba.njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
     index = 0
@@ -53,7 +53,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
-@njit
+@numba.njit
 def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
@@ -71,7 +71,7 @@ def get_closest_to_axis_numba(nodes, variable):
     return np.array([min_error, indices[0], indices[1]])
 
 
-@njit
+@numba.njit
 def get_base_seed_indices_numba(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.zeros((dim, 2), dtype=np.int64)

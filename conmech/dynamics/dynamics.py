@@ -1,5 +1,6 @@
 from typing import Callable
 
+import numba
 import numpy as np
 from numba import njit
 
@@ -12,7 +13,7 @@ from conmech.solvers.optimization.schur_complement import SchurComplement
 from conmech.state.body_position import BodyPosition
 
 
-@njit
+@numba.njit
 def get_edges_features_list_numba(edges_number, edges_features_matrix):
     nodes_count = len(edges_features_matrix[0])
     edges_features = np.zeros((edges_number + nodes_count, 8))

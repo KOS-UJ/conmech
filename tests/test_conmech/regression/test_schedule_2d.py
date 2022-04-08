@@ -11,10 +11,10 @@ from conmech.simulations.simulation_runner import run_scenario
 
 def generate_test_suits():
     scenario = Scenario(
-        id="circle_slide_roll",
+        name="circle_slide_roll",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=scenarios.m_circle,
+            mesh_type=scenarios.M_CIRCLE,
             scale=[1],
             mesh_density=[3],
         ),
@@ -68,7 +68,7 @@ def test_simulation(scenario, expected_boundary_nodes):
     setting, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         scenario=scenario,
-        catalog=f"TEST_{scenario.id}",
+        catalog=f"TEST_{scenario.name}",
         simulate_dirty_data=False,
         plot_animation=config.PLOT_TESTS,
         config=config,
@@ -78,4 +78,3 @@ def test_simulation(scenario, expected_boundary_nodes):
     np.testing.assert_array_almost_equal(
         setting.boundary_nodes, expected_boundary_nodes, decimal=3
     )
-    

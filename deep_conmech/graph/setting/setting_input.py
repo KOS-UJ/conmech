@@ -43,14 +43,14 @@ def energy_normalized_obstacle_correction(
     )
 
 
-@njit
+@numba.njit
 def set_diff(data, position, row, i, j):
     vector = data[j] - data[i]
     row[position: position + 2] = vector
     row[position + 2] = np.linalg.norm(vector)
 
 
-@njit  # (parallel=True)
+@numba.njit  # (parallel=True)
 def get_edges_data(
         edges, initial_nodes, u_old, v_old, forces,
 ):

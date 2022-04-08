@@ -13,10 +13,10 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
     config = Config(SHELL=False)
     all_scenarios = [
         Scenario(
-            id="circle_slide_roll",
+            name="circle_slide_roll",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=scenarios.m_circle,
+                mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -29,10 +29,10 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
             ),
         ),
         Scenario(
-            id="circle_flat_A_roll",
+            name="circle_flat_A_roll",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=scenarios.m_circle,
+                mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -43,10 +43,10 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
         Scenario(
-            id="circle_flat_B_roll",
+            name="circle_flat_B_roll",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=scenarios.m_circle,
+                mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -57,10 +57,10 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
         Scenario(
-            id="circle_flat_C_roll",
+            name="circle_flat_C_roll",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=scenarios.m_circle,
+                mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -71,10 +71,10 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
             obstacles=np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
         ),
         Scenario(
-            id="rectangle_flat_roll",
+            name="rectangle_flat_roll",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=scenarios.m_rectangle,
+                mesh_type=scenarios.M_RECTANGLE,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),

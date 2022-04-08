@@ -11,10 +11,10 @@ from conmech.simulations.simulation_runner import run_scenario
 
 def generate_test_suits():
     scenario = TemperatureScenario(
-        id=f"polygon_temp",
+        name=f"polygon_temp",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=scenarios.m_polygon,
+            mesh_type=scenarios.M_POLYGON,
             scale=[1],
             mesh_density=[3],
             is_adaptive=False,
@@ -71,7 +71,7 @@ def test_simulation(scenario, expected_boundary_nodes, expected_temperature):
     setting, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         scenario=scenario,
-        catalog=f"TEST_{scenario.id}",
+        catalog=f"TEST_{scenario.name}",
         simulate_dirty_data=False,
         plot_animation=config.PLOT_TESTS,
         config=config,

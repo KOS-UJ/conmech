@@ -28,16 +28,20 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.C_coeff = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-        self.K_coeff = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        self.thermal_expansion_coefficients = np.array([[0.5, 0.0, 0.0],
+                                                        [0.0, 0.5, 0.0],
+                                                        [0.0, 0.0, 0.5]])
+        self.thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0], 
+                                                           [0.0, 0.1, 0.0], 
+                                                           [0.0, 0.0, 0.1]])
 
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = DynamicTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, theta=setup.th_coef,
-            zeta=setup.ze_coef, C_coeff=self.C_coeff, K_coeff=self.K_coeff
+            zeta=setup.ze_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients, thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
         ) if with_time else StaticTemperatureBodyProperties(
-            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, C_coeff=self.C_coeff,
-            K_coeff=self.K_coeff
+            mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients,
+            thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
         )
         time_step = setup.time_step if with_time else 0
 
@@ -80,7 +84,7 @@ class ProblemSolver:
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0,
-                C_coeff=self.C_coeff, K_coeff=self.K_coeff
+                thermal_expansion_coefficients=self.thermal_expansion_coefficients, thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             body_prop = DynamicTemperatureBodyProperties(
@@ -89,8 +93,8 @@ class ProblemSolver:
                 theta=self.setup.th_coef,
                 zeta=self.setup.ze_coef,
                 mass_density=1.0,
-                C_coeff=self.C_coeff,
-                K_coeff=self.K_coeff
+                thermal_expansion_coefficients=self.thermal_expansion_coefficients,
+                thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
             )
             time_step = self.setup.time_step
         else:

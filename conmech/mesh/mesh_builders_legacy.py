@@ -1,10 +1,11 @@
+import numba
 import numpy as np
 from numba import njit
 
 from conmech.helpers import nph
 
 
-@njit
+@numba.njit
 def get_cross_points_legacy_ordered_numba(
         points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
@@ -38,7 +39,7 @@ def get_cross_points_legacy_ordered_numba(
     points += left_bottom_point
 
 
-@njit
+@numba.njit
 def get_cross_elements_numba(
         points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):

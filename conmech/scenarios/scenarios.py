@@ -20,7 +20,7 @@ from deep_conmech.training_config import TrainingData
 class Scenario:
     def __init__(
             self,
-            id: str,
+            name: str,
             mesh_data: MeshProperties,
             body_prop: DynamicBodyProperties,
             obstacle_prop: ObstacleProperties,
@@ -28,7 +28,7 @@ class Scenario:
             forces_function: Union[Callable[..., np.ndarray], np.ndarray],
             obstacles: Optional[np.ndarray],
     ):
-        self.id = id
+        self.name = name
         self.mesh_data = mesh_data
         self.body_prop = body_prop
         self.obstacle_prop = obstacle_prop
@@ -54,7 +54,7 @@ class Scenario:
         return cmh.get_tqdm(
             iterable=range(self.schedule.episode_steps),
             config=config,
-            desc=f"{desc} {self.id}",
+            desc=f"{desc} {self.name}",
         )
 
     def get_solve_function(self):
@@ -90,7 +90,7 @@ class Scenario:
 class TemperatureScenario(Scenario):
     def __init__(
             self,
-            id: str,
+            name: str,
             mesh_data: MeshProperties,
             body_prop: DynamicTemperatureBodyProperties,
             obstacle_prop: TemperatureObstacleProperties,
@@ -100,7 +100,7 @@ class TemperatureScenario(Scenario):
             heat_function: Union[Callable, np.ndarray],
     ):
         super().__init__(
-            id=id,
+            name=name,
             mesh_data=mesh_data,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
@@ -138,43 +138,47 @@ default_body_prop = DynamicBodyProperties(
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 
-default_C_coeff = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-default_K_coeff = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+default_thermal_expansion_coefficients = np.array([[1.0, 0.0, 0.0], 
+                                                   [0.0, 1.0, 0.0], 
+                                                   [0.0, 0.0, 1.0]])
+default_thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0], 
+                                                      [0.0, 0.1, 0.0], 
+                                                      [0.0, 0.0, 0.1]])
 default_temp_body_prop = DynamicTemperatureBodyProperties(
     mass_density=1.0,
     mu=4.0,
     lambda_=4.0,
     theta=4.0,
     zeta=4.0,
-    C_coeff=default_C_coeff,
-    K_coeff=default_K_coeff,
+    thermal_expansion_coefficients=default_thermal_expansion_coefficients,
+    thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
 )
 
 
-def get_temp_body_prop(C_coeff, K_coeff):
+def get_temp_body_prop(thermal_expansion_coefficients, thermal_conductivity_coefficients):
     return DynamicTemperatureBodyProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,
         theta=4.0,
         zeta=4.0,
-        C_coeff=C_coeff,
-        K_coeff=K_coeff,
+        thermal_expansion_coefficients=thermal_expansion_coefficients,
+        thermal_conductivity_coefficients=thermal_conductivity_coefficients,
     )
 
 
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
 
-m_rectangle = "pygmsh_rectangle"
-m_spline = "pygmsh_spline"
-m_circle = "pygmsh_circle"
-m_polygon = "pygmsh_polygon"
+M_RECTANGLE = "pygmsh_rectangle"
+M_SPLINE = "pygmsh_spline"
+M_CIRCLE = "pygmsh_circle"
+M_POLYGON = "pygmsh_polygon"
 
-m_cube_3d = "meshzoo_cube_3d"
-m_ball_3d = "meshzoo_ball_3d"
-m_polygon_3d = "pygmsh_polygon_3d"
-m_twist_3d = "pygmsh_twist_3d"
+M_CUBE_3D = "meshzoo_cube_3d"
+M_BALL_3D = "meshzoo_ball_3d"
+M_POLYGON_3D = "pygmsh_polygon_3d"
+M_TWIST_3D = "pygmsh_twist_3d"
 
 o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
 o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
@@ -185,57 +189,57 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[2.0, 1.0], [3.0, 0.0]]])
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
 
-def f_fall(ip, mp, md, t):
+def f_fall(ip, mp, mesh_data: MeshProperties, time: float):
     force = np.array([2.0, -1.0])
     return force
 
 
-def f_slide(ip, mp, md, t):
+def f_slide(ip, mp, mesh_data: MeshProperties, time: float):
     force = np.array([0.0, 0.0])
-    if t <= 0.5:
+    if time <= 0.5:
         force = np.array([4.0, 0.0])
     return force
 
 
-def f_accelerate_fast(ip, mp, md, t):
+def f_accelerate_fast(ip, mp, mesh_data: MeshProperties, time: float):
     force = np.array([2.0, 0.0])
     return force
 
 
-def f_accelerate_slow_right(ip, mp, md, t):
+def f_accelerate_slow_right(ip, mp, mesh_data: MeshProperties, time: float):
     force = np.array([0.5, 0.0])
     return force
 
 
-def f_accelerate_slow_left(ip, mp, md, t):
+def f_accelerate_slow_left(ip, mp, mesh_data: MeshProperties, time: float):
     force = np.array([-0.5, 0.0])
     return force
 
 
-def f_stay(ip, mp, md, t):
+def f_stay(ip, mp, mesh_data: MeshProperties, time: float):
     return np.array([0.0, 0.0])
 
 
-def f_rotate(ip, mp, md, t):
-    if t <= 0.5:
-        y_scaled = ip[1] / md.scale_y
+def f_rotate(ip, mp, mesh_data: MeshProperties, time: float):
+    if time <= 0.5:
+        y_scaled = ip[1] / mesh_data.scale_y
         return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_rotate_fast(ip, mp, md, t):
-    if t <= 0.5:
-        y_scaled = ip[1] / md.scale_y
+def f_rotate_fast(ip, mp, mesh_data: MeshProperties, time: float):
+    if time <= 0.5:
+        y_scaled = ip[1] / mesh_data.scale_y
         return y_scaled * np.array([3.0, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_push_3d(ip, mp, md, t):
+def f_push_3d(ip, mp, mesh_data: MeshProperties, time: float):
     return np.array([1.0, 1.0, 1.0])
 
 
-def f_rotate_3d(ip, mp, md, t):
-    if t <= 0.5:
+def f_rotate_3d(ip, mp, mesh_data: MeshProperties, time: float):
+    if time <= 0.5:
         scale = ip[1] * ip[2]
         return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
@@ -243,10 +247,10 @@ def f_rotate_3d(ip, mp, md, t):
 
 def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        id=f"circle_slope{tag}",
+        name=f"circle_slope{tag}",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -261,10 +265,10 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
     return Scenario(
-        id=f"spline_right{tag}",
+        name=f"spline_right{tag}",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_spline,
+            mesh_type=M_SPLINE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -282,7 +286,7 @@ def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"circle_left{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -300,7 +304,7 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"polygon_left{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -318,7 +322,7 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"polygon_slope{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -336,7 +340,7 @@ def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"circle_rotate{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -354,7 +358,7 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"polygon_rotate{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -372,7 +376,7 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"polygon_stay{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
@@ -390,7 +394,7 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
         f"polygon_two{tag}",
         MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,

@@ -2,6 +2,7 @@ import copy
 from ctypes import ArgumentError
 from typing import Callable
 
+import numba
 import numpy as np
 
 from conmech.helpers import nph
@@ -55,7 +56,7 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
     return unoriented_normals * external_orientation
 
 
-@njit
+@numba.njit
 def get_boundary_nodes_normals_numba(
         boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
 ):
@@ -73,7 +74,7 @@ def get_boundary_nodes_normals_numba(
     return boundary_normals
 
 
-@njit
+@numba.njit
 def get_surface_per_boundary_node_numba(
         boundary_surfaces, boundary_nodes_count, moved_nodes
 ):
@@ -86,7 +87,7 @@ def get_surface_per_boundary_node_numba(
     return surface_per_boundary_node
 
 
-@njit
+@numba.njit
 def element_volume_part_numba(face_nodes):
     dim = face_nodes.shape[1]
     nodes_count = face_nodes.shape[0]

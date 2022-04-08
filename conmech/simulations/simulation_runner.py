@@ -54,7 +54,7 @@ def run_scenario(
     save_files = plot_animation or save_all
     if save_files:
         final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
-        data_path = f"{final_catalog}/scenarios/{scenario.id}_DATA"
+        data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
         cmh.create_folders(f"{final_catalog}/scenarios")
     else:
         final_catalog = ""
@@ -83,7 +83,7 @@ def run_scenario(
     )
 
     if plot_animation:
-        animation_path = f"{final_catalog}/{scenario.id}.gif"
+        animation_path = f"{final_catalog}/{scenario.name}.gif"
         plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip,
                                 plot_settings_count[0], data_path)
 

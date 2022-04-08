@@ -5,7 +5,6 @@ from ctypes import ArgumentError
 
 import numba
 import numpy as np
-from numba import njit
 
 
 def stack(data):
@@ -27,8 +26,8 @@ def unstack_and_sum_columns(data, dim, keepdims=False):
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 
-def elementwise_dot(x, y, keepdims=False):
-    return (x * y).sum(axis=1, keepdims=keepdims)
+def elementwise_dot(matrix_1, matrix_2, keepdims=False):
+    return (matrix_1 * matrix_2).sum(axis=1, keepdims=keepdims)
 
 
 def get_occurances(data):
@@ -50,13 +49,13 @@ def euclidean_norm(vector, keepdims=False):
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
 
 
-@njit
+@numba.njit
 def euclidean_norm_numba(vector):
     data = (vector ** 2).sum(axis=-1)
     return np.sqrt(data)
 
 
-@njit
+@numba.njit
 def normalize_euclidean_numba(data):
     norm = euclidean_norm_numba(data)
     reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
@@ -78,7 +77,7 @@ def get_tangential(vector, normal):
     return tangential_vector
 
 
-@njit
+@numba.njit
 def get_tangential_numba(vector, normal):
     normal_vector = vector @ normal
     tangential_vector = vector - (normal_vector * normal)
@@ -127,32 +126,27 @@ def get_in_base(vectors, base):
     return vectors @ base.T
 
 
-@njit
+@numba.njit
 def len_x_numba(corners):
     return corners[2] - corners[0]
 
 
-@njit
+@numba.njit
 def len_y_numba(corners):
     return corners[3] - corners[1]
 
 
-@njit
+@numba.njit
 def min_numba(corners):
     return [corners[0], corners[1]]
 
 
-@njit
+@numba.njit
 def max_numba(corners):
     return [corners[2], corners[3]]
 
 
-# TODO: #65 @numba.njit(inline='always') - when using small function inside other numba
-# TODO: #65 Use numba.njit(...)
-# TODO: #65 use slice instead of int
-
-
-@njit
+@numba.njit
 def get_point_index_numba(point, points):
     for i in range(len(points)):
         if np.sum(np.abs(point - points[i])) < 0.0001:
@@ -166,7 +160,7 @@ def get_random_normal(dim, nodes_count, scale):
     return noise
 
 
-@njit
+@numba.njit
 def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     result = np.zeros((nodes_count, dim))
     for i in range(nodes_count):
@@ -176,19 +170,19 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     return result
 
 
-@njit(inline="always")  # TODO: #65 Probably remove
+@numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
 
 
 """
-@njit
+@numba.njit
 def calculate_angle_numba(new_up_vector):
     old_up_vector = np.array([0., 1.])
     angle = (2 * (new_up_vector[0] >= 0) - 1) * np.arccos(np.dot(new_up_vector, old_up_vector))
     return angle
 
-@njit
+@numba.njit
 def rotate_numba(vectors, angle):
     s = np.sin(angle)
     c = np.cos(angle)

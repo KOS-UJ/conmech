@@ -4,12 +4,13 @@ Created at 16.02.2022
 from dataclasses import dataclass
 from typing import Callable, Tuple
 
+import numba
 import numpy as np
 
 from conmech.solvers.solver_methods import njit
 
 
-@njit
+@numba.njit
 def identify_surfaces_numba(sorted_elements):
     elements_count, element_size = sorted_elements.shape
     dim = element_size - 1
@@ -86,7 +87,7 @@ def reorder(
     return reorder_numba(unordered_nodes, unordered_elements, selected_indices, to_top)
 
 
-@njit
+@numba.njit
 def reorder_numba(
         unordered_nodes: np.ndarray,
         unordered_elements: np.ndarray,

@@ -2,21 +2,21 @@ import numpy as np
 from numba import njit
 
 
-@njit
+@numba.njit
 def get_alpha(x, p_1, p_2, p_3):
     return ((p_2[1] - p_3[1]) * (x[0] - p_3[0]) + (p_3[0] - p_2[0]) * (x[1] - p_3[1])) / (
             (p_2[1] - p_3[1]) * (p_1[0] - p_3[0]) + (p_3[0] - p_2[0]) * (p_1[1] - p_3[1])
     )
 
 
-@njit
+@numba.njit
 def get_beta(x, p_1, p_2, p_3):
     return ((p_3[1] - p_1[1]) * (x[0] - p_3[0]) + (p_1[0] - p_3[0]) * (x[1] - p_3[1])) / (
             (p_2[1] - p_3[1]) * (p_1[0] - p_3[0]) + (p_3[0] - p_2[0]) * (p_1[1] - p_3[1])
     )
 
 
-@njit
+@numba.njit
 def bigger_or_zero(data):
     return data > -1e-05
 
@@ -45,7 +45,7 @@ def approximate_one(new_point, old_points, old_values, old_elements):
     return alpha * v1 + beta * v2 + gamma * v3
 
 
-@njit
+@numba.njit
 def approximate_all_numba(new_points, old_points, old_values, old_elements):
     new_values = np.zeros_like(new_points)
 

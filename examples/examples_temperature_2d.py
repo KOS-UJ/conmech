@@ -3,11 +3,11 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (TemperatureScenario, default_C_coeff,
-                                         default_K_coeff, default_temp_body_prop,
+from conmech.scenarios.scenarios import (TemperatureScenario, default_thermal_expansion_coefficients,
+                                         default_thermal_conductivity_coefficients, default_temp_body_prop,
                                          default_temp_obstacle_prop, f_rotate_fast,
-                                         get_temp_body_prop, m_circle, m_polygon,
-                                         m_rectangle, o_front, o_side)
+                                         get_temp_body_prop, M_CIRCLE, M_POLYGON,
+                                         M_RECTANGLE, o_front, o_side)
 from conmech.simulations import simulation_runner
 
 
@@ -15,22 +15,22 @@ def get_C_temp_scenarios(mesh_density, final_time):
     C_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            C_coeff=np.array([[1.5, 0], [0, 0.5]]), K_coeff=default_K_coeff,
+            thermal_expansion_coefficients=np.array([[1.5, 0], [0, 0.5]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
         get_temp_body_prop(
-            C_coeff=np.array([[1.0, -0.5], [-0.5, 1.0]]), K_coeff=default_K_coeff,
+            thermal_expansion_coefficients=np.array([[1.0, -0.5], [-0.5, 1.0]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            C_coeff=np.array([[1.0, 0.5], [-0.5, 1.0]]), K_coeff=default_K_coeff,
+            thermal_expansion_coefficients=np.array([[1.0, 0.5], [-0.5, 1.0]]), thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
         ),
     ]
     return [
         TemperatureScenario(
-            id=f"C_{i}",
+            name=f"C_{i}",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=m_rectangle,
+                mesh_type=M_RECTANGLE,
                 scale=[1],
                 mesh_density=[mesh_density],
                 is_adaptive=False,
@@ -50,17 +50,17 @@ def get_K_temp_scenarios(mesh_density, final_time):
     K_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            C_coeff=default_C_coeff, K_coeff=np.array([[0.5, 0], [0, 0.5]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.5, 0], [0, 0.5]]),
         ),
         get_temp_body_prop(
-            C_coeff=default_C_coeff, K_coeff=np.array([[0.1, 0.1], [0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, 0.1], [0.1, 0.1]]),
         ),
         get_temp_body_prop(
-            C_coeff=default_C_coeff, K_coeff=np.array([[0.1, -0.1], [-0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, -0.1], [-0.1, 0.1]]),
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            C_coeff=default_C_coeff, K_coeff=np.array([[0.1, -0.1], [0.1, 0.1]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.1, -0.1], [0.1, 0.1]]),
         ),
     ]
 
@@ -73,10 +73,10 @@ def get_K_temp_scenarios(mesh_density, final_time):
 
     return [
         TemperatureScenario(
-            id=f"K_{i}",
+            name=f"K_{i}",
             mesh_data=MeshProperties(
                 dimension=2,
-                mesh_type=m_rectangle,
+                mesh_type=M_RECTANGLE,
                 scale=[1],
                 mesh_density=[mesh_density],
                 is_adaptive=False,
@@ -94,10 +94,10 @@ def get_K_temp_scenarios(mesh_density, final_time):
 
 def get_polygon_scenarios(mesh_density, final_time):
     polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
-        id=f"polygon_{i}",
+        name=f"polygon_{i}",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[1],
             mesh_density=[mesh_density],
             is_adaptive=False,
@@ -119,16 +119,16 @@ def get_polygon_scenarios(mesh_density, final_time):
 
 def get_friction_scenarios(mesh_density, final_time):
     friction_scenario = lambda i: TemperatureScenario(
-        id="circle_flat_A_roll",
+        name="circle_flat_A_roll",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[1],
             mesh_density=[mesh_density],
         ),
         body_prop=
         get_temp_body_prop(
-            C_coeff=default_C_coeff, K_coeff=np.array([[0.01, 0], [0, 0.01]]),
+            thermal_expansion_coefficients=default_thermal_expansion_coefficients, thermal_conductivity_coefficients=np.array([[0.01, 0], [0, 0.01]]),
         ),
         obstacle_prop=default_temp_obstacle_prop,
         schedule=Schedule(final_time=final_time),
