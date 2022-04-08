@@ -64,9 +64,9 @@ def get_K_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
-    def h_corner(ip, mp, md, t):
-        x_scaled = ip[0] / md.scale_x
-        y_scaled = ip[1] / md.scale_y
+    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, t: float):
+        x_scaled = initial_node[0] / mesh_data.scale_x
+        y_scaled = initial_node[1] / mesh_data.scale_y
         if x_scaled < 0.1 and y_scaled < 0.1:
             return -50.0  # -100
         return 0.0

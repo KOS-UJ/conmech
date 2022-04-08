@@ -12,7 +12,7 @@ class Validator:
         self.error_tolerance = error_tolerance
         self.const_elasticity = solver.const_elasticity
         self.forces = solver.forces
-        self.f = make_f(
+        self.rhs = make_f(
             jn=solver.contact_law.subderivative_normal_direction,
             jt=solver.contact_law.regularized_subderivative_tangential_direction,
             h=solver.friction_bound,
@@ -20,7 +20,7 @@ class Validator:
 
     def validate(self, state, solution) -> float:
         quality_inv = np.linalg.norm(
-            self.f(
+            self.rhs(
                 solution,
                 state.mesh.initial_nodes,
                 state.mesh.contact_boundary,

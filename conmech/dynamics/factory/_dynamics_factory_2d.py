@@ -108,20 +108,20 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         return DIMENSION
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):
-        X11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
-        X22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
-        X12 = mu * W[1, 0] + lambda_ * W[0, 1]
-        X21 = lambda_ * W[1, 0] + mu * W[0, 1]
-        return np.block([[X11, X12], [X21, X22]])
+        A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
+        A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
+        A_12 = mu * W[1, 0] + lambda_ * W[0, 1]
+        A_21 = lambda_ * W[1, 0] + mu * W[0, 1]
+        return np.block([[A_11, A_12], [A_21, A_22]])
 
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z], [Z, U]])
 
     def calculate_thermal_expansion(self, V, C_coef):
-        X11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1]
-        X22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1]
-        return np.block([X11, X22])
+        A_11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1]
+        A_22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1]
+        return np.block([A_11, A_22])
 
     def calculate_thermal_conductivity(self, W, K_coef):
         return (

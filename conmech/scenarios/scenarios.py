@@ -189,58 +189,58 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[2.0, 1.0], [3.0, 0.0]]])
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
 
-def f_fall(ip, mp, mesh_data: MeshProperties, time: float):
+def f_fall(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     force = np.array([2.0, -1.0])
     return force
 
 
-def f_slide(ip, mp, mesh_data: MeshProperties, time: float):
+def f_slide(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     force = np.array([0.0, 0.0])
     if time <= 0.5:
         force = np.array([4.0, 0.0])
     return force
 
 
-def f_accelerate_fast(ip, mp, mesh_data: MeshProperties, time: float):
+def f_accelerate_fast(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     force = np.array([2.0, 0.0])
     return force
 
 
-def f_accelerate_slow_right(ip, mp, mesh_data: MeshProperties, time: float):
+def f_accelerate_slow_right(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     force = np.array([0.5, 0.0])
     return force
 
 
-def f_accelerate_slow_left(ip, mp, mesh_data: MeshProperties, time: float):
+def f_accelerate_slow_left(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     force = np.array([-0.5, 0.0])
     return force
 
 
-def f_stay(ip, mp, mesh_data: MeshProperties, time: float):
+def f_stay(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     return np.array([0.0, 0.0])
 
 
-def f_rotate(ip, mp, mesh_data: MeshProperties, time: float):
+def f_rotate(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     if time <= 0.5:
-        y_scaled = ip[1] / mesh_data.scale_y
+        y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_rotate_fast(ip, mp, mesh_data: MeshProperties, time: float):
+def f_rotate_fast(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     if time <= 0.5:
-        y_scaled = ip[1] / mesh_data.scale_y
+        y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([3.0, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_push_3d(ip, mp, mesh_data: MeshProperties, time: float):
+def f_push_3d(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     return np.array([1.0, 1.0, 1.0])
 
 
-def f_rotate_3d(ip, mp, mesh_data: MeshProperties, time: float):
+def f_rotate_3d(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties, time: float):
     if time <= 0.5:
-        scale = ip[1] * ip[2]
+        scale = initial_node[1] * initial_node[2]
         return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
 
