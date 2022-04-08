@@ -171,14 +171,13 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
 
-    def calculate_temperature_C(self, V, C_coef):
-        Z = np.zeros_like(V[0])
+    def calculate_thermal_expansion(self, V, C_coef):
         X11 = C_coef[0][0] * V[0] + C_coef[0][1] * V[1] + C_coef[0][2] * V[2]
         X22 = C_coef[1][0] * V[0] + C_coef[1][1] * V[1] + C_coef[1][2] * V[2]
         X33 = C_coef[2][0] * V[0] + C_coef[2][1] * V[1] + C_coef[2][2] * V[2]
-        return np.block([[X11, Z, Z], [Z, X22, Z], [Z, Z, X33]])
+        return np.block([X11, X22, X33])
 
-    def calculate_temperature_K(self, W, K_coef):
+    def calculate_thermal_conductivity(self, W, K_coef):
         return (
                 K_coef[0][0] * W[0, 0]
                 + K_coef[0][1] * W[0, 1]

@@ -109,20 +109,18 @@ class SettingTemperature(SettingObstacles):
             heat=self.heat,
             t_old=self.t_old,
             const_volume=self.const_volume,
-            C2T=self.C2T,
+            thermal_expansion=self.thermal_expansion,
             U=self.ACC[self.independent_indices, self.independent_indices],
             dimension=self.dimension,
             time_step=self.time_step,
         )
 
-    def get_Q(self, a, v_old, heat, t_old, const_volume, C2T, U, dimension, time_step):
+    def get_Q(self, a, v_old, heat, t_old, const_volume, thermal_expansion, U, dimension, time_step):
         v = v_old + a * time_step
         v_vector = nph.stack_column(v)
 
         Q = nph.stack_column(const_volume @ heat)
-        Q += (-1) * nph.unstack_and_sum_columns(
-            C2T @ v_vector, dim=dimension, keepdims=True
-        )  # here v_old_vector is column vector
+        Q += (-1) * thermal_expansion @ v_vector
         Q += (1 / self.time_step) * U @ t_old
 
         obstacle_heat_integral = self.get_obstacle_heat_integral()
@@ -155,7 +153,7 @@ class SettingTemperature(SettingObstacles):
             const_viscosity=self.const_viscosity,
             time_step=self.time_step,
             dimension=self.dimension,
-            C2T=self.C2T,
+            thermal_expansion=self.thermal_expansion,
         )
 
     def get_E(
@@ -169,7 +167,7 @@ class SettingTemperature(SettingObstacles):
             const_viscosity,
             time_step,
             dimension,
-            C2T,
+            thermal_expansion,
     ):
         value = super().get_E(
             forces=forces,
@@ -180,7 +178,7 @@ class SettingTemperature(SettingObstacles):
             const_viscosity=const_viscosity,
             time_step=time_step,
         )
-        value += C2T.T @ np.tile(t, (dimension, 1))
+        value += thermal_expansion.T @ t
         return value
 
     def iterate_self(self, a, t, randomized_inputs=False):

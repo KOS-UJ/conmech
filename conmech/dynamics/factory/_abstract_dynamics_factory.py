@@ -15,8 +15,8 @@ class AbstractDynamicsFactory:
     def calculate_acceleration(self, U, density):
         raise NotImplementedError()
 
-    def calculate_temperature_C(self, V, C_coef):
+    def calculate_thermal_expansion(self, V, C_coef):
         raise NotImplementedError()
 
-    def calculate_temperature_K(self, W, K_coef):
+    def calculate_thermal_conductivity(self, W, K_coef):
         raise NotImplementedError()
