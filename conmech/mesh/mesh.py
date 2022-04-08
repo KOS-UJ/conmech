@@ -3,8 +3,8 @@ from typing import Callable
 import numba
 import numpy as np
 
-from conmech.mesh import mesh_builders
 from conmech.helpers import nph
+from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
 from conmech.properties.mesh_properties import MeshProperties
 

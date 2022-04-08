@@ -12,16 +12,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.9
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pylint
-    - name: Checking code quality
-      run: |
-        PYTHONPATH=. pylint --argument-rgx='[a-z_][a-z0-9_]{1,30}$|[xUVW]' --attr-rgx='[a-z_][a-z0-9_]{1,30}$' --variable-rgx='[a-z_A][a-z0-9_]{0,30}|[UVWXYZ]$' --disable=missing-docstring --disable=too-few-public-methods --disable=duplicate-code --notes='FIXME,XXX,###' --max-args=8 --max-attributes=16 --max-public-methods=32 --max-locals=24 --max-attributes=16 conmech/
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pylint
+      - name: Checking code quality
+        run: |
+          PYTHONPATH=. pylint --argument-rgx='[a-z_][a-z0-9_]{1,30}$|[xUVW]' --attr-rgx='[a-z_][a-z0-9_]{1,30}$' --variable-rgx='[a-z_A][a-z0-9_]{0,30}|[UVWXYZ]$' --disable=missing-docstring --disable=too-few-public-methods --disable=duplicate-code --notes='FIXME,XXX,###' --max-args=8 --max-attributes=16 --max-public-methods=32 --max-locals=24 --max-attributes=16 conmech/

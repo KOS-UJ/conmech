@@ -172,6 +172,7 @@ def draw_obstacles(obstacle_origins, obstacle_normals, position, color, axes):
             linewidth=0.4,
         )
 
+
 def plot_arrows(starts, vectors, axes):
     prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(
         starts, vectors
