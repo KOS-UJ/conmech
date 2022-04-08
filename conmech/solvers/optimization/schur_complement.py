@@ -142,9 +142,9 @@ class SchurComplement(Optimization):
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def solve_t(self, temperature, velocity) -> np.ndarray:
+    def solve_t(self, initial_guess, velocity) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(velocity)
-        truncated_temperature = temperature[self.contact_ids]
+        truncated_temperature = initial_guess[self.contact_ids]
         solution_contact = super().solve_t(
             truncated_temperature, truncated_initial_guess[0]
         )  # reduce dim
@@ -255,9 +255,8 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        T = (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] + self.thermal_conductivity[
-                                                                      : self.ind, : self.ind
-                                                                      ]
+        lhs = (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] \
+              + self.thermal_conductivity[: self.ind, : self.ind]
 
         (
             self._point_temperature,
@@ -265,7 +264,7 @@ class Dynamic(Quasistatic):
             self.T_contact_x_free,
             self.T_free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=T,
+            matrix=lhs,
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
@@ -312,14 +311,15 @@ class Dynamic(Quasistatic):
         return self.forces.forces + nph.unstack(A, dim=self.dim)
 
     def iterate(self, velocity):
-        super(SchurComplement, self).iterate(velocity)
+        super().iterate(velocity)
         self._point_forces, self.forces_free = self.recalculate_forces()
         self.Q, self.Q_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
 
-        A += (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
+        A += (1 / self.time_step) \
+             * self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
         # A = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         A_contact, A_free = SchurComplement.calculate_schur_complement_vector(

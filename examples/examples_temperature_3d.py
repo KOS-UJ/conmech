@@ -15,19 +15,19 @@ def get_C_temp_scenarios(mesh_density, final_time):
     C_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array([[0.5, 0, 0], [0, 0.5, 0], [0, 0, 1.5]]),
-            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_expansion_coeff=np.array([[0.5, 0, 0], [0, 0.5, 0], [0, 0, 1.5]]),
+            thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array(
+            thermal_expansion_coeff=np.array(
                 [[1.0, -0.5, -0.5], [-0.5, 1.0, -0.5], [-0.5, -0.5, 1.0]]),
-            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            thermal_expansion_coefficients=np.array(
+            thermal_expansion_coeff=np.array(
                 [[1.0, -0.5, -0.5], [0.5, 1.0, -0.5], [0.5, 0.5, 1.0]]),
-            thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+            thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
     ]
 
@@ -56,23 +56,23 @@ def get_K_temp_scenarios(mesh_density, final_time):
     K_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=np.array([[0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]]),
+            thermal_expansion_coeff=default_thermal_expansion_coefficients,
+            thermal_conductivity_coeff=np.array([[0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]]),
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=np.array(
+            thermal_expansion_coeff=default_thermal_expansion_coefficients,
+            thermal_conductivity_coeff=np.array(
                 [[0.1, 0.0, 0.1], [0.0, 0.1, 0.0], [0.1, 0.0, 0.1]]),
         ),
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=np.array(
+            thermal_expansion_coeff=default_thermal_expansion_coefficients,
+            thermal_conductivity_coeff=np.array(
                 [[0.1, -0.1, 0.0], [-0.1, 0.1, 0.0], [0.0, 0.0, 0.1]]),
         ),
         # not allowed in physical law
         get_temp_body_prop(
-            thermal_expansion_coefficients=default_thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=np.array(
+            thermal_expansion_coeff=default_thermal_expansion_coefficients,
+            thermal_conductivity_coeff=np.array(
                 [[0.1, 0.1, -0.1], [-0.1, 0.1, 0.1], [0.1, -0.1, 0.1]]),
         ),
     ]

@@ -114,7 +114,8 @@ class TemperatureScenario(Scenario):
     def get_heat_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.heat_function, setting, current_time)
 
-    def get_solve_function(self):
+    @staticmethod
+    def get_solve_function():
         return Calculator.solve_with_temperature
 
     def get_setting(
@@ -151,20 +152,20 @@ default_temp_body_prop = DynamicTemperatureBodyProperties(
     lambda_=4.0,
     theta=4.0,
     zeta=4.0,
-    thermal_expansion_coefficients=default_thermal_expansion_coefficients,
-    thermal_conductivity_coefficients=default_thermal_conductivity_coefficients,
+    thermal_expansion=default_thermal_expansion_coefficients,
+    thermal_conductivity=default_thermal_conductivity_coefficients,
 )
 
 
-def get_temp_body_prop(thermal_expansion_coefficients, thermal_conductivity_coefficients):
+def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
     return DynamicTemperatureBodyProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,
         theta=4.0,
         zeta=4.0,
-        thermal_expansion_coefficients=thermal_expansion_coefficients,
-        thermal_conductivity_coefficients=thermal_conductivity_coefficients,
+        thermal_expansion=thermal_expansion_coeff,
+        thermal_conductivity=thermal_conductivity_coeff,
     )
 
 

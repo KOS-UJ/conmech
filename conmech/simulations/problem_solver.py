@@ -38,12 +38,12 @@ class ProblemSolver:
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = DynamicTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef, theta=setup.th_coef,
-            zeta=setup.ze_coef, thermal_expansion_coefficients=self.thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+            zeta=setup.ze_coef, thermal_expansion=self.thermal_expansion_coefficients,
+            thermal_conductivity=self.thermal_conductivity_coefficients
         ) if with_time else StaticTemperatureBodyProperties(
             mass_density=1.0, mu=setup.mu_coef, lambda_=setup.la_coef,
-            thermal_expansion_coefficients=self.thermal_expansion_coefficients,
-            thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+            thermal_expansion=self.thermal_expansion_coefficients,
+            thermal_conductivity=self.thermal_conductivity_coefficients
         )
         time_step = setup.time_step if with_time else 0
 
@@ -86,8 +86,8 @@ class ProblemSolver:
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef, lambda_=self.setup.la_coef, mass_density=1.0,
-                thermal_expansion_coefficients=self.thermal_expansion_coefficients,
-                thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+                thermal_expansion=self.thermal_expansion_coefficients,
+                thermal_conductivity=self.thermal_conductivity_coefficients
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             body_prop = DynamicTemperatureBodyProperties(
@@ -96,8 +96,8 @@ class ProblemSolver:
                 theta=self.setup.th_coef,
                 zeta=self.setup.ze_coef,
                 mass_density=1.0,
-                thermal_expansion_coefficients=self.thermal_expansion_coefficients,
-                thermal_conductivity_coefficients=self.thermal_conductivity_coefficients
+                thermal_expansion=self.thermal_expansion_coefficients,
+                thermal_conductivity=self.thermal_conductivity_coefficients
             )
             time_step = self.setup.time_step
         else:

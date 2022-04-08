@@ -55,10 +55,10 @@ def get_dynamics(
     if isinstance(body_prop, TemperatureBodyProperties):
         thermal_expansion = \
             factory.calculate_thermal_expansion(V,
-                                                body_prop.thermal_expansion_coefficients)
+                                                body_prop.thermal_expansion)
         thermal_conductivity = \
             factory.calculate_thermal_conductivity(W,
-                                                   body_prop.thermal_conductivity_coefficients)
+                                                   body_prop.thermal_conductivity)
     else:
         thermal_expansion = None
         thermal_conductivity = None

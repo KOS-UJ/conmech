@@ -124,9 +124,6 @@ class BodyPosition(Mesh):
         self.velocity_old = np.zeros_like(self.initial_nodes)
         self.acceleration_old = np.zeros_like(self.initial_nodes)
 
-    def remesh(self, *args):
-        super().remesh(*args)
-
     def set_acceleration_old(self, acceleration):
         self.acceleration_old = acceleration
 

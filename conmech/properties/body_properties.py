@@ -22,8 +22,8 @@ class DynamicBodyProperties(StaticBodyProperties):
 
 @dataclass
 class TemperatureBodyProperties:
-    thermal_expansion_coefficients: np.ndarray
-    thermal_conductivity_coefficients: np.ndarray
+    thermal_expansion: np.ndarray
+    thermal_conductivity: np.ndarray
 
 
 @dataclass

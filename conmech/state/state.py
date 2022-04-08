@@ -39,6 +39,7 @@ class State:
             return self.displacement
         if item in (1, "velocity"):
             return self.velocity
+        raise ValueError(f"Unknown coordinates {item}")
 
     def copy(self) -> "State":
         return self.__copy__()
