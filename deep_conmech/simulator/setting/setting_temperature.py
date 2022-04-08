@@ -120,9 +120,7 @@ class SettingTemperature(SettingObstacles):
         v_vector = nph.stack_column(v)
 
         Q = nph.stack_column(const_volume @ heat)
-        Q += (-1) * nph.unstack_and_sum_columns(
-            thermal_expansion @ v_vector, dim=dimension, keepdims=True
-        )  # here v_old_vector is column vector
+        Q += (-1) * thermal_expansion @ v_vector
         Q += (1 / self.time_step) * U @ t_old
 
         obstacle_heat_integral = self.get_obstacle_heat_integral()
@@ -180,7 +178,7 @@ class SettingTemperature(SettingObstacles):
             const_viscosity=const_viscosity,
             time_step=time_step,
         )
-        value += thermal_expansion.T @ np.tile(t, (dimension, 1))
+        value += thermal_expansion.T @ t
         return value
 
     def iterate_self(self, a, t, randomized_inputs=False):

@@ -306,7 +306,7 @@ class Dynamic(Quasistatic):
 
         X += (1 / self.time_step) * self.ACC @ self.v_vector
 
-        X += np.tile(self.t_vector, self.dim) @ self.thermal_expansion  # TODO: Check if not -1 *
+        X += self.thermal_expansion.T @ self.t_vector  # TODO: Check if not -1 *
 
         return self.forces.forces + nph.unstack(X, dim=self.dim)
 
@@ -316,9 +316,8 @@ class Dynamic(Quasistatic):
         self.Q, self.Q_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        QBig = (-1) * nph.unstack_and_sum_columns(
-            self.thermal_expansion @ self.v_vector, dim=self.dim
-        )
+        QBig = (-1) * self.thermal_expansion @ self.v_vector
+
 
         QBig += (1 / self.time_step) * self.ACC[: self.ind, : self.ind] @ self.t_vector
         # QBig = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50

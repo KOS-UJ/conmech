@@ -53,8 +53,8 @@ def get_dynamics(
     ACC = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion = factory.calculate_temperature_C(V, body_prop.C_coeff)
-        thermal_conductivity = factory.calculate_temperature_K(W, body_prop.K_coeff)
+        thermal_expansion = factory.calculate_thermal_expansion(V, body_prop.C_coeff)
+        thermal_conductivity = factory.calculate_thermal_conductivity(W, body_prop.K_coeff)
     else:
         thermal_expansion = None
         thermal_conductivity = None
