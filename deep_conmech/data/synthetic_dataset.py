@@ -19,13 +19,14 @@ def create_mesh_type():
 
 
 def create_forces(config, setting):
-    if interpolation_helpers.decide(config.td.DATA_ZERO_FORCES):
+    if interpolation_helpers.decide(config.td.ZERO_FORCES_PROPORTION):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.FORCES_RANDOM_SCALE,
+            corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
             setting_scale_x=setting.mesh_data.scale_x,
             setting_scale_y=setting.mesh_data.scale_y,
         )
@@ -37,6 +38,7 @@ def create_u_old(config, setting):
         count=setting.nodes_count,
         initial_nodes=setting.initial_nodes,
         randomization_scale=config.td.U_RANDOM_SCALE,
+        corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
         setting_scale_x=setting.mesh_data.scale_x,
         setting_scale_y=setting.mesh_data.scale_y,
     )
@@ -44,15 +46,24 @@ def create_u_old(config, setting):
 
 
 def create_v_old(config, setting):
-    function = interpolation_helpers.interpolate_rotate if interpolation_helpers.decide(
-        config.td.DATA_ROTATE_VELOCITY) else interpolation_helpers.interpolate_four
-    v_old = function(
-        setting.nodes_count,
-        setting.initial_nodes,
-        config.td.V_RANDOM_SCALE,
-        setting.mesh_data.scale_x,
-        setting.mesh_data.scale_y,
-    )
+    if interpolation_helpers.decide(config.td.ROTATE_VELOCITY_PROPORTION):
+        v_old = interpolation_helpers.interpolate_rotate(
+            count=setting.nodes_count,
+            initial_nodes=setting.initial_nodes,
+            randomization_scale=config.td.V_RANDOM_SCALE,
+            rotate_scale_proportion=config.td.ROTATE_SCALE_PROPORTION,
+            setting_scale_x=setting.mesh_data.scale_x,
+            setting_scale_y=setting.mesh_data.scale_y,
+        )
+    else:
+        v_old = interpolation_helpers.interpolate_four(
+            count=setting.nodes_count,
+            initial_nodes=setting.initial_nodes,
+            randomization_scale=config.td.V_RANDOM_SCALE,
+            corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
+            setting_scale_x=setting.mesh_data.scale_x,
+            setting_scale_y=setting.mesh_data.scale_y,
+        )
     return v_old
 
 

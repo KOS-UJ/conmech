@@ -2,8 +2,6 @@ import os
 
 import numpy as np
 import torch
-from torch_geometric.loader import DataLoader
-
 from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario
@@ -14,6 +12,7 @@ from deep_conmech.data.dataset_statistics import (DatasetStatistics,
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
+from torch_geometric.loader import DataLoader
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -235,7 +234,7 @@ class BaseDataset:
     def check_and_print(
             self, data_count, current_index, setting, step_tqdm, tqdm_description
     ):
-        relative_index = current_index % int(data_count * self.config.PLOT_DATA_PERCENTAGE)
+        relative_index = current_index % int(data_count * (1/self.config.DATASET_IMAGES_COUNT))
         if relative_index == 0:
             step_tqdm.set_description(
                 f"{tqdm_description} - plotting index {current_index}"

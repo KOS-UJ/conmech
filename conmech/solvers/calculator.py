@@ -36,11 +36,23 @@ class Calculator:
     def minimize(
             function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
+        '''
         return scipy.optimize.minimize(
             function,
             initial_vector,
             method="L-BFGS-B",  # POWELL, L-BFGS-B, options={"disp": True}
         ).x
+        '''
+        return scipy.optimize.minimize(
+            fun=function,
+            x0=initial_vector,
+            #args=loss_args,
+            method="BFGS",
+            options={"disp": True, "maxiter": len(initial_vector) * 1e5},
+            tol=1e-12,
+        ).x
+        
+
 
     @staticmethod
     def solve(
