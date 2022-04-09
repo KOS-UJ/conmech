@@ -122,6 +122,21 @@ def plot_scenario_animation(
     )
 
 
+def prepare(scenario, setting, current_time, forces, with_temperature):
+    if with_temperature:
+        heat = scenario.get_heat_by_function(setting, current_time)
+        setting.prepare(forces, heat)
+    else:
+        setting.prepare(forces)
+
+
+def iterate(acceleration, temperature, setting, simulate_dirty_data, with_temperature):
+    if with_temperature:
+        setting.iterate_self(acceleration, temperature)
+    else:
+        setting.iterate_self(acceleration, randomized_inputs=simulate_dirty_data)
+
+
 def simulate(
     compare_with_base_setting,
     solve_function,
@@ -154,23 +169,21 @@ def simulate(
     comparison_time = 0.0
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
-    a = None
-    t = None
+    acceleration = None
+    temperature = None
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
         forces = scenario.get_forces_by_function(setting, current_time)
-        if with_temperature:
-            heat = scenario.get_heat_by_function(setting, current_time)
-            setting.prepare(forces, heat)
-        else:
-            setting.prepare(forces)
+        prepare(scenario, setting, current_time, forces, with_temperature)
 
         start_time = time.time()
         if with_temperature:
-            a, t = solve_function(setting, initial_a=a, initial_t=t)
+            acceleration, temperature = solve_function(
+                setting, initial_a=acceleration, initial_t=temperature
+            )
         else:
-            a = solve_function(setting, initial_a=a)
+            acceleration = solve_function(setting, initial_a=acceleration)
 
         solver_time += time.time() - start_time
 
@@ -187,10 +200,7 @@ def simulate(
         if operation is not None:
             operation(setting)  # (current_time, setting, base_setting, a, base_a)
 
-        if with_temperature:
-            setting.iterate_self(a, t)
-        else:
-            setting.iterate_self(a, randomized_inputs=simulate_dirty_data)
+        iterate(acceleration, temperature, setting, simulate_dirty_data, with_temperature)
 
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)

@@ -74,7 +74,7 @@ class SettingTemperature(SettingObstacles):
         return (
             lambda normalized_boundary_t_vector: energy_temperature(
                 nph.unstack(normalized_boundary_t_vector, 1),
-                self.temperature_boundary,
+                self.solver_cache.temperature_boundary,
                 normalized_Q_boundary,
             ),
             normalized_Q_free,
@@ -101,8 +101,8 @@ class SettingTemperature(SettingObstacles):
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.temperature_free_x_free_inv,
-            contact_x_free=self.temperature_contact_x_free,
+            free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
+            contact_x_free=self.solver_cache.temperature_contact_x_free,
         )
         return normalized_Q_boundary, normalized_Q_free
 

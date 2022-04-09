@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable
 
 import numba
@@ -26,6 +27,25 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
                 edges_features[edge_id] = edges_features_matrix[i, j]
                 edge_id += 1
     return edges_features
+
+
+# TODO: #75
+@dataclass
+class SolverMatrices:
+    def __init__(self):
+        self.lhs: np.ndarray
+        # TODO: #75 move to schur (careful - some properties are used by net)
+        self.lhs_boundary: np.ndarray
+        self.free_x_contact: np.ndarray
+        self.contact_x_free: np.ndarray
+        self.free_x_free_inverted: np.ndarray
+
+        self.lhs_temperature: np.ndarray
+        # TODO: #75 move to schur (careful - some properties are used by net)
+        self.temperature_boundary: np.ndarray
+        self.temperature_free_x_contact: np.ndarray
+        self.temperature_contact_x_free: np.ndarray
+        self.temperature_free_x_free_inv: np.ndarray
 
 
 class Dynamics(BodyPosition):
@@ -62,19 +82,7 @@ class Dynamics(BodyPosition):
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
 
-        self.lhs: np.ndarray
-        # TODO: move to schur (careful - some properties are used by net)
-        self.lhs_boundary: np.ndarray
-        self.free_x_contact: np.ndarray
-        self.contact_x_free: np.ndarray
-        self.free_x_free_inverted: np.ndarray
-
-        self.lhs_temperature: np.ndarray
-        # TODO: move to schur (careful - some properties are used by net)
-        self.temperature_boundary: np.ndarray
-        self.temperature_free_x_contact: np.ndarray
-        self.temperature_contact_x_free: np.ndarray
-        self.temperature_free_x_free_inv: np.ndarray
+        self.solver_cache = SolverMatrices()
 
         # RHS
         self.forces = Forces(self, inner_forces, outer_forces)
@@ -102,17 +110,17 @@ class Dynamics(BodyPosition):
         )
 
         if self.with_schur_complement_matrices:
-            self.lhs = (
+            self.solver_cache.lhs = (
                 self.acceleration_operator
                 + (self.viscosity + self.elasticity * self.time_step) * self.time_step
             )
             (
-                self.lhs_boundary,
-                self.free_x_contact,
-                self.contact_x_free,
-                self.free_x_free_inverted,
+                self.solver_cache.lhs_boundary,
+                self.solver_cache.free_x_contact,
+                self.solver_cache.contact_x_free,
+                self.solver_cache.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=self.lhs,
+                matrix=self.solver_cache.lhs,
                 dimension=self.dimension,
                 contact_indices=self.contact_indices,
                 free_indices=self.free_indices,
@@ -120,16 +128,16 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.lhs_temperature = (1 / self.time_step) * self.acceleration_operator[
-                    i, i
-                ] + self.thermal_conductivity[i, i]
+                self.solver_cache.lhs_temperature = (
+                    1 / self.time_step
+                ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
                 (
-                    self.temperature_boundary,
-                    self.temperature_free_x_contact,
-                    self.temperature_contact_x_free,
-                    self.temperature_free_x_free_inv,
+                    self.solver_cache.temperature_boundary,
+                    self.solver_cache.temperature_free_x_contact,
+                    self.solver_cache.temperature_contact_x_free,
+                    self.solver_cache.temperature_free_x_free_inv,
                 ) = SchurComplement.calculate_schur_complement_matrices(
-                    matrix=self.lhs_temperature,
+                    matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,

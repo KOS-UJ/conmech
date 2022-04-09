@@ -43,8 +43,8 @@ class SettingForces(Dynamics):
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.free_x_free_inverted,
-            contact_x_free=self.contact_x_free,
+            free_x_free_inverted=self.solver_cache.free_x_free_inverted,
+            contact_x_free=self.solver_cache.contact_x_free,
         )
         return normalized_E_boundary, normalized_E_free
 

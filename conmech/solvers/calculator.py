@@ -115,14 +115,14 @@ class Calculator:
     ):
         _ = initial_t
         normalized_Q = setting.get_normalized_Q_np(normalized_a)
-        t_vector = np.linalg.solve(setting.lhs_temperature, normalized_Q)
+        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_Q)
         return t_vector
 
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature, initial_a=None):
         _ = initial_a
         normalized_E = setting.get_normalized_E_np(temperature)
-        normalized_a_vector = np.linalg.solve(setting.lhs, normalized_E)
+        normalized_a_vector = np.linalg.solve(setting.solver_cache.lhs, normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
@@ -182,8 +182,8 @@ class Calculator:
 
     @staticmethod
     def complete_a_vector(setting, normalized_rhs_free, a_contact_vector):
-        a_independent_vector = setting.free_x_free_inverted @ (
-            normalized_rhs_free - (setting.free_x_contact @ a_contact_vector)
+        a_independent_vector = setting.solver_cache.free_x_free_inverted @ (
+            normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
         )
 
         normalized_a = np.vstack(
@@ -196,8 +196,9 @@ class Calculator:
 
     @staticmethod
     def complete_t_vector(setting: SettingTemperature, normalized_t_rhs_free, t_contact_vector):
-        t_independent_vector = setting.temperature_free_x_free_inv @ (
-            normalized_t_rhs_free - (setting.temperature_free_x_contact @ t_contact_vector)
+        t_independent_vector = setting.solver_cache.temperature_free_x_free_inv @ (
+            normalized_t_rhs_free
+            - (setting.solver_cache.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))
