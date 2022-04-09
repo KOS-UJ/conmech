@@ -182,17 +182,21 @@ class BaseDataset:
         setting_tqdm = cmh.get_tqdm(iterable=pkh.get_iterator_pickle(self.data_path, data_count),
                                     config=self.config,
                                     desc="Preprocessing and loading dataset to RAM")
-        return [self.preprocess_example(setting, index) for index, setting in
-                enumerate(setting_tqdm)]
+        return [self.preprocess_example(setting, index) for index, setting in enumerate(setting_tqdm)]
 
     def generate_data_process(self, num_workers, process_id):
+        pass
+
+
+    @property
+    def data_size_id(self):
         pass
 
     @property
     def data_id(self):
         td = self.config.td
-        data_size = td.SYNTHETIC_SOLVERS_COUNT if td.DATASET == "synthetic" else td.FINAL_TIME
-        return f"{self.description}_m:{td.MESH_DENSITY}_s:{data_size}_a:{td.ADAPTIVE_TRAINING_MESH}"
+        return f"{self.description}_m:{td.MESH_DENSITY}_s:{self.data_size_id}_a:{td.ADAPTIVE_TRAINING_MESH}"
+
 
     @property
     def main_directory(self):

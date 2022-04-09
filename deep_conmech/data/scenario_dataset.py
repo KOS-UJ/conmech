@@ -46,6 +46,11 @@ class ScenariosDataset(BaseDataset):
     def data_count(self):
         return self.get_data_count(self.all_scenarios)
 
+    @property
+    def data_size_id(self):
+        return self.config.td.FINAL_TIME
+        
+
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(
             self.all_scenarios, num_workers, process_id

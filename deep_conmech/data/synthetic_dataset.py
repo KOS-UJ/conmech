@@ -113,6 +113,11 @@ class SyntheticDataset(BaseDataset):
     def data_count(self):
         return TrainingConfig.td.SYNTHETIC_SOLVERS_COUNT
 
+    @property
+    def data_size_id(self):
+        return self.config.td.SYNTHETIC_SOLVERS_COUNT
+
+
     def generate_setting(self, index):
         mesh_type = create_mesh_type()
         setting = get_base_setting(self.config, mesh_type)

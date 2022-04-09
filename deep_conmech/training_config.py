@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 import psutil
-
 from conmech.helpers.config import Config
 
 
@@ -12,19 +11,19 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # scenarios # live
+    DATASET: str = "synthetic"  # synthetic # calculator # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
 
     
     FORCES_RANDOM_SCALE: int = 4
-    OBSTACLE_ORIGIN_SCALE: int = 3 * TRAIN_SCALE
+    OBSTACLE_ORIGIN_SCALE: int = 10 * TRAIN_SCALE
     U_RANDOM_SCALE: float = 0.2
     V_RANDOM_SCALE: float = 2.5
 
     ROTATE_VELOCITY_PROPORTION: float = 0.3
-    ZERO_FORCES_PROPORTION: float = 0.3
+    ZERO_FORCES_PROPORTION: float = 0.1
     CORNERS_SCALE_PROPORTION: float = 0.2
     ROTATE_SCALE_PROPORTION: float = 0.5
 
@@ -38,9 +37,9 @@ class TrainingData:
     UPDATE_AT_EPOCHS: int = 100
 
     USE_ENERGY_AS_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 128  # !#
+    BATCH_SIZE: int = 64  # !# 128
     VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 64  # !# 64 # 512
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 96  # 32 !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     USE_DATASET_STATS: bool = False

@@ -54,7 +54,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
         train_dataset = SyntheticDataset(description="train", dimension=2,
                                          load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
                                          config=config)
-    elif dataset_type == "scenarios":
+    elif dataset_type == "calculator":
         train_dataset = CalculatorDataset(
             description="train", all_scenarios=scenarios.all_train(config.td),
             load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
@@ -66,13 +66,21 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
 
 def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
-    if config.td.DATASET != "live":
-        all_val_datasets.append(train_dataset)
+    #if config.td.DATASET != "live":
+    #    all_val_datasets.append(train_dataset)
     all_val_datasets.append(
         CalculatorDataset(
-            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False,
-            config=config
-        )
+            description="val", all_scenarios=scenarios.all_validation(config.td), 
+            load_to_ram=False, config=config)
+    )
+    all_val_datasets.append(
+         CalculatorDataset(
+            description="train", all_scenarios=scenarios.all_train(config.td),
+            load_to_ram=False, config=config)
+    )
+    all_val_datasets.append(
+        SyntheticDataset(description="train", dimension=2,
+            load_to_ram=False, config=config)
     )
     return all_val_datasets
 
