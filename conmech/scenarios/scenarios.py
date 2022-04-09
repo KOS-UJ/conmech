@@ -1,32 +1,34 @@
 from typing import Callable, Optional, Union
 
 import numpy as np
-
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
-    DynamicBodyProperties, DynamicTemperatureBodyProperties)
+    DynamicBodyProperties,
+    DynamicTemperatureBodyProperties,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import (
-    ObstacleProperties, TemperatureObstacleProperties)
+    ObstacleProperties,
+    TemperatureObstacleProperties,
+)
 from conmech.properties.schedule import Schedule
 from conmech.solvers.calculator import Calculator
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.training_config import TrainingData
 
 
 class Scenario:
     def __init__(
-            self,
-            name: str,
-            mesh_data: MeshProperties,
-            body_prop: DynamicBodyProperties,
-            obstacle_prop: ObstacleProperties,
-            schedule: Schedule,
-            forces_function: Union[Callable[..., np.ndarray], np.ndarray],
-            obstacles: Optional[np.ndarray],
+        self,
+        name: str,
+        mesh_data: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        forces_function: Union[Callable[..., np.ndarray], np.ndarray],
+        obstacles: Optional[np.ndarray],
     ):
         self.name = name
         self.mesh_data = mesh_data
@@ -62,8 +64,12 @@ class Scenario:
         return Calculator.solve
 
     def get_setting(
-            self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
+        self,
+        normalize_by_rotation=True,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingObstacles:
+        _ = randomize
         setting = SettingObstacles(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
@@ -90,15 +96,15 @@ class Scenario:
 
 class TemperatureScenario(Scenario):
     def __init__(
-            self,
-            name: str,
-            mesh_data: MeshProperties,
-            body_prop: DynamicTemperatureBodyProperties,
-            obstacle_prop: TemperatureObstacleProperties,
-            schedule: Schedule,
-            forces_function: Union[Callable, np.ndarray],
-            obstacles: Optional[np.ndarray],
-            heat_function: Union[Callable, np.ndarray],
+        self,
+        name: str,
+        mesh_data: MeshProperties,
+        body_prop: DynamicTemperatureBodyProperties,
+        obstacle_prop: TemperatureObstacleProperties,
+        schedule: Schedule,
+        forces_function: Union[Callable, np.ndarray],
+        obstacles: Optional[np.ndarray],
+        heat_function: Union[Callable, np.ndarray],
     ):
         super().__init__(
             name=name,
@@ -119,8 +125,12 @@ class TemperatureScenario(Scenario):
         return Calculator.solve_with_temperature
 
     def get_setting(
-            self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
+        self,
+        normalize_by_rotation=True,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingTemperature:
+        _ = randomize
         setting = SettingTemperature(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
@@ -140,12 +150,12 @@ default_body_prop = DynamicBodyProperties(
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 
-default_thermal_expansion_coefficients = np.array([[1.0, 0.0, 0.0],
-                                                   [0.0, 1.0, 0.0],
-                                                   [0.0, 0.0, 1.0]])
-default_thermal_conductivity_coefficients = np.array([[0.1, 0.0, 0.0],
-                                                      [0.0, 0.1, 0.0],
-                                                      [0.0, 0.0, 0.1]])
+default_thermal_expansion_coefficients = np.array(
+    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+)
+default_thermal_conductivity_coefficients = np.array(
+    [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+)
 default_temp_body_prop = DynamicTemperatureBodyProperties(
     mass_density=1.0,
     mu=4.0,
@@ -170,7 +180,9 @@ def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
 
 
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
-default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
+default_temp_obstacle_prop = TemperatureObstacleProperties(
+    hardness=100.0, friction=5.0, heat=0.01
+)
 
 M_RECTANGLE = "pygmsh_rectangle"
 M_SPLINE = "pygmsh_spline"
@@ -191,66 +203,116 @@ o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[2.0, 1.0], [3.0, 0.0]]])
 o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
 
 
-def f_fall(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-           time: float):
+def f_fall(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([2.0, -1.0])
     return force
 
 
-def f_slide(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-            time: float):
+def f_slide(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data
     force = np.array([0.0, 0.0])
     if time <= 0.5:
         force = np.array([4.0, 0.0])
     return force
 
 
-def f_accelerate_fast(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                      time: float):
+def f_accelerate_fast(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([2.0, 0.0])
     return force
 
 
-def f_accelerate_slow_right(initial_node: np.ndarray, moved_node: np.ndarray,
-                            mesh_data: MeshProperties, time: float):
+def f_accelerate_slow_right(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([0.5, 0.0])
     return force
 
 
-def f_accelerate_slow_left(initial_node: np.ndarray, moved_node: np.ndarray,
-                           mesh_data: MeshProperties, time: float):
+def f_accelerate_slow_left(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([-0.5, 0.0])
     return force
 
 
-def f_stay(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-           time: float):
+def f_stay(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     return np.array([0.0, 0.0])
 
 
-def f_rotate(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-             time: float):
+def f_rotate(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node
     if time <= 0.5:
         y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_rotate_fast(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                  time: float):
+def f_rotate_fast(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node
     if time <= 0.5:
         y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([3.0, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_push_3d(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-              time: float):
+def f_push_3d(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     return np.array([1.0, 1.0, 1.0])
 
 
-def f_rotate_3d(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                time: float):
+def f_rotate_3d(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node, mesh_data
     if time <= 0.5:
         scale = initial_node[1] * initial_node[2]
         return scale * np.array([4.0, 0.0, 0.0])

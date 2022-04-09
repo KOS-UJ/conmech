@@ -104,6 +104,7 @@ class SyntheticDataset(BaseDataset):
         return TrainingConfig.td.SYNTHETIC_SOLVERS_COUNT
 
     def generate_setting(self, index):
+        _ = index
         mesh_type = create_mesh_type()
         setting = get_base_setting(self.config, mesh_type)
         setting.set_randomization(False)  # TODO #65: Check

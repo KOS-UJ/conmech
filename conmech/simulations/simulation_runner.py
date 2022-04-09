@@ -8,17 +8,16 @@ from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
 from conmech.solvers.calculator import Calculator
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
 def run_examples(
-        all_scenarios,
-        file,
-        plot_animation,
-        config: Config,
-        simulate_dirty_data=False,
-        get_setting_function: Optional[Callable] = None,
+    all_scenarios,
+    file,
+    plot_animation,
+    config: Config,
+    simulate_dirty_data=False,
+    get_setting_function: Optional[Callable] = None,
 ):
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
@@ -37,14 +36,14 @@ def run_examples(
 
 
 def run_scenario(
-        solve_function,
-        scenario: Scenario,
-        catalog,
-        config: Config,
-        simulate_dirty_data=False,
-        plot_animation=True,
-        save_all=False,
-        get_setting_function: Optional[Callable] = None,
+    solve_function,
+    scenario: Scenario,
+    catalog,
+    config: Config,
+    simulate_dirty_data=False,
+    plot_animation=True,
+    save_all=False,
+    get_setting_function: Optional[Callable] = None,
 ) -> Tuple[SettingObstacles, str]:
     time_skip = config.PRINT_SKIP
     ts = int(time_skip / scenario.time_step)
@@ -62,13 +61,15 @@ def run_scenario(
 
     step = [0]  # TODO: #65 Clean
 
-    def operation_save(current_time: float, setting: SettingObstacles, base_setting, a, base_a):
+    def operation_save(setting: SettingObstacles):
         step[0] += 1
         plot_index = step[0] % ts == 0
         if save_all or plot_index:
             settings_file, file_meta = pkh.open_files_append_pickle(data_path)
             with settings_file, file_meta:
-                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
+                pkh.append_pickle(
+                    setting=setting, settings_file=settings_file, file_meta=file_meta
+                )
         if plot_index:
             plot_settings_count[0] += 1
 
@@ -84,23 +85,31 @@ def run_scenario(
 
     if plot_animation:
         animation_path = f"{final_catalog}/{scenario.name}.gif"
-        plot_scenario_animation(scenario, config, animation_path, time_skip, index_skip,
-                                plot_settings_count[0], data_path)
+        plot_scenario_animation(
+            scenario,
+            config,
+            animation_path,
+            time_skip,
+            index_skip,
+            plot_settings_count[0],
+            data_path,
+        )
 
     return setting, data_path
 
 
 def plot_scenario_animation(
-        scenario: Scenario,
-        config: Config,
-        animation_path: str,
-        time_skip: float,
-        index_skip: int,
-        plot_settings_count: int,
-        all_settings_path: str
+    scenario: Scenario,
+    config: Config,
+    animation_path: str,
+    time_skip: float,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str,
 ):
-    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_settings_count,
-                                         all_settings_path)
+    t_scale = plotter_common.get_t_scale(
+        scenario, index_skip, plot_settings_count, all_settings_path
+    )
     plot_function = (
         plotter_2d.plot_animation
         if scenario.dimension == 2
@@ -113,18 +122,18 @@ def plot_scenario_animation(
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,
         all_settings_path=all_settings_path,
-        t_scale=t_scale
+        t_scale=t_scale,
     )
 
 
 def simulate(
-        compare_with_base_setting,
-        solve_function,
-        scenario: Scenario,
-        simulate_dirty_data: bool,
-        config: Config,
-        operation: Optional[Callable] = None,
-        get_setting_function: Optional[Callable] = None,
+    compare_with_base_setting,
+    solve_function,
+    scenario: Scenario,
+    simulate_dirty_data: bool,
+    config: Config,
+    operation: Optional[Callable] = None,
+    get_setting_function: Optional[Callable] = None,
 ) -> SettingObstacles:
     _get_setting_function = (
         scenario.get_setting
@@ -147,8 +156,8 @@ def simulate(
         base_setting = None
         base_a = None
 
-    solver_time = 0
-    comparison_time = 0
+    solver_time = 0.0
+    comparison_time = 0.0
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     a = None
@@ -184,7 +193,7 @@ def simulate(
             comparison_time += time.time() - start_time
 
         if operation is not None:
-            operation(current_time, setting, base_setting, a, base_a)
+            operation(setting)  # (current_time, setting, base_setting, a, base_a)
 
         if with_temperature:
             setting.iterate_self(a, t)
@@ -204,7 +213,12 @@ def simulate(
 
 
 def plot_setting(
-        current_time, setting, path, base_setting, draw_detailed, extension,
+    current_time,
+    setting,
+    path,
+    base_setting,
+    draw_detailed,
+    extension,
 ):
     if setting.dimension == 2:
         fig = plotter_2d.get_fig()

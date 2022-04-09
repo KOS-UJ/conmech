@@ -4,17 +4,18 @@ import os
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-from deep_conmech.graph.helpers import dch
-
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (Scenario, default_body_prop,
-                                         default_obstacle_prop, f_rotate, M_POLYGON,
+from conmech.scenarios.scenarios import (M_POLYGON, Scenario,
+                                         default_body_prop,
+                                         default_obstacle_prop, f_rotate,
                                          o_side)
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
+
+from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
 
 tf.enable_eager_execution()
