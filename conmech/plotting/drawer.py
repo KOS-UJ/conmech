@@ -21,7 +21,7 @@ class Drawer:
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
 
     def get_directory(self):
-        return f"./output/{self.config.CURRENT_TIME} - DRAWING"
+        return f"./output/{self.config.current_time} - DRAWING"
 
     def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
         fig, axes = plt.subplots()

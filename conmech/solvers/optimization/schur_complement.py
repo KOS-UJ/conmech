@@ -135,9 +135,9 @@ class SchurComplement(Optimization):
             truncated_temperature, truncated_initial_guess[0]
         )  # reduce dim
 
-        _solution_free = self.T_free_x_contact @ solution_contact
-        _solution_free = self.Q_free - _solution_free
-        solution_free = self.T_free_x_free_inverted @ _solution_free
+        _solution_free = self.temperature_free_x_contact @ solution_contact
+        _solution_free = self.temperature_rhs_free - _solution_free
+        solution_free = self.temperature_free_x_free_inverted @ _solution_free
 
         _result = np.concatenate((solution_contact, solution_free))
         solution = np.squeeze(np.asarray(_result))
@@ -208,7 +208,7 @@ class Quasistatic(SchurComplement):
         return self.forces.forces - nph.unstack(self.elasticity @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
-        super(SchurComplement, self).iterate(velocity)
+        super().iterate(velocity)
         self._point_forces, self.forces_free = self.recalculate_forces()
 
 
@@ -246,9 +246,9 @@ class Dynamic(Quasistatic):
 
         (
             self._point_temperature,
-            self.T_free_x_contact,
-            self.T_contact_x_free,
-            self.T_free_x_free_inverted,
+            self.temperature_free_x_contact,
+            self.temperature_contact_x_free,
+            self.temperature_free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
             matrix=lhs,
             dimension=1,
@@ -266,7 +266,7 @@ class Dynamic(Quasistatic):
         # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
         # self.inner_temperature.setF()
 
-        self.temperature_rhs, self.Q_free = self.recalculate_temperature()
+        self.temperature_rhs, self.temperature_rhs_free = self.recalculate_temperature()
 
     # def solve(
     #     self,
@@ -299,7 +299,7 @@ class Dynamic(Quasistatic):
     def iterate(self, velocity):
         super().iterate(velocity)
         self._point_forces, self.forces_free = self.recalculate_forces()
-        self.temperature_rhs, self.Q_free = self.recalculate_temperature()
+        self.temperature_rhs, self.temperature_rhs_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
@@ -316,7 +316,7 @@ class Dynamic(Quasistatic):
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
-            contact_x_free=self.T_contact_x_free,
-            free_x_free_inverted=self.T_free_x_free_inverted,
+            contact_x_free=self.temperature_contact_x_free,
+            free_x_free_inverted=self.temperature_free_x_free_inverted,
         )
         return A_contact.reshape(-1), A_free.reshape(-1)  # TODO: refactor to remove reshape

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Callable, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -100,9 +99,24 @@ def plt_save(path, extension):
     plt.close()
 
 
+def make_animation(get_axs, plot_frame, t_scale):
+    def animate(step, fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm):
+        animation_tqdm.update(1)
+        fig.clf()
+        axs = get_axs(fig)
+        setting = pkh.load_index_pickle(
+            index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+        )
+        plot_frame(
+            axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale
+        )
+        return fig
+
+    return animate
+
+
 def plot_animation(
-    get_axs: Callable,
-    plot_frame: Callable,
+    animate,
     fig,
     save_path: str,
     config: Config,
@@ -110,7 +124,6 @@ def plot_animation(
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str,
-    t_scale: Optional[np.ndarray] = None,
 ):
     fps = int(1 / time_skip)
     animation_tqdm = cmh.get_tqdm(
@@ -119,26 +132,14 @@ def plot_animation(
 
     all_indices = pkh.get_all_indices_pickle(all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
+    args = (fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm)
     with settings_file:
 
-        def animate(step):
-            animation_tqdm.update(1)
-            fig.clf()
-            axs = get_axs(fig)
-            setting = pkh.load_index_pickle(
-                index=step * index_skip, all_indices=all_indices, settings_file=settings_file
-            )
-            plot_frame(
-                axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale
-            )
-            return fig
-
         ani = animation.FuncAnimation(
-            fig, animate, frames=plot_settings_count
-        )  # , interval=scenario.final_time)
+            fig, animate, fargs=args, frames=plot_settings_count
+        )
 
         ani.save(save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
-        # animation_tqdm.close()
     plt.close()
 
 

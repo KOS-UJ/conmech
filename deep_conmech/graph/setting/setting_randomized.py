@@ -24,7 +24,7 @@ class SettingRandomized(SettingObstacles):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=config.NORMALIZE_ROTATE,
+            normalize_by_rotation=config.normalize_rotate,
             create_in_subprocess=create_in_subprocess,
         )
         self.config = config

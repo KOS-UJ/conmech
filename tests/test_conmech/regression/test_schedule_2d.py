@@ -69,7 +69,7 @@ def test_simulation(scenario, expected_boundary_nodes):
         scenario=scenario,
         catalog=f"TEST_{scenario.name}",
         simulate_dirty_data=False,
-        plot_animation=config.PLOT_TESTS,
+        plot_animation=config.plot_tests,
         config=config,
     )
 

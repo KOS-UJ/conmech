@@ -45,14 +45,14 @@ def run_scenario(
     save_all=False,
     get_setting_function: Optional[Callable] = None,
 ) -> Tuple[SettingObstacles, str]:
-    time_skip = config.PRINT_SKIP
+    time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if save_all else 1
     plot_settings_count = [0]
 
     save_files = plot_animation or save_all
     if save_files:
-        final_catalog = f"output/{config.CURRENT_TIME} - {catalog}"
+        final_catalog = f"output/{config.current_time} - {catalog}"
         data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
         cmh.create_folders(f"{final_catalog}/scenarios")
     else:

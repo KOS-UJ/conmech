@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
+from conmech.plotting.plotter_common import make_animation
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
@@ -214,9 +215,9 @@ def plot_animation(
     all_settings_path: str,
     t_scale: Optional[np.ndarray] = None,
 ):
+    animate = make_animation(get_axs, plot_frame, t_scale)
     plotter_common.plot_animation(
-        get_axs=get_axs,
-        plot_frame=plot_frame,
+        animate=animate,
         fig=get_fig(),
         save_path=save_path,
         config=config,
@@ -224,5 +225,4 @@ def plot_animation(
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,
         all_settings_path=all_settings_path,
-        t_scale=t_scale,
     )

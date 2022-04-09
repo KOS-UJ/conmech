@@ -11,11 +11,11 @@ from conmech.helpers.config import Config
 
 
 def get_timestamp(config: Config):
-    return int(time.time() * config.TIMESTAMP_SKIP)
+    return int(time.time() * config.timestamp_skip)
 
 
 def get_tqdm(iterable, config: Config, desc=None, position=None) -> tqdm:
-    return tqdm(iterable, desc=desc, position=position, ascii=config.SHELL)
+    return tqdm(iterable, desc=desc, position=position, ascii=config.shell)
 
 
 def create_folder(path):

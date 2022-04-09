@@ -135,7 +135,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,
-        config=Config(SHELL=False),
+        config=Config(shell=False),
     )
 
 

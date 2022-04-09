@@ -10,7 +10,7 @@ from conmech.simulations import simulation_runner
 
 
 def main(mesh_density=3, final_time=5, plot_animation=True):
-    config = Config(SHELL=False)
+    config = Config(shell=False)
     all_scenarios = [
         Scenario(
             name="circle_slide_roll",
