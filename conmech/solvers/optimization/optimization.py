@@ -14,6 +14,7 @@ class Optimization(Solver):
     def __init__(
         self,
         mesh,
+        statement,
         inner_forces,
         outer_forces,
         body_prop,
@@ -23,6 +24,7 @@ class Optimization(Solver):
     ):
         super().__init__(
             mesh,
+            statement,
             inner_forces,
             outer_forces,
             body_prop,

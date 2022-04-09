@@ -4,6 +4,7 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.forces import Forces
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -34,6 +35,9 @@ class Dynamics(BodyPosition):
         body_prop: StaticBodyProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
+        *,
+        inner_forces: Callable = (lambda _: 0),
+        outer_forces: Callable = (lambda _: 0),
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         with_schur_complement_matrices: bool = True,
@@ -71,6 +75,9 @@ class Dynamics(BodyPosition):
         self.temperature_free_x_contact: np.ndarray
         self.temperature_contact_x_free: np.ndarray
         self.temperature_free_x_free_inv: np.ndarray
+
+        # RHS
+        self.forces = Forces(self, inner_forces, outer_forces)
 
         self.reinitialize_matrices()
 
@@ -127,6 +134,8 @@ class Dynamics(BodyPosition):
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,
                 )
+
+        self.forces.update_forces()
 
     @property
     def with_temperature(self):

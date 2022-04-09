@@ -4,6 +4,12 @@ Created 22.02.2021
 
 import numpy as np
 
+from conmech.dynamics.statement import (
+    StaticStatement,
+    QuasistaticStatement,
+    DynamicStatement,
+    TemperatureStatement,
+)
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -11,7 +17,8 @@ from conmech.solvers.optimization.optimization import Optimization
 class Global(Optimization):
     def __init__(
         self,
-        grid,
+        mesh,
+        statement,
         inner_forces,
         outer_forces,
         body_prop,
@@ -20,7 +27,8 @@ class Global(Optimization):
         friction_bound,
     ):
         super().__init__(
-            grid,
+            mesh,
+            statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -28,37 +36,35 @@ class Global(Optimization):
             contact_law,
             friction_bound,
         )
-        self._point_relations = self.get_left_hand_side()
-        self._point_forces = self.recalculate_forces()
 
     def __str__(self):
         return "global optimization"
 
     @property
     def point_relations(self) -> np.ndarray:
-        return self._point_relations
+        return self.statement.left_hand_side
 
     @property
     def point_forces(self) -> np.ndarray:
-        return self._point_forces
-
-    def recalculate_forces(self):
-        return self.get_right_hand_side()
-
-    def get_left_hand_side(self):
-        raise NotImplementedError()
-
-    def get_right_hand_side(self):
-        raise NotImplementedError()
+        return self.statement.right_hand_side
 
 
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
-    def get_left_hand_side(self):
-        return self.elasticity
-
-    def get_right_hand_side(self):
-        return self.forces.forces_vector
+    def __init__(
+        self, mesh, inner_forces, outer_forces, body_prop, time_step, contact_law, friction_bound
+    ):
+        self.statement = StaticStatement(mesh)
+        super().__init__(
+            mesh,
+            self.statement,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
+        )
 
 
 @Solvers.register("quasistatic", "global", "global optimization")
@@ -73,9 +79,10 @@ class Quasistatic(Global):
         contact_law,
         friction_bound,
     ):
-        self.viscosity = mesh.viscosity
+        self.statement = QuasistaticStatement(mesh)
         super().__init__(
             mesh,
+            self.statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -84,19 +91,13 @@ class Quasistatic(Global):
             friction_bound,
         )
 
-    def get_left_hand_side(self):
-        return self.viscosity
-
-    def get_right_hand_side(self):
-        return self.forces.forces_vector - self.elasticity @ self.u_vector.T
-
     def iterate(self, velocity):
         super().iterate(velocity)
-        self._point_forces = self.recalculate_forces()
+        self.statement.update(displacement=self.u_vector)
 
 
 @Solvers.register("dynamic", "global", "global optimization")
-class Dynamic(Quasistatic):
+class Dynamic(Global):
     def __init__(
         self,
         mesh,
@@ -107,14 +108,11 @@ class Dynamic(Quasistatic):
         contact_law,
         friction_bound,
     ):
-        self.dim = mesh.dimension
-        self.acceleration_operator = mesh.acceleration_operator
-        self.thermal_conductivity = mesh.thermal_conductivity
-        self.thermal_expansion = mesh.thermal_expansion
-        self.ind = mesh.independent_nodes_count
-        self.t_vector = np.zeros(self.ind)
+        self.statement = DynamicStatement(mesh)
+        self.temperature_statement = TemperatureStatement(mesh)
         super().__init__(
             mesh,
+            self.statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -122,41 +120,26 @@ class Dynamic(Quasistatic):
             contact_law,
             friction_bound,
         )
-
-        self._point_temperature = (1 / self.time_step) * self.mesh.acceleration_operator[
-            : self.ind, : self.ind
-        ] + self.thermal_conductivity[: self.ind, : self.ind]
-
-        self.temperature_rhs = self.recalculate_temperature()
+        self.temperature_statement.update(
+            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
+        )
 
     @property
     def node_temperature(self):
-        return self._point_temperature
+        return self.temperature_statement.left_hand_side
 
-    def get_left_hand_side(self):
-        return self.viscosity + (1 / self.time_step) * self.acceleration_operator
-
-    def get_right_hand_side(self):
-        A = -1 * self.elasticity @ self.u_vector
-
-        A += (1 / self.time_step) * self.acceleration_operator @ self.v_vector
-
-        A += self.thermal_expansion.T @ self.t_vector
-
-        return self.forces.forces_vector + A
+    @property
+    def temperature_rhs(self):
+        return self.temperature_statement.right_hand_side
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self._point_forces = self.recalculate_forces()
-        self.temperature_rhs = self.recalculate_temperature()
-
-    def recalculate_temperature(self):
-        A = (-1) * self.thermal_expansion @ self.v_vector
-
-        A += (
-            (1 / self.time_step)
-            * self.acceleration_operator[: self.ind, : self.ind]
-            @ self.t_vector
+        self.statement.update(
+            displacement=self.u_vector,
+            velocity=self.v_vector,
+            temperature=self.t_vector,
+            time_step=self.time_step,
         )
-
-        return A
+        self.temperature_statement.update(
+            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
+        )

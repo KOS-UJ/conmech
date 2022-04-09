@@ -11,7 +11,7 @@ class Validator:
     def __init__(self, solver, error_tolerance: float = 1):
         self.error_tolerance = error_tolerance
         self.elasticity = solver.elasticity
-        self.forces = solver.forces
+        self.forces = solver.mesh.forces
         self.rhs = make_equation(
             jn=solver.contact_law.subderivative_normal_direction,
             jt=solver.contact_law.regularized_subderivative_tangential_direction,

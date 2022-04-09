@@ -62,6 +62,8 @@ class ProblemSolver:
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],
             ),
+            inner_forces=setup.inner_forces,
+            outer_forces=setup.outer_forces,
             body_prop=body_prop,
             schedule=Schedule(time_step=time_step, final_time=0.0),
             normalize_by_rotation=False,

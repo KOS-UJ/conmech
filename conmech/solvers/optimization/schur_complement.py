@@ -4,6 +4,12 @@ Created at 22.02.2021
 import math
 import numpy as np
 
+from conmech.dynamics.statement import (
+    StaticStatement,
+    QuasistaticStatement,
+    DynamicStatement,
+    TemperatureStatement,
+)
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -13,6 +19,7 @@ class SchurComplement(Optimization):
     def __init__(
         self,
         mesh,
+        statement,
         inner_forces,
         outer_forces,
         body_prop,
@@ -22,6 +29,7 @@ class SchurComplement(Optimization):
     ):
         super().__init__(
             mesh,
+            statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -83,7 +91,7 @@ class SchurComplement(Optimization):
 
     def recalculate_displacement(self):
         return SchurComplement.calculate_schur_complement_matrices(
-            matrix=self.get_left_hand_side(),
+            matrix=self.statement.left_hand_side,
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
@@ -91,20 +99,14 @@ class SchurComplement(Optimization):
 
     def recalculate_forces(self):
         point_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
-            vector=self.get_right_hand_side(),
+            vector=self.statement.right_hand_side,
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free  # TODO: #65 refactor to remove T
-
-    def get_left_hand_side(self):
-        raise NotImplementedError()
-
-    def get_right_hand_side(self):
-        raise NotImplementedError()
+        return point_forces.T, forces_free
 
     def __str__(self):
         return "schur"
@@ -170,11 +172,20 @@ class SchurComplement(Optimization):
 
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
-    def get_left_hand_side(self):
-        return self.elasticity
-
-    def get_right_hand_side(self):
-        return self.forces.forces
+    def __init__(
+        self, mesh, inner_forces, outer_forces, body_prop, time_step, contact_law, friction_bound
+    ):
+        self.statement = StaticStatement(mesh)
+        super().__init__(
+            mesh,
+            self.statement,
+            inner_forces,
+            outer_forces,
+            body_prop,
+            time_step,
+            contact_law,
+            friction_bound,
+        )
 
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
@@ -189,10 +200,10 @@ class Quasistatic(SchurComplement):
         contact_law,
         friction_bound,
     ):
-        self.viscosity = mesh.viscosity
-        self.dim = mesh.dimension
+        self.statement = QuasistaticStatement(mesh)
         super().__init__(
             mesh,
+            self.statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -201,19 +212,14 @@ class Quasistatic(SchurComplement):
             friction_bound,
         )
 
-    def get_left_hand_side(self):
-        return self.viscosity
-
-    def get_right_hand_side(self):
-        return self.forces.forces - nph.unstack(self.elasticity @ self.u_vector.T, dim=self.dim)
-
     def iterate(self, velocity):
         super().iterate(velocity)
+        self.statement.update(displacement=self.u_vector)
         self._point_forces, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
-class Dynamic(Quasistatic):
+class Dynamic(SchurComplement):
     def __init__(
         self,
         mesh,
@@ -224,14 +230,11 @@ class Dynamic(Quasistatic):
         contact_law,
         friction_bound,
     ):
-        self.dim = mesh.dimension
-        self.acceleration_operator = mesh.acceleration_operator
-        self.thermal_expansion = mesh.thermal_expansion
-        self.thermal_conductivity = mesh.thermal_conductivity
-        self.ind = mesh.independent_nodes_count
-        self.t_vector = np.zeros(self.ind)
+        self.statement = DynamicStatement(mesh)
+        self.temperature_statement = TemperatureStatement(mesh)
         super().__init__(
             mesh,
+            self.statement,
             inner_forces,
             outer_forces,
             body_prop,
@@ -239,10 +242,9 @@ class Dynamic(Quasistatic):
             contact_law,
             friction_bound,
         )
-
-        lhs = (1 / self.time_step) * self.acceleration_operator[
-            : self.ind, : self.ind
-        ] + self.thermal_conductivity[: self.ind, : self.ind]
+        self.temperature_statement.update(
+            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
+        )
 
         (
             self._point_temperature,
@@ -250,7 +252,7 @@ class Dynamic(Quasistatic):
             self.temperature_contact_x_free,
             self.temperature_free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=lhs,
+            matrix=self.temperature_statement.left_hand_side,
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
@@ -284,39 +286,27 @@ class Dynamic(Quasistatic):
     def node_temperature(self):
         return self._point_temperature
 
-    def get_left_hand_side(self):
-        return self.viscosity + (1 / self.time_step) * self.acceleration_operator
-
-    def get_right_hand_side(self):
-        A = -1 * self.elasticity @ self.u_vector
-
-        A += (1 / self.time_step) * self.acceleration_operator @ self.v_vector
-
-        A += self.thermal_expansion.T @ self.t_vector  # TODO: Check if not -1 *
-
-        return self.forces.forces + nph.unstack(A, dim=self.dim)
-
     def iterate(self, velocity):
         super().iterate(velocity)
+        self.statement.update(
+            displacement=self.u_vector,
+            velocity=self.v_vector,
+            temperature=self.t_vector,
+            time_step=self.time_step,
+        )
+        self.temperature_statement.update(
+            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
+        )
         self._point_forces, self.forces_free = self.recalculate_forces()
         self.temperature_rhs, self.temperature_rhs_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
-        A = (-1) * self.thermal_expansion @ self.v_vector
-
-        A += (
-            (1 / self.time_step)
-            * self.acceleration_operator[: self.ind, : self.ind]
-            @ self.t_vector
-        )
-        # A = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
-
         A_contact, A_free = SchurComplement.calculate_schur_complement_vector(
-            vector=A,
+            vector=self.temperature_statement.right_hand_side,
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.temperature_contact_x_free,
             free_x_free_inverted=self.temperature_free_x_free_inverted,
         )
-        return A_contact.reshape(-1), A_free.reshape(-1)  # TODO: refactor to remove reshape
+        return A_contact.reshape(-1), A_free.reshape(-1)
