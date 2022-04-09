@@ -8,7 +8,8 @@ from conmech.dynamics.statement import (
     StaticStatement,
     QuasistaticStatement,
     DynamicStatement,
-    TemperatureStatement, Variables,
+    TemperatureStatement,
+    Variables,
 )
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -29,9 +30,7 @@ class Global(Optimization):
 
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
-    def __init__(
-        self, mesh, body_prop, time_step, contact_law, friction_bound
-    ):
+    def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
         self.statement = StaticStatement(mesh)
         super().__init__(
             mesh,
@@ -88,9 +87,9 @@ class Dynamic(Global):
             contact_law,
             friction_bound,
         )
-        self.temperature_statement.update(Variables(
-            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        ))
+        self.temperature_statement.update(
+            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+        )
 
     @property
     def node_temperature(self):
@@ -102,12 +101,14 @@ class Dynamic(Global):
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(Variables(
-            displacement=self.u_vector,
-            velocity=self.v_vector,
-            temperature=self.t_vector,
-            time_step=self.time_step,
-        ))
-        self.temperature_statement.update(Variables(
-            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        ))
+        self.statement.update(
+            Variables(
+                displacement=self.u_vector,
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
+        )
+        self.temperature_statement.update(
+            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+        )

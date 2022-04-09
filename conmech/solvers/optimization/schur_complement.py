@@ -8,7 +8,8 @@ from conmech.dynamics.statement import (
     StaticStatement,
     QuasistaticStatement,
     DynamicStatement,
-    TemperatureStatement, Variables,
+    TemperatureStatement,
+    Variables,
 )
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
@@ -152,9 +153,7 @@ class SchurComplement(Optimization):
 
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
-    def __init__(
-        self, mesh, body_prop, time_step, contact_law, friction_bound
-    ):
+    def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
         self.statement = StaticStatement(mesh)
         super().__init__(
             mesh,
@@ -212,9 +211,9 @@ class Dynamic(SchurComplement):
             contact_law,
             friction_bound,
         )
-        self.temperature_statement.update(Variables(
-            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        ))
+        self.temperature_statement.update(
+            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+        )
 
         (
             self._point_temperature,
@@ -255,9 +254,7 @@ class Dynamic(SchurComplement):
     def solve_t(self, initial_guess, velocity) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(velocity)
         truncated_temperature = initial_guess[self.contact_ids]
-        solution_contact = super().solve_t(
-            truncated_temperature, truncated_initial_guess[0]
-        )
+        solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])
 
         _solution_free = self.temper_free_x_contact @ solution_contact
         _solution_free = self.temper_rhs_free - _solution_free
@@ -274,15 +271,17 @@ class Dynamic(SchurComplement):
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(Variables(
-            displacement=self.u_vector,
-            velocity=self.v_vector,
-            temperature=self.t_vector,
-            time_step=self.time_step,
-        ))
-        self.temperature_statement.update(Variables(
-            velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        ))
+        self.statement.update(
+            Variables(
+                displacement=self.u_vector,
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
+        )
+        self.temperature_statement.update(
+            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+        )
         self._point_forces, self.forces_free = self.recalculate_forces()
         self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()
 

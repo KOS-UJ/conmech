@@ -31,12 +31,14 @@ class Solver:
 
         self.elasticity = mesh.elasticity
 
-        self.statement.update(Variables(
-            displacement=self.u_vector,
-            velocity=self.v_vector,
-            temperature=self.t_vector,
-            time_step=self.time_step,
-        ))
+        self.statement.update(
+            Variables(
+                displacement=self.u_vector,
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
+        )
 
     def __str__(self):
         raise NotImplementedError()

@@ -91,7 +91,8 @@ class TemperatureStatement(Statement):
 
         ind = self.dynamics.independent_nodes_count
 
-        rhs += ((1 / var.time_step)
-                * self.dynamics.acceleration_operator[:ind, :ind] @ var.temperature)
+        rhs += (
+            (1 / var.time_step) * self.dynamics.acceleration_operator[:ind, :ind] @ var.temperature
+        )
         self.right_hand_side = rhs
         # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
