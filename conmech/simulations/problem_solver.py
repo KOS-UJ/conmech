@@ -112,8 +112,6 @@ class ProblemSolver:
 
         self.step_solver = solver_class(
             self.mesh,
-            self.setup.inner_forces,
-            self.setup.outer_forces,
             body_prop,
             time_step,
             self.setup.contact_law,

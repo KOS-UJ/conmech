@@ -15,8 +15,6 @@ class Optimization(Solver):
         self,
         mesh,
         statement,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -25,8 +23,6 @@ class Optimization(Solver):
         super().__init__(
             mesh,
             statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -92,7 +88,7 @@ class Optimization(Solver):
             # pylint: disable=no-member # TODO #48
             self.node_temperature,
             # pylint: disable=no-member # TODO #48
-            self.temperature_rhs,
+            self.temper_rhs,
             velocity,
         )
         # TODO #33

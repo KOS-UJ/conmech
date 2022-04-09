@@ -8,7 +8,7 @@ from conmech.dynamics.statement import (
     StaticStatement,
     QuasistaticStatement,
     DynamicStatement,
-    TemperatureStatement,
+    TemperatureStatement, Variables,
 )
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
@@ -20,8 +20,6 @@ class SchurComplement(Optimization):
         self,
         mesh,
         statement,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -30,8 +28,6 @@ class SchurComplement(Optimization):
         super().__init__(
             mesh,
             statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -130,22 +126,6 @@ class SchurComplement(Optimization):
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def solve_t(self, initial_guess, velocity) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_points(velocity)
-        truncated_temperature = initial_guess[self.contact_ids]
-        solution_contact = super().solve_t(
-            truncated_temperature, truncated_initial_guess[0]
-        )  # reduce dim
-
-        _solution_free = self.temperature_free_x_contact @ solution_contact
-        _solution_free = self.temperature_rhs_free - _solution_free
-        solution_free = self.temperature_free_x_free_inverted @ _solution_free
-
-        _result = np.concatenate((solution_contact, solution_free))
-        solution = np.squeeze(np.asarray(_result))
-
-        return solution
-
     def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
         _result = _result[:, self.contact_ids]
@@ -173,14 +153,12 @@ class SchurComplement(Optimization):
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
     def __init__(
-        self, mesh, inner_forces, outer_forces, body_prop, time_step, contact_law, friction_bound
+        self, mesh, body_prop, time_step, contact_law, friction_bound
     ):
         self.statement = StaticStatement(mesh)
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -193,8 +171,6 @@ class Quasistatic(SchurComplement):
     def __init__(
         self,
         mesh,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -204,8 +180,6 @@ class Quasistatic(SchurComplement):
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -214,7 +188,7 @@ class Quasistatic(SchurComplement):
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(displacement=self.u_vector)
+        self.statement.update(Variables(displacement=self.u_vector))
         self._point_forces, self.forces_free = self.recalculate_forces()
 
 
@@ -223,8 +197,6 @@ class Dynamic(SchurComplement):
     def __init__(
         self,
         mesh,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -235,22 +207,20 @@ class Dynamic(SchurComplement):
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
-        self.temperature_statement.update(
+        self.temperature_statement.update(Variables(
             velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        )
+        ))
 
         (
             self._point_temperature,
-            self.temperature_free_x_contact,
-            self.temperature_contact_x_free,
-            self.temperature_free_x_free_inverted,
+            self.temper_free_x_contact,
+            self.temper_contact_x_free,
+            self.temper_free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
             matrix=self.temperature_statement.left_hand_side,
             dimension=1,
@@ -268,7 +238,7 @@ class Dynamic(SchurComplement):
         # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
         # self.inner_temperature.setF()
 
-        self.temperature_rhs, self.temperature_rhs_free = self.recalculate_temperature()
+        self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()
 
     # def solve(
     #     self,
@@ -282,23 +252,39 @@ class Dynamic(SchurComplement):
     #                                           **kwargs)
     #     state.set_velocity(velocity_vector=velocity)
 
+    def solve_t(self, initial_guess, velocity) -> np.ndarray:
+        truncated_initial_guess = self.truncate_free_points(velocity)
+        truncated_temperature = initial_guess[self.contact_ids]
+        solution_contact = super().solve_t(
+            truncated_temperature, truncated_initial_guess[0]
+        )
+
+        _solution_free = self.temper_free_x_contact @ solution_contact
+        _solution_free = self.temper_rhs_free - _solution_free
+        solution_free = self.temper_free_x_free_inverted @ _solution_free
+
+        _result = np.concatenate((solution_contact, solution_free))
+        solution = np.squeeze(np.asarray(_result))
+
+        return solution
+
     @property
     def node_temperature(self):
         return self._point_temperature
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(
+        self.statement.update(Variables(
             displacement=self.u_vector,
             velocity=self.v_vector,
             temperature=self.t_vector,
             time_step=self.time_step,
-        )
-        self.temperature_statement.update(
+        ))
+        self.temperature_statement.update(Variables(
             velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        )
+        ))
         self._point_forces, self.forces_free = self.recalculate_forces()
-        self.temperature_rhs, self.temperature_rhs_free = self.recalculate_temperature()
+        self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):
         A_contact, A_free = SchurComplement.calculate_schur_complement_vector(
@@ -306,7 +292,7 @@ class Dynamic(SchurComplement):
             dimension=1,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
-            contact_x_free=self.temperature_contact_x_free,
-            free_x_free_inverted=self.temperature_free_x_free_inverted,
+            contact_x_free=self.temper_contact_x_free,
+            free_x_free_inverted=self.temper_free_x_free_inverted,
         )
         return A_contact.reshape(-1), A_free.reshape(-1)

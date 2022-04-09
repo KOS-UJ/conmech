@@ -8,35 +8,13 @@ from conmech.dynamics.statement import (
     StaticStatement,
     QuasistaticStatement,
     DynamicStatement,
-    TemperatureStatement,
+    TemperatureStatement, Variables,
 )
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
 
 class Global(Optimization):
-    def __init__(
-        self,
-        mesh,
-        statement,
-        inner_forces,
-        outer_forces,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
-    ):
-        super().__init__(
-            mesh,
-            statement,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
-
     def __str__(self):
         return "global optimization"
 
@@ -52,14 +30,12 @@ class Global(Optimization):
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
     def __init__(
-        self, mesh, inner_forces, outer_forces, body_prop, time_step, contact_law, friction_bound
+        self, mesh, body_prop, time_step, contact_law, friction_bound
     ):
         self.statement = StaticStatement(mesh)
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -72,8 +48,6 @@ class Quasistatic(Global):
     def __init__(
         self,
         mesh,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -83,8 +57,6 @@ class Quasistatic(Global):
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
@@ -93,7 +65,7 @@ class Quasistatic(Global):
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(displacement=self.u_vector)
+        self.statement.update(Variables(displacement=self.u_vector))
 
 
 @Solvers.register("dynamic", "global", "global optimization")
@@ -101,8 +73,6 @@ class Dynamic(Global):
     def __init__(
         self,
         mesh,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -113,33 +83,31 @@ class Dynamic(Global):
         super().__init__(
             mesh,
             self.statement,
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
-        self.temperature_statement.update(
+        self.temperature_statement.update(Variables(
             velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        )
+        ))
 
     @property
     def node_temperature(self):
         return self.temperature_statement.left_hand_side
 
     @property
-    def temperature_rhs(self):
+    def temper_rhs(self):
         return self.temperature_statement.right_hand_side
 
     def iterate(self, velocity):
         super().iterate(velocity)
-        self.statement.update(
+        self.statement.update(Variables(
             displacement=self.u_vector,
             velocity=self.v_vector,
             temperature=self.t_vector,
             time_step=self.time_step,
-        )
-        self.temperature_statement.update(
+        ))
+        self.temperature_statement.update(Variables(
             velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step
-        )
+        ))

@@ -3,8 +3,7 @@ Created at 18.02.2021
 """
 import numpy as np
 
-from conmech.dynamics.statement import Statement
-from conmech.forces import Forces
+from conmech.dynamics.statement import Statement, Variables
 
 
 class Solver:
@@ -12,8 +11,6 @@ class Solver:
         self,
         mesh,
         statement,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -34,12 +31,12 @@ class Solver:
 
         self.elasticity = mesh.elasticity
 
-        self.statement.update(
+        self.statement.update(Variables(
             displacement=self.u_vector,
             velocity=self.v_vector,
             temperature=self.t_vector,
             time_step=self.time_step,
-        )
+        ))
 
     def __str__(self):
         raise NotImplementedError()

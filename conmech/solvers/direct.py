@@ -16,8 +16,6 @@ class Direct(Solver):
     def __init__(
         self,
         mesh,
-        inner_forces,
-        outer_forces,
         body_prop,
         time_step,
         contact_law,
@@ -26,8 +24,6 @@ class Direct(Solver):
         super().__init__(
             mesh,
             StaticStatement(mesh),
-            inner_forces,
-            outer_forces,
             body_prop,
             time_step,
             contact_law,
