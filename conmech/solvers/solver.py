@@ -23,7 +23,6 @@ class Solver:
 
         self.mesh = mesh
 
-        # Added
         self.time_step = time_step
         self.current_time = 0
         self.u_vector = np.zeros([self.mesh.independent_nodes_count * 2])

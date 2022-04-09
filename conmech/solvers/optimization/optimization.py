@@ -12,14 +12,14 @@ from conmech.solvers.solver_methods import make_cost_functional_temperature
 
 class Optimization(Solver):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         super().__init__(
             mesh,
@@ -39,7 +39,9 @@ class Optimization(Solver):
         )
         if hasattr(contact_law, "h_temp"):
             self.loss_temp = make_cost_functional_temperature(
-                h_functional=contact_law.h_temp, hn=contact_law.h_nu, ht=contact_law.h_tau
+                h_functional=contact_law.h_temp,
+                hn=contact_law.h_nu,
+                ht=contact_law.h_tau,
             )
 
     def __str__(self):
@@ -54,15 +56,16 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     def solve(
-            self,
-            initial_guess: np.ndarray,
-            *,
-            fixed_point_abs_tol: float = math.inf,
-            **kwargs
+        self,
+        initial_guess: np.ndarray,
+        *,
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
+
         while norm >= fixed_point_abs_tol:
             result = scipy.optimize.minimize(
                 self.loss,
@@ -79,6 +82,7 @@ class Optimization(Solver):
                 tol=1e-12,
             )
             solution = result.x
+
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         return solution

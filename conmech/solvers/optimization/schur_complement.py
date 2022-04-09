@@ -33,8 +33,6 @@ class SchurComplement(Optimization):
         self.contact_ids = slice(0, mesh.contact_nodes_count)
         self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
 
-        # ADDED When working with velocity v, forces_contact depend on u
-
         (
             self._point_relations,
             self.free_x_contact,
@@ -56,16 +54,11 @@ class SchurComplement(Optimization):
         matrix_split = np.array(
             np.split(np.array(np.split(matrix, dimension, axis=-1)), dimension, axis=1)
         )
-        # Cii
         free_x_free = get_sliced(matrix_split, free_indices, free_indices)
-        # Cit
         free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
-        # Cti
         contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
-        # Ctt
         contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
 
-        # CiiINV
         free_x_free_inverted = np.linalg.inv(free_x_free)
         matrix_boundary = contact_x_contact - contact_x_free @ (
                 free_x_free_inverted @ free_x_contact
@@ -83,11 +76,8 @@ class SchurComplement(Optimization):
             contact_x_free: np.ndarray,
     ):
         vector_split = nph.unstack(vector, dimension)
-        # Et
         vector_contact = nph.stack_column(vector_split[contact_indices, :])
-        # Ei
         vector_free = nph.stack_column(vector_split[free_indices, :])
-        # E_boundary
         vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
         return vector_boundary, vector_free
 

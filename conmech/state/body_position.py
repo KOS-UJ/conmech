@@ -116,13 +116,13 @@ class BodyPosition(Mesh):
     ):
         super().__init__(
             mesh_data=mesh_data,
-            normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
         )
 
         self.schedule = schedule
+        self.normalize_by_rotation = normalize_by_rotation
         self.displacement_old = np.zeros_like(self.initial_nodes)
         self.velocity_old = np.zeros_like(self.initial_nodes)
         self.acceleration_old = np.zeros_like(self.initial_nodes)

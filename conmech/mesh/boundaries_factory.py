@@ -131,7 +131,7 @@ def reorder_numba(
 
 
 @dataclass
-class BoundariesData:
+class Boundaries:
     contact_boundary: np.ndarray
     neumann_boundary: np.ndarray
     dirichlet_boundary: np.ndarray
@@ -170,8 +170,8 @@ class BoundariesFactory:
 
     @staticmethod
     def identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, is_dirichlet, is_contact
-    ) -> Tuple[np.ndarray, np.ndarray, BoundariesData]:
+            unordered_nodes, unordered_elements, is_dirichlet, is_contact
+    ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
         (
             initial_nodes,
             elements,
@@ -205,15 +205,20 @@ class BoundariesFactory:
             lambda n: not is_contact(n) and not is_dirichlet(n),
         )
 
-        boundaries_data = BoundariesData(
-            contact_boundary=contact_boundary,
-            neumann_boundary=neumann_boundary,
-            dirichlet_boundary=dirichlet_boundary,
-            contact_nodes_count=contact_nodes_count,
-            neumann_nodes_count=neumann_nodes_count,
-            dirichlet_nodes_count=dirichlet_nodes_count,
-            boundary_internal_indices=boundary_internal_indices,
-        )
+        contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
+        dirichlet_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
+                                                         is_dirichlet)
+        neumann_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
+                                                       lambda n: not is_contact(
+                                                           n) and not is_dirichlet(n))
+
+        boundaries_data = Boundaries(contact_boundary=contact_boundary,
+                                     neumann_boundary=neumann_boundary,
+                                     dirichlet_boundary=dirichlet_boundary,
+                                     contact_nodes_count=contact_nodes_count,
+                                     neumann_nodes_count=neumann_nodes_count,
+                                     dirichlet_nodes_count=dirichlet_nodes_count,
+                                     boundary_internal_indices=boundary_internal_indices)
 
         return initial_nodes, elements, boundaries_data
 

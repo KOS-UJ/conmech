@@ -2,9 +2,10 @@ from typing import Callable
 
 import numba
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.mesh import mesh_builders
-from conmech.mesh.boundaries_factory import BoundariesData, BoundariesFactory
+from conmech.mesh.boundaries_factory import BoundariesFactory, Boundaries
 from conmech.properties.mesh_properties import MeshProperties
 
 
@@ -83,21 +84,19 @@ def get_base_seed_indices_numba(nodes):
 
 class Mesh:
     def __init__(
-        self,
-        mesh_data: MeshProperties,
-        normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
-        create_in_subprocess: bool = False,
+            self,
+            mesh_data: MeshProperties,
+            is_dirichlet: Callable = (lambda _: False),
+            is_contact: Callable = (lambda _: True),
+            create_in_subprocess: bool = False,
     ):
         self.mesh_data = mesh_data
-        self.normalize_by_rotation = normalize_by_rotation
 
         self.initial_nodes: np.ndarray
         self.elements: np.ndarray
         self.edges: np.ndarray
 
-        self.boundaries_data: BoundariesData
+        self.boundaries: Boundaries
 
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
@@ -122,13 +121,9 @@ class Mesh:
             input_nodes, input_elements
         )
 
-        (
-            self.initial_nodes,
-            self.elements,
-            self.boundaries_data,
-        ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-            unordered_nodes, unordered_elements, is_dirichlet, is_contact
-        )
+        self.initial_nodes, self.elements, self.boundaries = \
+            BoundariesFactory.identify_boundaries_and_reorder_nodes(
+                unordered_nodes, unordered_elements, is_dirichlet, is_contact)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -148,39 +143,39 @@ class Mesh:
 
     @property
     def boundary_surfaces(self):
-        return self.boundaries_data.boundary_surfaces
+        return self.boundaries.boundary_surfaces
 
     @property
     def contact_boundary(self):
-        return self.boundaries_data.contact_boundary
+        return self.boundaries.contact_boundary
 
     @property
     def neumann_boundary(self):
-        return self.boundaries_data.neumann_boundary
+        return self.boundaries.neumann_boundary
 
     @property
     def dirichlet_boundary(self):
-        return self.boundaries_data.dirichlet_boundary
+        return self.boundaries.dirichlet_boundary
 
     @property
     def boundary_internal_indices(self):
-        return self.boundaries_data.boundary_internal_indices
+        return self.boundaries.boundary_internal_indices
 
     @property
     def boundary_nodes_count(self):
-        return self.boundaries_data.boundary_nodes_count
+        return self.boundaries.boundary_nodes_count
 
     @property
     def contact_nodes_count(self):
-        return self.boundaries_data.contact_nodes_count
+        return self.boundaries.contact_nodes_count
 
     @property
     def dirichlet_nodes_count(self):
-        return self.boundaries_data.dirichlet_nodes_count
+        return self.boundaries.dirichlet_nodes_count
 
     @property
     def neumann_nodes_count(self):
-        return self.boundaries_data.neumann_nodes_count
+        return self.boundaries.neumann_nodes_count
 
     @property
     def independent_nodes_count(self):
