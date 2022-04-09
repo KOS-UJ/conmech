@@ -7,9 +7,13 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import TemperatureScenario
 from conmech.simulations.simulation_runner import run_scenario
+from conmech.state.obstacle import Obstacle
 
 
 def generate_test_suits():
+    obstacle = Obstacle(np.array(
+            [[[0.7, 1.0]], [[0.0, 0.1]]]
+        ), scenarios.default_temp_obstacle_prop)
     scenario = TemperatureScenario(
         name=f"polygon_temp",
         mesh_data=MeshProperties(
@@ -20,12 +24,9 @@ def generate_test_suits():
             is_adaptive=False,
         ),
         body_prop=scenarios.default_temp_body_prop,
-        obstacle_prop=scenarios.default_temp_obstacle_prop,
         schedule=Schedule(final_time=1.5),
         forces_function=np.array([1, -1]),
-        obstacles=np.array(
-            [[[0.7, 1.0]], [[0.0, 0.1]]]
-        ),
+        obstacle=obstacle,
         heat_function=np.array([0]),
     )
 

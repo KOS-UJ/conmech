@@ -7,9 +7,16 @@ from conmech.scenarios.scenarios import Scenario, default_body_prop, default_obs
     f_rotate_3d, \
     M_BALL_3D, M_TWIST_3D, M_CUBE_3D
 from conmech.simulations import simulation_runner
+from conmech.state.obstacle import Obstacle
 
 
 def main(mesh_density=3, final_time=1, plot_animation=True):
+    obstacles = [
+        Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
+        Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
+        Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
+        Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
+    ]
     all_scenarios = [
         Scenario(
             name="twist_roll",
@@ -17,10 +24,9 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
                 dimension=3, mesh_type=M_TWIST_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, 0.0, -0.5]),
-            obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
+            obstacle=obstacles[0],
         ),
         Scenario(
             name="ball_roll",
@@ -28,10 +34,9 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, 0.0, -0.5]),
-            obstacles=np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]),
+            obstacle=obstacles[1],
         ),
         Scenario(
             name="ball_throw",
@@ -39,10 +44,9 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
-            obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
+            obstacle=obstacles[2],
         ),
         Scenario(
             name="cube_throw",
@@ -50,10 +54,9 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
                 dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            obstacle_prop=default_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
-            obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
+            obstacle=obstacles[3],
         ),
     ]
 

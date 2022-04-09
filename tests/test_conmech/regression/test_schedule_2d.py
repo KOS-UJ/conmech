@@ -7,9 +7,11 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations.simulation_runner import run_scenario
+from conmech.state.obstacle import Obstacle
 
 
 def generate_test_suits():
+    obstacle = Obstacle(np.array([[[0.7, 1.0]], [[0.0, 0.1]]]), scenarios.default_obstacle_prop)
     scenario = Scenario(
         name="circle_slide_roll",
         mesh_data=MeshProperties(
@@ -19,12 +21,9 @@ def generate_test_suits():
             mesh_density=[3],
         ),
         body_prop=scenarios.default_body_prop,
-        obstacle_prop=scenarios.default_obstacle_prop,
         schedule=Schedule(final_time=0.2),  # 1.5),
         forces_function=np.array([0.0, -0.5]),
-        obstacles=np.array(
-            [[[0.7, 1.0]], [[0.0, 0.1]]]
-        ),
+        obstacle=obstacle,
     )
     '''
     expected_boundary_nodes = [

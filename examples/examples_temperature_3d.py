@@ -9,6 +9,7 @@ from conmech.scenarios.scenarios import (default_temp_body_prop,
                                          default_temp_obstacle_prop,
                                          default_thermal_expansion_coefficients, f_rotate_3d)
 from conmech.simulations import simulation_runner
+from conmech.state.obstacle import Obstacle
 
 
 def get_C_temp_scenarios(mesh_density, final_time):
@@ -31,6 +32,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
+    obstacle = Obstacle(None, default_temp_obstacle_prop)
     return [
         TemperatureScenario(
             name=f"C_{i}",
@@ -42,10 +44,9 @@ def get_C_temp_scenarios(mesh_density, final_time):
                 is_adaptive=False,
             ),
             body_prop=temp_body_prop,
-            obstacle_prop=default_temp_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0, 0, 0]),
-            obstacles=None,  # np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, -1.0]]]),
+            obstacle=obstacle,
             heat_function=np.array([2]),
         )
         for i, temp_body_prop in enumerate(C_temp_body_prop)
@@ -86,6 +87,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
             return -1000
         return 0.0
 
+    obstacle = Obstacle(None, default_temp_obstacle_prop)
     return [
         TemperatureScenario(
             name=f"K_{i}",
@@ -97,10 +99,9 @@ def get_K_temp_scenarios(mesh_density, final_time):
                 is_adaptive=False,
             ),
             body_prop=temp_body_prop,
-            obstacle_prop=default_temp_obstacle_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=np.array([0, 0, 0]),
-            obstacles=None,
+            obstacle=obstacle,
             heat_function=h_corner,
         )
         for i, temp_body_prop in enumerate(K_temp_body_prop)
@@ -111,6 +112,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
     all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    obstacle = Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop)
     all_scenarios.extend(
         [
             TemperatureScenario(
@@ -122,10 +124,9 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
                     mesh_density=[mesh_density],
                 ),
                 body_prop=default_temp_body_prop,
-                obstacle_prop=default_temp_obstacle_prop,
                 schedule=Schedule(final_time=final_time),
                 forces_function=f_rotate_3d,
-                obstacles=np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]),
+                obstacle=obstacle,
                 heat_function=np.array([0]),
             ),
         ]

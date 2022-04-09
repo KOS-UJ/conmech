@@ -14,6 +14,7 @@ from conmech.scenarios.scenarios import (M_POLYGON, Scenario,
                                          o_side)
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
+from conmech.state.obstacle import Obstacle
 
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
@@ -149,20 +150,21 @@ def main():
     directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
 
+    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
+
     scenario = Scenario(
-        "polygon_rotate",
-        MeshProperties(
+        name="polygon_rotate",
+        mesh_data=MeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[1],
             mesh_density=[32],
             is_adaptive=False,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=8.0),
         forces_function=f_rotate,
-        obstacles=o_side,
+        obstacle=obstacle,
     )
 
     data_path = simulate(config=config, scenario=scenario)
