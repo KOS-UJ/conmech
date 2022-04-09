@@ -53,7 +53,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                     u,
                     v[0], v[1],
                     w[0][0], w[0][1],
-                    w[1][0], w[1][1],
+                    w[1][0], w[1][1]
                 ])
 
     # Performance TIP: we need only sparse, triangular matrix (?)

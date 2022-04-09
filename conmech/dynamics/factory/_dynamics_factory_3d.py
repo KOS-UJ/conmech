@@ -54,7 +54,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                     v[0], v[1], v[2],
                     w[0][0], w[0][1], w[0][2],
                     w[1][0], w[1][1], w[1][2],
-                    w[2][0], w[2][1], w[2][2],
+                    w[2][0], w[2][1], w[2][2]
                 ])
 
     return edges_features_matrix, element_initial_volume
