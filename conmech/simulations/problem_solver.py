@@ -29,12 +29,8 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.thermal_expansion = np.array(
-            [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-        )
-        self.thermal_conductivity = np.array(
-            [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-        )
+        self.thermal_expansion = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        self.thermal_conductivity = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = (
@@ -58,9 +54,7 @@ class ProblemSolver:
         )
         time_step = setup.time_step if with_time else 0
 
-        grid_width = (
-            setup.grid_height / setup.elements_number[0]
-        ) * setup.elements_number[1]
+        grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
         self.mesh = Dynamics(
             mesh_data=MeshProperties(
@@ -77,9 +71,7 @@ class ProblemSolver:
         )
         self.setup = setup
 
-        self.coordinates = (
-            "displacement" if isinstance(setup, StaticProblem) else "velocity"
-        )
+        self.coordinates = "displacement" if isinstance(setup, StaticProblem) else "velocity"
         self.step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
         self.solving_method = solving_method
@@ -222,9 +214,7 @@ class Static(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(
-        self, *, initial_displacement: Callable, verbose: bool = False, **kwargs
-    ) -> State:
+    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints

@@ -10,14 +10,14 @@ from conmech.solvers.optimization.optimization import Optimization
 
 class Global(Optimization):
     def __init__(
-            self,
-            grid,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        grid,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         super().__init__(
             grid,
@@ -64,14 +64,14 @@ class Static(Global):
 @Solvers.register("quasistatic", "global", "global optimization")
 class Quasistatic(Global):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         self.viscosity = mesh.viscosity
         super().__init__(
@@ -98,14 +98,14 @@ class Quasistatic(Global):
 @Solvers.register("dynamic", "global", "global optimization")
 class Dynamic(Quasistatic):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         self.dim = mesh.dimension
         self.acceleration_operator = mesh.acceleration_operator
@@ -124,9 +124,8 @@ class Dynamic(Quasistatic):
         )
 
         self._point_temperature = (1 / self.time_step) * self.mesh.acceleration_operator[
-                                                         : self.ind, : self.ind
-                                                         ] + self.thermal_conductivity[: self.ind,
-                                                             : self.ind]
+            : self.ind, : self.ind
+        ] + self.thermal_conductivity[: self.ind, : self.ind]
 
         self.temperature_rhs = self.recalculate_temperature()
 
@@ -154,7 +153,10 @@ class Dynamic(Quasistatic):
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
 
-        A += (1 / self.time_step) * \
-             self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
+        A += (
+            (1 / self.time_step)
+            * self.acceleration_operator[: self.ind, : self.ind]
+            @ self.t_vector
+        )
 
         return A

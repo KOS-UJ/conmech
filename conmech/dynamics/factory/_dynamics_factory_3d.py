@@ -8,7 +8,7 @@ ELEMENT_NODES_COUNT = 4
 CONNECTED_EDGES_COUNT = 3
 INT_PH = 1 / ELEMENT_NODES_COUNT
 U_DIVIDER = 20
-FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION ** 2
+FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION**2
 VOLUME_DIVIDER = 6
 
 
@@ -18,8 +18,9 @@ def get_edges_features_matrix_numba(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
 
-    edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count),
-                                     dtype=np.double)
+    edges_features_matrix = np.zeros(
+        (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
+    )
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: #65 prange?
@@ -48,14 +49,24 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
-                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array([
-                    volume,
-                    u,
-                    v[0], v[1], v[2],
-                    w[0][0], w[0][1], w[0][2],
-                    w[1][0], w[1][1], w[1][2],
-                    w[2][0], w[2][1], w[2][2]
-                ])
+                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
+                    [
+                        volume,
+                        u,
+                        v[0],
+                        v[1],
+                        v[2],
+                        w[0][0],
+                        w[0][1],
+                        w[0][2],
+                        w[1][0],
+                        w[1][1],
+                        w[1][2],
+                        w[2][0],
+                        w[2][1],
+                        w[2][2],
+                    ]
+                )
 
     return edges_features_matrix, element_initial_volume
 
@@ -63,36 +74,34 @@ def get_edges_features_matrix_numba(elements, nodes):
 @numba.njit
 def get_integral_parts_numba(element_nodes, element_index):
     x_i = element_nodes[element_index]
-    x_j1, x_j2, x_j3 = list(
-        element_nodes[np.arange(ELEMENT_NODES_COUNT) != element_index]
-    )
+    x_j1, x_j2, x_j3 = list(element_nodes[np.arange(ELEMENT_NODES_COUNT) != element_index])
 
     dm = denominator_numba(x_i, x_j1, x_j2, x_j3)
     element_volume = np.abs(dm) / VOLUME_DIVIDER
 
     x_sub = (
-            x_j1[2] * x_j2[1]
-            - x_j1[1] * x_j2[2]
-            - x_j1[2] * x_j3[1]
-            + x_j2[2] * x_j3[1]
-            + x_j1[1] * x_j3[2]
-            - x_j2[1] * x_j3[2]
+        x_j1[2] * x_j2[1]
+        - x_j1[1] * x_j2[2]
+        - x_j1[2] * x_j3[1]
+        + x_j2[2] * x_j3[1]
+        + x_j1[1] * x_j3[2]
+        - x_j2[1] * x_j3[2]
     )
     y_sub = (
-            x_j1[0] * x_j2[2]
-            - x_j1[2] * x_j2[0]
-            + x_j1[2] * x_j3[0]
-            - x_j2[2] * x_j3[0]
-            - x_j1[0] * x_j3[2]
-            + x_j2[0] * x_j3[2]
+        x_j1[0] * x_j2[2]
+        - x_j1[2] * x_j2[0]
+        + x_j1[2] * x_j3[0]
+        - x_j2[2] * x_j3[0]
+        - x_j1[0] * x_j3[2]
+        + x_j2[0] * x_j3[2]
     )
     z_sub = (
-            x_j1[1] * x_j2[0]
-            - x_j1[0] * x_j2[1]
-            - x_j1[1] * x_j3[0]
-            + x_j2[1] * x_j3[0]
-            + x_j1[0] * x_j3[1]
-            - x_j2[0] * x_j3[1]
+        x_j1[1] * x_j2[0]
+        - x_j1[0] * x_j2[1]
+        - x_j1[1] * x_j3[0]
+        + x_j2[1] * x_j3[0]
+        + x_j1[0] * x_j3[1]
+        - x_j2[0] * x_j3[1]
     )
 
     dPhX = x_sub / dm
@@ -105,35 +114,34 @@ def get_integral_parts_numba(element_nodes, element_index):
 @numba.njit
 def denominator_numba(x_i, x_j1, x_j2, x_j3):
     return (
-            x_i[2] * x_j1[1] * x_j2[0]
-            - x_i[1] * x_j1[2] * x_j2[0]
-            - x_i[2] * x_j1[0] * x_j2[1]
-            + x_i[0] * x_j1[2] * x_j2[1]
-            + x_i[1] * x_j1[0] * x_j2[2]
-            - x_i[0] * x_j1[1] * x_j2[2]
-            - x_i[2] * x_j1[1] * x_j3[0]
-            + x_i[1] * x_j1[2] * x_j3[0]
-            + x_i[2] * x_j2[1] * x_j3[0]
-            - x_j1[2] * x_j2[1] * x_j3[0]
-            - x_i[1] * x_j2[2] * x_j3[0]
-            + x_j1[1] * x_j2[2] * x_j3[0]
-            + x_i[2] * x_j1[0] * x_j3[1]
-            - x_i[0] * x_j1[2] * x_j3[1]
-            - x_i[2] * x_j2[0] * x_j3[1]
-            + x_j1[2] * x_j2[0] * x_j3[1]
-            + x_i[0] * x_j2[2] * x_j3[1]
-            - x_j1[0] * x_j2[2] * x_j3[1]
-            - x_i[1] * x_j1[0] * x_j3[2]
-            + x_i[0] * x_j1[1] * x_j3[2]
-            + x_i[1] * x_j2[0] * x_j3[2]
-            - x_j1[1] * x_j2[0] * x_j3[2]
-            - x_i[0] * x_j2[1] * x_j3[2]
-            + x_j1[0] * x_j2[1] * x_j3[2]
+        x_i[2] * x_j1[1] * x_j2[0]
+        - x_i[1] * x_j1[2] * x_j2[0]
+        - x_i[2] * x_j1[0] * x_j2[1]
+        + x_i[0] * x_j1[2] * x_j2[1]
+        + x_i[1] * x_j1[0] * x_j2[2]
+        - x_i[0] * x_j1[1] * x_j2[2]
+        - x_i[2] * x_j1[1] * x_j3[0]
+        + x_i[1] * x_j1[2] * x_j3[0]
+        + x_i[2] * x_j2[1] * x_j3[0]
+        - x_j1[2] * x_j2[1] * x_j3[0]
+        - x_i[1] * x_j2[2] * x_j3[0]
+        + x_j1[1] * x_j2[2] * x_j3[0]
+        + x_i[2] * x_j1[0] * x_j3[1]
+        - x_i[0] * x_j1[2] * x_j3[1]
+        - x_i[2] * x_j2[0] * x_j3[1]
+        + x_j1[2] * x_j2[0] * x_j3[1]
+        + x_i[0] * x_j2[2] * x_j3[1]
+        - x_j1[0] * x_j2[2] * x_j3[1]
+        - x_i[1] * x_j1[0] * x_j3[2]
+        + x_i[0] * x_j1[1] * x_j3[2]
+        + x_i[1] * x_j2[0] * x_j3[2]
+        - x_j1[1] * x_j2[0] * x_j3[2]
+        - x_i[0] * x_j2[1] * x_j3[2]
+        + x_j1[0] * x_j2[1] * x_j3[2]
     )
 
 
 class DynamicsFactory3D(AbstractDynamicsFactory):
-
     def get_edges_features_matrix(self, elements, nodes):
         return get_edges_features_matrix_numba(elements, nodes)
 
@@ -141,9 +149,7 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
     def dimension(self) -> int:
         return DIMENSION
 
-    def calculate_constitutive_matrices(self,
-                                        W, mu, lambda_
-                                        ):
+    def calculate_constitutive_matrices(self, W, mu, lambda_):
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1] + lambda_ * W[2, 2]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1] + lambda_ * W[2, 2]
         A_33 = mu * W[0, 0] + lambda_ * W[1, 1] + (2 * mu + lambda_) * W[2, 2]
@@ -170,13 +176,13 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
 
     def calculate_thermal_conductivity(self, W, coeff):
         return (
-                coeff[0][0] * W[0, 0]
-                + coeff[0][1] * W[0, 1]
-                + coeff[0][2] * W[0, 2]
-                + coeff[1][0] * W[1, 0]
-                + coeff[1][1] * W[1, 1]
-                + coeff[1][2] * W[1, 2]
-                + coeff[2][0] * W[2, 0]
-                + coeff[2][1] * W[2, 1]
-                + coeff[2][2] * W[2, 2]
+            coeff[0][0] * W[0, 0]
+            + coeff[0][1] * W[0, 1]
+            + coeff[0][2] * W[0, 2]
+            + coeff[1][0] * W[1, 0]
+            + coeff[1][1] * W[1, 1]
+            + coeff[1][2] * W[1, 2]
+            + coeff[2][0] * W[2, 0]
+            + coeff[2][1] * W[2, 1]
+            + coeff[2][2] * W[2, 2]
         )

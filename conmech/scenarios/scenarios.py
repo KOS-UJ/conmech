@@ -180,9 +180,7 @@ def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
 
 
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
-default_temp_obstacle_prop = TemperatureObstacleProperties(
-    hardness=100.0, friction=5.0, heat=0.01
-)
+default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
 
 M_RECTANGLE = "pygmsh_rectangle"
 M_SPLINE = "pygmsh_spline"

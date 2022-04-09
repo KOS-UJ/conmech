@@ -19,7 +19,7 @@ class ContactLaw:
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization
@@ -29,12 +29,10 @@ class ContactLaw:
 
 @dataclass()
 class Problem:
-    dimension = 2 # TODO #74 : Not used?
+    dimension = 2  # TODO #74 : Not used?
     grid_height: float
 
-    elements_number: Union[
-        Tuple[int, int], Tuple[int, int, int]
-    ]  # number of triangles per aside
+    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     mu_coef: float
     la_coef: float

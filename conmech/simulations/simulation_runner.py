@@ -67,9 +67,7 @@ def run_scenario(
         if save_all or plot_index:
             settings_file, file_meta = pkh.open_files_append_pickle(data_path)
             with settings_file, file_meta:
-                pkh.append_pickle(
-                    setting=setting, settings_file=settings_file, file_meta=file_meta
-                )
+                pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
         if plot_index:
             plot_settings_count[0] += 1
 
@@ -111,9 +109,7 @@ def plot_scenario_animation(
         scenario, index_skip, plot_settings_count, all_settings_path
     )
     plot_function = (
-        plotter_2d.plot_animation
-        if scenario.dimension == 2
-        else plotter_3d.plot_animation
+        plotter_2d.plot_animation if scenario.dimension == 2 else plotter_3d.plot_animation
     )
     plot_function(
         save_path=animation_path,
@@ -146,9 +142,7 @@ def simulate(
         )
     )
 
-    setting = _get_setting_function(
-        randomize=simulate_dirty_data, create_in_subprocess=True
-    )
+    setting = _get_setting_function(randomize=simulate_dirty_data, create_in_subprocess=True)
     with_temperature = isinstance(setting, SettingTemperature)
     if compare_with_base_setting:
         base_setting = _get_setting_function(randomize=False, create_in_subprocess=True)
@@ -184,9 +178,7 @@ def simulate(
             setting.make_dirty()
 
         if compare_with_base_setting:
-            scenario.base_setting.set_forces_from_function(
-                scenario.forces_function, current_time
-            )
+            scenario.base_setting.set_forces_from_function(scenario.forces_function, current_time)
 
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
@@ -235,7 +227,5 @@ def plot_setting(
     else:
         fig = plotter_3d.get_fig()
         axs = plotter_3d.get_axs(fig)
-        plotter_3d.plot_frame(
-            fig=fig, axs=axs, setting=setting, current_time=current_time
-        )
+        plotter_3d.plot_frame(fig=fig, axs=axs, setting=setting, current_time=current_time)
         plotter_common.plt_save(path, extension)

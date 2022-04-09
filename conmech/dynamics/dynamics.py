@@ -113,9 +113,9 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.lhs_temperature = (
-                    1 / self.time_step
-                ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
+                self.lhs_temperature = (1 / self.time_step) * self.acceleration_operator[
+                    i, i
+                ] + self.thermal_conductivity[i, i]
                 (
                     self.temperature_boundary,
                     self.temperature_free_x_contact,

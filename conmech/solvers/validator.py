@@ -25,10 +25,10 @@ class Validator:
                 state.mesh.initial_nodes,
                 state.mesh.contact_boundary,
                 self.elasticity,
-                self.forces.forces_vector
+                self.forces.forces_vector,
             )
         )
-        quality = quality_inv ** -1
+        quality = quality_inv**-1
         return quality
 
     def check_quality(self, state, solution, previous_quality: float = None) -> float:

@@ -6,8 +6,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 
 
 def get_fig():
@@ -92,18 +91,12 @@ def draw_parameters(axes, setting, current_time):
     z_max = axes.get_zlim()[1]
 
     args = dict(color="w", fontsize=4)
-    axes.text(
-        x_max - 2.0, y_max - 0.5, z_max + 1.0, s=annotation, **args
-    )  # zdir=None,
+    axes.text(x_max - 2.0, y_max - 0.5, z_max + 1.0, s=annotation, **args)  # zdir=None,
 
 
 def plot_arrows(starts, vectors, axes):
-    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(
-        starts, vectors
-    )
-    axes.quiver(
-        *prepared_starts, *prepared_vectors, arrow_length_ratio=0.1, color="w", lw=0.1
-    )
+    prepared_starts, prepared_vectors = plotter_common.prepare_for_arrows(starts, vectors)
+    axes.quiver(*prepared_starts, *prepared_vectors, arrow_length_ratio=0.1, color="w", lw=0.1)
 
 
 def draw_base_arrows(axes, base):
@@ -131,9 +124,7 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
     shifted_normalized_nodes = setting.normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(starts=shifted_normalized_nodes, vectors=data, axes=axes)
-        plot_mesh(
-            nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", axes=axes
-        )
+        plot_mesh(nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", axes=axes)
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
     if isinstance(setting, SettingTemperature):
@@ -145,9 +136,7 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
         )
 
 
-def plot_temperature(
-        axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings
-):
+def plot_temperature(axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings):
     points = nodes.T
     axes.scatter(
         *points,
@@ -217,13 +206,13 @@ def plot_obstacles(axes, setting, color):
 
 
 def plot_animation(
-        save_path: str,
-        config: Config,
-        time_skip: float,
-        index_skip: int,
-        plot_settings_count: int,
-        all_settings_path: str,
-        t_scale: Optional[np.ndarray] = None,
+    save_path: str,
+    config: Config,
+    time_skip: float,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str,
+    t_scale: Optional[np.ndarray] = None,
 ):
     plotter_common.plot_animation(
         get_axs=get_axs,
@@ -235,5 +224,5 @@ def plot_animation(
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,
         all_settings_path=all_settings_path,
-        t_scale=t_scale
+        t_scale=t_scale,
     )

@@ -8,7 +8,7 @@ ELEMENT_NODES_COUNT = 3
 CONNECTED_EDGES_COUNT = 2
 INT_PH = 1 / ELEMENT_NODES_COUNT
 U_DIVIDER = 12
-FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION ** 2
+FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION**2
 VOLUME_DIVIDER = 2
 
 
@@ -18,8 +18,9 @@ def get_edges_features_matrix_numba(elements, nodes):
     nodes_count = len(nodes)
     elements_count, element_size = elements.shape
 
-    edges_features_matrix = np.zeros((FEATURE_MATRIX_COUNT, nodes_count, nodes_count),
-                                     dtype=np.double)
+    edges_features_matrix = np.zeros(
+        (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
+    )
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: #65 prange?
@@ -48,13 +49,9 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
-                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array([
-                    volume,
-                    u,
-                    v[0], v[1],
-                    w[0][0], w[0][1],
-                    w[1][0], w[1][1]
-                ])
+                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
+                    [volume, u, v[0], v[1], w[0][0], w[0][1], w[1][0], w[1][1]]
+                )
 
     # Performance TIP: we need only sparse, triangular matrix (?)
     return edges_features_matrix, element_initial_volume
@@ -88,12 +85,12 @@ def shoelace_area_numba(points):
 @numba.njit
 def denominator_numba(x_i, x_j1, x_j2):
     return (
-            x_i[1] * x_j1[0]
-            + x_j1[1] * x_j2[0]
-            + x_i[0] * x_j2[1]
-            - x_i[1] * x_j2[0]
-            - x_j2[1] * x_j1[0]
-            - x_i[0] * x_j1[1]
+        x_i[1] * x_j1[0]
+        + x_j1[1] * x_j2[0]
+        + x_i[0] * x_j2[1]
+        - x_i[1] * x_j2[0]
+        - x_j2[1] * x_j1[0]
+        - x_i[0] * x_j1[1]
     )
 
 
@@ -123,8 +120,8 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
 
     def calculate_thermal_conductivity(self, W, coeff):
         return (
-                coeff[0][0] * W[0, 0]
-                + coeff[0][1] * W[0, 1]
-                + coeff[1][0] * W[1, 0]
-                + coeff[1][1] * W[1, 1]
+            coeff[0][0] * W[0, 0]
+            + coeff[0][1] * W[0, 1]
+            + coeff[1][0] * W[1, 0]
+            + coeff[1][1] * W[1, 1]
         )

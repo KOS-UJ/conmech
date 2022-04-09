@@ -13,14 +13,14 @@ from conmech.solvers.solver_methods import make_equation
 @Solvers.register("static", "direct")
 class Direct(Solver):
     def __init__(
-            self,
-            grid,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        grid,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         super().__init__(
             grid,

@@ -39,17 +39,13 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve(
-        setting: SettingRandomized, initial_a: Optional[np.ndarray] = None
-    ) -> np.ndarray:
+    def solve(setting: SettingRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_a)
         return cleaned_a
 
     @staticmethod
     def solve_all(setting: SettingObstacles, initial_a: Optional[np.ndarray] = None):
-        normalized_a = Calculator.solve_acceleration_normalized(
-            setting, None, initial_a
-        )
+        normalized_a = Calculator.solve_acceleration_normalized(setting, None, initial_a)
         normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
@@ -67,22 +63,14 @@ class Calculator:
         t = setting.t_old
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
         while (
-            i < 2
-            or not np.allclose(last_normalized_a, normalized_a)
-            and not np.allclose(last_t, t)
+            i < 2 or not np.allclose(last_normalized_a, normalized_a) and not np.allclose(last_t, t)
         ):
             last_normalized_a, last_t = normalized_a, t
-            normalized_a = Calculator.solve_acceleration_normalized(
-                setting, t, initial_a
-            )
-            t = Calculator.solve_temperature_normalized(
-                setting, normalized_a, initial_t
-            )
+            normalized_a = Calculator.solve_acceleration_normalized(setting, t, initial_a)
+            t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
-                raise ArgumentError(
-                    f"Uzawa algorithm: maximum of {max_iter} iterations exceeded"
-                )
+                raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
             if uzawa is False:
                 break
 
@@ -92,9 +80,7 @@ class Calculator:
         return cleaned_a, cleaned_t
 
     @staticmethod
-    def solve_temperature(
-        setting: SettingTemperature, normalized_a: np.ndarray, initial_t
-    ):
+    def solve_temperature(setting: SettingTemperature, normalized_a: np.ndarray, initial_t):
         t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
         cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_t
@@ -108,9 +94,7 @@ class Calculator:
             return Calculator.solve_acceleration_normalized_optimization(
                 setting, temperature, initial_a
             )
-        return Calculator.solve_acceleration_normalized_function(
-            setting, temperature, initial_a
-        )
+        return Calculator.solve_acceleration_normalized_function(setting, temperature, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -123,9 +107,7 @@ class Calculator:
             return Calculator.solve_temperature_normalized_optimization(
                 setting, normalized_a, initial_t
             )
-        return Calculator.solve_temperature_normalized_function(
-            setting, normalized_a, initial_t
-        )
+        return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
 
     @staticmethod
     def solve_temperature_normalized_function(
@@ -145,21 +127,13 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
-    def solve_acceleration_normalized_optimization(
-        setting, temperature, initial_a=None
-    ):
+    def solve_acceleration_normalized_optimization(setting, temperature, initial_a=None):
         if initial_a is None:
-            initial_a_boundary_vector = np.zeros(
-                setting.boundary_nodes_count * setting.dimension
-            )
+            initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)
         else:
-            initial_a_boundary_vector = nph.stack_column(
-                initial_a[setting.boundary_indices]
-            )
+            initial_a_boundary_vector = nph.stack_column(initial_a[setting.boundary_indices])
 
-        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(
-            temperature
-        )
+        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(temperature)
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )
@@ -184,14 +158,10 @@ class Calculator:
             cost_function,
             normalized_t_rhs_free,
         ) = setting.get_normalized_energy_temperature_np(normalized_a)
-        boundary_t_vector_np = Calculator.minimize(
-            cost_function, initial_t_boundary_vector
-        )
+        boundary_t_vector_np = Calculator.minimize(cost_function, initial_t_boundary_vector)
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)
-        t_vector = Calculator.complete_t_vector(
-            setting, normalized_t_rhs_free, boundary_t_vector
-        )
+        t_vector = Calculator.complete_t_vector(setting, normalized_t_rhs_free, boundary_t_vector)
         return t_vector
 
     @staticmethod
@@ -225,12 +195,9 @@ class Calculator:
         return nph.stack(normalized_a)
 
     @staticmethod
-    def complete_t_vector(
-        setting: SettingTemperature, normalized_t_rhs_free, t_contact_vector
-    ):
+    def complete_t_vector(setting: SettingTemperature, normalized_t_rhs_free, t_contact_vector):
         t_independent_vector = setting.temperature_free_x_free_inv @ (
-            normalized_t_rhs_free
-            - (setting.temperature_free_x_contact @ t_contact_vector)
+            normalized_t_rhs_free - (setting.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

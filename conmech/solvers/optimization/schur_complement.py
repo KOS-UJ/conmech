@@ -11,14 +11,14 @@ from conmech.solvers.optimization.optimization import Optimization
 
 class SchurComplement(Optimization):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         super().__init__(
             mesh,
@@ -44,7 +44,7 @@ class SchurComplement(Optimization):
 
     @staticmethod
     def calculate_schur_complement_matrices(
-            matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
+        matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
     ):
         def get_sliced(matrix_split, indices_height, indices_width):
             matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
@@ -61,19 +61,19 @@ class SchurComplement(Optimization):
 
         free_x_free_inverted = np.linalg.inv(free_x_free)
         matrix_boundary = contact_x_contact - contact_x_free @ (
-                free_x_free_inverted @ free_x_contact
+            free_x_free_inverted @ free_x_contact
         )
 
         return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
 
     @staticmethod
     def calculate_schur_complement_vector(
-            vector: np.ndarray,
-            dimension: int,
-            contact_indices: slice,
-            free_indices: slice,
-            free_x_free_inverted: np.ndarray,
-            contact_x_free: np.ndarray,
+        vector: np.ndarray,
+        dimension: int,
+        contact_indices: slice,
+        free_indices: slice,
+        free_x_free_inverted: np.ndarray,
+        contact_x_free: np.ndarray,
     ):
         vector_split = nph.unstack(vector, dimension)
         vector_contact = nph.stack_column(vector_split[contact_indices, :])
@@ -118,11 +118,7 @@ class SchurComplement(Optimization):
         return self._point_forces
 
     def solve(
-            self,
-            initial_guess: np.ndarray,
-            *,
-            fixed_point_abs_tol: float = math.inf,
-            **kwargs
+        self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_points(initial_guess)
         solution_contact = super().solve(
@@ -184,14 +180,14 @@ class Static(SchurComplement):
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         self.viscosity = mesh.viscosity
         self.dim = mesh.dimension
@@ -209,8 +205,7 @@ class Quasistatic(SchurComplement):
         return self.viscosity
 
     def get_right_hand_side(self):
-        return self.forces.forces - nph.unstack(self.elasticity @ self.u_vector.T,
-                                                dim=self.dim)
+        return self.forces.forces - nph.unstack(self.elasticity @ self.u_vector.T, dim=self.dim)
 
     def iterate(self, velocity):
         super(SchurComplement, self).iterate(velocity)
@@ -220,14 +215,14 @@ class Quasistatic(SchurComplement):
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(Quasistatic):
     def __init__(
-            self,
-            mesh,
-            inner_forces,
-            outer_forces,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        mesh,
+        inner_forces,
+        outer_forces,
+        body_prop,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         self.dim = mesh.dimension
         self.acceleration_operator = mesh.acceleration_operator
@@ -245,8 +240,9 @@ class Dynamic(Quasistatic):
             friction_bound,
         )
 
-        lhs = (1 / self.time_step) * self.acceleration_operator[: self.ind, : self.ind] \
-              + self.thermal_conductivity[: self.ind, : self.ind]
+        lhs = (1 / self.time_step) * self.acceleration_operator[
+            : self.ind, : self.ind
+        ] + self.thermal_conductivity[: self.ind, : self.ind]
 
         (
             self._point_temperature,
@@ -308,8 +304,11 @@ class Dynamic(Quasistatic):
     def recalculate_temperature(self):
         A = (-1) * self.thermal_expansion @ self.v_vector
 
-        A += (1 / self.time_step) \
-             * self.acceleration_operator[: self.ind, : self.ind] @ self.t_vector
+        A += (
+            (1 / self.time_step)
+            * self.acceleration_operator[: self.ind, : self.ind]
+            @ self.t_vector
+        )
         # A = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
         A_contact, A_free = SchurComplement.calculate_schur_complement_vector(

@@ -41,7 +41,7 @@ def close_modulo(value, divider):
 
 
 def euclidean_norm(vector, keepdims=False):
-    data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
+    data = (vector**2).sum(axis=-1, keepdims=keepdims)
     if isinstance(data, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
@@ -51,7 +51,7 @@ def euclidean_norm(vector, keepdims=False):
 
 @numba.njit
 def euclidean_norm_numba(vector):
-    data = (vector ** 2).sum(axis=-1)
+    data = (vector**2).sum(axis=-1)
     return np.sqrt(data)
 
 
@@ -96,9 +96,7 @@ def complete_base(base_seed, closest_seed_index=0):
     elif dim == 3:
         rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
         unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
-        unnormalized_base = np.roll(
-            unnormalized_rolled_base, closest_seed_index, axis=0
-        )
+        unnormalized_base = np.roll(unnormalized_rolled_base, closest_seed_index, axis=0)
     else:
         raise ArgumentError
     base = normalize_euclidean_numba(unnormalized_base)
@@ -173,6 +171,7 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
+
 
 # @numba.njit
 # def calculate_angle_numba(new_up_vector):

@@ -56,11 +56,7 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     def solve(
-        self,
-        initial_guess: np.ndarray,
-        *,
-        fixed_point_abs_tol: float = math.inf,
-        **kwargs
+        self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))

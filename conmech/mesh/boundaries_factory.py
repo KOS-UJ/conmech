@@ -18,9 +18,7 @@ def identify_surfaces_numba(sorted_elements):
     for j in range(element_size):
         # exclude each node from sorted elements and get all combinations to obtain surfaces
         surfaces[i : i + elements_count, :j] = sorted_elements[:, :j]
-        surfaces[i : i + elements_count, j:dim] = sorted_elements[
-            :, j + 1 : element_size
-        ]
+        surfaces[i : i + elements_count, j:dim] = sorted_elements[:, j + 1 : element_size]
         opposing_indices[i : i + elements_count] = sorted_elements[:, j]
         i += elements_count
     return surfaces, opposing_indices
@@ -42,17 +40,13 @@ def extract_unique_indices(surfaces):
 
 
 def extract_unique_elements(elements, opposing_indices):
-    _, indices, count = np.unique(
-        elements, axis=0, return_index=True, return_counts=True
-    )
+    _, indices, count = np.unique(elements, axis=0, return_index=True, return_counts=True)
     unique_indices = indices[count == 1]
     return elements[unique_indices], opposing_indices[unique_indices]
 
 
 def apply_predicate_to_surfaces(surfaces, nodes, predicate: Callable):
-    mask = [
-        predicate(m) for m in np.mean(nodes[surfaces], axis=1)
-    ]  # TODO: #65 Use numba (?)
+    mask = [predicate(m) for m in np.mean(nodes[surfaces], axis=1)]  # TODO: #65 Use numba (?)
     return surfaces[mask]
 
 
@@ -64,17 +58,11 @@ def apply_predicate_to_boundary_nodes(elements, nodes, predicate: Callable):
 
 def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     # move boundary nodes to the top
-    nodes, elements, boundary_nodes_count = reorder(
-        nodes, elements, lambda _: True, to_top=True
-    )
+    nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
     # then move contact nodes to the top
-    nodes, elements, contact_nodes_count = reorder(
-        nodes, elements, is_contact, to_top=True
-    )
+    nodes, elements, contact_nodes_count = reorder(nodes, elements, is_contact, to_top=True)
     # finally move dirichlet nodes to the bottom
-    nodes, elements, dirichlet_nodes_count = reorder(
-        nodes, elements, is_dirichlet, to_top=False
-    )
+    nodes, elements, dirichlet_nodes_count = reorder(nodes, elements, is_dirichlet, to_top=False)
     return (
         nodes,
         elements,
@@ -145,19 +133,13 @@ class Boundaries:
     @property
     def boundary_surfaces(self):
         return np.unique(
-            np.vstack(
-                (self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)
-            ),
+            np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
             axis=1,
         )
 
     @property
     def boundary_nodes_count(self):
-        return (
-            self.contact_nodes_count
-            + self.neumann_nodes_count
-            + self.dirichlet_nodes_count
-        )
+        return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
 
 class BoundariesFactory:
@@ -170,7 +152,7 @@ class BoundariesFactory:
 
     @staticmethod
     def identify_boundaries_and_reorder_nodes(
-            unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        unordered_nodes, unordered_elements, is_dirichlet, is_contact
     ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
         (
             initial_nodes,
@@ -185,17 +167,11 @@ class BoundariesFactory:
             is_dirichlet=is_dirichlet,
         )
 
-        neumann_nodes_count = (
-            boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
-        )
+        neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
 
-        (boundary_surfaces, boundary_internal_indices, *_) = get_boundary_surfaces(
-            elements
-        )
+        (boundary_surfaces, boundary_internal_indices, *_) = get_boundary_surfaces(elements)
 
-        contact_boundary = apply_predicate_to_surfaces(
-            boundary_surfaces, initial_nodes, is_contact
-        )
+        contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
         dirichlet_boundary = apply_predicate_to_surfaces(
             boundary_surfaces, initial_nodes, is_dirichlet
         )
@@ -206,19 +182,22 @@ class BoundariesFactory:
         )
 
         contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
-        dirichlet_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
-                                                         is_dirichlet)
-        neumann_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes,
-                                                       lambda n: not is_contact(
-                                                           n) and not is_dirichlet(n))
+        dirichlet_boundary = apply_predicate_to_surfaces(
+            boundary_surfaces, initial_nodes, is_dirichlet
+        )
+        neumann_boundary = apply_predicate_to_surfaces(
+            boundary_surfaces, initial_nodes, lambda n: not is_contact(n) and not is_dirichlet(n)
+        )
 
-        boundaries_data = Boundaries(contact_boundary=contact_boundary,
-                                     neumann_boundary=neumann_boundary,
-                                     dirichlet_boundary=dirichlet_boundary,
-                                     contact_nodes_count=contact_nodes_count,
-                                     neumann_nodes_count=neumann_nodes_count,
-                                     dirichlet_nodes_count=dirichlet_nodes_count,
-                                     boundary_internal_indices=boundary_internal_indices)
+        boundaries_data = Boundaries(
+            contact_boundary=contact_boundary,
+            neumann_boundary=neumann_boundary,
+            dirichlet_boundary=dirichlet_boundary,
+            contact_nodes_count=contact_nodes_count,
+            neumann_nodes_count=neumann_nodes_count,
+            dirichlet_nodes_count=dirichlet_nodes_count,
+            boundary_internal_indices=boundary_internal_indices,
+        )
 
         return initial_nodes, elements, boundaries_data
 
@@ -236,9 +215,7 @@ def extract_boundary_paths_from_elements(elements):
         visited_path = extract_boundary_path(boundary_surfaces, start_node=start_node)
         visited_path = np.append(visited_path, visited_path[0])
         boundary_paths.append(visited_path)
-        boundary_indices_to_visit = list(
-            set(boundary_indices_to_visit) - set(visited_path)
-        )
+        boundary_indices_to_visit = list(set(boundary_indices_to_visit) - set(visited_path))
 
     return boundary_paths
 

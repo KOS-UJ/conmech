@@ -61,9 +61,7 @@ class Forces:
             v_0 = edge[0]
             v_1 = edge[1]
 
-            edge_length = nph.length(
-                self.mesh.initial_nodes[v_0], self.mesh.initial_nodes[v_1]
-            )
+            edge_length = nph.length(self.mesh.initial_nodes[v_0], self.mesh.initial_nodes[v_1])
             v_mid = (self.mesh.initial_nodes[v_0] + self.mesh.initial_nodes[v_1]) / 2
 
             f_neumann = self.outer_forces(v_mid) * edge_length / 2

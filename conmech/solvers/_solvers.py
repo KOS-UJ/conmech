@@ -1,13 +1,13 @@
-from conmech.scenarios.problems import Problem, \
-    Static as StaticProblem, \
-    Quasistatic as QuasistaticProblem, \
-    Dynamic as DynamicProblem
+from conmech.scenarios.problems import (
+    Problem,
+    Static as StaticProblem,
+    Quasistatic as QuasistaticProblem,
+    Dynamic as DynamicProblem,
+)
 
 
 class Solvers:
-    solvers = {"static": {},
-               "quasistatic": {},
-               "dynamic": {}}
+    solvers = {"static": {}, "quasistatic": {}, "dynamic": {}}
 
     @staticmethod
     def register(dynamism: str, *names):

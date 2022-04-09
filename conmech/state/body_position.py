@@ -34,9 +34,7 @@ def get_unoriented_normals_3d(faces_nodes):
     return tail_nodes, unoriented_normals
 
 
-def get_boundary_surfaces_normals(
-    moved_nodes, boundary_surfaces, boundary_internal_indices
-):
+def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_internal_indices):
     dim = moved_nodes.shape[1]
     faces_nodes = moved_nodes[boundary_surfaces]
 
@@ -49,9 +47,7 @@ def get_boundary_surfaces_normals(
 
     internal_nodes = moved_nodes[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
-        nph.elementwise_dot(
-            internal_nodes - tail_nodes, unoriented_normals, keepdims=True
-        )
+        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
     )
     return unoriented_normals * external_orientation
 
@@ -75,16 +71,12 @@ def get_boundary_nodes_normals_numba(
 
 
 @numba.njit
-def get_surface_per_boundary_node_numba(
-    boundary_surfaces, boundary_nodes_count, moved_nodes
-):
+def get_surface_per_boundary_node_numba(boundary_surfaces, boundary_nodes_count, moved_nodes):
     surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for boundary_surface in boundary_surfaces:
         face_nodes = moved_nodes[boundary_surface]
-        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(
-            face_nodes
-        )
+        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
 
     return surface_per_boundary_node
 
@@ -156,16 +148,10 @@ class BodyPosition(Mesh):
 
     @property
     def moved_base(self):
-        return get_base(
-            self.moved_nodes, self.base_seed_indices, self.closest_seed_index
-        )
+        return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
-        return (
-            nph.get_in_base(vectors, self.moved_base)
-            if self.normalize_by_rotation
-            else vectors
-        )
+        return nph.get_in_base(vectors, self.moved_base) if self.normalize_by_rotation else vectors
 
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
@@ -219,9 +205,7 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_v_old(self):
-        return self.normalize_rotate(
-            self.velocity_old - np.mean(self.velocity_old, axis=0)
-        )
+        return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
 
     @property
     def normalized_u_old(self):

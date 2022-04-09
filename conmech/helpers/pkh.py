@@ -8,17 +8,17 @@ from typing import List
 
 
 def open_files_append_pickle(path: str):
-    return open(f"{path}.settings", 'ab+'), open(f"{path}.indices", 'ab+')
+    return open(f"{path}.settings", "ab+"), open(f"{path}.indices", "ab+")
 
 
 def open_file_settings_read_pickle(path: str):
-    return open(f"{path}.settings", 'rb')
+    return open(f"{path}.settings", "rb")
 
 
 def get_all_indices_pickle(all_settings_path):
     all_indices = []
     try:
-        with open(f"{all_settings_path}.indices", 'rb') as file:
+        with open(f"{all_settings_path}.indices", "rb") as file:
             try:
                 while True:
                     all_indices.append(pickle.load(file))

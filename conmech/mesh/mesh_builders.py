@@ -29,14 +29,8 @@ def build_mesh(
             if "twist" in mesh_data.mesh_type:
                 inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_data)
         else:
-            inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(
-                mesh_data
-            )
+            inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_data)
 
-        return (
-            mph.run_process(inner_function)
-            if create_in_subprocess
-            else inner_function()
-        )
+        return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
     raise NotImplementedError(f"Not implemented mesh type: {mesh_data.mesh_type}")

@@ -28,8 +28,9 @@ class ColorbarSettings:
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
 
 
-def get_t_scale(scenario: Scenario, index_skip: int, plot_settings_count: int,
-                all_settings_path: str):
+def get_t_scale(
+    scenario: Scenario, index_skip: int, plot_settings_count: int, all_settings_path: str
+):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
@@ -38,8 +39,9 @@ def get_t_scale(scenario: Scenario, index_skip: int, plot_settings_count: int,
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         for step in range(plot_settings_count):
-            setting = pkh.load_index_pickle(index=step * index_skip, all_indices=all_indices,
-                                            settings_file=settings_file)
+            setting = pkh.load_index_pickle(
+                index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+            )
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
@@ -74,7 +76,7 @@ def set_ax(axes):
     for spine in axes.spines.values():
         spine.set_edgecolor("w")
         spine.set_linewidth(0.2)
-    axes.tick_params(color='w', labelcolor='w', width=0.3, labelsize=5)
+    axes.tick_params(color="w", labelcolor="w", width=0.3, labelsize=5)
 
 
 def prepare_for_arrows(starts, vectors):
@@ -94,40 +96,41 @@ def prepare_for_arrows(starts, vectors):
 
 
 def plt_save(path, extension):
-    plt.savefig(
-        path, **savefig_args, format=extension, dpi=DPI
-    )  # , bbox_inches="tight"
+    plt.savefig(path, **savefig_args, format=extension, dpi=DPI)  # , bbox_inches="tight"
     plt.close()
 
 
 def plot_animation(
-        get_axs: Callable,
-        plot_frame: Callable,
-        fig,
-        save_path: str,
-        config: Config,
-        time_skip: float,
-        index_skip: int,
-        plot_settings_count: int,
-        all_settings_path: str,
-        t_scale: Optional[np.ndarray] = None,
+    get_axs: Callable,
+    plot_frame: Callable,
+    fig,
+    save_path: str,
+    config: Config,
+    time_skip: float,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str,
+    t_scale: Optional[np.ndarray] = None,
 ):
     fps = int(1 / time_skip)
-    animation_tqdm = cmh.get_tqdm(iterable=range(plot_settings_count + 1), config=config,
-                                  desc="Generating animation")
+    animation_tqdm = cmh.get_tqdm(
+        iterable=range(plot_settings_count + 1), config=config, desc="Generating animation"
+    )
 
     all_indices = pkh.get_all_indices_pickle(all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
+
         def animate(step):
             animation_tqdm.update(1)
             fig.clf()
             axs = get_axs(fig)
-            setting = pkh.load_index_pickle(index=step * index_skip,
-                                            all_indices=all_indices,
-                                            settings_file=settings_file)
-            plot_frame(axs=axs, fig=fig, setting=setting, current_time=step * time_skip,
-                       t_scale=t_scale)
+            setting = pkh.load_index_pickle(
+                index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+            )
+            plot_frame(
+                axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale
+            )
             return fig
 
         ani = animation.FuncAnimation(
