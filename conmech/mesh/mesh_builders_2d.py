@@ -3,7 +3,6 @@ from ctypes import ArgumentError
 import meshzoo
 import numpy as np
 import pygmsh
-
 from conmech.mesh import mesh_builders_helpers
 
 

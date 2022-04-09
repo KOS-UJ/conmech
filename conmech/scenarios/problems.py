@@ -29,7 +29,7 @@ class ContactLaw:
 
 @dataclass()
 class Problem:
-    DIMENSION = 2
+    dimension = 2 # TODO #74 : Not used?
     grid_height: float
 
     elements_number: Union[

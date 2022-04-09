@@ -8,23 +8,25 @@ from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
 
 
 def obstacle_heat(
-        penetration_norm, tangential_velocity, heat_coeff,
+    penetration_norm,
+    tangential_velocity,
+    heat_coeff,
 ):
     return (
-            (penetration_norm > 0)
-            * heat_coeff
-            * nph.euclidean_norm(tangential_velocity, keepdims=True)
+        (penetration_norm > 0)
+        * heat_coeff
+        * nph.euclidean_norm(tangential_velocity, keepdims=True)
     )
 
 
 def integrate(
-        nodes,
-        nodes_normals,
-        obstacle_nodes,
-        obstacle_nodes_normals,
-        v,
-        nodes_volume,
-        heat_coeff,
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    heat_coeff,
 ):
     penetration_norm = setting_obstacles.get_penetration_norm(
         nodes, obstacle_nodes, obstacle_nodes_normals
@@ -37,20 +39,22 @@ def integrate(
 
 
 def energy_temperature(
-        t, T, Q,
+    t,
+    T,
+    Q,
 ):
     return energy_new(t, T, Q)
 
 
 class SettingTemperature(SettingObstacles):
     def __init__(
-            self,
-            mesh_data,
-            body_prop,
-            obstacle_prop,
-            schedule,
-            normalize_by_rotation: bool,
-            create_in_subprocess,
+        self,
+        mesh_data,
+        body_prop,
+        obstacle_prop,
+        schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -97,7 +101,7 @@ class SettingTemperature(SettingObstacles):
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.temperature_free_x_free_inverted,
+            free_x_free_inverted=self.temperature_free_x_free_inv,
             contact_x_free=self.temperature_contact_x_free,
         )
         return normalized_Q_boundary, normalized_Q_free
@@ -110,13 +114,25 @@ class SettingTemperature(SettingObstacles):
             t_old=self.t_old,
             const_volume=self.volume,
             thermal_expansion=self.thermal_expansion,
-            U=self.acceleration_operator[self.independent_indices, self.independent_indices],
+            U=self.acceleration_operator[
+                self.independent_indices, self.independent_indices
+            ],
             dimension=self.dimension,
             time_step=self.time_step,
         )
 
-    def get_Q(self, a, v_old, heat, t_old, const_volume, thermal_expansion, U, dimension,
-              time_step):
+    def get_Q(
+        self,
+        a,
+        v_old,
+        heat,
+        t_old,
+        const_volume,
+        thermal_expansion,
+        U,
+        dimension,
+        time_step,
+    ):
         v = v_old + a * time_step
         v_vector = nph.stack_column(v)
 
@@ -140,7 +156,7 @@ class SettingTemperature(SettingObstacles):
             obstacle_nodes_normals=self.boundary_obstacle_normals,
             v=self.boundary_v_old,
             nodes_volume=surface_per_boundary_node,
-            heat_coeff=self.obstacle_prop.heat
+            heat_coeff=self.obstacle_prop.heat,
         )
 
     def get_normalized_E_np(self, t):
@@ -158,17 +174,17 @@ class SettingTemperature(SettingObstacles):
         )
 
     def get_E(
-            self,
-            t,
-            forces,
-            u_old,
-            v_old,
-            const_volume,
-            elasticity,
-            viscosity,
-            time_step,
-            dimension,
-            thermal_expansion,
+        self,
+        t,
+        forces,
+        u_old,
+        v_old,
+        const_volume,
+        elasticity,
+        viscosity,
+        time_step,
+        dimension,
+        thermal_expansion,
     ):
         value = super().get_E(
             forces=forces,

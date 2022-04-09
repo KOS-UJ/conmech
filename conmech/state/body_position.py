@@ -4,7 +4,6 @@ from typing import Callable
 
 import numba
 import numpy as np
-
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
@@ -35,7 +34,9 @@ def get_unoriented_normals_3d(faces_nodes):
     return tail_nodes, unoriented_normals
 
 
-def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_internal_indices):
+def get_boundary_surfaces_normals(
+    moved_nodes, boundary_surfaces, boundary_internal_indices
+):
     dim = moved_nodes.shape[1]
     faces_nodes = moved_nodes[boundary_surfaces]
 
@@ -57,7 +58,7 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
 
 @numba.njit
 def get_boundary_nodes_normals_numba(
-        boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
+    boundary_surfaces, boundary_nodes_count, boundary_surfaces_normals
 ):
     dim = boundary_surfaces_normals.shape[1]
     boundary_normals = np.zeros((boundary_nodes_count, dim), dtype=np.float64)
@@ -75,13 +76,15 @@ def get_boundary_nodes_normals_numba(
 
 @numba.njit
 def get_surface_per_boundary_node_numba(
-        boundary_surfaces, boundary_nodes_count, moved_nodes
+    boundary_surfaces, boundary_nodes_count, moved_nodes
 ):
     surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
 
     for boundary_surface in boundary_surfaces:
         face_nodes = moved_nodes[boundary_surface]
-        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
+        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(
+            face_nodes
+        )
 
     return surface_per_boundary_node
 
@@ -103,13 +106,13 @@ def element_volume_part_numba(face_nodes):
 
 class BodyPosition(Mesh):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            schedule: Schedule,
-            normalize_by_rotation: bool,
-            is_dirichlet: Callable = (lambda _: False),
-            is_contact: Callable = (lambda _: True),
-            create_in_subprocess: bool = False,
+        self,
+        mesh_data: MeshProperties,
+        schedule: Schedule,
+        normalize_by_rotation: bool,
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -141,6 +144,7 @@ class BodyPosition(Mesh):
         return copy.deepcopy(self)
 
     def iterate_self(self, acceleration, randomized_inputs=False):
+        _ = randomized_inputs
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
 
@@ -215,7 +219,9 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_v_old(self):
-        return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
+        return self.normalize_rotate(
+            self.velocity_old - np.mean(self.velocity_old, axis=0)
+        )
 
     @property
     def normalized_u_old(self):
@@ -229,12 +235,14 @@ class BodyPosition(Mesh):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
             self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
         )
-        return get_boundary_nodes_normals_numba(self.boundary_surfaces, self.boundary_nodes_count,
-                                                boundary_surfaces_normals)
+        return get_boundary_nodes_normals_numba(
+            self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals
+        )
 
     def get_surface_per_boundary_node(self):
-        return get_surface_per_boundary_node_numba(self.boundary_surfaces,
-                                                   self.boundary_nodes_count, self.moved_nodes)
+        return get_surface_per_boundary_node_numba(
+            self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes
+        )
 
     @property
     def input_v_old(self):

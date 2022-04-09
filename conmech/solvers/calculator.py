@@ -108,7 +108,9 @@ class Calculator:
             return Calculator.solve_acceleration_normalized_optimization(
                 setting, temperature, initial_a
             )
-        return Calculator.solve_acceleration_normalized_function(setting, temperature, initial_a)
+        return Calculator.solve_acceleration_normalized_function(
+            setting, temperature, initial_a
+        )
 
     @staticmethod
     def solve_temperature_normalized(
@@ -143,7 +145,9 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
-    def solve_acceleration_normalized_optimization(setting, temperature, initial_a=None):
+    def solve_acceleration_normalized_optimization(
+        setting, temperature, initial_a=None
+    ):
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(
                 setting.boundary_nodes_count * setting.dimension
@@ -153,7 +157,9 @@ class Calculator:
                 initial_a[setting.boundary_indices]
             )
 
-        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(temperature)
+        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(
+            temperature
+        )
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )
@@ -174,9 +180,10 @@ class Calculator:
         _ = initial_t_vector
         initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
 
-        cost_function, normalized_t_rhs_free = setting.get_normalized_energy_temperature_np(
-            normalized_a
-        )
+        (
+            cost_function,
+            normalized_t_rhs_free,
+        ) = setting.get_normalized_energy_temperature_np(normalized_a)
         boundary_t_vector_np = Calculator.minimize(
             cost_function, initial_t_boundary_vector
         )
@@ -221,8 +228,9 @@ class Calculator:
     def complete_t_vector(
         setting: SettingTemperature, normalized_t_rhs_free, t_contact_vector
     ):
-        t_independent_vector = setting.temperature_free_x_free_inverted @ (
-            normalized_t_rhs_free - (setting.temperature_free_x_contact @ t_contact_vector)
+        t_independent_vector = setting.temperature_free_x_free_inv @ (
+            normalized_t_rhs_free
+            - (setting.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

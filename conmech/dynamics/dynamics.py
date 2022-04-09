@@ -4,8 +4,10 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
-from conmech.properties.body_properties import (StaticBodyProperties,
-                                                TemperatureBodyProperties)
+from conmech.properties.body_properties import (
+    StaticBodyProperties,
+    TemperatureBodyProperties,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
@@ -27,15 +29,15 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 
 class Dynamics(BodyPosition):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            body_prop: StaticBodyProperties,
-            schedule: Schedule,
-            normalize_by_rotation: bool,
-            is_dirichlet: Callable = (lambda _: False),
-            is_contact: Callable = (lambda _: True),
-            with_schur_complement_matrices: bool = True,
-            create_in_subprocess: bool = False,
+        self,
+        mesh_data: MeshProperties,
+        body_prop: StaticBodyProperties,
+        schedule: Schedule,
+        normalize_by_rotation: bool,
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        with_schur_complement_matrices: bool = True,
+        create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -57,23 +59,23 @@ class Dynamics(BodyPosition):
         self.thermal_conductivity: np.ndarray
 
         self.lhs: np.ndarray
-        # TODO: move to schur
+        # TODO: move to schur (careful - some properties are used by net)
         self.lhs_boundary: np.ndarray
         self.free_x_contact: np.ndarray
         self.contact_x_free: np.ndarray
         self.free_x_free_inverted: np.ndarray
 
         self.lhs_temperature: np.ndarray
-        # TODO: move to schur
+        # TODO: move to schur (careful - some properties are used by net)
         self.temperature_boundary: np.ndarray
         self.temperature_free_x_contact: np.ndarray
         self.temperature_contact_x_free: np.ndarray
-        self.temperature_free_x_free_inverted: np.ndarray
+        self.temperature_free_x_free_inv: np.ndarray
 
         self.reinitialize_matrices()
 
-    def remesh(self):
-        super().remesh()
+    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
+        super().remesh(is_dirichlet, is_contact, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
@@ -94,9 +96,8 @@ class Dynamics(BodyPosition):
 
         if self.with_schur_complement_matrices:
             self.lhs = (
-                    self.acceleration_operator
-                    + (self.viscosity + self.elasticity * self.time_step)
-                    * self.time_step
+                self.acceleration_operator
+                + (self.viscosity + self.elasticity * self.time_step) * self.time_step
             )
             (
                 self.lhs_boundary,
@@ -112,13 +113,14 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.lhs_temperature = (1 / self.time_step) * self.acceleration_operator[i, i] \
-                                       + self.thermal_conductivity[i, i]
+                self.lhs_temperature = (
+                    1 / self.time_step
+                ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
                 (
                     self.temperature_boundary,
                     self.temperature_free_x_contact,
                     self.temperature_contact_x_free,
-                    self.temperature_free_x_free_inverted,
+                    self.temperature_free_x_free_inv,
                 ) = SchurComplement.calculate_schur_complement_matrices(
                     matrix=self.lhs_temperature,
                     dimension=1,

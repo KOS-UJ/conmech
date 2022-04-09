@@ -1,12 +1,11 @@
 import numba
 import numpy as np
-
 from conmech.helpers import nph
 
 
 @numba.njit
 def get_cross_points_legacy_ordered_numba(
-        points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+    points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
     index = 0
     for j in range(size_y - 1, -1, -1):
@@ -40,7 +39,7 @@ def get_cross_points_legacy_ordered_numba(
 
 @numba.njit
 def get_cross_elements_numba(
-        points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+    points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
 ):
     index = 0
     for i in range(size_x):
@@ -52,7 +51,8 @@ def get_cross_elements_numba(
                 left_bottom + np.array((edge_len_x, 0.0)), points
             )
             c = nph.get_point_index_numba(
-                left_bottom + np.array((0.5 * edge_len_x, 0.5 * edge_len_y)), points,
+                left_bottom + np.array((0.5 * edge_len_x, 0.5 * edge_len_y)),
+                points,
             )
             lt = nph.get_point_index_numba(
                 left_bottom + np.array((0.0, edge_len_y)), points
