@@ -104,11 +104,6 @@ class SyntheticDataset(BaseDataset):
         config: TrainingConfig,
     ):
         num_workers = config.SYNTHETIC_GENERATION_WORKERS
-
-        if self.data_count % num_workers != 0:
-            raise Exception("Cannot divide data generation work")
-        self.data_part_count = int(self.data_count / num_workers)
-
         super().__init__(
             description=f"{description}_synthetic",
             dimension=dimension,
@@ -117,15 +112,20 @@ class SyntheticDataset(BaseDataset):
             load_to_ram=load_to_ram,
             config=config,
         )
+
+        if self.data_count % num_workers != 0:
+            raise Exception("Cannot divide data generation work")
+        self.data_part_count = int(self.data_count / num_workers)
+
         self.initialize_data()
 
     @property
     def data_count(self):
-        return TrainingConfig.td.SYNTHETIC_SOLVERS_COUNT
+        return self.config.td.BATCH_SIZE * self.config.td.SYNTHETIC_BATCHES_IN_EPOCH
 
     @property
     def data_size_id(self):
-        return self.config.td.SYNTHETIC_SOLVERS_COUNT
+        return self.data_count
 
     def generate_setting(self, index):
         _ = index

@@ -11,7 +11,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # calculator # live
+    DATASET: str = "calculator"  # synthetic # calculator # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
@@ -39,7 +39,6 @@ class TrainingData:
     BATCH_SIZE: int = 128  # !# 64 # 128
     VALID_BATCH_SIZE: int = 128  # !#
     SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # 96 # 32 !# 64 # 512
-    SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True
@@ -83,3 +82,6 @@ class TrainingConfig(Config):
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True
+
+    MAX_EPOCH_NUMBER: Optional[int] = None
+    DATASETS_MAIN_PATH: str = "datasets"

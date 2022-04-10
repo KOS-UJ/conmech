@@ -36,7 +36,7 @@ def plot(config: TrainingConfig):
 
     net = get_net(statistics, config)
 
-    path = GraphModelDynamic.get_newest_saved_model_path()
+    path = GraphModelDynamic.get_newest_saved_model_path(config)
     net.load(path)
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)

@@ -52,7 +52,7 @@ def run_scenario(
 
     save_files = plot_animation or save_all
     if save_files:
-        final_catalog = f"output/{config.current_time} - {catalog}"
+        final_catalog = f"{config.output_catalog}/{config.current_time} - {catalog}"
         data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
         cmh.create_folders(f"{final_catalog}/scenarios")
     else:

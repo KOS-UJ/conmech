@@ -200,7 +200,7 @@ class BaseDataset:
 
     @property
     def main_directory(self):
-        return f"./datasets/{self.data_id}"
+        return f"./{self.config.DATASETS_MAIN_PATH}/{self.data_id}"
 
     @property
     def data_path(self):
@@ -237,7 +237,8 @@ class BaseDataset:
         return data
 
     def check_and_print(self, data_count, current_index, setting, step_tqdm, tqdm_description):
-        relative_index = current_index % int(data_count * (1 / self.config.DATASET_IMAGES_COUNT))
+        plot_index_skip = int(data_count * (1 / self.config.DATASET_IMAGES_COUNT))
+        relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")
             self.plot_data_setting(setting, current_index, self.images_directory)

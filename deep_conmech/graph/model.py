@@ -5,8 +5,6 @@ from typing import Optional
 
 import numpy as np
 import torch
-from torch.utils.tensorboard.writer import SummaryWriter
-
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
@@ -20,6 +18,7 @@ from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
+from torch.utils.tensorboard.writer import SummaryWriter
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
@@ -63,8 +62,8 @@ class GraphModelDynamic:
         self.writer = get_and_init_writer(statistics, self.config)
         self.loss_labels = [
             "energy",
-            "energy_diff",
-            "RMSE_acc",
+            # "energy_diff",
+            # "RMSE_acc",
         ]  # "energy_diff", "energy_no_acc"]  # . "energy_main", "v_step_diff"]
         self.labels_count = len(self.loss_labels)
         self.tqdm_loss_index = 0
@@ -106,7 +105,7 @@ class GraphModelDynamic:
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
-        while True:
+        while self.config.MAX_EPOCH_NUMBER is None or epoch_number < self.config.MAX_EPOCH_NUMBER:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
@@ -143,17 +142,17 @@ class GraphModelDynamic:
     def save_net(self):
         print("----SAVING----")
         timestamp = cmh.get_timestamp(self.config)
-        catalog = f"output/{self.config.current_time} - GRAPH MODELS"
+        catalog = f"{self.config.output_catalog}/{self.config.current_time} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
 
     @staticmethod
-    def get_newest_saved_model_path():
+    def get_newest_saved_model_path(config: TrainingConfig):
         def get_index(path):
             return int(path.split("/")[-1].split(" ")[0])
 
-        saved_model_paths = cmh.find_files_by_extension("output", "pt")
+        saved_model_paths = cmh.find_files_by_extension(config.output_catalog, "pt")
         if not saved_model_paths:
             raise ArgumentError("No saved models")
 
@@ -267,7 +266,6 @@ class GraphModelDynamic:
         print("----VALIDATING----")
         start_time = time.time()
 
-        mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
             loss_array, _ = self.iterate_dataset(
                 dataset=dataset,
@@ -275,20 +273,12 @@ class GraphModelDynamic:
                 step_function=self.test_step,
                 description=dataset.data_id,
             )
-            mean_loss_array += loss_array / len(self.all_val_datasets)
             for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.data_id}/{self.loss_labels[i]}",
                     loss_array[i],
                     examples_seen,
                 )
-
-        for i in range(self.labels_count):
-            self.writer.add_scalar(
-                f"Loss/Validation/{self.loss_labels[i]}",
-                mean_loss_array[i],
-                examples_seen,
-            )
 
         validation_time = time.time() - start_time
         print(f"--Validation time: {(validation_time / 60):.4f} min")
