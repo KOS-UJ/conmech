@@ -63,10 +63,16 @@ def make_equation(jn, jt, h_functional):
             um_tangential = um - um_normal * normal_vector
 
             v_tau_0 = np.asarray(
-                [1 - normal_vector[0] * normal_vector[0], 0 - normal_vector[0] * normal_vector[1]]
+                [
+                    1 - normal_vector[0] * normal_vector[0],
+                    0 - normal_vector[0] * normal_vector[1],
+                ]
             )
             v_tau_1 = np.asarray(
-                [0 - normal_vector[0] * normal_vector[1], 1 - normal_vector[1] * normal_vector[1]]
+                [
+                    0 - normal_vector[0] * normal_vector[1],
+                    1 - normal_vector[1] * normal_vector[1],
+                ]
             )
 
             edge_len = nph.length(n_0, n_1)

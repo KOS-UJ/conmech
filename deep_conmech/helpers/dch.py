@@ -17,9 +17,7 @@ def print_pandas(data):
 
 
 def get_used_memory_gb():
-    return (
-            psutil.Process(os.getpid()).memory_info().rss / 1024 ** 3
-    )  # (b -> kb -> mb -> gb)
+    return psutil.Process(os.getpid()).memory_info().rss / 1024**3  # (b -> kb -> mb -> gb)
 
 
 def cuda_launch_blocking():
@@ -31,6 +29,6 @@ def set_memory_limit(config: TrainingConfig):
     rsrc = resource.RLIMIT_DATA
     soft, hard = resource.getrlimit(rsrc)
     new_limit_gb = config.TOTAL_MEMORY_LIMIT_GB
-    new_soft = int(new_limit_gb * 1024 ** 3)
+    new_soft = int(new_limit_gb * 1024**3)
     resource.setrlimit(rsrc, (new_soft, hard))
     print(f"Memory limit set to {new_limit_gb:.2f} GB")

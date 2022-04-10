@@ -11,13 +11,13 @@ from deep_conmech.training_config import TrainingConfig
 
 class SettingRandomized(SettingObstacles):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            body_prop: DynamicBodyProperties,
-            obstacle_prop: ObstacleProperties,
-            schedule: Schedule,
-            config: TrainingConfig,
-            create_in_subprocess,
+        self,
+        mesh_data: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        config: TrainingConfig,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -82,12 +82,10 @@ class SettingRandomized(SettingObstacles):
     @property
     def a_correction(self):
         u_correction = self.config.td.U_NOISE_GAMMA * (
-                self.u_old_randomization / (self.time_step ** 2)
+            self.u_old_randomization / (self.time_step**2)
         )
         v_correction = (
-                (1.0 - self.config.td.U_NOISE_GAMMA)
-                * self.v_old_randomization
-                / self.time_step
+            (1.0 - self.config.td.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 

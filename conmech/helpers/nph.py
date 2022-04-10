@@ -173,9 +173,7 @@ def get_random_uniform_circle_numba(dim, nodes_count, low, high):
     result = np.zeros((nodes_count, dim))
     for i in range(nodes_count):
         alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(
-            low + np.random.uniform(0, 1)  * (high - low)
-        )
+        r = np.abs(low + np.random.uniform(0, 1) * (high - low))
         result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
     return result
 

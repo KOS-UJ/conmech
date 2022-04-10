@@ -28,7 +28,10 @@ class ColorbarSettings:
 
 
 def get_t_scale(
-    scenario: Scenario, index_skip: int, plot_settings_count: int, all_settings_path: str
+    scenario: Scenario,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str,
 ):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
@@ -39,7 +42,9 @@ def get_t_scale(
     with settings_file:
         for step in range(plot_settings_count):
             setting = pkh.load_index_pickle(
-                index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+                index=step * index_skip,
+                all_indices=all_indices,
+                settings_file=settings_file,
             )
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
@@ -105,10 +110,16 @@ def make_animation(get_axs, plot_frame, t_scale):
         fig.clf()
         axs = get_axs(fig)
         setting = pkh.load_index_pickle(
-            index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+            index=step * index_skip,
+            all_indices=all_indices,
+            settings_file=settings_file,
         )
         plot_frame(
-            axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale
+            axs=axs,
+            fig=fig,
+            setting=setting,
+            current_time=step * time_skip,
+            t_scale=t_scale,
         )
         return fig
 
@@ -127,7 +138,9 @@ def plot_animation(
 ):
     fps = int(1 / time_skip)
     animation_tqdm = cmh.get_tqdm(
-        iterable=range(plot_settings_count + 1), config=config, desc="Generating animation"
+        iterable=range(plot_settings_count + 1),
+        config=config,
+        desc="Generating animation",
     )
 
     all_indices = pkh.get_all_indices_pickle(all_settings_path)

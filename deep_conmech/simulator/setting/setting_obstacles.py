@@ -9,9 +9,7 @@ from conmech.properties.schedule import Schedule
 from deep_conmech.simulator.setting.setting_forces import energy_new, SettingForces
 
 
-def get_penetration_norm_internal(
-        nodes, obstacle_nodes, obstacle_nodes_normals, dot=np.dot
-):
+def get_penetration_norm_internal(nodes, obstacle_nodes, obstacle_nodes_normals, dot=np.dot):
     projection = (-1) * dot((nodes - obstacle_nodes), obstacle_nodes_normals)
     return (projection > 0) * projection
 
@@ -26,32 +24,23 @@ get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
 
 
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
-    return hardness * 0.5 * (penetration_norm ** 2) * ((1.0 / time_step) ** 2)
+    return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
-obstacle_resistance_potential_normal_numba = numba.njit(
-    obstacle_resistance_potential_normal
-)
+obstacle_resistance_potential_normal_numba = numba.njit(obstacle_resistance_potential_normal)
 
 
 def obstacle_resistance_potential_tangential_internal(
-        penetration_norm,
-        tangential_velocity,
-        friction,
-        time_step,
-        norm=nph.euclidean_norm_numba,
+    penetration_norm,
+    tangential_velocity,
+    friction,
+    time_step,
+    norm=nph.euclidean_norm_numba,
 ):
-    return (
-            (penetration_norm > 0)
-            * friction
-            * norm(tangential_velocity)
-            * (1.0 / time_step)
-    )
+    return (penetration_norm > 0) * friction * norm(tangential_velocity) * (1.0 / time_step)
 
 
-def obstacle_resistance_potential_tangential(
-        penetration, tangential_velocity, friction, time_step
-):
+def obstacle_resistance_potential_tangential(penetration, tangential_velocity, friction, time_step):
     return obstacle_resistance_potential_tangential_internal(
         penetration,
         tangential_velocity,
@@ -67,25 +56,21 @@ obstacle_resistance_potential_tangential_numba = numba.njit(
 
 
 def integrate(
-        nodes,
-        nodes_normals,
-        obstacle_nodes,
-        obstacle_nodes_normals,
-        v,
-        nodes_volume,
-        hardness,
-        friction,
-        time_step,
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    hardness,
+    friction,
+    time_step,
 ):
-    penetration_norm = get_penetration_norm(
-        nodes, obstacle_nodes, obstacle_nodes_normals
-    )
+    penetration_norm = get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals)
 
     v_tangential = nph.get_tangential(v, nodes_normals)
 
-    resistance_normal = obstacle_resistance_potential_normal(
-        penetration_norm, hardness, time_step
-    )
+    resistance_normal = obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
     resistance_tangential = obstacle_resistance_potential_tangential(
         penetration_norm, v_tangential, friction, time_step
     )
@@ -95,15 +80,15 @@ def integrate(
 
 @numba.njit
 def integrate_numba(
-        nodes,
-        nodes_normals,
-        obstacle_nodes,
-        obstacle_nodes_normals,
-        v,
-        nodes_volume,
-        hardness,
-        friction,
-        time_step,
+    nodes,
+    nodes_normals,
+    obstacle_nodes,
+    obstacle_nodes_normals,
+    v,
+    nodes_volume,
+    hardness,
+    friction,
+    time_step,
 ):
     result = 0.0
     for i in range(len(nodes)):
@@ -125,17 +110,17 @@ def integrate_numba(
 
 
 def energy_obstacle(
-        a,
-        C,
-        E,
-        boundary_v_old,
-        boundary_nodes,
-        boundary_normals,
-        boundary_obstacle_nodes,
-        boundary_obstacle_normals,
-        surface_per_boundary_node: np.ndarray,
-        obstacle_prop: ObstacleProperties,
-        time_step: float,
+    a,
+    C,
+    E,
+    boundary_v_old,
+    boundary_nodes,
+    boundary_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    surface_per_boundary_node: np.ndarray,
+    obstacle_prop: ObstacleProperties,
+    time_step: float,
 ):
     value = energy_new(a, C, E)
 
@@ -175,13 +160,13 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 
 class SettingObstacles(SettingForces):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            body_prop: DynamicBodyProperties,
-            obstacle_prop: ObstacleProperties,
-            schedule: Schedule,
-            normalize_by_rotation: bool,
-            create_in_subprocess,
+        self,
+        mesh_data: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -209,9 +194,7 @@ class SettingObstacles(SettingForces):
     def normalize_and_set_obstacles(self, obstacles_unnormalized):
         self.obstacles = obstacles_unnormalized
         if obstacles_unnormalized is not None:
-            self.obstacles[0, ...] = nph.normalize_euclidean_numba(
-                self.obstacles[0, ...]
-            )
+            self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
 
     def get_normalized_energy_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
@@ -260,9 +243,7 @@ class SettingObstacles(SettingForces):
 
     @property
     def normalized_boundary_obstacle_nodes(self):
-        return self.normalize_rotate(
-            self.boundary_obstacle_nodes - self.mean_moved_nodes
-        )
+        return self.normalize_rotate(self.boundary_obstacle_nodes - self.mean_moved_nodes)
 
     @property
     def normalized_boundary_obstacle_normals(self):

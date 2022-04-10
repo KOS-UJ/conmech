@@ -13,12 +13,24 @@ from conmech.state.obstacle import Obstacle
 def main(mesh_density=3, final_time=5, plot_animation=True):
     config = Config(shell=False)
     obstacles = [
-        Obstacle(np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]), scenarios.default_obstacle_prop),
-        Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), ObstacleProperties(hardness=100.0, friction=5.0)),
-        Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), ObstacleProperties(hardness=10.0, friction=5.0)),
-        Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), ObstacleProperties(hardness=100.0, friction=0.5)),
+        Obstacle(
+            np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),
+            scenarios.default_obstacle_prop,
+        ),
+        Obstacle(
+            np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+            ObstacleProperties(hardness=100.0, friction=5.0),
+        ),
+        Obstacle(
+            np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+            ObstacleProperties(hardness=10.0, friction=5.0),
+        ),
+        Obstacle(
+            np.array([[[0.0, 1.0]], [[0.0, 0.0]]]),
+            ObstacleProperties(hardness=100.0, friction=0.5),
+        ),
         Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), scenarios.default_obstacle_prop),
-        ]
+    ]
     all_scenarios = [
         Scenario(
             name="circle_slide_roll",
@@ -91,7 +103,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,
-        config=config
+        config=config,
     )
 
 

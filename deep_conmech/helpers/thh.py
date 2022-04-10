@@ -1,6 +1,6 @@
-'''
+"""
 torch helpers
-'''
+"""
 import numpy as np
 import torch
 
@@ -44,7 +44,7 @@ def append_euclidean_norm(data):
 
 
 def euclidean_norm_torch(vector):
-    return torch.sqrt(torch.sum(vector ** 2, axis=-1))
+    return torch.sqrt(torch.sum(vector**2, axis=-1))
 
 
 def max_norm(data):

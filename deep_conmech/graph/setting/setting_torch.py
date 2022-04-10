@@ -7,13 +7,13 @@ from deep_conmech.helpers import thh
 
 class SettingTorch(SettingRandomized):
     def __init__(
-            self,
-            mesh_data,
-            body_prop,
-            obstacle_prop,
-            schedule,
-            config: Config,
-            create_in_subprocess,
+        self,
+        mesh_data,
+        body_prop,
+        obstacle_prop,
+        schedule,
+        config: Config,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,

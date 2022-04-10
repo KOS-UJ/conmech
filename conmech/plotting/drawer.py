@@ -28,12 +28,19 @@ class Drawer:
 
         if hasattr(self.state, "temperature"):
             temperature = np.concatenate(
-                (self.state.temperature[:], np.zeros(self.mesh.dirichlet_nodes_count))  # TODO #60
+                (
+                    self.state.temperature[:],
+                    np.zeros(self.mesh.dirichlet_nodes_count),
+                )  # TODO #60
             )
             self.draw_field(temperature, temp_min, temp_max, axes, fig)
 
         self.draw_mesh(
-            self.mesh.initial_nodes, axes, label="Original", node_color="0.6", edge_color="0.8"
+            self.mesh.initial_nodes,
+            axes,
+            label="Original",
+            node_color="0.6",
+            edge_color="0.8",
         )
 
         nodes = self.state.displaced_points
@@ -60,7 +67,12 @@ class Drawer:
         cmh.create_folders(directory)
         path = f"{directory}/{cmh.get_timestamp(self.config)}.{format_}"
         plt.savefig(
-            path, transparent=False, bbox_inches="tight", format=format_, pad_inches=0.1, dpi=800
+            path,
+            transparent=False,
+            bbox_inches="tight",
+            format=format_,
+            pad_inches=0.1,
+            dpi=800,
         )
         plt.close()
 
@@ -103,7 +115,14 @@ class Drawer:
 
         n_layers = 100
         axes.tricontourf(
-            x, y, self.mesh.elements, field, n_layers, cmap=plt.cm.magma, vmin=v_min, vmax=v_max
+            x,
+            y,
+            self.mesh.elements,
+            field,
+            n_layers,
+            cmap=plt.cm.magma,
+            vmin=v_min,
+            vmax=v_max,
         )
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])

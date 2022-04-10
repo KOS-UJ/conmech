@@ -39,7 +39,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * u_tau ** 2
+        return 0.1 * 0.5 * u_tau**2
 
 
 @dataclass()
@@ -64,9 +64,9 @@ class TDynamicSetup(Dynamic):
     @staticmethod
     def outer_forces(x):
         if x[0] == 0:
-            return np.array([48. * (0.25 - (x[1] - .5) ** 2), 0])
+            return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         if x[0] == 2.5:
-            return np.array([-48. * (0.25 - (x[1] - .5) ** 2), 0])
+            return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod
@@ -86,10 +86,14 @@ def main(show: bool = True, save: bool = False):
     setup = TDynamicSetup()
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(n_steps=32, output_step=range(0, 32, 4), verbose=True,
-                          initial_displacement=setup.initial_displacement,
-                          initial_velocity=setup.initial_velocity,
-                          initial_temperature=setup.initial_temperature)
+    states = runner.solve(
+        n_steps=32,
+        output_step=range(0, 32, 4),
+        verbose=True,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+        initial_temperature=setup.initial_temperature,
+    )
     T_max = -np.inf
     T_min = np.inf
     for state in states:
@@ -97,8 +101,9 @@ def main(show: bool = True, save: bool = False):
         T_min = min(T_min, np.min(state.temperature))
     config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(temp_max=T_max, temp_min=T_min, show=show,
-                                                save=save)
+        Drawer(state=state, config=config).draw(
+            temp_max=T_max, temp_min=T_min, show=show, save=save
+        )
 
 
 if __name__ == "__main__":
@@ -110,5 +115,5 @@ if __name__ == "__main__":
         default="show",
     )
     args = parser.parse_args()
-    save = args.mode == 'save'
+    save = args.mode == "save"
     main(show=not save, save=save)

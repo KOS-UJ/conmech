@@ -13,12 +13,7 @@ from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
-@pytest.fixture(
-    params=[  # TODO #28
-        "global optimization",
-        "schur"
-    ]
-)
+@pytest.fixture(params=["global optimization", "schur"])  # TODO #28
 def solving_method(request):
     return request.param
 
@@ -75,7 +70,7 @@ def generate_test_suits():
         [0.01987252, 0.0388462],
         [0.00722258, 0.01704675],
         [0.0, 0.0],
-        [0.0, 0.0]
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -104,7 +99,7 @@ def generate_test_suits():
         [0.16607859, -0.27796999],
         [0.10204931, -0.11029065],
         [0.0, 0.0],
-        [0.0, 0.0]
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
@@ -173,7 +168,7 @@ def generate_test_suits():
         [-0.24006106, 0.1695022],
         [-0.14068317, 0.07419011],
         [0.0, 0.0],
-        [0.0, 0.0]
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))
@@ -182,13 +177,13 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
-def test_global_optimization_solver(
-        solving_method, setup, expected_displacement_vector
-):
+def test_global_optimization_solver(solving_method, setup, expected_displacement_vector):
     runner = DynamicProblem(setup, solving_method)
-    results = runner.solve(n_steps=32,
-                           initial_displacement=setup.initial_displacement,
-                           initial_velocity=setup.initial_velocity)
+    results = runner.solve(
+        n_steps=32,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+    )
 
     displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)

@@ -106,7 +106,10 @@ def plot_frame(
         position[0] += shift
         if isinstance(setting, SettingTemperature):
             plot_temperature(
-                axes=axes, setting=setting, position=position, cbar_settings=cbar_settings
+                axes=axes,
+                setting=setting,
+                position=position,
+                cbar_settings=cbar_settings,
             )
 
         # draw_edges_data(setting, position, axes)

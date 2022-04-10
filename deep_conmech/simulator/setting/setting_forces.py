@@ -12,7 +12,12 @@ def energy_new(a, C, E):
 
 class SettingForces(Dynamics):
     def __init__(
-            self, mesh_data, body_prop, schedule, normalize_by_rotation: bool, create_in_subprocess,
+        self,
+        mesh_data,
+        body_prop,
+        schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -60,23 +65,23 @@ class SettingForces(Dynamics):
         )
 
     def get_E(
-            self,
-            forces,
-            u_old,
-            v_old,
-            const_volume,
-            elasticity,
-            viscosity,
-            time_step,
+        self,
+        forces,
+        u_old,
+        v_old,
+        const_volume,
+        elasticity,
+        viscosity,
+        time_step,
     ):
         u_old_vector = nph.stack_column(u_old)
         v_old_vector = nph.stack_column(v_old)
 
         F_vector = nph.stack_column(const_volume @ forces)
         E = (
-                F_vector
-                - (viscosity + elasticity * time_step) @ v_old_vector
-                - elasticity @ u_old_vector
+            F_vector
+            - (viscosity + elasticity * time_step) @ v_old_vector
+            - elasticity @ u_old_vector
         )
         return E
 

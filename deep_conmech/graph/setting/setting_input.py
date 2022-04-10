@@ -14,18 +14,18 @@ from deep_conmech.simulator.setting.setting_obstacles import energy_obstacle
 
 
 def energy_normalized_obstacle_correction(
-        cleaned_a,
-        a_correction,
-        C,
-        E,
-        boundary_v_old,
-        boundary_nodes,
-        boundary_normals,
-        boundary_obstacle_nodes,
-        boundary_obstacle_normals,
-        surface_per_boundary_node,
-        obstacle_prop,
-        time_step,
+    cleaned_a,
+    a_correction,
+    C,
+    E,
+    boundary_v_old,
+    boundary_nodes,
+    boundary_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    surface_per_boundary_node,
+    obstacle_prop,
+    time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
     return energy_obstacle(
@@ -46,13 +46,17 @@ def energy_normalized_obstacle_correction(
 @numba.njit
 def set_diff(data, position, row, i, j):
     vector = data[j] - data[i]
-    row[position: position + 2] = vector
+    row[position : position + 2] = vector
     row[position + 2] = np.linalg.norm(vector)
 
 
 @numba.njit  # (parallel=True)
 def get_edges_data(
-        edges, initial_nodes, u_old, v_old, forces,
+    edges,
+    initial_nodes,
+    u_old,
+    v_old,
+    forces,
 ):
     edges_number = edges.shape[0]
     edges_data = np.zeros((edges_number, 12))
@@ -68,16 +72,16 @@ def get_edges_data(
 
 
 def energy_obstacle_nvt(
-        boundary_a,
-        C_boundary,
-        E_boundary,
-        boundary_v_old,
-        boundary_nodes,
-        boundary_normals,
-        boundary_obstacle_nodes,
-        boundary_obstacle_normals,
-        surface_per_boundary_node,
-        config
+    boundary_a,
+    C_boundary,
+    E_boundary,
+    boundary_v_old,
+    boundary_nodes,
+    boundary_normals,
+    boundary_obstacle_nodes,
+    boundary_obstacle_normals,
+    surface_per_boundary_node,
+    config,
 ):  # np via torch
     value_torch = energy_normalized_obstacle_correction(
         thh.to_torch_double(boundary_a).to(thh.device(config)),
@@ -97,13 +101,13 @@ def energy_obstacle_nvt(
 
 class SettingInput(SettingTorch):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            body_prop: DynamicBodyProperties,
-            obstacle_prop: ObstacleProperties,
-            schedule: Schedule,
-            config: Config,
-            create_in_subprocess: bool,
+        self,
+        mesh_data: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        config: Config,
+        create_in_subprocess: bool,
     ):
         super().__init__(
             mesh_data=mesh_data,

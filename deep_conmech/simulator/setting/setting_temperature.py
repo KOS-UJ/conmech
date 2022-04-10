@@ -13,9 +13,7 @@ def obstacle_heat(
     heat_coeff,
 ):
     return (
-        (penetration_norm > 0)
-        * heat_coeff
-        * nph.euclidean_norm(tangential_velocity, keepdims=True)
+        (penetration_norm > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity, keepdims=True)
     )
 
 
@@ -68,9 +66,7 @@ class SettingTemperature(SettingObstacles):
         self.heat = None
 
     def get_normalized_energy_temperature_np(self, normalized_a):
-        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(
-            normalized_a
-        )
+        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_Q_np(normalized_a)
         return (
             lambda normalized_boundary_t_vector: energy_temperature(
                 nph.unstack(normalized_boundary_t_vector, 1),
@@ -114,9 +110,7 @@ class SettingTemperature(SettingObstacles):
             t_old=self.t_old,
             const_volume=self.volume,
             thermal_expansion=self.thermal_expansion,
-            U=self.acceleration_operator[
-                self.independent_indices, self.independent_indices
-            ],
+            U=self.acceleration_operator[self.independent_indices, self.independent_indices],
             dimension=self.dimension,
             time_step=self.time_step,
         )

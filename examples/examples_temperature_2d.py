@@ -3,13 +3,18 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (TemperatureScenario,
-                                         default_thermal_expansion_coefficients,
-                                         default_thermal_conductivity_coefficients,
-                                         default_temp_body_prop,
-                                         default_temp_obstacle_prop, f_rotate_fast,
-                                         get_temp_body_prop, M_CIRCLE, M_POLYGON,
-                                         M_RECTANGLE)
+from conmech.scenarios.scenarios import (
+    TemperatureScenario,
+    default_thermal_expansion_coefficients,
+    default_thermal_conductivity_coefficients,
+    default_temp_body_prop,
+    default_temp_obstacle_prop,
+    f_rotate_fast,
+    get_temp_body_prop,
+    M_CIRCLE,
+    M_POLYGON,
+    M_RECTANGLE,
+)
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
@@ -74,8 +79,12 @@ def get_K_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
-    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                 t: float):
+    def h_corner(
+        initial_node: np.ndarray,
+        moved_node: np.ndarray,
+        mesh_data: MeshProperties,
+        t: float,
+    ):
         x_scaled = initial_node[0] / mesh_data.scale_x
         y_scaled = initial_node[1] / mesh_data.scale_y
         if x_scaled < 0.1 and y_scaled < 0.1:
@@ -138,8 +147,7 @@ def get_friction_scenarios(mesh_density, final_time):
             scale=[1],
             mesh_density=[mesh_density],
         ),
-        body_prop=
-        get_temp_body_prop(
+        body_prop=get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array([[0.01, 0], [0, 0.01]]),
         ),

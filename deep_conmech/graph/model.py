@@ -49,11 +49,11 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-            self,
-            train_dataset,
-            all_val_datasets,
-            net: CustomGraphNet,
-            config: TrainingConfig,
+        self,
+        train_dataset,
+        all_val_datasets,
+        net: CustomGraphNet,
+        config: TrainingConfig,
     ):
         self.config = config
         self.all_val_datasets = all_val_datasets
@@ -71,15 +71,14 @@ class GraphModelDynamic:
 
         self.net = net
         self.optimizer = torch.optim.Adam(
-            self.net.parameters(), lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
+            self.net.parameters(),
+            lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            self.config.td.LR_GAMMA ** epoch,
+            self.config.td.LR_GAMMA**epoch,
             self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
         )
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(
-            self.optimizer, lr_lambda=lr_lambda
-        )
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
 
     @property
     def lr(self):
@@ -93,7 +92,7 @@ class GraphModelDynamic:
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
     def get_split(self, batch, index, dim, graph_sizes):
-        value = batch.x[:, index * dim: (index + 1) * dim]
+        value = batch.x[:, index * dim : (index + 1) * dim]
         value_split = value.split(graph_sizes)
         return value_split
 
@@ -130,9 +129,7 @@ class GraphModelDynamic:
                 last_save_time = time.time()
 
             if epoch_number % self.config.td.VALIDATE_AT_EPOCHS == 0:
-                self.validation_raport(
-                    examples_seen=examples_seen
-                )
+                self.validation_raport(examples_seen=examples_seen)
             if epoch_number % self.config.td.UPDATE_AT_EPOCHS == 0:
                 self.update_dataset()
 
@@ -160,9 +157,7 @@ class GraphModelDynamic:
         if not saved_model_paths:
             raise ArgumentError("No saved models")
 
-        newest_index = np.argmax(
-            np.array([get_index(path) for path in saved_model_paths])
-        )
+        newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
         path = saved_model_paths[newest_index]
 
         print(f"Taking saved model {path.split('/')[-1]}")
@@ -170,10 +165,10 @@ class GraphModelDynamic:
 
     @staticmethod
     def get_setting_function(
-            scenario: Scenario,
-            config: TrainingConfig,
-            randomize=False,
-            create_in_subprocess: bool = False,
+        scenario: Scenario,
+        config: TrainingConfig,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingInput:  # "SettingObstacles":
         setting = SettingInput(
             mesh_data=scenario.mesh_data,
@@ -215,7 +210,7 @@ class GraphModelDynamic:
 
         loss, loss_array_np, batch = self.E(batch)
         loss.backward()
-        if (self.config.td.GRADIENT_CLIP is not None):
+        if self.config.td.GRADIENT_CLIP is not None:
             self.clip_gradients(self.config.td.GRADIENT_CLIP)
         self.optimizer.step()
 
@@ -257,11 +252,15 @@ class GraphModelDynamic:
 
     def training_raport(self, loss_array, examples_seen):
         self.writer.add_scalar(
-            "Loss/Training/LearningRate", self.lr, examples_seen,
+            "Loss/Training/LearningRate",
+            self.lr,
+            examples_seen,
         )
         for i in range(len(loss_array)):
             self.writer.add_scalar(
-                f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
+                f"Loss/Training/{self.loss_labels[i]}",
+                loss_array[i],
+                examples_seen,
             )
 
     def validation_raport(self, examples_seen):
@@ -325,12 +324,10 @@ class GraphModelDynamic:
         normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
             boundary_nodes_counts
         )
-        normalized_boundary_obstacle_normals_split = batch.normalized_boundary_obstacle_normals.split(
-            boundary_nodes_counts
+        normalized_boundary_obstacle_normals_split = (
+            batch.normalized_boundary_obstacle_normals.split(boundary_nodes_counts)
         )
-        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(
-            boundary_nodes_counts
-        )
+        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(boundary_nodes_counts)
 
         if hasattr(batch, "exact_normalized_a"):
             exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
@@ -358,9 +355,7 @@ class GraphModelDynamic:
             )
 
             if test_using_true_solution:
-                predicted_normalized_a = self.use_true_solution(
-                    predicted_normalized_a, energy_args
-                )
+                predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
 
             predicted_normalized_energy = setting_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
@@ -382,9 +377,7 @@ class GraphModelDynamic:
                     (predicted_normalized_energy - exact_normalized_energy)
                     / torch.abs(exact_normalized_energy)
                 )
-                loss_array[2] += float(
-                    thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
-                )
+                loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
 
         loss /= batch.num_graphs
         loss_array /= batch.num_graphs
@@ -393,7 +386,8 @@ class GraphModelDynamic:
     def use_true_solution(self, predicted_normalized_a, energy_args):
         function = lambda normalized_a_vector: setting_input.energy_normalized_obstacle_correction(
             cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
-                self.net.device),
+                self.net.device
+            ),
             **energy_args,
         ).item()
 

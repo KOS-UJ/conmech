@@ -38,7 +38,7 @@ class Calculator:
             initial_vector,
             method="L-BFGS-B",
         ).x
-        '''
+        """
         return scipy.optimize.minimize(
             fun=function,
             x0=initial_vector,
@@ -47,8 +47,7 @@ class Calculator:
             options={"disp": True, "maxiter": len(initial_vector) * 1e5},
             tol=1e-12,
         ).x
-        '''
-
+        """
 
     @staticmethod
     def solve(setting: SettingRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:

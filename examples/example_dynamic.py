@@ -48,9 +48,13 @@ def main(show: bool = True, save: bool = False):
     setup = DynamicSetup()
     runner = DynamicProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True,
-                          initial_displacement=setup.initial_displacement,
-                          initial_velocity=setup.initial_velocity)
+    states = runner.solve(
+        n_steps=32,
+        output_step=(0, 32),
+        verbose=True,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+    )
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(show=show, save=save)

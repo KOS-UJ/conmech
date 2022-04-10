@@ -5,20 +5,23 @@ import numpy as np
 
 from conmech.helpers import cmh, pkh
 from conmech.scenarios.scenarios import Scenario
-from deep_conmech.data.base_dataset import BaseDataset, get_assigned_scenarios, \
-    is_memory_overflow
+from deep_conmech.data.base_dataset import (
+    BaseDataset,
+    get_assigned_scenarios,
+    is_memory_overflow,
+)
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
 class ScenariosDataset(BaseDataset):
     def __init__(
-            self,
-            description: str,
-            all_scenarios: List[Scenario],
-            solve_function: Callable,
-            load_to_ram: bool,
-            config: TrainingConfig,
+        self,
+        description: str,
+        all_scenarios: List[Scenario],
+        solve_function: Callable,
+        load_to_ram: bool,
+        config: TrainingConfig,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -49,12 +52,9 @@ class ScenariosDataset(BaseDataset):
     @property
     def data_size_id(self):
         return self.config.td.FINAL_TIME
-        
 
     def generate_data_process(self, num_workers, process_id):
-        assigned_scenarios = get_assigned_scenarios(
-            self.all_scenarios, num_workers, process_id
-        )
+        assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
         assigned_data_count = self.get_data_count(assigned_scenarios)
         start_index = process_id * assigned_data_count
         current_index = start_index
@@ -78,9 +78,9 @@ class ScenariosDataset(BaseDataset):
                     setting = self.get_setting_input(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
-                        config=self.config,
-                        step_tqdm=step_tqdm,
-                        tqdm_description=tqdm_description,
+                    config=self.config,
+                    step_tqdm=step_tqdm,
+                    tqdm_description=tqdm_description,
                 ):
                     return False
 
@@ -91,11 +91,16 @@ class ScenariosDataset(BaseDataset):
                 a, normalized_a = self.solve_function(setting)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
-                pkh.append_pickle(setting=setting, settings_file=settings_file,
-                                  file_meta=file_meta)  # exact_normalized_a_torch
+                pkh.append_pickle(
+                    setting=setting, settings_file=settings_file, file_meta=file_meta
+                )  # exact_normalized_a_torch
 
                 self.check_and_print(
-                    self.data_count, current_index, setting, step_tqdm, tqdm_description,
+                    self.data_count,
+                    current_index,
+                    setting,
+                    step_tqdm,
+                    tqdm_description,
                 )
 
                 # setting = setting.get_copy()

@@ -8,10 +8,14 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (M_POLYGON, Scenario,
-                                         default_body_prop,
-                                         default_obstacle_prop, f_rotate,
-                                         o_side)
+from conmech.scenarios.scenarios import (
+    M_POLYGON,
+    Scenario,
+    default_body_prop,
+    default_obstacle_prop,
+    f_rotate,
+    o_side,
+)
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
@@ -89,7 +93,7 @@ def simulate(config: Config, scenario) -> str:
         scenario=scenario,
         catalog="SAVE_TF",
         config=config,
-        save_all=True
+        save_all=True,
     )
     return data_path
 
@@ -99,8 +103,9 @@ def prepare_data(config: TrainingConfig, data_path: str):
     data_count = len(all_indices)
     settings_file = pkh.open_file_settings_read_pickle(data_path)
     with settings_file:
-        load_function = lambda index: pkh.load_index_pickle(index=index, all_indices=all_indices,
-                                                            settings_file=settings_file)
+        load_function = lambda index: pkh.load_index_pickle(
+            index=index, all_indices=all_indices, settings_file=settings_file
+        )
         base_setting = load_function(index=0)
         elements = base_setting.elements[np.newaxis, ...].astype("int32")
         initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
