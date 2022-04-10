@@ -9,14 +9,14 @@ class AbstractDynamicsFactory:
     def get_edges_features_matrix(self, elements, nodes) -> Tuple:
         raise NotImplementedError()
 
-    def calculate_constitutive_matrices(self, W, MU, LA):
+    def calculate_constitutive_matrices(self, W, mu, lambda_):
         raise NotImplementedError()
 
     def calculate_acceleration(self, U, density):
         raise NotImplementedError()
 
-    def calculate_thermal_expansion(self, V, C_coef):
+    def calculate_thermal_expansion(self, V, coeff):
         raise NotImplementedError()
 
-    def calculate_thermal_conductivity(self, W, K_coef):
+    def calculate_thermal_conductivity(self, W, coeff):
         raise NotImplementedError()

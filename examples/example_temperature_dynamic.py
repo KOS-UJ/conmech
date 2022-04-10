@@ -58,15 +58,15 @@ class TDynamicSetup(Dynamic):
         return np.asarray([0.25])
 
     @staticmethod
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([0.0, -1.0])
 
     @staticmethod
-    def outer_forces(x, y):
-        if x == 0:
-            return np.array([48. * (0.25 - (y - .5) ** 2), 0])
-        if x == 2.5:
-            return np.array([-48. * (0.25 - (y - .5) ** 2), 0])
+    def outer_forces(x):
+        if x[0] == 0:
+            return np.array([48. * (0.25 - (x[1] - .5) ** 2), 0])
+        if x[0] == 2.5:
+            return np.array([-48. * (0.25 - (x[1] - .5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod

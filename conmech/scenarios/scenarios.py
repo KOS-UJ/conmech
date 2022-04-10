@@ -1,39 +1,43 @@
-from typing import Callable, Optional, Union
+from typing import Callable, Union
 
 import numpy as np
-
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
-    DynamicBodyProperties, DynamicTemperatureBodyProperties)
+    DynamicBodyProperties,
+    DynamicTemperatureBodyProperties,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import (
-    ObstacleProperties, TemperatureObstacleProperties)
+    ObstacleProperties,
+    TemperatureObstacleProperties,
+)
 from conmech.properties.schedule import Schedule
 from conmech.solvers.calculator import Calculator
+from conmech.state.obstacle import Obstacle
 from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_temperature import \
-    SettingTemperature
+from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
 from deep_conmech.training_config import TrainingData
 
 
 class Scenario:
     def __init__(
-            self,
-            id: str,
-            mesh_data: MeshProperties,
-            body_prop: DynamicBodyProperties,
-            obstacle_prop: ObstacleProperties,
-            schedule: Schedule,
-            forces_function: Union[Callable[..., np.ndarray], np.ndarray],
-            obstacles: Optional[np.ndarray],
+        self,
+        name: str,
+        mesh_data: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        schedule: Schedule,
+        forces_function: Union[Callable[..., np.ndarray], np.ndarray],
+        obstacle: Obstacle,
     ):
-        self.id = id
+        self.name = name
         self.mesh_data = mesh_data
         self.body_prop = body_prop
-        self.obstacle_prop = obstacle_prop
+        self.obstacle_prop = obstacle.properties
         self.schedule = schedule
-        self.obstacles = None if obstacles is None else obstacles * mesh_data.scale_x
+        self.obstacles = (
+            None if obstacle.geometry is None else obstacle.geometry * mesh_data.scale_x
+        )
         self.forces_function = forces_function
 
     @staticmethod
@@ -54,15 +58,20 @@ class Scenario:
         return cmh.get_tqdm(
             iterable=range(self.schedule.episode_steps),
             config=config,
-            desc=f"{desc} {self.id}",
+            desc=f"{desc} {self.name}",
         )
 
-    def get_solve_function(self):
+    @staticmethod
+    def get_solve_function():
         return Calculator.solve
 
     def get_setting(
-            self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
+        self,
+        normalize_by_rotation=True,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingObstacles:
+        _ = randomize
         setting = SettingObstacles(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
@@ -89,36 +98,39 @@ class Scenario:
 
 class TemperatureScenario(Scenario):
     def __init__(
-            self,
-            id: str,
-            mesh_data: MeshProperties,
-            body_prop: DynamicTemperatureBodyProperties,
-            obstacle_prop: TemperatureObstacleProperties,
-            schedule: Schedule,
-            forces_function: Union[Callable, np.ndarray],
-            obstacles: Optional[np.ndarray],
-            heat_function: Union[Callable, np.ndarray],
+        self,
+        name: str,
+        mesh_data: MeshProperties,
+        body_prop: DynamicTemperatureBodyProperties,
+        schedule: Schedule,
+        forces_function: Union[Callable, np.ndarray],
+        obstacle: Obstacle,
+        heat_function: Union[Callable, np.ndarray],
     ):
         super().__init__(
-            id=id,
+            name=name,
             mesh_data=mesh_data,
             body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
             schedule=schedule,
             forces_function=forces_function,
-            obstacles=obstacles,
+            obstacle=obstacle,
         )
         self.heat_function = heat_function
 
     def get_heat_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.heat_function, setting, current_time)
 
-    def get_solve_function(self):
+    @staticmethod
+    def get_solve_function():
         return Calculator.solve_with_temperature
 
     def get_setting(
-            self, normalize_by_rotation=True, randomize=False, create_in_subprocess: bool = False
+        self,
+        normalize_by_rotation=True,
+        randomize=False,
+        create_in_subprocess: bool = False,
     ) -> SettingTemperature:
+        _ = randomize
         setting = SettingTemperature(
             mesh_data=self.mesh_data,
             body_prop=self.body_prop,
@@ -138,268 +150,325 @@ default_body_prop = DynamicBodyProperties(
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 
-default_C_coeff = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
-default_K_coeff = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+default_thermal_expansion_coefficients = np.array(
+    [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+)
+default_thermal_conductivity_coefficients = np.array(
+    [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+)
 default_temp_body_prop = DynamicTemperatureBodyProperties(
     mass_density=1.0,
     mu=4.0,
     lambda_=4.0,
     theta=4.0,
     zeta=4.0,
-    C_coeff=default_C_coeff,
-    K_coeff=default_K_coeff,
+    thermal_expansion=default_thermal_expansion_coefficients,
+    thermal_conductivity=default_thermal_conductivity_coefficients,
 )
 
 
-def get_temp_body_prop(C_coeff, K_coeff):
+def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
     return DynamicTemperatureBodyProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,
         theta=4.0,
         zeta=4.0,
-        C_coeff=C_coeff,
-        K_coeff=K_coeff,
+        thermal_expansion=thermal_expansion_coeff,
+        thermal_conductivity=thermal_conductivity_coeff,
     )
 
 
 default_obstacle_prop = ObstacleProperties(hardness=100.0, friction=5.0)
 default_temp_obstacle_prop = TemperatureObstacleProperties(hardness=100.0, friction=5.0, heat=0.01)
 
-m_rectangle = "pygmsh_rectangle"
-m_spline = "pygmsh_spline"
-m_circle = "pygmsh_circle"
-m_polygon = "pygmsh_polygon"
+M_RECTANGLE = "pygmsh_rectangle"
+M_SPLINE = "pygmsh_spline"
+M_CIRCLE = "pygmsh_circle"
+M_POLYGON = "pygmsh_polygon"
 
-m_cube_3d = "meshzoo_cube_3d"
-m_ball_3d = "meshzoo_ball_3d"
-m_polygon_3d = "pygmsh_polygon_3d"
-m_twist_3d = "pygmsh_twist_3d"
-
-o_front = np.array([[[-1.0, 0.0]], [[2.0, 0.0]]])
-o_back = np.array([[[1.0, 0.0]], [[-2.0, 0.0]]])
-o_slope = np.array([[[-1.0, -2.0]], [[4.0, 0.0]]])
-o_side = np.array([[[0.0, 1.0]], [[0.0, -3.0]]])
-o_two = np.array([[[-1.0, -2.0], [-1.0, 0.0]], [[2.0, 1.0], [3.0, 0.0]]])
-
-o_3d = np.array([[[-1.0, -1.0, 1.0]], [[2.0, 0.0, 0.0]]])
+M_CUBE_3D = "meshzoo_cube_3d"
+M_BALL_3D = "meshzoo_ball_3d"
+M_POLYGON_3D = "pygmsh_polygon_3d"
+M_TWIST_3D = "pygmsh_twist_3d"
 
 
-def f_fall(ip, mp, md, t):
+def f_fall(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([2.0, -1.0])
     return force
 
 
-def f_slide(ip, mp, md, t):
+def f_slide(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data
     force = np.array([0.0, 0.0])
-    if t <= 0.5:
+    if time <= 0.5:
         force = np.array([4.0, 0.0])
     return force
 
 
-def f_accelerate_fast(ip, mp, md, t):
+def f_accelerate_fast(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([2.0, 0.0])
     return force
 
 
-def f_accelerate_slow_right(ip, mp, md, t):
+def f_accelerate_slow_right(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([0.5, 0.0])
     return force
 
 
-def f_accelerate_slow_left(ip, mp, md, t):
+def f_accelerate_slow_left(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     force = np.array([-0.5, 0.0])
     return force
 
 
-def f_stay(ip, mp, md, t):
+def f_stay(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     return np.array([0.0, 0.0])
 
 
-def f_rotate(ip, mp, md, t):
-    if t <= 0.5:
-        y_scaled = ip[1] / md.scale_y
+def f_rotate(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node
+    if time <= 0.5:
+        y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([1.5, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_rotate_fast(ip, mp, md, t):
-    if t <= 0.5:
-        y_scaled = ip[1] / md.scale_y
+def f_rotate_fast(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node
+    if time <= 0.5:
+        y_scaled = initial_node[1] / mesh_data.scale_y
         return y_scaled * np.array([3.0, 0.0])
     return np.array([0.0, 0.0])
 
 
-def f_push_3d(ip, mp, md, t):
+def f_push_3d(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_data, time
     return np.array([1.0, 1.0, 1.0])
 
 
-def f_rotate_3d(ip, mp, md, t):
-    if t <= 0.5:
-        scale = ip[1] * ip[2]
+def f_rotate_3d(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_data: MeshProperties,
+    time: float,
+):
+    _ = moved_node, mesh_data
+    if time <= 0.5:
+        scale = initial_node[1] * initial_node[2]
         return scale * np.array([4.0, 0.0, 0.0])
     return np.array([0.0, 0.0, 0.0])
 
 
 def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("slope", default_obstacle_prop)
     return Scenario(
-        id=f"circle_slope{tag}",
+        name=f"circle_slope{tag}",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
         body_prop=default_body_prop,
-        obstacle_prop=default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
-        obstacles=o_slope,
+        obstacle=obstacle,
     )
 
 
 def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("front", default_obstacle_prop)
     return Scenario(
-        id=f"spline_right{tag}",
+        name=f"spline_right{tag}",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_spline,
+            mesh_type=M_SPLINE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
         body_prop=default_body_prop,
-        obstacle_prop=default_obstacle_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_right,
-        obstacles=o_front,
+        obstacle=obstacle,
     )
 
 
 def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("back", default_obstacle_prop)
     return Scenario(
-        f"circle_left{tag}",
-        MeshProperties(
+        name=f"circle_left{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
-        obstacles=o_back,
+        obstacle=obstacle,
     )
 
 
 def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("back", default_obstacle_prop)
+    obstacle.geometry *= scale
     return Scenario(
-        f"polygon_left{tag}",
-        MeshProperties(
+        name=f"polygon_left{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
-        obstacles=o_back * scale,
+        obstacle=obstacle,
     )
 
 
 def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("slope", default_obstacle_prop)
     return Scenario(
-        f"polygon_slope{tag}",
-        MeshProperties(
+        name=f"polygon_slope{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
-        obstacles=o_slope,
+        obstacle=obstacle,
     )
 
 
 def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("slide", default_obstacle_prop)
     return Scenario(
-        f"circle_rotate{tag}",
-        MeshProperties(
+        name=f"circle_rotate{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_circle,
+            mesh_type=M_CIRCLE,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
-        obstacles=o_side,
+        obstacle=obstacle,
     )
 
 
 def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
     return Scenario(
-        f"polygon_rotate{tag}",
-        MeshProperties(
+        name=f"polygon_rotate{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
-        obstacles=o_side,
+        obstacle=obstacle,
     )
 
 
 def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
     return Scenario(
-        f"polygon_stay{tag}",
-        MeshProperties(
+        name=f"polygon_stay{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_stay,
-        obstacles=o_side,
+        obstacle=obstacle,
     )
 
 
 def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle.get_obstacle("two", default_obstacle_prop)
     return Scenario(
-        f"polygon_two{tag}",
-        MeshProperties(
+        name=f"polygon_two{tag}",
+        mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=m_polygon,
+            mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
             is_adaptive=is_adaptive,
         ),
-        default_body_prop,
-        default_obstacle_prop,
+        body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
-        obstacles=o_two,
+        obstacle=obstacle,
     )
 
 
@@ -442,12 +511,6 @@ def all_validation(td: TrainingData):
 
 
 def all_print(td: TrainingData):
-    print_args = dict(
-        mesh_density=td.MESH_DENSITY,
-        scale=td.PRINT_SCALE,
-        is_adaptive=False,
-        final_time=td.FINAL_TIME,
-    )
     return [
         *get_valid_data(
             mesh_density=td.MESH_DENSITY,
@@ -461,6 +524,4 @@ def all_print(td: TrainingData):
             is_adaptive=False,
             final_time=td.FINAL_TIME,
         ),
-        # *get_data(scale=config.VALIDATION_SCALE, is_adaptive=False, final_time=config.FINAL_TIME),
-        # polygon_two(**print_args),
     ]

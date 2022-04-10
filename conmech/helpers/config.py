@@ -5,13 +5,13 @@ from datetime import datetime
 
 @dataclass
 class Config:
-    SHELL: bool = False
-    TIMESTAMP_SKIP = 10000
-    RUN_TIMESTEMP: float = int(time.time() * TIMESTAMP_SKIP)
-    CURRENT_TIME: str = datetime.now().strftime("%m.%d-%H.%M.%S")
+    shell: bool = False
+    timestamp_skip: int = 10000
+    run_timestamp: float = int(time.time() * timestamp_skip)
+    current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
-    NORMALIZE_ROTATE = True
+    normalize_rotate: bool = True
 
-    PRINT_SKIP = 0.1
+    print_skip: float = 0.1
 
-    PLOT_TESTS = False
+    plot_tests: bool = False

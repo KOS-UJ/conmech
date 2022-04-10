@@ -1,41 +1,67 @@
+from dataclasses import dataclass
 from typing import Callable
 
+import numba
 import numpy as np
-from numba import njit
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
-from conmech.properties.body_properties import (StaticBodyProperties,
-                                                TemperatureBodyProperties)
+from conmech.forces import Forces
+from conmech.properties.body_properties import (
+    StaticBodyProperties,
+    TemperatureBodyProperties,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from conmech.state.body_position import BodyPosition
 
 
-@njit
+@numba.njit
 def get_edges_features_list_numba(edges_number, edges_features_matrix):
     nodes_count = len(edges_features_matrix[0])
-    edges_features = np.zeros((edges_number + nodes_count, 8))  # , dtype=numba.double)
-    e = 0
+    edges_features = np.zeros((edges_number + nodes_count, 8))
+    edge_id = 0
     for i in range(nodes_count):
         for j in range(nodes_count):
             if np.any(edges_features_matrix[i, j]):
-                edges_features[e] = edges_features_matrix[i, j]
-                e += 1
+                edges_features[edge_id] = edges_features_matrix[i, j]
+                edge_id += 1
     return edges_features
+
+
+# TODO: #75
+@dataclass
+class SolverMatrices:
+    def __init__(self):
+        self.lhs: np.ndarray
+        # TODO: #75 move to schur (careful - some properties are used by net)
+        self.lhs_boundary: np.ndarray
+        self.free_x_contact: np.ndarray
+        self.contact_x_free: np.ndarray
+        self.free_x_free_inverted: np.ndarray
+
+        self.lhs_temperature: np.ndarray
+        # TODO: #75 move to schur (careful - some properties are used by net)
+        self.temperature_boundary: np.ndarray
+        self.temperature_free_x_contact: np.ndarray
+        self.temperature_contact_x_free: np.ndarray
+        self.temperature_free_x_free_inv: np.ndarray
 
 
 class Dynamics(BodyPosition):
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            body_prop: StaticBodyProperties,
-            schedule: Schedule,
-            normalize_by_rotation: bool,
-            is_dirichlet: Callable = (lambda _: False),
-            is_contact: Callable = (lambda _: True),
-            with_schur_complement_matrices: bool = True,
-            create_in_subprocess: bool = False,
+        self,
+        mesh_data: MeshProperties,
+        body_prop: StaticBodyProperties,
+        schedule: Schedule,
+        normalize_by_rotation: bool,
+        *,
+        inner_forces: Callable = (lambda _: 0),
+        outer_forces: Callable = (lambda _: 0),
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        with_schur_complement_matrices: bool = True,
+        create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_data=mesh_data,
@@ -49,38 +75,31 @@ class Dynamics(BodyPosition):
         self.with_schur_complement_matrices = with_schur_complement_matrices
 
         self.element_initial_volume: np.ndarray
-        self.const_volume: np.ndarray
-        self.ACC: np.ndarray
-        self.const_elasticity: np.ndarray
-        self.const_viscosity: np.ndarray
+        self.volume: np.ndarray
+        self.acceleration_operator: np.ndarray
+        self.elasticity: np.ndarray
+        self.viscosity: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
 
-        self.C: np.ndarray
-        self.C_boundary: np.ndarray
-        self.free_x_contact: np.ndarray
-        self.contact_x_free: np.ndarray
-        self.free_x_free_inverted: np.ndarray
+        self.solver_cache = SolverMatrices()
 
-        self.T: np.ndarray
-        self.T_boundary: np.ndarray
-        self.T_free_x_contact: np.ndarray
-        self.T_contact_x_free: np.ndarray
-        self.T_free_x_free_inverted: np.ndarray
+        # RHS
+        self.forces = Forces(self, inner_forces, outer_forces)
 
         self.reinitialize_matrices()
 
-    def remesh(self):
-        super().remesh()
+    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
+        super().remesh(is_dirichlet, is_contact, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
-            self.const_volume,
-            self.ACC,
-            self.const_elasticity,
-            self.const_viscosity,
+            self.volume,
+            self.acceleration_operator,
+            self.elasticity,
+            self.viscosity,
             self.thermal_expansion,
             self.thermal_conductivity,
         ) = get_dynamics(
@@ -91,18 +110,17 @@ class Dynamics(BodyPosition):
         )
 
         if self.with_schur_complement_matrices:
-            self.C = (
-                    self.ACC
-                    + (self.const_viscosity + self.const_elasticity * self.time_step)
-                    * self.time_step
+            self.solver_cache.lhs = (
+                self.acceleration_operator
+                + (self.viscosity + self.elasticity * self.time_step) * self.time_step
             )
             (
-                self.C_boundary,
-                self.free_x_contact,
-                self.contact_x_free,
-                self.free_x_free_inverted,
+                self.solver_cache.lhs_boundary,
+                self.solver_cache.free_x_contact,
+                self.solver_cache.contact_x_free,
+                self.solver_cache.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=self.C,
+                matrix=self.solver_cache.lhs,
                 dimension=self.dimension,
                 contact_indices=self.contact_indices,
                 free_indices=self.free_indices,
@@ -110,18 +128,22 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.T = (1 / self.time_step) * self.ACC[i, i] + self.thermal_conductivity[i, i]
+                self.solver_cache.lhs_temperature = (
+                    1 / self.time_step
+                ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
                 (
-                    self.T_boundary,
-                    self.T_free_x_contact,
-                    self.T_contact_x_free,
-                    self.T_free_x_free_inverted,
+                    self.solver_cache.temperature_boundary,
+                    self.solver_cache.temperature_free_x_contact,
+                    self.solver_cache.temperature_contact_x_free,
+                    self.solver_cache.temperature_free_x_free_inv,
                 ) = SchurComplement.calculate_schur_complement_matrices(
-                    matrix=self.T,
+                    matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,
                 )
+
+        self.forces.update_forces()
 
     @property
     def with_temperature(self):

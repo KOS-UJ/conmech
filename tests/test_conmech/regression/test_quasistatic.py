@@ -11,7 +11,7 @@ from conmech.scenarios.problems import Quasistatic
 from conmech.simulations.problem_solver import \
     Quasistatic as QuasistaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
-from tests.regression.std_boundary import standard_boundary_nodes
+from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
 @pytest.fixture(
@@ -41,11 +41,11 @@ def generate_test_suits():
         contact_law: ... = make_slope_contact_law(slope=1e1)
 
         @staticmethod
-        def inner_forces(x, y):
+        def inner_forces(x):
             return np.array([-0.2, -0.2])
 
         @staticmethod
-        def outer_forces(x, y):
+        def outer_forces(x):
             return np.array([0, 0])
 
         @staticmethod
@@ -86,7 +86,7 @@ def generate_test_suits():
     setup_0_02_p_0 = QuasistaticSetup()
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
 
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([0, 0.2])
 
     setup_0_02_p_0.inner_forces = inner_forces
@@ -115,7 +115,7 @@ def generate_test_suits():
     setup_0_m02_p_0 = QuasistaticSetup()
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
 
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
@@ -140,11 +140,11 @@ def generate_test_suits():
         contact_law: ... = make_slope_contact_law(slope=2.71)
 
         @staticmethod
-        def inner_forces(x, y):
+        def inner_forces(x):
             return np.array([0, -0.2])
 
         @staticmethod
-        def outer_forces(x, y):
+        def outer_forces(x):
             return np.array([0.3, 0.0])
 
         @staticmethod

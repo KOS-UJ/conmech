@@ -1,12 +1,12 @@
 import meshzoo
 import numpy as np
 import pygmsh
-
 from conmech.mesh import mesh_builders_helpers
 from conmech.properties.mesh_properties import MeshProperties
 
 
 def get_meshzoo_cube(mesh_data: MeshProperties):
+    # pylint: disable=no-member
     nodes, elements = meshzoo.cube_tetra(
         np.linspace(0.0, 1.0, mesh_data.mesh_density_x),
         np.linspace(0.0, 1.0, mesh_data.mesh_density_x),
@@ -16,6 +16,7 @@ def get_meshzoo_cube(mesh_data: MeshProperties):
 
 
 def get_meshzoo_ball(mesh_data: MeshProperties):
+    # pylint: disable=no-member
     nodes, elements = meshzoo.ball_tetra(mesh_data.mesh_density_x)
     return mesh_builders_helpers.normalize_nodes(nodes), elements
 
@@ -23,7 +24,12 @@ def get_meshzoo_ball(mesh_data: MeshProperties):
 def get_pygmsh_polygon(mesh_data: MeshProperties):
     with pygmsh.geo.Geometry() as geom:
         poly = geom.add_polygon(
-            [[0.0, 0.0], [1.0, -0.2], [1.1, 1.2], [0.1, 0.7], ]
+            [
+                [0.0, 0.0],
+                [1.0, -0.2],
+                [1.1, 1.2],
+                [0.1, 0.7],
+            ]
         )
         geom.extrude(poly, [0.0, 0.3, 1.0], num_layers=5)
 

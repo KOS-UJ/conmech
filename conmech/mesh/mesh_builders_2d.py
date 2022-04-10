@@ -3,11 +3,11 @@ from ctypes import ArgumentError
 import meshzoo
 import numpy as np
 import pygmsh
-
 from conmech.mesh import mesh_builders_helpers
 
 
 def get_meshzoo_rectangle(mesh_data):
+    # pylint: disable=no-member
     points, elements = meshzoo.rectangle_tri(
         np.linspace(0.0, mesh_data.scale_x, int(mesh_data.mesh_density_x) + 1),
         np.linspace(0.0, mesh_data.scale_y, int(mesh_data.mesh_density_y) + 1),
@@ -19,7 +19,7 @@ def get_meshzoo_rectangle(mesh_data):
 def get_pygmsh_elements_and_nodes(mesh_data):
     with pygmsh.geo.Geometry() as geom:
         if "rectangle" in mesh_data.mesh_type:
-            poly = geom.add_polygon(
+            geom.add_polygon(
                 [
                     [0.0, 0.0],
                     [0.0, mesh_data.scale_y],
@@ -31,7 +31,7 @@ def get_pygmsh_elements_and_nodes(mesh_data):
             geom.add_circle(
                 [mesh_data.scale_x / 2.0, mesh_data.scale_y / 2.0],
                 mesh_data.scale_x / 2.0,
-            )  # add elipsoid
+            )
         elif "polygon" in mesh_data.mesh_type:
             geom.add_polygon(
                 [
@@ -42,19 +42,18 @@ def get_pygmsh_elements_and_nodes(mesh_data):
                 ]
             )
         elif "spline" in mesh_data.mesh_type:
-            # lcar = 0.1
-            p1 = geom.add_point([0.0, 0.0])
-            p2 = geom.add_point([mesh_data.scale_x, 0.0])
-            p3 = geom.add_point([mesh_data.scale_x, mesh_data.scale_y / 2.0])
-            p4 = geom.add_point([mesh_data.scale_x, mesh_data.scale_y])
-            s1 = geom.add_bspline([p1, p2, p3, p4])
+            p_1 = geom.add_point([0.0, 0.0])
+            p_2 = geom.add_point([mesh_data.scale_x, 0.0])
+            p_3 = geom.add_point([mesh_data.scale_x, mesh_data.scale_y / 2.0])
+            p_4 = geom.add_point([mesh_data.scale_x, mesh_data.scale_y])
+            s_1 = geom.add_bspline([p_1, p_2, p_3, p_4])
 
-            p2 = geom.add_point([0.0, mesh_data.scale_y])
-            p3 = geom.add_point([mesh_data.scale_x / 2.0, mesh_data.scale_y])
-            s2 = geom.add_spline([p4, p3, p2, p1])
+            p_2 = geom.add_point([0.0, mesh_data.scale_y])
+            p_3 = geom.add_point([mesh_data.scale_x / 2.0, mesh_data.scale_y])
+            s_2 = geom.add_spline([p_4, p_3, p_2, p_1])
 
-            ll = geom.add_curve_loop([s1, s2])
-            pl = geom.add_plane_surface(ll)
+            curve_loop = geom.add_curve_loop([s_1, s_2])
+            geom.add_plane_surface(curve_loop)
 
         else:
             raise ArgumentError
@@ -64,4 +63,3 @@ def get_pygmsh_elements_and_nodes(mesh_data):
         # boundary_surfaces = geom_mesh.cells[0].data.astype("long").copy()
 
     return nodes, elements
-    # mesh.write("out.vtk")

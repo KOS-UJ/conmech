@@ -7,24 +7,23 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations.simulation_runner import run_scenario
+from conmech.state.obstacle import Obstacle
 
 
 def generate_test_suits():
+    obstacle = Obstacle(np.array([[[0.7, 1.0]], [[0.0, 0.1]]]), scenarios.default_obstacle_prop)
     scenario = Scenario(
-        id="circle_slide_roll",
+        name="circle_slide_roll",
         mesh_data=MeshProperties(
             dimension=2,
-            mesh_type=scenarios.m_circle,
+            mesh_type=scenarios.M_CIRCLE,
             scale=[1],
             mesh_density=[3],
         ),
         body_prop=scenarios.default_body_prop,
-        obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=0.2), #1.5),
+        schedule=Schedule(final_time=0.2),  # 1.5),
         forces_function=np.array([0.0, -0.5]),
-        obstacles=np.array(
-            [[[0.7, 1.0]], [[0.0, 0.1]]]
-        ),
+        obstacle=obstacle,
     )
     '''
     expected_boundary_nodes = [
@@ -44,20 +43,19 @@ def generate_test_suits():
     '''
 
     expected_boundary_nodes = [
-       [ 1.       ,  0.4895   ],
-       [ 0.25     ,  0.9225127],
-       [ 0.25     ,  0.0564873],
-       [ 0.9330127,  0.7395   ],
-       [ 0.75     ,  0.9225127],
-       [ 0.5      ,  0.9895   ],
-       [ 0.0669873,  0.7395   ],
-       [-0.       ,  0.4895   ],
-       [ 0.0669873,  0.2395   ],
-       [ 0.5      , -0.0105   ],
-       [ 0.75     ,  0.0564873],
-       [ 0.9330127,  0.2395   ]
+        [1., 0.4895],
+        [0.25, 0.9225127],
+        [0.25, 0.0564873],
+        [0.9330127, 0.7395],
+        [0.75, 0.9225127],
+        [0.5, 0.9895],
+        [0.0669873, 0.7395],
+        [-0., 0.4895],
+        [0.0669873, 0.2395],
+        [0.5, -0.0105],
+        [0.75, 0.0564873],
+        [0.9330127, 0.2395]
     ]
-
 
     yield scenario, expected_boundary_nodes
 
@@ -68,9 +66,9 @@ def test_simulation(scenario, expected_boundary_nodes):
     setting, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         scenario=scenario,
-        catalog=f"TEST_{scenario.id}",
+        catalog=f"TEST_{scenario.name}",
         simulate_dirty_data=False,
-        plot_animation=config.PLOT_TESTS,
+        plot_animation=config.plot_tests,
         config=config,
     )
 
@@ -78,4 +76,3 @@ def test_simulation(scenario, expected_boundary_nodes):
     np.testing.assert_array_almost_equal(
         setting.boundary_nodes, expected_boundary_nodes, decimal=3
     )
-    

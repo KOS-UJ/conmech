@@ -19,7 +19,7 @@ class ContactLaw:
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization
@@ -29,12 +29,10 @@ class ContactLaw:
 
 @dataclass()
 class Problem:
-    DIMENSION = 2
+    dimension = 2  # TODO #74 : Not used?
     grid_height: float
 
-    elements_number: Union[
-        Tuple[int, int], Tuple[int, int, int]
-    ]  # number of triangles per aside
+    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     mu_coef: float
     la_coef: float
@@ -46,11 +44,11 @@ class Problem:
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -68,11 +66,11 @@ class Problem:
 
 class Static(Problem):
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -98,11 +96,11 @@ class Quasistatic(Problem):
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -132,11 +130,11 @@ class Dynamic(Problem):
         return np.zeros_like(len(x))
 
     @staticmethod
-    def inner_forces(x: float, y: float) -> np.ndarray:
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: float, y: float) -> np.ndarray:
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod

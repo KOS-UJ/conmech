@@ -1,6 +1,9 @@
 # VSCode
 .vscode/*
 
+# PyCharm
+.idea/*
+
 *.tfrecord
 *.pkl
 *.json
