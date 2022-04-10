@@ -48,19 +48,19 @@ class SettingTorch(SettingRandomized):
 
     @property
     def const_volume_torch(self):
-        return thh.to_torch_double(self.const_volume)
+        return thh.to_torch_double(self.volume)
 
     @property
-    def const_elasticity_torch(self):
-        return thh.to_torch_double(self.const_elasticity)
+    def elasticity_torch(self):
+        return thh.to_torch_double(self.elasticity)
 
     @property
-    def const_viscosity_torch(self):
-        return thh.to_torch_double(self.const_viscosity)
+    def viscosity_torch(self):
+        return thh.to_torch_double(self.viscosity)
 
     @property
     def C_torch(self):
-        return thh.to_torch_double(self.C)
+        return thh.to_torch_double(self.lhs)
 
     @property
     def initial_nodes_torch(self):

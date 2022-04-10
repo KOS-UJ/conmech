@@ -2,15 +2,14 @@ from typing import Callable
 
 import numba
 import numpy as np
-from numba import njit
 
-import conmech.mesh.mesh_builders as mesh_builders
 from conmech.helpers import nph
-from conmech.mesh.boundaries_factory import BoundariesFactory, BoundariesData
+from conmech.mesh import mesh_builders
+from conmech.mesh.boundaries_factory import BoundariesFactory, Boundaries
 from conmech.properties.mesh_properties import MeshProperties
 
 
-@njit
+@numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
@@ -22,7 +21,7 @@ def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     return edges_matrix
 
 
-@njit
+@numba.njit
 def get_edges_list_numba(edges_matrix):
     nodes_count = edges_matrix.shape[0]
     edges = np.array(
@@ -36,7 +35,7 @@ def get_edges_list_numba(edges_matrix):
     return edges
 
 
-@njit
+@numba.njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
     index = 0
@@ -44,7 +43,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
         if index in elements:
             index += 1
         else:
-            nodes = np.vstack((nodes[:index], nodes[index + 1:]))
+            nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
                     if elements[i, j] > index:
@@ -53,7 +52,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
-@njit
+@numba.njit
 def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
@@ -71,7 +70,7 @@ def get_closest_to_axis_numba(nodes, variable):
     return np.array([min_error, indices[0], indices[1]])
 
 
-@njit
+@numba.njit
 def get_base_seed_indices_numba(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
@@ -85,21 +84,19 @@ def get_base_seed_indices_numba(nodes):
 
 class Mesh:
     def __init__(
-            self,
-            mesh_data: MeshProperties,
-            normalize_by_rotation: bool,
-            is_dirichlet: Callable = (lambda _: False),
-            is_contact: Callable = (lambda _: True),
-            create_in_subprocess: bool = False,
+        self,
+        mesh_data: MeshProperties,
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        create_in_subprocess: bool = False,
     ):
         self.mesh_data = mesh_data
-        self.normalize_by_rotation = normalize_by_rotation
 
         self.initial_nodes: np.ndarray
         self.elements: np.ndarray
         self.edges: np.ndarray
 
-        self.boundaries_data: BoundariesData
+        self.boundaries: Boundaries
 
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
@@ -111,14 +108,20 @@ class Mesh:
 
     def reinitialize_data(self, mesh_data, is_dirichlet, is_contact, create_in_subprocess):
         input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_data=mesh_data, create_in_subprocess=create_in_subprocess,
+            mesh_data=mesh_data,
+            create_in_subprocess=create_in_subprocess,
         )
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
 
-        self.initial_nodes, self.elements, self.boundaries_data = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-            unordered_nodes, unordered_elements, is_dirichlet, is_contact)
+        (
+            self.initial_nodes,
+            self.elements,
+            self.boundaries,
+        ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
+            unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        )
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
@@ -136,39 +139,39 @@ class Mesh:
 
     @property
     def boundary_surfaces(self):
-        return self.boundaries_data.boundary_surfaces
+        return self.boundaries.boundary_surfaces
 
     @property
     def contact_boundary(self):
-        return self.boundaries_data.contact_boundary
+        return self.boundaries.contact_boundary
 
     @property
     def neumann_boundary(self):
-        return self.boundaries_data.neumann_boundary
+        return self.boundaries.neumann_boundary
 
     @property
     def dirichlet_boundary(self):
-        return self.boundaries_data.dirichlet_boundary
+        return self.boundaries.dirichlet_boundary
 
     @property
     def boundary_internal_indices(self):
-        return self.boundaries_data.boundary_internal_indices
+        return self.boundaries.boundary_internal_indices
 
     @property
     def boundary_nodes_count(self):
-        return self.boundaries_data.boundary_nodes_count
+        return self.boundaries.boundary_nodes_count
 
     @property
     def contact_nodes_count(self):
-        return self.boundaries_data.contact_nodes_count
+        return self.boundaries.contact_nodes_count
 
     @property
     def dirichlet_nodes_count(self):
-        return self.boundaries_data.dirichlet_nodes_count
+        return self.boundaries.dirichlet_nodes_count
 
     @property
     def neumann_nodes_count(self):
-        return self.boundaries_data.neumann_nodes_count
+        return self.boundaries.neumann_nodes_count
 
     @property
     def independent_nodes_count(self):
@@ -176,7 +179,8 @@ class Mesh:
 
     @property
     def free_nodes_count(self):
-        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count  # TODO: #65 CHECK
+        # TODO: #65 CHECK
+        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count
 
     @property
     def boundary_indices(self):
@@ -188,7 +192,10 @@ class Mesh:
 
     @property
     def neumann_indices(self):
-        return slice(self.contact_nodes_count, self.contact_nodes_count + self.neumann_nodes_count)
+        return slice(
+            self.contact_nodes_count,
+            self.contact_nodes_count + self.neumann_nodes_count,
+        )
 
     @property
     def dirichlet_indices(self):

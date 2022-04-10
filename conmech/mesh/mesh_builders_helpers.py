@@ -1,12 +1,10 @@
+import numba
 import numpy as np
-from numba import njit
-
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.data.interpolation_helpers import \
-    interpolate_point_numba
+from deep_conmech.data.interpolation_helpers import interpolate_point_numba
 
 
-@njit
+@numba.njit
 def random_corner_mesh_size(mesh_density):
     scale = mesh_density * 0.8
     random_data = np.random.rand(4)
@@ -24,7 +22,8 @@ def set_mesh_size(geom, mesh_data: MeshProperties):
     if mesh_data.is_adaptive:
         corner_mesh_size = random_corner_mesh_size(mesh_data.mesh_density_x)
         callback = lambda dim, tag, x, y, z, *_: interpolate_point_numba(
-            np.array([x, y]), corner_mesh_size, mesh_data.scale_x, mesh_data.scale_y)
+            np.array([x, y]), corner_mesh_size, mesh_data.scale_x, mesh_data.scale_y
+        )
     else:
         callback = lambda dim, tag, x, y, z, *_: 1.0 / mesh_data.mesh_density_x
 

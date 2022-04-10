@@ -21,11 +21,11 @@ class StaticSetup(Static):
     contact_law: ... = make_slope_contact_law(slope=1)
 
     @staticmethod
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([-0.2, -0.2])
 
     @staticmethod
-    def outer_forces(x, y):
+    def outer_forces(x):
         return np.array([0, 0])
 
     @staticmethod

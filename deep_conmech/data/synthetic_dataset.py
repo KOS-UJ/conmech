@@ -12,6 +12,7 @@ from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
+
 def create_mesh_type():
     return interpolation_helpers.choose(
         ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]
@@ -120,6 +121,7 @@ class SyntheticDataset(BaseDataset):
 
 
     def generate_setting(self, index):
+        _ = index
         mesh_type = create_mesh_type()
         setting = get_base_setting(self.config, mesh_type)
         setting.set_randomization(False)  # TODO #65: Check
@@ -130,8 +132,8 @@ class SyntheticDataset(BaseDataset):
         v_old = create_v_old(self.config, setting)
 
         setting.normalize_and_set_obstacles(obstacles_unnormaized)
-        setting.set_u_old(u_old)
-        setting.set_v_old(v_old)
+        setting.set_displacement_old(u_old)
+        setting.set_velocity_old(v_old)
         setting.prepare(forces)
 
         add_label = False

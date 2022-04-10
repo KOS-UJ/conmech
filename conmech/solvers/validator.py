@@ -4,31 +4,31 @@ Created at 18.02.2021
 
 import numpy as np
 
-from conmech.solvers.solver_methods import make_f
+from conmech.solvers.solver_methods import make_equation
 
 
 class Validator:
     def __init__(self, solver, error_tolerance: float = 1):
         self.error_tolerance = error_tolerance
-        self.const_elasticity = solver.const_elasticity
-        self.forces = solver.forces
-        self.f = make_f(
+        self.elasticity = solver.elasticity
+        self.forces = solver.mesh.forces
+        self.rhs = make_equation(
             jn=solver.contact_law.subderivative_normal_direction,
             jt=solver.contact_law.regularized_subderivative_tangential_direction,
-            h=solver.friction_bound,
+            h_functional=solver.friction_bound,
         )
 
     def validate(self, state, solution) -> float:
         quality_inv = np.linalg.norm(
-            self.f(
+            self.rhs(
                 solution,
                 state.mesh.initial_nodes,
                 state.mesh.contact_boundary,
-                self.const_elasticity,
-                self.forces.F_vector
+                self.elasticity,
+                self.forces.forces_vector,
             )
         )
-        quality = quality_inv ** -1
+        quality = quality_inv**-1
         return quality
 
     def check_quality(self, state, solution, previous_quality: float = None) -> float:

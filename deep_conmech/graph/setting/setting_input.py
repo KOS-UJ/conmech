@@ -1,6 +1,6 @@
+import numba
 import numpy as np
 import torch
-from numba import njit
 from torch_geometric.data import Data
 
 from conmech.helpers.config import Config
@@ -43,14 +43,14 @@ def energy_normalized_obstacle_correction(
     )
 
 
-@njit
+@numba.njit
 def set_diff(data, position, row, i, j):
     vector = data[j] - data[i]
     row[position: position + 2] = vector
     row[position + 2] = np.linalg.norm(vector)
 
 
-@njit  # (parallel=True)
+@numba.njit  # (parallel=True)
 def get_edges_data(
         edges, initial_nodes, u_old, v_old, forces,
 ):
@@ -229,7 +229,7 @@ class SettingInput(SettingTorch):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         return energy_obstacle_nvt(
             nph.unstack(normalized_boundary_a_vector, self.dim),
-            self.C_boundary,
+            self.lhs_boundary,
             self.normalized_E_boundary,
             self.normalized_boundary_v_old,
             self.normalized_boundary_nodes,

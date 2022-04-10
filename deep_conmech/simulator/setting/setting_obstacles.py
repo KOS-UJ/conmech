@@ -220,7 +220,7 @@ class SettingObstacles(SettingForces):
         return (
             lambda normalized_boundary_a_vector: energy_obstacle(
                 a=nph.unstack(normalized_boundary_a_vector, self.dimension),
-                C=self.C_boundary,
+                C=self.solver_cache.lhs_boundary,
                 E=normalized_E_boundary,
                 boundary_v_old=self.normalized_boundary_v_old,
                 boundary_nodes=self.normalized_boundary_nodes,
@@ -294,11 +294,11 @@ class SettingObstacles(SettingForces):
 
     @property
     def boundary_v_old(self):
-        return self.v_old[self.boundary_indices]
+        return self.velocity_old[self.boundary_indices]
 
     @property
     def boundary_a_old(self):
-        return self.a_old[self.boundary_indices]
+        return self.acceleration_old[self.boundary_indices]
 
     @property
     def normalized_boundary_v_old(self):

@@ -24,7 +24,7 @@ class SettingRandomized(SettingObstacles):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=config.NORMALIZE_ROTATE,
+            normalize_by_rotation=config.normalize_rotate,
             create_in_subprocess=create_in_subprocess,
         )
         self.config = config
@@ -103,6 +103,6 @@ class SettingRandomized(SettingObstacles):
         self.u_old_randomization = np.zeros_like(self.initial_nodes)
         self.randomized_inputs = False
 
-    def iterate_self(self, a, randomized_inputs=False):
+    def iterate_self(self, acceleration, randomized_inputs=False):
         self.set_randomization(randomized_inputs)
-        super().iterate_self(a)
+        super().iterate_self(acceleration)

@@ -23,7 +23,7 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    writer = SummaryWriter(f"./log/{config.CURRENT_TIME}")
+    writer = SummaryWriter(f"./log/{config.current_time}")
     print("Logging data...")
 
     def pretty_json(value):
@@ -31,14 +31,14 @@ def get_and_init_writer(statistics: Optional[DatasetStatistics], config: Trainin
         json_str = json.dumps(dictionary, indent=2)
         return "".join("\t" + line for line in json_str.splitlines(True))
 
-    writer.add_text(f"{config.CURRENT_TIME}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
+    writer.add_text(f"{config.current_time}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
 
     if statistics is not None:
         edge_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.CURRENT_TIME}_EDGE_STATS.txt", edge_statistics_str, global_step=0)
+        writer.add_text(f"{config.current_time}_EDGE_STATS.txt", edge_statistics_str, global_step=0)
 
         node_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.CURRENT_TIME}_NODE_STATS.txt", node_statistics_str, global_step=0)
+        writer.add_text(f"{config.current_time}_NODE_STATS.txt", node_statistics_str, global_step=0)
 
     return writer
 
@@ -146,7 +146,7 @@ class GraphModelDynamic:
     def save_net(self):
         print("----SAVING----")
         timestamp = cmh.get_timestamp(self.config)
-        catalog = f"output/{self.config.CURRENT_TIME} - GRAPH MODELS"
+        catalog = f"output/{self.config.current_time} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
