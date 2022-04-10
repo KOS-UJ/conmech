@@ -11,22 +11,21 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "calculator"  # synthetic # calculator # live
+    DATASET: str = "synthetic"  # synthetic # calculator # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
 
-    
     FORCES_RANDOM_SCALE: int = 4
-    OBSTACLE_ORIGIN_SCALE: int = 10 * TRAIN_SCALE
+    OBSTACLE_ORIGIN_SCALE: float = 3.0 * TRAIN_SCALE
+    OBSTACLE_MIN_SCALE: float = 0.7 * TRAIN_SCALE
     U_RANDOM_SCALE: float = 0.2
     V_RANDOM_SCALE: float = 2.5
 
     ROTATE_VELOCITY_PROPORTION: float = 0.3
-    ZERO_FORCES_PROPORTION: float = 0.1
+    ZERO_FORCES_PROPORTION: float = 0.9
     CORNERS_SCALE_PROPORTION: float = 0.2
     ROTATE_SCALE_PROPORTION: float = 0.5
-
 
     U_NOISE_GAMMA: float = 0.1
     U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
@@ -39,7 +38,7 @@ class TrainingData:
     USE_ENERGY_AS_LOSS: bool = True  # !#
     BATCH_SIZE: int = 128  # !# 64 # 128
     VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 48 #96 # 32 !# 64 # 512
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # 96 # 32 !# 64 # 512
     SYNTHETIC_SOLVERS_COUNT: int = BATCH_SIZE * SYNTHETIC_BATCHES_IN_EPOCH
 
     USE_DATASET_STATS: bool = False
@@ -72,14 +71,14 @@ class TrainingConfig(Config):
     # print(numba.cuda.gpus)
 
     DATALOADER_WORKERS = 4
-    SYNTHETIC_GENERATION_WORKERS = 1 #2
+    SYNTHETIC_GENERATION_WORKERS = 1  # 2
 
-    
-    TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024 ** 3
+    TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024**3
     TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
-    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round((TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2)
+    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round(
+        (TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2
+    )
 
-    
     DATASET_IMAGES_COUNT: float = 100
 
     LOG_DATASET_STATS = True

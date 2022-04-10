@@ -68,10 +68,11 @@ def create_v_old(config, setting):
 
 
 def create_obstacles(config, setting):
-    obstacle_normals_unnormaized = nph.get_random_normal_circle_numba(
-        setting.dimension, 1, config.td.OBSTACLE_ORIGIN_SCALE
+    obstacle_origins_unnormaized = nph.get_random_uniform_circle_numba(
+        setting.dimension, 1, low=config.td.OBSTACLE_MIN_SCALE, high=config.td.OBSTACLE_ORIGIN_SCALE
     )
-    obstacle_origins = -obstacle_normals_unnormaized + setting.mean_moved_nodes
+    obstacle_origins = obstacle_origins_unnormaized + setting.mean_moved_nodes
+    obstacle_normals_unnormaized = -obstacle_origins_unnormaized
     return np.stack((obstacle_normals_unnormaized, obstacle_origins))
 
 

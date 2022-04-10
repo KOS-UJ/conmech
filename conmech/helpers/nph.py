@@ -42,7 +42,7 @@ def close_modulo(value, divider):
 
 
 def euclidean_norm(vector, keepdims=False):
-    data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
+    data = (vector**2).sum(axis=-1, keepdims=keepdims)
     if isinstance(data, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
@@ -52,7 +52,7 @@ def euclidean_norm(vector, keepdims=False):
 
 @njit
 def euclidean_norm_numba(vector):
-    data = (vector ** 2).sum(axis=-1)
+    data = (vector**2).sum(axis=-1)
     return np.sqrt(data)
 
 
@@ -172,6 +172,18 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     for i in range(nodes_count):
         alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
         r = np.abs(np.random.normal(loc=0.0, scale=randomization_scale * 0.5))
+        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
+    return result
+
+
+@njit
+def get_random_uniform_circle_numba(dim, nodes_count, low, high):
+    result = np.zeros((nodes_count, dim))
+    for i in range(nodes_count):
+        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
+        r = np.abs(
+            low + np.random.uniform(0, 1)  * (high - low)
+        )
         result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
     return result
 
