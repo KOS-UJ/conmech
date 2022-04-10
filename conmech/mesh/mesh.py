@@ -2,10 +2,9 @@ from typing import Callable
 
 import numba
 import numpy as np
-
 from conmech.helpers import nph
 from conmech.mesh import mesh_builders
-from conmech.mesh.boundaries_factory import BoundariesFactory, Boundaries
+from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 
 

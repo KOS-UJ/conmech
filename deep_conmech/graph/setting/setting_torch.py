@@ -31,14 +31,6 @@ class SettingTorch(SettingRandomized):
         return completed_data
 
     @property
-    def input_u_old_torch(self):
-        return thh.to_torch_double(self.input_u_old)
-
-    @property
-    def input_v_old_torch(self):
-        return thh.to_torch_double(self.input_v_old)
-
-    @property
     def input_forces_torch(self):
         return thh.to_torch_double(self.input_forces)
 
@@ -59,8 +51,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.viscosity)
 
     @property
-    def C_torch(self):
-        return thh.to_torch_double(self.lhs)
+    def lhs_torch(self):
+        return thh.to_torch_double(self.solver_cache.lhs)
 
     @property
     def initial_nodes_torch(self):

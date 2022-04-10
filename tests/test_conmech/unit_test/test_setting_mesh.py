@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.properties.mesh_properties import MeshProperties

@@ -1,7 +1,6 @@
 from typing import Optional
 
 import numpy as np
-
 from conmech.properties.obstacle_properties import ObstacleProperties
 
 

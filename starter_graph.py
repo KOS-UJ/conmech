@@ -86,8 +86,8 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
     )
     all_val_datasets.append(
         CalculatorDataset(
-            description="train",
-            all_scenarios=scenarios.all_train(config.td),
+            description="all",
+            all_scenarios=scenarios.all_train_and_validation(config.td),
             load_to_ram=False,
             config=config,
         )

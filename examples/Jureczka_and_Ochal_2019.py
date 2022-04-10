@@ -4,11 +4,9 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-
 from conmech.helpers.config import Config
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw
-from conmech.scenarios.problems import Static
+from conmech.scenarios.problems import ContactLaw, Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
 
 

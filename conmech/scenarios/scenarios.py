@@ -8,10 +8,7 @@ from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.obstacle_properties import (
-    ObstacleProperties,
-    TemperatureObstacleProperties,
-)
+from conmech.properties.obstacle_properties import ObstacleProperties, TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
@@ -401,7 +398,7 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("slide", default_obstacle_prop)
+    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
         mesh_data=MeshProperties(
@@ -508,6 +505,10 @@ def all_validation(td: TrainingData):
         is_adaptive=False,
         final_time=td.FINAL_TIME,
     )
+
+
+def all_train_and_validation(td: TrainingData):
+    return [*all_train(td), *all_validation(td)]
 
 
 def all_print(td: TrainingData):

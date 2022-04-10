@@ -3,12 +3,11 @@ from dataclasses import dataclass
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import animation
-from matplotlib.colors import ListedColormap
-
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
+from matplotlib import animation
+from matplotlib.colors import ListedColormap
 
 # TODO: #65 Move to config
 DPI = 800

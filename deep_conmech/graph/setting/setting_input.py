@@ -203,7 +203,7 @@ class SettingInput(SettingTorch):
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
             setting_index=setting_index,
             normalized_a_correction=self.normalized_a_correction_torch,
-            reshaped_C=self.C_torch.reshape(-1, 1),
+            reshaped_C=self.lhs_torch.reshape(-1, 1),
             normalized_E=self.get_normalized_E_torch(),
             exact_normalized_a=exact_normalized_a_torch,
             normalized_boundary_v_old=self.normalized_boundary_v_old_torch,

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import pytest
-
 from conmech.scenarios.problems import Static
 from conmech.simulations.problem_solver import Static as StaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law

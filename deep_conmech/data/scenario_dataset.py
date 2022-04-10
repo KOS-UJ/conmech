@@ -2,14 +2,9 @@ from ctypes import ArgumentError
 from typing import Callable, List
 
 import numpy as np
-
 from conmech.helpers import cmh, pkh
 from conmech.scenarios.scenarios import Scenario
-from deep_conmech.data.base_dataset import (
-    BaseDataset,
-    get_assigned_scenarios,
-    is_memory_overflow,
-)
+from deep_conmech.data.base_dataset import BaseDataset, get_assigned_scenarios, is_memory_overflow
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 

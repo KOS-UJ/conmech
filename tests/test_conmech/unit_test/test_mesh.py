@@ -4,11 +4,7 @@ Created at 12.02.2022
 
 import numpy as np
 import pytest
-
-from conmech.mesh.boundaries_factory import (
-    BoundariesFactory,
-    extract_boundary_paths_from_elements,
-)
+from conmech.mesh.boundaries_factory import BoundariesFactory, extract_boundary_paths_from_elements
 
 
 def test_identify_surfaces():

@@ -14,7 +14,6 @@ from conmech.scenarios.scenarios import (
     default_body_prop,
     default_obstacle_prop,
     f_rotate,
-    o_side,
 )
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator

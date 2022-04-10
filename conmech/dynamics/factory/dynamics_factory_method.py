@@ -1,5 +1,4 @@
 import numpy as np
-
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.properties.body_properties import (

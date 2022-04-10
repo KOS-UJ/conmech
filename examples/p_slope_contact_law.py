@@ -4,7 +4,6 @@ Example contact law
 from typing import Type
 
 import numpy as np
-
 from conmech.scenarios.problems import ContactLaw
 
 
