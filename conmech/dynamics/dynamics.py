@@ -101,6 +101,8 @@ class Dynamics(BodyPosition):
             self.viscosity,
             self.thermal_expansion,
             self.thermal_conductivity,
+            self.piezoelectricity,
+            self.permittivity,
         ) = get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,

@@ -21,6 +21,12 @@ class DynamicBodyProperties(StaticBodyProperties):
 
 
 @dataclass
+class PiezoelectricityBodyProperties:
+    piezoelectricity: np.ndarray
+    permittivity: np.ndarray
+
+
+@dataclass
 class TemperatureBodyProperties:
     thermal_expansion: np.ndarray
     thermal_conductivity: np.ndarray

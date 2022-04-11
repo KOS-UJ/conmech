@@ -69,3 +69,21 @@ class TemperatureState(State):
         copy.time = self.time
         copy.temperature[:] = self.temperature
         return copy
+
+
+class PiezoelectricState(State):
+    def __init__(self, grid):
+        super().__init__(grid)
+        self.electric_potential = np.zeros(self.mesh.independent_nodes_count)
+
+    def set_temperature(self, electric_vector: np.ndarray):
+        self.electric_potential = electric_vector
+
+    def __copy__(self) -> "PiezoelectricState":
+        copy = PiezoelectricState(self.mesh)
+        copy.displacement[:] = self.displacement
+        copy.displaced_points[:] = self.displaced_points
+        copy.velocity[:] = self.velocity
+        copy.time = self.time
+        copy.electric_potential[:] = self.electric_potential
+        return copy

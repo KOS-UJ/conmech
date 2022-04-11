@@ -5,6 +5,7 @@ from conmech.properties.body_properties import (
     DynamicBodyProperties,
     StaticBodyProperties,
     TemperatureBodyProperties,
+    PiezoelectricityBodyProperties,
 )
 
 
@@ -64,6 +65,13 @@ def get_dynamics(
         thermal_expansion = None
         thermal_conductivity = None
 
+    if isinstance(body_prop, PiezoelectricityBodyProperties):
+        piezoelectricity = factory.get_piezoelectric_tensor(W, body_prop.piezoelectricity)
+        permittivity = factory.get_permittivity_tensor(W, body_prop.permittivity)
+    else:
+        piezoelectricity = None
+        permittivity = None
+
     return (
         element_initial_volume,
         volume_at_nodes,
@@ -72,4 +80,6 @@ def get_dynamics(
         viscosity,
         thermal_expansion,
         thermal_conductivity,
+        piezoelectricity,
+        permittivity,
     )
