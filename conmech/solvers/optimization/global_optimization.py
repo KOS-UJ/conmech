@@ -5,11 +5,7 @@ Created 22.02.2021
 import numpy as np
 
 from conmech.dynamics.statement import (
-    StaticDisplacementStatement,
-    QuasistaticVelocityStatement,
-    DynamicVelocityStatement,
-    TemperatureStatement,
-    Variables, DynamicVelocityWithTemperatureStatement,
+    Variables,
 )
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -30,37 +26,11 @@ class Global(Optimization):
 
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
-    def __init__(self, statement, mesh, body_prop, time_step, contact_law, friction_bound):
-        super().__init__(
-            statement,
-            mesh,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
+    pass
 
 
 @Solvers.register("quasistatic", "global", "global optimization")
 class Quasistatic(Global):
-    def __init__(
-        self,
-        statement,
-        mesh,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
-    ):
-        super().__init__(
-            statement,
-            mesh,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
-
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(Variables(displacement=self.u_vector))
@@ -68,24 +38,6 @@ class Quasistatic(Global):
 
 @Solvers.register("dynamic", "global", "global optimization")
 class Dynamic(Global):
-    def __init__(
-        self,
-        statement,
-        mesh,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
-    ):
-        super().__init__(
-            statement,
-            mesh,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
-
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(

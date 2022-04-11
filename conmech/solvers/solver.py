@@ -47,5 +47,5 @@ class Solver:
         self.v_vector = velocity.reshape(-1)
         self.u_vector = self.u_vector + self.time_step * self.v_vector
 
-    def solve(self, initial_guess, **kwargs):
+    def solve(self, initial_guess, *, velocity: np.ndarray, **kwargs):
         raise NotImplementedError()

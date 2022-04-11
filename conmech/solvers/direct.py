@@ -5,7 +5,6 @@ Created at 18.02.2021
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticDisplacementStatement
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation

@@ -135,8 +135,8 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
 
     def get_permittivity_tensor(self, W, coeff):
         return (
-                coeff[0][0] * W[0, 0]
-                + coeff[0][1] * W[0, 1]
-                + coeff[1][0] * W[1, 0]
-                + coeff[1][1] * W[1, 1]
+            coeff[0][0] * W[0, 0]
+            + coeff[0][1] * W[0, 1]
+            + coeff[1][0] * W[1, 0]
+            + coeff[1][1] * W[1, 1]
         )
