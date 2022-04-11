@@ -30,11 +30,10 @@ class Global(Optimization):
 
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
-    def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
-        statement = StaticDisplacementStatement(mesh)
+    def __init__(self, statement, mesh, body_prop, time_step, contact_law, friction_bound):
         super().__init__(
-            mesh,
             statement,
+            mesh,
             body_prop,
             time_step,
             contact_law,
@@ -46,16 +45,16 @@ class Static(Global):
 class Quasistatic(Global):
     def __init__(
         self,
+        statement,
         mesh,
         body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
-        statement = QuasistaticVelocityStatement(mesh)
         super().__init__(
-            mesh,
             statement,
+            mesh,
             body_prop,
             time_step,
             contact_law,
@@ -71,50 +70,27 @@ class Quasistatic(Global):
 class Dynamic(Global):
     def __init__(
         self,
+        statement,
         mesh,
         body_prop,
         time_step,
         contact_law,
         friction_bound,
     ):
-        statement = DynamicVelocityWithTemperatureStatement(mesh)
-        self.temperature_statement = TemperatureStatement(mesh)
         super().__init__(
-            mesh,
             statement,
+            mesh,
             body_prop,
             time_step,
             contact_law,
             friction_bound,
         )
-        self.temperature_statement.update(
-            Variables(
-                velocity=self.v_vector,
-                temperature=self.t_vector,
-                time_step=self.time_step,
-            )
-        )
-
-    @property
-    def node_temperature(self):
-        return self.temperature_statement.left_hand_side
-
-    @property
-    def temper_rhs(self):
-        return self.temperature_statement.right_hand_side
 
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
-                velocity=self.v_vector,
-                temperature=self.t_vector,
-                time_step=self.time_step,
-            )
-        )
-        self.temperature_statement.update(
-            Variables(
                 velocity=self.v_vector,
                 temperature=self.t_vector,
                 time_step=self.time_step,

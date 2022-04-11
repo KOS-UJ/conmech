@@ -9,8 +9,8 @@ from conmech.dynamics.statement import Statement, Variables
 class Solver:
     def __init__(
         self,
-        mesh,
         statement,
+        mesh,
         body_prop,
         time_step,
         contact_law,

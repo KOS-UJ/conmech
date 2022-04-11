@@ -13,8 +13,9 @@ class Variables:
 
 
 class Statement:
-    def __init__(self, dynamics):
+    def __init__(self, dynamics, dimension):
         self.dynamics = dynamics
+        self.dimension = dimension
         self.left_hand_side = None
         self.right_hand_side = None
 
@@ -30,6 +31,9 @@ class Statement:
 
 
 class StaticDisplacementStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 2)
+
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.elasticity
 
@@ -38,6 +42,9 @@ class StaticDisplacementStatement(Statement):
 
 
 class QuasistaticVelocityStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 2)
+
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.viscosity
 
@@ -50,6 +57,9 @@ class QuasistaticVelocityStatement(Statement):
 
 
 class DynamicVelocityStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 2)
+
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
@@ -81,6 +91,9 @@ class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):
 
 
 class TemperatureStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 1)
+
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
@@ -105,6 +118,9 @@ class TemperatureStatement(Statement):
 
 
 class PiezoelectricStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 1)
+
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 

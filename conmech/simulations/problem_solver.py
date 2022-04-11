@@ -6,6 +6,8 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
+from conmech.dynamics.statement import StaticDisplacementStatement, QuasistaticVelocityStatement, \
+    DynamicVelocityStatement, DynamicVelocityWithTemperatureStatement, TemperatureStatement
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -82,6 +84,7 @@ class ProblemSolver:
 
         self.coordinates = "displacement" if isinstance(setup, StaticProblem) else "velocity"
         self.step_solver: Optional[Solver] = None
+        self.second_step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
         self.solving_method = solving_method
 
@@ -95,6 +98,7 @@ class ProblemSolver:
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
+            statement = StaticDisplacementStatement(self.mesh)
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
@@ -104,6 +108,10 @@ class ProblemSolver:
                 thermal_conductivity=self.thermal_conductivity,
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
+            if isinstance(self.setup, QuasistaticProblem):
+                statement = QuasistaticVelocityStatement(self.mesh)
+            else:
+                statement = DynamicVelocityWithTemperatureStatement(self.mesh)
             body_prop = DynamicTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
@@ -118,12 +126,24 @@ class ProblemSolver:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
         self.step_solver = solver_class(
+            statement,
             self.body,
             body_prop,
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,
         )
+        if isinstance(self.setup, DynamicProblem) and hasattr(self.setup.contact_law, "h_temp"):
+            self.second_step_solver = solver_class(
+                TemperatureStatement(self.mesh),
+                self.mesh,
+                body_prop,
+                time_step,
+                self.setup.contact_law,
+                self.setup.friction_bound,
+            )
+        else:
+            self.second_step_solver = None
         self.validator = Validator(self.step_solver)
 
     def solve(self, **kwargs):
@@ -140,11 +160,11 @@ class ProblemSolver:
             self.step_solver.current_time += self.step_solver.time_step
 
             solution = self.find_solution(
-                self.step_solver,
                 state,
                 solution,
                 self.validator,
                 verbose=verbose,
+                velocity=solution,
                 **kwargs,
             )
 
@@ -161,18 +181,20 @@ class ProblemSolver:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
     def find_solution(
-        self, solver, state, solution, validator, *, verbose=False, **kwargs
+        self, state, solution, validator, *, verbose=False, **kwargs
     ) -> np.ndarray:  # TODO
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        solution = solver.solve(solution, **kwargs)
-        solver.iterate(solution)
+        solution = self.step_solver.solve(solution, **kwargs)
+        self.step_solver.iterate(solution)
+        if self.second_step_solver is not None:
+            self.second_step_solver.iterate(solution)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(
-        self, solver, state, solution, solution_t, *, verbose=False
+        self, state, solution, solution_t, *, verbose=False
     ) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
@@ -181,15 +203,16 @@ class ProblemSolver:
         while norm > 1e-3 and bool(fuse):
             fuse -= 1
             solution = self.find_solution(
-                solver,
                 state,
                 solution,
                 self.validator,
                 temperature=solution_t,
                 verbose=verbose,
+                velocity=solution
             )
-            solution_t = solver.solve_t(solution_t, solution)
-            solver.t_vector = solution_t
+            solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
+            self.step_solver.t_vector = solution_t
+            self.second_step_solver.t_vector = solution_t
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
@@ -416,16 +439,21 @@ class TDynamic(ProblemSolver):
         self.step_solver.v_vector[:] = state.velocity.ravel().copy()
         self.step_solver.t_vector[:] = state.temperature.ravel().copy()
 
+        self.second_step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.second_step_solver.v_vector[:] = state.velocity.ravel().copy()
+        self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
+
         output_step = np.diff(output_step)
         results = []
         for n in output_step:
             for _ in range(n):
                 self.step_solver.current_time += self.step_solver.time_step
+                self.second_step_solver.current_time += self.second_step_solver.time_step
 
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
                 solution, solution_t = self.find_solution_uzawa(
-                    self.step_solver, state, solution, solution_t, verbose=verbose
+                    state, solution, solution_t, verbose=verbose
                 )
 
                 if self.coordinates == "velocity":

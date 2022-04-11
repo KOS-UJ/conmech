@@ -43,7 +43,7 @@ class StaticSetup(Static):
 
 def main(show: bool = True, save: bool = False):
     setup = StaticSetup()
-    runner = StaticProblemSolver(setup, "direct")
+    runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
     config = Config()

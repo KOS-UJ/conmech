@@ -15,6 +15,7 @@ from conmech.solvers.solver_methods import make_equation
 class Direct(Solver):
     def __init__(
         self,
+        statement,
         mesh,
         body_prop,
         time_step,
@@ -22,8 +23,8 @@ class Direct(Solver):
         friction_bound,
     ):
         super().__init__(
+            statement,
             mesh,
-            StaticDisplacementStatement(mesh),
             body_prop,
             time_step,
             contact_law,
