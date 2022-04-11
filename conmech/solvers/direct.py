@@ -5,7 +5,7 @@ Created at 18.02.2021
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticStatement
+from conmech.dynamics.statement import StaticDisplacementStatement
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
@@ -23,7 +23,7 @@ class Direct(Solver):
     ):
         super().__init__(
             mesh,
-            StaticStatement(mesh),
+            StaticDisplacementStatement(mesh),
             body_prop,
             time_step,
             contact_law,

@@ -5,11 +5,11 @@ Created 22.02.2021
 import numpy as np
 
 from conmech.dynamics.statement import (
-    StaticStatement,
-    QuasistaticStatement,
-    DynamicStatement,
+    StaticDisplacementStatement,
+    QuasistaticVelocityStatement,
+    DynamicVelocityStatement,
     TemperatureStatement,
-    Variables,
+    Variables, DynamicVelocityWithTemperatureStatement,
 )
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
@@ -31,10 +31,10 @@ class Global(Optimization):
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
     def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
-        self.statement = StaticStatement(mesh)
+        statement = StaticDisplacementStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            statement,
             body_prop,
             time_step,
             contact_law,
@@ -52,10 +52,10 @@ class Quasistatic(Global):
         contact_law,
         friction_bound,
     ):
-        self.statement = QuasistaticStatement(mesh)
+        statement = QuasistaticVelocityStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            statement,
             body_prop,
             time_step,
             contact_law,
@@ -77,11 +77,11 @@ class Dynamic(Global):
         contact_law,
         friction_bound,
     ):
-        self.statement = DynamicStatement(mesh)
+        statement = DynamicVelocityWithTemperatureStatement(mesh)
         self.temperature_statement = TemperatureStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            statement,
             body_prop,
             time_step,
             contact_law,

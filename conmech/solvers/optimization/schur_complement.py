@@ -5,11 +5,12 @@ import math
 import numpy as np
 
 from conmech.dynamics.statement import (
-    StaticStatement,
-    QuasistaticStatement,
-    DynamicStatement,
+    StaticDisplacementStatement,
+    QuasistaticVelocityStatement,
+    DynamicVelocityStatement,
     TemperatureStatement,
     Variables,
+    DynamicVelocityWithTemperatureStatement,
 )
 from conmech.helpers import nph
 from conmech.solvers._solvers import Solvers
@@ -154,10 +155,9 @@ class SchurComplement(Optimization):
 @Solvers.register("static", "schur", "schur complement", "schur complement method")
 class Static(SchurComplement):
     def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
-        self.statement = StaticStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            StaticDisplacementStatement(mesh),
             body_prop,
             time_step,
             contact_law,
@@ -175,10 +175,9 @@ class Quasistatic(SchurComplement):
         contact_law,
         friction_bound,
     ):
-        self.statement = QuasistaticStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            QuasistaticVelocityStatement(mesh),
             body_prop,
             time_step,
             contact_law,
@@ -201,11 +200,10 @@ class Dynamic(SchurComplement):
         contact_law,
         friction_bound,
     ):
-        self.statement = DynamicStatement(mesh)
         self.temperature_statement = TemperatureStatement(mesh)
         super().__init__(
             mesh,
-            self.statement,
+            DynamicVelocityWithTemperatureStatement(mesh),
             body_prop,
             time_step,
             contact_law,
@@ -256,9 +254,9 @@ class Dynamic(SchurComplement):
     #     state.set_velocity(velocity_vector=velocity)
 
     def solve_t(self, initial_guess, velocity) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_nodes(velocity)
+        # TODO truncated_initial_guess = self.truncate_free_nodes(velocity)
         truncated_temperature = initial_guess[self.contact_ids]
-        solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])
+        solution_contact = super().solve_t(truncated_temperature, velocity)  # TODO truncated_initial_guess[0]
 
         _solution_free = self.temper_free_x_contact @ solution_contact
         _solution_free = self.temper_rhs_free - _solution_free
