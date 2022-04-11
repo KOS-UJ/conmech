@@ -1,5 +1,6 @@
 # VSCode
 .vscode/*
+.isort.cfg
 
 # PyCharm
 .idea/*
