@@ -2,13 +2,14 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import collections
+from matplotlib.patches import Rectangle
+
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import make_animation
 from deep_conmech.graph.setting.setting_randomized import SettingRandomized
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
-from matplotlib import collections
-from matplotlib.patches import Rectangle
 
 
 def get_fig():

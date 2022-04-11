@@ -11,7 +11,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "calculator"  # synthetic # calculator # live
+    DATASET: str = "synthetic"  # synthetic # calculator # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = False  # True
@@ -32,7 +32,7 @@ class TrainingData:
     V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
 
     SAVE_AT_MINUTES: int = 10
-    VALIDATE_AT_EPOCHS: int = 20
+    VALIDATE_AT_EPOCHS: int = 10
     UPDATE_AT_EPOCHS: int = 100
 
     USE_ENERGY_AS_LOSS: bool = True  # !#
@@ -57,7 +57,7 @@ class TrainingData:
 
     LATENT_DIM: int = 128
     ENC_LAYER_COUNT: int = 2
-    PROC_LAYER_COUNT: int = 0
+    PROC_LAYER_COUNT: int = 1
     DEC_LAYER_COUNT: int = 2
     MESSAGE_PASSES: int = 8  # 5 # 10
 

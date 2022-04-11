@@ -125,7 +125,7 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return self.data_count
+        return f"s:{self.data_count}"
 
     def generate_setting(self, index):
         _ = index

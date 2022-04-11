@@ -2,11 +2,12 @@ from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import make_animation
 from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 def get_fig():

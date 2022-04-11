@@ -196,7 +196,7 @@ class BaseDataset:
     @property
     def data_id(self):
         td = self.config.td
-        return f"{self.description}_m:{td.MESH_DENSITY}_s:{self.data_size_id}_a:{td.ADAPTIVE_TRAINING_MESH}"
+        return f"{self.description}_m:{td.MESH_DENSITY}_{self.data_size_id}_a:{td.ADAPTIVE_TRAINING_MESH}"
 
     @property
     def main_directory(self):

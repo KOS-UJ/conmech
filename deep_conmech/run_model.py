@@ -64,6 +64,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
         train_dataset = CalculatorDataset(
             description="train",
             all_scenarios=scenarios.all_train(config.td),
+            skip_index=1,
             load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
             config=config,
         )
@@ -80,6 +81,7 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
         CalculatorDataset(
             description="val",
             all_scenarios=scenarios.all_validation(config.td),
+            skip_index=5,
             load_to_ram=False,
             config=config,
         )
@@ -88,13 +90,14 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
         CalculatorDataset(
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
+            skip_index=5,
             load_to_ram=False,
             config=config,
         )
     )
-    all_val_datasets.append(
-        SyntheticDataset(description="train", dimension=2, load_to_ram=False, config=config)
-    )
+    # all_val_datasets.append(
+    #    SyntheticDataset(description="train", dimension=2, load_to_ram=False, config=config)
+    # )
     return all_val_datasets
 
 
@@ -107,6 +110,7 @@ def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
 def main(args: Namespace):
     print(f"MODE: {args.mode}")
     device = thh.get_device_id()
+    # dch.cuda_launch_blocking()
     config = TrainingConfig(shell=args.shell, DEVICE=device)
     dch.set_memory_limit(config=config)
     print(f"Running using {config.DEVICE}")

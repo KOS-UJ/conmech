@@ -11,12 +11,14 @@ class CalculatorDataset(ScenariosDataset):
         self,
         description: str,
         all_scenarios: List[Scenario],
+        skip_index: int,
         load_to_ram: bool,
         config: TrainingConfig,
     ):
         super().__init__(
             description=f"{description}_calculator",
             all_scenarios=all_scenarios,
+            skip_index=skip_index,
             solve_function=Calculator.solve_all,
             load_to_ram=load_to_ram,
             config=config,

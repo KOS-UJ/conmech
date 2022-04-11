@@ -8,6 +8,7 @@ Created at 21.08.2019
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
