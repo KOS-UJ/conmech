@@ -19,7 +19,7 @@ class TrainingData:
 
     FORCES_RANDOM_SCALE: int = 4
     OBSTACLE_ORIGIN_SCALE: float = 2.0 * TRAIN_SCALE
-    OBSTACLE_MIN_SCALE: float = 0.7 * TRAIN_SCALE
+    OBSTACLE_MIN_SCALE: float = 0.3 * TRAIN_SCALE
     U_RANDOM_SCALE: float = 0.2
     V_RANDOM_SCALE: float = 2.5
 
