@@ -6,7 +6,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
-from conmech.simulations.simulation_runner import run_scenario
+from conmech.simulations.simulation_runner import RunScenarioConfig, run_scenario
 from conmech.state.obstacle import Obstacle
 
 
@@ -67,11 +67,13 @@ def test_simulation(scenario, expected_boundary_nodes):
     config = Config()
     setting, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
-        scenario=scenario,
-        catalog=f"TEST_{scenario.name}",
-        simulate_dirty_data=False,
-        plot_animation=config.plot_tests,
         config=config,
+        scenario=scenario,
+        run_config=RunScenarioConfig(
+            catalog=f"TEST_{scenario.name}",
+            simulate_dirty_data=False,
+            plot_animation=config.plot_tests,
+        ),
     )
 
     np.set_printoptions(precision=8, suppress=True)

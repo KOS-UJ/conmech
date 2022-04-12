@@ -7,8 +7,9 @@ from matplotlib.patches import Rectangle
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
-from conmech.plotting.plotter_common import make_animation
+from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.simulator.setting.scene import Scene
 from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
@@ -44,13 +45,15 @@ def plot_animation(
     plotter_common.plot_animation(
         animate=animate,
         fig=get_fig(),
-        save_path=save_path,
         config=config,
-        time_skip=time_skip,
-        index_skip=index_skip,
-        plot_settings_count=plot_settings_count,
-        all_settings_path=all_settings_path,
-        all_calc_settings_path=all_calc_settings_path,
+        plot_config=PlotAnimationConfig(
+            save_path=save_path,
+            time_skip=time_skip,
+            index_skip=index_skip,
+            plot_settings_count=plot_settings_count,
+            all_settings_path=all_settings_path,
+            all_calc_settings_path=all_calc_settings_path,
+        ),
     )
 
 
@@ -84,9 +87,8 @@ def plot_frame(
     draw_forces(setting, position, axes=axes)
     if draw_detailed:  # detailed:
         position[0] += shift
-        if setting.obstacles is not None:
-            draw_obstacle_resistance_normalized(setting, position, axes=axes)
-            position[0] += shift
+        draw_obstacle_resistance_normalized(setting, position, axes=axes)
+        position[0] += shift
         # draw_boundary_surfaces_normals(setting, position, axes)
         # position[0] += shift
         # draw_boundary_normals(setting, position, axes)
@@ -152,6 +154,9 @@ def draw_main_temperature(axes, setting, cbar_settings):
 
 
 def draw_obstacles(obstacle_nodes, obstacle_nodes_normals, position, color, axes):
+    if len(obstacle_nodes) == 0:
+        return
+
     obstacles_tangient = np.hstack(
         (-obstacle_nodes_normals[:, 1, None], obstacle_nodes_normals[:, 0, None])
     )
@@ -190,7 +195,9 @@ def plot_arrows(starts, vectors, axes):
 
 
 def draw_main_obstacles(setting, axes):
-    draw_obstacles(setting.obstacle_nodes, setting.obstacle_nodes_normals, [0, 0], "orange", axes)
+    draw_obstacles(
+        setting.linear_obstacle_nodes, setting.linear_obstacle_nodes_normals, [0, 0], "orange", axes
+    )
 
 
 def draw_normalized_obstacles(setting, position, axes):
@@ -268,30 +275,24 @@ def draw_rectangle(axes, position, scale_x, scale_y):
     )
 
 
-def draw_main_displaced(setting, axes):
+def draw_main_displaced(scene: Scene, axes):
     position = np.array([0.0, 0.0])
-    draw_displaced(setting, position, "orange", axes)
-    if setting.obstacles is not None:
-        draw_obstacles(
-            setting.obstacle_nodes,
-            setting.obstacle_nodes_normals,
-            position,
-            "orange",
-            axes,
-        )
+    draw_displaced(scene, position, "orange", axes)
+    for mesh_obstacle in scene.mesh_obstacles:
+        draw_displaced(mesh_obstacle, position, "red", axes)
+
+    draw_obstacles(
+        scene.linear_obstacle_nodes,
+        scene.linear_obstacle_nodes_normals,
+        position,
+        "orange",
+        axes,
+    )
 
 
-def draw_base_displaced(setting, axes):
+def draw_base_displaced(scene: Scene, axes):
     position = np.array([0.0, 0.5])  # 1.5
-    draw_displaced(setting, position, "purple", axes)
-    if setting.obstacles is not None:
-        draw_obstacles(
-            setting.obstacle_nodes,
-            setting.obstacle_nodes_normals,
-            position,
-            "orange",
-            axes,
-        )
+    draw_displaced(scene, position, "purple", axes)
 
 
 def draw_displaced(setting, position, color, axes):

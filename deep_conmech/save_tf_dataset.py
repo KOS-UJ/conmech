@@ -90,9 +90,11 @@ def simulate(config: Config, scenario) -> str:
     _, data_path = simulation_runner.run_scenario(
         solve_function=Calculator.solve,
         scenario=scenario,
-        catalog="SAVE_TF",
         config=config,
-        save_all=True,
+        run_config=simulation_runner.RunScenarioConfig(
+            catalog="SAVE_TF",
+            save_all=True,
+        ),
     )
     return data_path
 
@@ -154,7 +156,7 @@ def main():
     directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
 
-    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
 
     scenario = Scenario(
         name="polygon_rotate",

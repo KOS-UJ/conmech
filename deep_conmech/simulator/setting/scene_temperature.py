@@ -3,8 +3,8 @@ import numpy as np
 from conmech.helpers import nph
 from conmech.solvers import SchurComplement
 from deep_conmech.simulator.setting import scene
-from deep_conmech.simulator.setting.setting_forces import energy_new
 from deep_conmech.simulator.setting.scene import Scene
+from deep_conmech.simulator.setting.setting_forces import energy_new
 
 
 def obstacle_heat(
@@ -138,7 +138,7 @@ class SceneTemperature(Scene):
 
     def get_obstacle_heat_integral(self):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
-        if self.obstacles is None:
+        if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         boundary_normals = self.get_boundary_normals()
         return integrate(

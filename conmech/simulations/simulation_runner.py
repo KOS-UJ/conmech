@@ -1,5 +1,6 @@
 import os
 import time
+from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
@@ -25,38 +26,45 @@ def run_examples(
         run_scenario(
             solve_function=scenario.get_solve_function(),
             scenario=scenario,
-            catalog=catalog,
-            simulate_dirty_data=simulate_dirty_data,
-            plot_animation=plot_animation,
             config=config,
+            run_config=RunScenarioConfig(
+                catalog=catalog,
+                simulate_dirty_data=simulate_dirty_data,
+                plot_animation=plot_animation,
+            ),
             get_setting_function=get_setting_function,
         )
         print()
     print("DONE")
 
 
+@dataclass
+class RunScenarioConfig:
+    catalog: str
+    simulate_dirty_data: bool = False
+    compare_with_base_setting: bool = False
+    plot_animation: bool = True
+    save_all: bool = False
+
+
 def run_scenario(
-    solve_function,
+    solve_function: Callable,
     scenario: Scenario,
-    catalog,
     config: Config,
-    simulate_dirty_data=False,
-    compare_with_base_setting=False,
-    plot_animation=True,
-    save_all=False,
+    run_config: RunScenarioConfig,
     get_setting_function: Optional[Callable] = None,
 ) -> Tuple[Scene, str]:
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
-    index_skip = ts if save_all else 1
+    index_skip = ts if run_config.save_all else 1
     plot_settings_count = [0]
 
-    save_files = plot_animation or save_all
+    save_files = run_config.plot_animation or run_config.save_all
     if save_files:
-        final_catalog = f"{config.output_catalog}/{config.current_time} - {catalog}"
+        final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
         data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
-        if compare_with_base_setting:
+        if run_config.compare_with_base_setting:
             cmh.create_folders(f"{final_catalog}/scenarios_calculator")
             calculator_data_path = f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA"
     else:
@@ -74,7 +82,7 @@ def run_scenario(
     def operation_save(setting: Scene, base_setting: Optional[Scene] = None):
         step[0] += 1
         plot_index = step[0] % ts == 0
-        if save_all or plot_index:
+        if run_config.save_all or plot_index:
             save_setting(setting=setting, data_path=data_path)
             if base_setting is not None:
                 save_setting(setting=base_setting, data_path=calculator_data_path)
@@ -84,14 +92,14 @@ def run_scenario(
     setting = simulate(
         solve_function=solve_function,
         scenario=scenario,
-        simulate_dirty_data=simulate_dirty_data,
-        compare_with_base_setting=compare_with_base_setting,
+        simulate_dirty_data=run_config.simulate_dirty_data,
+        compare_with_base_setting=run_config.compare_with_base_setting,
         config=config,
         operation=operation_save if save_files else None,
         get_setting_function=get_setting_function,
     )
 
-    if plot_animation:
+    if run_config.plot_animation:
         animation_path = f"{final_catalog}/{scenario.name}.gif"
         plot_scenario_animation(
             scenario,
@@ -101,7 +109,7 @@ def run_scenario(
             index_skip,
             plot_settings_count[0],
             data_path,
-            calculator_data_path if compare_with_base_setting else None,
+            calculator_data_path if run_config.compare_with_base_setting else None,
         )
 
     return setting, data_path

@@ -36,7 +36,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
             thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
     ]
-    obstacle = Obstacle.get_obstacle("side", default_temp_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_temp_obstacle_prop)
     return [
         TemperatureScenario(
             name=f"C_{i}",
@@ -91,7 +91,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
             return -50.0  # -100
         return 0.0
 
-    obstacle = Obstacle.get_obstacle("side", default_temp_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_temp_obstacle_prop)
 
     return [
         TemperatureScenario(
@@ -126,7 +126,7 @@ def get_polygon_scenarios(mesh_density, final_time):
         body_prop=default_temp_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=forces_function,
-        obstacle=Obstacle.get_obstacle(obstacle, default_temp_obstacle_prop),
+        obstacle=Obstacle.get_linear_obstacle(obstacle, default_temp_obstacle_prop),
         heat_function=np.array([0]),
     )
 

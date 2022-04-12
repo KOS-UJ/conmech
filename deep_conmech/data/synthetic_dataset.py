@@ -136,7 +136,7 @@ class SyntheticDataset(BaseDataset):
         displacement_old = create_displacement_old(self.config, setting)
         velocity_old = create_velocity_old(self.config, setting)
 
-        setting.normalize_and_set_obstacles(obstacles_unnormaized)
+        setting.normalize_and_set_obstacles(obstacles_unnormaized, all_mesh_prop=[])
         setting.set_displacement_old(displacement_old)
         setting.set_velocity_old(velocity_old)
         setting.prepare(forces)

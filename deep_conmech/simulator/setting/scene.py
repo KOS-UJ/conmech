@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import numba
 import numpy as np
 
@@ -6,7 +8,6 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios import scenarios
 from conmech.state.body_position import BodyPosition
 from deep_conmech.simulator.setting.setting_forces import SettingForces, energy_new
 
@@ -62,7 +63,7 @@ def integrate(
     nodes_normals,
     obstacle_nodes,
     obstacle_nodes_normals,
-    v,
+    velocity,
     nodes_volume,
     hardness,
     friction,
@@ -70,11 +71,11 @@ def integrate(
 ):
     penetration_norm = get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals)
 
-    v_tangential = nph.get_tangential(v, nodes_normals)
+    velocity_tangential = nph.get_tangential(velocity, nodes_normals)
 
     resistance_normal = obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
     resistance_tangential = obstacle_resistance_potential_tangential(
-        penetration_norm, v_tangential, friction, time_step
+        penetration_norm, velocity_tangential, friction, time_step
     )
     result = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return result
@@ -86,7 +87,7 @@ def integrate_numba(
     nodes_normals,
     obstacle_nodes,
     obstacle_nodes_normals,
-    v,
+    velocity,
     nodes_volume,
     hardness,
     friction,
@@ -96,13 +97,13 @@ def integrate_numba(
     for i, node in enumerate(nodes):
         penetration = get_penetration_norm_numba(node, obstacle_nodes[i], obstacle_nodes_normals[i])
 
-        v_tangential = nph.get_tangential_numba(v[i], nodes_normals[i])
+        velocity_tangential = nph.get_tangential_numba(velocity[i], nodes_normals[i])
 
         resistance_normal = obstacle_resistance_potential_normal_numba(
             penetration, hardness, time_step
         )
         resistance_tangential = obstacle_resistance_potential_tangential_numba(
-            penetration, v_tangential, friction, time_step
+            penetration, velocity_tangential, friction, time_step
         )
 
         result += nodes_volume[i].item() * (resistance_normal + resistance_tangential)
@@ -135,7 +136,7 @@ def energy_obstacle(
         nodes_normals=boundary_normals,
         obstacle_nodes=boundary_obstacle_nodes,
         obstacle_nodes_normals=boundary_obstacle_nodes_normals,
-        v=boundary_v_new,
+        velocity=boundary_v_new,
         nodes_volume=surface_per_boundary_node,
         hardness=obstacle_prop.hardness,
         friction=obstacle_prop.friction,
@@ -177,40 +178,35 @@ class Scene(SettingForces):
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None
-        self.obstacles = None
-        self.mesh_obstacles = None
+        self.linear_obstacles: np.ndarray = np.array([[], []])
+        self.mesh_obstacles: List[BodyPosition] = []
 
         self.clear()
 
     def prepare(self, forces):
         super().prepare(forces)
-        if self.obstacles is not None:
+        if not self.has_no_obstacles:
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
                 self.boundary_nodes, self.obstacle_nodes
             )
 
-    def clear(self):
-        super().clear()
-        self.boundary_obstacle_nodes_indices = None
-
-    def normalize_and_set_obstacles(self, obstacles_unnormalized):
-        self.obstacles = obstacles_unnormalized
-        if obstacles_unnormalized is not None:
-            self.obstacles[0, ...] = nph.normalize_euclidean_numba(self.obstacles[0, ...])
-
-    def set_mesh_obstacle_test(self):
-        mesh_prop = MeshProperties(
-            dimension=2,
-            mesh_type=scenarios.M_CIRCLE,
-            scale=[1],
-            mesh_density=[4],
-            is_adaptive=False,
-            initial_position=np.array([1, 0]),
-        )
-
-        self.mesh_obstacles = [
-            BodyPosition(mesh_prop=mesh_prop, schedule=None, normalize_by_rotation=False)
-        ]
+    def normalize_and_set_obstacles(
+        self,
+        obstacles_unnormalized: Optional[np.ndarray],
+        all_mesh_prop: Optional[List[MeshProperties]],
+    ):
+        if obstacles_unnormalized is not None and obstacles_unnormalized.size > 0:
+            self.linear_obstacles = obstacles_unnormalized
+            self.linear_obstacles[0, ...] = nph.normalize_euclidean_numba(
+                self.linear_obstacles[0, ...]
+            )
+        if all_mesh_prop is not None:
+            self.mesh_obstacles.extend(
+                [
+                    BodyPosition(mesh_prop=mesh_prop, schedule=None, normalize_by_rotation=False)
+                    for mesh_prop in all_mesh_prop
+                ]
+            )
 
     def get_normalized_energy_obstacle_np(self, t=None):
         normalized_E_boundary, normalized_E_free = self.get_all_normalized_E_np(t)
@@ -234,20 +230,26 @@ class Scene(SettingForces):
         )
 
     @property
-    def obstacle_nodes(self):
-        return (
-            self.obstacles[1, ...]
-            if self.mesh_obstacles is None
-            else self.mesh_obstacles[0].initial_nodes
-        )
+    def linear_obstacle_nodes(self):
+        return self.linear_obstacles[1, ...]
 
     @property
-    def obstacle_nodes_normals(self):
-        return (
-            self.obstacles[0, ...]
-            if self.mesh_obstacles is None
-            else self.mesh_obstacles[0].get_boundary_normals()
-        )
+    def linear_obstacle_nodes_normals(self):
+        return self.linear_obstacles[0, ...]
+
+    @property
+    def obstacle_nodes(self):
+        all_nodes = []
+        all_nodes.extend([node for node in self.linear_obstacle_nodes])
+        all_nodes.extend([m.boundary_nodes for m in self.mesh_obstacles])
+        return np.vstack(all_nodes)
+
+    @property
+    def obstacle_nodes_normals(self):  # get ##########################
+        all_normals = []
+        all_normals.extend([n for n in self.linear_obstacle_nodes_normals])
+        all_normals.extend([m.get_boundary_normals() for m in self.mesh_obstacles])
+        return np.vstack(all_normals)
 
     @property
     def boundary_obstacle_nodes(self):
@@ -272,22 +274,6 @@ class Scene(SettingForces):
     @property
     def normalized_obstacle_nodes(self):
         return self.normalize_rotate(self.obstacle_nodes - self.mean_moved_nodes)
-
-    @property
-    def obstacle_normal(self):
-        return self.obstacle_nodes_normals[0]
-
-    @property
-    def obstacle_origin(self):
-        return self.obstacle_nodes[0]
-
-    @property
-    def normalized_obstacle_normal(self):
-        return self.normalized_obstacle_nodes_normals[0]
-
-    @property
-    def normalized_obstacle_origin(self):
-        return self.normalized_obstacle_nodes[0]
 
     @property
     def boundary_velocity_old(self):
@@ -350,7 +336,11 @@ class Scene(SettingForces):
         return completed_data
 
     @property
+    def has_no_obstacles(self):
+        return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
+
+    @property
     def is_colliding(self):
-        if self.obstacles is None:
+        if self.has_no_obstacles:
             return False
         return np.any(self.boundary_penetration_norm > 0)

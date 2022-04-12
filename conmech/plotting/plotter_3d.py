@@ -6,7 +6,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
-from conmech.plotting.plotter_common import make_animation
+from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
@@ -181,7 +181,7 @@ def plot_mesh(nodes, setting, color, axes):
 
 
 def plot_obstacles(axes, setting, color):
-    if setting.obstacles is None:
+    if setting.has_no_obstacles:
         return
     alpha = 0.3
     node = setting.obstacle_nodes[0]
@@ -220,11 +220,13 @@ def plot_animation(
     plotter_common.plot_animation(
         animate=animate,
         fig=get_fig(),
-        save_path=save_path,
         config=config,
-        time_skip=time_skip,
-        index_skip=index_skip,
-        plot_settings_count=plot_settings_count,
-        all_settings_path=all_settings_path,
-        all_calc_settings_path=all_calc_settings_path,
+        plot_config=PlotAnimationConfig(
+            save_path=save_path,
+            time_skip=time_skip,
+            index_skip=index_skip,
+            plot_settings_count=plot_settings_count,
+            all_settings_path=all_settings_path,
+            all_calc_settings_path=all_calc_settings_path,
+        ),
     )

@@ -116,7 +116,7 @@ class BaseDataset:
             create_in_subprocess=False,
         )
         setting.set_randomization(False)
-        setting.normalize_and_set_obstacles(scenario.obstacles)
+        setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return setting
 
     def get_statistics(self):

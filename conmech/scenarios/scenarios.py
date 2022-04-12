@@ -1,6 +1,7 @@
 from typing import Callable, Union
 
 import numpy as np
+
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
@@ -8,7 +9,10 @@ from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.obstacle_properties import ObstacleProperties, TemperatureObstacleProperties
+from conmech.properties.obstacle_properties import (
+    ObstacleProperties,
+    TemperatureObstacleProperties,
+)
 from conmech.properties.schedule import Schedule
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
@@ -32,9 +36,10 @@ class Scenario:
         self.body_prop = body_prop
         self.obstacle_prop = obstacle.properties
         self.schedule = schedule
-        self.obstacles = (
+        self.linear_obstacles = (
             None if obstacle.geometry is None else obstacle.geometry * mesh_prop.scale_x
         )
+        self.mesh_obstacles = None if obstacle.all_mesh is None else obstacle.all_mesh
         self.forces_function = forces_function
 
     @staticmethod
@@ -77,7 +82,7 @@ class Scenario:
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.normalize_and_set_obstacles(self.obstacles)
+        setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return setting
 
     @property
@@ -136,7 +141,7 @@ class TemperatureScenario(Scenario):
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.normalize_and_set_obstacles(self.obstacles)
+        setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return setting
 
 
@@ -162,6 +167,25 @@ default_temp_body_prop = DynamicTemperatureBodyProperties(
     thermal_expansion=default_thermal_expansion_coefficients,
     thermal_conductivity=default_thermal_conductivity_coefficients,
 )
+
+obstacle_mesh_prop = [
+    MeshProperties(
+        dimension=2,
+        mesh_type="pygmsh_circle",
+        scale=[1],
+        mesh_density=[4],
+        is_adaptive=False,
+        initial_position=np.array([1.5, 0.0]),
+    ),
+    MeshProperties(
+        dimension=2,
+        mesh_type="pygmsh_rectangle",
+        scale=[1],
+        mesh_density=[4],
+        is_adaptive=False,
+        initial_position=np.array([-1.5, 0.0]),
+    ),
+]
 
 
 def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
@@ -306,8 +330,28 @@ def f_rotate_3d(
     return np.array([0.0, 0.0, 0.0])
 
 
+def polygon_mesh_obstacles(mesh_density, scale, is_adaptive, final_time, tag=""):
+    obstacle = Obstacle(
+        geometry=None, properties=default_obstacle_prop, all_mesh=obstacle_mesh_prop
+    )
+    return Scenario(
+        name=f"polygon_mesh_obstacles{tag}",
+        mesh_prop=MeshProperties(
+            dimension=2,
+            mesh_type=M_POLYGON,
+            scale=[scale],
+            mesh_density=[mesh_density],
+            is_adaptive=is_adaptive,
+        ),
+        body_prop=default_body_prop,
+        schedule=Schedule(final_time=final_time),
+        forces_function=f_slide,
+        obstacle=obstacle,
+    )
+
+
 def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("slope", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"circle_slope{tag}",
         mesh_prop=MeshProperties(
@@ -325,7 +369,7 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("front", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("front", default_obstacle_prop)
     return Scenario(
         name=f"spline_right{tag}",
         mesh_prop=MeshProperties(
@@ -343,7 +387,7 @@ def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("back", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
         name=f"circle_left{tag}",
         mesh_prop=MeshProperties(
@@ -361,7 +405,7 @@ def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("back", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     obstacle.geometry *= scale
     return Scenario(
         name=f"polygon_left{tag}",
@@ -380,7 +424,7 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("slope", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"polygon_slope{tag}",
         mesh_prop=MeshProperties(
@@ -398,7 +442,7 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
         mesh_prop=MeshProperties(
@@ -416,7 +460,7 @@ def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_rotate{tag}",
         mesh_prop=MeshProperties(
@@ -434,7 +478,7 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("side", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_stay{tag}",
         mesh_prop=MeshProperties(
@@ -452,7 +496,7 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
 
 
 def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_obstacle("two", default_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("two", default_obstacle_prop)
     return Scenario(
         name=f"polygon_two{tag}",
         mesh_prop=MeshProperties(

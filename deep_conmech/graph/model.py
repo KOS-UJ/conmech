@@ -177,7 +177,7 @@ class GraphModelDynamic:
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
-        setting.normalize_and_set_obstacles(scenario.obstacles)
+        setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return setting
 
     @staticmethod
@@ -191,10 +191,12 @@ class GraphModelDynamic:
                 solve_function=net.solve,
                 scenario=scenario,
                 config=config,
-                catalog=catalog,
-                simulate_dirty_data=False,
-                compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
-                plot_animation=True,
+                run_config=simulation_runner.RunScenarioConfig(
+                    catalog=catalog,
+                    simulate_dirty_data=False,
+                    compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
+                    plot_animation=True,
+                ),
                 get_setting_function=GraphModelDynamic.get_setting_function,
             )
             print("---")
