@@ -3,6 +3,7 @@ from typing import Callable, Optional
 
 import numpy as np
 import scipy.optimize
+
 from conmech.helpers import nph
 from deep_conmech.graph.scene.scene_randomized import SceneRandomized
 from deep_conmech.simulator.setting.scene import Scene
@@ -87,14 +88,14 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: Scene, temperature, initial_a: Optional[np.ndarray] = None
+        setting: Scene, acceleration, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
             return Calculator.solve_acceleration_normalized_optimization(
-                setting, temperature, initial_a
+                setting, acceleration, initial_a
             )
-        return Calculator.solve_acceleration_normalized_function(setting, temperature, initial_a)
+        return Calculator.solve_acceleration_normalized_function(setting, acceleration, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -119,21 +120,21 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def solve_acceleration_normalized_function(setting, temperature, initial_a=None):
+    def solve_acceleration_normalized_function(setting, acceleration, initial_a=None):
         _ = initial_a
-        normalized_E = setting.get_normalized_E_np(temperature)
+        normalized_E = setting.get_normalized_E_np(acceleration)
         normalized_a_vector = np.linalg.solve(setting.solver_cache.lhs, normalized_E)
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
-    def solve_acceleration_normalized_optimization(setting, temperature, initial_a=None):
+    def solve_acceleration_normalized_optimization(setting, acceleration, initial_a=None):
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)
         else:
             initial_a_boundary_vector = nph.stack_column(initial_a[setting.boundary_indices])
 
-        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(temperature)
+        cost_function, normalized_E_free = setting.get_normalized_energy_obstacle_np(acceleration)
         normalized_boundary_a_vector_np = Calculator.minimize(
             cost_function, initial_a_boundary_vector
         )

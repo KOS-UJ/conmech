@@ -211,7 +211,8 @@ def simulate(
             setting.make_dirty()
 
         if compare_with_base_setting:
-            base_setting.prepare(forces)
+            base_forces = scenario.get_forces_by_function(base_setting, current_time)
+            base_setting.prepare(base_forces)
 
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting

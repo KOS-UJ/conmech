@@ -65,7 +65,7 @@ def get_axs(fig):
     return [ax0, ax1, ax2, ax3]
 
 
-def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
+def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Optional[List] = None):
     for axes in axs:
         plot_subframe(
             axes=axes,
