@@ -1,5 +1,6 @@
-import deep_conmech.data.interpolation_helpers as interpolation_helpers
 import numpy as np
+
+import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -14,7 +15,7 @@ from deep_conmech.training_config import TrainingConfig
 
 def create_mesh_type():
     return interpolation_helpers.choose(
-        ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_spline", "pygmsh_polygon"]
+        ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_polygon"]  # "pygmsh_spline"
     )
 
 
@@ -107,6 +108,7 @@ class SyntheticDataset(BaseDataset):
         super().__init__(
             description=f"{description}_synthetic",
             dimension=dimension,
+            data_count=config.td.BATCH_SIZE * config.td.SYNTHETIC_BATCHES_IN_EPOCH,
             randomize_at_load=True,
             num_workers=num_workers,
             load_to_ram=load_to_ram,
@@ -118,10 +120,6 @@ class SyntheticDataset(BaseDataset):
         self.data_part_count = int(self.data_count / num_workers)
 
         self.initialize_data()
-
-    @property
-    def data_count(self):
-        return self.config.td.BATCH_SIZE * self.config.td.SYNTHETIC_BATCHES_IN_EPOCH
 
     @property
     def data_size_id(self):

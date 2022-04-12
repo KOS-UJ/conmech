@@ -2,9 +2,14 @@ from ctypes import ArgumentError
 from typing import Callable, List
 
 import numpy as np
+
 from conmech.helpers import cmh, pkh
 from conmech.scenarios.scenarios import Scenario
-from deep_conmech.data.base_dataset import BaseDataset, get_assigned_scenarios, is_memory_overflow
+from deep_conmech.data.base_dataset import (
+    BaseDataset,
+    get_assigned_scenarios,
+    is_memory_overflow,
+)
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
@@ -26,8 +31,9 @@ class ScenariosDataset(BaseDataset):
         super().__init__(
             description=description,
             dimension=self.check_and_get_dimension(all_scenarios),
+            data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=True,
-            num_workers=0,  # TODO: #65 Check
+            num_workers=1,  # TODO: #65 Check
             load_to_ram=load_to_ram,
             config=config,
         )
@@ -43,19 +49,14 @@ class ScenariosDataset(BaseDataset):
         return np.sum([int(s.schedule.episode_steps / self.skip_index) for s in scenarios])
 
     @property
-    def data_count(self):
-        return self.get_data_count(self.all_scenarios)
-
-    @property
     def data_size_id(self):
         return f"f:{self.config.td.FINAL_TIME}_i:{self.skip_index}"
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
-        assigned_data_count = self.get_data_count(assigned_scenarios)
+        assigned_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
         start_index = process_id * assigned_data_count
         current_index = start_index
-        assigned_data_count = self.get_data_count(assigned_scenarios)
         tqdm_description = f"P{process_id}: Generating {self.description}"
         step_tqdm = cmh.get_tqdm(
             range(assigned_data_count),

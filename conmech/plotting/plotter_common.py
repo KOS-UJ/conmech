@@ -37,7 +37,7 @@ def get_t_scale(
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
-    all_indices = pkh.get_all_indices_pickle(all_settings_path)
+    all_indices = pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         for step in range(plot_settings_count):
@@ -143,7 +143,7 @@ def plot_animation(
         desc="Generating animation",
     )
 
-    all_indices = pkh.get_all_indices_pickle(all_settings_path)
+    all_indices = pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     args = (fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm)
     with settings_file:

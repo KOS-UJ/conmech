@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import psutil
+
 from conmech.helpers.config import Config
 
 
@@ -14,17 +15,17 @@ class TrainingData:
     DATASET: str = "synthetic"  # synthetic # calculator # live
     FINAL_TIME: float = 5  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
-    ADAPTIVE_TRAINING_MESH: bool = False  # True
+    ADAPTIVE_TRAINING_MESH: bool = True
 
     FORCES_RANDOM_SCALE: int = 4
-    OBSTACLE_ORIGIN_SCALE: float = 3.0 * TRAIN_SCALE
+    OBSTACLE_ORIGIN_SCALE: float = 2.0 * TRAIN_SCALE
     OBSTACLE_MIN_SCALE: float = 0.7 * TRAIN_SCALE
     U_RANDOM_SCALE: float = 0.2
     V_RANDOM_SCALE: float = 2.5
 
     ROTATE_VELOCITY_PROPORTION: float = 0.3
-    ZERO_FORCES_PROPORTION: float = 0.9
-    CORNERS_SCALE_PROPORTION: float = 0.2
+    ZERO_FORCES_PROPORTION: float = 0.8
+    CORNERS_SCALE_PROPORTION: float = 0.3
     ROTATE_SCALE_PROPORTION: float = 0.5
 
     U_NOISE_GAMMA: float = 0.1
@@ -57,7 +58,7 @@ class TrainingData:
 
     LATENT_DIM: int = 128
     ENC_LAYER_COUNT: int = 2
-    PROC_LAYER_COUNT: int = 1
+    PROC_LAYER_COUNT: int = 0
     DEC_LAYER_COUNT: int = 2
     MESSAGE_PASSES: int = 8  # 5 # 10
 
@@ -85,3 +86,4 @@ class TrainingConfig(Config):
 
     MAX_EPOCH_NUMBER: Optional[int] = None
     DATASETS_MAIN_PATH: str = "datasets"
+    LOG_CATALOG: str = "log"

@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 import torch
+from torch_geometric.loader import DataLoader
+
 from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario
@@ -11,7 +13,6 @@ from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStat
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
-from torch_geometric.loader import DataLoader
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
@@ -88,6 +89,7 @@ class BaseDataset:
         self,
         description: str,
         dimension: int,
+        data_count: int,
         randomize_at_load: bool,
         num_workers: int,
         load_to_ram: bool,
@@ -95,15 +97,14 @@ class BaseDataset:
     ):
         self.dimension = dimension
         self.description = description
+        self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.load_to_ram = load_to_ram
         self.config = config
         self.set_version = 0
-
-    @property
-    def data_count(self):
-        pass
+        self.all_indices = None
+        self.loaded_data = None
 
     def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
         setting = SettingInput(
@@ -169,6 +170,7 @@ class BaseDataset:
 
             self.all_indices = pkh.get_all_indices_pickle(self.data_path)
 
+        assert self.data_count == len(self.all_indices)
         if self.load_to_ram:
             self.loaded_data = self.load_data_to_ram()
         else:

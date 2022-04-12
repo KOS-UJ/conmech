@@ -77,11 +77,12 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
     all_val_datasets = []
     # if config.td.DATASET != "live":
     #    all_val_datasets.append(train_dataset)
+    skip_index = 5
     all_val_datasets.append(
         CalculatorDataset(
             description="val",
             all_scenarios=scenarios.all_validation(config.td),
-            skip_index=5,
+            skip_index=skip_index,
             load_to_ram=False,
             config=config,
         )
@@ -90,7 +91,7 @@ def get_all_val_datasets(train_dataset, config: TrainingConfig):
         CalculatorDataset(
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
-            skip_index=5,
+            skip_index=skip_index,
             load_to_ram=False,
             config=config,
         )

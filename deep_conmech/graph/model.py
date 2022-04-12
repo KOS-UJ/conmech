@@ -5,6 +5,8 @@ from typing import Optional
 
 import numpy as np
 import torch
+from torch.utils.tensorboard.writer import SummaryWriter
+
 from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
@@ -18,11 +20,10 @@ from deep_conmech.graph.setting import setting_input
 from deep_conmech.graph.setting.setting_input import SettingInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
-from torch.utils.tensorboard.writer import SummaryWriter
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    writer = SummaryWriter(f"./log/{config.current_time}")
+    writer = SummaryWriter(f"{config.LOG_CATALOG}/{config.current_time}")
     print("Logging data...")
 
     def pretty_json(value):
@@ -137,7 +138,7 @@ class GraphModelDynamic:
     def update_dataset(self):
         print("----UPDATING DATASET----")
         self.train_dataset.update_data()
-        print(f"--")
+        print("--")
 
     def save_net(self):
         print("----SAVING----")
@@ -255,10 +256,10 @@ class GraphModelDynamic:
             self.lr,
             examples_seen,
         )
-        for i in range(len(loss_array)):
+        for i, loss in enumerate(loss_array):
             self.writer.add_scalar(
                 f"Loss/Training/{self.loss_labels[i]}",
-                loss_array[i],
+                loss,
                 examples_seen,
             )
 
