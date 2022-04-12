@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import make_animation
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
 def get_fig():
@@ -72,15 +72,15 @@ def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
             setting=setting,
             normalized_data=[
                 setting.normalized_forces,
-                setting.normalized_u_old,
-                setting.normalized_v_old,
+                setting.normalized_displacement_old,
+                setting.normalized_velocity_old,
                 setting.normalized_a_old,
             ],
             t_scale=t_scale,
         )
     draw_parameters(axes=axs[0], setting=setting, current_time=current_time)
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale=t_scale)
         plotter_common.plot_colorbar(fig, axs=axs, cbar_settings=cbar_settings)
 
@@ -110,7 +110,7 @@ def draw_base_arrows(axes, base):
 def plot_subframe(axes, setting, normalized_data, t_scale):
     # draw_base_arrows(axes, setting.moved_base)
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plot_main_temperature(
             axes,
@@ -128,7 +128,7 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
         plot_mesh(nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", axes=axes)
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         plot_temperature(
             axes=axes,
             nodes=shifted_normalized_nodes,
@@ -185,7 +185,7 @@ def plot_obstacles(axes, setting, color):
         return
     alpha = 0.3
     node = setting.obstacle_nodes[0]
-    normal = setting.obstacle_normals[0]
+    normal = setting.obstacle_nodes_normals[0]
 
     # a plane is a*x+b*y+c*z+d=0
     # z = (-d-axes-by) / c
@@ -213,6 +213,7 @@ def plot_animation(
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str,
+    all_calc_settings_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -225,4 +226,5 @@ def plot_animation(
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,
         all_settings_path=all_settings_path,
+        all_calc_settings_path=all_calc_settings_path,
     )

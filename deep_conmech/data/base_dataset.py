@@ -10,7 +10,7 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
 
@@ -106,9 +106,9 @@ class BaseDataset:
         self.all_indices = None
         self.loaded_data = None
 
-    def get_setting_input(self, scenario: Scenario, config: Config) -> SettingInput:
-        setting = SettingInput(
-            mesh_data=scenario.mesh_data,
+    def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
+        setting = SceneInput(
+            mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
@@ -122,8 +122,8 @@ class BaseDataset:
     def get_statistics(self):
         dataloader = get_train_dataloader(self)
 
-        nodes_data = torch.empty((0, SettingInput.nodes_data_dim()))
-        edges_data = torch.empty((0, SettingInput.edges_data_dim()))
+        nodes_data = torch.empty((0, SceneInput.nodes_data_dim()))
+        edges_data = torch.empty((0, SceneInput.edges_data_dim()))
         for data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
@@ -131,10 +131,10 @@ class BaseDataset:
             edges_data = torch.cat((edges_data, data.edge_attr))
 
         nodes_statistics = FeaturesStatistics(
-            nodes_data, SettingInput.get_nodes_data_description(self.dimension)
+            nodes_data, SceneInput.get_nodes_data_description(self.dimension)
         )
         edges_statistics = FeaturesStatistics(
-            edges_data, SettingInput.get_edges_data_description(self.dimension)
+            edges_data, SceneInput.get_edges_data_description(self.dimension)
         )
 
         return DatasetStatistics(
@@ -198,7 +198,7 @@ class BaseDataset:
     @property
     def data_id(self):
         td = self.config.td
-        return f"{self.description}_m:{td.MESH_DENSITY}_{self.data_size_id}_a:{td.ADAPTIVE_TRAINING_MESH}"
+        return f"{self.description}_m:{td.MESH_DENSITY}_{self.data_size_id}"
 
     @property
     def main_directory(self):

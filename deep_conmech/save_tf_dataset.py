@@ -158,7 +158,7 @@ def main():
 
     scenario = Scenario(
         name="polygon_rotate",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[1],

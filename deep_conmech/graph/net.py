@@ -12,7 +12,7 @@ from deep_conmech.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
 )
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingData
 
@@ -304,7 +304,7 @@ class CustomGraphNet(nn.Module):
         self.td = td
 
         self.node_encoder = ForwardNet(
-            input_dim=SettingInput.nodes_data_dim(),
+            input_dim=SceneInput.nodes_data_dim(),
             layers_count=td.ENC_LAYER_COUNT,
             output_linear_dim=td.LATENT_DIM,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -314,7 +314,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.edge_encoder = ForwardNet(
-            input_dim=SettingInput.edges_data_dim(),
+            input_dim=SceneInput.edges_data_dim(),
             layers_count=td.ENC_LAYER_COUNT,
             output_linear_dim=td.LATENT_DIM,
             statistics=None if statistics is None else statistics.edges_statistics,

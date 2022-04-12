@@ -4,9 +4,9 @@ from typing import Callable, Optional
 import numpy as np
 import scipy.optimize
 from conmech.helpers import nph
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.simulator.setting.scene import Scene
+from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
 class Calculator:
@@ -39,12 +39,12 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve(setting: SettingRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
+    def solve(setting: SceneRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_a)
         return cleaned_a
 
     @staticmethod
-    def solve_all(setting: SettingObstacles, initial_a: Optional[np.ndarray] = None):
+    def solve_all(setting: Scene, initial_a: Optional[np.ndarray] = None):
         normalized_a = Calculator.solve_acceleration_normalized(setting, None, initial_a)
         normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
@@ -52,7 +52,7 @@ class Calculator:
 
     @staticmethod
     def solve_with_temperature(
-        setting: SettingTemperature,
+        setting: SceneTemperature,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ):
@@ -80,14 +80,14 @@ class Calculator:
         return cleaned_a, cleaned_t
 
     @staticmethod
-    def solve_temperature(setting: SettingTemperature, normalized_a: np.ndarray, initial_t):
+    def solve_temperature(setting: SceneTemperature, normalized_a: np.ndarray, initial_t):
         t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
         cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_t
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: SettingObstacles, temperature, initial_a: Optional[np.ndarray] = None
+        setting: Scene, temperature, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding:
@@ -98,7 +98,7 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized(
-        setting: SettingTemperature,
+        setting: SceneTemperature,
         normalized_a: np.ndarray,
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
@@ -111,7 +111,7 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized_function(
-        setting: SettingTemperature, normalized_a: np.ndarray, initial_t
+        setting: SceneTemperature, normalized_a: np.ndarray, initial_t
     ):
         _ = initial_t
         normalized_Q = setting.get_normalized_Q_np(normalized_a)
@@ -147,7 +147,7 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized_optimization(
-        setting: SettingTemperature,
+        setting: SceneTemperature,
         normalized_a: np.ndarray,
         initial_t_vector: Optional[np.ndarray] = None,
     ):
@@ -165,10 +165,10 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(setting: SettingObstacles, normalized_a):
+    def clean_acceleration(setting: Scene, normalized_a):
         if normalized_a is None:
             return None
-        if not isinstance(setting, SettingRandomized):
+        if not isinstance(setting, SceneRandomized):
             return normalized_a
         return normalized_a + setting.normalized_a_correction
 
@@ -195,7 +195,7 @@ class Calculator:
         return nph.stack(normalized_a)
 
     @staticmethod
-    def complete_t_vector(setting: SettingTemperature, normalized_t_rhs_free, t_contact_vector):
+    def complete_t_vector(setting: SceneTemperature, normalized_t_rhs_free, t_contact_vector):
         t_independent_vector = setting.solver_cache.temperature_free_x_free_inv @ (
             normalized_t_rhs_free
             - (setting.solver_cache.temperature_free_x_contact @ t_contact_vector)

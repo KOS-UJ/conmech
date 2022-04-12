@@ -40,7 +40,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"C_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=M_RECTANGLE,
                 scale=[1],
@@ -82,11 +82,11 @@ def get_K_temp_scenarios(mesh_density, final_time):
     def h_corner(
         initial_node: np.ndarray,
         moved_node: np.ndarray,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         t: float,
     ):
-        x_scaled = initial_node[0] / mesh_data.scale_x
-        y_scaled = initial_node[1] / mesh_data.scale_y
+        x_scaled = initial_node[0] / mesh_prop.scale_x
+        y_scaled = initial_node[1] / mesh_prop.scale_y
         if x_scaled < 0.1 and y_scaled < 0.1:
             return -50.0  # -100
         return 0.0
@@ -96,7 +96,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"K_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=M_RECTANGLE,
                 scale=[1],
@@ -116,7 +116,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
 def get_polygon_scenarios(mesh_density, final_time):
     polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
         name=f"polygon_{i}",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[1],
@@ -141,7 +141,7 @@ def get_friction_scenarios(mesh_density, final_time):
     obstacle = Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), default_temp_obstacle_prop)
     friction_scenario = lambda i: TemperatureScenario(
         name="circle_flat_A_roll",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=M_CIRCLE,
             scale=[1],

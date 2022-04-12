@@ -8,7 +8,7 @@ from conmech.scenarios import scenarios
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
@@ -28,61 +28,61 @@ def create_forces(config, setting):
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.FORCES_RANDOM_SCALE,
             corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
-            setting_scale_x=setting.mesh_data.scale_x,
-            setting_scale_y=setting.mesh_data.scale_y,
+            setting_scale_x=setting.mesh_prop.scale_x,
+            setting_scale_y=setting.mesh_prop.scale_y,
         )
     return forces
 
 
-def create_u_old(config, setting):
-    u_old = interpolation_helpers.interpolate_four(
+def create_displacement_old(config, setting):
+    displacement_old = interpolation_helpers.interpolate_four(
         count=setting.nodes_count,
         initial_nodes=setting.initial_nodes,
         randomization_scale=config.td.U_RANDOM_SCALE,
         corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
-        setting_scale_x=setting.mesh_data.scale_x,
-        setting_scale_y=setting.mesh_data.scale_y,
+        setting_scale_x=setting.mesh_prop.scale_x,
+        setting_scale_y=setting.mesh_prop.scale_y,
     )
-    return u_old
+    return displacement_old
 
 
-def create_v_old(config, setting):
+def create_velocity_old(config, setting):
     if interpolation_helpers.decide(config.td.ROTATE_VELOCITY_PROPORTION):
-        v_old = interpolation_helpers.interpolate_rotate(
+        velocity_old = interpolation_helpers.interpolate_rotate(
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.V_RANDOM_SCALE,
             rotate_scale_proportion=config.td.ROTATE_SCALE_PROPORTION,
-            setting_scale_x=setting.mesh_data.scale_x,
-            setting_scale_y=setting.mesh_data.scale_y,
+            setting_scale_x=setting.mesh_prop.scale_x,
+            setting_scale_y=setting.mesh_prop.scale_y,
         )
     else:
-        v_old = interpolation_helpers.interpolate_four(
+        velocity_old = interpolation_helpers.interpolate_four(
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.V_RANDOM_SCALE,
             corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
-            setting_scale_x=setting.mesh_data.scale_x,
-            setting_scale_y=setting.mesh_data.scale_y,
+            setting_scale_x=setting.mesh_prop.scale_x,
+            setting_scale_y=setting.mesh_prop.scale_y,
         )
-    return v_old
+    return velocity_old
 
 
 def create_obstacles(config, setting):
-    obstacle_origins_unnormaized = nph.get_random_uniform_circle_numba(
+    obstacle_nodes_unnormaized = nph.get_random_uniform_circle_numba(
         setting.dimension,
         1,
         low=config.td.OBSTACLE_MIN_SCALE,
         high=config.td.OBSTACLE_ORIGIN_SCALE,
     )
-    obstacle_origins = obstacle_origins_unnormaized + setting.mean_moved_nodes
-    obstacle_normals_unnormaized = -obstacle_origins_unnormaized
-    return np.stack((obstacle_normals_unnormaized, obstacle_origins))
+    obstacle_nodes = obstacle_nodes_unnormaized + setting.mean_moved_nodes
+    obstacle_nodes_normals_unnormaized = -obstacle_nodes_unnormaized
+    return np.stack((obstacle_nodes_normals_unnormaized, obstacle_nodes))
 
 
 def get_base_setting(config, mesh_type):
-    return SettingInput(
-        mesh_data=MeshProperties(
+    return SceneInput(
+        mesh_prop=MeshProperties(
             mesh_type=mesh_type,
             mesh_density=[config.td.MESH_DENSITY],
             scale=[config.td.TRAIN_SCALE],
@@ -123,7 +123,7 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"s:{self.data_count}"
+        return f"s:{self.data_count}_a:{self.config.td.ADAPTIVE_TRAINING_MESH}"
 
     def generate_setting(self, index):
         _ = index
@@ -133,12 +133,12 @@ class SyntheticDataset(BaseDataset):
 
         obstacles_unnormaized = create_obstacles(self.config, setting)
         forces = create_forces(self.config, setting)
-        u_old = create_u_old(self.config, setting)
-        v_old = create_v_old(self.config, setting)
+        displacement_old = create_displacement_old(self.config, setting)
+        velocity_old = create_velocity_old(self.config, setting)
 
         setting.normalize_and_set_obstacles(obstacles_unnormaized)
-        setting.set_displacement_old(u_old)
-        setting.set_velocity_old(v_old)
+        setting.set_displacement_old(displacement_old)
+        setting.set_velocity_old(velocity_old)
         setting.prepare(forces)
 
         add_label = False

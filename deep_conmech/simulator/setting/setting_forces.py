@@ -13,14 +13,14 @@ def energy_new(a, C, E):
 class SettingForces(Dynamics):
     def __init__(
         self,
-        mesh_data,
+        mesh_prop,
         body_prop,
         schedule,
         normalize_by_rotation: bool,
         create_in_subprocess,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
@@ -56,8 +56,8 @@ class SettingForces(Dynamics):
     def get_normalized_E_np(self, t):
         return self.get_E(
             forces=self.normalized_forces,
-            u_old=self.normalized_u_old,
-            v_old=self.normalized_v_old,
+            displacement_old=self.normalized_displacement_old,
+            velocity_old=self.normalized_velocity_old,
             const_volume=self.volume,
             elasticity=self.elasticity,
             viscosity=self.viscosity,
@@ -67,21 +67,21 @@ class SettingForces(Dynamics):
     def get_E(
         self,
         forces,
-        u_old,
-        v_old,
+        displacement_old,
+        velocity_old,
         const_volume,
         elasticity,
         viscosity,
         time_step,
     ):
-        u_old_vector = nph.stack_column(u_old)
-        v_old_vector = nph.stack_column(v_old)
+        displacement_old_vector = nph.stack_column(displacement_old)
+        velocity_old_vector = nph.stack_column(velocity_old)
 
         F_vector = nph.stack_column(const_volume @ forces)
         E = (
             F_vector
-            - (viscosity + elasticity * time_step) @ v_old_vector
-            - elasticity @ u_old_vector
+            - (viscosity + elasticity * time_step) @ velocity_old_vector
+            - elasticity @ displacement_old_vector
         )
         return E
 

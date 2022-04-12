@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -12,7 +13,7 @@ from conmech.state.obstacle import Obstacle
 def generate_test_suits():
     scenario = Scenario(
         name="circle_slide_roll",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=scenarios.M_CIRCLE,
             scale=[1],

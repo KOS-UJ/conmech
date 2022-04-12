@@ -34,7 +34,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
     all_scenarios = [
         Scenario(
             name="circle_slide_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -47,7 +47,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_A_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -60,7 +60,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_B_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -73,7 +73,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_C_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -86,7 +86,7 @@ def main(mesh_density=3, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="rectangle_flat_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_RECTANGLE,
                 scale=[1],

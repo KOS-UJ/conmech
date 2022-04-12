@@ -26,7 +26,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
     all_scenarios = [
         Scenario(
             name="twist_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_TWIST_3D,
                 scale=[1],
@@ -39,7 +39,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             name="ball_roll",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
@@ -49,7 +49,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             name="ball_throw",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
@@ -59,7 +59,7 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
         ),
         Scenario(
             name="cube_throw",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,

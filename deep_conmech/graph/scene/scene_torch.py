@@ -1,14 +1,14 @@
 import torch
 
 from conmech.helpers.config import Config
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
+from deep_conmech.graph.scene.scene_randomized import SceneRandomized
 from deep_conmech.helpers import thh
 
 
-class SettingTorch(SettingRandomized):
+class SceneTorch(SceneRandomized):
     def __init__(
         self,
-        mesh_data,
+        mesh_prop,
         body_prop,
         obstacle_prop,
         schedule,
@@ -16,7 +16,7 @@ class SettingTorch(SettingRandomized):
         create_in_subprocess,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
@@ -71,20 +71,20 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_forces)
 
     @property
-    def normalized_u_old_torch(self):
-        return thh.to_torch_double(self.normalized_u_old)
+    def normalized_displacement_old_torch(self):
+        return thh.to_torch_double(self.normalized_displacement_old)
 
     @property
-    def normalized_v_old_torch(self):
-        return thh.to_torch_double(self.normalized_v_old)
+    def normalized_velocity_old_torch(self):
+        return thh.to_torch_double(self.normalized_velocity_old)
 
     @property
-    def input_u_old_torch(self):
-        return thh.to_torch_double(self.input_u_old)
+    def input_displacement_old_torch(self):
+        return thh.to_torch_double(self.input_displacement_old)
 
     @property
-    def input_v_old_torch(self):
-        return thh.to_torch_double(self.input_v_old)
+    def input_velocity_old_torch(self):
+        return thh.to_torch_double(self.input_velocity_old)
 
     @property
     def boundary_nodes_count_torch(self):
@@ -99,8 +99,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_long(self.boundary_surfaces)
 
     @property
-    def normalized_boundary_v_old_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_v_old)
+    def normalized_boundary_velocity_old_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_velocity_old)
 
     @property
     def normalized_boundary_nodes_torch(self):
@@ -118,8 +118,8 @@ class SettingTorch(SettingRandomized):
         return thh.to_torch_double(self.normalized_boundary_penetration)
 
     @property
-    def normalized_boundary_obstacle_normals_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_obstacle_normals)
+    def normalized_boundary_obstacle_nodes_normals_torch(self):
+        return thh.to_torch_double(self.normalized_boundary_obstacle_nodes_normals)
 
     def get_normalized_boundary_v_tangential_torch(self):
         return thh.to_torch_double(self.get_normalized_boundary_v_tangential())

@@ -2,6 +2,7 @@ from typing import Callable
 
 import numba
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
@@ -84,12 +85,12 @@ def get_base_seed_indices_numba(nodes):
 class Mesh:
     def __init__(
         self,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         create_in_subprocess: bool = False,
     ):
-        self.mesh_data = mesh_data
+        self.mesh_prop = mesh_prop
 
         self.initial_nodes: np.ndarray
         self.elements: np.ndarray
@@ -100,20 +101,21 @@ class Mesh:
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
 
-        self.reinitialize_data(mesh_data, is_dirichlet, is_contact, create_in_subprocess)
+        self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        self.reinitialize_data(self.mesh_data, is_dirichlet, is_contact, create_in_subprocess)
+        self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
-    def reinitialize_data(self, mesh_data, is_dirichlet, is_contact, create_in_subprocess):
+    def reinitialize_data(self, mesh_prop, is_dirichlet, is_contact, create_in_subprocess):
         input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
+        if mesh_prop.initial_position is not None:
+            input_nodes += mesh_prop.initial_position
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
-
         (
             self.initial_nodes,
             self.elements,
@@ -210,7 +212,7 @@ class Mesh:
 
     @property
     def dimension(self):
-        return self.mesh_data.dimension
+        return self.mesh_prop.dimension
 
     @property
     def mean_initial_nodes(self):

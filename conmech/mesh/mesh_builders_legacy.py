@@ -65,12 +65,12 @@ def get_cross_elements_numba(
             index += 1
 
 
-def get_cross_rectangle(mesh_data):
+def get_cross_rectangle(mesh_prop):
     min_ = np.array((0.0, 0.0))
-    size_x = int(mesh_data.mesh_density_x)
-    size_y = int(mesh_data.mesh_density_y)
-    edge_len_x = mesh_data.scale_x / size_x
-    edge_len_y = mesh_data.scale_y / size_y
+    size_x = int(mesh_prop.mesh_density_x)
+    size_y = int(mesh_prop.mesh_density_y)
+    edge_len_x = mesh_prop.scale_x / size_x
+    edge_len_y = mesh_prop.scale_y / size_y
 
     points_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
     points = np.zeros((points_count, 2), dtype="float")

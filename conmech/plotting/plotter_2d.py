@@ -8,8 +8,8 @@ from matplotlib.patches import Rectangle
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import make_animation
-from deep_conmech.graph.setting.setting_randomized import SettingRandomized
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
 def get_fig():
@@ -37,6 +37,7 @@ def plot_animation(
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str,
+    all_calc_settings_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -49,30 +50,31 @@ def plot_animation(
         index_skip=index_skip,
         plot_settings_count=plot_settings_count,
         all_settings_path=all_settings_path,
+        all_calc_settings_path=all_calc_settings_path,
     )
 
 
 def plot_frame(
     fig,
     axs,
-    setting: SettingRandomized,
+    setting: SceneRandomized,
     current_time: float,
     draw_detailed: bool = True,
-    base_setting: Optional[SettingRandomized] = None,
+    base_setting: Optional[SceneRandomized] = None,
     t_scale: Optional[np.ndarray] = None,
 ):
     axes = axs
-    scale = setting.mesh_data.scale_x
+    scale = setting.mesh_prop.scale_x
     set_perspective(scale, axes=axes)
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plotter_common.plot_colorbar(fig, axs=[axes], cbar_settings=cbar_settings)
         draw_main_temperature(axes=axes, setting=setting, cbar_settings=cbar_settings)
     else:
         draw_main_displaced(setting, axes=axes)
     if base_setting is not None:
-        draw_base_displaced(base_setting, scale, axes=axes)
+        draw_base_displaced(base_setting, axes=axes)
 
     draw_parameters(current_time, setting, scale, axes=axes)
     # draw_angles(setting, axes)
@@ -104,7 +106,7 @@ def plot_frame(
         draw_a(setting, position, axes=axes)
 
         position[0] += shift
-        if isinstance(setting, SettingTemperature):
+        if isinstance(setting, SceneTemperature):
             plot_temperature(
                 axes=axes,
                 setting=setting,
@@ -118,7 +120,7 @@ def plot_frame(
 
 def plot_temperature(
     axes,
-    setting: SettingTemperature,
+    setting: SceneTemperature,
     position,
     cbar_settings: plotter_common.ColorbarSettings,
 ):
@@ -149,13 +151,15 @@ def draw_main_temperature(axes, setting, cbar_settings):
     )
 
 
-def draw_obstacles(obstacle_origins, obstacle_normals, position, color, axes):
-    obstacles_tangient = np.hstack((-obstacle_normals[:, 1, None], obstacle_normals[:, 0, None]))
-    for i, obstacle_origin in enumerate(obstacle_origins):
+def draw_obstacles(obstacle_nodes, obstacle_nodes_normals, position, color, axes):
+    obstacles_tangient = np.hstack(
+        (-obstacle_nodes_normals[:, 1, None], obstacle_nodes_normals[:, 0, None])
+    )
+    for i, obstacle_origin in enumerate(obstacle_nodes):
         bias = obstacle_origin + position
         axes.arrow(
             *bias,
-            *obstacle_normals[i],
+            *obstacle_nodes_normals[i],
             color=f"tab:{color}",
             alpha=0.4,
             width=0.00002,
@@ -186,13 +190,13 @@ def plot_arrows(starts, vectors, axes):
 
 
 def draw_main_obstacles(setting, axes):
-    draw_obstacles(setting.obstacle_origins, setting.obstacle_normals, [0, 0], "orange", axes)
+    draw_obstacles(setting.obstacle_nodes, setting.obstacle_nodes_normals, [0, 0], "orange", axes)
 
 
 def draw_normalized_obstacles(setting, position, axes):
     draw_obstacles(
-        setting.normalized_obstacle_origins,
-        setting.normalized_obstacle_normals,
+        setting.normalized_obstacle_nodes,
+        setting.normalized_obstacle_nodes_normals,
         position,
         "blue",
         axes,
@@ -269,21 +273,21 @@ def draw_main_displaced(setting, axes):
     draw_displaced(setting, position, "orange", axes)
     if setting.obstacles is not None:
         draw_obstacles(
-            setting.obstacle_origins,
-            setting.obstacle_normals,
+            setting.obstacle_nodes,
+            setting.obstacle_nodes_normals,
             position,
             "orange",
             axes,
         )
 
 
-def draw_base_displaced(setting, scale, axes):
-    position = np.array([0.0, 1.5]) * scale
+def draw_base_displaced(setting, axes):
+    position = np.array([0.0, 0.5])  # 1.5
     draw_displaced(setting, position, "purple", axes)
     if setting.obstacles is not None:
         draw_obstacles(
-            setting.obstacle_origins,
-            setting.obstacle_normals,
+            setting.obstacle_nodes,
+            setting.obstacle_nodes_normals,
             position,
             "orange",
             axes,
@@ -291,7 +295,7 @@ def draw_base_displaced(setting, scale, axes):
 
 
 def draw_displaced(setting, position, color, axes):
-    # draw_rectangle(axes, position, setting.mesh_data.scale_x, setting.mesh_data.scale_y)
+    # draw_rectangle(axes, position, setting.mesh_prop.scale_x, setting.mesh_prop.scale_y)
     draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", axes)
     # draw_data("P", obstacle_forces, setting, [7.5, -1.5], axes)
 
@@ -306,11 +310,11 @@ def draw_forces(setting, position, axes):
 
 
 def draw_input_u(setting, position, axes):
-    return draw_data("U", setting.input_u_old, setting, position, axes)
+    return draw_data("U", setting.input_displacement_old, setting, position, axes)
 
 
 def draw_input_v(setting, position, axes):
-    return draw_data("V", setting.input_v_old, setting, position, axes)
+    return draw_data("V", setting.input_velocity_old, setting, position, axes)
 
 
 def draw_a(setting, position, axes):
@@ -334,7 +338,7 @@ def draw_additional_setting(annotation, setting, position, axes):
 
 
 def add_annotation(annotation, setting, position, axes):
-    scale = setting.mesh_data.scale_x
+    scale = setting.mesh_prop.scale_x
     description_offset = np.array([-0.5, -1.1]) * scale
     axes.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
@@ -375,7 +379,7 @@ def draw_edges_data(position, setting, axes):
 
 
 def draw_vertices_data(position, setting, axes):
-    draw_data_at_vertices(setting, setting.normalized_u_old, position, axes)
+    draw_data_at_vertices(setting, setting.normalized_displacement_old, position, axes)
 
 
 def draw_data_at_edges(setting, features, position, axes):

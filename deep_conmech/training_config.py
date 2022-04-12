@@ -83,6 +83,7 @@ class TrainingConfig(Config):
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True
+    COMPARE_WITH_BASE_SETTING = True
 
     MAX_EPOCH_NUMBER: Optional[int] = None
     DATASETS_MAIN_PATH: str = "datasets"

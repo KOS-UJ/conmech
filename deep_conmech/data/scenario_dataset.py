@@ -40,7 +40,7 @@ class ScenariosDataset(BaseDataset):
         self.initialize_data()
 
     def check_and_get_dimension(self, scenarios):
-        dimensions = set([s.mesh_data.dimension for s in scenarios])
+        dimensions = set([s.mesh_prop.dimension for s in scenarios])
         if len(dimensions) != 1:
             raise ArgumentError("Incorrect data")
         return dimensions.pop()
@@ -73,7 +73,7 @@ class ScenariosDataset(BaseDataset):
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    setting = self.get_setting_input(scenario=scenario, config=self.config)
+                    setting = self.get_scene_input(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
                     config=self.config,

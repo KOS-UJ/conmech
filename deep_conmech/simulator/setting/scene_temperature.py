@@ -2,9 +2,9 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.solvers import SchurComplement
-from deep_conmech.simulator.setting import setting_obstacles
+from deep_conmech.simulator.setting import scene
 from deep_conmech.simulator.setting.setting_forces import energy_new
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.simulator.setting.scene import Scene
 
 
 def obstacle_heat(
@@ -26,9 +26,7 @@ def integrate(
     nodes_volume,
     heat_coeff,
 ):
-    penetration_norm = setting_obstacles.get_penetration_norm(
-        nodes, obstacle_nodes, obstacle_nodes_normals
-    )
+    penetration_norm = scene.get_penetration_norm(nodes, obstacle_nodes, obstacle_nodes_normals)
     v_tangential = nph.get_tangential(v, nodes_normals)
 
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
@@ -44,10 +42,10 @@ def energy_temperature(
     return energy_new(t, T, Q)
 
 
-class SettingTemperature(SettingObstacles):
+class SceneTemperature(Scene):
     def __init__(
         self,
-        mesh_data,
+        mesh_prop,
         body_prop,
         obstacle_prop,
         schedule,
@@ -55,7 +53,7 @@ class SettingTemperature(SettingObstacles):
         create_in_subprocess,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
@@ -105,7 +103,7 @@ class SettingTemperature(SettingObstacles):
     def get_normalized_Q_np(self, normalized_a):
         return self.get_Q(
             a=normalized_a,
-            v_old=self.normalized_v_old,
+            velocity_old=self.normalized_velocity_old,
             heat=self.heat,
             t_old=self.t_old,
             const_volume=self.volume,
@@ -118,7 +116,7 @@ class SettingTemperature(SettingObstacles):
     def get_Q(
         self,
         a,
-        v_old,
+        velocity_old,
         heat,
         t_old,
         const_volume,
@@ -127,7 +125,7 @@ class SettingTemperature(SettingObstacles):
         dimension,
         time_step,
     ):
-        v = v_old + a * time_step
+        v = velocity_old + a * time_step
         v_vector = nph.stack_column(v)
 
         Q = nph.stack_column(const_volume @ heat)
@@ -147,8 +145,8 @@ class SettingTemperature(SettingObstacles):
             nodes=self.boundary_nodes,
             nodes_normals=boundary_normals,
             obstacle_nodes=self.boundary_obstacle_nodes,
-            obstacle_nodes_normals=self.boundary_obstacle_normals,
-            v=self.boundary_v_old,
+            obstacle_nodes_normals=self.boundary_obstacle_nodes_normals,
+            v=self.boundary_velocity_old,
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
         )
@@ -157,8 +155,8 @@ class SettingTemperature(SettingObstacles):
         return self.get_E(
             t=t,
             forces=self.normalized_forces,
-            u_old=self.normalized_u_old,
-            v_old=self.normalized_v_old,
+            displacement_old=self.normalized_displacement_old,
+            velocity_old=self.normalized_velocity_old,
             const_volume=self.volume,
             elasticity=self.elasticity,
             viscosity=self.viscosity,
@@ -171,8 +169,8 @@ class SettingTemperature(SettingObstacles):
         self,
         t,
         forces,
-        u_old,
-        v_old,
+        displacement_old,
+        velocity_old,
         const_volume,
         elasticity,
         viscosity,
@@ -182,8 +180,8 @@ class SettingTemperature(SettingObstacles):
     ):
         value = super().get_E(
             forces=forces,
-            u_old=u_old,
-            v_old=v_old,
+            displacement_old=displacement_old,
+            velocity_old=velocity_old,
             const_volume=const_volume,
             elasticity=elasticity,
             viscosity=viscosity,

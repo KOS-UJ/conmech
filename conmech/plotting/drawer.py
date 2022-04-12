@@ -55,7 +55,7 @@ class Drawer:
         plt.axis("on")
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        fig.set_size_inches(self.mesh.mesh_data.scale_x * 12, self.mesh.mesh_data.scale_y * 10)
+        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 10)
 
         if show:
             plt.show()

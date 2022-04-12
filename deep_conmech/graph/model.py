@@ -16,8 +16,8 @@ from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.graph.setting import setting_input
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene import scene_input
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
@@ -167,9 +167,9 @@ class GraphModelDynamic:
         config: TrainingConfig,
         randomize=False,
         create_in_subprocess: bool = False,
-    ) -> SettingInput:  # "SettingObstacles":
-        setting = SettingInput(
-            mesh_data=scenario.mesh_data,
+    ) -> SceneInput:  # "Scene":
+        setting = SceneInput(
+            mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
@@ -181,7 +181,7 @@ class GraphModelDynamic:
         return setting
 
     @staticmethod
-    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: Config):
+    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: TrainingConfig):
         print("----PLOTTING----")
         start_time = time.time()
         timestamp = cmh.get_timestamp(config)
@@ -193,6 +193,7 @@ class GraphModelDynamic:
                 config=config,
                 catalog=catalog,
                 simulate_dirty_data=False,
+                compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
                 plot_animation=True,
                 get_setting_function=GraphModelDynamic.get_setting_function,
             )
@@ -294,7 +295,7 @@ class GraphModelDynamic:
         reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
         normalized_E_split = batch.normalized_E.split(dim_graph_sizes)
         normalized_a_correction_split = batch.normalized_a_correction.split(graph_sizes)
-        normalized_boundary_v_old_split = batch.normalized_boundary_v_old.split(
+        normalized_boundary_velocity_old_split = batch.normalized_boundary_velocity_old.split(
             boundary_nodes_counts
         )
         normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
@@ -307,8 +308,8 @@ class GraphModelDynamic:
         normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
             boundary_nodes_counts
         )
-        normalized_boundary_obstacle_normals_split = (
-            batch.normalized_boundary_obstacle_normals.split(boundary_nodes_counts)
+        normalized_boundary_obstacle_nodes_normals_split = (
+            batch.normalized_boundary_obstacle_nodes_normals.split(boundary_nodes_counts)
         )
         surface_per_boundary_node_split = batch.surf_per_boundary_node.split(boundary_nodes_counts)
 
@@ -327,11 +328,11 @@ class GraphModelDynamic:
                 a_correction=normalized_a_correction,
                 C=C,
                 E=normalized_E,
-                boundary_v_old=normalized_boundary_v_old_split[i],
+                boundary_velocity_old=normalized_boundary_velocity_old_split[i],
                 boundary_nodes=normalized_boundary_nodes_split[i],
                 boundary_normals=normalized_boundary_normals_split[i],
                 boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
-                boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
+                boundary_obstacle_nodes_normals=normalized_boundary_obstacle_nodes_normals_split[i],
                 surface_per_boundary_node=surface_per_boundary_node_split[i],
                 obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
@@ -340,7 +341,7 @@ class GraphModelDynamic:
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
 
-            predicted_normalized_energy = setting_input.energy_normalized_obstacle_correction(
+            predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
             )
             if hasattr(batch, "exact_normalized_a"):
@@ -353,7 +354,7 @@ class GraphModelDynamic:
 
             loss_array[0] += predicted_normalized_energy
             if hasattr(batch, "exact_normalized_a"):
-                exact_normalized_energy = setting_input.energy_normalized_obstacle_correction(
+                exact_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
                 loss_array[1] += float(
@@ -367,7 +368,7 @@ class GraphModelDynamic:
         return loss, loss_array, None  # new_batch
 
     def use_true_solution(self, predicted_normalized_a, energy_args):
-        function = lambda normalized_a_vector: setting_input.energy_normalized_obstacle_correction(
+        function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(
             cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
                 self.net.device
             ),

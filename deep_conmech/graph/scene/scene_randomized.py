@@ -5,14 +5,14 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.simulator.setting.setting_obstacles import SettingObstacles
+from deep_conmech.simulator.setting.scene import Scene
 from deep_conmech.training_config import TrainingConfig
 
 
-class SettingRandomized(SettingObstacles):
+class SceneRandomized(Scene):
     def __init__(
         self,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
@@ -20,7 +20,7 @@ class SettingRandomized(SettingObstacles):
         create_in_subprocess,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
@@ -38,42 +38,42 @@ class SettingRandomized(SettingObstacles):
     def set_randomization(self, randomized_inputs):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
-            self.v_old_randomization = nph.get_random_normal(
+            self.velocity_old_randomization = nph.get_random_normal(
                 self.dimension, self.nodes_count, self.config.td.V_IN_RANDOM_FACTOR
             )
-            self.u_old_randomization = nph.get_random_normal(
+            self.displacement_old_randomization = nph.get_random_normal(
                 self.dimension, self.nodes_count, self.config.td.U_IN_RANDOM_FACTOR
             )
             # Do not randomize boundaries
-            self.v_old_randomization[self.boundary_indices] = 0
-            self.v_old_randomization[self.boundary_indices] = 0
+            self.velocity_old_randomization[self.boundary_indices] = 0
+            self.velocity_old_randomization[self.boundary_indices] = 0
         else:
-            self.v_old_randomization = np.zeros_like(self.initial_nodes)
-            self.u_old_randomization = np.zeros_like(self.initial_nodes)
+            self.velocity_old_randomization = np.zeros_like(self.initial_nodes)
+            self.displacement_old_randomization = np.zeros_like(self.initial_nodes)
 
     @property
-    def normalized_v_old_randomization(self):
-        return self.normalize_rotate(self.v_old_randomization)
+    def normalized_velocity_old_randomization(self):
+        return self.normalize_rotate(self.velocity_old_randomization)
 
     @property
-    def normalized_u_old_randomization(self):
-        return self.normalize_rotate(self.u_old_randomization)
+    def normalized_displacement_old_randomization(self):
+        return self.normalize_rotate(self.displacement_old_randomization)
 
     @property
-    def randomized_v_old(self):
-        return self.v_old + self.v_old_randomization
+    def randomized_velocity_old(self):
+        return self.velocity_old + self.velocity_old_randomization
 
     @property
-    def randomized_u_old(self):
-        return self.u_old + self.u_old_randomization
+    def randomized_displacement_old(self):
+        return self.displacement_old + self.displacement_old_randomization
 
     @property
-    def input_v_old(self):  # normalized_randomized_v_old
-        return self.normalized_v_old + self.normalized_v_old_randomization
+    def input_velocity_old(self):  # normalized_randomized_velocity_old
+        return self.normalized_velocity_old + self.normalized_velocity_old_randomization
 
     @property
-    def input_u_old(self):  # normalized_randomized_u_old
-        return self.normalized_u_old + self.normalized_u_old_randomization
+    def input_displacement_old(self):  # normalized_randomized_displacement_old
+        return self.normalized_displacement_old + self.normalized_displacement_old_randomization
 
     @property
     def input_forces(self):
@@ -82,10 +82,10 @@ class SettingRandomized(SettingObstacles):
     @property
     def a_correction(self):
         u_correction = self.config.td.U_NOISE_GAMMA * (
-            self.u_old_randomization / (self.time_step**2)
+            self.displacement_old_randomization / (self.time_step**2)
         )
         v_correction = (
-            (1.0 - self.config.td.U_NOISE_GAMMA) * self.v_old_randomization / self.time_step
+            (1.0 - self.config.td.U_NOISE_GAMMA) * self.velocity_old_randomization / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 
@@ -94,11 +94,11 @@ class SettingRandomized(SettingObstacles):
         return self.normalize_rotate(self.a_correction)
 
     def make_dirty(self):
-        self.v_old = self.randomized_v_old
-        self.u_old = self.randomized_u_old
+        self.velocity_old = self.randomized_velocity_old
+        self.displacement_old = self.randomized_displacement_old
 
-        self.v_old_randomization = np.zeros_like(self.initial_nodes)
-        self.u_old_randomization = np.zeros_like(self.initial_nodes)
+        self.velocity_old_randomization = np.zeros_like(self.initial_nodes)
+        self.displacement_old_randomization = np.zeros_like(self.initial_nodes)
         self.randomized_inputs = False
 
     def iterate_self(self, acceleration, randomized_inputs=False):

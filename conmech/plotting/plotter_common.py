@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -105,7 +106,17 @@ def plt_save(path, extension):
 
 
 def make_animation(get_axs, plot_frame, t_scale):
-    def animate(step, fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm):
+    def animate(
+        step,
+        fig,
+        time_skip,
+        index_skip,
+        all_indices,
+        settings_file,
+        base_all_indices,
+        base_setting_file,
+        animation_tqdm,
+    ):
         animation_tqdm.update(1)
         fig.clf()
         axs = get_axs(fig)
@@ -114,12 +125,23 @@ def make_animation(get_axs, plot_frame, t_scale):
             all_indices=all_indices,
             settings_file=settings_file,
         )
+
+        if base_setting_file is not None:
+            base_setting = pkh.load_index_pickle(
+                index=step * index_skip,
+                all_indices=base_all_indices,
+                settings_file=base_setting_file,
+            )
+        else:
+            base_setting = None
+
         plot_frame(
             axs=axs,
             fig=fig,
             setting=setting,
             current_time=step * time_skip,
             t_scale=t_scale,
+            base_setting=base_setting,
         )
         return fig
 
@@ -135,6 +157,7 @@ def plot_animation(
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str,
+    all_calc_settings_path: Optional[str],
 ):
     fps = int(1 / time_skip)
     animation_tqdm = cmh.get_tqdm(
@@ -145,11 +168,28 @@ def plot_animation(
 
     all_indices = pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
-    args = (fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm)
+    base_all_indices = (
+        None
+        if all_calc_settings_path is None
+        else pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
+    )
+    base_setting_file = (
+        None
+        if all_calc_settings_path is None
+        else pkh.open_file_settings_read_pickle(all_settings_path)
+    )
     with settings_file:
-
+        args = (
+            fig,
+            time_skip,
+            index_skip,
+            all_indices,
+            settings_file,
+            base_all_indices,
+            base_setting_file,
+            animation_tqdm,
+        )
         ani = animation.FuncAnimation(fig, animate, fargs=args, frames=plot_settings_count)
-
         ani.save(save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
     plt.close()
 

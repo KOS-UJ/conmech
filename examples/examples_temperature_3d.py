@@ -43,7 +43,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"C_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_CUBE_3D,
                 scale=[1],
@@ -91,12 +91,12 @@ def get_K_temp_scenarios(mesh_density, final_time):
     def h_corner(
         initial_node: np.ndarray,
         moved_node: np.ndarray,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         t: float,
     ):
-        x_scaled = initial_node[0] / mesh_data.scale_x
-        y_scaled = initial_node[1] / mesh_data.scale_y
-        z_scaled = initial_node[2] / mesh_data.scale_z
+        x_scaled = initial_node[0] / mesh_prop.scale_x
+        y_scaled = initial_node[1] / mesh_prop.scale_y
+        z_scaled = initial_node[2] / mesh_prop.scale_z
         if x_scaled > 0.9 and y_scaled < 0.1 and z_scaled < 0.1:
             return -1000
         return 0.0
@@ -105,7 +105,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"K_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_CUBE_3D,
                 scale=[1],
@@ -133,7 +133,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
         [
             TemperatureScenario(
                 name="temperature_3d_cube_throw",
-                mesh_data=MeshProperties(
+                mesh_prop=MeshProperties(
                     dimension=3,
                     mesh_type=M_CUBE_3D,
                     scale=[1],

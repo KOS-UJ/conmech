@@ -16,7 +16,7 @@ def generate_test_suits():
     )
     scenario = TemperatureScenario(
         name=f"polygon_temp",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=scenarios.M_POLYGON,
             scale=[1],
