@@ -8,9 +8,9 @@ from matplotlib.patches import Rectangle
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
+from conmech.scene.scene import Scene
+from conmech.scene.scene_temperature import SceneTemperature
 from deep_conmech.graph.scene.scene_randomized import SceneRandomized
-from deep_conmech.simulator.setting.scene import Scene
-from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
 def get_fig():
@@ -153,18 +153,16 @@ def draw_main_temperature(axes, setting, cbar_settings):
     )
 
 
-def draw_obstacles(obstacle_nodes, obstacle_nodes_normals, position, color, axes):
+def draw_obstacles(obstacle_nodes, obstacle_normals, position, color, axes):
     if len(obstacle_nodes) == 0:
         return
 
-    obstacles_tangient = np.hstack(
-        (-obstacle_nodes_normals[:, 1, None], obstacle_nodes_normals[:, 0, None])
-    )
-    for i, obstacle_origin in enumerate(obstacle_nodes):
-        bias = obstacle_origin + position
+    obstacles_tangient = np.hstack((-obstacle_normals[:, 1, None], obstacle_normals[:, 0, None]))
+    for i, obstacle_node in enumerate(obstacle_nodes):
+        bias = obstacle_node + position
         axes.arrow(
             *bias,
-            *obstacle_nodes_normals[i],
+            *obstacle_normals[i],
             color=f"tab:{color}",
             alpha=0.4,
             width=0.00002,
@@ -196,62 +194,62 @@ def plot_arrows(starts, vectors, axes):
 
 def draw_main_obstacles(setting, axes):
     draw_obstacles(
-        setting.linear_obstacle_nodes, setting.linear_obstacle_nodes_normals, [0, 0], "orange", axes
+        setting.linear_obstacle_nodes, setting.linear_obstacle_normals, [0, 0], "orange", axes
     )
 
 
 def draw_normalized_obstacles(setting, position, axes):
     draw_obstacles(
         setting.normalized_obstacle_nodes,
-        setting.normalized_obstacle_nodes_normals,
+        setting.normalized_obstacle_normals,
         position,
         "blue",
         axes,
     )
 
 
-def draw_obstacle_resistance_normalized(setting, position, axes):
-    draw_additional_setting("P", setting, position, axes)
+def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
+    draw_additional_setting("P", scene, position, axes)
     plot_arrows(
-        setting.normalized_boundary_nodes + position,
-        setting.normalized_boundary_penetration,
+        scene.normalized_boundary_nodes + position,
+        scene.get_normalized_boundary_penetration(),
         axes,
     )
 
 
-def draw_boundary_normals(setting, position, axes):
-    draw_additional_setting("N", setting, position, axes)
+def draw_boundary_normals(scene: Scene, position, axes):
+    draw_additional_setting("N", scene, position, axes)
     plot_arrows(
-        setting.normalized_boundary_nodes + position,
-        setting.get_normalized_boundary_normals(),
+        scene.normalized_boundary_nodes + position,
+        scene.get_normalized_boundary_normals(),
         axes,
     )
 
 
-def draw_boundary_v_tangential(setting, position, axes):
-    draw_additional_setting("V_TNG", setting, position, axes)
+def draw_boundary_v_tangential(scene: Scene, position, axes):
+    draw_additional_setting("V_TNG", scene, position, axes)
     plot_arrows(
-        setting.normalized_boundary_nodes + position,
-        setting.get_normalized_boundary_v_tangential(),
+        scene.normalized_boundary_nodes + position,
+        scene.get_normalized_boundary_v_tangential(),
         axes,
     )
 
 
-def draw_boundary_resistance_normal(setting, position, axes):
-    draw_additional_setting("RES_N", setting, position, axes)
-    data = setting.get_normalized_boundary_normals() * setting.resistance_normal / 100
+def draw_boundary_resistance_normal(scene: Scene, position, axes):
+    draw_additional_setting("RES_N", scene, position, axes)
+    data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
     plot_arrows(
-        setting.normalized_boundary_nodes + position,
+        scene.normalized_boundary_nodes + position,
         data,
         axes,
     )
 
 
-def draw_boundary_resistance_tangential(setting, position, axes):
-    draw_additional_setting("RES_T", setting, position, axes)
-    data = setting.get_normalized_boundary_normals() * setting.get_resistance_tangential() / 100
+def draw_boundary_resistance_tangential(scene: Scene, position, axes):
+    draw_additional_setting("RES_T", scene, position, axes)
+    data = scene.get_normalized_boundary_normals() * scene.get_resistance_tangential() / 100
     plot_arrows(
-        setting.normalized_boundary_nodes + position,
+        scene.normalized_boundary_nodes + position,
         data,
         axes,
     )
@@ -283,7 +281,7 @@ def draw_main_displaced(scene: Scene, axes):
 
     draw_obstacles(
         scene.linear_obstacle_nodes,
-        scene.linear_obstacle_nodes_normals,
+        scene.linear_obstacle_normals,
         position,
         "orange",
         axes,

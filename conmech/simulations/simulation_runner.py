@@ -7,9 +7,9 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import Scene
+from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.simulator.setting.scene import Scene
-from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 
 
 def run_examples(
@@ -143,19 +143,24 @@ def plot_scenario_animation(
     )
 
 
-def prepare(scenario, setting, current_time, forces, with_temperature):
+def prepare(scenario, setting, base_setting, current_time, with_temperature):
+    forces = scenario.get_forces_by_function(setting, current_time)
     if with_temperature:
         heat = scenario.get_heat_by_function(setting, current_time)
         setting.prepare(forces, heat)
     else:
         setting.prepare(forces)
 
+    if base_setting is not None:
+        base_forces = scenario.get_forces_by_function(base_setting, current_time)
+        base_setting.prepare(base_forces)
+
 
 def iterate(acceleration, temperature, setting, simulate_dirty_data, with_temperature):
     if with_temperature:
-        setting.iterate_self(acceleration, temperature)
+        setting.iterate_self_tmp(acceleration, temperature)
     else:
-        setting.iterate_self(acceleration, randomized_inputs=simulate_dirty_data)
+        setting.iterate_self_tmp(acceleration, randomized_inputs=simulate_dirty_data)
 
 
 def simulate(
@@ -195,8 +200,7 @@ def simulate(
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
-        forces = scenario.get_forces_by_function(setting, current_time)
-        prepare(scenario, setting, current_time, forces, with_temperature)
+        prepare(scenario, setting, base_setting, current_time, with_temperature)
 
         start_time = time.time()
         if with_temperature:
@@ -211,9 +215,6 @@ def simulate(
             setting.make_dirty()
 
         if compare_with_base_setting:
-            base_forces = scenario.get_forces_by_function(base_setting, current_time)
-            base_setting.prepare(base_forces)
-
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
             calculator_time += time.time() - start_time

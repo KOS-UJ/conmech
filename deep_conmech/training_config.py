@@ -37,7 +37,7 @@ class TrainingData:
     UPDATE_AT_EPOCHS: int = 100
 
     USE_ENERGY_AS_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 128  # !# 64 # 128
+    BATCH_SIZE: int = 256  # !# 64 # 128
     VALID_BATCH_SIZE: int = 128  # !#
     SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # 96 # 32 !# 64 # 512
 
@@ -53,7 +53,7 @@ class TrainingData:
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 
     INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    LR_GAMMA: float = 1.0  # 0.999
+    LR_GAMMA: float = 0.999  # 1.0
     FINAL_LR: float = 1e-6
 
     LATENT_DIM: int = 128
@@ -83,7 +83,7 @@ class TrainingConfig(Config):
 
     LOG_DATASET_STATS = True
     LOAD_TRAIN_DATASET_TO_RAM = True
-    COMPARE_WITH_BASE_SETTING = True
+    COMPARE_WITH_BASE_SETTING = False
 
     MAX_EPOCH_NUMBER: Optional[int] = None
     DATASETS_MAIN_PATH: str = "datasets"

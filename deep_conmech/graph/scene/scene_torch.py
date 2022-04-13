@@ -100,7 +100,7 @@ class SceneTorch(SceneRandomized):
 
     @property
     def normalized_boundary_velocity_old_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_velocity_old)
+        return thh.to_torch_double(self.norm_boundary_velocity_old)
 
     @property
     def normalized_boundary_nodes_torch(self):
@@ -111,15 +111,13 @@ class SceneTorch(SceneRandomized):
 
     @property
     def normalized_boundary_obstacle_nodes_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_obstacle_nodes)
+        return thh.to_torch_double(self.norm_boundary_obstacle_nodes)
 
-    @property
-    def normalized_boundary_penetration_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_penetration)
+    def get_normalized_boundary_penetration_torch(self):
+        return thh.to_torch_double(self.get_normalized_boundary_penetration())
 
-    @property
-    def normalized_boundary_obstacle_nodes_normals_torch(self):
-        return thh.to_torch_double(self.normalized_boundary_obstacle_nodes_normals)
+    def get_normalized_boundary_obstacle_normals_torch(self):
+        return thh.to_torch_double(self.get_norm_boundary_obstacle_normals())
 
     def get_normalized_boundary_v_tangential_torch(self):
         return thh.to_torch_double(self.get_normalized_boundary_v_tangential())
@@ -128,4 +126,4 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.get_surface_per_boundary_node())
 
     def get_normalized_E_torch(self):
-        return thh.to_torch_double(self.get_normalized_E_np(None))
+        return thh.to_torch_double(self.get_normalized_rhs_np(None))

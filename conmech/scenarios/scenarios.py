@@ -14,10 +14,10 @@ from conmech.properties.obstacle_properties import (
     TemperatureObstacleProperties,
 )
 from conmech.properties.schedule import Schedule
+from conmech.scene.scene import Scene
+from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.simulator.setting.scene import Scene
-from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
 from deep_conmech.training_config import TrainingData
 
 

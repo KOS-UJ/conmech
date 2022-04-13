@@ -178,15 +178,12 @@ class BaseDataset:
             print("Loading data from disc")
 
     def load_data_to_ram(self):
-        data_count = len(self.all_indices)
         setting_tqdm = cmh.get_tqdm(
-            iterable=pkh.get_iterator_pickle(self.data_path, data_count),
+            iterable=range(len(self.all_indices)),
             config=self.config,
             desc="Preprocessing and loading dataset to RAM",
         )
-        return [
-            self.preprocess_example(setting, index) for index, setting in enumerate(setting_tqdm)
-        ]
+        return pkh.get_iterator_pickle(self.data_path, setting_tqdm, self.preprocess_example)
 
     def generate_data_process(self, num_workers, process_id):
         pass

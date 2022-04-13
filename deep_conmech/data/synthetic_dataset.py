@@ -76,8 +76,8 @@ def create_obstacles(config, setting):
         high=config.td.OBSTACLE_ORIGIN_SCALE,
     )
     obstacle_nodes = obstacle_nodes_unnormaized + setting.mean_moved_nodes
-    obstacle_nodes_normals_unnormaized = -obstacle_nodes_unnormaized
-    return np.stack((obstacle_nodes_normals_unnormaized, obstacle_nodes))
+    obstacle_normals_unnormaized = -obstacle_nodes_unnormaized
+    return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
 
 
 def get_base_setting(config, mesh_type):

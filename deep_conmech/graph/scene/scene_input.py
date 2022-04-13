@@ -8,9 +8,9 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.scene import energy_obstacle
 from deep_conmech.graph.scene.scene_torch import SceneTorch
 from deep_conmech.helpers import thh
-from deep_conmech.simulator.setting.scene import energy_obstacle
 
 
 def energy_normalized_obstacle_correction(
@@ -22,21 +22,21 @@ def energy_normalized_obstacle_correction(
     boundary_nodes,
     boundary_normals,
     boundary_obstacle_nodes,
-    boundary_obstacle_nodes_normals,
+    boundary_obstacle_normals,
     surface_per_boundary_node,
     obstacle_prop,
     time_step,
 ):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
     return energy_obstacle(
-        a=a,
-        C=C,
-        E=E,
+        acceleration=a,
+        lhs=C,
+        rhs=E,
         boundary_velocity_old=boundary_velocity_old,
         boundary_nodes=boundary_nodes,
         boundary_normals=boundary_normals,
         boundary_obstacle_nodes=boundary_obstacle_nodes,
-        boundary_obstacle_nodes_normals=boundary_obstacle_nodes_normals,
+        boundary_obstacle_normals=boundary_obstacle_normals,
         surface_per_boundary_node=surface_per_boundary_node,
         obstacle_prop=obstacle_prop,
         time_step=time_step,
@@ -79,7 +79,7 @@ def energy_obstacle_nvt(
     boundary_nodes,
     boundary_normals,
     boundary_obstacle_nodes,
-    boundary_obstacle_nodes_normals,
+    boundary_obstacle_normals,
     surface_per_boundary_node,
     config,
 ):  # np via torch
@@ -92,7 +92,7 @@ def energy_obstacle_nvt(
         thh.to_torch_double(boundary_nodes).to(thh.device(config)),
         thh.to_torch_long(boundary_normals).to(thh.device(config)),
         thh.to_torch_double(boundary_obstacle_nodes).to(thh.device(config)),
-        thh.to_torch_double(boundary_obstacle_nodes_normals).to(thh.device(config)),
+        thh.to_torch_double(boundary_obstacle_normals).to(thh.device(config)),
         thh.to_torch_double(surface_per_boundary_node).to(thh.device(config)),
     )
     value = thh.to_np_double(value_torch)
@@ -165,7 +165,7 @@ class SceneInput(SceneTorch):
 
     def get_nodes_data(self):
         boundary_penetration = self.complete_boundary_data_with_zeros_torch(
-            self.normalized_boundary_penetration_torch
+            self.get_normalized_boundary_penetration_torch()
         )
         boundary_normals = self.complete_boundary_data_with_zeros_torch(
             self.get_normalized_boundary_normals_torch()
@@ -210,7 +210,7 @@ class SceneInput(SceneTorch):
             normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
             normalized_boundary_normals=self.get_normalized_boundary_normals_torch(),
             normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
-            normalized_boundary_obstacle_nodes_normals=self.normalized_boundary_obstacle_nodes_normals_torch,
+            normalized_boundary_obstacle_normals=self.get_normalized_boundary_obstacle_normals_torch(),
             surf_per_boundary_node=self.get_surface_per_boundary_node_torch(),
             boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
@@ -235,10 +235,10 @@ class SceneInput(SceneTorch):
             nph.unstack(normalized_boundary_a_vector, self.dim),
             self.lhs_boundary,
             self.normalized_E_boundary,
-            self.normalized_boundary_velocity_old,
+            self.norm_boundary_velocity_old,
             self.normalized_boundary_nodes,
             normalized_boundary_normals,
-            self.normalized_boundary_obstacle_nodes,
-            self.normalized_boundary_obstacle_nodes_normals,
+            self.norm_boundary_obstacle_nodes,
+            self.norm_boundary_obstacle_normals,
             surface_per_boundary_node,
         )

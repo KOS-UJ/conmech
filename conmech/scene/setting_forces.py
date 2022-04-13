@@ -3,11 +3,31 @@ from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
 
 
-def energy_new(a, C, E):
-    a_vector = nph.stack_column(a)
-    first = 0.5 * (C @ a_vector) - E
-    value = first.reshape(-1) @ a_vector
+def energy(value, lhs, rhs):
+    value_vector = nph.stack_column(value)
+    first = 0.5 * (lhs @ value_vector) - rhs
+    value = first.reshape(-1) @ value_vector
     return value
+
+
+def get_rhs(
+    forces,
+    displacement_old,
+    velocity_old,
+    const_volume,
+    elasticity,
+    viscosity,
+    time_step,
+):
+    displacement_old_vector = nph.stack_column(displacement_old)
+    velocity_old_vector = nph.stack_column(velocity_old)
+    f_vector = nph.stack_column(const_volume @ forces)
+    rhs = (
+        f_vector
+        - (viscosity + elasticity * time_step) @ velocity_old_vector
+        - elasticity @ displacement_old_vector
+    )
+    return rhs
 
 
 class SettingForces(Dynamics):
@@ -38,23 +58,25 @@ class SettingForces(Dynamics):
     def clear(self):
         self.forces = None
 
-    def get_all_normalized_E_np(self, t):
-        normalized_E = self.get_normalized_E_np(t)
+    def get_all_normalized_rhs_np(self, temperature=None):
+        _ = temperature
+        normalized_rhs = self.get_normalized_rhs_np()
         (
-            normalized_E_boundary,
-            normalized_E_free,
+            normalized_rhs_boundary,
+            normalized_rhs_free,
         ) = SchurComplement.calculate_schur_complement_vector(
-            vector=normalized_E,
+            vector=normalized_rhs,
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
             free_x_free_inverted=self.solver_cache.free_x_free_inverted,
             contact_x_free=self.solver_cache.contact_x_free,
         )
-        return normalized_E_boundary, normalized_E_free
+        return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_E_np(self, t):
-        return self.get_E(
+    def get_normalized_rhs_np(self, temperature=None):
+        _ = temperature
+        return get_rhs(
             forces=self.normalized_forces,
             displacement_old=self.normalized_displacement_old,
             velocity_old=self.normalized_velocity_old,
@@ -63,27 +85,6 @@ class SettingForces(Dynamics):
             viscosity=self.viscosity,
             time_step=self.time_step,
         )
-
-    def get_E(
-        self,
-        forces,
-        displacement_old,
-        velocity_old,
-        const_volume,
-        elasticity,
-        viscosity,
-        time_step,
-    ):
-        displacement_old_vector = nph.stack_column(displacement_old)
-        velocity_old_vector = nph.stack_column(velocity_old)
-
-        F_vector = nph.stack_column(const_volume @ forces)
-        E = (
-            F_vector
-            - (viscosity + elasticity * time_step) @ velocity_old_vector
-            - elasticity @ displacement_old_vector
-        )
-        return E
 
     @property
     def input_forces(self):

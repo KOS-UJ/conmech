@@ -116,7 +116,7 @@ class AnimationArgs:
     all_indices: List[int]
     settings_file: BufferedReader
     base_all_indices: Optional[List[int]]
-    base_setting_file: Optional[BufferedReader]
+    base_settings_file: Optional[BufferedReader]
     animation_tqdm: tqdm.tqdm
 
 
@@ -131,11 +131,11 @@ def make_animation(get_axs, plot_frame, t_scale):
             settings_file=args.settings_file,
         )
 
-        if args.base_setting_file is not None:
+        if args.base_settings_file is not None:
             base_setting = pkh.load_index_pickle(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
-                settings_file=args.base_setting_file,
+                settings_file=args.base_settings_file,
             )
         else:
             base_setting = None
@@ -178,12 +178,12 @@ def plot_animation(
     base_all_indices = (
         None
         if plot_config.all_calc_settings_path is None
-        else pkh.get_all_indices_pickle(all_settings_path=plot_config.all_settings_path)
+        else pkh.get_all_indices_pickle(all_settings_path=plot_config.all_calc_settings_path)
     )
-    base_setting_file = (
+    base_settings_file = (
         None
         if plot_config.all_calc_settings_path is None
-        else pkh.open_file_settings_read_pickle(plot_config.all_settings_path)
+        else pkh.open_file_settings_read_pickle(plot_config.all_calc_settings_path)
     )
     with settings_file:
         args = AnimationArgs(
@@ -193,7 +193,7 @@ def plot_animation(
             all_indices=all_indices,
             settings_file=settings_file,
             base_all_indices=base_all_indices,
-            base_setting_file=base_setting_file,
+            base_settings_file=base_settings_file,
             animation_tqdm=animation_tqdm,
         )
         ani = animation.FuncAnimation(

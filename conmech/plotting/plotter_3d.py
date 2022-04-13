@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
-from deep_conmech.simulator.setting.scene_temperature import SceneTemperature
+from conmech.scene.scene_temperature import SceneTemperature
 
 
 def get_fig():
@@ -66,6 +66,7 @@ def get_axs(fig):
 
 
 def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Optional[List] = None):
+    _ = base_setting
     for axes in axs:
         plot_subframe(
             axes=axes,
@@ -185,7 +186,7 @@ def plot_obstacles(axes, setting, color):
         return
     alpha = 0.3
     node = setting.obstacle_nodes[0]
-    normal = setting.obstacle_nodes_normals[0]
+    normal = setting.obstacle_normals[0]
 
     # a plane is a*x+b*y+c*z+d=0
     # z = (-d-axes-by) / c

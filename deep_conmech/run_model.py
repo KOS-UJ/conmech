@@ -22,7 +22,7 @@ def train(config: TrainingConfig):
         statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
         net = get_net(statistics, config)
 
-    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
+    all_val_datasets = get_all_val_datasets(config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
 
@@ -73,7 +73,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
     return train_dataset
 
 
-def get_all_val_datasets(train_dataset, config: TrainingConfig):
+def get_all_val_datasets(config: TrainingConfig):
     all_val_datasets = []
     # if config.td.DATASET != "live":
     #    all_val_datasets.append(train_dataset)

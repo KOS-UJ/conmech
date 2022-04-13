@@ -54,12 +54,12 @@ class ScenariosDataset(BaseDataset):
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
-        assigned_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
-        start_index = process_id * assigned_data_count
+        simulation_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
+        start_index = process_id * simulation_data_count
         current_index = start_index
         tqdm_description = f"P{process_id}: Generating {self.description}"
         step_tqdm = cmh.get_tqdm(
-            range(assigned_data_count),
+            range(simulation_data_count),
             config=self.config,
             desc=tqdm_description,
             position=process_id,
@@ -95,7 +95,7 @@ class ScenariosDataset(BaseDataset):
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(
-                    self.data_count,
+                    simulation_data_count,
                     current_index,
                     setting,
                     step_tqdm,

@@ -5,7 +5,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.simulator.setting.scene import Scene
+from conmech.scene.scene import Scene
 from deep_conmech.training_config import TrainingConfig
 
 
