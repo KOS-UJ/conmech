@@ -1,3 +1,7 @@
+from dataclasses import dataclass
+
+import numpy as np
+
 from conmech.dynamics.dynamics import Dynamics
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
@@ -10,22 +14,25 @@ def energy(value, lhs, rhs):
     return value
 
 
-def get_rhs(
-    forces,
-    displacement_old,
-    velocity_old,
-    const_volume,
-    elasticity,
-    viscosity,
-    time_step,
-):
-    displacement_old_vector = nph.stack_column(displacement_old)
-    velocity_old_vector = nph.stack_column(velocity_old)
-    f_vector = nph.stack_column(const_volume @ forces)
+@dataclass
+class GetRhsArgs:
+    forces: np.ndarray
+    displacement_old: np.ndarray
+    velocity_old: np.ndarray
+    volume: np.ndarray
+    elasticity: np.ndarray
+    viscosity: np.ndarray
+    time_step: float
+
+
+def get_rhs(args: GetRhsArgs):
+    displacement_old_vector = nph.stack_column(args.displacement_old)
+    velocity_old_vector = nph.stack_column(args.velocity_old)
+    f_vector = nph.stack_column(args.volume @ args.forces)
     rhs = (
         f_vector
-        - (viscosity + elasticity * time_step) @ velocity_old_vector
-        - elasticity @ displacement_old_vector
+        - (args.viscosity + args.elasticity * args.time_step) @ velocity_old_vector
+        - args.elasticity @ displacement_old_vector
     )
     return rhs
 
@@ -58,8 +65,7 @@ class SettingForces(Dynamics):
     def clear(self):
         self.forces = None
 
-    def get_all_normalized_rhs_np(self, temperature=None):
-        _ = temperature
+    def get_all_normalized_rhs_np(self):
         normalized_rhs = self.get_normalized_rhs_np()
         (
             normalized_rhs_boundary,
@@ -76,15 +82,16 @@ class SettingForces(Dynamics):
 
     def get_normalized_rhs_np(self, temperature=None):
         _ = temperature
-        return get_rhs(
+        args = GetRhsArgs(
             forces=self.normalized_forces,
             displacement_old=self.normalized_displacement_old,
             velocity_old=self.normalized_velocity_old,
-            const_volume=self.volume,
+            volume=self.volume,
             elasticity=self.elasticity,
             viscosity=self.viscosity,
             time_step=self.time_step,
         )
+        return get_rhs(args)
 
     @property
     def input_forces(self):

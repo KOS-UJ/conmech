@@ -12,8 +12,8 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # calculator # live
-    FINAL_TIME: float = 5  # !# 5 #8
+    DATASET: str = "calculator"  # synthetic # calculator # live
+    FINAL_TIME: float = 8  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = True
 
@@ -37,16 +37,16 @@ class TrainingData:
     UPDATE_AT_EPOCHS: int = 100
 
     USE_ENERGY_AS_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 256  # !# 64 # 128
+    BATCH_SIZE: int = 128  # !# 256 # 64 # 128
     VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # 96 # 32 !# 64 # 512
+    SYNTHETIC_BATCHES_IN_EPOCH: int = 32  # 32
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True
     INTERNAL_BATCH_NORM: bool = False
     LAYER_NORM: bool = True
 
-    DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1  # 0.2  0.05
+    DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
     SKIP: bool = True
     GRADIENT_CLIP = 10.0  # None
 

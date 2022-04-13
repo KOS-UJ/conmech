@@ -147,20 +147,13 @@ def prepare(scenario, setting, base_setting, current_time, with_temperature):
     forces = scenario.get_forces_by_function(setting, current_time)
     if with_temperature:
         heat = scenario.get_heat_by_function(setting, current_time)
-        setting.prepare(forces, heat)
+        setting.prepare_tmp(forces, heat)
     else:
         setting.prepare(forces)
 
     if base_setting is not None:
         base_forces = scenario.get_forces_by_function(base_setting, current_time)
         base_setting.prepare(base_forces)
-
-
-def iterate(acceleration, temperature, setting, simulate_dirty_data, with_temperature):
-    if with_temperature:
-        setting.iterate_self_tmp(acceleration, temperature)
-    else:
-        setting.iterate_self_tmp(acceleration, randomized_inputs=simulate_dirty_data)
 
 
 def simulate(
@@ -222,7 +215,7 @@ def simulate(
         if operation is not None:
             operation(setting, base_setting)  # (current_time, setting, base_setting, a, base_a)
 
-        iterate(acceleration, temperature, setting, simulate_dirty_data, with_temperature)
+        setting.iterate_self(acceleration, temperature, randomized_inputs=simulate_dirty_data)
 
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)

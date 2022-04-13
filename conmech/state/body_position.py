@@ -135,8 +135,8 @@ class BodyPosition(Mesh):
     def get_copy(self):
         return copy.deepcopy(self)
 
-    def iterate_self(self, acceleration, randomized_inputs=False):
-        _ = randomized_inputs
+    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
+        _ = temperature, randomized_inputs
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
 

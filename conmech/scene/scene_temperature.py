@@ -3,7 +3,7 @@ import numpy as np
 from conmech.helpers import nph
 from conmech.scene import scene, setting_forces
 from conmech.scene.scene import Scene
-from conmech.scene.setting_forces import energy
+from conmech.scene.setting_forces import GetRhsArgs, energy
 from conmech.solvers import SchurComplement
 
 
@@ -34,26 +34,8 @@ def integrate(
     return result
 
 
-def get_rhs(
-    temperature,
-    forces,
-    displacement_old,
-    velocity_old,
-    const_volume,
-    elasticity,
-    viscosity,
-    time_step,
-    thermal_expansion,
-):
-    value = setting_forces.get_rhs(
-        forces=forces,
-        displacement_old=displacement_old,
-        velocity_old=velocity_old,
-        const_volume=const_volume,
-        elasticity=elasticity,
-        viscosity=viscosity,
-        time_step=time_step,
-    )
+def get_rhs(temperature, thermal_expansion, args: GetRhsArgs):
+    value = setting_forces.get_rhs(args)
     value += thermal_expansion.T @ temperature
     return value
 
@@ -80,14 +62,16 @@ class SceneTemperature(Scene):
         self.heat = None
 
     def get_normalized_energy_temperature_np(self, normalized_a):
-        normalized_Q_boundary, normalized_Q_free = self.get_all_normalized_t_rhs_np(normalized_a)
+        normalized_t_rhs_boundary, normalized_t_rhs_free = self.get_all_normalized_t_rhs_np(
+            normalized_a
+        )
         return (
             lambda normalized_boundary_t_vector: energy(
                 nph.unstack(normalized_boundary_t_vector, 1),
                 self.solver_cache.temperature_boundary,
-                normalized_Q_boundary,
+                normalized_t_rhs_boundary,
             ),
-            normalized_Q_free,
+            normalized_t_rhs_free,
         )
 
     def prepare_tmp(self, forces, heat):
@@ -100,6 +84,23 @@ class SceneTemperature(Scene):
 
     def set_temperature_old(self, temperature):
         self.t_old = temperature
+
+    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
+        _ = randomized_inputs
+        self.set_temperature_old(temperature)
+        return super().iterate_self(acceleration=acceleration)
+
+    def get_normalized_rhs_np(self, temperature=None):
+        args = GetRhsArgs(
+            forces=self.normalized_forces,
+            displacement_old=self.normalized_displacement_old,
+            velocity_old=self.normalized_velocity_old,
+            volume=self.volume,
+            elasticity=self.elasticity,
+            viscosity=self.viscosity,
+            time_step=self.time_step,
+        )
+        return get_rhs(temperature=temperature, thermal_expansion=self.thermal_expansion, args=args)
 
     def get_all_normalized_t_rhs_np(self, normalized_a):
         normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_a)
@@ -117,34 +118,16 @@ class SceneTemperature(Scene):
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
     def get_normalized_t_rhs_np(self, normalized_a):
-        return self.get_t_rhs(
-            acceleration=normalized_a,
-            velocity_old=self.normalized_velocity_old,
-            heat=self.heat,
-            t_old=self.t_old,
-            const_volume=self.volume,
-            thermal_expansion=self.thermal_expansion,
-            U=self.acceleration_operator[self.independent_indices, self.independent_indices],
-            time_step=self.time_step,
-        )
+        acceleration = normalized_a
+        velocity_old = self.normalized_velocity_old
+        U = self.acceleration_operator[self.independent_indices, self.independent_indices]
 
-    def get_t_rhs(
-        self,
-        acceleration,
-        velocity_old,
-        heat,
-        t_old,
-        const_volume,
-        thermal_expansion,
-        U,
-        time_step,
-    ):
-        v = velocity_old + acceleration * time_step
+        v = velocity_old + acceleration * self.time_step
         v_vector = nph.stack_column(v)
 
-        A = nph.stack_column(const_volume @ heat)
-        A += (-1) * thermal_expansion @ v_vector
-        A += (1 / self.time_step) * U @ t_old
+        A = nph.stack_column(self.volume @ self.heat)
+        A += (-1) * self.thermal_expansion @ v_vector
+        A += (1 / self.time_step) * U @ self.t_old
 
         obstacle_heat_integral = self.get_obstacle_heat_integral()
         A += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
@@ -165,20 +148,3 @@ class SceneTemperature(Scene):
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
         )
-
-    def temp_get_normalized_rhs_np(self, temperature):
-        return get_rhs(
-            temperature=temperature,
-            forces=self.normalized_forces,
-            displacement_old=self.normalized_displacement_old,
-            velocity_old=self.normalized_velocity_old,
-            const_volume=self.volume,
-            elasticity=self.elasticity,
-            viscosity=self.viscosity,
-            time_step=self.time_step,
-            thermal_expansion=self.thermal_expansion,
-        )
-
-    def iterate_self_tmp(self, acceleration, temperature):
-        self.set_temperature_old(temperature)
-        return self.iterate_self(acceleration=acceleration)

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Optional
 
 import numba
@@ -12,139 +13,99 @@ from conmech.scene.setting_forces import SettingForces, energy
 from conmech.state.body_position import BodyPosition
 
 
-def get_penetration_norm_internal(nodes, obstacle_nodes, obstacle_normals, dot=np.dot):
-    projection = (-1) * dot((nodes - obstacle_nodes), obstacle_normals)
-    return (projection > 0) * projection
-
-
 def get_penetration_norm(nodes, obstacle_nodes, obstacle_normals):
-    return get_penetration_norm_internal(
-        nodes, obstacle_nodes, obstacle_normals, dot=nph.elementwise_dot
-    ).reshape(-1, 1)
-
-
-get_penetration_norm_numba = numba.njit(get_penetration_norm_internal)
+    projection = (-1) * nph.elementwise_dot((nodes - obstacle_nodes), obstacle_normals).reshape(
+        -1, 1
+    )
+    return (projection > 0) * projection
 
 
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
-obstacle_resistance_potential_normal_numba = numba.njit(obstacle_resistance_potential_normal)
-
-
-def obstacle_resistance_potential_tangential_internal(
+def obstacle_resistance_potential_tangential(
     penetration_norm,
     tangential_velocity,
     friction,
     time_step,
-    norm=nph.euclidean_norm_numba,
 ):
-    return (penetration_norm > 0) * friction * norm(tangential_velocity) * (1.0 / time_step)
-
-
-def obstacle_resistance_potential_tangential(penetration, tangential_velocity, friction, time_step):
-    return obstacle_resistance_potential_tangential_internal(
-        penetration,
-        tangential_velocity,
-        friction,
-        time_step,
-        norm=lambda x: nph.euclidean_norm(x, keepdims=True),
+    return (
+        (penetration_norm > 0)
+        * friction
+        * nph.euclidean_norm(tangential_velocity, keepdims=True)
+        * (1.0 / time_step)
     )
 
 
-obstacle_resistance_potential_tangential_numba = numba.njit(
-    obstacle_resistance_potential_tangential_internal
-)
+@dataclass
+class IntegrateArguments:
+    velocity: np.ndarray
+    nodes: np.ndarray
+    normals: np.ndarray
+    obstacle_nodes: np.ndarray
+    obstacle_normals: np.ndarray
+    nodes_volume: np.ndarray
+    hardness: float
+    friction: float
+    time_step: float
 
 
-def integrate(
-    nodes,
-    nodes_normals,
-    obstacle_nodes,
-    obstacle_normals,
-    velocity,
-    nodes_volume,
-    hardness,
-    friction,
-    time_step,
-):
-    penetration_norm = get_penetration_norm(nodes, obstacle_nodes, obstacle_normals)
+def integrate(args: IntegrateArguments):
+    penetration_norm = get_penetration_norm(args.nodes, args.obstacle_nodes, args.obstacle_normals)
 
-    velocity_tangential = nph.get_tangential(velocity, nodes_normals)
+    velocity_tangential = nph.get_tangential(args.velocity, args.normals)
 
-    resistance_normal = obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
+    resistance_normal = obstacle_resistance_potential_normal(
+        penetration_norm, args.hardness, args.time_step
+    )
     resistance_tangential = obstacle_resistance_potential_tangential(
-        penetration_norm, velocity_tangential, friction, time_step
+        penetration_norm, velocity_tangential, args.friction, args.time_step
     )
-    result = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
+    result = (args.nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return result
 
 
-@numba.njit
-def integrate_numba(
-    nodes,
-    nodes_normals,
-    obstacle_nodes,
-    obstacle_normals,
-    velocity,
-    nodes_volume,
-    hardness,
-    friction,
-    time_step,
-):
-    result = 0.0
-    for i, node in enumerate(nodes):
-        penetration = get_penetration_norm_numba(node, obstacle_nodes[i], obstacle_normals[i])
-
-        velocity_tangential = nph.get_tangential_numba(velocity[i], nodes_normals[i])
-
-        resistance_normal = obstacle_resistance_potential_normal_numba(
-            penetration, hardness, time_step
-        )
-        resistance_tangential = obstacle_resistance_potential_tangential_numba(
-            penetration, velocity_tangential, friction, time_step
-        )
-
-        result += nodes_volume[i].item() * (resistance_normal + resistance_tangential)
-    return result
+@dataclass
+class EnergyObstacleArguments:
+    lhs: np.ndarray
+    rhs: np.ndarray
+    boundary_velocity_old: np.ndarray
+    boundary_nodes: np.ndarray
+    boundary_normals: np.ndarray
+    boundary_obstacle_nodes: np.ndarray
+    boundary_obstacle_normals: np.ndarray
+    surface_per_boundary_node: np.ndarray
+    obstacle_prop: ObstacleProperties
+    time_step: float
 
 
 def energy_obstacle(
-    acceleration,
-    lhs,
-    rhs,
-    boundary_velocity_old,
-    boundary_nodes,
-    boundary_normals,
-    boundary_obstacle_nodes,
-    boundary_obstacle_normals,
-    surface_per_boundary_node: np.ndarray,
-    obstacle_prop: ObstacleProperties,
-    time_step: float,
+    acceleration: np.ndarray,
+    args: EnergyObstacleArguments,
 ):
-    value = energy(acceleration, lhs, rhs)
+    value = energy(acceleration, args.lhs, args.rhs)
 
-    boundary_nodes_count = boundary_velocity_old.shape[0]
+    boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
-    boundary_v_new = boundary_velocity_old + time_step * boundary_a
-    boundary_nodes_new = boundary_nodes + time_step * boundary_v_new
+    boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
+    boundary_nodes_new = args.boundary_nodes + args.time_step * boundary_v_new
 
-    args = dict(
-        nodes=boundary_nodes_new,
-        nodes_normals=boundary_normals,
-        obstacle_nodes=boundary_obstacle_nodes,
-        obstacle_normals=boundary_obstacle_normals,
+    integrate_args = IntegrateArguments(
         velocity=boundary_v_new,
-        nodes_volume=surface_per_boundary_node,
-        hardness=obstacle_prop.hardness,
-        friction=obstacle_prop.friction,
-        time_step=time_step,
+        nodes=boundary_nodes_new,
+        normals=args.boundary_normals,
+        obstacle_nodes=args.boundary_obstacle_nodes,
+        obstacle_normals=args.boundary_obstacle_normals,
+        nodes_volume=args.surface_per_boundary_node,
+        hardness=args.obstacle_prop.hardness,
+        friction=args.obstacle_prop.friction,
+        time_step=args.time_step,
     )
 
-    is_numpy = isinstance(acceleration, np.ndarray)
-    boundary_integral = integrate_numba(**args) if is_numpy else integrate(**args)
+    boundary_integral = integrate(integrate_args)
+
     return value + boundary_integral
 
 
@@ -211,22 +172,21 @@ class Scene(SettingForces):
     def get_normalized_energy_obstacle_np(self, temperature=None):
         _ = temperature
         normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_np()
-        normalized_boundary_normals = self.get_normalized_boundary_normals()
-        boundary_obstacle_normals = self.get_norm_boundary_obstacle_normals()
-        surface_per_boundary_node = self.get_surface_per_boundary_node()
+        args = EnergyObstacleArguments(
+            lhs=self.solver_cache.lhs_boundary,
+            rhs=normalized_rhs_boundary,
+            boundary_velocity_old=self.norm_boundary_velocity_old,
+            boundary_nodes=self.normalized_boundary_nodes,
+            boundary_normals=self.get_normalized_boundary_normals(),
+            boundary_obstacle_nodes=self.norm_boundary_obstacle_nodes,
+            boundary_obstacle_normals=self.get_norm_boundary_obstacle_normals(),
+            surface_per_boundary_node=self.get_surface_per_boundary_node(),
+            obstacle_prop=self.obstacle_prop,
+            time_step=self.time_step,
+        )
         return (
             lambda normalized_boundary_a_vector: energy_obstacle(
-                acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension),
-                lhs=self.solver_cache.lhs_boundary,
-                rhs=normalized_rhs_boundary,
-                boundary_velocity_old=self.norm_boundary_velocity_old,
-                boundary_nodes=self.normalized_boundary_nodes,
-                boundary_normals=normalized_boundary_normals,
-                boundary_obstacle_nodes=self.norm_boundary_obstacle_nodes,
-                boundary_obstacle_normals=boundary_obstacle_normals,
-                surface_per_boundary_node=surface_per_boundary_node,
-                obstacle_prop=self.obstacle_prop,
-                time_step=self.time_step,
+                acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
             ),
             normalized_rhs_free,
         )
@@ -242,8 +202,8 @@ class Scene(SettingForces):
     @property
     def obstacle_nodes(self):
         all_nodes = []
-        all_nodes.extend(list(self.linear_obstacle_normals))
-        all_nodes.extend([m.get_boundary_normals() for m in self.mesh_obstacles])
+        all_nodes.extend(list(self.linear_obstacle_nodes))
+        all_nodes.extend([m.boundary_nodes for m in self.mesh_obstacles])
         return np.vstack(all_nodes)
 
     def get_obstacle_normals(self):
