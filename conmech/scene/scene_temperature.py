@@ -2,6 +2,7 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.scene.scene import Scene
+from conmech.scene import scene
 from conmech.scene.setting_forces import energy
 from conmech.solvers import SchurComplement
 
