@@ -8,18 +8,12 @@ import numpy as np
 import pytest
 
 from conmech.scenarios.problems import Quasistatic
-from conmech.simulations.problem_solver import \
-    Quasistatic as QuasistaticProblem
+from conmech.simulations.problem_solver import Quasistatic as QuasistaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
-@pytest.fixture(
-    params=[  # TODO #28
-        "global optimization",
-        "schur"
-    ]
-)
+@pytest.fixture(params=["global optimization", "schur"])  # TODO #28
 def solving_method(request):
     return request.param
 
@@ -76,7 +70,7 @@ def generate_test_suits():
         [0.01850842, 0.03964177],
         [0.00648465, 0.01742879],
         [0.0, 0.0],
-        [0.0, 0.0]
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -105,7 +99,7 @@ def generate_test_suits():
         [0.18658834, -0.30784273],
         [0.11383078, -0.12090801],
         [0.0, 0.0],
-        [0.0, 0.0]
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
@@ -161,7 +155,7 @@ def generate_test_suits():
 
     setup_var = QuasistaticSetup()
     expected_displacement_vector_var = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.0200761, 0.05161694],
         [0.02427336, 0.15594426],
         [0.01602643, 0.29567518],
@@ -173,8 +167,8 @@ def generate_test_suits():
         [-0.31711688, 0.32891245],
         [-0.24357518, 0.18851801],
         [-0.14334968, 0.08118621],
-        [0., 0.],
-        [0., 0.]
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))
@@ -183,14 +177,14 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
-def test_global_optimization_solver(
-        solving_method, setup, expected_displacement_vector
-):
+def test_global_optimization_solver(solving_method, setup, expected_displacement_vector):
     # TODO: #65 Duplicated neumann node  in old boundary construction
     runner = QuasistaticProblem(setup, solving_method)
-    results = runner.solve(n_steps=32,
-                           initial_displacement=setup.initial_displacement,
-                           initial_velocity=setup.initial_velocity)
+    results = runner.solve(
+        n_steps=32,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+    )
 
     displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)

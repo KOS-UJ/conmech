@@ -1,10 +1,14 @@
 from dataclasses import dataclass
+from io import BufferedReader
+from typing import Callable, List, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import tqdm
 from matplotlib import animation
 from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
@@ -28,18 +32,23 @@ class ColorbarSettings:
 
 
 def get_t_scale(
-    scenario: Scenario, index_skip: int, plot_settings_count: int, all_settings_path: str
+    scenario: Scenario,
+    index_skip: int,
+    plot_settings_count: int,
+    all_settings_path: str,
 ):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
-    all_indices = pkh.get_all_indices_pickle(all_settings_path)
+    all_indices = pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
     settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
     with settings_file:
         for step in range(plot_settings_count):
             setting = pkh.load_index_pickle(
-                index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+                index=step * index_skip,
+                all_indices=all_indices,
+                settings_file=settings_file,
             )
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
@@ -61,7 +70,7 @@ def plot_colorbar(fig, axs, cbar_settings):
         position = axes.get_position()
         if position.p0[0] > 0.1:
             position.p0[0] *= 0.8
-        position.p_1[0] *= 0.9
+        position.p1[0] *= 0.9
         axes.set_position(position)
 
     axes = fig.add_axes([0.85, 0.15, 0.02, 0.7])
@@ -99,45 +108,98 @@ def plt_save(path, extension):
     plt.close()
 
 
+@dataclass
+class AnimationArgs:
+    fig: Figure
+    time_skip: float
+    index_skip: int
+    all_indices: List[int]
+    settings_file: BufferedReader
+    base_all_indices: Optional[List[int]]
+    base_settings_file: Optional[BufferedReader]
+    animation_tqdm: tqdm.tqdm
+
+
 def make_animation(get_axs, plot_frame, t_scale):
-    def animate(step, fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm):
-        animation_tqdm.update(1)
-        fig.clf()
-        axs = get_axs(fig)
+    def animate(step: int, args: AnimationArgs):
+        args.animation_tqdm.update(1)
+        args.fig.clf()
+        axs = get_axs(args.fig)
         setting = pkh.load_index_pickle(
-            index=step * index_skip, all_indices=all_indices, settings_file=settings_file
+            index=step * args.index_skip,
+            all_indices=args.all_indices,
+            settings_file=args.settings_file,
         )
+
+        if args.base_settings_file is not None:
+            base_setting = pkh.load_index_pickle(
+                index=step * args.index_skip,
+                all_indices=args.base_all_indices,
+                settings_file=args.base_settings_file,
+            )
+        else:
+            base_setting = None
+
         plot_frame(
-            axs=axs, fig=fig, setting=setting, current_time=step * time_skip, t_scale=t_scale
+            axs=axs,
+            fig=args.fig,
+            setting=setting,
+            current_time=step * args.time_skip,
+            t_scale=t_scale,
+            base_setting=base_setting,
         )
-        return fig
+        return args.fig
 
     return animate
 
 
+@dataclass
+class PlotAnimationConfig:
+    save_path: str
+    time_skip: float
+    index_skip: int
+    plot_settings_count: int
+    all_settings_path: str
+    all_calc_settings_path: Optional[str]
+
+
 def plot_animation(
-    animate,
-    fig,
-    save_path: str,
-    config: Config,
-    time_skip: float,
-    index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
+    animate: Callable, fig: Figure, config: Config, plot_config: PlotAnimationConfig
 ):
-    fps = int(1 / time_skip)
+    fps = int(1 / plot_config.time_skip)
     animation_tqdm = cmh.get_tqdm(
-        iterable=range(plot_settings_count + 1), config=config, desc="Generating animation"
+        iterable=range(plot_config.plot_settings_count + 1),
+        config=config,
+        desc="Generating animation",
     )
 
-    all_indices = pkh.get_all_indices_pickle(all_settings_path)
-    settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
-    args = (fig, time_skip, index_skip, all_indices, settings_file, animation_tqdm)
+    all_indices = pkh.get_all_indices_pickle(all_settings_path=plot_config.all_settings_path)
+    settings_file = pkh.open_file_settings_read_pickle(plot_config.all_settings_path)
+    base_all_indices = (
+        None
+        if plot_config.all_calc_settings_path is None
+        else pkh.get_all_indices_pickle(all_settings_path=plot_config.all_calc_settings_path)
+    )
+    base_settings_file = (
+        None
+        if plot_config.all_calc_settings_path is None
+        else pkh.open_file_settings_read_pickle(plot_config.all_calc_settings_path)
+    )
     with settings_file:
-
-        ani = animation.FuncAnimation(fig, animate, fargs=args, frames=plot_settings_count)
-
-        ani.save(save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
+        args = AnimationArgs(
+            fig=fig,
+            time_skip=plot_config.time_skip,
+            index_skip=plot_config.index_skip,
+            all_indices=all_indices,
+            settings_file=settings_file,
+            base_all_indices=base_all_indices,
+            base_settings_file=base_settings_file,
+            animation_tqdm=animation_tqdm,
+        )
+        ani = animation.FuncAnimation(
+            fig, animate, fargs=(args,), frames=plot_config.plot_settings_count
+        )
+        ani.save(plot_config.save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
     plt.close()
 
 

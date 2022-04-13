@@ -22,7 +22,7 @@ def train(config: TrainingConfig):
         statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
         net = get_net(statistics, config)
 
-    all_val_datasets = get_all_val_datasets(train_dataset=train_dataset, config=config)
+    all_val_datasets = get_all_val_datasets(config=config)
     model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
     model.train()
 
@@ -36,7 +36,7 @@ def plot(config: TrainingConfig):
 
     net = get_net(statistics, config)
 
-    path = GraphModelDynamic.get_newest_saved_model_path()
+    path = GraphModelDynamic.get_newest_saved_model_path(config)
     net.load(path)
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
@@ -44,36 +44,61 @@ def plot(config: TrainingConfig):
 
 def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
     return LiveDataset(
-        description="train", all_scenarios=scenarios.all_train(config.td), net=net,
-        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
+        description="train",
+        all_scenarios=scenarios.all_train(config.td),
+        net=net,
+        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+        config=config,
     )
 
 
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
-        train_dataset = SyntheticDataset(description="train", dimension=2,
-                                         load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
-                                         config=config)
-    elif dataset_type == "scenarios":
+        train_dataset = SyntheticDataset(
+            description="train",
+            dimension=2,
+            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            config=config,
+        )
+    elif dataset_type == "calculator":
         train_dataset = CalculatorDataset(
-            description="train", all_scenarios=scenarios.all_train(config.td),
-            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM, config=config
+            description="train",
+            all_scenarios=scenarios.all_train(config.td),
+            skip_index=1,
+            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            config=config,
         )
     else:
         raise ValueError("Bad dataset type")
     return train_dataset
 
 
-def get_all_val_datasets(train_dataset, config: TrainingConfig):
+def get_all_val_datasets(config: TrainingConfig):
     all_val_datasets = []
-    if config.td.DATASET != "live":
-        all_val_datasets.append(train_dataset)
+    # if config.td.DATASET != "live":
+    #    all_val_datasets.append(train_dataset)
+    skip_index = 5
+    # all_val_datasets.append(
+    #     CalculatorDataset(
+    #         description="val",
+    #         all_scenarios=scenarios.all_validation(config.td),
+    #         skip_index=skip_index,
+    #         load_to_ram=False,
+    #         config=config,
+    #     )
+    # )
     all_val_datasets.append(
         CalculatorDataset(
-            description="val", all_scenarios=scenarios.all_validation(config.td), load_to_ram=False,
-            config=config
+            description="all",
+            all_scenarios=scenarios.all_train_and_validation(config.td),
+            skip_index=skip_index,
+            load_to_ram=False,
+            config=config,
         )
     )
+    # all_val_datasets.append(
+    #    SyntheticDataset(description="train", dimension=2, load_to_ram=False, config=config)
+    # )
     return all_val_datasets
 
 
@@ -86,6 +111,7 @@ def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
 def main(args: Namespace):
     print(f"MODE: {args.mode}")
     device = thh.get_device_id()
+    # dch.cuda_launch_blocking()
     config = TrainingConfig(shell=args.shell, DEVICE=device)
     dch.set_memory_limit(config=config)
     print(f"Running using {config.DEVICE}")

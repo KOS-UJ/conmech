@@ -1,6 +1,6 @@
-'''
+"""
 torch helpers
-'''
+"""
 import numpy as np
 import torch
 
@@ -44,7 +44,7 @@ def append_euclidean_norm(data):
 
 
 def euclidean_norm_torch(vector):
-    return torch.sqrt(torch.sum(vector ** 2, axis=-1))
+    return torch.sqrt(torch.sum(vector**2, axis=-1))
 
 
 def max_norm(data):
@@ -64,8 +64,8 @@ class MaxData:
 
     def set(self, setting, i):
         self.max_forces[i] = max_norm(setting.normalized_forces_torch)
-        self.max_u[i] = max_norm(setting.normalized_u_old_torch)
-        self.max_v[i] = max_norm(setting.normalized_v_old_torch)
+        self.max_u[i] = max_norm(setting.normalized_displacement_old_torch)
+        self.max_v[i] = max_norm(setting.normalized_velocity_old_torch)
 
     def print(self):
         print(

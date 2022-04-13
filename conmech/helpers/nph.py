@@ -168,6 +168,16 @@ def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
     return result
 
 
+@numba.njit
+def get_random_uniform_circle_numba(dim, nodes_count, low, high):
+    result = np.zeros((nodes_count, dim))
+    for i in range(nodes_count):
+        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
+        r = np.abs(low + np.random.uniform(0, 1) * (high - low))
+        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
+    return result
+
+
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)

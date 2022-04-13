@@ -4,11 +4,9 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-
 from conmech.helpers.config import Config
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw
-from conmech.scenarios.problems import Static
+from conmech.scenarios.problems import ContactLaw, Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
 
 
@@ -31,7 +29,7 @@ class JureczkaOchal2018(ContactLaw):
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization
@@ -79,8 +77,11 @@ def main(show: bool = True, save: bool = False):
     setup = StaticSetup()
     runner = StaticProblemSolver(setup, "schur")
 
-    state = runner.solve(verbose=True, fixed_point_abs_tol=0.001,
-                         initial_displacement=setup.initial_displacement)
+    state = runner.solve(
+        verbose=True,
+        fixed_point_abs_tol=0.001,
+        initial_displacement=setup.initial_displacement,
+    )
     config = Config()
     Drawer(state=state, config=config).draw(show=show, save=save)
 

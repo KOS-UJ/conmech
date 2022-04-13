@@ -11,19 +11,20 @@ from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.graph.setting import setting_input
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene import scene_input
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
 def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    writer = SummaryWriter(f"./log/{config.current_time}")
+    writer = SummaryWriter(f"{config.LOG_CATALOG}/{config.current_time}")
     print("Logging data...")
 
     def pretty_json(value):
@@ -49,11 +50,11 @@ class ErrorResult:
 
 class GraphModelDynamic:
     def __init__(
-            self,
-            train_dataset,
-            all_val_datasets,
-            net: CustomGraphNet,
-            config: TrainingConfig,
+        self,
+        train_dataset,
+        all_val_datasets,
+        net: CustomGraphNet,
+        config: TrainingConfig,
     ):
         self.config = config
         self.all_val_datasets = all_val_datasets
@@ -63,23 +64,22 @@ class GraphModelDynamic:
         self.writer = get_and_init_writer(statistics, self.config)
         self.loss_labels = [
             "energy",
-            "energy_diff",
-            "RMSE_acc",
+            # "energy_diff",
+            # "RMSE_acc",
         ]  # "energy_diff", "energy_no_acc"]  # . "energy_main", "v_step_diff"]
         self.labels_count = len(self.loss_labels)
         self.tqdm_loss_index = 0
 
         self.net = net
         self.optimizer = torch.optim.Adam(
-            self.net.parameters(), lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
+            self.net.parameters(),
+            lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            self.config.td.LR_GAMMA ** epoch,
+            self.config.td.LR_GAMMA**epoch,
             self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
         )
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(
-            self.optimizer, lr_lambda=lr_lambda
-        )
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
 
     @property
     def lr(self):
@@ -93,11 +93,9 @@ class GraphModelDynamic:
         return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
     def get_split(self, batch, index, dim, graph_sizes):
-        value = batch.x[:, index * dim: (index + 1) * dim]
+        value = batch.x[:, index * dim : (index + 1) * dim]
         value_split = value.split(graph_sizes)
         return value_split
-
-    # TODO #66
 
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
@@ -107,7 +105,7 @@ class GraphModelDynamic:
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
-        while True:
+        while self.config.MAX_EPOCH_NUMBER is None or epoch_number < self.config.MAX_EPOCH_NUMBER:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
@@ -130,9 +128,7 @@ class GraphModelDynamic:
                 last_save_time = time.time()
 
             if epoch_number % self.config.td.VALIDATE_AT_EPOCHS == 0:
-                self.validation_raport(
-                    examples_seen=examples_seen
-                )
+                self.validation_raport(examples_seen=examples_seen)
             if epoch_number % self.config.td.UPDATE_AT_EPOCHS == 0:
                 self.update_dataset()
 
@@ -141,28 +137,26 @@ class GraphModelDynamic:
     def update_dataset(self):
         print("----UPDATING DATASET----")
         self.train_dataset.update_data()
-        print(f"--")
+        print("--")
 
     def save_net(self):
         print("----SAVING----")
         timestamp = cmh.get_timestamp(self.config)
-        catalog = f"output/{self.config.current_time} - GRAPH MODELS"
+        catalog = f"{self.config.output_catalog}/{self.config.current_time} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
         self.net.save(path)
 
     @staticmethod
-    def get_newest_saved_model_path():
+    def get_newest_saved_model_path(config: TrainingConfig):
         def get_index(path):
             return int(path.split("/")[-1].split(" ")[0])
 
-        saved_model_paths = cmh.find_files_by_extension("output", "pt")
+        saved_model_paths = cmh.find_files_by_extension(config.output_catalog, "pt")
         if not saved_model_paths:
             raise ArgumentError("No saved models")
 
-        newest_index = np.argmax(
-            np.array([get_index(path) for path in saved_model_paths])
-        )
+        newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
         path = saved_model_paths[newest_index]
 
         print(f"Taking saved model {path.split('/')[-1]}")
@@ -170,13 +164,13 @@ class GraphModelDynamic:
 
     @staticmethod
     def get_setting_function(
-            scenario: Scenario,
-            config: TrainingConfig,
-            randomize=False,
-            create_in_subprocess: bool = False,
-    ) -> SettingInput:  # "SettingObstacles":
-        setting = SettingInput(
-            mesh_data=scenario.mesh_data,
+        scenario: Scenario,
+        config: TrainingConfig,
+        randomize=False,
+        create_in_subprocess: bool = False,
+    ) -> SceneInput:  # "Scene":
+        setting = SceneInput(
+            mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
@@ -184,11 +178,11 @@ class GraphModelDynamic:
             create_in_subprocess=create_in_subprocess,
         )
         setting.set_randomization(randomize)
-        setting.normalize_and_set_obstacles(scenario.obstacles)
+        setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return setting
 
     @staticmethod
-    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: Config):
+    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: TrainingConfig):
         print("----PLOTTING----")
         start_time = time.time()
         timestamp = cmh.get_timestamp(config)
@@ -198,16 +192,17 @@ class GraphModelDynamic:
                 solve_function=net.solve,
                 scenario=scenario,
                 config=config,
-                catalog=catalog,
-                simulate_dirty_data=False,
-                plot_animation=True,
+                run_config=simulation_runner.RunScenarioConfig(
+                    catalog=catalog,
+                    simulate_dirty_data=False,
+                    compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
+                    plot_animation=True,
+                ),
                 get_setting_function=GraphModelDynamic.get_setting_function,
             )
             print("---")
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
-
-    # TODO #66
 
     def train_step(self, batch):
         self.net.train()
@@ -215,7 +210,7 @@ class GraphModelDynamic:
 
         loss, loss_array_np, batch = self.E(batch)
         loss.backward()
-        if (self.config.td.GRADIENT_CLIP is not None):
+        if self.config.td.GRADIENT_CLIP is not None:
             self.clip_gradients(self.config.td.GRADIENT_CLIP)
         self.optimizer.step()
 
@@ -236,8 +231,6 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
-    # TODO #66
-
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
@@ -257,18 +250,21 @@ class GraphModelDynamic:
 
     def training_raport(self, loss_array, examples_seen):
         self.writer.add_scalar(
-            "Loss/Training/LearningRate", self.lr, examples_seen,
+            "Loss/Training/LearningRate",
+            self.lr,
+            examples_seen,
         )
-        for i in range(len(loss_array)):
+        for i, loss in enumerate(loss_array):
             self.writer.add_scalar(
-                f"Loss/Training/{self.loss_labels[i]}", loss_array[i], examples_seen,
+                f"Loss/Training/{self.loss_labels[i]}",
+                loss,
+                examples_seen,
             )
 
     def validation_raport(self, examples_seen):
         print("----VALIDATING----")
         start_time = time.time()
 
-        mean_loss_array = np.zeros(self.labels_count)
         for dataset in self.all_val_datasets:
             loss_array, _ = self.iterate_dataset(
                 dataset=dataset,
@@ -276,7 +272,6 @@ class GraphModelDynamic:
                 step_function=self.test_step,
                 description=dataset.data_id,
             )
-            mean_loss_array += loss_array / len(self.all_val_datasets)
             for i in range(self.labels_count):
                 self.writer.add_scalar(
                     f"Loss/Validation/{dataset.data_id}/{self.loss_labels[i]}",
@@ -284,17 +279,8 @@ class GraphModelDynamic:
                     examples_seen,
                 )
 
-        for i in range(self.labels_count):
-            self.writer.add_scalar(
-                f"Loss/Validation/{self.loss_labels[i]}",
-                mean_loss_array[i],
-                examples_seen,
-            )
-
         validation_time = time.time() - start_time
         print(f"--Validation time: {(validation_time / 60):.4f} min")
-
-    # TODO #66
 
     def E(self, batch, test_using_true_solution=False):
         # graph_couts = [1 for i in range(batch.num_graphs)]
@@ -312,7 +298,7 @@ class GraphModelDynamic:
         reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
         normalized_E_split = batch.normalized_E.split(dim_graph_sizes)
         normalized_a_correction_split = batch.normalized_a_correction.split(graph_sizes)
-        normalized_boundary_v_old_split = batch.normalized_boundary_v_old.split(
+        normalized_boundary_velocity_old_split = batch.normalized_boundary_velocity_old.split(
             boundary_nodes_counts
         )
         normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
@@ -325,12 +311,10 @@ class GraphModelDynamic:
         normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
             boundary_nodes_counts
         )
-        normalized_boundary_obstacle_normals_split = batch.normalized_boundary_obstacle_normals.split(
-            boundary_nodes_counts
+        normalized_boundary_obstacle_normals_split = (
+            batch.normalized_boundary_obstacle_normals.split(boundary_nodes_counts)
         )
-        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(
-            boundary_nodes_counts
-        )
+        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(boundary_nodes_counts)
 
         if hasattr(batch, "exact_normalized_a"):
             exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
@@ -345,24 +329,24 @@ class GraphModelDynamic:
 
             energy_args = dict(
                 a_correction=normalized_a_correction,
-                C=C,
-                E=normalized_E,
-                boundary_v_old=normalized_boundary_v_old_split[i],
-                boundary_nodes=normalized_boundary_nodes_split[i],
-                boundary_normals=normalized_boundary_normals_split[i],
-                boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
-                boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
-                surface_per_boundary_node=surface_per_boundary_node_split[i],
-                obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
-                time_step=0.01,  # TODO: generalize
+                args=EnergyObstacleArguments(
+                    lhs=C,
+                    rhs=normalized_E,
+                    boundary_velocity_old=normalized_boundary_velocity_old_split[i],
+                    boundary_nodes=normalized_boundary_nodes_split[i],
+                    boundary_normals=normalized_boundary_normals_split[i],
+                    boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
+                    boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
+                    surface_per_boundary_node=surface_per_boundary_node_split[i],
+                    obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
+                    time_step=0.01,  # TODO: generalize
+                ),
             )
 
             if test_using_true_solution:
-                predicted_normalized_a = self.use_true_solution(
-                    predicted_normalized_a, energy_args
-                )
+                predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
 
-            predicted_normalized_energy = setting_input.energy_normalized_obstacle_correction(
+            predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
             )
             if hasattr(batch, "exact_normalized_a"):
@@ -375,25 +359,24 @@ class GraphModelDynamic:
 
             loss_array[0] += predicted_normalized_energy
             if hasattr(batch, "exact_normalized_a"):
-                exact_normalized_energy = setting_input.energy_normalized_obstacle_correction(
+                exact_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
                 loss_array[1] += float(
                     (predicted_normalized_energy - exact_normalized_energy)
                     / torch.abs(exact_normalized_energy)
                 )
-                loss_array[2] += float(
-                    thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
-                )
+                loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
 
         loss /= batch.num_graphs
         loss_array /= batch.num_graphs
         return loss, loss_array, None  # new_batch
 
     def use_true_solution(self, predicted_normalized_a, energy_args):
-        function = lambda normalized_a_vector: setting_input.energy_normalized_obstacle_correction(
+        function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(
             cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
-                self.net.device),
+                self.net.device
+            ),
             **energy_args,
         ).item()
 

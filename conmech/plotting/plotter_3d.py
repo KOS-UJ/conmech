@@ -6,8 +6,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
-from conmech.plotting.plotter_common import make_animation
-from deep_conmech.simulator.setting.setting_temperature import SettingTemperature
+from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
+from conmech.scene.scene_temperature import SceneTemperature
 
 
 def get_fig():
@@ -65,22 +65,23 @@ def get_axs(fig):
     return [ax0, ax1, ax2, ax3]
 
 
-def plot_frame(fig, axs, setting, current_time, t_scale: Optional[List] = None):
+def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Optional[List] = None):
+    _ = base_setting
     for axes in axs:
         plot_subframe(
             axes=axes,
             setting=setting,
             normalized_data=[
                 setting.normalized_forces,
-                setting.normalized_u_old,
-                setting.normalized_v_old,
+                setting.normalized_displacement_old,
+                setting.normalized_velocity_old,
                 setting.normalized_a_old,
             ],
             t_scale=t_scale,
         )
     draw_parameters(axes=axs[0], setting=setting, current_time=current_time)
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale=t_scale)
         plotter_common.plot_colorbar(fig, axs=axs, cbar_settings=cbar_settings)
 
@@ -110,7 +111,7 @@ def draw_base_arrows(axes, base):
 def plot_subframe(axes, setting, normalized_data, t_scale):
     # draw_base_arrows(axes, setting.moved_base)
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plot_main_temperature(
             axes,
@@ -128,7 +129,7 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
         plot_mesh(nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", axes=axes)
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
-    if isinstance(setting, SettingTemperature):
+    if isinstance(setting, SceneTemperature):
         plot_temperature(
             axes=axes,
             nodes=shifted_normalized_nodes,
@@ -181,7 +182,7 @@ def plot_mesh(nodes, setting, color, axes):
 
 
 def plot_obstacles(axes, setting, color):
-    if setting.obstacles is None:
+    if setting.has_no_obstacles:
         return
     alpha = 0.3
     node = setting.obstacle_nodes[0]
@@ -213,16 +214,20 @@ def plot_animation(
     index_skip: int,
     plot_settings_count: int,
     all_settings_path: str,
+    all_calc_settings_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
     plotter_common.plot_animation(
         animate=animate,
         fig=get_fig(),
-        save_path=save_path,
         config=config,
-        time_skip=time_skip,
-        index_skip=index_skip,
-        plot_settings_count=plot_settings_count,
-        all_settings_path=all_settings_path,
+        plot_config=PlotAnimationConfig(
+            save_path=save_path,
+            time_skip=time_skip,
+            index_skip=index_skip,
+            plot_settings_count=plot_settings_count,
+            all_settings_path=all_settings_path,
+            all_calc_settings_path=all_calc_settings_path,
+        ),
     )

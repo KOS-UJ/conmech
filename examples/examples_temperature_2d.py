@@ -3,13 +3,18 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (TemperatureScenario,
-                                         default_thermal_expansion_coefficients,
-                                         default_thermal_conductivity_coefficients,
-                                         default_temp_body_prop,
-                                         default_temp_obstacle_prop, f_rotate_fast,
-                                         get_temp_body_prop, M_CIRCLE, M_POLYGON,
-                                         M_RECTANGLE)
+from conmech.scenarios.scenarios import (
+    TemperatureScenario,
+    default_thermal_expansion_coefficients,
+    default_thermal_conductivity_coefficients,
+    default_temp_body_prop,
+    default_temp_obstacle_prop,
+    f_rotate_fast,
+    get_temp_body_prop,
+    M_CIRCLE,
+    M_POLYGON,
+    M_RECTANGLE,
+)
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
@@ -31,11 +36,11 @@ def get_C_temp_scenarios(mesh_density, final_time):
             thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
     ]
-    obstacle = Obstacle.get_obstacle("side", default_temp_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_temp_obstacle_prop)
     return [
         TemperatureScenario(
             name=f"C_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=M_RECTANGLE,
                 scale=[1],
@@ -74,20 +79,24 @@ def get_K_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
-    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                 t: float):
-        x_scaled = initial_node[0] / mesh_data.scale_x
-        y_scaled = initial_node[1] / mesh_data.scale_y
+    def h_corner(
+        initial_node: np.ndarray,
+        moved_node: np.ndarray,
+        mesh_prop: MeshProperties,
+        t: float,
+    ):
+        x_scaled = initial_node[0] / mesh_prop.scale_x
+        y_scaled = initial_node[1] / mesh_prop.scale_y
         if x_scaled < 0.1 and y_scaled < 0.1:
             return -50.0  # -100
         return 0.0
 
-    obstacle = Obstacle.get_obstacle("side", default_temp_obstacle_prop)
+    obstacle = Obstacle.get_linear_obstacle("side", default_temp_obstacle_prop)
 
     return [
         TemperatureScenario(
             name=f"K_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=M_RECTANGLE,
                 scale=[1],
@@ -107,7 +116,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
 def get_polygon_scenarios(mesh_density, final_time):
     polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
         name=f"polygon_{i}",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[1],
@@ -117,7 +126,7 @@ def get_polygon_scenarios(mesh_density, final_time):
         body_prop=default_temp_body_prop,
         schedule=Schedule(final_time=final_time),
         forces_function=forces_function,
-        obstacle=Obstacle.get_obstacle(obstacle, default_temp_obstacle_prop),
+        obstacle=Obstacle.get_linear_obstacle(obstacle, default_temp_obstacle_prop),
         heat_function=np.array([0]),
     )
 
@@ -132,14 +141,13 @@ def get_friction_scenarios(mesh_density, final_time):
     obstacle = Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), default_temp_obstacle_prop)
     friction_scenario = lambda i: TemperatureScenario(
         name="circle_flat_A_roll",
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             dimension=2,
             mesh_type=M_CIRCLE,
             scale=[1],
             mesh_density=[mesh_density],
         ),
-        body_prop=
-        get_temp_body_prop(
+        body_prop=get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array([[0.01, 0], [0, 0.01]]),
         ),

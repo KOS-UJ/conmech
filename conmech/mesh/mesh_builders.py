@@ -7,30 +7,30 @@ from conmech.properties.mesh_properties import MeshProperties
 
 
 def build_mesh(
-    mesh_data: MeshProperties,
+    mesh_prop: MeshProperties,
     create_in_subprocess=False,
 ) -> Tuple[np.ndarray, np.ndarray]:
-    if "cross" in mesh_data.mesh_type:
-        return mesh_builders_legacy.get_cross_rectangle(mesh_data)
+    if "cross" in mesh_prop.mesh_type:
+        return mesh_builders_legacy.get_cross_rectangle(mesh_prop)
 
-    if "meshzoo" in mesh_data.mesh_type:
-        if "3d" in mesh_data.mesh_type:
-            if "cube" in mesh_data.mesh_type:
-                return mesh_builders_3d.get_meshzoo_cube(mesh_data)
-            if "ball" in mesh_data.mesh_type:
-                return mesh_builders_3d.get_meshzoo_ball(mesh_data)
+    if "meshzoo" in mesh_prop.mesh_type:
+        if "3d" in mesh_prop.mesh_type:
+            if "cube" in mesh_prop.mesh_type:
+                return mesh_builders_3d.get_meshzoo_cube(mesh_prop)
+            if "ball" in mesh_prop.mesh_type:
+                return mesh_builders_3d.get_meshzoo_ball(mesh_prop)
         else:
-            return mesh_builders_2d.get_meshzoo_rectangle(mesh_data)
+            return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop)
 
-    if "pygmsh" in mesh_data.mesh_type:
-        if "3d" in mesh_data.mesh_type:
-            if "polygon" in mesh_data.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_polygon(mesh_data)
-            if "twist" in mesh_data.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_data)
+    if "pygmsh" in mesh_prop.mesh_type:
+        if "3d" in mesh_prop.mesh_type:
+            if "polygon" in mesh_prop.mesh_type:
+                inner_function = lambda: mesh_builders_3d.get_pygmsh_polygon(mesh_prop)
+            if "twist" in mesh_prop.mesh_type:
+                inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_prop)
         else:
-            inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_data)
+            inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
-    raise NotImplementedError(f"Not implemented mesh type: {mesh_data.mesh_type}")
+    raise NotImplementedError(f"Not implemented mesh type: {mesh_prop.mesh_type}")

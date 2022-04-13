@@ -212,7 +212,11 @@ class Dynamic(SchurComplement):
             friction_bound,
         )
         self.temperature_statement.update(
-            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+            Variables(
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
         )
 
         (
@@ -280,7 +284,11 @@ class Dynamic(SchurComplement):
             )
         )
         self.temperature_statement.update(
-            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+            Variables(
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
         )
         self._point_forces, self.forces_free = self.recalculate_forces()
         self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()

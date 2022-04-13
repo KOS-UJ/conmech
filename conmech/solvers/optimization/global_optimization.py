@@ -88,7 +88,11 @@ class Dynamic(Global):
             friction_bound,
         )
         self.temperature_statement.update(
-            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+            Variables(
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
         )
 
     @property
@@ -110,5 +114,9 @@ class Dynamic(Global):
             )
         )
         self.temperature_statement.update(
-            Variables(velocity=self.v_vector, temperature=self.t_vector, time_step=self.time_step)
+            Variables(
+                velocity=self.v_vector,
+                temperature=self.t_vector,
+                time_step=self.time_step,
+            )
         )

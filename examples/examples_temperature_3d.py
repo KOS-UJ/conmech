@@ -3,11 +3,16 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import (default_temp_body_prop,
-                                         default_thermal_conductivity_coefficients,
-                                         get_temp_body_prop, TemperatureScenario, M_CUBE_3D,
-                                         default_temp_obstacle_prop,
-                                         default_thermal_expansion_coefficients, f_rotate_3d)
+from conmech.scenarios.scenarios import (
+    default_temp_body_prop,
+    default_thermal_conductivity_coefficients,
+    get_temp_body_prop,
+    TemperatureScenario,
+    M_CUBE_3D,
+    default_temp_obstacle_prop,
+    default_thermal_expansion_coefficients,
+    f_rotate_3d,
+)
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
@@ -21,13 +26,15 @@ def get_C_temp_scenarios(mesh_density, final_time):
         ),
         get_temp_body_prop(
             thermal_expansion_coeff=np.array(
-                [[1.0, -0.5, -0.5], [-0.5, 1.0, -0.5], [-0.5, -0.5, 1.0]]),
+                [[1.0, -0.5, -0.5], [-0.5, 1.0, -0.5], [-0.5, -0.5, 1.0]]
+            ),
             thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
         # not allowed in physical law
         get_temp_body_prop(
             thermal_expansion_coeff=np.array(
-                [[1.0, -0.5, -0.5], [0.5, 1.0, -0.5], [0.5, 0.5, 1.0]]),
+                [[1.0, -0.5, -0.5], [0.5, 1.0, -0.5], [0.5, 0.5, 1.0]]
+            ),
             thermal_conductivity_coeff=default_thermal_conductivity_coefficients,
         ),
     ]
@@ -36,7 +43,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"C_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_CUBE_3D,
                 scale=[1],
@@ -63,26 +70,33 @@ def get_K_temp_scenarios(mesh_density, final_time):
         get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array(
-                [[0.1, 0.0, 0.1], [0.0, 0.1, 0.0], [0.1, 0.0, 0.1]]),
+                [[0.1, 0.0, 0.1], [0.0, 0.1, 0.0], [0.1, 0.0, 0.1]]
+            ),
         ),
         get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array(
-                [[0.1, -0.1, 0.0], [-0.1, 0.1, 0.0], [0.0, 0.0, 0.1]]),
+                [[0.1, -0.1, 0.0], [-0.1, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            ),
         ),
         # not allowed in physical law
         get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array(
-                [[0.1, 0.1, -0.1], [-0.1, 0.1, 0.1], [0.1, -0.1, 0.1]]),
+                [[0.1, 0.1, -0.1], [-0.1, 0.1, 0.1], [0.1, -0.1, 0.1]]
+            ),
         ),
     ]
 
-    def h_corner(initial_node: np.ndarray, moved_node: np.ndarray, mesh_data: MeshProperties,
-                 t: float):
-        x_scaled = initial_node[0] / mesh_data.scale_x
-        y_scaled = initial_node[1] / mesh_data.scale_y
-        z_scaled = initial_node[2] / mesh_data.scale_z
+    def h_corner(
+        initial_node: np.ndarray,
+        moved_node: np.ndarray,
+        mesh_prop: MeshProperties,
+        t: float,
+    ):
+        x_scaled = initial_node[0] / mesh_prop.scale_x
+        y_scaled = initial_node[1] / mesh_prop.scale_y
+        z_scaled = initial_node[2] / mesh_prop.scale_z
         if x_scaled > 0.9 and y_scaled < 0.1 and z_scaled < 0.1:
             return -1000
         return 0.0
@@ -91,7 +105,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"K_{i}",
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_CUBE_3D,
                 scale=[1],
@@ -112,12 +126,14 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
     all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
-    obstacle = Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop)
+    obstacle = Obstacle(
+        np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
+    )
     all_scenarios.extend(
         [
             TemperatureScenario(
                 name="temperature_3d_cube_throw",
-                mesh_data=MeshProperties(
+                mesh_prop=MeshProperties(
                     dimension=3,
                     mesh_type=M_CUBE_3D,
                     scale=[1],

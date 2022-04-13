@@ -99,7 +99,7 @@ def element_volume_part_numba(face_nodes):
 class BodyPosition(Mesh):
     def __init__(
         self,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
         is_dirichlet: Callable = (lambda _: False),
@@ -107,7 +107,7 @@ class BodyPosition(Mesh):
         create_in_subprocess: bool = False,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
@@ -135,8 +135,8 @@ class BodyPosition(Mesh):
     def get_copy(self):
         return copy.deepcopy(self)
 
-    def iterate_self(self, acceleration, randomized_inputs=False):
-        _ = randomized_inputs
+    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
+        _ = temperature, randomized_inputs
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
 
@@ -200,20 +200,20 @@ class BodyPosition(Mesh):
         return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
 
     @property
-    def rotated_v_old(self):
+    def rotated_velocity_old(self):
         return self.normalize_rotate(self.velocity_old)
 
     @property
-    def normalized_v_old(self):
+    def normalized_velocity_old(self):
         return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
 
     @property
-    def normalized_u_old(self):
+    def normalized_displacement_old(self):
         return self.normalized_nodes - self.normalized_initial_nodes
 
     @property
-    def origin_u_old(self):
-        return self.denormalize_rotate(self.normalized_u_old)
+    def origin_displacement_old(self):
+        return self.denormalize_rotate(self.normalized_displacement_old)
 
     def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
@@ -229,9 +229,9 @@ class BodyPosition(Mesh):
         )
 
     @property
-    def input_v_old(self):
-        return self.normalized_v_old
+    def input_velocity_old(self):
+        return self.normalized_velocity_old
 
     @property
-    def input_u_old(self):
-        return self.normalized_u_old
+    def input_displacement_old(self):
+        return self.normalized_displacement_old

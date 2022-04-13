@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.properties.mesh_properties import MeshProperties
@@ -13,11 +12,11 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
     setting = BodyPosition(
-        mesh_data=MeshProperties(
+        mesh_prop=MeshProperties(
             mesh_type="meshzoo_rectangle", mesh_density=[3, 3], scale=[scale_x, scale_y]
         ),
         schedule=Schedule(1),
-        normalize_by_rotation=True
+        normalize_by_rotation=True,
     )
 
     # Act and Assert
@@ -33,7 +32,7 @@ def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
     setting = BodyPosition(
-        mesh_data=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]),
+        mesh_prop=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]),
         schedule=Schedule(1),
         normalize_by_rotation=True,
     )
@@ -63,9 +62,7 @@ def test_remove_unconnected_nodes():
     elements = np.array([[4, 2], [2, 5], [4, 5]])
 
     # Act
-    cleaned_nodes, cleaned_elements = mesh.remove_unconnected_nodes_numba(
-        nodes, elements
-    )
+    cleaned_nodes, cleaned_elements = mesh.remove_unconnected_nodes_numba(nodes, elements)
 
     # Assert
     expected_nodes = np.array([[2.1, 1.2], [4.1, 1.2], [5.1, 1.2]])

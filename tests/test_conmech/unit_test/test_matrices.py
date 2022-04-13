@@ -1,9 +1,11 @@
 import numpy as np
 
-from conmech.dynamics.factory._dynamics_factory_2d import \
-    get_edges_features_matrix_numba as sut_2d
-from conmech.dynamics.factory._dynamics_factory_3d import \
-    get_edges_features_matrix_numba as sut_3d
+from conmech.dynamics.factory._dynamics_factory_2d import (
+    get_edges_features_matrix_numba as sut_2d,
+)
+from conmech.dynamics.factory._dynamics_factory_3d import (
+    get_edges_features_matrix_numba as sut_3d,
+)
 from conmech.mesh import mesh_builders
 from conmech.properties.mesh_properties import MeshProperties
 
@@ -14,8 +16,9 @@ def test_matrices_2d_integrals():
     scale_y = 3
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshProperties(mesh_type="meshzoo_rectangle", mesh_density=[3],
-                                 scale=[scale_x, scale_y]),
+        mesh_prop=MeshProperties(
+            mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
+        ),
     )
 
     # Act
@@ -41,7 +44,7 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_data=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
+        mesh_prop=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
     )
 
     # Act

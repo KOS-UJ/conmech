@@ -4,7 +4,7 @@ pickle helpers
 import pickle
 import sys
 from io import BufferedReader
-from typing import List
+from typing import Callable, Iterable, List
 
 
 def open_files_append_pickle(path: str):
@@ -58,10 +58,14 @@ def load_index_pickle(index: int, all_indices: List[int], settings_file: Buffere
     return setting
 
 
-def get_iterator_pickle(path: str, data_count: int):
-    with open(f"{path}.settings", "rb") as file:
-        for _ in range(data_count):
-            # try:
-            yield internal_load_pickle(file)
-            # except EOFError:
-            #    break
+def get_iterator_pickle(data_path: str, setting_tqdm: Iterable[int], preprocess_example: Callable):
+    with open(f"{data_path}.settings", "rb") as file:
+        data = [preprocess_example(internal_load_pickle(file), index) for index in setting_tqdm]
+    return data
+
+    # with open(f"{path}.settings", "rb") as file:
+    #     for _ in range(data_count):
+    #         # try:
+    #         yield internal_load_pickle(file)
+    #         # except EOFError:
+    #         #    break

@@ -4,7 +4,6 @@ General solver for Contact Mechanics problem.
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-
 from conmech.dynamics.dynamics import Dynamics
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
@@ -57,7 +56,7 @@ class ProblemSolver:
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
         self.mesh = Dynamics(
-            mesh_data=MeshProperties(
+            mesh_prop=MeshProperties(
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],

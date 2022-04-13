@@ -51,7 +51,7 @@ class SolverMatrices:
 class Dynamics(BodyPosition):
     def __init__(
         self,
-        mesh_data: MeshProperties,
+        mesh_prop: MeshProperties,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
@@ -64,7 +64,7 @@ class Dynamics(BodyPosition):
         create_in_subprocess: bool = False,
     ):
         super().__init__(
-            mesh_data=mesh_data,
+            mesh_prop=mesh_prop,
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             is_dirichlet=is_dirichlet,

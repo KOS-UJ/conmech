@@ -4,11 +4,11 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-
 from conmech.helpers.config import Config
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import Quasistatic
 from conmech.simulations.problem_solver import Quasistatic as QuasistaticProblemSolver
+
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -48,9 +48,13 @@ def main(show: bool = True, save: bool = False):
     setup = QuasistaticSetup()
     runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(n_steps=32, output_step=(0, 32), verbose=True,
-                          initial_displacement=setup.initial_displacement,
-                          initial_velocity=setup.initial_velocity)
+    states = runner.solve(
+        n_steps=32,
+        output_step=(0, 32),
+        verbose=True,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+    )
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(show=show, save=save)

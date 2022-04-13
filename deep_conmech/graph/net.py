@@ -12,7 +12,7 @@ from deep_conmech.data.dataset_statistics import (
     DatasetStatistics,
     FeaturesStatistics,
 )
-from deep_conmech.graph.setting.setting_input import SettingInput
+from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingData
 
@@ -69,7 +69,9 @@ class ResidualBlock(Block):
     class InternalResidualBlock(Block):
         def __init__(self, channels, dropout_rate):
             super().__init__(
-                in_channels=channels, out_channels=channels, dropout_rate=dropout_rate,
+                in_channels=channels,
+                out_channels=channels,
+                dropout_rate=dropout_rate,
             )
 
             layers = []
@@ -90,7 +92,9 @@ class ResidualBlock(Block):
 
     def __init__(self, channels, dropout_rate, skip):
         super().__init__(
-            in_channels=channels, out_channels=channels, dropout_rate=dropout_rate,
+            in_channels=channels,
+            out_channels=channels,
+            dropout_rate=dropout_rate,
         )
         self.channels = channels
         self.skip = skip
@@ -131,14 +135,14 @@ class DataNorm(nn.Module):
 
 class ForwardNet(nn.Module):
     def __init__(
-            self,
-            input_dim: int,
-            layers_count: int,
-            output_linear_dim: int,
-            statistics: Optional[FeaturesStatistics],
-            batch_norm: bool,
-            layer_norm: bool,
-            td: TrainingData,
+        self,
+        input_dim: int,
+        layers_count: int,
+        output_linear_dim: int,
+        statistics: Optional[FeaturesStatistics],
+        batch_norm: bool,
+        layer_norm: bool,
+        td: TrainingData,
     ):
         super().__init__()
         layers = []
@@ -197,7 +201,9 @@ class ForwardNet(nn.Module):
 class Attention(Block):
     def __init__(self, in_channels, heads, td: TrainingData):
         super().__init__(
-            in_channels=in_channels, out_channels=1, dropout_rate=False,
+            in_channels=in_channels,
+            out_channels=1,
+            dropout_rate=False,
         )
         self.heads = heads
 
@@ -216,9 +222,7 @@ class Attention(Block):
         if self.heads == 1:
             self.blocks = attention_heads
         else:
-            self.blocks = nn.Sequential(
-                attention_heads, nn.Linear(self.heads, 1, bias=False)
-            )
+            self.blocks = nn.Sequential(attention_heads, nn.Linear(self.heads, 1, bias=False))
 
     def forward(self, edge_latents, index):
         if self.blocks is None:
@@ -291,13 +295,16 @@ class ProcessorLayer(MessagePassing):
 
 class CustomGraphNet(nn.Module):
     def __init__(
-            self, output_dim, statistics: Optional[DatasetStatistics], td: TrainingData,
+        self,
+        output_dim,
+        statistics: Optional[DatasetStatistics],
+        td: TrainingData,
     ):
         super().__init__()
         self.td = td
 
         self.node_encoder = ForwardNet(
-            input_dim=SettingInput.nodes_data_dim(),
+            input_dim=SceneInput.nodes_data_dim(),
             layers_count=td.ENC_LAYER_COUNT,
             output_linear_dim=td.LATENT_DIM,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -307,7 +314,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.edge_encoder = ForwardNet(
-            input_dim=SettingInput.edges_data_dim(),
+            input_dim=SceneInput.edges_data_dim(),
             layers_count=td.ENC_LAYER_COUNT,
             output_linear_dim=td.LATENT_DIM,
             statistics=None if statistics is None else statistics.edges_statistics,
@@ -354,9 +361,7 @@ class CustomGraphNet(nn.Module):
         edge_latents = self.edge_encoder(edge_input)
 
         for processor_layer in self.processor_layers:
-            node_latents, edge_latents = processor_layer(
-                batch, node_latents, edge_latents
-            )
+            node_latents, edge_latents = processor_layer(batch, node_latents, edge_latents)
 
         output = self.decoder(node_latents)
         return output
