@@ -170,8 +170,7 @@ class Scene(SettingForces):
             )
 
     def get_normalized_energy_obstacle_np(self, temperature=None):
-        _ = temperature
-        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_np()
+        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_np(temperature)
         args = EnergyObstacleArguments(
             lhs=self.solver_cache.lhs_boundary,
             rhs=normalized_rhs_boundary,

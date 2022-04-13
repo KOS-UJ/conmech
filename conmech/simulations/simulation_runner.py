@@ -215,7 +215,9 @@ def simulate(
         if operation is not None:
             operation(setting, base_setting)  # (current_time, setting, base_setting, a, base_a)
 
-        setting.iterate_self(acceleration, temperature, randomized_inputs=simulate_dirty_data)
+        setting.iterate_self(
+            acceleration, temperature=temperature, randomized_inputs=simulate_dirty_data
+        )
 
         if compare_with_base_setting:
             base_setting.iterate_self(base_a)

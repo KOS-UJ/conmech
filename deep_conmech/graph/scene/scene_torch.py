@@ -126,4 +126,4 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.get_surface_per_boundary_node())
 
     def get_normalized_E_torch(self):
-        return thh.to_torch_double(self.get_normalized_rhs_np(None))
+        return thh.to_torch_double(self.get_normalized_rhs_np())

@@ -8,39 +8,14 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.scene import energy_obstacle
+from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.graph.scene.scene_torch import SceneTorch
 from deep_conmech.helpers import thh
 
 
-def energy_normalized_obstacle_correction(
-    cleaned_a,
-    a_correction,
-    C,
-    E,
-    boundary_velocity_old,
-    boundary_nodes,
-    boundary_normals,
-    boundary_obstacle_nodes,
-    boundary_obstacle_normals,
-    surface_per_boundary_node,
-    obstacle_prop,
-    time_step,
-):
+def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyObstacleArguments):
     a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return energy_obstacle(
-        acceleration=a,
-        lhs=C,
-        rhs=E,
-        boundary_velocity_old=boundary_velocity_old,
-        boundary_nodes=boundary_nodes,
-        boundary_normals=boundary_normals,
-        boundary_obstacle_nodes=boundary_obstacle_nodes,
-        boundary_obstacle_normals=boundary_obstacle_normals,
-        surface_per_boundary_node=surface_per_boundary_node,
-        obstacle_prop=obstacle_prop,
-        time_step=time_step,
-    )
+    return energy_obstacle(acceleration=a, args=args)
 
 
 @numba.njit

@@ -1,7 +1,3 @@
-from dataclasses import dataclass
-
-import numpy as np
-
 from conmech.dynamics.dynamics import Dynamics
 from conmech.helpers import nph
 from conmech.solvers.optimization.schur_complement import SchurComplement
@@ -12,29 +8,6 @@ def energy(value, lhs, rhs):
     first = 0.5 * (lhs @ value_vector) - rhs
     value = first.reshape(-1) @ value_vector
     return value
-
-
-@dataclass
-class GetRhsArgs:
-    forces: np.ndarray
-    displacement_old: np.ndarray
-    velocity_old: np.ndarray
-    volume: np.ndarray
-    elasticity: np.ndarray
-    viscosity: np.ndarray
-    time_step: float
-
-
-def get_rhs(args: GetRhsArgs):
-    displacement_old_vector = nph.stack_column(args.displacement_old)
-    velocity_old_vector = nph.stack_column(args.velocity_old)
-    f_vector = nph.stack_column(args.volume @ args.forces)
-    rhs = (
-        f_vector
-        - (args.viscosity + args.elasticity * args.time_step) @ velocity_old_vector
-        - args.elasticity @ displacement_old_vector
-    )
-    return rhs
 
 
 class SettingForces(Dynamics):
@@ -65,8 +38,8 @@ class SettingForces(Dynamics):
     def clear(self):
         self.forces = None
 
-    def get_all_normalized_rhs_np(self):
-        normalized_rhs = self.get_normalized_rhs_np()
+    def get_all_normalized_rhs_np(self, temperature=None):
+        normalized_rhs = self.get_normalized_rhs_np(temperature)
         (
             normalized_rhs_boundary,
             normalized_rhs_free,
@@ -82,16 +55,20 @@ class SettingForces(Dynamics):
 
     def get_normalized_rhs_np(self, temperature=None):
         _ = temperature
-        args = GetRhsArgs(
-            forces=self.normalized_forces,
-            displacement_old=self.normalized_displacement_old,
-            velocity_old=self.normalized_velocity_old,
-            volume=self.volume,
-            elasticity=self.elasticity,
-            viscosity=self.viscosity,
-            time_step=self.time_step,
+
+        forces = self.normalized_forces
+        displacement_old = self.normalized_displacement_old
+        velocity_old = self.normalized_velocity_old
+
+        displacement_old_vector = nph.stack_column(displacement_old)
+        velocity_old_vector = nph.stack_column(velocity_old)
+        f_vector = nph.stack_column(self.volume @ forces)
+        rhs = (
+            f_vector
+            - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
+            - self.elasticity @ displacement_old_vector
         )
-        return get_rhs(args)
+        return rhs
 
     @property
     def input_forces(self):

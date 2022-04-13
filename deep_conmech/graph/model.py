@@ -11,6 +11,7 @@ from conmech.helpers import cmh, nph
 from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
@@ -328,16 +329,18 @@ class GraphModelDynamic:
 
             energy_args = dict(
                 a_correction=normalized_a_correction,
-                C=C,
-                E=normalized_E,
-                boundary_velocity_old=normalized_boundary_velocity_old_split[i],
-                boundary_nodes=normalized_boundary_nodes_split[i],
-                boundary_normals=normalized_boundary_normals_split[i],
-                boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
-                boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
-                surface_per_boundary_node=surface_per_boundary_node_split[i],
-                obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
-                time_step=0.01,  # TODO: generalize
+                args=EnergyObstacleArguments(
+                    lhs=C,
+                    rhs=normalized_E,
+                    boundary_velocity_old=normalized_boundary_velocity_old_split[i],
+                    boundary_nodes=normalized_boundary_nodes_split[i],
+                    boundary_normals=normalized_boundary_normals_split[i],
+                    boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
+                    boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
+                    surface_per_boundary_node=surface_per_boundary_node_split[i],
+                    obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
+                    time_step=0.01,  # TODO: generalize
+                ),
             )
 
             if test_using_true_solution:

@@ -1,9 +1,8 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.scene import scene, setting_forces
 from conmech.scene.scene import Scene
-from conmech.scene.setting_forces import GetRhsArgs, energy
+from conmech.scene.setting_forces import energy
 from conmech.solvers import SchurComplement
 
 
@@ -32,12 +31,6 @@ def integrate(
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
-
-
-def get_rhs(temperature, thermal_expansion, args: GetRhsArgs):
-    value = setting_forces.get_rhs(args)
-    value += thermal_expansion.T @ temperature
-    return value
 
 
 class SceneTemperature(Scene):
@@ -91,16 +84,9 @@ class SceneTemperature(Scene):
         return super().iterate_self(acceleration=acceleration)
 
     def get_normalized_rhs_np(self, temperature=None):
-        args = GetRhsArgs(
-            forces=self.normalized_forces,
-            displacement_old=self.normalized_displacement_old,
-            velocity_old=self.normalized_velocity_old,
-            volume=self.volume,
-            elasticity=self.elasticity,
-            viscosity=self.viscosity,
-            time_step=self.time_step,
-        )
-        return get_rhs(temperature=temperature, thermal_expansion=self.thermal_expansion, args=args)
+        value = super().get_normalized_rhs_np()
+        value += self.thermal_expansion.T @ temperature
+        return value
 
     def get_all_normalized_t_rhs_np(self, normalized_a):
         normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_a)

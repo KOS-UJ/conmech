@@ -101,6 +101,7 @@ class SceneRandomized(Scene):
         self.displacement_old_randomization = np.zeros_like(self.initial_nodes)
         self.randomized_inputs = False
 
-    def iterate_self(self, acceleration, randomized_inputs=False):
+    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
+        _ = temperature
         self.set_randomization(randomized_inputs)
         super().iterate_self(acceleration)
