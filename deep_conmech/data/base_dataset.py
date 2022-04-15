@@ -22,29 +22,29 @@ def print_dataset(dataset, cutoff, timestamp, description):
     iterations = np.min([len(batch), cutoff])
 
 
-def get_print_dataloader(dataset):
-    return get_dataloader(dataset, dataset.config.BATCH_SIZE, num_workers=0, shuffle=False)
+def get_print_dataloader(dataset: "BaseDataset"):
+    return get_dataloader(dataset, dataset.config.td.batch_size, num_workers=0, shuffle=False)
 
 
-def get_valid_dataloader(dataset):
+def get_valid_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
-        dataset.config.td.VALID_BATCH_SIZE,
+        dataset.config.td.valid_batch_size,
         num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=False,
     )
 
 
-def get_train_dataloader(dataset):
+def get_train_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
-        dataset.config.td.BATCH_SIZE,
+        dataset.config.td.batch_size,
         num_workers=dataset.config.DATALOADER_WORKERS,
         shuffle=True,
     )
 
 
-def get_all_dataloader(dataset):
+def get_all_dataloader(dataset: "BaseDataset"):
     return get_dataloader(dataset, len(dataset), num_workers=0, shuffle=False)
 
 
@@ -199,7 +199,7 @@ class BaseDataset:
 
     @property
     def main_directory(self):
-        return f"./{self.config.DATASETS_MAIN_PATH}/{self.data_id}"
+        return f"./{self.config.datasets_main_path}/{self.data_id}"
 
     @property
     def data_path(self):
@@ -236,7 +236,7 @@ class BaseDataset:
         return data
 
     def check_and_print(self, data_count, current_index, setting, step_tqdm, tqdm_description):
-        plot_index_skip = int(data_count * (1 / self.config.DATASET_IMAGES_COUNT))
+        plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")

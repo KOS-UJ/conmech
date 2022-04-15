@@ -47,7 +47,7 @@ def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
         description="train",
         all_scenarios=scenarios.all_train(config.td),
         net=net,
-        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+        load_to_ram=config.load_train_dataset_to_ram,
         config=config,
     )
 
@@ -57,7 +57,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
         train_dataset = SyntheticDataset(
             description="train",
             dimension=2,
-            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            load_to_ram=config.load_train_dataset_to_ram,
             config=config,
         )
     elif dataset_type == "calculator":
@@ -65,7 +65,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             description="train",
             all_scenarios=scenarios.all_train(config.td),
             skip_index=1,
-            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            load_to_ram=config.load_train_dataset_to_ram,
             config=config,
         )
     else:
@@ -112,9 +112,9 @@ def main(args: Namespace):
     print(f"MODE: {args.mode}")
     device = thh.get_device_id()
     # dch.cuda_launch_blocking()
-    config = TrainingConfig(shell=args.shell, DEVICE=device)
+    config = TrainingConfig(shell=args.shell, device=device)
     dch.set_memory_limit(config=config)
-    print(f"Running using {config.DEVICE}")
+    print(f"Running using {config.device}")
 
     if "train" in args.mode:
         train(config)

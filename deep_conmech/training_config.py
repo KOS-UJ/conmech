@@ -25,21 +25,21 @@ class TrainingData:
 
     ROTATE_VELOCITY_PROPORTION: float = 0.5
     ZERO_FORCES_PROPORTION: float = 0.8
-    CORNERS_SCALE_PROPORTION: float = 0.3
+    CORNERS_SCALE_PROPORTION: float = 0.8
     ROTATE_SCALE_PROPORTION: float = 0.5
 
     U_NOISE_GAMMA: float = 0.1
     U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
     V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
 
-    SAVE_AT_MINUTES: int = 10
-    VALIDATE_AT_EPOCHS: int = 10
-    UPDATE_AT_EPOCHS: int = 100
+    save_at_minutes: int = 10
+    validate_at_epochs: int = 10
+    update_at_epochs: int = 100
 
-    USE_ENERGY_AS_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 256  # !# 256 # 64 # 128
-    VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 32
+    use_energy_as_loss: bool = True
+    batch_size: int = 128  #
+    valid_batch_size: int = 128  #
+    synthetic_batches_in_epoch: int = 2  # 96  #
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True
@@ -53,7 +53,7 @@ class TrainingData:
     ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
 
     INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    LR_GAMMA: float = 0.999  # 1.0
+    LR_GAMMA: float = 0.995  # 1.0
     FINAL_LR: float = 1e-6
 
     LATENT_DIM: int = 128
@@ -66,7 +66,7 @@ class TrainingData:
 @dataclass
 class TrainingConfig(Config):
     td: TrainingData = TrainingData()
-    DEVICE: str = "_"
+    device: str = "_"
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
 
@@ -79,12 +79,12 @@ class TrainingConfig(Config):
         (TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2
     )
 
-    DATASET_IMAGES_COUNT: float = 100
+    dataset_images_count: float = 100
 
-    LOG_DATASET_STATS = True
-    LOAD_TRAIN_DATASET_TO_RAM = True
-    COMPARE_WITH_BASE_SETTING = False
+    log_dataset_stats = True
+    load_train_dataset_to_ram = True
+    compare_with_base_setting = False
 
-    MAX_EPOCH_NUMBER: Optional[int] = None
-    DATASETS_MAIN_PATH: str = "datasets"
-    LOG_CATALOG: str = "log"
+    max_epoch_number: Optional[int] = None
+    datasets_main_path: str = "datasets"
+    log_catalog: str = "log"

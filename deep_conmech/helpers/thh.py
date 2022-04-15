@@ -8,7 +8,7 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def device(training_config: TrainingConfig):
-    return torch.device(training_config.DEVICE)
+    return torch.device(training_config.device)
 
 
 def get_device_id():

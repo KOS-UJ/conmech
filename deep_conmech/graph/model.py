@@ -1,47 +1,24 @@
 import json
 import time
 from ctypes import ArgumentError
-from typing import Optional
 
 import numpy as np
 import torch
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
-from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
-from deep_conmech.data.dataset_statistics import DatasetStatistics
+from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.scene import scene_input
 from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
-
-
-def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    writer = SummaryWriter(f"{config.LOG_CATALOG}/{config.current_time}")
-    print("Logging data...")
-
-    def pretty_json(value):
-        dictionary = vars(value)
-        json_str = json.dumps(dictionary, indent=2)
-        return "".join("\t" + line for line in json_str.splitlines(True))
-
-    writer.add_text(f"{config.current_time}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
-
-    if statistics is not None:
-        edge_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.current_time}_EDGE_STATS.txt", edge_statistics_str, global_step=0)
-
-        node_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.current_time}_NODE_STATS.txt", node_statistics_str, global_step=0)
-
-    return writer
 
 
 class ErrorResult:
@@ -60,8 +37,7 @@ class GraphModelDynamic:
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        statistics = train_dataset.get_statistics() if config.LOG_DATASET_STATS else None
-        self.writer = get_and_init_writer(statistics, self.config)
+        self.writer = self.get_and_init_writer()
         self.loss_labels = [
             "energy",
             # "energy_diff",
@@ -80,6 +56,36 @@ class GraphModelDynamic:
             self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
+
+        if config.log_dataset_stats:
+            statistics = train_dataset.get_statistics()
+            self.save_stats(statistics=statistics)
+
+    def get_and_init_writer(self):
+        writer = SummaryWriter(f"{self.config.log_catalog}/{self.config.current_time}")
+        print("Logging data...")
+
+        def pretty_json(value):
+            dictionary = vars(value)
+            json_str = json.dumps(dictionary, indent=2)
+            return "".join("\t" + line for line in json_str.splitlines(True))
+
+        writer.add_text(
+            f"{self.config.current_time}_PARAMETERS.txt", pretty_json(self.config.td), global_step=0
+        )
+        return writer
+
+    def save_stats(self, statistics: DatasetStatistics):
+        def save_hist_and_json(st: FeaturesStatistics, name: str):
+            ax = st.pandas_data.hist()
+            fig = ax[0][0].get_figure()
+            fig.savefig(f"{self.config.log_catalog}/{self.config.current_time}/{name}_hist.png")
+
+            data_str = st.describe().to_json()
+            self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)
+
+        save_hist_and_json(statistics.nodes_statistics, "nodes_statistics")
+        save_hist_and_json(statistics.edges_statistics, "edges_statistics")
 
     @property
     def lr(self):
@@ -105,7 +111,7 @@ class GraphModelDynamic:
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
-        while self.config.MAX_EPOCH_NUMBER is None or epoch_number < self.config.MAX_EPOCH_NUMBER:
+        while self.config.max_epoch_number is None or epoch_number < self.config.max_epoch_number:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
@@ -122,14 +128,14 @@ class GraphModelDynamic:
 
             current_time = time.time()
             elapsed_time = current_time - last_save_time
-            if elapsed_time > self.config.td.SAVE_AT_MINUTES * 60:
+            if elapsed_time > self.config.td.save_at_minutes * 60:
                 # print(f"--Training time: {(elapsed_time / 60):.4f} min")
                 self.save_net()
                 last_save_time = time.time()
 
-            if epoch_number % self.config.td.VALIDATE_AT_EPOCHS == 0:
+            if epoch_number % self.config.td.validate_at_epochs == 0:
                 self.validation_raport(examples_seen=examples_seen)
-            if epoch_number % self.config.td.UPDATE_AT_EPOCHS == 0:
+            if epoch_number % self.config.td.update_at_epochs == 0:
                 self.update_dataset()
 
             # print(prof.key_averages().table(row_limit=10))
@@ -195,7 +201,7 @@ class GraphModelDynamic:
                 run_config=simulation_runner.RunScenarioConfig(
                     catalog=catalog,
                     simulate_dirty_data=False,
-                    compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
+                    compare_with_base_setting=config.compare_with_base_setting,
                     plot_animation=True,
                 ),
                 get_setting_function=GraphModelDynamic.get_setting_function,
@@ -352,7 +358,7 @@ class GraphModelDynamic:
             if hasattr(batch, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
 
-            if self.config.td.USE_ENERGY_AS_LOSS:
+            if self.config.td.use_energy_as_loss:
                 loss += predicted_normalized_energy
             else:
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)

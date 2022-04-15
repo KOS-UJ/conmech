@@ -108,7 +108,7 @@ class SyntheticDataset(BaseDataset):
         super().__init__(
             description=f"{description}_synthetic",
             dimension=dimension,
-            data_count=config.td.BATCH_SIZE * config.td.SYNTHETIC_BATCHES_IN_EPOCH,
+            data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
             randomize_at_load=True,
             num_workers=num_workers,
             load_to_ram=load_to_ram,
