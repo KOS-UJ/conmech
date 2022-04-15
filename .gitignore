@@ -10,6 +10,7 @@
 *.json
 
 # conmech input/output
+log/*
 datasets/*
 output/*
 

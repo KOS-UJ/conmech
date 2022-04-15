@@ -12,7 +12,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # calculator # live
+    DATASET: str = "calculator"  # synthetic # calculator # live
     FINAL_TIME: float = 8  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = True
@@ -23,14 +23,14 @@ class TrainingData:
     U_RANDOM_SCALE: float = 0.2
     V_RANDOM_SCALE: float = 2.5
 
-    ROTATE_VELOCITY_PROPORTION: float = 0.5
-    ZERO_FORCES_PROPORTION: float = 0.8
-    CORNERS_SCALE_PROPORTION: float = 0.8
-    ROTATE_SCALE_PROPORTION: float = 0.5
+    rotate_velocity_proportion: float = 0.5
+    zero_forces_proportion: float = 0.2  ## 0.8
+    corners_scale_proportion: float = 0.8
+    rotate_scale_proportion: float = 0.5
 
-    U_NOISE_GAMMA: float = 0.1
-    U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
-    V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
+    displacement_to_velocity_noise: float = 0.1
+    displacement_in_random_factor: float = 0.005 * U_RANDOM_SCALE
+    velocity_in_random_factor: float = 0.005 * V_RANDOM_SCALE
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10
@@ -39,7 +39,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128  #
     valid_batch_size: int = 128  #
-    synthetic_batches_in_epoch: int = 2  # 96  #
+    synthetic_batches_in_epoch: int = 96  # 2
 
     USE_DATASET_STATS: bool = False
     INPUT_BATCH_NORM: bool = True

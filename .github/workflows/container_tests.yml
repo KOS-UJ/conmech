@@ -1,25 +1,18 @@
-# Action name
 name: Container Tests
 
-# Here, this action will be enabled on all pushes.
-# Modify this to fit your needs.
 on:
     push
 
-# Jobs section
 jobs:
-    # The job that will use the container image you just pushed to ghcr.io
-    super-job:
+    run_tests:
         runs-on: ubuntu-18.04
         container:
             image: michaljur/conmech:latest
             credentials:
                username: michaljur
-               password: ${{  secrets.DOCKER_HUB_TOKEN }}
+               password: ${{ secrets.DOCKER_HUB_TOKEN }}
         steps:
             - name: super-step
               shell: bash
-              run: |
-                # Whatever commands you want to run here using the container with your
-                # new Docker image at ghcr.io!>
-                echo "--This is running in my custom Docker image--"
+              run: echo "--This is running in my custom Docker image--"
+              run: PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception

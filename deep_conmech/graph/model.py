@@ -4,6 +4,8 @@ from ctypes import ArgumentError
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
+from pandas import DataFrame
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
@@ -13,7 +15,7 @@ from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
-from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.data.dataset_statistics import FeaturesStatistics
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.scene import scene_input
 from deep_conmech.graph.scene.scene_input import SceneInput
@@ -37,7 +39,7 @@ class GraphModelDynamic:
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        self.writer = self.get_and_init_writer()
+        self.writer = SummaryWriter(self.current_log_catalog)
         self.loss_labels = [
             "energy",
             # "energy_diff",
@@ -57,35 +59,63 @@ class GraphModelDynamic:
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
 
-        if config.log_dataset_stats:
-            statistics = train_dataset.get_statistics()
-            self.save_stats(statistics=statistics)
+        self.save_parameters_and_statistics()
 
-    def get_and_init_writer(self):
-        writer = SummaryWriter(f"{self.config.log_catalog}/{self.config.current_time}")
-        print("Logging data...")
+    def save_parameters_and_statistics(self):
+        print("Saving parameters...")
+        self.save_parameters()
+        if self.config.log_dataset_stats:
+            print("Saving statistics...")
+            statistics = self.train_dataset.get_statistics()
+            self.save_hist_and_json(statistics.nodes_statistics, "nodes_statistics")
+            self.save_hist_and_json(statistics.edges_statistics, "edges_statistics")
+            a = 0
 
+    def save_parameters(self):
         def pretty_json(value):
             dictionary = vars(value)
             json_str = json.dumps(dictionary, indent=2)
             return "".join("\t" + line for line in json_str.splitlines(True))
 
-        writer.add_text(
-            f"{self.config.current_time}_PARAMETERS.txt", pretty_json(self.config.td), global_step=0
-        )
-        return writer
+        data_str = pretty_json(self.config.td)
+        self.writer.add_text(f"{self.config.current_time}_parameters.txt", data_str, global_step=0)
+        file_path = f"{self.current_log_catalog}/parameters_{self.train_dataset.data_id}.txt"
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(data_str)
 
-    def save_stats(self, statistics: DatasetStatistics):
-        def save_hist_and_json(st: FeaturesStatistics, name: str):
-            ax = st.pandas_data.hist()
-            fig = ax[0][0].get_figure()
-            fig.savefig(f"{self.config.log_catalog}/{self.config.current_time}/{name}_hist.png")
+    def save_hist_and_json(self, st: FeaturesStatistics, name: str):
+        df = st.pandas_data
+        self.save_hist(df=df, name=name)
 
-            data_str = st.describe().to_json()
-            self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)
+        normalized_df = (df - df.mean()) / df.std()
+        self.save_hist(df=normalized_df, name=f"{name}_normalized")
 
-        save_hist_and_json(statistics.nodes_statistics, "nodes_statistics")
-        save_hist_and_json(statistics.edges_statistics, "edges_statistics")
+        data_str = st.describe().to_json()
+        self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)
+
+    def save_hist(self, df: DataFrame, name: str):
+        # pandas_axs = st.pandas_data.hist(figsize=(20, 10))  # , ec="k")
+        columns = 3
+        scale = 7
+        rows = (df.columns.size // columns) + df.columns.size % columns
+        fig, axs = plt.subplots(
+            rows, columns, figsize=(columns * scale, rows * scale)
+        )  # , sharex="col", sharey="row"
+        for i in range(rows * columns):
+            row, col = i // columns, i % columns
+            if i < df.columns.size:
+                df.hist(
+                    column=df.columns[i], bins=100, ax=axs[row, col]
+                )  # bins=12 , figsize=(20, 18)
+            else:
+                axs[row, col].axis("off")
+
+        fig.tight_layout()
+        fig.savefig(f"{self.current_log_catalog}/hist_{name}.png")
+
+    @property
+    def current_log_catalog(self):
+        return f"{self.config.log_catalog}/{self.config.current_time}"
 
     @property
     def lr(self):

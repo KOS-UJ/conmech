@@ -19,40 +19,40 @@ def create_mesh_type():
     )
 
 
-def create_forces(config, setting):
-    if interpolation_helpers.decide(config.td.ZERO_FORCES_PROPORTION):
+def create_forces(config: TrainingConfig, setting):
+    if interpolation_helpers.decide(config.td.zero_forces_proportion):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.FORCES_RANDOM_SCALE,
-            corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
+            corners_scale_proportion=config.td.corners_scale_proportion,
             setting_scale_x=setting.mesh_prop.scale_x,
             setting_scale_y=setting.mesh_prop.scale_y,
         )
     return forces
 
 
-def create_displacement_old(config, setting):
+def create_displacement_old(config: TrainingConfig, setting):
     displacement_old = interpolation_helpers.interpolate_four(
         count=setting.nodes_count,
         initial_nodes=setting.initial_nodes,
         randomization_scale=config.td.U_RANDOM_SCALE,
-        corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
+        corners_scale_proportion=config.td.corners_scale_proportion,
         setting_scale_x=setting.mesh_prop.scale_x,
         setting_scale_y=setting.mesh_prop.scale_y,
     )
     return displacement_old
 
 
-def create_velocity_old(config, setting):
-    if interpolation_helpers.decide(config.td.ROTATE_VELOCITY_PROPORTION):
+def create_velocity_old(config: TrainingConfig, setting):
+    if interpolation_helpers.decide(config.td.rotate_velocity_proportion):
         velocity_old = interpolation_helpers.interpolate_rotate(
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.V_RANDOM_SCALE,
-            rotate_scale_proportion=config.td.ROTATE_SCALE_PROPORTION,
+            rotate_scale_proportion=config.td.rotate_scale_proportion,
             setting_scale_x=setting.mesh_prop.scale_x,
             setting_scale_y=setting.mesh_prop.scale_y,
         )
@@ -61,14 +61,14 @@ def create_velocity_old(config, setting):
             count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
             randomization_scale=config.td.V_RANDOM_SCALE,
-            corners_scale_proportion=config.td.CORNERS_SCALE_PROPORTION,
+            corners_scale_proportion=config.td.corners_scale_proportion,
             setting_scale_x=setting.mesh_prop.scale_x,
             setting_scale_y=setting.mesh_prop.scale_y,
         )
     return velocity_old
 
 
-def create_obstacles(config, setting):
+def create_obstacles(config: TrainingConfig, setting):
     obstacle_nodes_unnormaized = nph.get_random_uniform_circle_numba(
         setting.dimension,
         1,
@@ -80,7 +80,7 @@ def create_obstacles(config, setting):
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
 
 
-def get_base_setting(config, mesh_type):
+def get_base_setting(config: TrainingConfig, mesh_type):
     return SceneInput(
         mesh_prop=MeshProperties(
             mesh_type=mesh_type,

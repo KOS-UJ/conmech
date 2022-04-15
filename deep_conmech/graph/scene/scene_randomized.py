@@ -39,10 +39,10 @@ class SceneRandomized(Scene):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.velocity_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.V_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, self.config.td.velocity_in_random_factor
             )
             self.displacement_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.U_IN_RANDOM_FACTOR
+                self.dimension, self.nodes_count, self.config.td.displacement_in_random_factor
             )
             # Do not randomize boundaries
             self.velocity_old_randomization[self.boundary_indices] = 0
@@ -81,11 +81,13 @@ class SceneRandomized(Scene):
 
     @property
     def a_correction(self):
-        u_correction = self.config.td.U_NOISE_GAMMA * (
+        u_correction = self.config.td.displacement_to_velocity_noise * (
             self.displacement_old_randomization / (self.time_step**2)
         )
         v_correction = (
-            (1.0 - self.config.td.U_NOISE_GAMMA) * self.velocity_old_randomization / self.time_step
+            (1.0 - self.config.td.displacement_to_velocity_noise)
+            * self.velocity_old_randomization
+            / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 
