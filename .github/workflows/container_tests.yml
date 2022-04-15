@@ -16,7 +16,7 @@ jobs:
               shell: bash
               run: |
                 echo "--This is running in my custom Docker image--"
-                echo ${{ github.head_ref }}.${{ github.sha }}
+                echo | ${{ github.repositoryUrl }} |  ${{ github.sha }} |
                 git init
                 git remote add origin https://github.com/michalJur/conmech.git
                 git pull origin 
