@@ -65,11 +65,10 @@ class GraphModelDynamic:
         print("Saving parameters...")
         self.save_parameters()
         if self.config.log_dataset_stats:
-            print("Saving statistics...")
             statistics = self.train_dataset.get_statistics()
+            print("Saving statistics...")
             self.save_hist_and_json(statistics.nodes_statistics, "nodes_statistics")
             self.save_hist_and_json(statistics.edges_statistics, "edges_statistics")
-            a = 0
 
     def save_parameters(self):
         def pretty_json(value):

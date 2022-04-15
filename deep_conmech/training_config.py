@@ -12,7 +12,7 @@ class TrainingData:
     VALIDATION_SCALE: int = 1
     PRINT_SCALE: int = 1
 
-    DATASET: str = "calculator"  # synthetic # calculator # live
+    DATASET: str = "synthetic"  # synthetic # calculator # live
     FINAL_TIME: float = 8  # !# 5 #8
     MESH_DENSITY: int = 16  # !# 8 #16
     ADAPTIVE_TRAINING_MESH: bool = True
