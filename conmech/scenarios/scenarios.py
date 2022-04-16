@@ -535,19 +535,19 @@ def get_valid_data(**args):
 
 def all_train(td: TrainingData):
     return get_train_data(
-        mesh_density=td.MESH_DENSITY,
-        scale=td.TRAIN_SCALE,
+        mesh_density=td.mesh_density,
+        scale=td.train_scale,
         is_adaptive=False,
-        final_time=td.FINAL_TIME,
+        final_time=td.final_time,
     )
 
 
 def all_validation(td: TrainingData):
     return get_valid_data(
-        mesh_density=td.MESH_DENSITY,
-        scale=td.VALIDATION_SCALE,
+        mesh_density=td.mesh_density,
+        scale=td.validation_scale,
         is_adaptive=False,
-        final_time=td.FINAL_TIME,
+        final_time=td.final_time,
     )
 
 
@@ -558,15 +558,15 @@ def all_train_and_validation(td: TrainingData):
 def all_print(td: TrainingData):
     return [
         *get_valid_data(
-            mesh_density=td.MESH_DENSITY,
-            scale=td.PRINT_SCALE,
+            mesh_density=td.mesh_density,
+            scale=td.print_scale,
             is_adaptive=False,
-            final_time=td.FINAL_TIME,
+            final_time=td.final_time,
         ),
         *get_train_data(
-            mesh_density=td.MESH_DENSITY,
-            scale=td.PRINT_SCALE,
+            mesh_density=td.mesh_density,
+            scale=td.print_scale,
             is_adaptive=False,
-            final_time=td.FINAL_TIME,
+            final_time=td.final_time,
         ),
     ]

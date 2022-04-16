@@ -1,12 +1,32 @@
 from typing import Tuple
 
 import numpy as np
-from conmech.helpers import mph
+
+from conmech.helpers import mph, nph
 from conmech.mesh import mesh_builders_2d, mesh_builders_3d, mesh_builders_legacy
 from conmech.properties.mesh_properties import MeshProperties
 
 
 def build_mesh(
+    mesh_prop: MeshProperties,
+    create_in_subprocess=False,
+) -> Tuple[np.ndarray, np.ndarray]:
+    initial_nodes, elements = build_initial_mesh(
+        mesh_prop=mesh_prop, create_in_subprocess=create_in_subprocess
+    )
+    nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
+    return nodes, elements
+
+
+def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
+    if mesh_prop.initial_base is not None:
+        nodes = nph.get_in_base(nodes, mesh_prop.initial_base)
+    if mesh_prop.initial_position is not None:
+        nodes += mesh_prop.initial_position
+    return nodes
+
+
+def build_initial_mesh(
     mesh_prop: MeshProperties,
     create_in_subprocess=False,
 ) -> Tuple[np.ndarray, np.ndarray]:

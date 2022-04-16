@@ -50,7 +50,7 @@ class ScenariosDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"f:{self.config.td.FINAL_TIME}_i:{self.skip_index}"
+        return f"f:{self.config.td.final_time}_i:{self.skip_index}"
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)

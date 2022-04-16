@@ -152,18 +152,21 @@ def get_point_index_numba(point, points):
     raise ArgumentError
 
 
-def get_random_normal(dim, nodes_count, scale):
-    # noise = np.random.uniform(low=-scale, high=scale, size=shape)
-    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[nodes_count, dim])
+def get_random_uniform(rows, columns, scale):
+    return np.random.uniform(low=-scale, high=scale, size=[rows, columns])
+
+
+def get_random_normal(rows, columns, scale):
+    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
     return noise
 
 
 @numba.njit
-def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
-    result = np.zeros((nodes_count, dim))
-    for i in range(nodes_count):
+def get_random_normal_circle_numba(rows, columns, scale):
+    result = np.zeros((rows, columns))
+    for i in range(rows):
         alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(np.random.normal(loc=0.0, scale=randomization_scale * 0.5))
+        r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
         result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
     return result
 

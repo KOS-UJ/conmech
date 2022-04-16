@@ -14,11 +14,11 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def train(config: TrainingConfig):
-    if config.td.DATASET == "live":
+    if config.td.dataset == "live":
         net = get_net(None, config)
         train_dataset = get_live_train_dataset(config=config, net=net)
     else:
-        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        train_dataset = get_train_dataset(config.td.dataset, config=config)
         statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
         net = get_net(statistics, config)
 
@@ -29,7 +29,7 @@ def train(config: TrainingConfig):
 
 def plot(config: TrainingConfig):
     if config.td.USE_DATASET_STATS:
-        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+        train_dataset = get_train_dataset(config.td.dataset, config=config)
         statistics = train_dataset.get_statistics()
     else:
         statistics = None

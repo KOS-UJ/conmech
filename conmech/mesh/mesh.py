@@ -111,8 +111,6 @@ class Mesh:
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
-        if mesh_prop.initial_position is not None:
-            input_nodes += mesh_prop.initial_position
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )

@@ -8,20 +8,20 @@ from conmech.helpers.config import Config
 
 @dataclass
 class TrainingData:
-    TRAIN_SCALE: int = 1
-    VALIDATION_SCALE: int = 1
-    PRINT_SCALE: int = 1
+    train_scale: int = 1
+    validation_scale: int = 1
+    print_scale: int = 1
 
-    DATASET: str = "synthetic"  # synthetic # calculator # live
-    FINAL_TIME: float = 8  # !# 5 #8
-    MESH_DENSITY: int = 16  # !# 8 #16
-    ADAPTIVE_TRAINING_MESH: bool = True
+    dataset: str = "synthetic"  # synthetic # calculator # live
+    final_time: float = 8  # !# 5 #8
+    mesh_density: int = 16  # !# 8 #16
+    adaptive_training_mesh: bool = True
 
-    FORCES_RANDOM_SCALE: int = 4
-    OBSTACLE_ORIGIN_SCALE: float = 3.0 * TRAIN_SCALE
-    OBSTACLE_MIN_SCALE: float = 0.4 * TRAIN_SCALE
-    U_RANDOM_SCALE: float = 0.2
-    V_RANDOM_SCALE: float = 2.5
+    forces_random_scale: int = 4
+    obstacle_origin_scale: float = 3.0 * train_scale
+    obstacle_min_scale: float = 0.4 * train_scale
+    displacement_random_scale: float = 0.2
+    velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0.5
     zero_forces_proportion: float = 0.2  ## 0.8
@@ -29,8 +29,8 @@ class TrainingData:
     rotate_scale_proportion: float = 0.5
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.005 * U_RANDOM_SCALE
-    velocity_in_random_factor: float = 0.005 * V_RANDOM_SCALE
+    displacement_in_random_factor: float = 0.005 * displacement_random_scale
+    velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10
@@ -50,7 +50,7 @@ class TrainingData:
     SKIP: bool = True
     GRADIENT_CLIP = 10.0  # None
 
-    ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
+    ATTENTION_HEADS: Optional[int] = 1  # None 1 3 5
 
     INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
     LR_GAMMA: float = 0.995  # 1.0

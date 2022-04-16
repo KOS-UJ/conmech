@@ -13,87 +13,85 @@ from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
-def create_mesh_type():
-    return interpolation_helpers.choose(
+def draw_base_setting(config: TrainingConfig, base: np.ndarray):
+    mesh_type = interpolation_helpers.choose(
         ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_polygon"]  # "pygmsh_spline"
+    )
+    return SceneInput(
+        mesh_prop=MeshProperties(
+            mesh_type=mesh_type,
+            mesh_density=[config.td.mesh_density],
+            scale=[config.td.train_scale],
+            is_adaptive=config.td.adaptive_training_mesh,
+            initial_base=base,
+        ),
+        body_prop=scenarios.default_body_prop,
+        obstacle_prop=scenarios.default_obstacle_prop,
+        schedule=Schedule(final_time=config.td.final_time),
+        config=config,
+        create_in_subprocess=False,
     )
 
 
-def create_forces(config: TrainingConfig, setting):
+def draw_forces(config: TrainingConfig, setting, base: np.ndarray):
     if interpolation_helpers.decide(config.td.zero_forces_proportion):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
         forces = interpolation_helpers.interpolate_four(
-            count=setting.nodes_count,
             initial_nodes=setting.initial_nodes,
-            randomization_scale=config.td.FORCES_RANDOM_SCALE,
+            scale=config.td.forces_random_scale,
             corners_scale_proportion=config.td.corners_scale_proportion,
-            setting_scale_x=setting.mesh_prop.scale_x,
-            setting_scale_y=setting.mesh_prop.scale_y,
+            mesh_prop=setting.mesh_prop,
+            base=base,
+            interpolate_rotate=False,
         )
     return forces
 
 
-def create_displacement_old(config: TrainingConfig, setting):
+def draw_displacement_old(config: TrainingConfig, setting, base: np.ndarray):
     displacement_old = interpolation_helpers.interpolate_four(
-        count=setting.nodes_count,
         initial_nodes=setting.initial_nodes,
-        randomization_scale=config.td.U_RANDOM_SCALE,
+        scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
-        setting_scale_x=setting.mesh_prop.scale_x,
-        setting_scale_y=setting.mesh_prop.scale_y,
+        mesh_prop=setting.mesh_prop,
+        base=base,
+        interpolate_rotate=False,
     )
     return displacement_old
 
 
-def create_velocity_old(config: TrainingConfig, setting):
-    if interpolation_helpers.decide(config.td.rotate_velocity_proportion):
-        velocity_old = interpolation_helpers.interpolate_rotate(
-            count=setting.nodes_count,
-            initial_nodes=setting.initial_nodes,
-            randomization_scale=config.td.V_RANDOM_SCALE,
-            rotate_scale_proportion=config.td.rotate_scale_proportion,
-            setting_scale_x=setting.mesh_prop.scale_x,
-            setting_scale_y=setting.mesh_prop.scale_y,
-        )
-    else:
-        velocity_old = interpolation_helpers.interpolate_four(
-            count=setting.nodes_count,
-            initial_nodes=setting.initial_nodes,
-            randomization_scale=config.td.V_RANDOM_SCALE,
-            corners_scale_proportion=config.td.corners_scale_proportion,
-            setting_scale_x=setting.mesh_prop.scale_x,
-            setting_scale_y=setting.mesh_prop.scale_y,
-        )
+def draw_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
+    interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
+    velocity_old = interpolation_helpers.interpolate_four(
+        initial_nodes=setting.initial_nodes,
+        scale=config.td.velocity_random_scale,
+        corners_scale_proportion=config.td.corners_scale_proportion,
+        mesh_prop=setting.mesh_prop,
+        base=base,
+        interpolate_rotate=interpolate_rotate,
+    )
     return velocity_old
 
 
-def create_obstacles(config: TrainingConfig, setting):
+def draw_obstacles(config: TrainingConfig, scene: SceneInput):
     obstacle_nodes_unnormaized = nph.get_random_uniform_circle_numba(
-        setting.dimension,
+        scene.dimension,
         1,
-        low=config.td.OBSTACLE_MIN_SCALE,
-        high=config.td.OBSTACLE_ORIGIN_SCALE,
+        low=config.td.obstacle_min_scale,
+        high=config.td.obstacle_origin_scale,
     )
-    obstacle_nodes = obstacle_nodes_unnormaized + setting.mean_moved_nodes
+    obstacle_nodes = obstacle_nodes_unnormaized + scene.mean_moved_nodes
     obstacle_normals_unnormaized = -obstacle_nodes_unnormaized
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
 
 
-def get_base_setting(config: TrainingConfig, mesh_type):
-    return SceneInput(
-        mesh_prop=MeshProperties(
-            mesh_type=mesh_type,
-            mesh_density=[config.td.MESH_DENSITY],
-            scale=[config.td.TRAIN_SCALE],
-            is_adaptive=config.td.ADAPTIVE_TRAINING_MESH,
-        ),
-        body_prop=scenarios.default_body_prop,
-        obstacle_prop=scenarios.default_obstacle_prop,
-        schedule=Schedule(final_time=config.td.FINAL_TIME),
-        config=config,
-        create_in_subprocess=False,
-    )
+def draw_base():
+    dim = 2  # TODO: #65
+    base = nph.get_random_normal_circle_numba(rows=dim, columns=dim, scale=1)
+    base = nph.normalize_euclidean_numba(base)
+    base = nph.orthogonalize_gram_schmidt(base)
+    base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
+    return base
 
 
 class SyntheticDataset(BaseDataset):
@@ -123,20 +121,23 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"s:{self.data_count}_a:{self.config.td.ADAPTIVE_TRAINING_MESH}"
+        return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
 
     def generate_setting(self, index):
         _ = index
-        mesh_type = create_mesh_type()
-        setting = get_base_setting(self.config, mesh_type)
+
+        base = draw_base()
+        setting = draw_base_setting(self.config, base)
         setting.set_randomization(False)  # TODO #65: Check
 
-        obstacles_unnormaized = create_obstacles(self.config, setting)
-        forces = create_forces(self.config, setting)
-        displacement_old = create_displacement_old(self.config, setting)
-        velocity_old = create_velocity_old(self.config, setting)
+        obstacles_unnormalized = draw_obstacles(self.config, setting)
+        forces = draw_forces(self.config, setting, base)
+        displacement_old = draw_displacement_old(self.config, setting, base)
+        velocity_old = draw_velocity_old(self.config, setting, base)
 
-        setting.normalize_and_set_obstacles(obstacles_unnormaized, all_mesh_prop=[])
+        setting.normalize_and_set_obstacles(
+            obstacles_unnormalized=obstacles_unnormalized, all_mesh_prop=[]
+        )
         setting.set_displacement_old(displacement_old)
         setting.set_velocity_old(velocity_old)
         setting.prepare(forces)

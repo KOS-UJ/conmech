@@ -14,7 +14,7 @@ RUN rm requirements.txt
 
 COPY requirements-deep.txt ./
 RUN pip install torch
-RUN pip install -r requirements-deep.txt
+RUN pip install -r requirements-deep.txt --no-cache-dir
 RUN rm requirements-deep.txt
 
 ENV PYTHONPATH "${PYTHONPATH}:."

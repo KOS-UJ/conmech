@@ -9,6 +9,7 @@ from pandas import DataFrame
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
+from conmech.plotting import plotter_common
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import EnergyObstacleArguments
@@ -86,8 +87,8 @@ class GraphModelDynamic:
         df = st.pandas_data
         self.save_hist(df=df, name=name)
 
-        normalized_df = (df - df.mean()) / df.std()
-        self.save_hist(df=normalized_df, name=f"{name}_normalized")
+        # normalized_df = (df - df.mean()) / df.std()
+        # self.save_hist(df=normalized_df, name=f"{name}_normalized")
 
         data_str = st.describe().to_json()
         self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)

@@ -10,11 +10,11 @@ def test_smoke_train_and_plot():
     log_catalog = f"{output_catalog}/LOG"
 
     td = TrainingData(
-        DATASET="synthetic",
-        MESH_DENSITY=4,
+        dataset="synthetic",
+        mesh_density=4,
         batch_size=2,
         synthetic_batches_in_epoch=2,
-        FINAL_TIME=0.1,
+        final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
     )

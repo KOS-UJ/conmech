@@ -12,12 +12,14 @@ jobs:
                username: michaljur
                password: ${{ secrets.DOCKER_HUB_TOKEN }}
         steps:
-            - name: super-step
+            - name: Downloading code
               shell: bash
               run: |
-                echo "--This is running in my custom Docker image--"
-                echo | ${{ github.repositoryUrl }} |  ${{ github.sha }} |
                 git init
-                git remote add origin https://github.com/michalJur/conmech.git
-                git pull origin 
+                git remote add origin ${{ github.repositoryUrl }}
+                git pull origin ${{ github.sha }}
+                
+            - name: Running tests
+              shell: bash
+              run: |
                 PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception

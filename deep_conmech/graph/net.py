@@ -8,10 +8,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from deep_conmech.data.dataset_statistics import (
-    DatasetStatistics,
-    FeaturesStatistics,
-)
+from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingData
@@ -181,7 +178,7 @@ class ForwardNet(nn.Module):
             BasicBlock(
                 in_channels=td.LATENT_DIM,
                 out_channels=output_linear_dim,
-                bias=True,  # TODO #65
+                bias=True,
                 # batch_norm=False,
                 activation=False,
                 dropout_rate=False,
@@ -353,6 +350,12 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
+    def get_base_acceleration(self, batch):
+        dimension = 2
+        mass_density = 1.0
+        forces = batch.x[:, :dimension]
+        return forces / mass_density
+
     def forward(self, batch):
         node_input = batch.x  # position "pos" will not generalize
         edge_input = batch.edge_attr
@@ -363,8 +366,9 @@ class CustomGraphNet(nn.Module):
         for processor_layer in self.processor_layers:
             node_latents, edge_latents = processor_layer(batch, node_latents, edge_latents)
 
-        output = self.decoder(node_latents)
-        return output
+        net_output = self.decoder(node_latents)
+        base_acceleration = self.get_base_acceleration(batch)
+        return net_output #+ base_acceleration
 
     def save(self, path):
         torch.save(self.state_dict(), path)

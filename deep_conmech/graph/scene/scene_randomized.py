@@ -39,10 +39,14 @@ class SceneRandomized(Scene):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
             self.velocity_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.velocity_in_random_factor
+                rows=self.nodes_count,
+                columns=self.dimension,
+                scale=self.config.td.velocity_in_random_factor,
             )
             self.displacement_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.displacement_in_random_factor
+                rows=self.nodes_count,
+                columns=self.dimension,
+                scale=self.config.td.displacement_in_random_factor,
             )
             # Do not randomize boundaries
             self.velocity_old_randomization[self.boundary_indices] = 0
