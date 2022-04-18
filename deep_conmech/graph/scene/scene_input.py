@@ -119,13 +119,15 @@ class SceneInput(SceneTorch):
 
     @staticmethod
     def nodes_data_dim():
-        return 13
+        return 13  # 19 #13
 
     @staticmethod
     def get_nodes_data_description(dim):
         desc = []
         for attr in [
             "forces",
+            # "displacement_old",
+            # "velocity_old",
             "boundary_penetration",
             "boundary_normals",
             "boundary_v_tangential",
@@ -156,7 +158,7 @@ class SceneInput(SceneTorch):
             (
                 thh.append_euclidean_norm(self.input_forces_torch),
                 # thh.append_euclidean_norm(self.input_displacement_old_torch),
-                # thh.append_euclidean_norm(self.input_velocity_old_torch)
+                # thh.append_euclidean_norm(self.input_velocity_old_torch),
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
                 thh.append_euclidean_norm(boundary_v_tangential),

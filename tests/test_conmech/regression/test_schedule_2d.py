@@ -65,7 +65,7 @@ def generate_test_suits():
 @pytest.mark.parametrize("scenario, expected_boundary_nodes", list(generate_test_suits()))
 def test_simulation(scenario, expected_boundary_nodes):
     config = Config()
-    setting, _ = run_scenario(
+    setting, _, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         config=config,
         scenario=scenario,

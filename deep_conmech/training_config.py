@@ -15,17 +15,17 @@ class TrainingData:
     dataset: str = "synthetic"  # synthetic # calculator # live
     final_time: float = 8  # !# 5 #8
     mesh_density: int = 16  # !# 8 #16
-    adaptive_training_mesh: bool = True
+    adaptive_training_mesh: bool = False  # True
 
     forces_random_scale: int = 4
-    obstacle_origin_scale: float = 3.0 * train_scale
+    obstacle_origin_scale: float = 3.0 * train_scale  # less
     obstacle_min_scale: float = 0.4 * train_scale
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0.5
     zero_forces_proportion: float = 0.2  ## 0.8
-    corners_scale_proportion: float = 0.8
+    corners_scale_proportion: float = 0.8  # less
     rotate_scale_proportion: float = 0.5
 
     displacement_to_velocity_noise: float = 0.1
@@ -34,6 +34,7 @@ class TrainingData:
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10
+    validate_scenarios_at_epochs: int = 30
     update_at_epochs: int = 100
 
     use_energy_as_loss: bool = True
@@ -53,13 +54,13 @@ class TrainingData:
     ATTENTION_HEADS: Optional[int] = 1  # None 1 3 5
 
     INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    LR_GAMMA: float = 0.995  # 1.0
+    LR_GAMMA: float = 0.999  # 1.0
     FINAL_LR: float = 1e-6
 
     LATENT_DIM: int = 128
-    ENC_LAYER_COUNT: int = 2
+    ENC_LAYER_COUNT: int = 0  # 2
     PROC_LAYER_COUNT: int = 0
-    DEC_LAYER_COUNT: int = 2
+    DEC_LAYER_COUNT: int = 0  # 2
     MESSAGE_PASSES: int = 8  # 5 # 10
 
 

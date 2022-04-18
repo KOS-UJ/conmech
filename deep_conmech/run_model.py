@@ -23,7 +23,14 @@ def train(config: TrainingConfig):
         net = get_net(statistics, config)
 
     all_val_datasets = get_all_val_datasets(config=config)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
+    all_print_datasets = scenarios.all_print(config.td)
+    model = GraphModelDynamic(
+        train_dataset=train_dataset,
+        all_val_datasets=all_val_datasets,
+        print_scenarios=all_print_datasets,
+        net=net,
+        config=config,
+    )
     model.train()
 
 

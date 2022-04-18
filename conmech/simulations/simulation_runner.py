@@ -9,6 +9,7 @@ from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from conmech.scene.setting_forces import energy
 from conmech.solvers.calculator import Calculator
 
 
@@ -40,10 +41,10 @@ def run_examples(
 
 @dataclass
 class RunScenarioConfig:
-    catalog: str
+    catalog: Optional[str] = None
     simulate_dirty_data: bool = False
     compare_with_base_setting: bool = False
-    plot_animation: bool = True
+    plot_animation: bool = False
     save_all: bool = False
 
 
@@ -53,7 +54,7 @@ def run_scenario(
     config: Config,
     run_config: RunScenarioConfig,
     get_setting_function: Optional[Callable] = None,
-) -> Tuple[Scene, str]:
+) -> Tuple[Scene, str, float]:
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if run_config.save_all else 1
@@ -89,7 +90,7 @@ def run_scenario(
         if plot_index:
             plot_settings_count[0] += 1
 
-    setting = simulate(
+    setting, mean_energy = simulate(
         solve_function=solve_function,
         scenario=scenario,
         simulate_dirty_data=run_config.simulate_dirty_data,
@@ -112,7 +113,7 @@ def run_scenario(
             calculator_data_path if run_config.compare_with_base_setting else None,
         )
 
-    return setting, data_path
+    return setting, data_path, mean_energy
 
 
 def plot_scenario_animation(
@@ -164,7 +165,7 @@ def simulate(
     config: Config,
     operation: Optional[Callable] = None,
     get_setting_function: Optional[Callable] = None,
-) -> Scene:
+) -> Tuple[Scene, float]:
     _get_setting_function = (
         scenario.get_setting
         if get_setting_function is None
@@ -190,6 +191,7 @@ def simulate(
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
     temperature = None
+    mean_energy = 0.0
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
@@ -203,6 +205,9 @@ def simulate(
         else:
             acceleration = solve_function(setting, initial_a=acceleration)
         solver_time += time.time() - start_time
+        mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
+            setting=setting, acceleration=acceleration
+        )
 
         if simulate_dirty_data:
             setting.make_dirty()
@@ -226,7 +231,7 @@ def simulate(
 
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_setting else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
-    return setting
+    return setting, mean_energy
 
 
 def plot_setting(

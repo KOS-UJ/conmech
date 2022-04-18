@@ -87,12 +87,13 @@ def to_dict(type, array):
 
 
 def simulate(config: Config, scenario) -> str:
-    _, data_path = simulation_runner.run_scenario(
+    _, data_path, _ = simulation_runner.run_scenario(
         solve_function=Calculator.solve,
         scenario=scenario,
         config=config,
         run_config=simulation_runner.RunScenarioConfig(
             catalog="SAVE_TF",
+            plot_animation=True,
             save_all=True,
         ),
     )

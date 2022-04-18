@@ -556,6 +556,13 @@ def all_train_and_validation(td: TrainingData):
 
 
 def all_print(td: TrainingData):
+    polygon = polygon_stay(
+        mesh_density=td.mesh_density,
+        scale=td.print_scale,
+        is_adaptive=False,
+        final_time=td.final_time,
+    )
+    polygon.forces_function
     return [
         *get_valid_data(
             mesh_density=td.mesh_density,

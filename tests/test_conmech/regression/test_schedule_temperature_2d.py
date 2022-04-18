@@ -75,7 +75,7 @@ def generate_test_suits():
 )
 def test_simulation(scenario, expected_boundary_nodes, expected_temperature):
     config = Config()
-    setting, _ = run_scenario(
+    setting, _, _ = run_scenario(
         solve_function=scenario.get_solve_function(),
         scenario=scenario,
         config=config,

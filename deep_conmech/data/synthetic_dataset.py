@@ -75,8 +75,8 @@ def draw_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
 
 def draw_obstacles(config: TrainingConfig, scene: SceneInput):
     obstacle_nodes_unnormaized = nph.get_random_uniform_circle_numba(
-        scene.dimension,
-        1,
+        rows=1,
+        columns=scene.dimension,
         low=config.td.obstacle_min_scale,
         high=config.td.obstacle_origin_scale,
     )

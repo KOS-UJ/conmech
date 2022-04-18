@@ -368,7 +368,7 @@ class CustomGraphNet(nn.Module):
 
         net_output = self.decoder(node_latents)
         base_acceleration = self.get_base_acceleration(batch)
-        return net_output #+ base_acceleration
+        return net_output * 0.01 + base_acceleration
 
     def save(self, path):
         torch.save(self.state_dict(), path)
