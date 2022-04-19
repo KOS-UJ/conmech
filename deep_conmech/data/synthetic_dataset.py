@@ -13,13 +13,22 @@ from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
+def draw_mesh_type(config: TrainingConfig):
+    if config.td.dimension == 2:
+        return interpolation_helpers.choose(
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
+        )
+    else:
+        return interpolation_helpers.choose(
+            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
+        )
+
+
 def draw_base_setting(config: TrainingConfig, base: np.ndarray):
-    mesh_type = interpolation_helpers.choose(
-        ["pygmsh_rectangle", "pygmsh_circle", "pygmsh_polygon"]  # "pygmsh_spline"
-    )
     return SceneInput(
         mesh_prop=MeshProperties(
-            mesh_type=mesh_type,
+            dimension=config.td.dimension,
+            mesh_type=draw_mesh_type(config),
             mesh_density=[config.td.mesh_density],
             scale=[config.td.train_scale],
             is_adaptive=config.td.adaptive_training_mesh,
@@ -74,7 +83,7 @@ def draw_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
 
 
 def draw_obstacles(config: TrainingConfig, scene: SceneInput):
-    obstacle_nodes_unnormaized = nph.get_random_uniform_circle_numba(
+    obstacle_nodes_unnormaized = nph.draw_uniform_circle(
         rows=1,
         columns=scene.dimension,
         low=config.td.obstacle_min_scale,
@@ -85,9 +94,9 @@ def draw_obstacles(config: TrainingConfig, scene: SceneInput):
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
 
 
-def draw_base():
-    dim = 2  # TODO: #65
-    base = nph.get_random_normal_circle_numba(rows=dim, columns=dim, scale=1)
+def draw_base(config: TrainingConfig):
+    dimension = config.td.dimension
+    base = nph.draw_normal_circle(rows=dimension, columns=dimension, scale=1)
     base = nph.normalize_euclidean_numba(base)
     base = nph.orthogonalize_gram_schmidt(base)
     base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
@@ -98,14 +107,13 @@ class SyntheticDataset(BaseDataset):
     def __init__(
         self,
         description: str,
-        dimension: int,
         load_to_ram: bool,
         config: TrainingConfig,
     ):
-        num_workers = config.SYNTHETIC_GENERATION_WORKERS
+        num_workers = config.synthetic_generation_workers
         super().__init__(
             description=f"{description}_synthetic",
-            dimension=dimension,
+            dimension=config.td.dimension,
             data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
             randomize_at_load=True,
             num_workers=num_workers,
@@ -123,10 +131,10 @@ class SyntheticDataset(BaseDataset):
     def data_size_id(self):
         return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
 
-    def generate_setting(self, index):
+    def generate_scene(self, index):
         _ = index
 
-        base = draw_base()
+        base = draw_base(self.config)
         setting = draw_base_setting(self.config, base)
         setting.set_randomization(False)  # TODO #65: Check
 
@@ -160,8 +168,8 @@ class SyntheticDataset(BaseDataset):
             position=process_id,
         )
 
-        settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
-        with settings_file, file_meta:
+        scenes_file, file_meta = pkh.open_files_append(self.data_path)
+        with scenes_file, file_meta:
             for index in step_tqdm:
                 if base_dataset.is_memory_overflow(
                     config=self.config,
@@ -170,15 +178,15 @@ class SyntheticDataset(BaseDataset):
                 ):
                     return False
 
-                setting, exact_normalized_a_torch = self.generate_setting(index)
-                pkh.append_pickle(
-                    setting=setting, settings_file=settings_file, file_meta=file_meta
+                scene, exact_normalized_a_torch = self.generate_scene(index)
+                pkh.append(
+                    scene=scene, scenes_file=scenes_file, file_meta=file_meta
                 )  # exact_normalized_a_torch
 
                 self.check_and_print(
                     len(assigned_data_range),
                     index,
-                    setting,
+                    scene,
                     step_tqdm,
                     tqdm_description,
                 )

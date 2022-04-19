@@ -30,7 +30,7 @@ def get_valid_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
         dataset.config.td.valid_batch_size,
-        num_workers=dataset.config.DATALOADER_WORKERS,
+        num_workers=dataset.config.dataloader_workers,
         shuffle=False,
     )
 
@@ -39,7 +39,7 @@ def get_train_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
         dataset.config.td.batch_size,
-        num_workers=dataset.config.DATALOADER_WORKERS,
+        num_workers=dataset.config.dataloader_workers,
         shuffle=True,
     )
 
@@ -61,12 +61,12 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.synthetic_generation_memory_limit_gb}"
     )
-    memory_overflow = memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > config.synthetic_generation_memory_limit_gb
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > config.synthetic_generation_memory_limit_gb
 
 
 def get_process_data_range(process_id, data_part_count):
@@ -102,7 +102,6 @@ class BaseDataset:
         self.num_workers = num_workers
         self.load_to_ram = load_to_ram
         self.config = config
-        self.set_version = 0
         self.all_indices = None
         self.loaded_data = None
 
@@ -141,16 +140,13 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def update_data(self):
-        pass
-
     def initialize_data(self):
         cmh.create_folders(self.images_directory)
 
-        self.all_indices = pkh.get_all_indices_pickle(self.data_path)
+        self.all_indices = pkh.get_all_indices(self.data_path)
         if self.data_count == len(self.all_indices):
-            settings_path = f"{self.data_path}.settings"
-            file_size_gb = os.path.getsize(settings_path) / 1024**3
+            scenes_path = f"{self.data_path}.scenes"
+            file_size_gb = os.path.getsize(scenes_path) / 1024**3
             print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
 
         else:
@@ -168,7 +164,7 @@ class BaseDataset:
                 if result is False:
                     print("Restarting data generation")
 
-            self.all_indices = pkh.get_all_indices_pickle(self.data_path)
+            self.all_indices = pkh.get_all_indices(self.data_path)
 
         assert self.data_count == len(self.all_indices)
         if self.load_to_ram:
@@ -183,7 +179,7 @@ class BaseDataset:
             config=self.config,
             desc="Preprocessing and loading dataset to RAM",
         )
-        return pkh.get_iterator_pickle(self.data_path, setting_tqdm, self.preprocess_example)
+        return pkh.get_iterator(self.data_path, setting_tqdm, self.preprocess_example)
 
     def generate_data_process(self, num_workers, process_id):
         pass
@@ -195,7 +191,7 @@ class BaseDataset:
     @property
     def data_id(self):
         td = self.config.td
-        return f"{self.description}_m:{td.mesh_density}_{self.data_size_id}"
+        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
 
     @property
     def main_directory(self):
@@ -203,18 +199,18 @@ class BaseDataset:
 
     @property
     def data_path(self):
-        return f"{self.main_directory}/DATA_{self.set_version}"
+        return f"{self.main_directory}/DATA"
 
     @property
     def images_directory(self):
-        return f"{self.main_directory}/images_{self.set_version}"
+        return f"{self.main_directory}/images"
 
     def get_example(self, index):
         if self.loaded_data is not None:
             return self.loaded_data[index]
         else:
-            with pkh.open_file_settings_read_pickle(self.data_path) as file:
-                setting = pkh.load_index_pickle(
+            with pkh.open_file_scenes_read(self.data_path) as file:
+                setting = pkh.load_index(
                     index=index, all_indices=self.all_indices, settings_file=file
                 )
         data = self.preprocess_example(setting, index)

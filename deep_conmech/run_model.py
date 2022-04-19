@@ -5,7 +5,6 @@ from typing import Optional
 from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
-from deep_conmech.data.live_dataset import LiveDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
@@ -14,13 +13,9 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def train(config: TrainingConfig):
-    if config.td.dataset == "live":
-        net = get_net(None, config)
-        train_dataset = get_live_train_dataset(config=config, net=net)
-    else:
-        train_dataset = get_train_dataset(config.td.dataset, config=config)
-        statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
-        net = get_net(statistics, config)
+    train_dataset = get_train_dataset(config.td.dataset, config=config)
+    statistics = train_dataset.get_statistics() if config.td.use_dataset_statistics else None
+    net = get_net(statistics, config)
 
     all_val_datasets = get_all_val_datasets(config=config)
     all_print_datasets = scenarios.all_print(config.td)
@@ -35,7 +30,7 @@ def train(config: TrainingConfig):
 
 
 def plot(config: TrainingConfig):
-    if config.td.USE_DATASET_STATS:
+    if config.td.use_dataset_statistics:
         train_dataset = get_train_dataset(config.td.dataset, config=config)
         statistics = train_dataset.get_statistics()
     else:
@@ -49,21 +44,10 @@ def plot(config: TrainingConfig):
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
 
-def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
-    return LiveDataset(
-        description="train",
-        all_scenarios=scenarios.all_train(config.td),
-        net=net,
-        load_to_ram=config.load_train_dataset_to_ram,
-        config=config,
-    )
-
-
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
-            dimension=2,
             load_to_ram=config.load_train_dataset_to_ram,
             config=config,
         )
@@ -110,7 +94,7 @@ def get_all_val_datasets(config: TrainingConfig):
 
 
 def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    net = CustomGraphNet(2, statistics=statistics, td=config.td)
+    net = CustomGraphNet(statistics=statistics, td=config.td)
     net.to(thh.device(config))
     return net
 
@@ -119,6 +103,8 @@ def main(args: Namespace):
     print(f"MODE: {args.mode}")
     device = thh.get_device_id()
     # dch.cuda_launch_blocking()
+    # torch.autograd.set_detect_anomaly(True)
+    # print(numba.cuda.gpus)
     config = TrainingConfig(shell=args.shell, device=device)
     dch.set_memory_limit(config=config)
     print(f"Running using {config.device}")

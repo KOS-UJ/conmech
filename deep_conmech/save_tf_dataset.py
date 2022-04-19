@@ -101,11 +101,11 @@ def simulate(config: Config, scenario) -> str:
 
 
 def prepare_data(config: TrainingConfig, data_path: str):
-    all_indices = pkh.get_all_indices_pickle(data_path)
+    all_indices = pkh.get_all_indices(data_path)
     data_count = len(all_indices)
-    settings_file = pkh.open_file_settings_read_pickle(data_path)
+    settings_file = pkh.open_file_scenes_read(data_path)
     with settings_file:
-        load_function = lambda index: pkh.load_index_pickle(
+        load_function = lambda index: pkh.load_index(
             index=index, all_indices=all_indices, settings_file=settings_file
         )
         base_setting = load_function(index=0)

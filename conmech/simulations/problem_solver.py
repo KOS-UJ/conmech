@@ -57,6 +57,7 @@ class ProblemSolver:
 
         self.mesh = Dynamics(
             mesh_prop=MeshProperties(
+                dimension=2,
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],

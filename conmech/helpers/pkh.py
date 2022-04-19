@@ -7,18 +7,18 @@ from io import BufferedReader
 from typing import Callable, Iterable, List
 
 
-def open_files_append_pickle(path: str):
-    return open(f"{path}.settings", "ab+"), open(f"{path}.indices", "ab+")
+def open_files_append(path: str):
+    return open(f"{path}.scenes", "ab+"), open(f"{path}.indices", "ab+")
 
 
-def open_file_settings_read_pickle(path: str):
-    return open(f"{path}.settings", "rb")
+def open_file_scenes_read(path: str):
+    return open(f"{path}.scenes", "rb")
 
 
-def get_all_indices_pickle(all_settings_path):
+def get_all_indices(all_scenes_path):
     all_indices = []
     try:
-        with open(f"{all_settings_path}.indices", "rb") as file:
+        with open(f"{all_scenes_path}.indices", "rb") as file:
             try:
                 while True:
                     all_indices.append(pickle.load(file))
@@ -29,41 +29,41 @@ def get_all_indices_pickle(all_settings_path):
     return all_indices
 
 
-def internal_load_pickle(settings_file):
-    # return pickle.load(settings_file)
+def internal_load(scenes_file):
+    # return pickle.load(scenes_file)
 
-    state_dict = pickle.load(settings_file)
+    state_dict = pickle.load(scenes_file)
     module_name = state_dict.pop("MODULE", None)
     class_name = state_dict.pop("CLASS", None)
-    setting_class = getattr(sys.modules[module_name], class_name)  # __name__
-    setting = setting_class.__new__(setting_class)
-    setting.load_state_dict(state_dict)
-    return setting
+    scene_class = getattr(sys.modules[module_name], class_name)  # __name__
+    scene = scene_class.__new__(scene_class)
+    scene.load_state_dict(state_dict)
+    return scene
 
 
-def append_pickle(setting, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
-    index = settings_file.tell()
-    state_dict = setting.get_state_dict()
-    state_dict["MODULE"] = setting.__module__
-    state_dict["CLASS"] = setting.__class__.__name__
-    pickle.dump(state_dict, settings_file)  # self #copy.deepcopy(self)
-    # pickle.dump(setting, settings_file)
+def append(scene, scenes_file: BufferedReader, file_meta: BufferedReader) -> None:
+    index = scenes_file.tell()
+    state_dict = scene.get_state_dict()
+    state_dict["MODULE"] = scene.__module__
+    state_dict["CLASS"] = scene.__class__.__name__
+    pickle.dump(state_dict, scenes_file)  # self #copy.deepcopy(self)
+    # pickle.dump(scene, scenes_file)
     pickle.dump(index, file_meta)
 
 
-def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
+def load_index(index: int, all_indices: List[int], scenes_file: BufferedReader):
     byte_index = all_indices[index]
-    settings_file.seek(byte_index)
-    setting = internal_load_pickle(settings_file)
-    return setting
+    scenes_file.seek(byte_index)
+    scene = internal_load(scenes_file)
+    return scene
 
 
-def get_iterator_pickle(data_path: str, setting_tqdm: Iterable[int], preprocess_example: Callable):
-    with open(f"{data_path}.settings", "rb") as file:
-        data = [preprocess_example(internal_load_pickle(file), index) for index in setting_tqdm]
+def get_iterator(data_path: str, scene_tqdm: Iterable[int], preprocess_example: Callable):
+    with open(f"{data_path}.scenes", "rb") as file:
+        data = [preprocess_example(internal_load(file), index) for index in scene_tqdm]
     return data
 
-    # with open(f"{path}.settings", "rb") as file:
+    # with open(f"{path}.scenes", "rb") as file:
     #     for _ in range(data_count):
     #         # try:
     #         yield internal_load_pickle(file)

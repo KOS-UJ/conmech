@@ -1,4 +1,4 @@
-from argparse import ArgumentError
+from ctypes import ArgumentError
 from typing import Optional
 
 import torch
@@ -13,35 +13,10 @@ from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingData
 
-# TODO: move
-ACTIVATION = nn.ReLU()  # nn.PReLU()  # ReLU
 
-
-# | ac {.ACTIVATION._get_name()} \
-
-
-def device(module: nn.Module):
-    return next(module.parameters()).device
-
-
-# next(net.edge_encoder.children())[0]
-
-
-class Block(nn.Module):
-    def __init__(self, in_channels, out_channels, dropout_rate):
-        super().__init__()
-        self.in_channels, self.out_channels = in_channels, out_channels
-        self.dropout_rate = dropout_rate
-
-
-class BasicBlock(Block):
+class BasicBlock(nn.Module):
     def __init__(self, in_channels, out_channels, bias, activation, dropout_rate):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            dropout_rate=dropout_rate,
-        )
-        self.activation = activation
+        super().__init__()
 
         layers = []
         layers.append(nn.Linear(in_channels, out_channels, bias=bias))
@@ -62,21 +37,17 @@ class BasicBlock(Block):
         return output
 
 
-class ResidualBlock(Block):
-    class InternalResidualBlock(Block):
-        def __init__(self, channels, dropout_rate):
-            super().__init__(
-                in_channels=channels,
-                out_channels=channels,
-                dropout_rate=dropout_rate,
-            )
+class ResidualBlock(nn.Module):
+    class InternalResidualBlock(nn.Module):
+        def __init__(self, channels, activation, dropout_rate):
+            super().__init__()
 
             layers = []
             layers.append(nn.Linear(channels, channels))
             # if batch_norm:  # check also after ReLU
             #    layers.append(nn.BatchNorm1d(channels))
 
-            layers.append(ACTIVATION)
+            layers.append(activation)
 
             if dropout_rate:
                 layers.append(nn.Dropout(dropout_rate))
@@ -87,24 +58,21 @@ class ResidualBlock(Block):
             output = self.blocks(x)
             return output
 
-    def __init__(self, channels, dropout_rate, skip):
-        super().__init__(
-            in_channels=channels,
-            out_channels=channels,
-            dropout_rate=dropout_rate,
-        )
-        self.channels = channels
+    def __init__(self, channels, activation, dropout_rate, skip):
+        super().__init__()
         self.skip = skip
 
         self.blocks = nn.Sequential(
             self.InternalResidualBlock(
-                channels,
+                channels=channels,
                 # batch_norm=batch_norm,
+                activation=activation,
                 dropout_rate=dropout_rate,
             ),
             self.InternalResidualBlock(
-                channels,
+                channels=channels,
                 # batch_norm=batch_norm,
+                activation=activation,
                 dropout_rate=False,
             ),
         )
@@ -156,10 +124,10 @@ class ForwardNet(nn.Module):
         layers.append(
             BasicBlock(
                 in_channels=input_dim,
-                out_channels=td.LATENT_DIM,
+                out_channels=td.latent_dimension,
                 bias=True,
                 # batch_norm=config.BATCH_NORM,
-                activation=ACTIVATION,
+                activation=td.activation,
                 dropout_rate=False,
             )
         )
@@ -167,16 +135,17 @@ class ForwardNet(nn.Module):
         for _ in range(layers_count):
             layers.append(
                 ResidualBlock(
-                    td.LATENT_DIM,
+                    td.latent_dimension,
                     # batch_norm=config.BATCH_NORM,
-                    dropout_rate=td.DROPOUT_RATE,
-                    skip=td.SKIP,
+                    activation=td.activation,
+                    dropout_rate=td.dropout_rate,
+                    skip=td.skip_connections,
                 )
             )
 
         layers.append(
             BasicBlock(
-                in_channels=td.LATENT_DIM,
+                in_channels=td.latent_dimension,
                 out_channels=output_linear_dim,
                 bias=True,
                 # batch_norm=False,
@@ -195,7 +164,7 @@ class ForwardNet(nn.Module):
         return result
 
 
-class Attention(Block):
+class Attention(nn.Module):
     def __init__(self, in_channels, heads, td: TrainingData):
         super().__init__(
             in_channels=in_channels,
@@ -209,10 +178,10 @@ class Attention(Block):
             return
 
         attention_heads = BasicBlock(
-            in_channels=td.LATENT_DIM,
+            in_channels=td.latent_dimension,
             out_channels=self.heads,
             bias=True,
-            activation=ACTIVATION,
+            activation=td.activation,
             dropout_rate=False,
         )
 
@@ -235,25 +204,25 @@ class ProcessorLayer(MessagePassing):
         super().__init__()
 
         self.edge_processor = ForwardNet(
-            input_dim=td.LATENT_DIM * 3,
-            layers_count=td.PROC_LAYER_COUNT,
-            output_linear_dim=td.LATENT_DIM,
+            input_dim=td.latent_dimension * 3,
+            layers_count=td.processor_layers_count,
+            output_linear_dim=td.latent_dimension,
             statistics=None,
-            batch_norm=td.INTERNAL_BATCH_NORM,
-            layer_norm=td.LAYER_NORM,
+            batch_norm=td.internal_batch_norm,
+            layer_norm=td.layer_norm,
             td=td,
         )
         self.node_processor = ForwardNet(
-            input_dim=td.LATENT_DIM * 2,
-            layers_count=td.PROC_LAYER_COUNT,
-            output_linear_dim=td.LATENT_DIM,
+            input_dim=td.latent_dimension * 2,
+            layers_count=td.processor_layers_count,
+            output_linear_dim=td.latent_dimension,
             statistics=None,
-            batch_norm=td.INTERNAL_BATCH_NORM,
-            layer_norm=td.LAYER_NORM,
+            batch_norm=td.internal_batch_norm,
+            layer_norm=td.layer_norm,
             td=td,
         )
 
-        self.attention = Attention(td.LATENT_DIM, td.ATTENTION_HEADS, td)
+        self.attention = Attention(td.latent_dimension, td.attention_heads, td)
         self.epsilon = Parameter(torch.Tensor(1))
 
         # change heads to a
@@ -293,7 +262,6 @@ class ProcessorLayer(MessagePassing):
 class CustomGraphNet(nn.Module):
     def __init__(
         self,
-        output_dim,
         statistics: Optional[DatasetStatistics],
         td: TrainingData,
     ):
@@ -302,34 +270,34 @@ class CustomGraphNet(nn.Module):
 
         self.node_encoder = ForwardNet(
             input_dim=SceneInput.nodes_data_dim(),
-            layers_count=td.ENC_LAYER_COUNT,
-            output_linear_dim=td.LATENT_DIM,
+            layers_count=td.encoder_layers_count,
+            output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.nodes_statistics,
-            batch_norm=td.INPUT_BATCH_NORM,
-            layer_norm=td.LAYER_NORM,
+            batch_norm=td.input_batch_norm,
+            layer_norm=td.layer_norm,
             td=td,
         )
 
         self.edge_encoder = ForwardNet(
             input_dim=SceneInput.edges_data_dim(),
-            layers_count=td.ENC_LAYER_COUNT,
-            output_linear_dim=td.LATENT_DIM,
+            layers_count=td.encoder_layers_count,
+            output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.edges_statistics,
-            batch_norm=td.INPUT_BATCH_NORM,
-            layer_norm=td.LAYER_NORM,
+            batch_norm=td.input_batch_norm,
+            layer_norm=td.layer_norm,
             td=td,
         )
 
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer(td) for _ in range(td.MESSAGE_PASSES)]
+            [ProcessorLayer(td) for _ in range(td.message_passes)]
         )
 
         self.decoder = ForwardNet(
-            input_dim=td.LATENT_DIM,
-            layers_count=td.DEC_LAYER_COUNT,
-            output_linear_dim=output_dim,
+            input_dim=td.latent_dimension,
+            layers_count=td.decoder_layers_count,
+            output_linear_dim=td.dimension,
             statistics=None,
-            batch_norm=td.INTERNAL_BATCH_NORM,
+            batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
             td=td,
         )
@@ -350,12 +318,6 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def get_base_acceleration(self, batch):
-        dimension = 2
-        mass_density = 1.0
-        forces = batch.x[:, :dimension]
-        return forces / mass_density
-
     def forward(self, batch):
         node_input = batch.x  # position "pos" will not generalize
         edge_input = batch.edge_attr
@@ -367,8 +329,7 @@ class CustomGraphNet(nn.Module):
             node_latents, edge_latents = processor_layer(batch, node_latents, edge_latents)
 
         net_output = self.decoder(node_latents)
-        base_acceleration = self.get_base_acceleration(batch)
-        return net_output * 0.01 + base_acceleration
+        return net_output
 
     def save(self, path):
         torch.save(self.state_dict(), path)

@@ -41,11 +41,11 @@ def get_t_scale(
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
-    all_indices = pkh.get_all_indices_pickle(all_settings_path=all_settings_path)
-    settings_file = pkh.open_file_settings_read_pickle(all_settings_path)
+    all_indices = pkh.get_all_indices(all_settings_path=all_settings_path)
+    settings_file = pkh.open_file_scenes_read(all_settings_path)
     with settings_file:
         for step in range(plot_settings_count):
-            setting = pkh.load_index_pickle(
+            setting = pkh.load_index(
                 index=step * index_skip,
                 all_indices=all_indices,
                 settings_file=settings_file,
@@ -125,14 +125,14 @@ def make_animation(get_axs, plot_frame, t_scale):
         args.animation_tqdm.update(1)
         args.fig.clf()
         axs = get_axs(args.fig)
-        setting = pkh.load_index_pickle(
+        setting = pkh.load_index(
             index=step * args.index_skip,
             all_indices=args.all_indices,
             settings_file=args.settings_file,
         )
 
         if args.base_settings_file is not None:
-            base_setting = pkh.load_index_pickle(
+            base_setting = pkh.load_index(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
                 settings_file=args.base_settings_file,
@@ -173,17 +173,17 @@ def plot_animation(
         desc="Generating animation",
     )
 
-    all_indices = pkh.get_all_indices_pickle(all_settings_path=plot_config.all_settings_path)
-    settings_file = pkh.open_file_settings_read_pickle(plot_config.all_settings_path)
+    all_indices = pkh.get_all_indices(all_settings_path=plot_config.all_settings_path)
+    settings_file = pkh.open_file_scenes_read(plot_config.all_settings_path)
     base_all_indices = (
         None
         if plot_config.all_calc_settings_path is None
-        else pkh.get_all_indices_pickle(all_settings_path=plot_config.all_calc_settings_path)
+        else pkh.get_all_indices(all_settings_path=plot_config.all_calc_settings_path)
     )
     base_settings_file = (
         None
         if plot_config.all_calc_settings_path is None
-        else pkh.open_file_settings_read_pickle(plot_config.all_calc_settings_path)
+        else pkh.open_file_scenes_read(plot_config.all_calc_settings_path)
     )
     with settings_file:
         args = AnimationArgs(

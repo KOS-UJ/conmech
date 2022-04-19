@@ -17,7 +17,7 @@ def test_matrices_2d_integrals():
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
         mesh_prop=MeshProperties(
-            mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
+            dimension=2, mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
         ),
     )
 
@@ -44,7 +44,7 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_prop=MeshProperties(mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
+        mesh_prop=MeshProperties(dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]),
     )
 
     # Act

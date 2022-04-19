@@ -74,9 +74,9 @@ def run_scenario(
         calculator_data_path = ""
 
     def save_setting(setting: Scene, data_path: str):
-        settings_file, file_meta = pkh.open_files_append_pickle(data_path)
+        settings_file, file_meta = pkh.open_files_append(data_path)
         with settings_file, file_meta:
-            pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
+            pkh.append(setting=setting, settings_file=settings_file, file_meta=file_meta)
 
     step = [0]  # TODO: #65 Clean
 

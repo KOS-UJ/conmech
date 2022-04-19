@@ -28,7 +28,7 @@ def cuda_launch_blocking():
 def set_memory_limit(config: TrainingConfig):
     rsrc = resource.RLIMIT_DATA
     soft, hard = resource.getrlimit(rsrc)
-    new_limit_gb = config.TOTAL_MEMORY_LIMIT_GB
+    new_limit_gb = config.total_memory_limit_gb
     new_soft = int(new_limit_gb * 1024**3)
     resource.setrlimit(rsrc, (new_soft, hard))
     print(f"Memory limit set to {new_limit_gb:.2f} GB")

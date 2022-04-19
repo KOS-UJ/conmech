@@ -66,7 +66,7 @@ class ScenariosDataset(BaseDataset):
         )
         scenario = assigned_scenarios[0]
 
-        settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
+        settings_file, file_meta = pkh.open_files_append(self.data_path)
         with settings_file, file_meta:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
@@ -90,7 +90,7 @@ class ScenariosDataset(BaseDataset):
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
                 if index % self.skip_index == 0:
-                    pkh.append_pickle(
+                    pkh.append(
                         setting=setting, settings_file=settings_file, file_meta=file_meta
                     )  # exact_normalized_a_torch
 

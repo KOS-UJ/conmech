@@ -44,13 +44,13 @@ def choose(options):
 def get_corner_vectors_rotate(dim, scale):
     # 1 2
     # 0 3
-    corner_vector = nph.get_random_normal_circle_numba(rows=1, columns=dim, scale=scale)
+    corner_vector = nph.draw_normal_circle(rows=1, columns=dim, scale=scale)
     corner_vectors = corner_vector * [[1, 1], [-1, 1], [-1, -1], [1, -1]]
     return corner_vectors
 
 
 def get_corner_vectors_four(dim, scale):
-    corner_vectors = nph.get_random_normal_circle_numba(rows=4, columns=dim, scale=scale)
+    corner_vectors = nph.draw_normal_circle(rows=4, columns=dim, scale=scale)
     return corner_vectors
 
 

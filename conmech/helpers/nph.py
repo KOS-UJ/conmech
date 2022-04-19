@@ -161,24 +161,22 @@ def get_random_normal(rows, columns, scale):
     return noise
 
 
-@numba.njit
-def get_random_normal_circle_numba(rows, columns, scale):
-    result = np.zeros((rows, columns))
-    for i in range(rows):
-        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5))
-        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
+def draw_circle(rows, columns):
+    result = np.random.normal(loc=0.0, scale=1.0, size=[rows, columns])
+    result = normalize_euclidean_numba(result)
     return result
 
 
-@numba.njit
-def get_random_uniform_circle_numba(rows, columns, low, high):
-    result = np.zeros((rows, columns))
-    for i in range(rows):
-        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(low + np.random.uniform(0, 1) * (high - low))
-        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
-    return result
+def draw_normal_circle(rows, columns, scale):
+    result = draw_circle(rows, columns)
+    r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, 1]))
+    return result * r
+
+
+def draw_uniform_circle(rows, columns, low, high):
+    result = draw_circle(rows, columns)
+    r = np.abs(np.random.uniform(low=low, high=high, size=[rows, 1]))
+    return result * r
 
 
 @numba.njit(inline="always")

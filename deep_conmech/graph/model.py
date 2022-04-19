@@ -54,11 +54,11 @@ class GraphModelDynamic:
         self.net = net
         self.optimizer = torch.optim.Adam(
             self.net.parameters(),
-            lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
+            lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            self.config.td.LR_GAMMA**epoch,
-            self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
+            self.config.td.learning_rate_decay**epoch,
+            self.config.td.final_learning_rate / self.config.td.initial_learning_rate,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         self.logger = Logger(dataset=self.train_dataset, config=config)
@@ -114,15 +114,8 @@ class GraphModelDynamic:
                 self.validation_raport(examples_seen=examples_seen)
             if epoch_number % self.config.td.validate_scenarios_at_epochs == 0:
                 self.validate_all_scenarios_raport(examples_seen=examples_seen)
-            if epoch_number % self.config.td.update_at_epochs == 0:
-                self.update_dataset()
 
             # print(prof.key_averages().table(row_limit=10))
-
-    def update_dataset(self):
-        print("----UPDATING DATASET----")
-        self.train_dataset.update_data()
-        print("--")
 
     def save_net(self):
         print("----SAVING----")
@@ -195,8 +188,8 @@ class GraphModelDynamic:
 
         loss, loss_array_np = self.E(batch)
         loss.backward()
-        if self.config.td.GRADIENT_CLIP is not None:
-            self.clip_gradients(self.config.td.GRADIENT_CLIP)
+        if self.config.td.gradient_clip is not None:
+            self.clip_gradients(self.config.td.gradient_clip)
         self.optimizer.step()
 
         return loss_array_np
@@ -274,6 +267,7 @@ class GraphModelDynamic:
     def validate_all_scenarios_raport(self, examples_seen):
         print("----VALIDATING SCENARIOS----")
         start_time = time.time()
+        total_mean_energy = 0.0
         for scenario in self.print_scenarios:
             _, _, mean_energy = simulation_runner.run_scenario(
                 solve_function=self.net.solve,
@@ -287,7 +281,14 @@ class GraphModelDynamic:
                 mean_energy,
                 examples_seen,
             )
+            total_mean_energy += mean_energy / len(self.print_scenarios)
             print("---")
+
+        self.logger.writer.add_scalar(
+            f"Loss/Validation/total_mean_energy",
+            total_mean_energy,
+            examples_seen,
+        )
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
     def E(self, batch, test_using_true_solution=False):
