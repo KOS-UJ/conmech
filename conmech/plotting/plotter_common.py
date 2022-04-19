@@ -41,7 +41,7 @@ def get_t_scale(
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
-    all_indices = pkh.get_all_indices(all_settings_path=all_settings_path)
+    all_indices = pkh.get_all_indices(all_scenes_path=all_settings_path)
     scenes_file = pkh.open_file_scenes_read(all_settings_path)
     with scenes_file:
         for step in range(plot_settings_count):
@@ -178,7 +178,7 @@ def plot_animation(
     base_all_indices = (
         None
         if plot_config.all_calc_settings_path is None
-        else pkh.get_all_indices(all_settings_path=plot_config.all_calc_settings_path)
+        else pkh.get_all_indices(all_scenes_path=plot_config.all_calc_settings_path)
     )
     base_scenes_file = (
         None

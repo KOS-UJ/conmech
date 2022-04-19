@@ -19,7 +19,6 @@ class Logger:
         self.config = config
         self.writer = SummaryWriter(self.current_log_catalog)
 
-
     def save_parameters_and_statistics(self):
         print("Saving parameters...")
         self.save_parameters()
@@ -74,7 +73,3 @@ class Logger:
     @property
     def current_log_catalog(self):
         return f"{self.config.log_catalog}/{self.config.current_time}"
-
-
-
-    

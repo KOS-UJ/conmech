@@ -9,7 +9,6 @@ from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.scene.setting_forces import energy
 from conmech.solvers.calculator import Calculator
 
 
