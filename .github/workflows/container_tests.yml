@@ -15,8 +15,9 @@ jobs:
         shell: bash
         run: |
           git init
-          echo ${{ github.repositoryUrl }}
-          git remote add origin https://${{ github.repositoryUrl }}
+          url=${{ github.repositoryUrl }}
+          echo ${url/git:/https:}
+          git remote add origin ${url/git:/https:}
           git pull origin ${{ github.sha }}
 
       - name: Running tests
