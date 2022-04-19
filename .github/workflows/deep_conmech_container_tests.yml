@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-18.04
     container:
       image: michaljur/conmech:latest
-      credentials:
-        username: michaljur
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
     steps:
       - name: Downloading code
         shell: bash

@@ -6,7 +6,6 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
-from deep_conmech.training_config import TrainingConfig
 
 
 class SceneRandomized(Scene):
@@ -16,7 +15,7 @@ class SceneRandomized(Scene):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        config: TrainingConfig,
+        config,
         create_in_subprocess,
     ):
         super().__init__(
