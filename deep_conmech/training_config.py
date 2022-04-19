@@ -55,7 +55,7 @@ class TrainingData:
 
     attention_heads: Optional[int] = 1  # None 1 3 5
 
-    initial_learning_rate: float = 1e-4  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 0.999
     final_learning_rate: float = 1e-6
 

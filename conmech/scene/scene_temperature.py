@@ -1,8 +1,8 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.scene.scene import Scene
 from conmech.scene import scene
+from conmech.scene.scene import Scene
 from conmech.scene.setting_forces import energy
 from conmech.solvers import SchurComplement
 
@@ -86,7 +86,8 @@ class SceneTemperature(Scene):
 
     def get_normalized_rhs_np(self, temperature=None):
         value = super().get_normalized_rhs_np()
-        value += self.thermal_expansion.T @ temperature
+        if temperature is not None:
+            value += self.thermal_expansion.T @ temperature
         return value
 
     def get_all_normalized_t_rhs_np(self, normalized_a):

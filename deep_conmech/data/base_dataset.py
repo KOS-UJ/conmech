@@ -54,7 +54,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  # TODO: #65
+        pin_memory=False,  # True,  # TODO: #65
     )
 
 

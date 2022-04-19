@@ -73,20 +73,20 @@ def run_scenario(
         data_path = ""
         calculator_data_path = ""
 
-    def save_setting(setting: Scene, data_path: str):
-        settings_file, file_meta = pkh.open_files_append(data_path)
-        with settings_file, file_meta:
-            pkh.append(setting=setting, settings_file=settings_file, file_meta=file_meta)
+    def save_scene(scene: Scene, data_path: str):
+        scenes_file, file_meta = pkh.open_files_append(data_path)
+        with scenes_file, file_meta:
+            pkh.append(scene=scene, scenes_file=scenes_file, file_meta=file_meta)
 
     step = [0]  # TODO: #65 Clean
 
-    def operation_save(setting: Scene, base_setting: Optional[Scene] = None):
+    def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
         step[0] += 1
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_setting(setting=setting, data_path=data_path)
-            if base_setting is not None:
-                save_setting(setting=base_setting, data_path=calculator_data_path)
+            save_scene(scene=scene, data_path=data_path)
+            if base_scene is not None:
+                save_scene(scene=base_scene, data_path=calculator_data_path)
         if plot_index:
             plot_settings_count[0] += 1
 
@@ -204,10 +204,10 @@ def simulate(
             )
         else:
             acceleration = solve_function(setting, initial_a=acceleration)
+            mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
+                setting=setting, acceleration=acceleration
+            )
         solver_time += time.time() - start_time
-        mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
-            setting=setting, acceleration=acceleration
-        )
 
         if simulate_dirty_data:
             setting.make_dirty()

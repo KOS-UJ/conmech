@@ -42,13 +42,13 @@ def get_t_scale(
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
     all_indices = pkh.get_all_indices(all_settings_path=all_settings_path)
-    settings_file = pkh.open_file_scenes_read(all_settings_path)
-    with settings_file:
+    scenes_file = pkh.open_file_scenes_read(all_settings_path)
+    with scenes_file:
         for step in range(plot_settings_count):
             setting = pkh.load_index(
                 index=step * index_skip,
                 all_indices=all_indices,
-                settings_file=settings_file,
+                scenes_file=scenes_file,
             )
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
@@ -114,9 +114,9 @@ class AnimationArgs:
     time_skip: float
     index_skip: int
     all_indices: List[int]
-    settings_file: BufferedReader
+    scenes_file: BufferedReader
     base_all_indices: Optional[List[int]]
-    base_settings_file: Optional[BufferedReader]
+    base_scenes_file: Optional[BufferedReader]
     animation_tqdm: tqdm.tqdm
 
 
@@ -128,14 +128,14 @@ def make_animation(get_axs, plot_frame, t_scale):
         setting = pkh.load_index(
             index=step * args.index_skip,
             all_indices=args.all_indices,
-            settings_file=args.settings_file,
+            scenes_file=args.scenes_file,
         )
 
-        if args.base_settings_file is not None:
+        if args.base_scenes_file is not None:
             base_setting = pkh.load_index(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
-                settings_file=args.base_settings_file,
+                scenes_file=args.base_scenes_file,
             )
         else:
             base_setting = None
@@ -173,27 +173,27 @@ def plot_animation(
         desc="Generating animation",
     )
 
-    all_indices = pkh.get_all_indices(all_settings_path=plot_config.all_settings_path)
-    settings_file = pkh.open_file_scenes_read(plot_config.all_settings_path)
+    all_indices = pkh.get_all_indices(all_scenes_path=plot_config.all_settings_path)
+    scenes_file = pkh.open_file_scenes_read(plot_config.all_settings_path)
     base_all_indices = (
         None
         if plot_config.all_calc_settings_path is None
         else pkh.get_all_indices(all_settings_path=plot_config.all_calc_settings_path)
     )
-    base_settings_file = (
+    base_scenes_file = (
         None
         if plot_config.all_calc_settings_path is None
         else pkh.open_file_scenes_read(plot_config.all_calc_settings_path)
     )
-    with settings_file:
+    with scenes_file:
         args = AnimationArgs(
             fig=fig,
             time_skip=plot_config.time_skip,
             index_skip=plot_config.index_skip,
             all_indices=all_indices,
-            settings_file=settings_file,
+            scenes_file=scenes_file,
             base_all_indices=base_all_indices,
-            base_settings_file=base_settings_file,
+            base_scenes_file=base_scenes_file,
             animation_tqdm=animation_tqdm,
         )
         ani = animation.FuncAnimation(

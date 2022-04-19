@@ -1,0 +1,26 @@
+name: Conmech Container Tests
+
+on: push
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-18.04
+    container:
+      image: michaljur/conmech:latest
+      credentials:
+        username: michaljur
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    steps:
+      - name: Downloading code
+        shell: bash
+        run: |
+          git init
+          url=${{ github.repositoryUrl }}
+          echo ${url/git:/https:}
+          git remote add origin ${url/git:/https:}
+          git pull origin ${{ github.sha }}
+
+      - name: Running tests
+        shell: bash
+        run: PYTHONPATH=. pytest tests/test_deep_conmech -p no:unraisableexception
+
