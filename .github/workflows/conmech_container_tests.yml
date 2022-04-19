@@ -1,7 +1,11 @@
 name: Conmech Container Tests
 
-on: push
-
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    
 jobs:
   run_tests:
     runs-on: ubuntu-18.04
@@ -16,7 +20,6 @@ jobs:
         run: |
           git init
           url=${{ github.repositoryUrl }}
-          echo ${url/git:/https:}
           git remote add origin ${url/git:/https:}
           git pull origin ${{ github.sha }}
 
