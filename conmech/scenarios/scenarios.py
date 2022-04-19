@@ -18,7 +18,6 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.training_config import TrainingData
 
 
 class Scenario:
@@ -543,7 +542,7 @@ def get_valid_data(**args):
     ]
 
 
-def all_train(td: TrainingData):
+def all_train(td):
     if td.dimension == 3:
         return [scenario_3d]
     return get_train_data(
@@ -554,7 +553,7 @@ def all_train(td: TrainingData):
     )
 
 
-def all_validation(td: TrainingData):
+def all_validation(td):
     if td.dimension == 3:
         return [scenario_3d]
     return get_valid_data(
@@ -565,11 +564,11 @@ def all_validation(td: TrainingData):
     )
 
 
-def all_train_and_validation(td: TrainingData):
+def all_train_and_validation(td):
     return [*all_train(td), *all_validation(td)]
 
 
-def all_print(td: TrainingData):
+def all_print(td):
     if td.dimension == 3:
         return [scenario_3d]
     return [
