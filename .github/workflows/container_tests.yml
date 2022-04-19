@@ -1,25 +1,24 @@
 name: Container Tests
 
-on:
-    push
+on: push
 
 jobs:
-    run_tests:
-        runs-on: ubuntu-18.04
-        container:
-            image: michaljur/conmech:latest
-            credentials:
-               username: michaljur
-               password: ${{ secrets.DOCKER_HUB_TOKEN }}
-        steps:
-            - name: Downloading code
-              shell: bash
-              run: |
-                git init
-                git remote add origin ${{ github.repositoryUrl }}
-                git pull origin ${{ github.sha }}
-                
-            - name: Running tests
-              shell: bash
-              run: |
-                PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception
+  run_tests:
+    runs-on: ubuntu-18.04
+    container:
+      image: michaljur/conmech:latest
+      credentials:
+        username: michaljur
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    steps:
+      - name: Downloading code
+        shell: bash
+        run: |
+          git init
+          git remote add origin ssh://${{ github.repositoryUrl }}
+          git pull origin ${{ github.sha }}
+
+      - name: Running tests
+        shell: bash
+        run: |
+          PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception
