@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch_geometric.data import Data
 
+from conmech.helpers import nph
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -19,30 +20,32 @@ def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyO
 
 
 @numba.njit
-def set_diff(data, position, row, i, j):
+def set_diff_numba(data, position, row, i, j):
+    dimension = data.shape[1]
     vector = data[j] - data[i]
-    row[position : position + 2] = vector
-    row[position + 2] = np.linalg.norm(vector)
+    row[position : position + dimension] = vector
+    row[position + dimension] = nph.euclidean_norm_numba(vector)
 
 
 @numba.njit  # (parallel=True)
-def get_edges_data(
+def get_edges_data_numba(
     edges,
     initial_nodes,
     displacement_old,
     velocity_old,
     forces,
 ):
+    dimension = initial_nodes.shape[1]
     edges_number = edges.shape[0]
-    edges_data = np.zeros((edges_number, 12))
+    edges_data = np.zeros((edges_number, 4 * (dimension + 1)))
     for e in range(edges_number):
         i = edges[e, 0]
         j = edges[e, 1]
 
-        set_diff(initial_nodes, 0, edges_data[e], i, j)
-        set_diff(displacement_old, 3, edges_data[e], i, j)
-        set_diff(velocity_old, 6, edges_data[e], i, j)
-        set_diff(forces, 9, edges_data[e], i, j)
+        set_diff_numba(initial_nodes, 0, edges_data[e], i, j)
+        set_diff_numba(displacement_old, dimension + 1, edges_data[e], i, j)
+        set_diff_numba(velocity_old, 2 * (dimension + 1), edges_data[e], i, j)
+        set_diff_numba(forces, 3 * (dimension + 1), edges_data[e], i, j)
     return edges_data
 
 
@@ -94,8 +97,8 @@ class SceneInput(SceneTorch):
         )
 
     @staticmethod
-    def edges_data_dim():
-        return 12
+    def edges_data_dim(dimension):
+        return (dimension + 1) * 4
 
     @staticmethod
     def get_edges_data_description(dim):
@@ -108,7 +111,7 @@ class SceneInput(SceneTorch):
         return desc
 
     def get_edges_data_torch(self, edges):
-        edges_data = get_edges_data(
+        edges_data = get_edges_data_numba(
             edges,
             self.normalized_initial_nodes,
             self.input_displacement_old,
@@ -118,8 +121,8 @@ class SceneInput(SceneTorch):
         return thh.to_torch_double(edges_data)
 
     @staticmethod
-    def nodes_data_dim():
-        return 13  # 19 #13
+    def nodes_data_dim(dimension):
+        return (dimension + 1) * 4 + 1  # 19 # 13
 
     @staticmethod
     def get_nodes_data_description(dim):

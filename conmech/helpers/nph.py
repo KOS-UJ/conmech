@@ -42,7 +42,7 @@ def close_modulo(value, divider):
 
 def euclidean_norm(vector, keepdims=False):
     data = (vector**2).sum(axis=-1, keepdims=keepdims)
-    if isinstance(data, np.ndarray):
+    if isinstance(vector, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
     # return np.linalg.norm(vector, axis=-1)

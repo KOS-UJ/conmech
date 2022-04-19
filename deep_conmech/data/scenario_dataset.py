@@ -66,14 +66,14 @@ class ScenariosDataset(BaseDataset):
         )
         scenario = assigned_scenarios[0]
 
-        settings_file, file_meta = pkh.open_files_append(self.data_path)
-        with settings_file, file_meta:
+        scenes_file, file_meta = pkh.open_files_append(self.data_path)
+        with scenes_file, file_meta:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    setting = self.get_scene_input(scenario=scenario, config=self.config)
+                    scene = self.get_scene_input(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
                     config=self.config,
@@ -82,28 +82,28 @@ class ScenariosDataset(BaseDataset):
                 ):
                     return False
 
-                current_time = ts * setting.time_step
-                forces = scenario.get_forces_by_function(setting, current_time)
-                setting.prepare(forces)
+                current_time = ts * scene.time_step
+                forces = scenario.get_forces_by_function(scene, current_time)
+                scene.prepare(forces)
 
-                a, normalized_a = self.solve_function(setting)
+                a, normalized_a = self.solve_function(scene)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
                 if index % self.skip_index == 0:
                     pkh.append(
-                        setting=setting, settings_file=settings_file, file_meta=file_meta
+                        scene=scene, scenes_file=scenes_file, file_meta=file_meta
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(
                     simulation_data_count,
                     current_index,
-                    setting,
+                    scene,
                     step_tqdm,
                     tqdm_description,
                 )
 
                 # setting = setting.get_copy()
-                setting.iterate_self(a)
+                scene.iterate_self(a)
                 current_index += 1
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")

@@ -185,8 +185,8 @@ def plot_obstacles(axes, setting, color):
     if setting.has_no_obstacles:
         return
     alpha = 0.3
-    node = setting.obstacle_nodes[0]
-    normal = setting.obstacle_normals[0]
+    node = setting.linear_obstacle_nodes[0]
+    normal = setting.get_obstacle_normals()[0]
 
     # a plane is a*x+b*y+c*z+d=0
     # z = (-d-axes-by) / c
@@ -201,8 +201,8 @@ def plot_obstacles(axes, setting, color):
     Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
     mask = (Z > -1.2) * (Z < 3.2)
 
-    axes.plot_surface(X * mask, Y * mask, Z * mask, color=color, alpha=alpha)
-    # axes.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
+    # axes.plot_surface(X * mask, Y * mask, Z * mask, color=color, alpha=alpha)
+    # # axes.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
 
     axes.quiver(*node, *normal, color=color, alpha=alpha)
 

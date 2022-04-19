@@ -9,7 +9,7 @@ from conmech.helpers.config import Config
 
 @dataclass
 class TrainingData:
-    dimension: int = 3
+    dimension: int = 2
 
     train_scale: int = 1
     validation_scale: int = 1
@@ -17,7 +17,7 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 8  # !# 5 #8
-    mesh_density: int = 16  # !# 8 #16
+    mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
     adaptive_training_mesh: bool = False  # True
 
     forces_random_scale: int = 4
@@ -26,7 +26,7 @@ class TrainingData:
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
-    rotate_velocity_proportion: float = 0.5
+    rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
     zero_forces_proportion: float = 0.2  ## 0.8
     corners_scale_proportion: float = 0.8  # less
     rotate_scale_proportion: float = 0.5
@@ -60,11 +60,11 @@ class TrainingData:
     final_learning_rate: float = 1e-6
 
     activation = nn.ReLU()  # nn.PReLU()
-    latent_dimension: int = 256
+    latent_dimension: int = 128
     encoder_layers_count: int = 1
     processor_layers_count: int = 0
     decoder_layers_count: int = 1
-    message_passes: int = 10  # 5 # 10
+    message_passes: int = 8  # 5 # 10
 
 
 @dataclass

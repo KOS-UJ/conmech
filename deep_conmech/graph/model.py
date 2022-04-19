@@ -296,7 +296,7 @@ class GraphModelDynamic:
         graph_sizes = self.graph_sizes(batch)
         boundary_nodes_counts = self.boundary_nodes_counts(batch)
         dim_graph_sizes = [size * self.dim for size in graph_sizes]
-        dim_dim_graph_sizes = [(size * self.dim) ** self.dim for size in graph_sizes]
+        dim_dim_graph_sizes = [(size * self.dim) ** 2 for size in graph_sizes]
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)

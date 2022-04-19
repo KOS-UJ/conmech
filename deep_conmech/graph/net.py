@@ -165,30 +165,26 @@ class ForwardNet(nn.Module):
 
 
 class Attention(nn.Module):
-    def __init__(self, in_channels, heads, td: TrainingData):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=1,
-            dropout_rate=False,
-        )
-        self.heads = heads
+    def __init__(self, td: TrainingData):
+        super().__init__()
 
-        if self.heads is None:
+        heads_count = td.attention_heads
+        if heads_count is None:
             self.blocks = None
             return
 
         attention_heads = BasicBlock(
             in_channels=td.latent_dimension,
-            out_channels=self.heads,
+            out_channels=heads_count,
             bias=True,
             activation=td.activation,
             dropout_rate=False,
         )
 
-        if self.heads == 1:
+        if heads_count == 1:
             self.blocks = attention_heads
         else:
-            self.blocks = nn.Sequential(attention_heads, nn.Linear(self.heads, 1, bias=False))
+            self.blocks = nn.Sequential(attention_heads, nn.Linear(heads_count, 1, bias=False))
 
     def forward(self, edge_latents, index):
         if self.blocks is None:
@@ -222,7 +218,7 @@ class ProcessorLayer(MessagePassing):
             td=td,
         )
 
-        self.attention = Attention(td.latent_dimension, td.attention_heads, td)
+        self.attention = Attention(td=td)
         self.epsilon = Parameter(torch.Tensor(1))
 
         # change heads to a
@@ -269,7 +265,7 @@ class CustomGraphNet(nn.Module):
         self.td = td
 
         self.node_encoder = ForwardNet(
-            input_dim=SceneInput.nodes_data_dim(),
+            input_dim=SceneInput.nodes_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -279,7 +275,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.edge_encoder = ForwardNet(
-            input_dim=SceneInput.edges_data_dim(),
+            input_dim=SceneInput.edges_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.edges_statistics,
