@@ -13,6 +13,7 @@ class CalculatorDataset(ScenariosDataset):
         all_scenarios: List[Scenario],
         skip_index: int,
         load_to_ram: bool,
+        randomize_at_load:bool,
         config: TrainingConfig,
     ):
         super().__init__(
@@ -21,5 +22,6 @@ class CalculatorDataset(ScenariosDataset):
             skip_index=skip_index,
             solve_function=Calculator.solve_all,
             load_to_ram=load_to_ram,
+            randomize_at_load=randomize_at_load,
             config=config,
         )

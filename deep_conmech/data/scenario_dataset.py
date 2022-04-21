@@ -22,6 +22,7 @@ class ScenariosDataset(BaseDataset):
         skip_index: int,
         solve_function: Callable,
         load_to_ram: bool,
+        randomize_at_load: bool,
         config: TrainingConfig,
     ):
         self.all_scenarios = all_scenarios
@@ -32,7 +33,7 @@ class ScenariosDataset(BaseDataset):
             description=description,
             dimension=self.check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
-            randomize_at_load=True,
+            randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check
             load_to_ram=load_to_ram,
             config=config,

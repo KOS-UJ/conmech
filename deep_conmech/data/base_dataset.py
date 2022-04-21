@@ -103,7 +103,8 @@ class BaseDataset:
         self.load_to_ram = load_to_ram
         self.config = config
         self.all_indices = None
-        self.loaded_data = None
+        self.loaded_features_data = None
+        self.loaded_targets_data = None
 
     def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
         setting = SceneInput(
@@ -124,11 +125,11 @@ class BaseDataset:
         dimension = self.config.td.dimension
         nodes_data = torch.empty((0, SceneInput.nodes_data_dim(dimension)))
         edges_data = torch.empty((0, SceneInput.edges_data_dim(dimension)))
-        for data in cmh.get_tqdm(
+        for features_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            nodes_data = torch.cat((nodes_data, data.x))
-            edges_data = torch.cat((edges_data, data.edge_attr))
+            nodes_data = torch.cat((nodes_data, features_data.x))
+            edges_data = torch.cat((edges_data, features_data.edge_attr))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)
@@ -169,10 +170,10 @@ class BaseDataset:
 
         assert self.data_count == len(self.all_indices)
         if self.load_to_ram:
-            self.loaded_data = self.load_data_to_ram()
+            self.loaded_features_data, self.loaded_targets_data = self.load_data_to_ram()
         else:
-            self.loaded_data = None
             print("Loading data from disc")
+            self.loaded_features_data, self.loaded_targets_data = None, None
 
     def load_data_to_ram(self):
         setting_tqdm = cmh.get_tqdm(
@@ -206,31 +207,42 @@ class BaseDataset:
     def images_directory(self):
         return f"{self.main_directory}/images"
 
-    def get_example(self, index):
-        if self.loaded_data is not None:
-            return self.loaded_data[index]
+    def get_features_data(self, index):
+        if self.loaded_features_data is not None:
+            return self.loaded_features_data[index]
         else:
             with pkh.open_file_scenes_read(self.data_path) as file:
                 setting = pkh.load_index(
                     index=index, all_indices=self.all_indices, scenes_file=file
                 )
-        data = self.preprocess_example(setting, index)
-        return data
+        features_data, _ = self.preprocess_example(setting, index)
+        return features_data
 
-    def preprocess_example(self, setting, index):
+    def get_targets_data(self, index):
+        if self.loaded_targets_data is not None:
+            return self.loaded_targets_data[index]
+        else:
+            if self.randomize_at_load:
+                raise NotImplementedError  # TODO: UNIFY RANDOMIZATION
+            with pkh.open_file_scenes_read(self.data_path) as file:
+                setting = pkh.load_index(
+                    index=index, all_indices=self.all_indices, scenes_file=file
+                )
+        _, target_data = self.preprocess_example(setting, index)
+        return target_data
+
+    def preprocess_example(self, scene, index):
         if self.randomize_at_load:
-            setting.set_randomization(True)
+            scene.set_randomization(True)
             exact_normalized_a_torch = Calculator.clean_acceleration(
-                setting, setting.exact_normalized_a_torch
+                scene, scene.exact_normalized_a_torch
             )
         else:
-            exact_normalized_a_torch = setting.exact_normalized_a_torch
+            exact_normalized_a_torch = scene.exact_normalized_a_torch
 
-        setting.exact_normalized_a_torch = None
-        data = setting.get_data(
-            f"{cmh.get_timestamp(self.config)} - {index}", exact_normalized_a_torch
-        )
-        return data
+        scene.exact_normalized_a_torch = None
+        features_data, target_data = scene.get_data(index, exact_normalized_a_torch)
+        return features_data, target_data
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
         plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
@@ -242,7 +254,7 @@ class BaseDataset:
             step_tqdm.set_description(tqdm_description)
 
     def __getitem__(self, index):
-        return self.get_example(index)
+        return self.get_features_data(index)
 
     def __len__(self):
         return self.data_count

@@ -72,9 +72,6 @@ class GraphModelDynamic:
         graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
 
-    def boundary_nodes_counts(self, batch):
-        return thh.to_np_long(batch.boundary_nodes_count).tolist()
-
     def get_split(self, batch, index, dim, graph_sizes):
         value = batch.x[:, index * dim : (index + 1) * dim]
         value_split = value.split(graph_sizes)
@@ -182,11 +179,11 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, batch):
+    def train_step(self, batch, dataset):
         self.net.train()
         self.net.zero_grad()
 
-        loss, loss_array_np = self.E(batch)
+        loss, loss_array_np = self.E(batch, dataset)
         loss.backward()
         if self.config.td.gradient_clip is not None:
             self.clip_gradients(self.config.td.gradient_clip)
@@ -194,11 +191,11 @@ class GraphModelDynamic:
 
         return loss_array_np
 
-    def test_step(self, batch):
+    def test_step(self, batch, dataset):
         self.net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np = self.E(batch)
+            _, loss_array_np = self.E(batch, dataset)
 
         return loss_array_np
 
@@ -215,15 +212,15 @@ class GraphModelDynamic:
 
         examples_seen = 0
         mean_loss_array = np.zeros(self.labels_count)
-        for _, batch in enumerate(batch_tqdm):
+        for _, features_batch in enumerate(batch_tqdm):
             # len(batch) ?
-            loss_array = step_function(batch)
+            loss_array = step_function(features_batch, dataset)
 
             old_examples_seen = examples_seen
-            examples_seen += batch.num_graphs
+            examples_seen += features_batch.num_graphs
 
             mean_loss_array = mean_loss_array * (old_examples_seen / examples_seen) + loss_array * (
-                batch.num_graphs / examples_seen
+                features_batch.num_graphs / examples_seen
             )
 
             batch_tqdm.set_description(
@@ -291,65 +288,21 @@ class GraphModelDynamic:
         )
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def E(self, batch, test_using_true_solution=False):
-        # graph_couts = [1 for i in range(batch.num_graphs)]
-        graph_sizes = self.graph_sizes(batch)
-        boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        dim_graph_sizes = [size * self.dim for size in graph_sizes]
-        dim_dim_graph_sizes = [(size * self.dim) ** 2 for size in graph_sizes]
+    def E(self, features_batch, dataset: base_dataset.BaseDataset, test_using_true_solution=False):
+        scene_indices = list(map(np.int64, features_batch.scene_index))
+
+        graph_sizes = self.graph_sizes(features_batch)
+
+        batch_cuda = features_batch.to(self.net.device)
+        all_predicted_normalized_a = self.net(batch_cuda).to("cpu")
+        predicted_normalized_a_split = all_predicted_normalized_a.split(graph_sizes)
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
 
-        batch_cuda = batch.to(self.net.device)
-        predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
-
-        reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
-        normalized_E_split = batch.normalized_E.split(dim_graph_sizes)
-        normalized_a_correction_split = batch.normalized_a_correction.split(graph_sizes)
-        normalized_boundary_velocity_old_split = batch.normalized_boundary_velocity_old.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(
-            boundary_nodes_counts
-        )
-
-        normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_obstacle_normals_split = (
-            batch.normalized_boundary_obstacle_normals.split(boundary_nodes_counts)
-        )
-        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(boundary_nodes_counts)
-
-        if hasattr(batch, "exact_normalized_a"):
-            exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
-
-        for i in range(batch.num_graphs):
-            C_side_len = graph_sizes[i] * self.dim
-            C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
-            normalized_E = normalized_E_split[i]
-            normalized_a_correction = normalized_a_correction_split[i]
+        for i, scene_index in enumerate(scene_indices):
+            energy_args = dataset.get_targets_data(scene_index)
             predicted_normalized_a = predicted_normalized_a_split[i]
-
-            energy_args = dict(
-                a_correction=normalized_a_correction,
-                args=EnergyObstacleArguments(
-                    lhs=C,
-                    rhs=normalized_E,
-                    boundary_velocity_old=normalized_boundary_velocity_old_split[i],
-                    boundary_nodes=normalized_boundary_nodes_split[i],
-                    boundary_normals=normalized_boundary_normals_split[i],
-                    boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
-                    boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
-                    surface_per_boundary_node=surface_per_boundary_node_split[i],
-                    obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
-                    time_step=0.01,  # TODO: generalize
-                ),
-            )
 
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
@@ -357,7 +310,7 @@ class GraphModelDynamic:
             predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
             )
-            if hasattr(batch, "exact_normalized_a"):
+            if hasattr(energy_args, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
 
             if self.config.td.use_energy_as_loss:
@@ -366,7 +319,7 @@ class GraphModelDynamic:
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
 
             loss_array[0] += predicted_normalized_energy
-            if hasattr(batch, "exact_normalized_a"):
+            if hasattr(energy_args, "exact_normalized_a"):
                 exact_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
@@ -376,8 +329,8 @@ class GraphModelDynamic:
                 )
                 loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
 
-        loss /= batch.num_graphs
-        loss_array /= batch.num_graphs
+        loss /= features_batch.num_graphs
+        loss_array /= features_batch.num_graphs
         return loss, loss_array
 
     def use_true_solution(self, predicted_normalized_a, energy_args):

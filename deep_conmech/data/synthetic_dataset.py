@@ -108,6 +108,7 @@ class SyntheticDataset(BaseDataset):
         self,
         description: str,
         load_to_ram: bool,
+        randomize_at_load: bool,
         config: TrainingConfig,
     ):
         num_workers = config.synthetic_generation_workers
@@ -115,7 +116,7 @@ class SyntheticDataset(BaseDataset):
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
             data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
-            randomize_at_load=True,
+            randomize_at_load=randomize_at_load,
             num_workers=num_workers,
             load_to_ram=load_to_ram,
             config=config,

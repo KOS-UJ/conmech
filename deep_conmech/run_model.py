@@ -49,6 +49,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
         train_dataset = SyntheticDataset(
             description="train",
             load_to_ram=config.load_train_dataset_to_ram,
+            randomize_at_load=True,
             config=config,
         )
     elif dataset_type == "calculator":
@@ -57,6 +58,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             all_scenarios=scenarios.all_train(config.td),
             skip_index=1,
             load_to_ram=config.load_train_dataset_to_ram,
+            randomize_at_load=True,
             config=config,
         )
     else:
@@ -84,6 +86,7 @@ def get_all_val_datasets(config: TrainingConfig):
             all_scenarios=scenarios.all_train_and_validation(config.td),
             skip_index=skip_index,
             load_to_ram=False,
+            randomize_at_load=False,
             config=config,
         )
     )

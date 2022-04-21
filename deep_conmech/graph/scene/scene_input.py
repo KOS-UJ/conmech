@@ -9,6 +9,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scenarios import scenarios
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.graph.scene.scene_torch import SceneTorch
 from deep_conmech.helpers import thh
@@ -170,32 +171,38 @@ class SceneInput(SceneTorch):
         )
         return nodes_data
 
-    def get_data(self, setting_index=None, exact_normalized_a_torch=None):
+    def get_data(self, scene_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
-        # Do not use "face" in name (probably reserved in PyG)
+        # Do not use "face" in any name (reserved in PyG)
         directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
-        data = Data(
+        # f"{cmh.get_timestamp(self.config)} - {
+        features_data = Data(
+            scene_index=str(scene_index),  # str; int is changed by PyG
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
             x=thh.set_precision(self.get_nodes_data()),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
-            setting_index=setting_index,
-            normalized_a_correction=self.normalized_a_correction_torch,
-            reshaped_C=self.lhs_torch.reshape(-1, 1),
-            normalized_E=self.get_normalized_E_torch(),
-            exact_normalized_a=exact_normalized_a_torch,
-            normalized_boundary_velocity_old=self.normalized_boundary_velocity_old_torch,
-            normalized_boundary_nodes=self.normalized_boundary_nodes_torch,
-            normalized_boundary_normals=self.get_normalized_boundary_normals_torch(),
-            normalized_boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
-            normalized_boundary_obstacle_normals=self.get_normalized_boundary_obstacle_normals_torch(),
-            surf_per_boundary_node=self.get_surface_per_boundary_node_torch(),
-            boundary_nodes_count=self.boundary_nodes_count_torch,
             # pin_memory=True,
             # num_workers=1
         )
+        target_data = dict(
+            a_correction=self.normalized_a_correction_torch,
+            args=EnergyObstacleArguments(
+                lhs=self.lhs_torch,
+                rhs=self.get_normalized_rhs_torch(),
+                boundary_velocity_old=self.normalized_boundary_velocity_old_torch,
+                boundary_nodes=self.normalized_boundary_nodes_torch,
+                boundary_normals=self.get_normalized_boundary_normals_torch(),
+                boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
+                boundary_obstacle_normals=self.get_normalized_boundary_obstacle_normals_torch(),
+                surface_per_boundary_node=self.get_surface_per_boundary_node_torch(),
+                obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
+                time_step=0.01,  # TODO: generalize
+            ),
+        )
+
         """
         transform = T.Compose(
             [
@@ -206,7 +213,7 @@ class SceneInput(SceneTorch):
         )  # T.OneHotDegree(),
         transform(data)
         """
-        return data
+        return features_data, target_data
 
     def normalized_energy_obstacle_nvt(self, normalized_boundary_a_vector):
         normalized_boundary_normals = self.get_normalized_boundary_normals()

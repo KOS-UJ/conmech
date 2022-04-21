@@ -186,6 +186,8 @@ def simulate(
 
     solver_time = 0.0
     calculator_time = 0.0
+    # calculator_time_2 = 0.0
+    # calculator_time_3 = 0.0
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
@@ -212,9 +214,18 @@ def simulate(
             setting.make_dirty()
 
         if compare_with_base_setting:
+
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
             calculator_time += time.time() - start_time
+            """
+            start_time = time.time()
+            Calculator.solve(base_setting, initial_a=base_setting.acceleration_old)
+            calculator_time_2 += time.time() - start_time
+            """
+            start_time = time.time()
+            Calculator.solve(base_setting, initial_a=acceleration)
+            calculator_time_3 += time.time() - start_time
 
         if operation is not None:
             operation(setting, base_setting)  # (current_time, setting, base_setting, a, base_a)
@@ -228,7 +239,11 @@ def simulate(
 
         # setting.remesh_self() # TODO #65
 
-    comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_setting else ""
+    comparison_str = (
+        f" | Calculator time: {calculator_time} | {calculator_time_2} | {calculator_time_3}"
+        if compare_with_base_setting
+        else ""
+    )
     print(f"    Solver time : {solver_time}{comparison_str}")
     return setting, mean_energy
 

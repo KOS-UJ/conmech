@@ -168,35 +168,36 @@ class Attention(nn.Module):
     def __init__(self, td: TrainingData):
         super().__init__()
 
-        heads_count = td.attention_heads
-        if heads_count is None:
+        if td.attention_heads_count is None:
             self.blocks = None
             return
 
         attention_heads = BasicBlock(
-            in_channels=td.latent_dimension,
-            out_channels=heads_count,
+            in_channels=td.latent_dimension * 3,
+            out_channels=td.attention_heads_count,
             bias=True,
             activation=td.activation,
             dropout_rate=False,
         )
 
-        if heads_count == 1:
-            self.blocks = attention_heads
-        else:
-            self.blocks = nn.Sequential(attention_heads, nn.Linear(heads_count, 1, bias=False))
+        self.blocks = (
+            attention_heads
+            if td.attention_heads_count == 1
+            else nn.Sequential(attention_heads, nn.Linear(td.attention_heads_count, 1, bias=False))
+        )
 
-    def forward(self, edge_latents, index):
+    def forward(self, edge_inputs, index):
         if self.blocks is None:
             return 1.0
 
-        alpha_score = self.blocks(edge_latents)
+        alpha_score = self.blocks(edge_inputs)
         alpha = softmax(alpha_score, index)
+        # torch.sum(alpha * (index == 5).reshape(-1,1)) == 1
         return alpha
 
 
 class ProcessorLayer(MessagePassing):
-    def __init__(self, td: TrainingData):
+    def __init__(self, attention: Attention, td: TrainingData):
         super().__init__()
 
         self.edge_processor = ForwardNet(
@@ -217,9 +218,10 @@ class ProcessorLayer(MessagePassing):
             layer_norm=td.layer_norm,
             td=td,
         )
+        self.attention = attention
 
-        self.attention = Attention(td=td)
         self.epsilon = Parameter(torch.Tensor(1))
+        self.new_edge_latents = None
 
         # change heads to a
         # self.bias = Parameter(torch.Tensor(out_channels))
@@ -242,15 +244,13 @@ class ProcessorLayer(MessagePassing):
         return weighted_edge_latents
 
     def aggregate(self, weighted_edge_latents, index):
-        aggregated_new_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
-        return aggregated_new_edge_latents
+        aggregated_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
+        return aggregated_edge_latents
 
-    def update(self, aggregated_new_edge_latents, node_latents):
-        # node_inputs = aggregated_new_edge_latents
-        # node_inputs = (
-        #    (1 + self.epsilon) * node_latents
-        # ) + aggregated_new_edge_latents
-        node_inputs = torch.hstack((node_latents, aggregated_new_edge_latents))
+    def update(self, aggregated_edge_latents, node_latents):
+        # node_inputs = aggregated_edge_latents
+        # node_inputs = ((1 + self.epsilon) * node_latents) + aggregated_edge_latents))
+        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
         new_node_latents = node_latents + self.node_processor(node_inputs)
         return new_node_latents, self.new_edge_latents
 
@@ -284,8 +284,10 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
+        self.attention = Attention(td=td)
+
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer(td) for _ in range(td.message_passes)]
+            [ProcessorLayer(attention=self.attention, td=td) for _ in range(td.message_passes)]
         )
 
         self.decoder = ForwardNet(
@@ -337,7 +339,7 @@ class CustomGraphNet(nn.Module):
     def solve_all(self, setting):
         self.eval()
 
-        batch = setting.get_data().to(self.device)
+        batch = setting.get_data()[0].to(self.device)
         normalized_a_cuda = self(batch)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)

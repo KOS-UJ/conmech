@@ -27,7 +27,7 @@ class TrainingData:
     velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
-    zero_forces_proportion: float = 0.2  ## 0.8
+    zero_forces_proportion: float = 0.2  # 0.8
     corners_scale_proportion: float = 0.8  # less
     rotate_scale_proportion: float = 0.5
 
@@ -53,18 +53,18 @@ class TrainingData:
     skip_connections: bool = True
     gradient_clip = 10.0  # None
 
-    attention_heads: Optional[int] = 1  # None 1 3 5
+    attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
     initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    learning_rate_decay: float = 0.999
+    learning_rate_decay: float = 0.995  # 0.995 0.999
     final_learning_rate: float = 1e-6
 
     activation = nn.ReLU()  # nn.PReLU()
     latent_dimension: int = 128
-    encoder_layers_count: int = 1
+    encoder_layers_count: int = 0
     processor_layers_count: int = 0
-    decoder_layers_count: int = 1
-    message_passes: int = 8  # 5 # 10
+    decoder_layers_count: int = 0
+    message_passes: int = 12
 
 
 @dataclass

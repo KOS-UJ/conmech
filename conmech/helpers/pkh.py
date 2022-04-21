@@ -60,8 +60,13 @@ def load_index(index: int, all_indices: List[int], scenes_file: BufferedReader):
 
 def get_iterator(data_path: str, scene_tqdm: Iterable[int], preprocess_example: Callable):
     with open(f"{data_path}.scenes", "rb") as file:
-        data = [preprocess_example(internal_load(file), index) for index in scene_tqdm]
-    return data
+        all_features_data = []
+        all_target_data = []
+        for index, _ in enumerate(scene_tqdm):
+            features_data, target_data = preprocess_example(internal_load(file), index)
+            all_features_data.append(features_data)
+            all_target_data.append(target_data)
+    return all_features_data, all_target_data
 
     # with open(f"{path}.scenes", "rb") as file:
     #     for _ in range(data_count):
