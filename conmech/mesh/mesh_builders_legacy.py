@@ -4,56 +4,56 @@ from conmech.helpers import nph
 
 
 @numba.njit
-def get_cross_points_legacy_ordered_numba(
-    points, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+def get_cross_nodes_legacy_ordered_numba(
+    nodes, size_x, size_y, edge_len_x, edge_len_y, left_bottom_node
 ):
     index = 0
     for j in range(size_y - 1, -1, -1):
         for i in range(size_x - 1, -1, -1):
-            points[index] = np.array(((i + 0.5) * edge_len_x, (j + 0.5) * edge_len_y))
+            nodes[index] = np.array(((i + 0.5) * edge_len_x, (j + 0.5) * edge_len_y))
             index += 1
 
     for j in range(size_y - 1, 0, -1):
         for i in range(size_x - 1, 0, -1):
-            points[index] = np.array((i * edge_len_x, j * edge_len_y))
+            nodes[index] = np.array((i * edge_len_x, j * edge_len_y))
             index += 1
 
     for i in range(1, size_x + 1):
-        points[index] = np.array((i * edge_len_x, size_y * edge_len_y))
+        nodes[index] = np.array((i * edge_len_x, size_y * edge_len_y))
         index += 1
 
     for j in range(size_y - 1, -1, -1):
-        points[index] = np.array((size_x * edge_len_x, j * edge_len_y))
+        nodes[index] = np.array((size_x * edge_len_x, j * edge_len_y))
         index += 1
 
     for i in range(size_x - 1, -1, -1):
-        points[index] = np.array((i * edge_len_x, 0.0))
+        nodes[index] = np.array((i * edge_len_x, 0.0))
         index += 1
 
     for j in range(1, size_y + 1):
-        points[index] = np.array((0.0, j * edge_len_y))
+        nodes[index] = np.array((0.0, j * edge_len_y))
         index += 1
 
-    points += left_bottom_point
+    nodes += left_bottom_node
 
 
 @numba.njit
 def get_cross_elements_numba(
-    points, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_point
+    nodes, elements, size_x, size_y, edge_len_x, edge_len_y, left_bottom_node
 ):
     index = 0
     for i in range(size_x):
         for j in range(size_y):
-            left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_point
+            left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_node
 
-            lb = nph.get_point_index_numba(left_bottom, points)
-            rb = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, 0.0)), points)
+            lb = nph.get_point_index_numba(left_bottom, nodes)
+            rb = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, 0.0)), nodes)
             c = nph.get_point_index_numba(
                 left_bottom + np.array((0.5 * edge_len_x, 0.5 * edge_len_y)),
-                points,
+                nodes,
             )
-            lt = nph.get_point_index_numba(left_bottom + np.array((0.0, edge_len_y)), points)
-            rt = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, edge_len_y)), points)
+            lt = nph.get_point_index_numba(left_bottom + np.array((0.0, edge_len_y)), nodes)
+            rt = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, edge_len_y)), nodes)
 
             elements[index] = np.array((lb, rb, c))
             index += 1
@@ -72,12 +72,12 @@ def get_cross_rectangle(mesh_prop):
     edge_len_x = mesh_prop.scale_x / size_x
     edge_len_y = mesh_prop.scale_y / size_y
 
-    points_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
-    points = np.zeros((points_count, 2), dtype="float")
+    nodes_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
+    nodes = np.zeros((nodes_count, 2), dtype="float")
 
     elements_count = 4 * (size_x * size_y)
     elements = np.zeros((elements_count, 3), dtype="long")
 
-    get_cross_points_legacy_ordered_numba(points, size_x, size_y, edge_len_x, edge_len_y, min_)
-    get_cross_elements_numba(points, elements, size_x, size_y, edge_len_x, edge_len_y, min_)
-    return points, elements
+    get_cross_nodes_legacy_ordered_numba(nodes, size_x, size_y, edge_len_x, edge_len_y, min_)
+    get_cross_elements_numba(nodes, elements, size_x, size_y, edge_len_x, edge_len_y, min_)
+    return nodes, elements

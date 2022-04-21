@@ -21,15 +21,15 @@ def bigger_or_zero(data):
     return data > -1e-05
 
 
-def approximate_one(new_point, old_points, old_values, old_elements):
+def approximate_one(new_node, old_nodes, old_values, old_elements):
     closest_element = 0
     min_penality = None
 
     for element in old_elements:
-        p_1, p_2, p_3 = old_points[element]
+        p_1, p_2, p_3 = old_nodes[element]
 
-        alpha = get_alpha(new_point, p_1, p_2, p_3)
-        beta = get_beta(new_point, p_1, p_2, p_3)
+        alpha = get_alpha(new_node, p_1, p_2, p_3)
+        beta = get_beta(new_node, p_1, p_2, p_3)
         gamma = 1.0 - alpha - beta
 
         if alpha > 0 and beta > 0 and gamma > 0:
@@ -46,11 +46,11 @@ def approximate_one(new_point, old_points, old_values, old_elements):
 
 
 @numba.njit
-def approximate_all_numba(new_points, old_points, old_values, old_elements):
-    new_values = np.zeros_like(new_points)
+def approximate_all_numba(new_nodes, old_nodes, old_values, old_elements):
+    new_values = np.zeros_like(new_nodes)
 
-    for i, new_point in enumerate(new_points):
-        new_value = approximate_one(new_point, old_points, old_values, old_elements)
+    for i, new_point in enumerate(new_nodes):
+        new_value = approximate_one(new_point, old_nodes, old_values, old_elements)
         new_values[i] = new_value
 
     return new_values

@@ -2,6 +2,7 @@
 numpy helpers
 """
 from ctypes import ArgumentError
+from tkinter import N
 
 import numba
 import numpy as np
@@ -145,9 +146,9 @@ def max_numba(corners):
 
 
 @numba.njit
-def get_point_index_numba(point, points):
-    for i, p in enumerate(points):
-        if np.sum(np.abs(point - p)) < 0.0001:
+def get_point_index_numba(node, nodes):
+    for i, n in enumerate(nodes):
+        if np.sum(np.abs(node - n)) < 0.0001:
             return i
     raise ArgumentError
 

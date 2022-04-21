@@ -119,22 +119,22 @@ class SchurComplement(Optimization):
     def solve(
         self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
     ) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_points(initial_guess)
+        truncated_initial_guess = self.truncate_free_nodes(initial_guess)
         solution_contact = super().solve(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
-        solution_free = self.complement_free_points(solution_contact)
+        solution_free = self.complement_free_nodes(solution_contact)
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
+    def truncate_free_nodes(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
         _result = _result[:, self.contact_ids]
         _result = _result.reshape(1, -1)
         result = _result
         return result
 
-    def complement_free_points(self, truncated_solution: np.ndarray) -> np.ndarray:
+    def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
         _result = truncated_solution.reshape(-1, 1)
         _result = self.free_x_contact @ _result
         _result = self.forces_free - _result
@@ -256,7 +256,7 @@ class Dynamic(SchurComplement):
     #     state.set_velocity(velocity_vector=velocity)
 
     def solve_t(self, initial_guess, velocity) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_points(velocity)
+        truncated_initial_guess = self.truncate_free_nodes(velocity)
         truncated_temperature = initial_guess[self.contact_ids]
         solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])
 

@@ -25,18 +25,18 @@ def get_edges_features_matrix_numba(elements, nodes):
 
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
-        element_points = nodes[element]
+        element_nodes = nodes[element]
 
         # TODO: #65 Get rid of repetition (?)
         for i in range(element_size):
-            i_integrals = get_integral_parts_numba(element_points, i)
+            i_integrals = get_integral_parts_numba(element_nodes, i)
             i_d_phi_vec = i_integrals[:3]
             element_volume = i_integrals[3]
             # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
 
             for j in range(element_size):
-                j_integrals = get_integral_parts_numba(element_points, j)
+                j_integrals = get_integral_parts_numba(element_nodes, j)
                 j_d_phi_vec = j_integrals[:DIMENSION]
 
                 volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)

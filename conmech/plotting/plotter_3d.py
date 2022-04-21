@@ -139,9 +139,8 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
 
 
 def plot_temperature(axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings):
-    points = nodes.T
     axes.scatter(
-        *points,
+        *(nodes.T),
         c=setting.t_old,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,

@@ -186,7 +186,7 @@ def test_global_optimization_solver(solving_method, setup, expected_displacement
         initial_velocity=setup.initial_velocity,
     )
 
-    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
+    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
     std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
 
     # print result

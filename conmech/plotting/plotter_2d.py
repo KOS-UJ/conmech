@@ -127,9 +127,9 @@ def plot_temperature(
     cbar_settings: plotter_common.ColorbarSettings,
 ):
     add_annotation("TEMP", setting, position, axes)
-    points = (setting.normalized_nodes + position).T
+    nodes = (setting.normalized_nodes + position).T
     axes.scatter(
-        *points,
+        *nodes,
         c=setting.t_old,
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
@@ -299,8 +299,8 @@ def draw_displaced(setting, position, color, axes):
     # draw_data("P", obstacle_forces, setting, [7.5, -1.5], axes)
 
 
-def draw_points(points, position, color, axes):
-    moved_nodes = points + position
+def draw_nodes(nodes, position, color, axes):
+    moved_nodes = nodes + position
     axes.scatter(moved_nodes[:, 0], moved_nodes[:, 1], s=0.1, c=f"tab:{color}")
 
 
@@ -386,14 +386,14 @@ def draw_data_at_edges(setting, features, position, axes):
 
     centers = np.sum(setting.edges_normalized_nodes + position, axis=1) / 2.0
     vertices = setting.edges_normalized_nodes[:, 0] + position
-    points = (centers + vertices) / 2.0
+    nodes = (centers + vertices) / 2.0
 
     for i in range(len(setting.edges_normalized_nodes)):
         feature = np.around(features[i], 2)
         # np.set_printoptions(precision=3)
         axes.text(
-            points[i, 0] - 0.04,
-            points[i, 1],
+            nodes[i, 0] - 0.04,
+            nodes[i, 1],
             str(feature),
             # xy=(0.5, 0.5),
             # xycoords="axes fraction",
@@ -406,12 +406,12 @@ def draw_data_at_edges(setting, features, position, axes):
 def draw_data_at_vertices(setting, features, position, axes):
     draw_triplot(setting.normalized_nodes + position, setting, "tab:orange", axes)
 
-    points = setting.normalized_nodes + position
+    nodes = setting.normalized_nodes + position
     for i in range(len(setting.normalized_nodes)):
         feature = np.around(features[i], 2)
         axes.text(
-            points[i, 0] - 0.04,
-            points[i, 1],
+            nodes[i, 0] - 0.04,
+            nodes[i, 1],
             str(feature),
             # xy=(0.5, 0.5),
             # xycoords="axes fraction",

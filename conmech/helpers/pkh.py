@@ -2,7 +2,6 @@
 pickle helpers
 """
 import pickle
-import sys
 from io import BufferedReader
 from typing import Callable, Iterable, List
 

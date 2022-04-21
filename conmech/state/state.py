@@ -9,13 +9,13 @@ class State:
     def __init__(self, mesh):
         self.mesh = mesh
         self.displacement: np.ndarray = np.zeros((self.mesh.independent_nodes_count, 2))
-        self.displaced_points: np.ndarray = np.copy(self.mesh.initial_nodes)
+        self.displaced_nodes: np.ndarray = np.copy(self.mesh.initial_nodes)
         self.velocity: np.ndarray = np.zeros((self.mesh.independent_nodes_count, 2))
         self.time = 0
 
     def set_displacement(self, displacement_vector: np.ndarray, time: float = 0):
         self.displacement = displacement_vector.reshape((2, -1)).T
-        self.displaced_points[: self.mesh.independent_nodes_count, :2] = (
+        self.displaced_nodes[: self.mesh.independent_nodes_count, :2] = (
             self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
             + self.displacement[:, :2]
         )
@@ -28,7 +28,7 @@ class State:
         if update_displacement:
             dt = time - self.time
             self.displacement += dt * self.velocity
-            self.displaced_points[: self.mesh.independent_nodes_count, :2] = (
+            self.displaced_nodes[: self.mesh.independent_nodes_count, :2] = (
                 self.mesh.initial_nodes[: self.mesh.independent_nodes_count, :2]
                 + self.displacement[:, :2]
             )
@@ -47,7 +47,7 @@ class State:
     def __copy__(self) -> "State":
         copy = State(self.mesh)
         copy.displacement[:] = self.displacement
-        copy.displaced_points[:] = self.displaced_points
+        copy.displaced_nodes[:] = self.displaced_nodes
         copy.velocity[:] = self.velocity
         copy.time = self.time
         return copy
@@ -64,7 +64,7 @@ class TemperatureState(State):
     def __copy__(self) -> "TemperatureState":
         copy = TemperatureState(self.mesh)
         copy.displacement[:] = self.displacement
-        copy.displaced_points[:] = self.displaced_points
+        copy.displaced_nodes[:] = self.displaced_nodes
         copy.velocity[:] = self.velocity
         copy.time = self.time
         copy.temperature[:] = self.temperature

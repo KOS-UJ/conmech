@@ -43,7 +43,7 @@ class Drawer:
             edge_color="0.8",
         )
 
-        nodes = self.state.displaced_points
+        nodes = self.state.displaced_nodes
         self.draw_mesh(nodes, axes, label="Deformed", node_color="k")
         self.draw_boundary(edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b")
         self.draw_boundary(
@@ -110,8 +110,8 @@ class Drawer:
         )
 
     def draw_field(self, field, v_min, v_max, axes, fig):
-        x = self.state.displaced_points[:, 0]
-        y = self.state.displaced_points[:, 1]
+        x = self.state.displaced_nodes[:, 0]
+        y = self.state.displaced_nodes[:, 1]
 
         n_layers = 100
         axes.tricontourf(

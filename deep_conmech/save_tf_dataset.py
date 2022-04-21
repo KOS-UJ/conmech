@@ -113,7 +113,7 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
         initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
         node_type = np.zeros(
             (1, base_setting.nodes_count, 1), dtype="int32"
-        )  # TODO #65: Mask boundary points
+        )  # TODO #65: Mask boundary nodes
 
         moved_nodes_list = []
         forces_list = []
