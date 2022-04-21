@@ -107,7 +107,8 @@ class SyntheticDataset(BaseDataset):
     def __init__(
         self,
         description: str,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
     ):
@@ -118,7 +119,8 @@ class SyntheticDataset(BaseDataset):
             data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
             randomize_at_load=randomize_at_load,
             num_workers=num_workers,
-            load_to_ram=load_to_ram,
+            load_features_to_ram=load_features_to_ram,
+            load_targets_to_ram=load_targets_to_ram,
             config=config,
         )
 
@@ -161,7 +163,7 @@ class SyntheticDataset(BaseDataset):
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)
 
-        tqdm_description = f"Process {process_id} - generating {self.data_id} data"
+        tqdm_description = f"Process {process_id} - generating data"
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,
             desc=tqdm_description,
@@ -169,8 +171,8 @@ class SyntheticDataset(BaseDataset):
             position=process_id,
         )
 
-        scenes_file, file_meta = pkh.open_files_append(self.data_path)
-        with scenes_file, file_meta:
+        scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
+        with scenes_file, indices_file:
             for index in step_tqdm:
                 if base_dataset.is_memory_overflow(
                     config=self.config,
@@ -180,8 +182,8 @@ class SyntheticDataset(BaseDataset):
                     return False
 
                 scene, exact_normalized_a_torch = self.generate_scene(index)
-                pkh.append(
-                    scene=scene, scenes_file=scenes_file, file_meta=file_meta
+                pkh.append_data(
+                    data=scene, data_file=scenes_file, indices_file=indices_file
                 )  # exact_normalized_a_torch
 
                 self.check_and_print(

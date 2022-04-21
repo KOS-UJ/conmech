@@ -21,7 +21,8 @@ class ScenariosDataset(BaseDataset):
         all_scenarios: List[Scenario],
         skip_index: int,
         solve_function: Callable,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
     ):
@@ -35,7 +36,8 @@ class ScenariosDataset(BaseDataset):
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check
-            load_to_ram=load_to_ram,
+            load_features_to_ram=load_features_to_ram,
+            load_targets_to_ram=load_targets_to_ram,
             config=config,
         )
         self.initialize_data()
@@ -67,8 +69,8 @@ class ScenariosDataset(BaseDataset):
         )
         scenario = assigned_scenarios[0]
 
-        scenes_file, file_meta = pkh.open_files_append(self.data_path)
-        with scenes_file, file_meta:
+        scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
+        with scenes_file, indices_file:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
                 ts = (index % episode_steps) + 1
@@ -91,8 +93,8 @@ class ScenariosDataset(BaseDataset):
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
                 if index % self.skip_index == 0:
-                    pkh.append(
-                        scene=scene, scenes_file=scenes_file, file_meta=file_meta
+                    pkh.append_data(
+                        data=scene, data_file=scenes_file, indices_file=indices_file
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(

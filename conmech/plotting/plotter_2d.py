@@ -36,9 +36,9 @@ def plot_animation(
     config: Config,
     time_skip: float,
     index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
-    all_calc_settings_path: Optional[str],
+    plot_scenes_count: int,
+    all_scenes_path: str,
+    all_calc_scenes_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -50,9 +50,9 @@ def plot_animation(
             save_path=save_path,
             time_skip=time_skip,
             index_skip=index_skip,
-            plot_settings_count=plot_settings_count,
-            all_settings_path=all_settings_path,
-            all_calc_settings_path=all_calc_settings_path,
+            plot_scenes_count=plot_scenes_count,
+            all_scenes_path=all_scenes_path,
+            all_calc_scenes_path=all_calc_scenes_path,
         ),
     )
 

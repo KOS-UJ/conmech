@@ -57,25 +57,27 @@ def run_scenario(
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if run_config.save_all else 1
-    plot_settings_count = [0]
+    plot_scenes_count = [0]
 
     save_files = run_config.plot_animation or run_config.save_all
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
-        data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
+        scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
         if run_config.compare_with_base_setting:
             cmh.create_folders(f"{final_catalog}/scenarios_calculator")
-            calculator_data_path = f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA"
+            calculator_scenes_path = (
+                f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA.scenes"
+            )
     else:
         final_catalog = ""
-        data_path = ""
-        calculator_data_path = ""
+        scenes_path = ""
+        calculator_scenes_path = ""
 
-    def save_scene(scene: Scene, data_path: str):
-        scenes_file, file_meta = pkh.open_files_append(data_path)
-        with scenes_file, file_meta:
-            pkh.append(scene=scene, scenes_file=scenes_file, file_meta=file_meta)
+    def save_scene(scene: Scene, scenes_path: str):
+        scenes_file, indices_file = pkh.open_files_append(scenes_path)
+        with scenes_file, indices_file:
+            pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
 
     step = [0]  # TODO: #65 Clean
 
@@ -83,11 +85,11 @@ def run_scenario(
         step[0] += 1
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_scene(scene=scene, data_path=data_path)
+            save_scene(scene=scene, scenes_path=scenes_path)
             if base_scene is not None:
-                save_scene(scene=base_scene, data_path=calculator_data_path)
+                save_scene(scene=base_scene, scenes_path=calculator_scenes_path)
         if plot_index:
-            plot_settings_count[0] += 1
+            plot_scenes_count[0] += 1
 
     setting, mean_energy = simulate(
         solve_function=solve_function,
@@ -107,12 +109,14 @@ def run_scenario(
             animation_path,
             time_skip,
             index_skip,
-            plot_settings_count[0],
-            data_path,
-            calculator_data_path if run_config.compare_with_base_setting else None,
+            plot_scenes_count[0],
+            all_scenes_path=scenes_path,
+            all_calc_scenes_path=calculator_scenes_path
+            if run_config.compare_with_base_setting
+            else None,
         )
 
-    return setting, data_path, mean_energy
+    return setting, scenes_path, mean_energy
 
 
 def plot_scenario_animation(
@@ -121,13 +125,11 @@ def plot_scenario_animation(
     animation_path: str,
     time_skip: float,
     index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
-    all_calc_settings_path: Optional[str],
+    plot_scenes_count: int,
+    all_scenes_path: str,
+    all_calc_scenes_path: Optional[str],
 ):
-    t_scale = plotter_common.get_t_scale(
-        scenario, index_skip, plot_settings_count, all_settings_path
-    )
+    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_scenes_count, all_scenes_path)
     plot_function = (
         plotter_2d.plot_animation if scenario.dimension == 2 else plotter_3d.plot_animation
     )
@@ -136,9 +138,9 @@ def plot_scenario_animation(
         config=config,
         time_skip=time_skip,
         index_skip=index_skip,
-        plot_settings_count=plot_settings_count,
-        all_settings_path=all_settings_path,
-        all_calc_settings_path=all_calc_settings_path,
+        plot_scenes_count=plot_scenes_count,
+        all_scenes_path=all_scenes_path,
+        all_calc_scenes_path=all_calc_scenes_path,
         t_scale=t_scale,
     )
 
@@ -186,8 +188,6 @@ def simulate(
 
     solver_time = 0.0
     calculator_time = 0.0
-    # calculator_time_2 = 0.0
-    # calculator_time_3 = 0.0
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
@@ -218,14 +218,6 @@ def simulate(
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
             calculator_time += time.time() - start_time
-            """
-            start_time = time.time()
-            Calculator.solve(base_setting, initial_a=base_setting.acceleration_old)
-            calculator_time_2 += time.time() - start_time
-            """
-            start_time = time.time()
-            Calculator.solve(base_setting, initial_a=acceleration)
-            calculator_time_3 += time.time() - start_time
 
         if operation is not None:
             operation(setting, base_setting)  # (current_time, setting, base_setting, a, base_a)
@@ -239,11 +231,7 @@ def simulate(
 
         # setting.remesh_self() # TODO #65
 
-    comparison_str = (
-        f" | Calculator time: {calculator_time} | {calculator_time_2} | {calculator_time_3}"
-        if compare_with_base_setting
-        else ""
-    )
+    comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_setting else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
     return setting, mean_energy
 

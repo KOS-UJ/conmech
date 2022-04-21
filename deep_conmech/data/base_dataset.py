@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 import torch
@@ -92,7 +93,8 @@ class BaseDataset:
         data_count: int,
         randomize_at_load: bool,
         num_workers: int,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
         config: TrainingConfig,
     ):
         self.dimension = dimension
@@ -100,11 +102,146 @@ class BaseDataset:
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
-        self.load_to_ram = load_to_ram
+        self.load_features_to_ram = load_features_to_ram
+        self.load_targets_to_ram = load_targets_to_ram
         self.config = config
-        self.all_indices = None
+        self.scene_indices = None
         self.loaded_features_data = None
         self.loaded_targets_data = None
+        self.features_indices = None
+        self.targets_indices = None
+
+    @property
+    def data_size_id(self):
+        pass
+
+    @property
+    def data_id(self):
+        td = self.config.td
+        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
+
+    @property
+    def main_directory(self):
+        return f"./{self.config.datasets_main_path}/{self.data_id}"
+
+    @property
+    def images_directory(self):
+        return f"{self.main_directory}/images"
+
+    @property
+    def tmp_directory(self):
+        return f"{self.main_directory}/tmp"
+
+    @property
+    def data_path(self):
+        return f"{self.main_directory}/DATA"
+
+    @property
+    def scenes_data_path(self):
+        return f"{self.main_directory}/DATA.scenes"
+
+    @property
+    def features_data_path(self):
+        return f"{self.tmp_directory}/DATASET.feat"
+
+    @property
+    def targets_data_path(self):
+        return f"{self.tmp_directory}/DATASET.targ"
+
+    def initialize_data(self):
+        print(f"----INITIALIZING DATASET ({self.data_id})----")
+        self.create_folders()
+        self.initialize_scenes()
+        self.initialize_features_and_targets()
+
+        if self.load_features_to_ram:
+            self.load_features()
+        else:
+            print("Reading features from disc")
+
+        if self.load_targets_to_ram:
+            self.load_targets()
+        else:
+            print("Reading targets from disc")
+
+    def create_folders(self):
+        cmh.create_folders(self.images_directory)
+        cmh.create_folders(self.tmp_directory)
+
+    def initialize_scenes(self):
+        self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+        if self.data_count == len(self.scene_indices):
+            file_size_gb = os.path.getsize(self.scenes_data_path) / 1024**3
+            print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
+
+        else:
+            print("Clearing old data")
+            cmh.clear_folder(self.main_directory)
+            self.create_folders()
+
+            result = False
+            while result is False:
+                result = mph.run_processes(
+                    self.generate_data_process,
+                    (),
+                    self.num_workers,
+                )
+                if result is False:
+                    print("Restarting data generation")
+
+            self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+        assert self.data_count == len(self.scene_indices)
+
+    def initialize_features_and_targets(self):
+        self.features_indices = pkh.get_all_indices(self.features_data_path)
+        self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+        if self.data_count == len(self.features_indices) and self.data_count == len(
+            self.targets_indices
+        ):
+            features_size_gb = os.path.getsize(self.features_data_path) / 1024**3
+            targets_size_gb = os.path.getsize(self.targets_data_path) / 1024**3
+            print(
+                f"Taking prepared features ({features_size_gb:.2f} GB) and targets ({targets_size_gb:.2f} GB) dataset"
+            )
+        else:
+            data_tqdm = cmh.get_tqdm(
+                iterable=range(len(self.scene_indices)),
+                config=self.config,
+                desc="Preprocessing dataset",
+            )
+
+            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
+            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
+
+            with features_file, features_indices_file, targets_file, targets_indices_file:
+                for features_data, targets_data in pkh.get_iterator(
+                    self.scenes_data_path, data_tqdm, self.preprocess_example
+                ):
+                    pkh.append_data(features_data, features_file, features_indices_file)
+                    pkh.append_data(targets_data, targets_file, targets_indices_file)
+
+            self.features_indices = pkh.get_all_indices(self.features_data_path)
+            self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+
+        assert self.data_count == len(self.features_indices)
+        assert self.data_count == len(self.targets_indices)
+
+    def load_features(self):
+        self.load_data_to_ram("features", self.features_data_path, self.features_indices)
+
+    def load_targets(self):
+        self.load_data_to_ram("targets", self.targets_data_path, self.targets_indices)
+
+    def load_data_to_ram(self, desc, data_path, indices):
+        data_tqdm = cmh.get_tqdm(
+            iterable=range(len(indices)),
+            config=self.config,
+            desc=f"Loading {desc} to RAM",
+        )
+        file = pkh.open_file_read(data_path)
+        with file:
+            data = [pkh.load_index(index, indices, file) for index in data_tqdm]
+        return data
 
     def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
         setting = SceneInput(
@@ -142,93 +279,24 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def initialize_data(self):
-        cmh.create_folders(self.images_directory)
-
-        self.all_indices = pkh.get_all_indices(self.data_path)
-        if self.data_count == len(self.all_indices):
-            scenes_path = f"{self.data_path}.scenes"
-            file_size_gb = os.path.getsize(scenes_path) / 1024**3
-            print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
-
-        else:
-            print("Clearing old data")
-            cmh.clear_folder(self.main_directory)
-            cmh.create_folders(self.images_directory)
-
-            result = False
-            while result is False:
-                result = mph.run_processes(
-                    self.generate_data_process,
-                    (),
-                    self.num_workers,
-                )
-                if result is False:
-                    print("Restarting data generation")
-
-            self.all_indices = pkh.get_all_indices(self.data_path)
-
-        assert self.data_count == len(self.all_indices)
-        if self.load_to_ram:
-            self.loaded_features_data, self.loaded_targets_data = self.load_data_to_ram()
-        else:
-            print("Loading data from disc")
-            self.loaded_features_data, self.loaded_targets_data = None, None
-
-    def load_data_to_ram(self):
-        setting_tqdm = cmh.get_tqdm(
-            iterable=range(len(self.all_indices)),
-            config=self.config,
-            desc="Preprocessing and loading dataset to RAM",
-        )
-        return pkh.get_iterator(self.data_path, setting_tqdm, self.preprocess_example)
-
-    def generate_data_process(self, num_workers, process_id):
-        pass
-
-    @property
-    def data_size_id(self):
-        pass
-
-    @property
-    def data_id(self):
-        td = self.config.td
-        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
-
-    @property
-    def main_directory(self):
-        return f"./{self.config.datasets_main_path}/{self.data_id}"
-
-    @property
-    def data_path(self):
-        return f"{self.main_directory}/DATA"
-
-    @property
-    def images_directory(self):
-        return f"{self.main_directory}/images"
-
     def get_features_data(self, index):
         if self.loaded_features_data is not None:
             return self.loaded_features_data[index]
         else:
-            with pkh.open_file_scenes_read(self.data_path) as file:
-                setting = pkh.load_index(
-                    index=index, all_indices=self.all_indices, scenes_file=file
+            with pkh.open_file_read(self.features_data_path) as file:
+                features_data = pkh.load_index(
+                    index=index, all_indices=self.features_indices, data_file=file
                 )
-        features_data, _ = self.preprocess_example(setting, index)
         return features_data
 
     def get_targets_data(self, index):
         if self.loaded_targets_data is not None:
             return self.loaded_targets_data[index]
         else:
-            if self.randomize_at_load:
-                raise NotImplementedError  # TODO: UNIFY RANDOMIZATION
-            with pkh.open_file_scenes_read(self.data_path) as file:
-                setting = pkh.load_index(
-                    index=index, all_indices=self.all_indices, scenes_file=file
+            with pkh.open_file_read(self.targets_data_path) as file:
+                target_data = pkh.load_index(
+                    index=index, all_indices=self.targets_indices, data_file=file
                 )
-        _, target_data = self.preprocess_example(setting, index)
         return target_data
 
     def preprocess_example(self, scene, index):
@@ -253,12 +321,6 @@ class BaseDataset:
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
-    def __getitem__(self, index):
-        return self.get_features_data(index)
-
-    def __len__(self):
-        return self.data_count
-
     def plot_data_setting(self, setting, filename, catalog):
         cmh.create_folders(catalog)
         extension = "png"  # pdf
@@ -271,3 +333,12 @@ class BaseDataset:
             draw_detailed=True,
             extension=extension,
         )
+
+    def generate_data_process(self, num_workers, process_id):
+        pass
+
+    def __getitem__(self, index):
+        return self.get_features_data(index)
+
+    def __len__(self):
+        return self.data_count

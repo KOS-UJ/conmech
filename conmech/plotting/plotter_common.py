@@ -34,21 +34,21 @@ class ColorbarSettings:
 def get_t_scale(
     scenario: Scenario,
     index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
+    plot_scenes_count: int,
+    all_scenes_path: str,
 ):
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
     temperatures_list = []
-    all_indices = pkh.get_all_indices(all_scenes_path=all_settings_path)
-    scenes_file = pkh.open_file_scenes_read(all_settings_path)
+    all_indices = pkh.get_all_indices(all_scenes_path)
+    scenes_file = pkh.open_file_read(all_scenes_path)
     with scenes_file:
-        for step in range(plot_settings_count):
+        for step in range(plot_scenes_count):
             setting = pkh.load_index(
                 index=step * index_skip,
                 all_indices=all_indices,
-                scenes_file=scenes_file,
+                data_file=scenes_file,
             )
             temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
@@ -128,14 +128,14 @@ def make_animation(get_axs, plot_frame, t_scale):
         setting = pkh.load_index(
             index=step * args.index_skip,
             all_indices=args.all_indices,
-            scenes_file=args.scenes_file,
+            data_file=args.scenes_file,
         )
 
         if args.base_scenes_file is not None:
             base_setting = pkh.load_index(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
-                scenes_file=args.base_scenes_file,
+                data_file=args.base_scenes_file,
             )
         else:
             base_setting = None
@@ -158,9 +158,9 @@ class PlotAnimationConfig:
     save_path: str
     time_skip: float
     index_skip: int
-    plot_settings_count: int
-    all_settings_path: str
-    all_calc_settings_path: Optional[str]
+    plot_scenes_count: int
+    all_scenes_path: str
+    all_calc_scenes_path: Optional[str]
 
 
 def plot_animation(
@@ -168,22 +168,22 @@ def plot_animation(
 ):
     fps = int(1 / plot_config.time_skip)
     animation_tqdm = cmh.get_tqdm(
-        iterable=range(plot_config.plot_settings_count + 1),
+        iterable=range(plot_config.plot_scenes_count + 1),
         config=config,
         desc="Generating animation",
     )
 
-    all_indices = pkh.get_all_indices(all_scenes_path=plot_config.all_settings_path)
-    scenes_file = pkh.open_file_scenes_read(plot_config.all_settings_path)
+    all_indices = pkh.get_all_indices(plot_config.all_scenes_path)
+    scenes_file = pkh.open_file_read(plot_config.all_scenes_path)
     base_all_indices = (
         None
-        if plot_config.all_calc_settings_path is None
-        else pkh.get_all_indices(all_scenes_path=plot_config.all_calc_settings_path)
+        if plot_config.all_calc_scenes_path is None
+        else pkh.get_all_indices(plot_config.all_calc_scenes_path)
     )
     base_scenes_file = (
         None
-        if plot_config.all_calc_settings_path is None
-        else pkh.open_file_scenes_read(plot_config.all_calc_settings_path)
+        if plot_config.all_calc_scenes_path is None
+        else pkh.open_file_read(plot_config.all_calc_scenes_path)
     )
     with scenes_file:
         args = AnimationArgs(
@@ -197,7 +197,7 @@ def plot_animation(
             animation_tqdm=animation_tqdm,
         )
         ani = animation.FuncAnimation(
-            fig, animate, fargs=(args,), frames=plot_config.plot_settings_count
+            fig, animate, fargs=(args,), frames=plot_config.plot_scenes_count
         )
         ani.save(plot_config.save_path, writer=None, fps=fps, dpi=DPI, savefig_kwargs=savefig_args)
     plt.close()

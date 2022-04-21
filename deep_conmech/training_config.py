@@ -16,7 +16,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 8  # !# 5 #8
+    final_time: float = 8
     mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
     adaptive_training_mesh: bool = False  # True
 
@@ -84,7 +84,8 @@ class TrainingConfig(Config):
     dataset_images_count: float = 100
 
     log_dataset_stats = True
-    load_train_dataset_to_ram = True
+    load_train_features_to_ram = True
+    load_train_targets_to_ram = False
     compare_with_base_setting = False
 
     max_epoch_number: Optional[int] = None

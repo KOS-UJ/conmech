@@ -48,7 +48,8 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
-            load_to_ram=config.load_train_dataset_to_ram,
+            load_features_to_ram=config.load_train_features_to_ram,
+            load_targets_to_ram=config.load_train_targets_to_ram,
             randomize_at_load=True,
             config=config,
         )
@@ -57,7 +58,8 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             description="train",
             all_scenarios=scenarios.all_train(config.td),
             skip_index=1,
-            load_to_ram=config.load_train_dataset_to_ram,
+            load_features_to_ram=config.load_train_features_to_ram,
+            load_targets_to_ram=config.load_train_targets_to_ram,
             randomize_at_load=True,
             config=config,
         )
@@ -85,7 +87,8 @@ def get_all_val_datasets(config: TrainingConfig):
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
             skip_index=skip_index,
-            load_to_ram=False,
+            load_features_to_ram=False,
+            load_targets_to_ram=False,
             randomize_at_load=False,
             config=config,
         )
