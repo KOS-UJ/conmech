@@ -49,8 +49,8 @@ def approximate_one(new_node, old_nodes, old_values, old_elements):
 def approximate_all_numba(new_nodes, old_nodes, old_values, old_elements):
     new_values = np.zeros_like(new_nodes)
 
-    for i, new_point in enumerate(new_nodes):
-        new_value = approximate_one(new_point, old_nodes, old_values, old_elements)
+    for i, new_node in enumerate(new_nodes):
+        new_value = approximate_one(new_node, old_nodes, old_values, old_elements)
         new_values[i] = new_value
 
     return new_values

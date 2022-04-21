@@ -46,11 +46,11 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     @property
-    def point_relations(self) -> np.ndarray:
+    def node_relations(self) -> np.ndarray:
         raise NotImplementedError()
 
     @property
-    def point_forces(self) -> np.ndarray:
+    def node_forces(self) -> np.ndarray:
         raise NotImplementedError()
 
     def solve(
@@ -68,8 +68,8 @@ class Optimization(Solver):
                     old_solution,
                     self.mesh.initial_nodes,
                     self.mesh.contact_boundary,
-                    self.point_relations,
-                    self.point_forces,
+                    self.node_relations,
+                    self.node_forces,
                 ),
                 method="BFGS",
                 options={"disp": True, "maxiter": len(initial_guess) * 1e5},

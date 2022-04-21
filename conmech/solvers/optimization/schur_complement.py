@@ -39,13 +39,13 @@ class SchurComplement(Optimization):
         self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
 
         (
-            self._point_relations,
+            self._node_relations,
             self.free_x_contact,
             self.contact_x_free,
             self.free_x_free_inverted,
         ) = self.recalculate_displacement()
 
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
 
     @staticmethod
     def calculate_schur_complement_matrices(
@@ -95,7 +95,7 @@ class SchurComplement(Optimization):
         )
 
     def recalculate_forces(self):
-        point_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
+        node_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
             vector=self.statement.right_hand_side,
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
@@ -103,18 +103,18 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free
+        return node_forces.T, forces_free
 
     def __str__(self):
         return "schur"
 
     @property
-    def point_relations(self) -> np.ndarray:
-        return self._point_relations
+    def node_relations(self) -> np.ndarray:
+        return self._node_relations
 
     @property
-    def point_forces(self) -> np.ndarray:
-        return self._point_forces
+    def node_forces(self) -> np.ndarray:
+        return self._node_forces
 
     def solve(
         self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
@@ -188,7 +188,7 @@ class Quasistatic(SchurComplement):
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(Variables(displacement=self.u_vector))
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
@@ -220,7 +220,7 @@ class Dynamic(SchurComplement):
         )
 
         (
-            self._point_temperature,
+            self._node_temperature,
             self.temper_free_x_contact,
             self.temper_contact_x_free,
             self.temper_free_x_free_inverted,
@@ -271,7 +271,7 @@ class Dynamic(SchurComplement):
 
     @property
     def node_temperature(self):
-        return self._point_temperature
+        return self._node_temperature
 
     def iterate(self, velocity):
         super().iterate(velocity)
@@ -290,7 +290,7 @@ class Dynamic(SchurComplement):
                 time_step=self.time_step,
             )
         )
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
         self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):

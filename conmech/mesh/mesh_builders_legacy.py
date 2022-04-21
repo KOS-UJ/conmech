@@ -46,14 +46,14 @@ def get_cross_elements_numba(
         for j in range(size_y):
             left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_node
 
-            lb = nph.get_point_index_numba(left_bottom, nodes)
-            rb = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, 0.0)), nodes)
-            c = nph.get_point_index_numba(
+            lb = nph.get_node_index_numba(left_bottom, nodes)
+            rb = nph.get_node_index_numba(left_bottom + np.array((edge_len_x, 0.0)), nodes)
+            c = nph.get_node_index_numba(
                 left_bottom + np.array((0.5 * edge_len_x, 0.5 * edge_len_y)),
                 nodes,
             )
-            lt = nph.get_point_index_numba(left_bottom + np.array((0.0, edge_len_y)), nodes)
-            rt = nph.get_point_index_numba(left_bottom + np.array((edge_len_x, edge_len_y)), nodes)
+            lt = nph.get_node_index_numba(left_bottom + np.array((0.0, edge_len_y)), nodes)
+            rt = nph.get_node_index_numba(left_bottom + np.array((edge_len_x, edge_len_y)), nodes)
 
             elements[index] = np.array((lb, rb, c))
             index += 1

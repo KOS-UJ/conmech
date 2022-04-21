@@ -26,7 +26,7 @@ def n_down(n0, n1):
 
 
 @numba.njit(inline="always")
-def interpolate_point_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
+def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     result = np.zeros(dimension)
     offset = len(vector) // dimension
     for i in range(dimension):
@@ -55,7 +55,7 @@ def make_equation(jn, jt, h_functional):
             n_1 = nodes[n_id_1]
 
             # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_point_between(n_id_0, n_id_1, u_vector)
+            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
 
             normal_vector = n_down(n_0, n_1)
 
@@ -132,8 +132,8 @@ def make_cost_functional(
             n_1 = nodes[n_id_1]
 
             # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_point_between(n_id_0, n_id_1, u_vector)
-            um_old = interpolate_point_between(n_id_0, n_id_1, u_vector_old)
+            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
+            um_old = interpolate_node_between(n_id_0, n_id_1, u_vector_old)
 
             normal_vector = n_down(n_0, n_1)
 
@@ -176,7 +176,7 @@ def make_cost_functional_temperature(
             n_1 = nodes[n_id_1]
 
             # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_point_between(n_id_0, n_id_1, u_vector)
+            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
 
             normal_vector = n_down(n_0, n_1)
 
