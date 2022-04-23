@@ -72,7 +72,7 @@ def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Opti
             axes=axes,
             setting=setting,
             normalized_data=[
-                setting.normalized_forces,
+                setting.normalized_inner_forces,
                 setting.normalized_displacement_old,
                 setting.normalized_velocity_old,
                 setting.normalized_a_old,

@@ -305,7 +305,7 @@ def draw_nodes(nodes, position, color, axes):
 
 
 def draw_forces(setting, position, axes):
-    return draw_data("F", setting.normalized_forces, setting, position, axes)
+    return draw_data("F", setting.normalized_inner_forces, setting, position, axes)
 
 
 def draw_input_u(setting, position, axes):

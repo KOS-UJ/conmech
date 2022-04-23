@@ -43,40 +43,41 @@ class BodyForces(Dynamics):
             with_schur=with_schur,
         )
 
-        self.forces = None
-        self.outer_force_at_node = None
+        self.inner_forces = None
+        self.outer_forces = None
 
     def set_permanent_forces_by_functions(
         self, inner_forces_function: Callable, outer_forces_function: Callable
     ):
-        self.forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
-        # inner_force_at_node
-        self.outer_force_at_node = np.array([outer_forces_function(p) for p in self.moved_nodes])
+        self.inner_forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
+        self.outer_forces = np.array([outer_forces_function(p) for p in self.moved_nodes])
 
     def prepare(self, inner_force_at_node: np.ndarray):
-        self.forces = inner_force_at_node
-        self.outer_force_at_node = np.zeros_like(self.initial_nodes)
+        self.inner_forces = inner_force_at_node
+        self.outer_forces = np.zeros_like(self.initial_nodes)
 
     def clear(self):
-        self.forces = None
-        self.outer_force_at_node = None
+        self.inner_forces = None
+        self.outer_forces = None
 
     @property
-    def normalized_forces(self):
-        return self.normalize_rotate(self.forces)
+    def normalized_inner_forces(self):
+        return self.normalize_rotate(self.inner_forces)
 
     @property
-    def normalized_outer_force_at_node(self):
-        return self.normalize_rotate(self.outer_force_at_node)
+    def normalized_outer_forces(self):
+        return self.normalize_rotate(self.outer_forces)
 
     def get_integrated_inner_forces(self):
-        return self.volume @ self.normalized_forces  # volume_at_nodes
+        return self.volume_at_nodes @ self.normalized_inner_forces
 
     def get_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
-            self.neumann_boundary, self.nodes_count, self.moved_nodes
+            boundary_surfaces=self.neumann_boundary,
+            considered_nodes_count=self.nodes_count,
+            moved_nodes=self.moved_nodes,
         )
-        return neumann_surfaces * self.outer_force_at_node
+        return neumann_surfaces * self.outer_forces
 
     def get_integrated_forces_column(self):
         integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
@@ -115,7 +116,3 @@ class BodyForces(Dynamics):
             - self.elasticity @ displacement_old_vector
         )
         return rhs
-
-    @property
-    def input_forces(self):
-        return self.normalized_forces

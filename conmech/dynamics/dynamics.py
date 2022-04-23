@@ -73,7 +73,7 @@ class Dynamics(BodyPosition):
         self.with_schur = with_schur
 
         self.element_initial_volume: np.ndarray
-        self.volume: np.ndarray
+        self.volume_at_nodes: np.ndarray
         self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
@@ -90,7 +90,7 @@ class Dynamics(BodyPosition):
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
-            self.volume,
+            self.volume_at_nodes,
             self.acceleration_operator,
             self.elasticity,
             self.viscosity,

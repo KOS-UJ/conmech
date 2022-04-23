@@ -39,7 +39,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 j_integrals = get_integral_parts_numba(element_nodes, j)
                 j_d_phi_vec = j_integrals[:DIMENSION]
 
-                volume = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
+                volume_at_nodes = (i != j) * (INT_PH / CONNECTED_EDGES_COUNT)
                 # divide by edge count - info about each triangle is "sent" to node via
                 # all connected edges (in 2D: 2, in 3D: 3) and summed (by dot product with matrix)
                 u = (1 + (i == j)) / U_DIVIDER
@@ -51,7 +51,7 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
                     [
-                        volume,
+                        volume_at_nodes,
                         u,
                         v[0],
                         v[1],

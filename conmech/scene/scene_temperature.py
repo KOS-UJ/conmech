@@ -113,7 +113,7 @@ class SceneTemperature(Scene):
         v = velocity_old + acceleration * self.time_step
         v_vector = nph.stack_column(v)
 
-        A = nph.stack_column(self.volume @ self.heat)
+        A = nph.stack_column(self.volume_at_nodes @ self.heat)
         A += (-1) * self.thermal_expansion @ v_vector
         A += (1 / self.time_step) * U @ self.t_old
 

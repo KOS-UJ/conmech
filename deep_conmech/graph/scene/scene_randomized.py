@@ -81,10 +81,6 @@ class SceneRandomized(Scene):
         return self.normalized_displacement_old + self.normalized_displacement_old_randomization
 
     @property
-    def input_forces(self):
-        return self.normalized_forces  # - self.normalized_forces_mean
-
-    @property
     def a_correction(self):
         u_correction = self.config.td.displacement_to_velocity_noise * (
             self.displacement_old_randomization / (self.time_step**2)

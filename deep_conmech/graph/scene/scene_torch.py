@@ -33,8 +33,8 @@ class SceneTorch(SceneRandomized):
         return completed_data
 
     @property
-    def input_forces_torch(self):
-        return thh.to_torch_double(self.input_forces)
+    def normalized_inner_forces_torch(self):
+        return thh.to_torch_double(self.normalized_inner_forces)
 
     @property
     def normalized_a_correction_torch(self):
@@ -65,8 +65,8 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.normalized_nodes)
 
     @property
-    def normalized_forces_torch(self):
-        return thh.to_torch_double(self.normalized_forces)
+    def normalized_inner_forces_torch(self):
+        return thh.to_torch_double(self.normalized_inner_forces)
 
     @property
     def normalized_displacement_old_torch(self):

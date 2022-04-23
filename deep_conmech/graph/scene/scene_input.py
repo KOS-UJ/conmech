@@ -119,7 +119,7 @@ class SceneInput(SceneTorch):
             self.normalized_initial_nodes,
             self.input_displacement_old,
             self.input_velocity_old,
-            self.input_forces,
+            self.normalized_inner_forces,
         )
         return thh.to_torch_double(edges_data)
 
@@ -162,7 +162,7 @@ class SceneInput(SceneTorch):
 
         nodes_data = torch.hstack(
             (
-                thh.append_euclidean_norm(self.input_forces_torch),
+                thh.append_euclidean_norm(self.normalized_inner_forces_torch),
                 # thh.append_euclidean_norm(self.input_displacement_old_torch),
                 # thh.append_euclidean_norm(self.input_velocity_old_torch),
                 thh.append_euclidean_norm(boundary_penetration),
