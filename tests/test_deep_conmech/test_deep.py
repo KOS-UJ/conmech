@@ -24,6 +24,7 @@ def test_smoke_train_and_plot():
         max_epoch_number=2,
         datasets_main_path=databases_main_path,
         dataset_images_count=1,
+        with_train_scenes_file=True,
         output_catalog=output_catalog,
         log_catalog=log_catalog,
     )

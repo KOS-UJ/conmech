@@ -1,5 +1,6 @@
 import os
 import pickle
+from typing import Iterable, Optional
 
 import numpy as np
 import torch
@@ -95,6 +96,7 @@ class BaseDataset:
         num_workers: int,
         load_features_to_ram: bool,
         load_targets_to_ram: bool,
+        with_scenes_file: bool,
         config: TrainingConfig,
     ):
         self.dimension = dimension
@@ -104,6 +106,7 @@ class BaseDataset:
         self.num_workers = num_workers
         self.load_features_to_ram = load_features_to_ram
         self.load_targets_to_ram = load_targets_to_ram
+        self.with_scenes_file = with_scenes_file
         self.config = config
         self.scene_indices = None
         self.loaded_features_data = None
@@ -151,7 +154,10 @@ class BaseDataset:
     def initialize_data(self):
         print(f"----INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
-        self.initialize_scenes()
+        if self.with_scenes_file:
+            self.initialize_scenes()
+        else:
+            print("Skipping scenes file generation")
         self.initialize_features_and_targets()
 
         if self.load_features_to_ram:
@@ -192,6 +198,17 @@ class BaseDataset:
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
         assert self.data_count == len(self.scene_indices)
 
+    def get_iterator(self, data_tqdm: Iterable[int], scenes_path: Optional[str] = None):
+        for index in data_tqdm:
+            if scenes_path is not None:
+                with open(scenes_path, "rb") as file:
+                    scene = pickle.load(file)
+            else:
+                scene, _ = self.generate_scene(index)
+
+            features_data, target_data = self.preprocess_example(scene, index)
+            yield (features_data, target_data)
+
     def initialize_features_and_targets(self):
         self.features_indices = pkh.get_all_indices(self.features_data_path)
         self.targets_indices = pkh.get_all_indices(self.targets_data_path)
@@ -205,7 +222,7 @@ class BaseDataset:
             )
         else:
             data_tqdm = cmh.get_tqdm(
-                iterable=range(len(self.scene_indices)),
+                iterable=range(self.data_count),
                 config=self.config,
                 desc="Preprocessing dataset",
             )
@@ -213,9 +230,10 @@ class BaseDataset:
             features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
             targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
 
+            scenes_path = self.scenes_data_path if self.with_scenes_file else None
             with features_file, features_indices_file, targets_file, targets_indices_file:
-                for features_data, targets_data in pkh.get_iterator(
-                    self.scenes_data_path, data_tqdm, self.preprocess_example
+                for features_data, targets_data in self.get_iterator(
+                    data_tqdm=data_tqdm, scenes_path=scenes_path
                 ):
                     pkh.append_data(features_data, features_file, features_indices_file)
                     pkh.append_data(targets_data, targets_file, targets_indices_file)
@@ -227,10 +245,14 @@ class BaseDataset:
         assert self.data_count == len(self.targets_indices)
 
     def load_features(self):
-        self.loaded_features_data = self.get_data_loaded_to_ram("features", self.features_data_path, self.features_indices)
+        self.loaded_features_data = self.get_data_loaded_to_ram(
+            "features", self.features_data_path, self.features_indices
+        )
 
     def load_targets(self):
-        self.loaded_targets_data = self.get_data_loaded_to_ram("targets", self.targets_data_path, self.targets_indices)
+        self.loaded_targets_data = self.get_data_loaded_to_ram(
+            "targets", self.targets_data_path, self.targets_indices
+        )
 
     def get_data_loaded_to_ram(self, desc, data_path, indices):
         data_tqdm = cmh.get_tqdm(
@@ -334,7 +356,10 @@ class BaseDataset:
             extension=extension,
         )
 
-    def generate_data_process(self, num_workers, process_id):
+    def generate_data_process(self, num_workers: int, process_id: int):
+        pass
+
+    def generate_scene(self, index: int):
         pass
 
     def __getitem__(self, index):

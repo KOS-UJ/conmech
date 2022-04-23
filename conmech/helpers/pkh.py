@@ -39,13 +39,3 @@ def load_index(index: int, all_indices: List[int], data_file: BufferedReader):
     data_file.seek(byte_index)
     data = pickle.load(data_file)
     return data
-
-
-def get_iterator(scenes_path: str, data_tqdm: Iterable[int], preprocess_example: Callable):
-    with open(scenes_path, "rb") as file:
-        for index in data_tqdm:
-            # try:
-            features_data, target_data = preprocess_example(pickle.load(file), index)
-            yield (features_data, target_data)
-            # except EOFError:
-            #    break

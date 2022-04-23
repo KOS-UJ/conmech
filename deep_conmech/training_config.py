@@ -42,7 +42,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 256
+    synthetic_batches_in_epoch: int = 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -83,11 +83,12 @@ class TrainingConfig(Config):
 
     dataset_images_count: float = 100
 
-    log_dataset_stats = True
-    load_train_features_to_ram = True
-    load_train_targets_to_ram = False
-    compare_with_base_setting = False
+    log_dataset_stats: bool = True
+    load_train_features_to_ram: bool = True
+    load_train_targets_to_ram: bool = False
+    with_train_scenes_file: bool = False
 
+    compare_with_base_setting = False
     max_epoch_number: Optional[int] = None
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"

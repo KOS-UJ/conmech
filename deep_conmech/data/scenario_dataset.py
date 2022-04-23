@@ -38,6 +38,7 @@ class ScenariosDataset(BaseDataset):
             num_workers=1,  # TODO: #65 Check
             load_features_to_ram=load_features_to_ram,
             load_targets_to_ram=load_targets_to_ram,
+            with_scenes_file=True,
             config=config,
         )
         self.initialize_data()

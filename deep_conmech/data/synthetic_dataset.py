@@ -113,6 +113,7 @@ class SyntheticDataset(BaseDataset):
         load_features_to_ram: bool,
         load_targets_to_ram: bool,
         randomize_at_load: bool,
+        with_scenes_file: bool,
         config: TrainingConfig,
     ):
         num_workers = config.synthetic_generation_workers
@@ -124,6 +125,7 @@ class SyntheticDataset(BaseDataset):
             num_workers=num_workers,
             load_features_to_ram=load_features_to_ram,
             load_targets_to_ram=load_targets_to_ram,
+            with_scenes_file=with_scenes_file,
             config=config,
         )
 
@@ -137,7 +139,7 @@ class SyntheticDataset(BaseDataset):
     def data_size_id(self):
         return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
 
-    def generate_scene(self, index):
+    def generate_scene(self, index: int):
         _ = index
 
         base = generate_base(self.config)
@@ -185,6 +187,7 @@ class SyntheticDataset(BaseDataset):
                     return False
 
                 scene, exact_normalized_a_torch = self.generate_scene(index)
+
                 pkh.append_data(
                     data=scene, data_file=scenes_file, indices_file=indices_file
                 )  # exact_normalized_a_torch
