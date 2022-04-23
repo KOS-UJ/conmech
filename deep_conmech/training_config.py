@@ -56,7 +56,7 @@ class TrainingData:
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
     initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    learning_rate_decay: float = 0.995  # 0.995 0.999
+    learning_rate_decay: float = 0.999  # 0.995
     final_learning_rate: float = 1e-6
 
     activation = nn.ReLU()  # nn.PReLU()

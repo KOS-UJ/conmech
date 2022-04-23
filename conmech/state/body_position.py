@@ -226,7 +226,9 @@ class BodyPosition(Mesh):
 
     def get_surface_per_boundary_node(self):
         return get_surface_per_boundary_node_numba(
-            boundary_surfaces=self.boundary_surfaces, considered_nodes_count=self.boundary_nodes_count, moved_nodes=self.moved_nodes
+            boundary_surfaces=self.boundary_surfaces,
+            considered_nodes_count=self.boundary_nodes_count,
+            moved_nodes=self.moved_nodes,
         )
 
     @property
@@ -236,4 +238,3 @@ class BodyPosition(Mesh):
     @property
     def input_displacement_old(self):
         return self.normalized_displacement_old
- 

@@ -5,6 +5,7 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
+from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -65,11 +66,14 @@ class ProblemSolver:
             ),
             body_prop=body_prop,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            normalize_by_rotation=False,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
-            with_lhs=False,
-            with_schur=False,
+            dynamics_config=DynamicsConfiguration(
+                normalize_by_rotation=False,
+                create_in_subprocess=False,
+                with_lhs=False,
+                with_schur=False,
+            ),
         )
         self.body.set_permanent_forces_by_functions(
             inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces

@@ -47,30 +47,35 @@ class SolverMatrices:
         self.temperature_free_x_free_inv: np.ndarray
 
 
+@dataclass
+class DynamicsConfiguration:
+    normalize_by_rotation: bool = True
+    create_in_subprocess: bool = False
+    with_lhs: bool = True
+    with_schur: bool = True
+
+
 class Dynamics(BodyPosition):
     def __init__(
         self,
         mesh_prop: MeshProperties,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
+        dynamics_config: DynamicsConfiguration,
         is_dirichlet: Callable,
         is_contact: Callable,
-        create_in_subprocess: bool,
-        with_lhs: bool = True,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
+            normalize_by_rotation=dynamics_config.normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
-            create_in_subprocess=create_in_subprocess,
+            create_in_subprocess=dynamics_config.create_in_subprocess,
         )
         self.body_prop = body_prop
-        self.with_lhs = with_lhs
-        self.with_schur = with_schur
+        self.with_lhs = dynamics_config.with_lhs
+        self.with_schur = dynamics_config.with_schur
 
         self.element_initial_volume: np.ndarray
         self.volume_at_nodes: np.ndarray

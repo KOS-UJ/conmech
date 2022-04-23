@@ -4,6 +4,7 @@ from typing import List, Optional
 import numba
 import numpy as np
 
+from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -129,15 +130,17 @@ class Scene(BodyForces):
         schedule: Schedule,
         normalize_by_rotation: bool,
         create_in_subprocess: bool,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
-            create_in_subprocess=create_in_subprocess,
-            with_schur=with_schur,
+            dynamics_config=DynamicsConfiguration(
+                normalize_by_rotation=normalize_by_rotation,
+                create_in_subprocess=create_in_subprocess,
+                with_lhs=True,
+                with_schur=True,
+            ),
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None
@@ -146,8 +149,8 @@ class Scene(BodyForces):
 
         self.clear()
 
-    def prepare(self, forces):
-        super().prepare(forces)
+    def prepare(self, inner_forces):
+        super().prepare(inner_forces)
         if not self.has_no_obstacles:
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
                 self.boundary_nodes, self.obstacle_nodes

@@ -3,7 +3,7 @@ pickle helpers
 """
 import pickle
 from io import BufferedReader
-from typing import Callable, Iterable, List
+from typing import List
 
 
 def open_files_append(path: str):

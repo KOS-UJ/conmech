@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy as np
 
-from conmech.dynamics.dynamics import Dynamics
+from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
 from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -24,23 +24,17 @@ class BodyForces(Dynamics):
         mesh_prop: MeshProperties,
         body_prop: DynamicBodyProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
+        dynamics_config: DynamicsConfiguration,
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
-        create_in_subprocess: bool = False,
-        with_lhs: bool = True,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
+            dynamics_config=dynamics_config,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
-            create_in_subprocess=create_in_subprocess,
-            with_lhs=with_lhs,
-            with_schur=with_schur,
         )
 
         self.inner_forces = None
@@ -52,8 +46,8 @@ class BodyForces(Dynamics):
         self.inner_forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
         self.outer_forces = np.array([outer_forces_function(p) for p in self.moved_nodes])
 
-    def prepare(self, inner_force_at_node: np.ndarray):
-        self.inner_forces = inner_force_at_node
+    def prepare(self, inner_forces: np.ndarray):
+        self.inner_forces = inner_forces
         self.outer_forces = np.zeros_like(self.initial_nodes)
 
     def clear(self):
