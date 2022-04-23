@@ -130,6 +130,7 @@ class Scene(BodyForces):
         schedule: Schedule,
         normalize_by_rotation: bool,
         create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -139,7 +140,7 @@ class Scene(BodyForces):
                 normalize_by_rotation=normalize_by_rotation,
                 create_in_subprocess=create_in_subprocess,
                 with_lhs=True,
-                with_schur=True,
+                with_schur=with_schur,
             ),
         )
         self.obstacle_prop = obstacle_prop
