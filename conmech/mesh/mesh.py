@@ -86,9 +86,9 @@ class Mesh:
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
-        create_in_subprocess: bool = False,
+        is_dirichlet: Callable,
+        is_contact: Callable,
+        create_in_subprocess: bool,
     ):
         self.mesh_prop = mesh_prop
 
@@ -128,13 +128,6 @@ class Mesh:
 
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
-
-    def get_state_dict(self):
-        return vars(self)
-
-    def load_state_dict(self, state_dict):
-        for key, attr in state_dict.items():
-            self.__setattr__(key, attr)
 
     @property
     def boundary_surfaces(self):

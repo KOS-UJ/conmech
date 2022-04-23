@@ -13,7 +13,8 @@ class SceneTorch(SceneRandomized):
         obstacle_prop,
         schedule,
         config: Config,
-        create_in_subprocess,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -22,6 +23,7 @@ class SceneTorch(SceneRandomized):
             schedule=schedule,
             config=config,
             create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
         )
         self.exact_normalized_a_torch = None  # TODO: clear on change
 

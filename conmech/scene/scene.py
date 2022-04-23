@@ -9,7 +9,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.setting_forces import SettingForces, energy
+from conmech.scene.body_forces import BodyForces, energy
 from conmech.state.body_position import BodyPosition
 
 
@@ -120,7 +120,7 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
     return boundary_obstacle_indices
 
 
-class Scene(SettingForces):
+class Scene(BodyForces):
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -128,7 +128,8 @@ class Scene(SettingForces):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
-        create_in_subprocess,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -136,6 +137,7 @@ class Scene(SettingForces):
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None

@@ -40,9 +40,9 @@ class TrainingData:
     validate_scenarios_at_epochs: int = 30
 
     use_energy_as_loss: bool = True
-    batch_size: int = 128  #
-    valid_batch_size: int = 128  #
-    synthetic_batches_in_epoch: int = 96  # 2
+    batch_size: int = 128
+    valid_batch_size: int = 128
+    synthetic_batches_in_epoch: int = 256
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -64,7 +64,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    message_passes: int = 12
+    message_passes: int = 10  # 12
 
 
 @dataclass

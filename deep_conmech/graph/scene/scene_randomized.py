@@ -16,7 +16,8 @@ class SceneRandomized(Scene):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         config,
-        create_in_subprocess,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -25,6 +26,7 @@ class SceneRandomized(Scene):
             schedule=schedule,
             normalize_by_rotation=config.normalize_rotate,
             create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
         )
         self.config = config
         self.set_randomization(False)
@@ -37,12 +39,12 @@ class SceneRandomized(Scene):
     def set_randomization(self, randomized_inputs):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
-            self.velocity_old_randomization = nph.get_random_normal(
+            self.velocity_old_randomization = nph.generate_normal(
                 rows=self.nodes_count,
                 columns=self.dimension,
                 scale=self.config.td.velocity_in_random_factor,
             )
-            self.displacement_old_randomization = nph.get_random_normal(
+            self.displacement_old_randomization = nph.generate_normal(
                 rows=self.nodes_count,
                 columns=self.dimension,
                 scale=self.config.td.displacement_in_random_factor,

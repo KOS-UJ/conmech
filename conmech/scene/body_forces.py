@@ -1,5 +1,11 @@
+from typing import Callable
+
 from conmech.dynamics.dynamics import Dynamics
+from conmech.forces import Forces
 from conmech.helpers import nph
+from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
 
 
@@ -10,23 +16,41 @@ def energy(value, lhs, rhs):
     return value
 
 
-class SettingForces(Dynamics):
+class BodyForces(Dynamics):
     def __init__(
         self,
-        mesh_prop,
-        body_prop,
-        schedule,
+        mesh_prop: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        schedule: Schedule,
         normalize_by_rotation: bool,
-        create_in_subprocess,
+        inner_forces: Callable = (lambda _: 0),
+        outer_forces: Callable = (lambda _: 0),
+        is_dirichlet: Callable = (lambda _: False),
+        is_contact: Callable = (lambda _: True),
+        create_in_subprocess: bool = False,
+        with_lhs: bool = True,
+        with_schur: bool = True,
+        with_forces: bool = False,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
+            is_dirichlet=is_dirichlet,
+            is_contact=is_contact,
             create_in_subprocess=create_in_subprocess,
+            with_lhs=with_lhs,
+            with_schur=with_schur,
         )
+
+        self.with_forces = with_forces
+
         self.forces = None
+        if self.with_forces:
+            # RHS
+            self.forces = Forces(self, inner_forces, outer_forces)
+            self.forces.update_forces()
 
     @property
     def normalized_forces(self):

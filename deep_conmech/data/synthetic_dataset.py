@@ -13,7 +13,7 @@ from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
-def draw_mesh_type(config: TrainingConfig):
+def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
             [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
@@ -24,11 +24,11 @@ def draw_mesh_type(config: TrainingConfig):
         )
 
 
-def draw_base_setting(config: TrainingConfig, base: np.ndarray):
-    return SceneInput(
+def generate_base_scene(config: TrainingConfig, base: np.ndarray):
+    scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
-            mesh_type=draw_mesh_type(config),
+            mesh_type=generate_mesh_type(config),
             mesh_density=[config.td.mesh_density],
             scale=[config.td.train_scale],
             is_adaptive=config.td.adaptive_training_mesh,
@@ -39,10 +39,13 @@ def draw_base_setting(config: TrainingConfig, base: np.ndarray):
         schedule=Schedule(final_time=config.td.final_time),
         config=config,
         create_in_subprocess=False,
+        with_schur=False,
     )
+    scene.clear_for_save()
+    return scene
 
 
-def draw_forces(config: TrainingConfig, setting, base: np.ndarray):
+def generate_forces(config: TrainingConfig, setting, base: np.ndarray):
     if interpolation_helpers.decide(config.td.zero_forces_proportion):
         forces = np.zeros([setting.nodes_count, setting.dimension])
     else:
@@ -57,7 +60,7 @@ def draw_forces(config: TrainingConfig, setting, base: np.ndarray):
     return forces
 
 
-def draw_displacement_old(config: TrainingConfig, setting, base: np.ndarray):
+def generate_displacement_old(config: TrainingConfig, setting, base: np.ndarray):
     displacement_old = interpolation_helpers.interpolate_four(
         initial_nodes=setting.initial_nodes,
         scale=config.td.displacement_random_scale,
@@ -69,7 +72,7 @@ def draw_displacement_old(config: TrainingConfig, setting, base: np.ndarray):
     return displacement_old
 
 
-def draw_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
+def generate_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
     interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
     velocity_old = interpolation_helpers.interpolate_four(
         initial_nodes=setting.initial_nodes,
@@ -82,8 +85,8 @@ def draw_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
     return velocity_old
 
 
-def draw_obstacles(config: TrainingConfig, scene: SceneInput):
-    obstacle_nodes_unnormaized = nph.draw_uniform_circle(
+def generate_obstacles(config: TrainingConfig, scene: SceneInput):
+    obstacle_nodes_unnormaized = nph.generate_uniform_circle(
         rows=1,
         columns=scene.dimension,
         low=config.td.obstacle_min_scale,
@@ -94,9 +97,9 @@ def draw_obstacles(config: TrainingConfig, scene: SceneInput):
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
 
 
-def draw_base(config: TrainingConfig):
+def generate_base(config: TrainingConfig):
     dimension = config.td.dimension
-    base = nph.draw_normal_circle(rows=dimension, columns=dimension, scale=1)
+    base = nph.generate_normal_circle(rows=dimension, columns=dimension, scale=1)
     base = nph.normalize_euclidean_numba(base)
     base = nph.orthogonalize_gram_schmidt(base)
     base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
@@ -137,28 +140,28 @@ class SyntheticDataset(BaseDataset):
     def generate_scene(self, index):
         _ = index
 
-        base = draw_base(self.config)
-        setting = draw_base_setting(self.config, base)
-        setting.set_randomization(False)  # TODO #65: Check
+        base = generate_base(self.config)
+        scene = generate_base_scene(self.config, base)
+        scene.set_randomization(False)  # TODO #65: Check
 
-        obstacles_unnormalized = draw_obstacles(self.config, setting)
-        forces = draw_forces(self.config, setting, base)
-        displacement_old = draw_displacement_old(self.config, setting, base)
-        velocity_old = draw_velocity_old(self.config, setting, base)
+        obstacles_unnormalized = generate_obstacles(self.config, scene)
+        forces = generate_forces(self.config, scene, base)
+        displacement_old = generate_displacement_old(self.config, scene, base)
+        velocity_old = generate_velocity_old(self.config, scene, base)
 
-        setting.normalize_and_set_obstacles(
+        scene.normalize_and_set_obstacles(
             obstacles_unnormalized=obstacles_unnormalized, all_mesh_prop=[]
         )
-        setting.set_displacement_old(displacement_old)
-        setting.set_velocity_old(velocity_old)
-        setting.prepare(forces)
+        scene.set_displacement_old(displacement_old)
+        scene.set_velocity_old(velocity_old)
+        scene.prepare(forces)
 
         add_label = False
         exact_normalized_a_torch = (
-            thh.to_torch_double(Calculator.solve(setting)) if add_label else None
+            thh.to_torch_double(Calculator.solve(scene)) if add_label else None
         )
 
-        return setting, exact_normalized_a_torch
+        return scene, exact_normalized_a_torch
 
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)

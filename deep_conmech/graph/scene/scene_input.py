@@ -87,6 +87,7 @@ class SceneInput(SceneTorch):
         schedule: Schedule,
         config: Config,
         create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -95,6 +96,7 @@ class SceneInput(SceneTorch):
             schedule=schedule,
             config=config,
             create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
         )
 
     @staticmethod
@@ -229,3 +231,9 @@ class SceneInput(SceneTorch):
             self.norm_boundary_obstacle_normals,
             surface_per_boundary_node,
         )
+
+    def clear_for_save(self):
+        self.element_initial_volume = None
+        self.acceleration_operator = None
+        self.thermal_expansion = None
+        self.thermal_conductivity = None

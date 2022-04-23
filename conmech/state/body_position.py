@@ -4,6 +4,7 @@ from typing import Callable
 
 import numba
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties

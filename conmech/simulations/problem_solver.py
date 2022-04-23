@@ -5,7 +5,6 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 
-from conmech.dynamics.dynamics import Dynamics
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -16,6 +15,7 @@ from conmech.scenarios.problems import Dynamic as DynamicProblem
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
+from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
@@ -56,7 +56,7 @@ class ProblemSolver:
 
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
-        self.mesh = Dynamics(
+        self.mesh = BodyForces(
             mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type="cross",
@@ -70,7 +70,9 @@ class ProblemSolver:
             normalize_by_rotation=False,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
-            with_schur_complement_matrices=False,
+            with_lhs=False,
+            with_schur=False,
+            with_forces=True,
         )
         self.setup = setup
 

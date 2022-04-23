@@ -227,12 +227,12 @@ class BaseDataset:
         assert self.data_count == len(self.targets_indices)
 
     def load_features(self):
-        self.load_data_to_ram("features", self.features_data_path, self.features_indices)
+        self.loaded_features_data = self.get_data_loaded_to_ram("features", self.features_data_path, self.features_indices)
 
     def load_targets(self):
-        self.load_data_to_ram("targets", self.targets_data_path, self.targets_indices)
+        self.loaded_targets_data = self.get_data_loaded_to_ram("targets", self.targets_data_path, self.targets_indices)
 
-    def load_data_to_ram(self, desc, data_path, indices):
+    def get_data_loaded_to_ram(self, desc, data_path, indices):
         data_tqdm = cmh.get_tqdm(
             iterable=range(len(indices)),
             config=self.config,

@@ -156,25 +156,25 @@ def get_random_uniform(rows, columns, scale):
     return np.random.uniform(low=-scale, high=scale, size=[rows, columns])
 
 
-def get_random_normal(rows, columns, scale):
+def generate_normal(rows, columns, scale):
     noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
     return noise
 
 
-def draw_circle(rows, columns):
+def generate_circle(rows, columns):
     result = np.random.normal(loc=0.0, scale=1.0, size=[rows, columns])
     result = normalize_euclidean_numba(result)
     return result
 
 
-def draw_normal_circle(rows, columns, scale):
-    result = draw_circle(rows, columns)
+def generate_normal_circle(rows, columns, scale):
+    result = generate_circle(rows, columns)
     r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, 1]))
     return result * r
 
 
-def draw_uniform_circle(rows, columns, low, high):
-    result = draw_circle(rows, columns)
+def generate_uniform_circle(rows, columns, low, high):
+    result = generate_circle(rows, columns)
     r = np.abs(np.random.uniform(low=low, high=high, size=[rows, 1]))
     return result * r
 

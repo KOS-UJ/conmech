@@ -38,6 +38,7 @@ class GraphModelDynamic:
         net: CustomGraphNet,
         config: TrainingConfig,
     ):
+        print("----CREATING MODEL----")
         self.config = config
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
