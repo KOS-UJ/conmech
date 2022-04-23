@@ -41,10 +41,6 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.normalized_a_correction)
 
     @property
-    def const_volume_torch(self):
-        return thh.to_torch_double(self.volume)
-
-    @property
     def elasticity_torch(self):
         return thh.to_torch_double(self.elasticity)
 

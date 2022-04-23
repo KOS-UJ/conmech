@@ -8,6 +8,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
+from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
 def energy(value, lhs, rhs):
@@ -24,14 +25,11 @@ class BodyForces(Dynamics):
         body_prop: DynamicBodyProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
-        inner_forces: Callable = (lambda _: 0),
-        outer_forces: Callable = (lambda _: 0),
         is_dirichlet: Callable = (lambda _: False),
         is_contact: Callable = (lambda _: True),
         create_in_subprocess: bool = False,
         with_lhs: bool = True,
         with_schur: bool = True,
-        with_forces: bool = False,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -45,62 +43,47 @@ class BodyForces(Dynamics):
             with_schur=with_schur,
         )
 
-        self.with_forces = with_forces
-
         self.forces = None
-        if self.with_forces:
-            # RHS
-            self.inner_forces = inner_forces
-            self.outer_forces = outer_forces
-            self._forces = np.zeros([self.nodes_count, 2])
-            self._add_inner_forces()
-            self._add_neumann_forces()
+        self.outer_force_at_node = None
 
-    @property
-    def forces_vector(self):
-        return nph.stack_column(self._forces[: self.independent_nodes_count, :]).reshape(-1)
+    def set_permanent_forces_by_functions(
+        self, inner_forces_function: Callable, outer_forces_function: Callable
+    ):
+        self.forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
+        # inner_force_at_node
+        self.outer_force_at_node = np.array([outer_forces_function(p) for p in self.moved_nodes])
 
-    def _add_inner_forces(self):
-        for element_id, element in enumerate(self.elements):
-            p_0 = self.initial_nodes[element[0]]
-            p_1 = self.initial_nodes[element[1]]
-            p_2 = self.initial_nodes[element[2]]
+    def prepare(self, inner_force_at_node: np.ndarray):
+        self.forces = inner_force_at_node
+        self.outer_force_at_node = np.zeros_like(self.initial_nodes)
 
-            f_0 = self.inner_forces(p_0)
-            f_1 = self.inner_forces(p_1)
-            f_2 = self.inner_forces(p_2)
-
-            f_mean = (f_0 + f_1 + f_2) / 3
-
-            self._forces[element[0]] += f_mean / 3 * self.element_initial_volume[element_id]
-            self._forces[element[1]] += f_mean / 3 * self.element_initial_volume[element_id]
-            self._forces[element[2]] += f_mean / 3 * self.element_initial_volume[element_id]
-
-    def _add_neumann_forces(self):
-        for edge in self.neumann_boundary:
-            v_0 = edge[0]
-            v_1 = edge[1]
-
-            edge_length = nph.length(self.initial_nodes[v_0], self.initial_nodes[v_1])
-            v_mid = (self.initial_nodes[v_0] + self.initial_nodes[v_1]) / 2
-
-            f_neumann = self.outer_forces(v_mid) * edge_length / 2
-
-            self._forces[v_0] += f_neumann
-            self._forces[v_1] += f_neumann
+    def clear(self):
+        self.forces = None
+        self.outer_force_at_node = None
 
     @property
     def normalized_forces(self):
         return self.normalize_rotate(self.forces)
 
-    def prepare(self, forces: np.ndarray):
-        self.forces = forces
+    @property
+    def normalized_outer_force_at_node(self):
+        return self.normalize_rotate(self.outer_force_at_node)
 
-    def clear(self):
-        self.forces = None
+    def get_integrated_inner_forces(self):
+        return self.volume @ self.normalized_forces  # volume_at_nodes
 
-    # def integrate_forces(self):
-    #    f_vector = nph.stack_column(self.volume @ forces)
+    def get_integrated_outer_forces(self):
+        neumann_surfaces = get_surface_per_boundary_node_numba(
+            self.neumann_boundary, self.nodes_count, self.moved_nodes
+        )
+        return neumann_surfaces * self.outer_force_at_node
+
+    def get_integrated_forces_column(self):
+        integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
+        return nph.stack_column(integrated_forces[self.independent_indices, :])
+
+    def get_integrated_forces_vector(self):
+        return self.get_integrated_forces_column().reshape(-1)
 
     def get_all_normalized_rhs_np(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_np(temperature)
@@ -125,7 +108,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(displacement_old)
         velocity_old_vector = nph.stack_column(velocity_old)
-        f_vector = nph.stack_column(self.volume @ self.normalized_forces)
+        f_vector = self.get_integrated_forces_column()
         rhs = (
             f_vector
             - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector

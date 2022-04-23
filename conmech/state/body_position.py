@@ -236,3 +236,4 @@ class BodyPosition(Mesh):
     @property
     def input_displacement_old(self):
         return self.normalized_displacement_old
+ 

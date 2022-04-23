@@ -174,7 +174,7 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     result = runner.solve(initial_displacement=setup.initial_displacement)
 
     displacement = result.mesh.initial_nodes[:] - result.displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
+    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
