@@ -5,7 +5,6 @@ from typing import Optional
 from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
-from deep_conmech.data.live_dataset import LiveDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
@@ -14,22 +13,25 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def train(config: TrainingConfig):
-    if config.td.DATASET == "live":
-        net = get_net(None, config)
-        train_dataset = get_live_train_dataset(config=config, net=net)
-    else:
-        train_dataset = get_train_dataset(config.td.DATASET, config=config)
-        statistics = train_dataset.get_statistics() if config.td.USE_DATASET_STATS else None
-        net = get_net(statistics, config)
+    train_dataset = get_train_dataset(config.td.dataset, config=config)
+    statistics = train_dataset.get_statistics() if config.td.use_dataset_statistics else None
+    net = get_net(statistics, config)
 
     all_val_datasets = get_all_val_datasets(config=config)
-    model = GraphModelDynamic(train_dataset, all_val_datasets, net, config)
+    all_print_datasets = scenarios.all_print(config.td)
+    model = GraphModelDynamic(
+        train_dataset=train_dataset,
+        all_val_datasets=all_val_datasets,
+        print_scenarios=all_print_datasets,
+        net=net,
+        config=config,
+    )
     model.train()
 
 
 def plot(config: TrainingConfig):
-    if config.td.USE_DATASET_STATS:
-        train_dataset = get_train_dataset(config.td.DATASET, config=config)
+    if config.td.use_dataset_statistics:
+        train_dataset = get_train_dataset(config.td.dataset, config=config)
         statistics = train_dataset.get_statistics()
     else:
         statistics = None
@@ -42,22 +44,14 @@ def plot(config: TrainingConfig):
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
 
-def get_live_train_dataset(config: TrainingConfig, net: CustomGraphNet):
-    return LiveDataset(
-        description="train",
-        all_scenarios=scenarios.all_train(config.td),
-        net=net,
-        load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
-        config=config,
-    )
-
-
 def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
-            dimension=2,
-            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            load_features_to_ram=config.load_train_features_to_ram,
+            load_targets_to_ram=config.load_train_targets_to_ram,
+            with_scenes_file=config.with_train_scenes_file,
+            randomize_at_load=True,
             config=config,
         )
     elif dataset_type == "calculator":
@@ -65,7 +59,9 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             description="train",
             all_scenarios=scenarios.all_train(config.td),
             skip_index=1,
-            load_to_ram=config.LOAD_TRAIN_DATASET_TO_RAM,
+            load_features_to_ram=config.load_train_features_to_ram,
+            load_targets_to_ram=config.load_train_targets_to_ram,
+            randomize_at_load=True,
             config=config,
         )
     else:
@@ -92,7 +88,9 @@ def get_all_val_datasets(config: TrainingConfig):
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
             skip_index=skip_index,
-            load_to_ram=False,
+            load_features_to_ram=False,
+            load_targets_to_ram=False,
+            randomize_at_load=False,
             config=config,
         )
     )
@@ -103,7 +101,7 @@ def get_all_val_datasets(config: TrainingConfig):
 
 
 def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    net = CustomGraphNet(2, statistics=statistics, td=config.td)
+    net = CustomGraphNet(statistics=statistics, td=config.td)
     net.to(thh.device(config))
     return net
 
@@ -112,9 +110,11 @@ def main(args: Namespace):
     print(f"MODE: {args.mode}")
     device = thh.get_device_id()
     # dch.cuda_launch_blocking()
-    config = TrainingConfig(shell=args.shell, DEVICE=device)
+    # torch.autograd.set_detect_anomaly(True)
+    # print(numba.cuda.gpus)
+    config = TrainingConfig(shell=args.shell, device=device)
     dch.set_memory_limit(config=config)
-    print(f"Running using {config.DEVICE}")
+    print(f"Running using {config.device}")
 
     if "train" in args.mode:
         train(config)

@@ -9,8 +9,9 @@ class MeshProperties:
     mesh_type: str
     mesh_density: List[float]
     scale: List[float]
-    dimension: int = 2
+    dimension: int
     is_adaptive: bool = False
+    initial_base: Optional[np.ndarray] = None
     initial_position: Optional[np.ndarray] = None
 
     @staticmethod

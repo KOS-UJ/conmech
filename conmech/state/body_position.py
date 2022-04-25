@@ -4,6 +4,7 @@ from typing import Callable
 
 import numba
 import numpy as np
+
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
@@ -71,8 +72,8 @@ def get_boundary_nodes_normals_numba(
 
 
 @numba.njit
-def get_surface_per_boundary_node_numba(boundary_surfaces, boundary_nodes_count, moved_nodes):
-    surface_per_boundary_node = np.zeros((boundary_nodes_count, 1), dtype=np.float64)
+def get_surface_per_boundary_node_numba(boundary_surfaces, considered_nodes_count, moved_nodes):
+    surface_per_boundary_node = np.zeros((considered_nodes_count, 1), dtype=np.float64)
 
     for boundary_surface in boundary_surfaces:
         face_nodes = moved_nodes[boundary_surface]
@@ -225,7 +226,9 @@ class BodyPosition(Mesh):
 
     def get_surface_per_boundary_node(self):
         return get_surface_per_boundary_node_numba(
-            self.boundary_surfaces, self.boundary_nodes_count, self.moved_nodes
+            boundary_surfaces=self.boundary_surfaces,
+            considered_nodes_count=self.boundary_nodes_count,
+            moved_nodes=self.moved_nodes,
         )
 
     @property

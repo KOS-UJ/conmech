@@ -1,4 +1,6 @@
 import os
+import pickle
+from typing import Iterable, Optional
 
 import numpy as np
 import torch
@@ -22,29 +24,29 @@ def print_dataset(dataset, cutoff, timestamp, description):
     iterations = np.min([len(batch), cutoff])
 
 
-def get_print_dataloader(dataset):
-    return get_dataloader(dataset, dataset.config.BATCH_SIZE, num_workers=0, shuffle=False)
+def get_print_dataloader(dataset: "BaseDataset"):
+    return get_dataloader(dataset, dataset.config.td.batch_size, num_workers=0, shuffle=False)
 
 
-def get_valid_dataloader(dataset):
+def get_valid_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
-        dataset.config.td.VALID_BATCH_SIZE,
-        num_workers=dataset.config.DATALOADER_WORKERS,
+        dataset.config.td.valid_batch_size,
+        num_workers=dataset.config.dataloader_workers,
         shuffle=False,
     )
 
 
-def get_train_dataloader(dataset):
+def get_train_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset,
-        dataset.config.td.BATCH_SIZE,
-        num_workers=dataset.config.DATALOADER_WORKERS,
+        dataset.config.td.batch_size,
+        num_workers=dataset.config.dataloader_workers,
         shuffle=True,
     )
 
 
-def get_all_dataloader(dataset):
+def get_all_dataloader(dataset: "BaseDataset"):
     return get_dataloader(dataset, len(dataset), num_workers=0, shuffle=False)
 
 
@@ -54,19 +56,19 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  # TODO: #65
+        pin_memory=False,  # True,  # TODO: #65
     )
 
 
 def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     memory_usage = dch.get_used_memory_gb()
     step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB}"
+        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.synthetic_generation_memory_limit_gb}"
     )
-    memory_overflow = memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
+    memory_overflow = memory_usage > config.synthetic_generation_memory_limit_gb
     if memory_overflow:
         step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.SYNTHETIC_GENERATION_MEMORY_LIMIT_GB
+    return memory_usage > config.synthetic_generation_memory_limit_gb
 
 
 def get_process_data_range(process_id, data_part_count):
@@ -92,7 +94,9 @@ class BaseDataset:
         data_count: int,
         randomize_at_load: bool,
         num_workers: int,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
+        with_scenes_file: bool,
         config: TrainingConfig,
     ):
         self.dimension = dimension
@@ -100,11 +104,166 @@ class BaseDataset:
         self.data_count = data_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
-        self.load_to_ram = load_to_ram
+        self.load_features_to_ram = load_features_to_ram
+        self.load_targets_to_ram = load_targets_to_ram
+        self.with_scenes_file = with_scenes_file
         self.config = config
-        self.set_version = 0
-        self.all_indices = None
-        self.loaded_data = None
+        self.scene_indices = None
+        self.loaded_features_data = None
+        self.loaded_targets_data = None
+        self.features_indices = None
+        self.targets_indices = None
+
+    @property
+    def data_size_id(self):
+        pass
+
+    @property
+    def data_id(self):
+        td = self.config.td
+        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
+
+    @property
+    def main_directory(self):
+        return f"./{self.config.datasets_main_path}/{self.data_id}"
+
+    @property
+    def images_directory(self):
+        return f"{self.main_directory}/images"
+
+    @property
+    def tmp_directory(self):
+        return f"{self.main_directory}/tmp"
+
+    @property
+    def data_path(self):
+        return f"{self.main_directory}/DATA"
+
+    @property
+    def scenes_data_path(self):
+        return f"{self.main_directory}/DATA.scenes"
+
+    @property
+    def features_data_path(self):
+        return f"{self.tmp_directory}/DATASET.feat"
+
+    @property
+    def targets_data_path(self):
+        return f"{self.tmp_directory}/DATASET.targ"
+
+    def initialize_data(self):
+        print(f"----INITIALIZING DATASET ({self.data_id})----")
+        self.create_folders()
+        if self.with_scenes_file:
+            self.initialize_scenes()
+        else:
+            print("Skipping scenes file generation")
+        self.initialize_features_and_targets()
+
+        if self.load_features_to_ram:
+            self.load_features()
+        else:
+            print("Reading features from disc")
+
+        if self.load_targets_to_ram:
+            self.load_targets()
+        else:
+            print("Reading targets from disc")
+
+    def create_folders(self):
+        cmh.create_folders(self.images_directory)
+        cmh.create_folders(self.tmp_directory)
+
+    def initialize_scenes(self):
+        self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+        if self.data_count == len(self.scene_indices):
+            file_size_gb = os.path.getsize(self.scenes_data_path) / 1024**3
+            print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
+
+        else:
+            print("Clearing old data")
+            cmh.clear_folder(self.main_directory)
+            self.create_folders()
+
+            result = False
+            while result is False:
+                result = mph.run_processes(
+                    self.generate_data_process,
+                    (),
+                    self.num_workers,
+                )
+                if result is False:
+                    print("Restarting data generation")
+
+            self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+        assert self.data_count == len(self.scene_indices)
+
+    def get_iterator(self, data_tqdm: Iterable[int], scenes_path: Optional[str] = None):
+        for index in data_tqdm:
+            if scenes_path is not None:
+                with open(scenes_path, "rb") as file:
+                    scene = pickle.load(file)
+            else:
+                scene, _ = self.generate_scene(index)
+
+            features_data, target_data = self.preprocess_example(scene, index)
+            yield (features_data, target_data)
+
+    def initialize_features_and_targets(self):
+        self.features_indices = pkh.get_all_indices(self.features_data_path)
+        self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+        if self.data_count == len(self.features_indices) and self.data_count == len(
+            self.targets_indices
+        ):
+            features_size_gb = os.path.getsize(self.features_data_path) / 1024**3
+            targets_size_gb = os.path.getsize(self.targets_data_path) / 1024**3
+            print(
+                f"Taking prepared features ({features_size_gb:.2f} GB) and targets ({targets_size_gb:.2f} GB) dataset"
+            )
+        else:
+            data_tqdm = cmh.get_tqdm(
+                iterable=range(self.data_count),
+                config=self.config,
+                desc="Preprocessing dataset",
+            )
+
+            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
+            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
+
+            scenes_path = self.scenes_data_path if self.with_scenes_file else None
+            with features_file, features_indices_file, targets_file, targets_indices_file:
+                for features_data, targets_data in self.get_iterator(
+                    data_tqdm=data_tqdm, scenes_path=scenes_path
+                ):
+                    pkh.append_data(features_data, features_file, features_indices_file)
+                    pkh.append_data(targets_data, targets_file, targets_indices_file)
+
+            self.features_indices = pkh.get_all_indices(self.features_data_path)
+            self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+
+        assert self.data_count == len(self.features_indices)
+        assert self.data_count == len(self.targets_indices)
+
+    def load_features(self):
+        self.loaded_features_data = self.get_data_loaded_to_ram(
+            "features", self.features_data_path, self.features_indices
+        )
+
+    def load_targets(self):
+        self.loaded_targets_data = self.get_data_loaded_to_ram(
+            "targets", self.targets_data_path, self.targets_indices
+        )
+
+    def get_data_loaded_to_ram(self, desc, data_path, indices):
+        data_tqdm = cmh.get_tqdm(
+            iterable=range(len(indices)),
+            config=self.config,
+            desc=f"Loading {desc} to RAM",
+        )
+        file = pkh.open_file_read(data_path)
+        with file:
+            data = [pkh.load_index(index, indices, file) for index in data_tqdm]
+        return data
 
     def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
         setting = SceneInput(
@@ -122,13 +281,14 @@ class BaseDataset:
     def get_statistics(self):
         dataloader = get_train_dataloader(self)
 
-        nodes_data = torch.empty((0, SceneInput.nodes_data_dim()))
-        edges_data = torch.empty((0, SceneInput.edges_data_dim()))
-        for data in cmh.get_tqdm(
+        dimension = self.config.td.dimension
+        nodes_data = torch.empty((0, SceneInput.nodes_data_dim(dimension)))
+        edges_data = torch.empty((0, SceneInput.edges_data_dim(dimension)))
+        for features_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            nodes_data = torch.cat((nodes_data, data.x))
-            edges_data = torch.cat((edges_data, data.edge_attr))
+            nodes_data = torch.cat((nodes_data, features_data.x))
+            edges_data = torch.cat((edges_data, features_data.edge_attr))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)
@@ -141,114 +301,47 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def update_data(self):
-        pass
-
-    def initialize_data(self):
-        cmh.create_folders(self.images_directory)
-
-        self.all_indices = pkh.get_all_indices_pickle(self.data_path)
-        if self.data_count == len(self.all_indices):
-            settings_path = f"{self.data_path}.settings"
-            file_size_gb = os.path.getsize(settings_path) / 1024**3
-            print(f"Taking prepared {self.data_id} data ({file_size_gb:.2f} GB)")
-
+    def get_features_data(self, index):
+        if self.loaded_features_data is not None:
+            return self.loaded_features_data[index]
         else:
-            print("Clearing old data")
-            cmh.clear_folder(self.main_directory)
-            cmh.create_folders(self.images_directory)
-
-            result = False
-            while result is False:
-                result = mph.run_processes(
-                    self.generate_data_process,
-                    (),
-                    self.num_workers,
+            with pkh.open_file_read(self.features_data_path) as file:
+                features_data = pkh.load_index(
+                    index=index, all_indices=self.features_indices, data_file=file
                 )
-                if result is False:
-                    print("Restarting data generation")
+        return features_data
 
-            self.all_indices = pkh.get_all_indices_pickle(self.data_path)
-
-        assert self.data_count == len(self.all_indices)
-        if self.load_to_ram:
-            self.loaded_data = self.load_data_to_ram()
+    def get_targets_data(self, index):
+        if self.loaded_targets_data is not None:
+            return self.loaded_targets_data[index]
         else:
-            self.loaded_data = None
-            print("Loading data from disc")
-
-    def load_data_to_ram(self):
-        setting_tqdm = cmh.get_tqdm(
-            iterable=range(len(self.all_indices)),
-            config=self.config,
-            desc="Preprocessing and loading dataset to RAM",
-        )
-        return pkh.get_iterator_pickle(self.data_path, setting_tqdm, self.preprocess_example)
-
-    def generate_data_process(self, num_workers, process_id):
-        pass
-
-    @property
-    def data_size_id(self):
-        pass
-
-    @property
-    def data_id(self):
-        td = self.config.td
-        return f"{self.description}_m:{td.MESH_DENSITY}_{self.data_size_id}"
-
-    @property
-    def main_directory(self):
-        return f"./{self.config.DATASETS_MAIN_PATH}/{self.data_id}"
-
-    @property
-    def data_path(self):
-        return f"{self.main_directory}/DATA_{self.set_version}"
-
-    @property
-    def images_directory(self):
-        return f"{self.main_directory}/images_{self.set_version}"
-
-    def get_example(self, index):
-        if self.loaded_data is not None:
-            return self.loaded_data[index]
-        else:
-            with pkh.open_file_settings_read_pickle(self.data_path) as file:
-                setting = pkh.load_index_pickle(
-                    index=index, all_indices=self.all_indices, settings_file=file
+            with pkh.open_file_read(self.targets_data_path) as file:
+                target_data = pkh.load_index(
+                    index=index, all_indices=self.targets_indices, data_file=file
                 )
-        data = self.preprocess_example(setting, index)
-        return data
+        return target_data
 
-    def preprocess_example(self, setting, index):
+    def preprocess_example(self, scene, index):
         if self.randomize_at_load:
-            setting.set_randomization(True)
+            scene.set_randomization(True)
             exact_normalized_a_torch = Calculator.clean_acceleration(
-                setting, setting.exact_normalized_a_torch
+                scene, scene.exact_normalized_a_torch
             )
         else:
-            exact_normalized_a_torch = setting.exact_normalized_a_torch
+            exact_normalized_a_torch = scene.exact_normalized_a_torch
 
-        setting.exact_normalized_a_torch = None
-        data = setting.get_data(
-            f"{cmh.get_timestamp(self.config)} - {index}", exact_normalized_a_torch
-        )
-        return data
+        scene.exact_normalized_a_torch = None
+        features_data, target_data = scene.get_data(index, exact_normalized_a_torch)
+        return features_data, target_data
 
-    def check_and_print(self, data_count, current_index, setting, step_tqdm, tqdm_description):
-        plot_index_skip = int(data_count * (1 / self.config.DATASET_IMAGES_COUNT))
+    def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
+        plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")
-            self.plot_data_setting(setting, current_index, self.images_directory)
+            self.plot_data_setting(scene, current_index, self.images_directory)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
-
-    def __getitem__(self, index):
-        return self.get_example(index)
-
-    def __len__(self):
-        return self.data_count
 
     def plot_data_setting(self, setting, filename, catalog):
         cmh.create_folders(catalog)
@@ -262,3 +355,15 @@ class BaseDataset:
             draw_detailed=True,
             extension=extension,
         )
+
+    def generate_data_process(self, num_workers: int, process_id: int):
+        pass
+
+    def generate_scene(self, index: int):
+        pass
+
+    def __getitem__(self, index):
+        return self.get_features_data(index)
+
+    def __len__(self):
+        return self.data_count

@@ -13,8 +13,8 @@ class Variables:
 
 
 class Statement:
-    def __init__(self, dynamics):
-        self.dynamics = dynamics
+    def __init__(self, body):
+        self.body = body
         self.left_hand_side = None
         self.right_hand_side = None
 
@@ -31,21 +31,21 @@ class Statement:
 
 class StaticStatement(Statement):
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.dynamics.elasticity
+        self.left_hand_side = self.body.elasticity
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.dynamics.forces.forces_vector
+        self.right_hand_side = self.body.get_integrated_forces_vector()
 
 
 class QuasistaticStatement(Statement):
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.dynamics.viscosity
+        self.left_hand_side = self.body.viscosity
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
 
         self.right_hand_side = (
-            self.dynamics.forces.forces_vector - self.dynamics.elasticity @ var.displacement.T
+            self.body.get_integrated_forces_vector() - self.body.elasticity @ var.displacement.T
         )
 
 
@@ -54,7 +54,7 @@ class DynamicStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.dynamics.viscosity + (1 / var.time_step) * self.dynamics.acceleration_operator
+            self.body.viscosity + (1 / var.time_step) * self.body.acceleration_operator
         )
 
     def update_right_hand_side(self, var):
@@ -63,36 +63,34 @@ class DynamicStatement(Statement):
         assert var.time_step is not None
         assert var.temperature is not None
 
-        A = -1 * self.dynamics.elasticity @ var.displacement
+        A = -1 * self.body.elasticity @ var.displacement
 
-        A += (1 / var.time_step) * self.dynamics.acceleration_operator @ var.velocity
+        A += (1 / var.time_step) * self.body.acceleration_operator @ var.velocity
 
-        A += self.dynamics.thermal_expansion.T @ var.temperature
+        A += self.body.thermal_expansion.T @ var.temperature
 
-        self.right_hand_side = self.dynamics.forces.forces_vector + A
+        self.right_hand_side = self.body.get_integrated_forces_vector() + A
 
 
 class TemperatureStatement(Statement):
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
-        ind = self.dynamics.independent_nodes_count
+        ind = self.body.independent_nodes_count
 
-        self.left_hand_side = (1 / var.time_step) * self.dynamics.acceleration_operator[
+        self.left_hand_side = (1 / var.time_step) * self.body.acceleration_operator[
             :ind, :ind
-        ] + self.dynamics.thermal_conductivity[:ind, :ind]
+        ] + self.body.thermal_conductivity[:ind, :ind]
 
     def update_right_hand_side(self, var):
         assert var.velocity is not None
         assert var.time_step is not None
         assert var.temperature is not None
 
-        rhs = (-1) * self.dynamics.thermal_expansion @ var.velocity
+        rhs = (-1) * self.body.thermal_expansion @ var.velocity
 
-        ind = self.dynamics.independent_nodes_count
+        ind = self.body.independent_nodes_count
 
-        rhs += (
-            (1 / var.time_step) * self.dynamics.acceleration_operator[:ind, :ind] @ var.temperature
-        )
+        rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
         self.right_hand_side = rhs
         # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50

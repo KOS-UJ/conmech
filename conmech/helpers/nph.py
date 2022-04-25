@@ -42,7 +42,7 @@ def close_modulo(value, divider):
 
 def euclidean_norm(vector, keepdims=False):
     data = (vector**2).sum(axis=-1, keepdims=keepdims)
-    if isinstance(data, np.ndarray):
+    if isinstance(vector, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
     # return np.linalg.norm(vector, axis=-1)
@@ -145,37 +145,38 @@ def max_numba(corners):
 
 
 @numba.njit
-def get_point_index_numba(point, points):
-    for i, p in enumerate(points):
-        if np.sum(np.abs(point - p)) < 0.0001:
+def get_node_index_numba(node, nodes):
+    for i, n in enumerate(nodes):
+        if np.sum(np.abs(node - n)) < 0.0001:
             return i
     raise ArgumentError
 
 
-def get_random_normal(dim, nodes_count, scale):
-    # noise = np.random.uniform(low=-scale, high=scale, size=shape)
-    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[nodes_count, dim])
+def get_random_uniform(rows, columns, scale):
+    return np.random.uniform(low=-scale, high=scale, size=[rows, columns])
+
+
+def generate_normal(rows, columns, scale):
+    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
     return noise
 
 
-@numba.njit
-def get_random_normal_circle_numba(dim, nodes_count, randomization_scale):
-    result = np.zeros((nodes_count, dim))
-    for i in range(nodes_count):
-        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(np.random.normal(loc=0.0, scale=randomization_scale * 0.5))
-        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
+def generate_circle(rows, columns):
+    result = np.random.normal(loc=0.0, scale=1.0, size=[rows, columns])
+    result = normalize_euclidean_numba(result)
     return result
 
 
-@numba.njit
-def get_random_uniform_circle_numba(dim, nodes_count, low, high):
-    result = np.zeros((nodes_count, dim))
-    for i in range(nodes_count):
-        alpha = 2 * np.pi * np.random.uniform(0, 1)  # low=0, high=1)
-        r = np.abs(low + np.random.uniform(0, 1) * (high - low))
-        result[i] = [r * np.cos(alpha), r * np.sin(alpha)]
-    return result
+def generate_normal_circle(rows, columns, scale):
+    result = generate_circle(rows, columns)
+    r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, 1]))
+    return result * r
+
+
+def generate_uniform_circle(rows, columns, low, high):
+    result = generate_circle(rows, columns)
+    r = np.abs(np.random.uniform(low=low, high=high, size=[rows, 1]))
+    return result * r
 
 
 @numba.njit(inline="always")

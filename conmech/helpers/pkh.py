@@ -2,23 +2,22 @@
 pickle helpers
 """
 import pickle
-import sys
 from io import BufferedReader
-from typing import Callable, Iterable, List
+from typing import List
 
 
-def open_files_append_pickle(path: str):
-    return open(f"{path}.settings", "ab+"), open(f"{path}.indices", "ab+")
+def open_files_append(path: str):
+    return open(path, "ab+"), open(f"{path}_indices", "ab+")
 
 
-def open_file_settings_read_pickle(path: str):
-    return open(f"{path}.settings", "rb")
+def open_file_read(path: str):
+    return open(path, "rb")
 
 
-def get_all_indices_pickle(all_settings_path):
+def get_all_indices(data_path):
     all_indices = []
     try:
-        with open(f"{all_settings_path}.indices", "rb") as file:
+        with open(f"{data_path}_indices", "rb") as file:
             try:
                 while True:
                     all_indices.append(pickle.load(file))
@@ -29,43 +28,14 @@ def get_all_indices_pickle(all_settings_path):
     return all_indices
 
 
-def internal_load_pickle(settings_file):
-    # return pickle.load(settings_file)
-
-    state_dict = pickle.load(settings_file)
-    module_name = state_dict.pop("MODULE", None)
-    class_name = state_dict.pop("CLASS", None)
-    setting_class = getattr(sys.modules[module_name], class_name)  # __name__
-    setting = setting_class.__new__(setting_class)
-    setting.load_state_dict(state_dict)
-    return setting
+def append_data(data, data_file: BufferedReader, indices_file: BufferedReader) -> None:
+    index = data_file.tell()
+    pickle.dump(data, data_file)
+    pickle.dump(index, indices_file)
 
 
-def append_pickle(setting, settings_file: BufferedReader, file_meta: BufferedReader) -> None:
-    index = settings_file.tell()
-    state_dict = setting.get_state_dict()
-    state_dict["MODULE"] = setting.__module__
-    state_dict["CLASS"] = setting.__class__.__name__
-    pickle.dump(state_dict, settings_file)  # self #copy.deepcopy(self)
-    # pickle.dump(setting, settings_file)
-    pickle.dump(index, file_meta)
-
-
-def load_index_pickle(index: int, all_indices: List[int], settings_file: BufferedReader):
+def load_index(index: int, all_indices: List[int], data_file: BufferedReader):
     byte_index = all_indices[index]
-    settings_file.seek(byte_index)
-    setting = internal_load_pickle(settings_file)
-    return setting
-
-
-def get_iterator_pickle(data_path: str, setting_tqdm: Iterable[int], preprocess_example: Callable):
-    with open(f"{data_path}.settings", "rb") as file:
-        data = [preprocess_example(internal_load_pickle(file), index) for index in setting_tqdm]
+    data_file.seek(byte_index)
+    data = pickle.load(data_file)
     return data
-
-    # with open(f"{path}.settings", "rb") as file:
-    #     for _ in range(data_count):
-    #         # try:
-    #         yield internal_load_pickle(file)
-    #         # except EOFError:
-    #         #    break

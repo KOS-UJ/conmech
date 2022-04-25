@@ -1,6 +1,7 @@
 import meshzoo
 import numpy as np
 import pygmsh
+
 from conmech.mesh import mesh_builders_helpers
 from conmech.properties.mesh_properties import MeshProperties
 

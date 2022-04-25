@@ -1,47 +1,28 @@
 import json
 import time
 from ctypes import ArgumentError
-from typing import Optional
+from typing import List
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
+from pandas import DataFrame
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
-from conmech.helpers.config import Config
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
-from deep_conmech.data.dataset_statistics import DatasetStatistics
+from deep_conmech.data.dataset_statistics import FeaturesStatistics
+from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.scene import scene_input
 from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
-
-
-def get_and_init_writer(statistics: Optional[DatasetStatistics], config: TrainingConfig):
-    writer = SummaryWriter(f"{config.LOG_CATALOG}/{config.current_time}")
-    print("Logging data...")
-
-    def pretty_json(value):
-        dictionary = vars(value)
-        json_str = json.dumps(dictionary, indent=2)
-        return "".join("\t" + line for line in json_str.splitlines(True))
-
-    writer.add_text(f"{config.current_time}_PARAMETERS.txt", pretty_json(config.td), global_step=0)
-
-    if statistics is not None:
-        edge_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.current_time}_EDGE_STATS.txt", edge_statistics_str, global_step=0)
-
-        node_statistics_str = statistics.edges_statistics.describe().to_json()
-        writer.add_text(f"{config.current_time}_NODE_STATS.txt", node_statistics_str, global_step=0)
-
-    return writer
 
 
 class ErrorResult:
@@ -53,15 +34,16 @@ class GraphModelDynamic:
         self,
         train_dataset,
         all_val_datasets,
+        print_scenarios: List[Scenario],
         net: CustomGraphNet,
         config: TrainingConfig,
     ):
+        print("----CREATING MODEL----")
         self.config = config
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
-        statistics = train_dataset.get_statistics() if config.LOG_DATASET_STATS else None
-        self.writer = get_and_init_writer(statistics, self.config)
+        self.print_scenarios = print_scenarios
         self.loss_labels = [
             "energy",
             # "energy_diff",
@@ -73,13 +55,15 @@ class GraphModelDynamic:
         self.net = net
         self.optimizer = torch.optim.Adam(
             self.net.parameters(),
-            lr=self.config.td.INITIAL_LR,  # weight_decay=5e-4
+            lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
-            self.config.td.LR_GAMMA**epoch,
-            self.config.td.FINAL_LR / self.config.td.INITIAL_LR,
+            self.config.td.learning_rate_decay**epoch,
+            self.config.td.final_learning_rate / self.config.td.initial_learning_rate,
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
+        self.logger = Logger(dataset=self.train_dataset, config=config)
+        self.logger.save_parameters_and_statistics()
 
     @property
     def lr(self):
@@ -88,9 +72,6 @@ class GraphModelDynamic:
     def graph_sizes(self, batch):
         graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
         return graph_sizes
-
-    def boundary_nodes_counts(self, batch):
-        return thh.to_np_long(batch.boundary_nodes_count).tolist()
 
     def get_split(self, batch, index, dim, graph_sizes):
         value = batch.x[:, index * dim : (index + 1) * dim]
@@ -105,7 +86,7 @@ class GraphModelDynamic:
         examples_seen = 0
         epoch_number = 0
         print("----TRAINING----")
-        while self.config.MAX_EPOCH_NUMBER is None or epoch_number < self.config.MAX_EPOCH_NUMBER:
+        while self.config.max_epoch_number is None or epoch_number < self.config.max_epoch_number:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
@@ -122,22 +103,17 @@ class GraphModelDynamic:
 
             current_time = time.time()
             elapsed_time = current_time - last_save_time
-            if elapsed_time > self.config.td.SAVE_AT_MINUTES * 60:
+            if elapsed_time > self.config.td.save_at_minutes * 60:
                 # print(f"--Training time: {(elapsed_time / 60):.4f} min")
                 self.save_net()
                 last_save_time = time.time()
 
-            if epoch_number % self.config.td.VALIDATE_AT_EPOCHS == 0:
+            if epoch_number % self.config.td.validate_at_epochs == 0:
                 self.validation_raport(examples_seen=examples_seen)
-            if epoch_number % self.config.td.UPDATE_AT_EPOCHS == 0:
-                self.update_dataset()
+            if epoch_number % self.config.td.validate_scenarios_at_epochs == 0:
+                self.validate_all_scenarios_raport(examples_seen=examples_seen)
 
             # print(prof.key_averages().table(row_limit=10))
-
-    def update_dataset(self):
-        print("----UPDATING DATASET----")
-        self.train_dataset.update_data()
-        print("--")
 
     def save_net(self):
         print("----SAVING----")
@@ -195,7 +171,7 @@ class GraphModelDynamic:
                 run_config=simulation_runner.RunScenarioConfig(
                     catalog=catalog,
                     simulate_dirty_data=False,
-                    compare_with_base_setting=config.COMPARE_WITH_BASE_SETTING,
+                    compare_with_base_setting=config.compare_with_base_setting,
                     plot_animation=True,
                 ),
                 get_setting_function=GraphModelDynamic.get_setting_function,
@@ -204,23 +180,23 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, batch):
+    def train_step(self, batch, dataset):
         self.net.train()
         self.net.zero_grad()
 
-        loss, loss_array_np, batch = self.E(batch)
+        loss, loss_array_np = self.E(batch, dataset)
         loss.backward()
-        if self.config.td.GRADIENT_CLIP is not None:
-            self.clip_gradients(self.config.td.GRADIENT_CLIP)
+        if self.config.td.gradient_clip is not None:
+            self.clip_gradients(self.config.td.gradient_clip)
         self.optimizer.step()
 
         return loss_array_np
 
-    def test_step(self, batch):
+    def test_step(self, batch, dataset):
         self.net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np, _ = self.E(batch)
+            _, loss_array_np = self.E(batch, dataset)
 
         return loss_array_np
 
@@ -234,28 +210,33 @@ class GraphModelDynamic:
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
-        # range(len()) -> enumerate
 
         examples_seen = 0
         mean_loss_array = np.zeros(self.labels_count)
-        for _, batch in enumerate(batch_tqdm):
+        for _, features_batch in enumerate(batch_tqdm):
             # len(batch) ?
-            loss_array = step_function(batch)
-            examples_seen += batch.num_graphs
-            mean_loss_array += loss_array * (batch.num_graphs / len(dataset))
+            loss_array = step_function(features_batch, dataset)
+
+            old_examples_seen = examples_seen
+            examples_seen += features_batch.num_graphs
+
+            mean_loss_array = mean_loss_array * (old_examples_seen / examples_seen) + loss_array * (
+                features_batch.num_graphs / examples_seen
+            )
+
             batch_tqdm.set_description(
-                f"{description} loss: {(loss_array[self.tqdm_loss_index]):.4f}"
+                f"{description} loss: {(mean_loss_array[self.tqdm_loss_index]):.4f}"
             )
         return mean_loss_array, examples_seen
 
     def training_raport(self, loss_array, examples_seen):
-        self.writer.add_scalar(
+        self.logger.writer.add_scalar(
             "Loss/Training/LearningRate",
             self.lr,
             examples_seen,
         )
         for i, loss in enumerate(loss_array):
-            self.writer.add_scalar(
+            self.logger.writer.add_scalar(
                 f"Loss/Training/{self.loss_labels[i]}",
                 loss,
                 examples_seen,
@@ -273,75 +254,56 @@ class GraphModelDynamic:
                 description=dataset.data_id,
             )
             for i in range(self.labels_count):
-                self.writer.add_scalar(
+                self.logger.writer.add_scalar(
                     f"Loss/Validation/{dataset.data_id}/{self.loss_labels[i]}",
                     loss_array[i],
                     examples_seen,
                 )
-
         validation_time = time.time() - start_time
         print(f"--Validation time: {(validation_time / 60):.4f} min")
 
-    def E(self, batch, test_using_true_solution=False):
-        # graph_couts = [1 for i in range(batch.num_graphs)]
-        graph_sizes = self.graph_sizes(batch)
-        boundary_nodes_counts = self.boundary_nodes_counts(batch)
-        dim_graph_sizes = [size * self.dim for size in graph_sizes]
-        dim_dim_graph_sizes = [(size * self.dim) ** self.dim for size in graph_sizes]
+    def validate_all_scenarios_raport(self, examples_seen):
+        print("----VALIDATING SCENARIOS----")
+        start_time = time.time()
+        total_mean_energy = 0.0
+        for scenario in self.print_scenarios:
+            _, _, mean_energy = simulation_runner.run_scenario(
+                solve_function=self.net.solve,
+                scenario=scenario,
+                config=self.config,
+                run_config=simulation_runner.RunScenarioConfig(),
+                get_setting_function=GraphModelDynamic.get_setting_function,
+            )
+            self.logger.writer.add_scalar(
+                f"Loss/Validation/{scenario.name}/mean_energy",
+                mean_energy,
+                examples_seen,
+            )
+            total_mean_energy += mean_energy / len(self.print_scenarios)
+            print("---")
+
+        self.logger.writer.add_scalar(
+            f"Loss/Validation/total_mean_energy",
+            total_mean_energy,
+            examples_seen,
+        )
+        print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
+
+    def E(self, features_batch, dataset: base_dataset.BaseDataset, test_using_true_solution=False):
+        scene_indices = list(map(np.int64, features_batch.scene_index))
+
+        graph_sizes = self.graph_sizes(features_batch)
+
+        batch_cuda = features_batch.to(self.net.device)
+        all_predicted_normalized_a = self.net(batch_cuda).to("cpu")
+        predicted_normalized_a_split = all_predicted_normalized_a.split(graph_sizes)
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
 
-        batch_cuda = batch.to(self.net.device)
-        predicted_normalized_a_split = self.net(batch_cuda).split(graph_sizes)
-
-        reshaped_C_split = batch.reshaped_C.split(dim_dim_graph_sizes)
-        normalized_E_split = batch.normalized_E.split(dim_graph_sizes)
-        normalized_a_correction_split = batch.normalized_a_correction.split(graph_sizes)
-        normalized_boundary_velocity_old_split = batch.normalized_boundary_velocity_old.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_nodes_split = batch.normalized_boundary_nodes.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_normals_split = batch.normalized_boundary_normals.split(
-            boundary_nodes_counts
-        )
-
-        normalized_boundary_obstacle_nodes_split = batch.normalized_boundary_obstacle_nodes.split(
-            boundary_nodes_counts
-        )
-        normalized_boundary_obstacle_normals_split = (
-            batch.normalized_boundary_obstacle_normals.split(boundary_nodes_counts)
-        )
-        surface_per_boundary_node_split = batch.surf_per_boundary_node.split(boundary_nodes_counts)
-
-        if hasattr(batch, "exact_normalized_a"):
-            exact_normalized_a_split = batch.exact_normalized_a.split(graph_sizes)
-
-        # dataset = StepDataset(batch.num_graphs)
-        for i in range(batch.num_graphs):
-            C_side_len = graph_sizes[i] * self.dim
-            C = reshaped_C_split[i].reshape(C_side_len, C_side_len)
-            normalized_E = normalized_E_split[i]
-            normalized_a_correction = normalized_a_correction_split[i]
+        for i, scene_index in enumerate(scene_indices):
+            energy_args = dataset.get_targets_data(scene_index)
             predicted_normalized_a = predicted_normalized_a_split[i]
-
-            energy_args = dict(
-                a_correction=normalized_a_correction,
-                args=EnergyObstacleArguments(
-                    lhs=C,
-                    rhs=normalized_E,
-                    boundary_velocity_old=normalized_boundary_velocity_old_split[i],
-                    boundary_nodes=normalized_boundary_nodes_split[i],
-                    boundary_normals=normalized_boundary_normals_split[i],
-                    boundary_obstacle_nodes=normalized_boundary_obstacle_nodes_split[i],
-                    boundary_obstacle_normals=normalized_boundary_obstacle_normals_split[i],
-                    surface_per_boundary_node=surface_per_boundary_node_split[i],
-                    obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
-                    time_step=0.01,  # TODO: generalize
-                ),
-            )
 
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
@@ -349,16 +311,16 @@ class GraphModelDynamic:
             predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
             )
-            if hasattr(batch, "exact_normalized_a"):
+            if hasattr(energy_args, "exact_normalized_a"):
                 exact_normalized_a = exact_normalized_a_split[i]
 
-            if self.config.td.USE_ENERGY_AS_LOSS:
+            if self.config.td.use_energy_as_loss:
                 loss += predicted_normalized_energy
             else:
                 loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
 
             loss_array[0] += predicted_normalized_energy
-            if hasattr(batch, "exact_normalized_a"):
+            if hasattr(energy_args, "exact_normalized_a"):
                 exact_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
@@ -368,9 +330,9 @@ class GraphModelDynamic:
                 )
                 loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
 
-        loss /= batch.num_graphs
-        loss_array /= batch.num_graphs
-        return loss, loss_array, None  # new_batch
+        loss /= features_batch.num_graphs
+        loss_array /= features_batch.num_graphs
+        return loss, loss_array
 
     def use_true_solution(self, predicted_normalized_a, energy_args):
         function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(

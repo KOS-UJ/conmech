@@ -39,13 +39,13 @@ class SchurComplement(Optimization):
         self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
 
         (
-            self._point_relations,
+            self._node_relations,
             self.free_x_contact,
             self.contact_x_free,
             self.free_x_free_inverted,
         ) = self.recalculate_displacement()
 
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
 
     @staticmethod
     def calculate_schur_complement_matrices(
@@ -95,7 +95,7 @@ class SchurComplement(Optimization):
         )
 
     def recalculate_forces(self):
-        point_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
+        node_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
             vector=self.statement.right_hand_side,
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
@@ -103,38 +103,38 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return point_forces.T, forces_free
+        return node_forces.T, forces_free
 
     def __str__(self):
         return "schur"
 
     @property
-    def point_relations(self) -> np.ndarray:
-        return self._point_relations
+    def node_relations(self) -> np.ndarray:
+        return self._node_relations
 
     @property
-    def point_forces(self) -> np.ndarray:
-        return self._point_forces
+    def node_forces(self) -> np.ndarray:
+        return self._node_forces
 
     def solve(
         self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
     ) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_points(initial_guess)
+        truncated_initial_guess = self.truncate_free_nodes(initial_guess)
         solution_contact = super().solve(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
-        solution_free = self.complement_free_points(solution_contact)
+        solution_free = self.complement_free_nodes(solution_contact)
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def truncate_free_points(self, initial_guess: np.ndarray) -> np.ndarray:
+    def truncate_free_nodes(self, initial_guess: np.ndarray) -> np.ndarray:
         _result = initial_guess.reshape(2, -1)
         _result = _result[:, self.contact_ids]
         _result = _result.reshape(1, -1)
         result = _result
         return result
 
-    def complement_free_points(self, truncated_solution: np.ndarray) -> np.ndarray:
+    def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
         _result = truncated_solution.reshape(-1, 1)
         _result = self.free_x_contact @ _result
         _result = self.forces_free - _result
@@ -188,7 +188,7 @@ class Quasistatic(SchurComplement):
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(Variables(displacement=self.u_vector))
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
@@ -220,7 +220,7 @@ class Dynamic(SchurComplement):
         )
 
         (
-            self._point_temperature,
+            self._node_temperature,
             self.temper_free_x_contact,
             self.temper_contact_x_free,
             self.temper_free_x_free_inverted,
@@ -256,7 +256,7 @@ class Dynamic(SchurComplement):
     #     state.set_velocity(velocity_vector=velocity)
 
     def solve_t(self, initial_guess, velocity) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_points(velocity)
+        truncated_initial_guess = self.truncate_free_nodes(velocity)
         truncated_temperature = initial_guess[self.contact_ids]
         solution_contact = super().solve_t(truncated_temperature, truncated_initial_guess[0])
 
@@ -271,7 +271,7 @@ class Dynamic(SchurComplement):
 
     @property
     def node_temperature(self):
-        return self._point_temperature
+        return self._node_temperature
 
     def iterate(self, velocity):
         super().iterate(velocity)
@@ -290,7 +290,7 @@ class Dynamic(SchurComplement):
                 time_step=self.time_step,
             )
         )
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
         self.temper_rhs, self.temper_rhs_free = self.recalculate_temperature()
 
     def recalculate_temperature(self):

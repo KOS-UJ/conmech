@@ -40,11 +40,11 @@ class Direct(Solver):
         return "direct"
 
     @property
-    def point_relations(self) -> np.ndarray:
+    def node_relations(self) -> np.ndarray:
         return self.statement.left_hand_side
 
     @property
-    def point_forces(self) -> np.ndarray:
+    def node_forces(self) -> np.ndarray:
         return self.statement.right_hand_side
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
@@ -54,8 +54,8 @@ class Direct(Solver):
             args=(
                 self.mesh.initial_nodes,
                 self.mesh.contact_boundary,
-                self.point_relations,
-                self.point_forces,
+                self.node_relations,
+                self.node_forces,
             ),
         )
         return np.asarray(result)

@@ -4,7 +4,8 @@ General solver for Contact Mechanics problem.
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
-from conmech.dynamics.dynamics import Dynamics
+
+from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -15,6 +16,7 @@ from conmech.scenarios.problems import Dynamic as DynamicProblem
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
+from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
@@ -55,20 +57,26 @@ class ProblemSolver:
 
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
-        self.mesh = Dynamics(
+        self.body = BodyForces(
             mesh_prop=MeshProperties(
+                dimension=2,
                 mesh_type="cross",
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],
             ),
-            inner_forces=setup.inner_forces,
-            outer_forces=setup.outer_forces,
             body_prop=body_prop,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            normalize_by_rotation=False,
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
-            with_schur_complement_matrices=False,
+            dynamics_config=DynamicsConfiguration(
+                normalize_by_rotation=False,
+                create_in_subprocess=False,
+                with_lhs=False,
+                with_schur=False,
+            ),
+        )
+        self.body.set_permanent_forces_by_functions(
+            inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces
         )
         self.setup = setup
 
@@ -110,7 +118,7 @@ class ProblemSolver:
             raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
         self.step_solver = solver_class(
-            self.mesh,
+            self.body,
             body_prop,
             time_step,
             self.setup.contact_law,
@@ -219,9 +227,9 @@ class Static(ProblemSolver):
         :param verbose: show prints
         :return: state
         """
-        state = State(self.mesh)
+        state = State(self.body)
         state.displacement = initial_displacement(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
 
         solution = state.displacement.reshape(2, -1)
@@ -270,12 +278,12 @@ class Quasistatic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.mesh)
+        state = State(self.body)
         state.displacement[:] = initial_displacement(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -329,12 +337,12 @@ class Dynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.mesh)
+        state = State(self.body)
         state.displacement[:] = initial_displacement(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -390,15 +398,15 @@ class TDynamic(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = TemperatureState(self.mesh)
+        state = TemperatureState(self.body)
         state.displacement[:] = initial_displacement(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
         state.temperature[:] = initial_temperature(
-            self.mesh.initial_nodes[: self.mesh.independent_nodes_count]
+            self.body.initial_nodes[: self.body.independent_nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)

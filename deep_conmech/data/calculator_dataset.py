@@ -12,7 +12,9 @@ class CalculatorDataset(ScenariosDataset):
         description: str,
         all_scenarios: List[Scenario],
         skip_index: int,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
+        randomize_at_load: bool,
         config: TrainingConfig,
     ):
         super().__init__(
@@ -20,6 +22,8 @@ class CalculatorDataset(ScenariosDataset):
             all_scenarios=all_scenarios,
             skip_index=skip_index,
             solve_function=Calculator.solve_all,
-            load_to_ram=load_to_ram,
+            load_features_to_ram=load_features_to_ram,
+            load_targets_to_ram=load_targets_to_ram,
+            randomize_at_load=randomize_at_load,
             config=config,
         )

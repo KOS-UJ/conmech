@@ -8,12 +8,12 @@ from conmech.mesh import mesh_builders_helpers
 
 def get_meshzoo_rectangle(mesh_prop):
     # pylint: disable=no-member
-    points, elements = meshzoo.rectangle_tri(
+    nodes, elements = meshzoo.rectangle_tri(
         np.linspace(0.0, mesh_prop.scale_x, int(mesh_prop.mesh_density_x) + 1),
         np.linspace(0.0, mesh_prop.scale_y, int(mesh_prop.mesh_density_y) + 1),
         variant="zigzag",
     )
-    return points, elements
+    return nodes, elements
 
 
 def get_pygmsh_elements_and_nodes(mesh_prop):

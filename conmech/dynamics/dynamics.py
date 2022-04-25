@@ -5,7 +5,6 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
-from conmech.forces import Forces
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -48,34 +47,38 @@ class SolverMatrices:
         self.temperature_free_x_free_inv: np.ndarray
 
 
+@dataclass
+class DynamicsConfiguration:
+    normalize_by_rotation: bool = True
+    create_in_subprocess: bool = False
+    with_lhs: bool = True
+    with_schur: bool = True
+
+
 class Dynamics(BodyPosition):
     def __init__(
         self,
         mesh_prop: MeshProperties,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
-        *,
-        inner_forces: Callable = (lambda _: 0),
-        outer_forces: Callable = (lambda _: 0),
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
-        with_schur_complement_matrices: bool = True,
-        create_in_subprocess: bool = False,
+        dynamics_config: DynamicsConfiguration,
+        is_dirichlet: Callable,
+        is_contact: Callable,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
+            normalize_by_rotation=dynamics_config.normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
-            create_in_subprocess=create_in_subprocess,
+            create_in_subprocess=dynamics_config.create_in_subprocess,
         )
         self.body_prop = body_prop
-        self.with_schur_complement_matrices = with_schur_complement_matrices
+        self.with_lhs = dynamics_config.with_lhs
+        self.with_schur = dynamics_config.with_schur
 
         self.element_initial_volume: np.ndarray
-        self.volume: np.ndarray
+        self.volume_at_nodes: np.ndarray
         self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
@@ -83,10 +86,6 @@ class Dynamics(BodyPosition):
         self.thermal_conductivity: np.ndarray
 
         self.solver_cache = SolverMatrices()
-
-        # RHS
-        self.forces = Forces(self, inner_forces, outer_forces)
-
         self.reinitialize_matrices()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
@@ -96,7 +95,7 @@ class Dynamics(BodyPosition):
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
-            self.volume,
+            self.volume_at_nodes,
             self.acceleration_operator,
             self.elasticity,
             self.viscosity,
@@ -109,11 +108,14 @@ class Dynamics(BodyPosition):
             independent_indices=self.independent_indices,
         )
 
-        if self.with_schur_complement_matrices:
-            self.solver_cache.lhs = (
-                self.acceleration_operator
-                + (self.viscosity + self.elasticity * self.time_step) * self.time_step
-            )
+        if not self.with_lhs:
+            return
+
+        self.solver_cache.lhs = (
+            self.acceleration_operator
+            + (self.viscosity + self.elasticity * self.time_step) * self.time_step
+        )
+        if self.with_schur:
             (
                 self.solver_cache.lhs_boundary,
                 self.solver_cache.free_x_contact,
@@ -142,8 +144,6 @@ class Dynamics(BodyPosition):
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,
                 )
-
-        self.forces.update_forces()
 
     @property
     def with_temperature(self):

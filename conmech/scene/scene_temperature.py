@@ -1,9 +1,9 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.scene.scene import Scene
 from conmech.scene import scene
-from conmech.scene.setting_forces import energy
+from conmech.scene.scene import Scene
+from conmech.scene.body_forces import energy
 from conmech.solvers import SchurComplement
 
 
@@ -86,7 +86,8 @@ class SceneTemperature(Scene):
 
     def get_normalized_rhs_np(self, temperature=None):
         value = super().get_normalized_rhs_np()
-        value += self.thermal_expansion.T @ temperature
+        if temperature is not None:
+            value += self.thermal_expansion.T @ temperature
         return value
 
     def get_all_normalized_t_rhs_np(self, normalized_a):
@@ -112,7 +113,7 @@ class SceneTemperature(Scene):
         v = velocity_old + acceleration * self.time_step
         v_vector = nph.stack_column(v)
 
-        A = nph.stack_column(self.volume @ self.heat)
+        A = nph.stack_column(self.volume_at_nodes @ self.heat)
         A += (-1) * self.thermal_expansion @ v_vector
         A += (1 / self.time_step) * U @ self.t_old
 

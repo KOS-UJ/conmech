@@ -2,89 +2,93 @@ from dataclasses import dataclass
 from typing import Optional
 
 import psutil
+from torch import nn
 
 from conmech.helpers.config import Config
 
 
 @dataclass
 class TrainingData:
-    TRAIN_SCALE: int = 1
-    VALIDATION_SCALE: int = 1
-    PRINT_SCALE: int = 1
+    dimension: int = 2
 
-    DATASET: str = "synthetic"  # synthetic # calculator # live
-    FINAL_TIME: float = 8  # !# 5 #8
-    MESH_DENSITY: int = 16  # !# 8 #16
-    ADAPTIVE_TRAINING_MESH: bool = True
+    train_scale: int = 1
+    validation_scale: int = 1
+    print_scale: int = 1
 
-    FORCES_RANDOM_SCALE: int = 4
-    OBSTACLE_ORIGIN_SCALE: float = 3.0 * TRAIN_SCALE
-    OBSTACLE_MIN_SCALE: float = 0.4 * TRAIN_SCALE
-    U_RANDOM_SCALE: float = 0.2
-    V_RANDOM_SCALE: float = 2.5
+    dataset: str = "synthetic"  # synthetic # calculator
+    final_time: float = 8
+    mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
+    adaptive_training_mesh: bool = False  # True
 
-    ROTATE_VELOCITY_PROPORTION: float = 0.5
-    ZERO_FORCES_PROPORTION: float = 0.8
-    CORNERS_SCALE_PROPORTION: float = 0.3
-    ROTATE_SCALE_PROPORTION: float = 0.5
+    forces_random_scale: int = 4
+    obstacle_origin_scale: float = 3.0 * train_scale  # less
+    obstacle_min_scale: float = 0.4 * train_scale
+    displacement_random_scale: float = 0.2
+    velocity_random_scale: float = 2.5
 
-    U_NOISE_GAMMA: float = 0.1
-    U_IN_RANDOM_FACTOR: float = 0.005 * U_RANDOM_SCALE
-    V_IN_RANDOM_FACTOR: float = 0.005 * V_RANDOM_SCALE
+    rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
+    zero_forces_proportion: float = 0.2  # 0.8
+    corners_scale_proportion: float = 0.8  # less
+    rotate_scale_proportion: float = 0.5
 
-    SAVE_AT_MINUTES: int = 10
-    VALIDATE_AT_EPOCHS: int = 10
-    UPDATE_AT_EPOCHS: int = 100
+    displacement_to_velocity_noise: float = 0.1
+    displacement_in_random_factor: float = 0.005 * displacement_random_scale
+    velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
-    USE_ENERGY_AS_LOSS: bool = True  # !#
-    BATCH_SIZE: int = 256  # !# 256 # 64 # 128
-    VALID_BATCH_SIZE: int = 128  # !#
-    SYNTHETIC_BATCHES_IN_EPOCH: int = 32
+    save_at_minutes: int = 10
+    validate_at_epochs: int = 1  # 10
+    validate_scenarios_at_epochs: int = 7  # 30
 
-    USE_DATASET_STATS: bool = False
-    INPUT_BATCH_NORM: bool = True
-    INTERNAL_BATCH_NORM: bool = False
-    LAYER_NORM: bool = True
+    use_energy_as_loss: bool = True
+    batch_size: int = 128
+    valid_batch_size: int = 128
+    synthetic_batches_in_epoch: int = 512
 
-    DROPOUT_RATE: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
-    SKIP: bool = True
-    GRADIENT_CLIP = 10.0  # None
+    use_dataset_statistics: bool = False
+    input_batch_norm: bool = True
+    internal_batch_norm: bool = False
+    layer_norm: bool = True
 
-    ATTENTION_HEADS: Optional[int] = None  # None 1 3 5
+    dropout_rate: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
+    skip_connections: bool = True
+    gradient_clip = 10.0  # None
 
-    INITIAL_LR: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    LR_GAMMA: float = 0.999  # 1.0
-    FINAL_LR: float = 1e-6
+    attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
-    LATENT_DIM: int = 128
-    ENC_LAYER_COUNT: int = 2
-    PROC_LAYER_COUNT: int = 0
-    DEC_LAYER_COUNT: int = 2
-    MESSAGE_PASSES: int = 8  # 5 # 10
+    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
+    learning_rate_decay: float = 0.999  # 0.995
+    final_learning_rate: float = 1e-6
+
+    activation = nn.ReLU()  # nn.PReLU()
+    latent_dimension: int = 128
+    encoder_layers_count: int = 0
+    processor_layers_count: int = 0
+    decoder_layers_count: int = 0
+    message_passes: int = 10  # 12
 
 
 @dataclass
 class TrainingConfig(Config):
     td: TrainingData = TrainingData()
-    DEVICE: str = "_"
-    # torch.autograd.set_detect_anomaly(True)
-    # print(numba.cuda.gpus)
+    device: str = "_"
 
-    DATALOADER_WORKERS = 4
-    SYNTHETIC_GENERATION_WORKERS = 1  # 2
+    dataloader_workers = 4
+    synthetic_generation_workers = 1  # 2
 
-    TOTAL_MEMORY_GB = psutil.virtual_memory().total / 1024**3
-    TOTAL_MEMORY_LIMIT_GB = round(TOTAL_MEMORY_GB * 0.9, 2)
-    SYNTHETIC_GENERATION_MEMORY_LIMIT_GB = round(
-        (TOTAL_MEMORY_GB * 0.8) / SYNTHETIC_GENERATION_WORKERS, 2
+    total_mempry_gb = psutil.virtual_memory().total / 1024**3
+    total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)
+    synthetic_generation_memory_limit_gb = round(
+        (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
     )
 
-    DATASET_IMAGES_COUNT: float = 100
+    dataset_images_count: float = 100
 
-    LOG_DATASET_STATS = True
-    LOAD_TRAIN_DATASET_TO_RAM = True
-    COMPARE_WITH_BASE_SETTING = False
+    log_dataset_stats: bool = True
+    load_train_features_to_ram: bool = True
+    load_train_targets_to_ram: bool = False
+    with_train_scenes_file: bool = False
 
-    MAX_EPOCH_NUMBER: Optional[int] = None
-    DATASETS_MAIN_PATH: str = "datasets"
-    LOG_CATALOG: str = "log"
+    compare_with_base_setting = False
+    max_epoch_number: Optional[int] = None
+    datasets_main_path: str = "datasets"
+    log_catalog: str = "log"

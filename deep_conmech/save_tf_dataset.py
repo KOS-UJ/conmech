@@ -87,32 +87,33 @@ def to_dict(type, array):
 
 
 def simulate(config: Config, scenario) -> str:
-    _, data_path = simulation_runner.run_scenario(
+    _, scenes_path, _ = simulation_runner.run_scenario(
         solve_function=Calculator.solve,
         scenario=scenario,
         config=config,
         run_config=simulation_runner.RunScenarioConfig(
             catalog="SAVE_TF",
+            plot_animation=True,
             save_all=True,
         ),
     )
-    return data_path
+    return scenes_path
 
 
-def prepare_data(config: TrainingConfig, data_path: str):
-    all_indices = pkh.get_all_indices_pickle(data_path)
+def prepare_data(config: TrainingConfig, scenes_path: str):
+    all_indices = pkh.get_all_indices(scenes_path)
     data_count = len(all_indices)
-    settings_file = pkh.open_file_settings_read_pickle(data_path)
-    with settings_file:
-        load_function = lambda index: pkh.load_index_pickle(
-            index=index, all_indices=all_indices, settings_file=settings_file
+    scenes_file = pkh.open_file_read(scenes_path)
+    with scenes_file:
+        load_function = lambda index: pkh.load_index(
+            index=index, all_indices=all_indices, data_file=scenes_file
         )
         base_setting = load_function(index=0)
         elements = base_setting.elements[np.newaxis, ...].astype("int32")
         initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
         node_type = np.zeros(
             (1, base_setting.nodes_count, 1), dtype="int32"
-        )  # TODO #65: Mask boundary points
+        )  # TODO #65: Mask boundary nodes
 
         moved_nodes_list = []
         forces_list = []
@@ -173,8 +174,8 @@ def main():
         obstacle=obstacle,
     )
 
-    data_path = simulate(config=config, scenario=scenario)
-    meta, data = prepare_data(config=config, data_path=data_path)
+    scenes_path = simulate(config=config, scenario=scenario)
+    meta, data = prepare_data(config=config, scenes_path=scenes_path)
 
     meta_path = os.path.join(directory, "meta.json")
     save_meta(meta, meta_path)

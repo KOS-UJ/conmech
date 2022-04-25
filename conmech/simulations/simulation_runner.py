@@ -40,10 +40,10 @@ def run_examples(
 
 @dataclass
 class RunScenarioConfig:
-    catalog: str
+    catalog: Optional[str] = None
     simulate_dirty_data: bool = False
     compare_with_base_setting: bool = False
-    plot_animation: bool = True
+    plot_animation: bool = False
     save_all: bool = False
 
 
@@ -53,43 +53,45 @@ def run_scenario(
     config: Config,
     run_config: RunScenarioConfig,
     get_setting_function: Optional[Callable] = None,
-) -> Tuple[Scene, str]:
+) -> Tuple[Scene, str, float]:
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if run_config.save_all else 1
-    plot_settings_count = [0]
+    plot_scenes_count = [0]
 
     save_files = run_config.plot_animation or run_config.save_all
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
-        data_path = f"{final_catalog}/scenarios/{scenario.name}_DATA"
+        scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
         if run_config.compare_with_base_setting:
             cmh.create_folders(f"{final_catalog}/scenarios_calculator")
-            calculator_data_path = f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA"
+            calculator_scenes_path = (
+                f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA.scenes"
+            )
     else:
         final_catalog = ""
-        data_path = ""
-        calculator_data_path = ""
+        scenes_path = ""
+        calculator_scenes_path = ""
 
-    def save_setting(setting: Scene, data_path: str):
-        settings_file, file_meta = pkh.open_files_append_pickle(data_path)
-        with settings_file, file_meta:
-            pkh.append_pickle(setting=setting, settings_file=settings_file, file_meta=file_meta)
+    def save_scene(scene: Scene, scenes_path: str):
+        scenes_file, indices_file = pkh.open_files_append(scenes_path)
+        with scenes_file, indices_file:
+            pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
 
     step = [0]  # TODO: #65 Clean
 
-    def operation_save(setting: Scene, base_setting: Optional[Scene] = None):
+    def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
         step[0] += 1
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_setting(setting=setting, data_path=data_path)
-            if base_setting is not None:
-                save_setting(setting=base_setting, data_path=calculator_data_path)
+            save_scene(scene=scene, scenes_path=scenes_path)
+            if base_scene is not None:
+                save_scene(scene=base_scene, scenes_path=calculator_scenes_path)
         if plot_index:
-            plot_settings_count[0] += 1
+            plot_scenes_count[0] += 1
 
-    setting = simulate(
+    setting, mean_energy = simulate(
         solve_function=solve_function,
         scenario=scenario,
         simulate_dirty_data=run_config.simulate_dirty_data,
@@ -107,12 +109,14 @@ def run_scenario(
             animation_path,
             time_skip,
             index_skip,
-            plot_settings_count[0],
-            data_path,
-            calculator_data_path if run_config.compare_with_base_setting else None,
+            plot_scenes_count[0],
+            all_scenes_path=scenes_path,
+            all_calc_scenes_path=calculator_scenes_path
+            if run_config.compare_with_base_setting
+            else None,
         )
 
-    return setting, data_path
+    return setting, scenes_path, mean_energy
 
 
 def plot_scenario_animation(
@@ -121,13 +125,11 @@ def plot_scenario_animation(
     animation_path: str,
     time_skip: float,
     index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
-    all_calc_settings_path: Optional[str],
+    plot_scenes_count: int,
+    all_scenes_path: str,
+    all_calc_scenes_path: Optional[str],
 ):
-    t_scale = plotter_common.get_t_scale(
-        scenario, index_skip, plot_settings_count, all_settings_path
-    )
+    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_scenes_count, all_scenes_path)
     plot_function = (
         plotter_2d.plot_animation if scenario.dimension == 2 else plotter_3d.plot_animation
     )
@@ -136,9 +138,9 @@ def plot_scenario_animation(
         config=config,
         time_skip=time_skip,
         index_skip=index_skip,
-        plot_settings_count=plot_settings_count,
-        all_settings_path=all_settings_path,
-        all_calc_settings_path=all_calc_settings_path,
+        plot_scenes_count=plot_scenes_count,
+        all_scenes_path=all_scenes_path,
+        all_calc_scenes_path=all_calc_scenes_path,
         t_scale=t_scale,
     )
 
@@ -164,7 +166,7 @@ def simulate(
     config: Config,
     operation: Optional[Callable] = None,
     get_setting_function: Optional[Callable] = None,
-) -> Scene:
+) -> Tuple[Scene, float]:
     _get_setting_function = (
         scenario.get_setting
         if get_setting_function is None
@@ -190,6 +192,7 @@ def simulate(
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
     temperature = None
+    mean_energy = 0.0
     for time_step in time_tqdm:
         current_time = (time_step + 1) * setting.time_step
 
@@ -202,12 +205,16 @@ def simulate(
             )
         else:
             acceleration = solve_function(setting, initial_a=acceleration)
+            mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
+                setting=setting, acceleration=acceleration
+            )
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
             setting.make_dirty()
 
         if compare_with_base_setting:
+
             start_time = time.time()
             base_a = Calculator.solve(base_setting)  # TODO #65: save in setting
             calculator_time += time.time() - start_time
@@ -226,7 +233,7 @@ def simulate(
 
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_setting else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
-    return setting
+    return setting, mean_energy
 
 
 def plot_setting(

@@ -21,7 +21,9 @@ class ScenariosDataset(BaseDataset):
         all_scenarios: List[Scenario],
         skip_index: int,
         solve_function: Callable,
-        load_to_ram: bool,
+        load_features_to_ram: bool,
+        load_targets_to_ram: bool,
+        randomize_at_load: bool,
         config: TrainingConfig,
     ):
         self.all_scenarios = all_scenarios
@@ -32,9 +34,11 @@ class ScenariosDataset(BaseDataset):
             description=description,
             dimension=self.check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
-            randomize_at_load=True,
+            randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check
-            load_to_ram=load_to_ram,
+            load_features_to_ram=load_features_to_ram,
+            load_targets_to_ram=load_targets_to_ram,
+            with_scenes_file=True,
             config=config,
         )
         self.initialize_data()
@@ -50,7 +54,7 @@ class ScenariosDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"f:{self.config.td.FINAL_TIME}_i:{self.skip_index}"
+        return f"f:{self.config.td.final_time}_i:{self.skip_index}"
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
@@ -66,14 +70,14 @@ class ScenariosDataset(BaseDataset):
         )
         scenario = assigned_scenarios[0]
 
-        settings_file, file_meta = pkh.open_files_append_pickle(self.data_path)
-        with settings_file, file_meta:
+        scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
+        with scenes_file, indices_file:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    setting = self.get_scene_input(scenario=scenario, config=self.config)
+                    scene = self.get_scene_input(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
                     config=self.config,
@@ -82,28 +86,28 @@ class ScenariosDataset(BaseDataset):
                 ):
                     return False
 
-                current_time = ts * setting.time_step
-                forces = scenario.get_forces_by_function(setting, current_time)
-                setting.prepare(forces)
+                current_time = ts * scene.time_step
+                forces = scenario.get_forces_by_function(scene, current_time)
+                scene.prepare(forces)
 
-                a, normalized_a = self.solve_function(setting)
+                a, normalized_a = self.solve_function(scene)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
 
                 if index % self.skip_index == 0:
-                    pkh.append_pickle(
-                        setting=setting, settings_file=settings_file, file_meta=file_meta
+                    pkh.append_data(
+                        data=scene, data_file=scenes_file, indices_file=indices_file
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(
                     simulation_data_count,
                     current_index,
-                    setting,
+                    scene,
                     step_tqdm,
                     tqdm_description,
                 )
 
                 # setting = setting.get_copy()
-                setting.iterate_self(a)
+                scene.iterate_self(a)
                 current_index += 1
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")

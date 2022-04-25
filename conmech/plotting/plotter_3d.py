@@ -72,7 +72,7 @@ def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Opti
             axes=axes,
             setting=setting,
             normalized_data=[
-                setting.normalized_forces,
+                setting.normalized_inner_forces,
                 setting.normalized_displacement_old,
                 setting.normalized_velocity_old,
                 setting.normalized_a_old,
@@ -139,9 +139,8 @@ def plot_subframe(axes, setting, normalized_data, t_scale):
 
 
 def plot_temperature(axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings):
-    points = nodes.T
     axes.scatter(
-        *points,
+        *(nodes.T),
         c=setting.t_old,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
@@ -185,8 +184,8 @@ def plot_obstacles(axes, setting, color):
     if setting.has_no_obstacles:
         return
     alpha = 0.3
-    node = setting.obstacle_nodes[0]
-    normal = setting.obstacle_normals[0]
+    node = setting.linear_obstacle_nodes[0]
+    normal = setting.get_obstacle_normals()[0]
 
     # a plane is a*x+b*y+c*z+d=0
     # z = (-d-axes-by) / c
@@ -212,9 +211,9 @@ def plot_animation(
     config: Config,
     time_skip: float,
     index_skip: int,
-    plot_settings_count: int,
-    all_settings_path: str,
-    all_calc_settings_path: Optional[str],
+    plot_scenes_count: int,
+    all_scenes_path: str,
+    all_calc_scenes_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -226,8 +225,8 @@ def plot_animation(
             save_path=save_path,
             time_skip=time_skip,
             index_skip=index_skip,
-            plot_settings_count=plot_settings_count,
-            all_settings_path=all_settings_path,
-            all_calc_settings_path=all_calc_settings_path,
+            plot_scenes_count=plot_scenes_count,
+            all_scenes_path=all_scenes_path,
+            all_calc_scenes_path=all_calc_scenes_path,
         ),
     )

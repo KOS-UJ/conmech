@@ -18,7 +18,6 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.training_config import TrainingData
 
 
 class Scenario:
@@ -513,6 +512,16 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
+scenario_3d = Scenario(
+    name="ball_roll",
+    mesh_prop=MeshProperties(dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]),
+    body_prop=default_body_prop,
+    schedule=Schedule(final_time=1),
+    forces_function=np.array([0.0, 0.0, -0.5]),
+    obstacle=Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
+)
+
+
 def get_train_data(**args):
     tag = "_train"
     return [
@@ -533,40 +542,46 @@ def get_valid_data(**args):
     ]
 
 
-def all_train(td: TrainingData):
+def all_train(td):
+    if td.dimension == 3:
+        return [scenario_3d]
     return get_train_data(
-        mesh_density=td.MESH_DENSITY,
-        scale=td.TRAIN_SCALE,
+        mesh_density=td.mesh_density,
+        scale=td.train_scale,
         is_adaptive=False,
-        final_time=td.FINAL_TIME,
+        final_time=td.final_time,
     )
 
 
-def all_validation(td: TrainingData):
+def all_validation(td):
+    if td.dimension == 3:
+        return [scenario_3d]
     return get_valid_data(
-        mesh_density=td.MESH_DENSITY,
-        scale=td.VALIDATION_SCALE,
+        mesh_density=td.mesh_density,
+        scale=td.validation_scale,
         is_adaptive=False,
-        final_time=td.FINAL_TIME,
+        final_time=td.final_time,
     )
 
 
-def all_train_and_validation(td: TrainingData):
+def all_train_and_validation(td):
     return [*all_train(td), *all_validation(td)]
 
 
-def all_print(td: TrainingData):
+def all_print(td):
+    if td.dimension == 3:
+        return [scenario_3d]
     return [
         *get_valid_data(
-            mesh_density=td.MESH_DENSITY,
-            scale=td.PRINT_SCALE,
+            mesh_density=td.mesh_density,
+            scale=td.print_scale,
             is_adaptive=False,
-            final_time=td.FINAL_TIME,
+            final_time=td.final_time,
         ),
         *get_train_data(
-            mesh_density=td.MESH_DENSITY,
-            scale=td.PRINT_SCALE,
+            mesh_density=td.mesh_density,
+            scale=td.print_scale,
             is_adaptive=False,
-            final_time=td.FINAL_TIME,
+            final_time=td.final_time,
         ),
     ]

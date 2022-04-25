@@ -1,4 +1,4 @@
-name: Deep Conmech Tests
+name: Conmech Container Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   run_tests:
     runs-on: ubuntu-18.04
     container:
-      image: michaljur/deep_conmech:latest
+      image: michaljur/conmech:latest
     steps:
       - name: Downloading code
         shell: bash
@@ -22,5 +22,4 @@ jobs:
 
       - name: Running tests
         shell: bash
-        run: PYTHONPATH=. pytest tests/test_deep_conmech -p no:unraisableexception
-
+        run: PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception

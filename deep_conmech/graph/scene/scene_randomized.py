@@ -6,7 +6,6 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
-from deep_conmech.training_config import TrainingConfig
 
 
 class SceneRandomized(Scene):
@@ -16,8 +15,9 @@ class SceneRandomized(Scene):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        config: TrainingConfig,
-        create_in_subprocess,
+        config,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -26,6 +26,7 @@ class SceneRandomized(Scene):
             schedule=schedule,
             normalize_by_rotation=config.normalize_rotate,
             create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
         )
         self.config = config
         self.set_randomization(False)
@@ -38,11 +39,15 @@ class SceneRandomized(Scene):
     def set_randomization(self, randomized_inputs):
         self.randomized_inputs = randomized_inputs
         if randomized_inputs:
-            self.velocity_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.V_IN_RANDOM_FACTOR
+            self.velocity_old_randomization = nph.generate_normal(
+                rows=self.nodes_count,
+                columns=self.dimension,
+                scale=self.config.td.velocity_in_random_factor,
             )
-            self.displacement_old_randomization = nph.get_random_normal(
-                self.dimension, self.nodes_count, self.config.td.U_IN_RANDOM_FACTOR
+            self.displacement_old_randomization = nph.generate_normal(
+                rows=self.nodes_count,
+                columns=self.dimension,
+                scale=self.config.td.displacement_in_random_factor,
             )
             # Do not randomize boundaries
             self.velocity_old_randomization[self.boundary_indices] = 0
@@ -76,16 +81,14 @@ class SceneRandomized(Scene):
         return self.normalized_displacement_old + self.normalized_displacement_old_randomization
 
     @property
-    def input_forces(self):
-        return self.normalized_forces  # - self.normalized_forces_mean
-
-    @property
     def a_correction(self):
-        u_correction = self.config.td.U_NOISE_GAMMA * (
+        u_correction = self.config.td.displacement_to_velocity_noise * (
             self.displacement_old_randomization / (self.time_step**2)
         )
         v_correction = (
-            (1.0 - self.config.td.U_NOISE_GAMMA) * self.velocity_old_randomization / self.time_step
+            (1.0 - self.config.td.displacement_to_velocity_noise)
+            * self.velocity_old_randomization
+            / self.time_step
         )
         return -1.0 * (u_correction + v_correction)
 

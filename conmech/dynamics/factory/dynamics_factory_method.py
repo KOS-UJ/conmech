@@ -27,7 +27,7 @@ def get_dynamics(
     )
 
     i = independent_indices
-    const_volume = edges_features_matrix[0][i, i]
+    volume_at_nodes = edges_features_matrix[0]  # [i, i]
     U = edges_features_matrix[1][i, i]
 
     V = np.asarray([edges_features_matrix[2 + j][i, i] for j in range(factory.dimension)])
@@ -66,7 +66,7 @@ def get_dynamics(
 
     return (
         element_initial_volume,
-        const_volume,
+        volume_at_nodes,
         acceleration_operator,
         elasticity,
         viscosity,

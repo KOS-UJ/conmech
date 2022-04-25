@@ -43,8 +43,8 @@ def test_global_optimization_solver(solving_method):
         fixed_point_abs_tol=0.001, initial_displacement=setup.initial_displacement
     )
 
-    displacement = result.mesh.initial_nodes[:] - result.displaced_points[:]
-    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
+    displacement = result.mesh.initial_nodes[:] - result.displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

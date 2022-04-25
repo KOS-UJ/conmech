@@ -130,6 +130,14 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
+    def get_acceleration_energy(setting, acceleration):
+        initial_a_boundary_vector = nph.stack_column(acceleration[setting.boundary_indices])
+
+        cost_function, _ = setting.get_normalized_energy_obstacle_np()
+        energy = cost_function(initial_a_boundary_vector)
+        return energy
+
+    @staticmethod
     def solve_acceleration_normalized_optimization(setting, temperature=None, initial_a=None):
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)

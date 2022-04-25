@@ -292,8 +292,8 @@ def test_global_optimization_solver(
         initial_temperature=setup.initial_temperature,
     )
 
-    std_ids = standard_boundary_nodes(runner.mesh.initial_nodes, runner.mesh.elements)
-    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_points[:]
+    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
+    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
     temperature = np.zeros(len(results[-1].mesh.initial_nodes))
     temperature[: len(results[-1].temperature)] = results[-1].temperature
 

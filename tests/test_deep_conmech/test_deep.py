@@ -10,22 +10,23 @@ def test_smoke_train_and_plot():
     log_catalog = f"{output_catalog}/LOG"
 
     td = TrainingData(
-        DATASET="synthetic",
-        MESH_DENSITY=4,
-        BATCH_SIZE=2,
-        SYNTHETIC_BATCHES_IN_EPOCH=2,
-        FINAL_TIME=0.1,
-        SAVE_AT_MINUTES=0,
-        VALIDATE_AT_EPOCHS=1,
+        dataset="synthetic",
+        mesh_density=4,
+        batch_size=2,
+        synthetic_batches_in_epoch=2,
+        final_time=0.1,
+        save_at_minutes=0,
+        validate_at_epochs=1,
     )
     config = TrainingConfig(
         td=td,
-        DEVICE="cpu",
-        MAX_EPOCH_NUMBER=2,
-        DATASETS_MAIN_PATH=databases_main_path,
-        DATASET_IMAGES_COUNT=1,
+        device="cpu",
+        max_epoch_number=2,
+        datasets_main_path=databases_main_path,
+        dataset_images_count=1,
+        with_train_scenes_file=True,
         output_catalog=output_catalog,
-        LOG_CATALOG=log_catalog,
+        log_catalog=log_catalog,
     )
     cmh.clear_folder(output_catalog)
     run_model.train(config)

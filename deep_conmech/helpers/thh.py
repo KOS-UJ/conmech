@@ -8,7 +8,7 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def device(training_config: TrainingConfig):
-    return torch.device(training_config.DEVICE)
+    return torch.device(training_config.device)
 
 
 def get_device_id():
@@ -63,7 +63,7 @@ class MaxData:
         self.max_v = torch.zeros(episode_steps)
 
     def set(self, setting, i):
-        self.max_forces[i] = max_norm(setting.normalized_forces_torch)
+        self.max_forces[i] = max_norm(setting.normalized_inner_forces_torch)
         self.max_u[i] = max_norm(setting.normalized_displacement_old_torch)
         self.max_v[i] = max_norm(setting.normalized_velocity_old_torch)
 
