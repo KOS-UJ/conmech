@@ -1,4 +1,4 @@
-import conmech.scenarios.scenarios as scenarios
+from conmech.scenarios import scenarios
 from conmech.simulations import simulation_runner
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.training_config import TrainingConfig

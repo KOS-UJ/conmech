@@ -196,6 +196,7 @@ class Attention(nn.Module):
         return alpha
 
 
+# pylint: disable=W0223, W0221
 class ProcessorLayer(MessagePassing):
     def __init__(self, attention: Attention, td: TrainingData):
         super().__init__()
@@ -347,5 +348,6 @@ class CustomGraphNet(nn.Module):
         return a, normalized_a
 
     def solve(self, setting, initial_a):
+        _ = initial_a
         a, _ = self.solve_all(setting)
         return a

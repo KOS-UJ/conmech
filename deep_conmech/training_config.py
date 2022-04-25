@@ -18,17 +18,17 @@ class TrainingData:
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 8
     mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
-    adaptive_training_mesh: bool = False  # True
+    adaptive_training_mesh: bool = True
 
     forces_random_scale: int = 4
-    obstacle_origin_scale: float = 3.0 * train_scale  # less
+    obstacle_origin_scale: float = 3.0 * train_scale
     obstacle_min_scale: float = 0.4 * train_scale
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
-    zero_forces_proportion: float = 0.2  # 0.8
-    corners_scale_proportion: float = 0.8  # less
+    zero_forces_proportion: float = 0.2
+    corners_scale_proportion: float = 0.5
     rotate_scale_proportion: float = 0.5
 
     displacement_to_velocity_noise: float = 0.1
@@ -56,7 +56,7 @@ class TrainingData:
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
     initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    learning_rate_decay: float = 0.999  # 0.995
+    learning_rate_decay: float = 0.99  # 0.995 0.999
     final_learning_rate: float = 1e-6
 
     activation = nn.ReLU()  # nn.PReLU()
@@ -64,7 +64,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    message_passes: int = 10  # 12
+    message_passes: int = 10
 
 
 @dataclass
@@ -73,7 +73,7 @@ class TrainingConfig(Config):
     device: str = "_"
 
     dataloader_workers = 4
-    synthetic_generation_workers = 1  # 2
+    synthetic_generation_workers = 1
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
     total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)

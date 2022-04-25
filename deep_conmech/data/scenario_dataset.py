@@ -8,10 +8,18 @@ from conmech.scenarios.scenarios import Scenario
 from deep_conmech.data.base_dataset import (
     BaseDataset,
     get_assigned_scenarios,
+    get_scene_input,
     is_memory_overflow,
 )
 from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
+
+
+def check_and_get_dimension(scenarios):
+    dimensions = set([s.mesh_prop.dimension for s in scenarios])
+    if len(dimensions) != 1:
+        raise ArgumentError("Incorrect data")
+    return dimensions.pop()
 
 
 class ScenariosDataset(BaseDataset):
@@ -32,7 +40,7 @@ class ScenariosDataset(BaseDataset):
 
         super().__init__(
             description=description,
-            dimension=self.check_and_get_dimension(all_scenarios),
+            dimension=check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
             randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check
@@ -43,18 +51,12 @@ class ScenariosDataset(BaseDataset):
         )
         self.initialize_data()
 
-    def check_and_get_dimension(self, scenarios):
-        dimensions = set([s.mesh_prop.dimension for s in scenarios])
-        if len(dimensions) != 1:
-            raise ArgumentError("Incorrect data")
-        return dimensions.pop()
-
     def get_data_count(self, scenarios):
         return np.sum([int(s.schedule.episode_steps / self.skip_index) for s in scenarios])
 
     @property
     def data_size_id(self):
-        return f"f:{self.config.td.final_time}_i:{self.skip_index}"
+        return f"f={self.config.td.final_time}_i={self.skip_index}"
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
@@ -77,7 +79,7 @@ class ScenariosDataset(BaseDataset):
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    scene = self.get_scene_input(scenario=scenario, config=self.config)
+                    scene = get_scene_input(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
                     config=self.config,
@@ -92,6 +94,7 @@ class ScenariosDataset(BaseDataset):
 
                 a, normalized_a = self.solve_function(scene)
                 exact_normalized_a_torch = thh.to_torch_double(normalized_a)
+                _ = exact_normalized_a_torch
 
                 if index % self.skip_index == 0:
                     pkh.append_data(

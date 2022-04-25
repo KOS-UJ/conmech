@@ -31,8 +31,8 @@ def load_data(meta_path, data_path):
     ds = tf.data.TFRecordDataset(data_path)
     parser = functools.partial(_parse, meta=meta)
     first_input = tf.data.make_one_shot_iterator(ds).get_next()
-    result = parser(first_input)
-
+    _ = parser(first_input)
+    _
     ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
     ds = ds.prefetch(1)  # 10
     inputs = tf.data.make_one_shot_iterator(ds).get_next()
@@ -68,12 +68,12 @@ def save_tf_data(data, path: str):
 
 
 def save_meta(meta: dict, path: str):
-    with open(path, "w") as file:
+    with open(path, mode="w", encoding="utf-8") as file:
         json.dump(meta, file)
 
 
 def load_meta(path: str):
-    with open(path, "r") as file:
+    with open(path, mode="r", encoding="utf-8") as file:
         meta = json.loads(file.read())
     return meta
 
@@ -82,8 +82,8 @@ def to_bytes(array):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[array.tobytes()]))
 
 
-def to_dict(type, array):
-    return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
+def to_dict(mode, array):
+    return dict(type=mode, shape=[*array.shape], dtype=str(array.dtype))
 
 
 def simulate(config: Config, scenario) -> str:

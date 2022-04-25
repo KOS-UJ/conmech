@@ -65,10 +65,6 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.normalized_nodes)
 
     @property
-    def normalized_inner_forces_torch(self):
-        return thh.to_torch_double(self.normalized_inner_forces)
-
-    @property
     def normalized_displacement_old_torch(self):
         return thh.to_torch_double(self.normalized_displacement_old)
 

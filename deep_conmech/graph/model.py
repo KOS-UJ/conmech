@@ -1,22 +1,15 @@
-import json
 import time
 from ctypes import ArgumentError
 from typing import List
 
 import numpy as np
 import torch
-from matplotlib import pyplot as plt
-from pandas import DataFrame
-from torch.utils.tensorboard.writer import SummaryWriter
 
 from conmech.helpers import cmh, nph
-from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
-from conmech.scene.scene import EnergyObstacleArguments
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
-from deep_conmech.data.dataset_statistics import FeaturesStatistics
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.graph.scene import scene_input
@@ -27,6 +20,10 @@ from deep_conmech.training_config import TrainingConfig
 
 class ErrorResult:
     value = 0
+
+
+def get_graph_sizes(batch):
+    return np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
 
 
 class GraphModelDynamic:
@@ -68,15 +65,6 @@ class GraphModelDynamic:
     @property
     def lr(self):
         return float(self.scheduler.get_last_lr()[0])
-
-    def graph_sizes(self, batch):
-        graph_sizes = np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
-        return graph_sizes
-
-    def get_split(self, batch, index, dim, graph_sizes):
-        value = batch.x[:, index * dim : (index + 1) * dim]
-        value_split = value.split(graph_sizes)
-        return value_split
 
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
@@ -283,7 +271,7 @@ class GraphModelDynamic:
             print("---")
 
         self.logger.writer.add_scalar(
-            f"Loss/Validation/total_mean_energy",
+            "Loss/Validation/total_mean_energy",
             total_mean_energy,
             examples_seen,
         )
@@ -292,7 +280,7 @@ class GraphModelDynamic:
     def E(self, features_batch, dataset: base_dataset.BaseDataset, test_using_true_solution=False):
         scene_indices = list(map(np.int64, features_batch.scene_index))
 
-        graph_sizes = self.graph_sizes(features_batch)
+        graph_sizes = get_graph_sizes(features_batch)
 
         batch_cuda = features_batch.to(self.net.device)
         all_predicted_normalized_a = self.net(batch_cuda).to("cpu")
@@ -311,8 +299,9 @@ class GraphModelDynamic:
             predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
             )
-            if hasattr(energy_args, "exact_normalized_a"):
-                exact_normalized_a = exact_normalized_a_split[i]
+            # if hasattr(energy_args, "exact_normalized_a"):
+            #    exact_normalized_a = exact_normalized_a_split[i]
+            exact_normalized_a = None
 
             if self.config.td.use_energy_as_loss:
                 loss += predicted_normalized_energy

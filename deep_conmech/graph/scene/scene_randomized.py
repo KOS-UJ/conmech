@@ -29,12 +29,17 @@ class SceneRandomized(Scene):
             with_schur=with_schur,
         )
         self.config = config
-        self.set_randomization(False)
-        # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
+        self.velocity_old_randomization = None
+        self.displacement_old_randomization = None
+        self.randomized_inputs = None
 
-    def remesh(self):
-        super().remesh()
-        self.set_randomization(self.randomized_inputs)
+        self.set_randomization(False)
+        # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png",
+        # None, "png", 0)
+
+    # def remesh(self):
+    #    super().remesh()
+    #    self.set_randomization(self.randomized_inputs)
 
     def set_randomization(self, randomized_inputs):
         self.randomized_inputs = randomized_inputs

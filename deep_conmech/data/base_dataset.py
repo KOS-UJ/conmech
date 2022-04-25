@@ -18,10 +18,12 @@ from deep_conmech.training_config import TrainingConfig
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
+    _ = timestamp
     print(f"Printing dataset {description}...")
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
+    _ = iterations
 
 
 def get_print_dataloader(dataset: "BaseDataset"):
@@ -86,6 +88,20 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
+def get_scene_input(scenario: Scenario, config: Config) -> SceneInput:
+    setting = SceneInput(
+        mesh_prop=scenario.mesh_prop,
+        body_prop=scenario.body_prop,
+        obstacle_prop=scenario.obstacle_prop,
+        schedule=scenario.schedule,
+        config=config,
+        create_in_subprocess=False,
+    )
+    setting.set_randomization(False)
+    setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+    return setting
+
+
 class BaseDataset:
     def __init__(
         self,
@@ -121,7 +137,7 @@ class BaseDataset:
     @property
     def data_id(self):
         td = self.config.td
-        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
+        return f"{self.description}_d={td.dimension}_m={td.mesh_density}_{self.data_size_id}"
 
     @property
     def main_directory(self):
@@ -265,19 +281,6 @@ class BaseDataset:
             data = [pkh.load_index(index, indices, file) for index in data_tqdm]
         return data
 
-    def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
-        setting = SceneInput(
-            mesh_prop=scenario.mesh_prop,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            config=config,
-            create_in_subprocess=False,
-        )
-        setting.set_randomization(False)
-        setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
-        return setting
-
     def get_statistics(self):
         dataloader = get_train_dataloader(self)
 
@@ -304,21 +307,19 @@ class BaseDataset:
     def get_features_data(self, index):
         if self.loaded_features_data is not None:
             return self.loaded_features_data[index]
-        else:
-            with pkh.open_file_read(self.features_data_path) as file:
-                features_data = pkh.load_index(
-                    index=index, all_indices=self.features_indices, data_file=file
-                )
+        with pkh.open_file_read(self.features_data_path) as file:
+            features_data = pkh.load_index(
+                index=index, all_indices=self.features_indices, data_file=file
+            )
         return features_data
 
     def get_targets_data(self, index):
         if self.loaded_targets_data is not None:
             return self.loaded_targets_data[index]
-        else:
-            with pkh.open_file_read(self.targets_data_path) as file:
-                target_data = pkh.load_index(
-                    index=index, all_indices=self.targets_indices, data_file=file
-                )
+        with pkh.open_file_read(self.targets_data_path) as file:
+            target_data = pkh.load_index(
+                index=index, all_indices=self.targets_indices, data_file=file
+            )
         return target_data
 
     def preprocess_example(self, scene, index):
@@ -360,7 +361,8 @@ class BaseDataset:
         pass
 
     def generate_scene(self, index: int):
-        pass
+        _ = index
+        return None, None
 
     def __getitem__(self, index):
         return self.get_features_data(index)

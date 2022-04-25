@@ -1,12 +1,11 @@
 import numpy as np
 
-import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.solvers.calculator import Calculator
-from deep_conmech.data import base_dataset
+from deep_conmech.data import base_dataset, interpolation_helpers
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
@@ -18,10 +17,9 @@ def generate_mesh_type(config: TrainingConfig):
         return interpolation_helpers.choose(
             [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
         )
-    else:
-        return interpolation_helpers.choose(
-            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
-        )
+    return interpolation_helpers.choose(
+        [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
+    )
 
 
 def generate_base_scene(config: TrainingConfig, base: np.ndarray):
@@ -137,7 +135,7 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
+        return f"s={self.data_count}_a={self.config.td.adaptive_training_mesh}"
 
     def generate_scene(self, index: int):
         _ = index
@@ -187,6 +185,7 @@ class SyntheticDataset(BaseDataset):
                     return False
 
                 scene, exact_normalized_a_torch = self.generate_scene(index)
+                _ = exact_normalized_a_torch
 
                 pkh.append_data(
                     data=scene, data_file=scenes_file, indices_file=indices_file

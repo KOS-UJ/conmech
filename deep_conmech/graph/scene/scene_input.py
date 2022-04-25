@@ -174,6 +174,7 @@ class SceneInput(SceneTorch):
         return nodes_data
 
     def get_data(self, scene_index=None, exact_normalized_a_torch=None):
+        _ = exact_normalized_a_torch
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
@@ -204,8 +205,7 @@ class SceneInput(SceneTorch):
                 time_step=0.01,  # TODO: generalize
             ),
         )
-
-        """
+        _ = """
         transform = T.Compose(
             [
                 T.TargetIndegree(norm=False),
@@ -216,21 +216,6 @@ class SceneInput(SceneTorch):
         transform(data)
         """
         return features_data, target_data
-
-    def normalized_energy_obstacle_nvt(self, normalized_boundary_a_vector):
-        normalized_boundary_normals = self.get_normalized_boundary_normals()
-        surface_per_boundary_node = self.get_surface_per_boundary_node()
-        return energy_obstacle_nvt(
-            nph.unstack(normalized_boundary_a_vector, self.dim),
-            self.lhs_boundary,
-            self.normalized_E_boundary,
-            self.norm_boundary_velocity_old,
-            self.normalized_boundary_nodes,
-            normalized_boundary_normals,
-            self.norm_boundary_obstacle_nodes,
-            self.norm_boundary_obstacle_normals,
-            surface_per_boundary_node,
-        )
 
     def clear_for_save(self):
         self.element_initial_volume = None

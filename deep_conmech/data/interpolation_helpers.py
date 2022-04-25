@@ -14,9 +14,9 @@ def weighted_mean_numba(v1, v2, scale):
 
 @numba.njit
 def interpolate_node_numba(initial_node, corner_vectors, scale_x, scale_y):
-    min = [0.0, 0.0]  # TODO #65
-    x_scale = (initial_node[0] - min[0]) / scale_x
-    y_scale = (initial_node[1] - min[1]) / scale_y
+    origin = [0.0, 0.0]  # TODO #65
+    x_scale = (initial_node[0] - origin[0]) / scale_x
+    y_scale = (initial_node[1] - origin[1]) / scale_y
 
     top_scaled = weighted_mean_numba(corner_vectors[1], corner_vectors[2], x_scale)
     bottom_scaled = weighted_mean_numba(corner_vectors[0], corner_vectors[3], x_scale)
