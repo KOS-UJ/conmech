@@ -14,8 +14,6 @@ log/*
 datasets/*
 output/*
 
-train.sh
-
 *.jpg
 *.png
 *.gif
