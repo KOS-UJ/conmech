@@ -62,7 +62,7 @@ class Logger:
             row, col = i // columns, i % columns
             if i < df.columns.size:
                 df.hist(
-                    column=df.columns[i], bins=100, ax=axs[row, col]
+                    column=df.columns[i], bins=500, ax=axs[row, col]
                 )  # bins=12 , figsize=(20, 18)
             else:
                 axs[row, col].axis("off")

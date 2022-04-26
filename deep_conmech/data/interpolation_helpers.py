@@ -1,36 +1,8 @@
 import random
 
-import numba
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.properties.mesh_properties import MeshProperties
-
-
-@numba.njit
-def weighted_mean_numba(v1, v2, scale):
-    return v1 * (1 - scale) + v2 * scale
-
-
-@numba.njit
-def interpolate_node_numba(initial_node, corner_vectors, scale_x, scale_y):
-    origin = [0.0, 0.0]  # TODO #65
-    x_scale = (initial_node[0] - origin[0]) / scale_x
-    y_scale = (initial_node[1] - origin[1]) / scale_y
-
-    top_scaled = weighted_mean_numba(corner_vectors[1], corner_vectors[2], x_scale)
-    bottom_scaled = weighted_mean_numba(corner_vectors[0], corner_vectors[3], x_scale)
-
-    scaled = weighted_mean_numba(bottom_scaled, top_scaled, y_scale)
-    return scaled
-
-
-@numba.njit
-def interpolate_numba(initial_nodes, corner_vectors, scale_x, scale_y):
-    nodes = np.zeros_like(initial_nodes)
-    for i in range(initial_nodes.shape[0]):
-        nodes[i] = interpolate_node_numba(initial_nodes[i], corner_vectors, scale_x, scale_y)
-    return nodes
 
 
 def decide(scale):
@@ -49,8 +21,8 @@ def get_corner_vectors_rotate(dim, scale):
     return corner_vectors
 
 
-def get_corner_vectors_four(dim, scale):
-    corner_vectors = nph.generate_normal_circle(rows=4, columns=dim, scale=scale)
+def get_corner_vectors_all(dimension, scale):
+    corner_vectors = nph.generate_normal_circle(rows=dimension * 2, columns=dimension, scale=scale)
     return corner_vectors
 
 
@@ -62,28 +34,52 @@ def get_mean(scale, initial_nodes):
     )
 
 
+def scale_nodes_to_square(nodes):
+    scaled_nodes = (nodes - np.min(nodes, axis=0)) / (np.max(nodes, axis=0) - np.min(nodes, axis=0))
+    return scaled_nodes
+
+
+def interpolate_nodes(scaled_nodes, corner_vectors):
+    dimension = scaled_nodes.shape[1]
+    values = np.zeros_like(scaled_nodes)
+    for i in range(dimension):
+        coordinate_i = scaled_nodes[:, [i]]
+        values += (
+            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + dimension]
+        )
+    return values
+
+
 def interpolate_four(
     initial_nodes: np.ndarray,
     scale: float,
     corners_scale_proportion: float,
-    mesh_prop: MeshProperties,
     base: np.ndarray,
     interpolate_rotate: bool,
 ):
+    dimension = initial_nodes.shape[1]
+    if dimension != 2:
+        raise NotImplementedError
     mean = get_mean(scale, initial_nodes)
     corners_scale = scale * corners_scale_proportion
 
-    get_corner_vectors = (
-        get_corner_vectors_rotate if interpolate_rotate else get_corner_vectors_four
-    )
+    get_corner_vectors = get_corner_vectors_all
+    # (
+    #    get_corner_vectors_rotate if interpolate_rotate else get_corner_vectors_four
+    # )
+
+    corner_vectors = get_corner_vectors(dimension=dimension, scale=corners_scale)
 
     # orthonormal matrix; inverse equals transposition
-    initial_denormalized_nodes = nph.get_in_base(initial_nodes, base.T)
-    interpolated_denormalized_nodes = interpolate_numba(
-        initial_nodes=initial_denormalized_nodes,
-        corner_vectors=get_corner_vectors(dim=initial_nodes.shape[1], scale=corners_scale),
-        scale_x=mesh_prop.scale_x,
-        scale_y=mesh_prop.scale_y,
+    initial_denormalized_nodes = initial_nodes  # nph.get_in_base(initial_nodes, base.T)
+    denormalized_scaled_nodes = scale_nodes_to_square(initial_denormalized_nodes)
+
+    interpolated_denormalized_nodes = interpolate_nodes(
+        scaled_nodes=denormalized_scaled_nodes,
+        corner_vectors=corner_vectors,
     )
-    interpolated_nodes = nph.get_in_base(interpolated_denormalized_nodes, base)
+
+    interpolated_nodes = (
+        interpolated_denormalized_nodes  # nph.get_in_base(interpolated_denormalized_nodes, base)
+    )
     return mean + interpolated_nodes

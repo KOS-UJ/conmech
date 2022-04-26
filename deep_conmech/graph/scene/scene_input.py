@@ -50,34 +50,6 @@ def get_edges_data_numba(
     return edges_data
 
 
-def energy_obstacle_nvt(
-    boundary_a,
-    C_boundary,
-    E_boundary,
-    boundary_velocity_old,
-    boundary_nodes,
-    boundary_normals,
-    boundary_obstacle_nodes,
-    boundary_obstacle_normals,
-    surface_per_boundary_node,
-    config,
-):  # np via torch
-    value_torch = energy_normalized_obstacle_correction(
-        thh.to_torch_double(boundary_a).to(thh.device(config)),
-        None,
-        thh.to_torch_double(C_boundary).to(thh.device(config)),
-        thh.to_torch_double(E_boundary).to(thh.device(config)),
-        thh.to_torch_double(boundary_velocity_old).to(thh.device(config)),
-        thh.to_torch_double(boundary_nodes).to(thh.device(config)),
-        thh.to_torch_long(boundary_normals).to(thh.device(config)),
-        thh.to_torch_double(boundary_obstacle_nodes).to(thh.device(config)),
-        thh.to_torch_double(boundary_obstacle_normals).to(thh.device(config)),
-        thh.to_torch_double(surface_per_boundary_node).to(thh.device(config)),
-    )
-    value = thh.to_np_double(value_torch)
-    return value  # .item()
-
-
 class SceneInput(SceneTorch):
     def __init__(
         self,

@@ -19,6 +19,8 @@ def build_mesh(
 
 
 def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
+    if mesh_prop.mean_at_origin:
+        nodes -= np.mean(nodes, axis=0)
     if mesh_prop.initial_base is not None:
         nodes = nph.get_in_base(nodes, mesh_prop.initial_base)
     if mesh_prop.initial_position is not None:

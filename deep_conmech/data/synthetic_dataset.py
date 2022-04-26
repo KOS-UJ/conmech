@@ -15,7 +15,7 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON "pygmsh_spline"
         )
     return interpolation_helpers.choose(
         [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
@@ -31,6 +31,7 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
             scale=[config.td.train_scale],
             is_adaptive=config.td.adaptive_training_mesh,
             initial_base=base,
+            mean_at_origin=True,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
@@ -51,7 +52,6 @@ def generate_forces(config: TrainingConfig, setting, base: np.ndarray):
             initial_nodes=setting.initial_nodes,
             scale=config.td.forces_random_scale,
             corners_scale_proportion=config.td.corners_scale_proportion,
-            mesh_prop=setting.mesh_prop,
             base=base,
             interpolate_rotate=False,
         )
@@ -63,7 +63,6 @@ def generate_displacement_old(config: TrainingConfig, setting, base: np.ndarray)
         initial_nodes=setting.initial_nodes,
         scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
-        mesh_prop=setting.mesh_prop,
         base=base,
         interpolate_rotate=False,
     )
@@ -76,7 +75,6 @@ def generate_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
         initial_nodes=setting.initial_nodes,
         scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
-        mesh_prop=setting.mesh_prop,
         base=base,
         interpolate_rotate=interpolate_rotate,
     )

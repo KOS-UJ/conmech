@@ -13,6 +13,7 @@ class MeshProperties:
     is_adaptive: bool = False
     initial_base: Optional[np.ndarray] = None
     initial_position: Optional[np.ndarray] = None
+    mean_at_origin: bool = False
 
     @staticmethod
     def _get_modulo(array, index):
