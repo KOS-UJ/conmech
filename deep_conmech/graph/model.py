@@ -127,7 +127,7 @@ class GraphModelDynamic:
         return path
 
     @staticmethod
-    def get_setting_function(
+    def get_scene_function(
         scenario: Scenario,
         config: TrainingConfig,
         randomize=False,
@@ -138,10 +138,13 @@ class GraphModelDynamic:
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
-            config=config,
+            normalize_by_rotation=config.normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.set_randomization(randomize)
+        if randomize:
+            setting.set_randomization(config)
+        else:
+            setting.unset_randomization()
         setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return setting
 
@@ -159,10 +162,10 @@ class GraphModelDynamic:
                 run_config=simulation_runner.RunScenarioConfig(
                     catalog=catalog,
                     simulate_dirty_data=False,
-                    compare_with_base_setting=config.compare_with_base_setting,
+                    compare_with_base_scene=config.compare_with_base_scene,
                     plot_animation=True,
                 ),
-                get_setting_function=GraphModelDynamic.get_setting_function,
+                get_scene_function=GraphModelDynamic.get_scene_function,
             )
             print("---")
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
@@ -260,7 +263,7 @@ class GraphModelDynamic:
                 scenario=scenario,
                 config=self.config,
                 run_config=simulation_runner.RunScenarioConfig(),
-                get_setting_function=GraphModelDynamic.get_setting_function,
+                get_scene_function=GraphModelDynamic.get_scene_function,
             )
             self.logger.writer.add_scalar(
                 f"Loss/Validation/{scenario.name}/mean_energy",

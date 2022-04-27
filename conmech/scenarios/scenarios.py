@@ -66,7 +66,7 @@ class Scenario:
     def get_solve_function():
         return Calculator.solve
 
-    def get_setting(
+    def get_scene(
         self,
         normalize_by_rotation=True,
         randomize=False,
@@ -125,7 +125,7 @@ class TemperatureScenario(Scenario):
     def get_solve_function():
         return Calculator.solve_with_temperature
 
-    def get_setting(
+    def get_scene(
         self,
         normalize_by_rotation=True,
         randomize=False,

@@ -60,58 +60,58 @@ def plot_animation(
 def plot_frame(
     fig,
     axs,
-    setting: SceneRandomized,
+    scene: SceneRandomized,
     current_time: float,
     draw_detailed: bool = True,
-    base_setting: Optional[SceneRandomized] = None,
+    base_scene: Optional[SceneRandomized] = None,
     t_scale: Optional[np.ndarray] = None,
 ):
     axes = axs
-    scale = setting.mesh_prop.scale_x
+    scale = scene.mesh_prop.scale_x
     set_perspective(scale, axes=axes)
 
-    if isinstance(setting, SceneTemperature):
+    if isinstance(scene, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plotter_common.plot_colorbar(fig, axs=[axes], cbar_settings=cbar_settings)
-        draw_main_temperature(axes=axes, setting=setting, cbar_settings=cbar_settings)
+        draw_main_temperature(axes=axes, setting=scene, cbar_settings=cbar_settings)
     else:
-        draw_main_displaced(setting, axes=axes)
-    if base_setting is not None:
-        draw_base_displaced(base_setting, axes=axes)
+        draw_main_displaced(scene, axes=axes)
+    if base_scene is not None:
+        draw_base_displaced(base_scene, axes=axes)
 
-    draw_parameters(current_time, setting, scale, axes=axes)
+    draw_parameters(current_time, scene, scale, axes=axes)
     # draw_angles(setting, axes)
 
     position = np.array([-4.2, -4.2]) * scale
     shift = 2.5 * scale
-    draw_forces(setting, position, axes=axes)
+    draw_forces(scene, position, axes=axes)
     if draw_detailed:  # detailed:
         position[0] += shift
-        draw_obstacle_resistance_normalized(setting, position, axes=axes)
+        draw_obstacle_resistance_normalized(scene, position, axes=axes)
         position[0] += shift
         # draw_boundary_surfaces_normals(setting, position, axes)
         # position[0] += shift
         # draw_boundary_normals(setting, position, axes)
         # position[0] += shift
 
-        draw_boundary_resistance_normal(setting, position, axes=axes)
+        draw_boundary_resistance_normal(scene, position, axes=axes)
         position[0] += shift
-        draw_boundary_resistance_tangential(setting, position, axes=axes)
+        draw_boundary_resistance_tangential(scene, position, axes=axes)
         position[0] += shift
-        draw_boundary_v_tangential(setting, position, axes=axes)
+        draw_boundary_v_tangential(scene, position, axes=axes)
         position[0] += shift
 
-        draw_input_u(setting, position, axes=axes)
+        draw_input_u(scene, position, axes=axes)
         position[0] += shift
-        draw_input_v(setting, position, axes=axes)
+        draw_input_v(scene, position, axes=axes)
         position[0] += shift
-        draw_a(setting, position, axes=axes)
+        draw_a(scene, position, axes=axes)
 
         position[0] += shift
-        if isinstance(setting, SceneTemperature):
+        if isinstance(scene, SceneTemperature):
             plot_temperature(
                 axes=axes,
-                setting=setting,
+                scene=scene,
                 position=position,
                 cbar_settings=cbar_settings,
             )
@@ -122,15 +122,15 @@ def plot_frame(
 
 def plot_temperature(
     axes,
-    setting: SceneTemperature,
+    scene: SceneTemperature,
     position,
     cbar_settings: plotter_common.ColorbarSettings,
 ):
-    add_annotation("TEMP", setting, position, axes)
-    nodes = (setting.normalized_nodes + position).T
+    add_annotation("TEMP", scene, position, axes)
+    nodes = (scene.normalized_nodes + position).T
     axes.scatter(
         *nodes,
-        c=setting.t_old,
+        c=scene.temperature,
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
@@ -145,7 +145,7 @@ def draw_main_temperature(axes, setting, cbar_settings):
     axes.tricontourf(
         *setting.moved_nodes.T,
         setting.elements,
-        setting.t_old.reshape(-1),
+        setting.temperature.reshape(-1),
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
@@ -309,17 +309,17 @@ def draw_forces(setting, position, axes):
 
 
 def draw_input_u(setting, position, axes):
-    return draw_data("U", setting.input_displacement_old, setting, position, axes)
+    return draw_data("U", setting.input_displacement, setting, position, axes)
 
 
 def draw_input_v(setting, position, axes):
-    return draw_data("V", setting.input_velocity_old, setting, position, axes)
+    return draw_data("V", setting.input_velocity, setting, position, axes)
 
 
 def draw_a(setting, position, axes):
     return draw_data(
         "A * ts",
-        setting.normalized_a_old * setting.time_step,
+        setting.normalized_acceleration * setting.time_step,
         setting,
         position,
         axes,
@@ -378,7 +378,7 @@ def draw_edges_data(position, setting, axes):
 
 
 def draw_vertices_data(position, setting, axes):
-    draw_data_at_vertices(setting, setting.normalized_displacement_old, position, axes)
+    draw_data_at_vertices(setting, setting.normalized_displacement, position, axes)
 
 
 def draw_data_at_edges(setting, features, position, axes):

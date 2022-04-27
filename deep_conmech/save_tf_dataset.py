@@ -108,11 +108,11 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
         load_function = lambda index: pkh.load_index(
             index=index, all_indices=all_indices, data_file=scenes_file
         )
-        base_setting = load_function(index=0)
-        elements = base_setting.elements[np.newaxis, ...].astype("int32")
-        initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
+        base_scene = load_function(index=0)
+        elements = base_scene.elements[np.newaxis, ...].astype("int32")
+        initial_nodes = base_scene.initial_nodes[np.newaxis, ...].astype("float32")
         node_type = np.zeros(
-            (1, base_setting.nodes_count, 1), dtype="int32"
+            (1, base_scene.nodes_count, 1), dtype="int32"
         )  # TODO #65: Mask boundary nodes
 
         moved_nodes_list = []
@@ -127,7 +127,7 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
 
     meta = dict(
         simulator="conmech",
-        dt=base_setting.time_step,
+        dt=base_scene.time_step,
         collision_radius=None,
         features=dict(
             cells=to_dict("static", elements),

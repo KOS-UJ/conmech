@@ -60,8 +60,7 @@ class Calculator:
         uzawa = False
         max_iter = 10
         i = 0
-        normalized_a = None
-        temperature = setting.t_old
+        temperature = setting.temperature
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
         while (
             i < 2
@@ -181,7 +180,7 @@ class Calculator:
             return None
         if not isinstance(setting, SceneRandomized):
             return normalized_a
-        return normalized_a + setting.normalized_a_correction
+        return normalized_a + setting.get_normalized_a_correction()
 
     @staticmethod
     def clean_temperature(_setting, temperature):

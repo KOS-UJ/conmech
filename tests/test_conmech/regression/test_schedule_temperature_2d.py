@@ -93,6 +93,6 @@ def test_simulation(scenario, expected_boundary_nodes, expected_temperature):
         setting.boundary_nodes, expected_boundary_nodes, decimal=3
     )
     np.testing.assert_array_almost_equal(
-        setting.t_old, expected_temperature, decimal=3
+        setting.temperature, expected_temperature, decimal=3
     )
     """

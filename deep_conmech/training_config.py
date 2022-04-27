@@ -22,7 +22,7 @@ class TrainingData:
 
     forces_random_scale: float = 4.0
     obstacle_origin_scale: float = 3.0 * train_scale
-    obstacle_min_scale: float = 0.5 * train_scale
+    obstacle_min_scale: float = 0.4 * train_scale
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
@@ -31,8 +31,8 @@ class TrainingData:
     corners_scale_proportion: float = 0.5
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.005 * displacement_random_scale
-    velocity_in_random_factor: float = 0.005 * velocity_random_scale
+    displacement_in_random_factor: float = 0.0005 * displacement_random_scale
+    velocity_in_random_factor: float = 0.0005 * velocity_random_scale
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10
@@ -84,10 +84,10 @@ class TrainingConfig(Config):
 
     log_dataset_stats: bool = True
     load_train_features_to_ram: bool = True
-    load_train_targets_to_ram: bool = True
+    load_train_targets_to_ram: bool = False
     with_train_scenes_file: bool = True
 
-    compare_with_base_setting = False
+    compare_with_base_scene = False
     max_epoch_number: Optional[int] = None
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"

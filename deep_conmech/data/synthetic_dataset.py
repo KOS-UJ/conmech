@@ -36,7 +36,7 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
         schedule=Schedule(final_time=config.td.final_time),
-        config=config,
+        normalize_by_rotation=config.normalize_by_rotation,
         create_in_subprocess=False,
         with_schur=False,
     )
@@ -58,27 +58,27 @@ def generate_forces(config: TrainingConfig, setting, base: np.ndarray):
     return forces
 
 
-def generate_displacement_old(config: TrainingConfig, setting, base: np.ndarray):
-    displacement_old = interpolation_helpers.interpolate_four(
+def generate_displacement(config: TrainingConfig, setting, base: np.ndarray):
+    displacement = interpolation_helpers.interpolate_four(
         initial_nodes=setting.initial_nodes,
         scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=False,
     )
-    return displacement_old
+    return displacement
 
 
-def generate_velocity_old(config: TrainingConfig, setting, base: np.ndarray):
+def generate_velocity(config: TrainingConfig, setting, base: np.ndarray):
     interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
-    velocity_old = interpolation_helpers.interpolate_four(
+    velocity = interpolation_helpers.interpolate_four(
         initial_nodes=setting.initial_nodes,
         scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=interpolate_rotate,
     )
-    return velocity_old
+    return velocity
 
 
 def generate_obstacles(config: TrainingConfig, scene: SceneInput):
@@ -140,18 +140,18 @@ class SyntheticDataset(BaseDataset):
 
         base = generate_base(self.config)
         scene = generate_base_scene(self.config, base)
-        scene.set_randomization(False)  # TODO #65: Check
+        scene.unset_randomization()  # TODO #65: Check
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)
         forces = generate_forces(self.config, scene, base)
-        displacement_old = generate_displacement_old(self.config, scene, base)
-        velocity_old = generate_velocity_old(self.config, scene, base)
+        displacement = generate_displacement(self.config, scene, base)
+        velocity = generate_velocity(self.config, scene, base)
 
         scene.normalize_and_set_obstacles(
             obstacles_unnormalized=obstacles_unnormalized, all_mesh_prop=[]
         )
-        scene.set_displacement_old(displacement_old)
-        scene.set_velocity_old(velocity_old)
+        scene.set_displacement(displacement)
+        scene.set_velocity(velocity)
         scene.prepare(forces)
 
         add_label = False

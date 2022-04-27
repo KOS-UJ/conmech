@@ -98,15 +98,12 @@ class BodyForces(Dynamics):
     def get_normalized_rhs_np(self, temperature=None):
         _ = temperature
 
-        displacement_old = self.normalized_displacement_old
-        velocity_old = self.normalized_velocity_old
-
-        displacement_old_vector = nph.stack_column(displacement_old)
-        velocity_old_vector = nph.stack_column(velocity_old)
+        norm_displacement_old_vector = nph.stack_column(self.normalized_displacement)
+        norm_velocity_old_vector = nph.stack_column(self.normalized_velocity)
         f_vector = self.get_integrated_forces_column()
         rhs = (
             f_vector
-            - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
-            - self.elasticity @ displacement_old_vector
+            - (self.viscosity + self.elasticity * self.time_step) @ norm_velocity_old_vector
+            - self.elasticity @ norm_displacement_old_vector
         )
         return rhs

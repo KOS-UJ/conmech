@@ -50,7 +50,7 @@ def get_t_scale(
                 all_indices=all_indices,
                 data_file=scenes_file,
             )
-            temperatures_list.append(setting.t_old)
+            temperatures_list.append(setting.temperature)
     temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
 
@@ -125,28 +125,28 @@ def make_animation(get_axs, plot_frame, t_scale):
         args.animation_tqdm.update(1)
         args.fig.clf()
         axs = get_axs(args.fig)
-        setting = pkh.load_index(
+        scene = pkh.load_index(
             index=step * args.index_skip,
             all_indices=args.all_indices,
             data_file=args.scenes_file,
         )
 
         if args.base_scenes_file is not None:
-            base_setting = pkh.load_index(
+            base_scene = pkh.load_index(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
                 data_file=args.base_scenes_file,
             )
         else:
-            base_setting = None
+            base_scene = None
 
         plot_frame(
             axs=axs,
             fig=args.fig,
-            setting=setting,
+            scene=scene,
             current_time=step * args.time_skip,
             t_scale=t_scale,
-            base_setting=base_setting,
+            base_scene=base_scene,
         )
         return args.fig
 

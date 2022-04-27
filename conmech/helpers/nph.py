@@ -161,22 +161,16 @@ def generate_normal(rows, columns, scale):
     return noise
 
 
-def generate_circle(rows, columns):
-    result = np.random.normal(loc=0.0, scale=1.0, size=[rows, columns])
-    result = normalize_euclidean_numba(result)
+def generate_normal_circle(rows, columns, scale):
+    result = generate_normal(rows=rows, columns=columns, scale=scale)
     return result
 
 
-def generate_normal_circle(rows, columns, scale):
-    result = generate_circle(rows, columns)
-    r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, 1]))
-    return result * r
-
-
 def generate_uniform_circle(rows, columns, low, high):
-    result = generate_circle(rows, columns)
-    r = np.abs(np.random.uniform(low=low, high=high, size=[rows, 1]))
-    return result * r
+    result = generate_normal_circle(rows=rows, columns=columns, scale=1.0)
+    normalized_result = normalize_euclidean_numba(result)
+    radius = np.random.uniform(low=low, high=high, size=[rows, 1])
+    return radius * normalized_result
 
 
 @numba.njit(inline="always")

@@ -13,6 +13,7 @@ from conmech.scenarios import scenarios
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.graph.scene.scene_torch import SceneTorch
 from deep_conmech.helpers import thh
+from deep_conmech.training_config import TrainingConfig
 
 
 def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyObstacleArguments):
@@ -32,8 +33,8 @@ def set_diff_numba(data, position, row, i, j):
 def get_edges_data_numba(
     edges,
     initial_nodes,
-    displacement_old,
-    velocity_old,
+    displacement,
+    velocity,
     forces,
 ):
     dimension = initial_nodes.shape[1]
@@ -44,8 +45,8 @@ def get_edges_data_numba(
         j = edges[e, 1]
 
         set_diff_numba(initial_nodes, 0, edges_data[e], i, j)
-        set_diff_numba(displacement_old, dimension + 1, edges_data[e], i, j)
-        set_diff_numba(velocity_old, 2 * (dimension + 1), edges_data[e], i, j)
+        set_diff_numba(displacement, dimension + 1, edges_data[e], i, j)
+        set_diff_numba(velocity, 2 * (dimension + 1), edges_data[e], i, j)
         set_diff_numba(forces, 3 * (dimension + 1), edges_data[e], i, j)
     return edges_data
 
@@ -57,7 +58,7 @@ class SceneInput(SceneTorch):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        config: Config,
+        normalize_by_rotation: bool,
         create_in_subprocess: bool,
         with_schur: bool = True,
     ):
@@ -66,7 +67,7 @@ class SceneInput(SceneTorch):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            config=config,
+            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
             with_schur=with_schur,
         )
@@ -78,7 +79,7 @@ class SceneInput(SceneTorch):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
+        for attr in ["initial_nodes", "displacement", "velocity", "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
@@ -89,8 +90,8 @@ class SceneInput(SceneTorch):
         edges_data = get_edges_data_numba(
             edges,
             self.normalized_initial_nodes,
-            self.input_displacement_old,
-            self.input_velocity_old,
+            self.input_displacement,
+            self.input_velocity,
             self.normalized_inner_forces,
         )
         return thh.to_torch_double(edges_data)
@@ -104,8 +105,8 @@ class SceneInput(SceneTorch):
         desc = []
         for attr in [
             "forces",
-            # "displacement_old",
-            # "velocity_old",
+            # "displacement",
+            # "velocity",
             "boundary_penetration",
             "boundary_normals",
             "boundary_v_tangential",
@@ -135,8 +136,8 @@ class SceneInput(SceneTorch):
         nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.normalized_inner_forces_torch),
-                # thh.append_euclidean_norm(self.input_displacement_old_torch),
-                # thh.append_euclidean_norm(self.input_velocity_old_torch),
+                # thh.append_euclidean_norm(self.input_displacement_torch),
+                # thh.append_euclidean_norm(self.input_velocity_torch),
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
                 thh.append_euclidean_norm(boundary_v_tangential),
@@ -145,7 +146,7 @@ class SceneInput(SceneTorch):
         )
         return nodes_data
 
-    def get_data(self, scene_index=None, exact_normalized_a_torch=None):
+    def get_data(self, config: TrainingConfig, scene_index=None, exact_normalized_a_torch=None):
         _ = exact_normalized_a_torch
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
@@ -163,14 +164,14 @@ class SceneInput(SceneTorch):
             # num_workers=1
         )
         target_data = dict(
-            a_correction=self.normalized_a_correction_torch,
+            a_correction=self.get_normalized_a_correction_torch(),
             args=EnergyObstacleArguments(
                 lhs=self.lhs_torch,
                 rhs=self.get_normalized_rhs_torch(),
-                boundary_velocity_old=self.normalized_boundary_velocity_old_torch,
-                boundary_nodes=self.normalized_boundary_nodes_torch,
+                boundary_velocity=self.norm_boundary_velocity_torch,
+                boundary_nodes=self.norm_boundary_nodes_torch,
                 boundary_normals=self.get_normalized_boundary_normals_torch(),
-                boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
+                boundary_obstacle_nodes=self.norm_boundary_obstacle_nodes_torch,
                 boundary_obstacle_normals=self.get_normalized_boundary_obstacle_normals_torch(),
                 surface_per_boundary_node=self.get_surface_per_boundary_node_torch(),
                 obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize

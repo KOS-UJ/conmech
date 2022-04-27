@@ -65,23 +65,23 @@ def get_axs(fig):
     return [ax0, ax1, ax2, ax3]
 
 
-def plot_frame(fig, axs, setting, current_time, base_setting=None, t_scale: Optional[List] = None):
-    _ = base_setting
+def plot_frame(fig, axs, scene, current_time, base_scene=None, t_scale: Optional[List] = None):
+    _ = base_scene
     for axes in axs:
         plot_subframe(
             axes=axes,
-            setting=setting,
+            scene=scene,
             normalized_data=[
-                setting.normalized_inner_forces,
-                setting.normalized_displacement_old,
-                setting.normalized_velocity_old,
-                setting.normalized_a_old,
+                scene.normalized_inner_forces,
+                scene.normalized_displacement,
+                scene.normalized_velocity,
+                scene.normalized_acceleration,
             ],
             t_scale=t_scale,
         )
-    draw_parameters(axes=axs[0], setting=setting, current_time=current_time)
+    draw_parameters(axes=axs[0], setting=scene, current_time=current_time)
 
-    if isinstance(setting, SceneTemperature):
+    if isinstance(scene, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale=t_scale)
         plotter_common.plot_colorbar(fig, axs=axs, cbar_settings=cbar_settings)
 
@@ -108,40 +108,40 @@ def draw_base_arrows(axes, base):
     axes.quiver(*z, *(base[2]), arrow_length_ratio=0.1, color="g")
 
 
-def plot_subframe(axes, setting, normalized_data, t_scale):
+def plot_subframe(axes, scene, normalized_data, t_scale):
     # draw_base_arrows(axes, setting.moved_base)
 
-    if isinstance(setting, SceneTemperature):
+    if isinstance(scene, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plot_main_temperature(
             axes,
-            nodes=setting.moved_nodes,
-            setting=setting,
+            nodes=scene.moved_nodes,
+            setting=scene,
             cbar_settings=cbar_settings,
         )
     else:
-        plot_mesh(nodes=setting.moved_nodes, setting=setting, color="tab:orange", axes=axes)
-    plot_obstacles(axes, setting, "tab:orange")
+        plot_mesh(nodes=scene.moved_nodes, scene=scene, color="tab:orange", axes=axes)
+    plot_obstacles(axes, scene, "tab:orange")
 
-    shifted_normalized_nodes = setting.normalized_nodes + np.array([0, 2.0, 0])
+    shifted_normalized_nodes = scene.normalized_nodes + np.array([0, 2.0, 0])
     for data in normalized_data:
         plot_arrows(starts=shifted_normalized_nodes, vectors=data, axes=axes)
-        plot_mesh(nodes=shifted_normalized_nodes, setting=setting, color="tab:blue", axes=axes)
+        plot_mesh(nodes=shifted_normalized_nodes, scene=scene, color="tab:blue", axes=axes)
         shifted_normalized_nodes = shifted_normalized_nodes + np.array([2.5, 0, 0])
 
-    if isinstance(setting, SceneTemperature):
+    if isinstance(scene, SceneTemperature):
         plot_temperature(
             axes=axes,
             nodes=shifted_normalized_nodes,
-            setting=setting,
+            scene=scene,
             cbar_settings=cbar_settings,
         )
 
 
-def plot_temperature(axes, nodes, setting, cbar_settings: plotter_common.ColorbarSettings):
+def plot_temperature(axes, nodes, scene, cbar_settings: plotter_common.ColorbarSettings):
     axes.scatter(
         *(nodes.T),
-        c=setting.t_old,
+        c=scene.temperature,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
         cmap=cbar_settings.cmap,
@@ -153,7 +153,7 @@ def plot_temperature(axes, nodes, setting, cbar_settings: plotter_common.Colorba
 
 def plot_main_temperature(axes, nodes, setting, cbar_settings):
     boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
-    nodes_temperature = setting.t_old[setting.boundary_surfaces]
+    nodes_temperature = setting.temperature[setting.boundary_surfaces]
     faces_temperature = np.mean(nodes_temperature, axis=1)
 
     facecolors = cbar_settings.mappable.to_rgba(faces_temperature)
@@ -167,8 +167,8 @@ def plot_main_temperature(axes, nodes, setting, cbar_settings):
     )
 
 
-def plot_mesh(nodes, setting, color, axes):
-    boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
+def plot_mesh(nodes, scene, color, axes):
+    boundary_surfaces_nodes = nodes[scene.boundary_surfaces]
     axes.add_collection3d(
         Poly3DCollection(
             boundary_surfaces_nodes,

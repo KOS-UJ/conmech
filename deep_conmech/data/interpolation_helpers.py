@@ -1,4 +1,5 @@
 import random
+from ctypes import ArgumentError
 
 import numpy as np
 
@@ -40,12 +41,15 @@ def scale_nodes_to_square(nodes):
 
 
 def interpolate_nodes(scaled_nodes, corner_vectors):
-    dimension = scaled_nodes.shape[1]
-    values = np.zeros_like(scaled_nodes)
-    for i in range(dimension):
-        coordinate_i = scaled_nodes[:, [i]]
+    input_dim = scaled_nodes.shape[-1]
+    output_dim = corner_vectors.shape[-1]
+    if input_dim * 2 != corner_vectors.shape[0]:
+        raise ArgumentError
+    values = np.zeros((scaled_nodes.shape[0], output_dim))
+    for i in range(input_dim):
+        coordinate_i = scaled_nodes[..., [i]]
         values += (
-            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + dimension]
+            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + input_dim]
         )
     return values
 

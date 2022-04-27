@@ -88,16 +88,16 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     return assigned_scenarios
 
 
-def get_scene_input(scenario: Scenario, config: Config) -> SceneInput:
+def get_scene_input(scenario: Scenario, config: TrainingConfig) -> SceneInput:
     setting = SceneInput(
         mesh_prop=scenario.mesh_prop,
         body_prop=scenario.body_prop,
         obstacle_prop=scenario.obstacle_prop,
         schedule=scenario.schedule,
-        config=config,
+        normalize_by_rotation=config.normalize_by_rotation,
         create_in_subprocess=False,
     )
-    setting.set_randomization(False)
+    setting.unset_randomization()
     setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
     return setting
 
@@ -324,7 +324,7 @@ class BaseDataset:
 
     def preprocess_example(self, scene, index):
         if self.randomize_at_load:
-            scene.set_randomization(True)
+            scene.set_randomization(self.config)
             exact_normalized_a_torch = Calculator.clean_acceleration(
                 scene, scene.exact_normalized_a_torch
             )
@@ -332,7 +332,7 @@ class BaseDataset:
             exact_normalized_a_torch = scene.exact_normalized_a_torch
 
         scene.exact_normalized_a_torch = None
-        features_data, target_data = scene.get_data(index, exact_normalized_a_torch)
+        features_data, target_data = scene.get_data(self.config, index, exact_normalized_a_torch)
         return features_data, target_data
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
@@ -352,7 +352,7 @@ class BaseDataset:
             current_time=0,
             setting=setting,
             path=path,
-            base_setting=None,
+            base_scene=None,
             draw_detailed=True,
             extension=extension,
         )

@@ -116,18 +116,18 @@ class BodyPosition(Mesh):
 
         self.schedule = schedule
         self.normalize_by_rotation = normalize_by_rotation
-        self.displacement_old = np.zeros_like(self.initial_nodes)
-        self.velocity_old = np.zeros_like(self.initial_nodes)
-        self.acceleration_old = np.zeros_like(self.initial_nodes)
+        self.displacement = np.zeros_like(self.initial_nodes)
+        self.velocity = np.zeros_like(self.initial_nodes)
+        self.acceleration = np.zeros_like(self.initial_nodes)
 
-    def set_acceleration_old(self, acceleration):
-        self.acceleration_old = acceleration
+    def set_acceleration(self, acceleration):
+        self.acceleration = acceleration
 
-    def set_velocity_old(self, velocity):
-        self.velocity_old = velocity
+    def set_velocity(self, velocity):
+        self.velocity = velocity
 
-    def set_displacement_old(self, displacement):
-        self.displacement_old = displacement
+    def set_displacement(self, displacement):
+        self.displacement = displacement
 
     @property
     def time_step(self):
@@ -136,14 +136,14 @@ class BodyPosition(Mesh):
     def get_copy(self):
         return copy.deepcopy(self)
 
-    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
-        _ = temperature, randomized_inputs
-        velocity = self.velocity_old + self.time_step * acceleration
-        displacement = self.displacement_old + self.time_step * velocity
+    def iterate_self(self, acceleration, temperature=None):
+        _ = temperature
+        velocity = self.velocity + self.time_step * acceleration
+        displacement = self.displacement + self.time_step * velocity
 
-        self.set_displacement_old(displacement)
-        self.set_velocity_old(velocity)
-        self.set_acceleration_old(acceleration)
+        self.set_displacement(displacement)
+        self.set_velocity(velocity)
+        self.set_acceleration(acceleration)
 
         return self
 
@@ -157,13 +157,16 @@ class BodyPosition(Mesh):
     def denormalize_rotate(self, vectors):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
+    def normalize_shift_and_rotate(self, vectors):
+        return self.normalize_rotate(vectors - np.mean(vectors, axis=0))
+
     @property
     def moved_nodes(self):
-        return self.initial_nodes + self.displacement_old
+        return self.initial_nodes + self.displacement
 
     @property
     def normalized_nodes(self):
-        return self.normalize_rotate(self.moved_nodes - self.mean_moved_nodes)
+        return self.normalize_shift_and_rotate(self.moved_nodes)
 
     @property
     def boundary_nodes(self):
@@ -177,8 +180,8 @@ class BodyPosition(Mesh):
         return self.normalize_rotate(self.get_boundary_normals())
 
     @property
-    def normalized_a_old(self):
-        return self.normalize_rotate(self.acceleration_old)
+    def normalized_acceleration(self):
+        return self.normalize_rotate(self.acceleration)
 
     @property
     def mean_moved_nodes(self):
@@ -201,20 +204,20 @@ class BodyPosition(Mesh):
         return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
 
     @property
-    def rotated_velocity_old(self):
-        return self.normalize_rotate(self.velocity_old)
+    def rotated_velocity(self):
+        return self.normalize_rotate(self.velocity)
 
     @property
-    def normalized_velocity_old(self):
-        return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
+    def normalized_velocity(self):
+        return self.normalize_shift_and_rotate(self.velocity)
 
     @property
-    def normalized_displacement_old(self):
+    def normalized_displacement(self):
         return self.normalized_nodes - self.normalized_initial_nodes
 
     @property
-    def origin_displacement_old(self):
-        return self.denormalize_rotate(self.normalized_displacement_old)
+    def origin_displacement(self):
+        return self.denormalize_rotate(self.normalized_displacement)
 
     def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
@@ -232,9 +235,9 @@ class BodyPosition(Mesh):
         )
 
     @property
-    def input_velocity_old(self):
-        return self.normalized_velocity_old
+    def input_velocity(self):
+        return self.normalized_velocity
 
     @property
-    def input_displacement_old(self):
-        return self.normalized_displacement_old
+    def input_displacement(self):
+        return self.normalized_displacement

@@ -8,7 +8,7 @@ from deep_conmech.data.interpolation_helpers import interpolate_nodes
 @numba.njit
 def random_corner_mesh_size(mesh_density):
     scale = mesh_density * 0.8
-    random_data = np.random.rand(4)
+    random_data = np.random.rand(4).reshape(-1, 1)
     # random_data = np.zeros(4) #random_data[1] = 1.
     corner_data = (random_data * 2.0 * scale) - scale
     return 1.0 / (mesh_density + corner_data)
@@ -25,9 +25,9 @@ def set_mesh_size(geom, mesh_prop: MeshProperties):
             raise NotImplementedError
         corner_mesh_size = random_corner_mesh_size(mesh_prop.mesh_density_x)
         callback = lambda dim, tag, x, y, z, *_: interpolate_nodes(
-            scaled_nodes=np.array([x / mesh_prop.scale_x, y / mesh_prop.scale_y]),
+            scaled_nodes=np.array([[x / mesh_prop.scale_x, y / mesh_prop.scale_y]]),
             corner_vectors=corner_mesh_size,
-        )
+        ).item()
     else:
         callback = lambda dim, tag, x, y, z, *_: 1.0 / mesh_prop.mesh_density_x
 

@@ -17,7 +17,7 @@ def main(mesh_density=4, final_time=5, plot_animation=True):
         simulate_dirty_data=True,
         plot_animation=plot_animation,
         config=config,
-        get_setting_function=GraphModelDynamic.get_setting_function,
+        get_scene_function=GraphModelDynamic.get_scene_function,
     )
 
 
