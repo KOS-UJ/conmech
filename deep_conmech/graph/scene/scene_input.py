@@ -132,7 +132,6 @@ class SceneInput(SceneTorch):
         boundary_volume = self.complete_boundary_data_with_zeros_torch(
             self.get_surface_per_boundary_node_torch()
         )
-
         nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.normalized_inner_forces_torch),

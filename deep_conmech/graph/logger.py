@@ -1,5 +1,6 @@
 import json
 
+import numpy as np
 from matplotlib import pyplot as plt
 from pandas import DataFrame
 from torch.utils.tensorboard.writer import SummaryWriter
@@ -61,8 +62,14 @@ class Logger:
         for i in range(rows * columns):
             row, col = i // columns, i % columns
             if i < df.columns.size:
+                # np.max(df[df.columns[i]])
+                # binwidth = 0.001
+                # min_d = -0.05
+                # max_d = 0.05
+                # bins = np.arange(min_d, max_d + binwidth, binwidth)
+                bins = 500
                 df.hist(
-                    column=df.columns[i], bins=500, ax=axs[row, col]
+                    column=df.columns[i], bins=bins, ax=axs[row, col], sharey=True, sharex=True
                 )  # bins=12 , figsize=(20, 18)
             else:
                 axs[row, col].axis("off")

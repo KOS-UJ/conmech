@@ -17,21 +17,21 @@ def choose(options):
 def get_corner_vectors_rotate(dim, scale):
     # 1 2
     # 0 3
-    corner_vector = nph.generate_normal_circle(rows=1, columns=dim, scale=scale)
+    corner_vector = nph.generate_normal(rows=1, columns=dim, scale=scale)
     corner_vectors = corner_vector * [[1, 1], [-1, 1], [-1, -1], [1, -1]]
     return corner_vectors
 
 
 def get_corner_vectors_all(dimension, scale):
-    corner_vectors = nph.generate_normal_circle(rows=dimension * 2, columns=dimension, scale=scale)
+    corner_vectors = nph.generate_normal(rows=dimension * 2, columns=dimension, scale=scale)
     return corner_vectors
 
 
-def get_mean(scale, initial_nodes):
+def get_mean(scale, dimension):
     return np.random.uniform(
         low=-scale,
         high=scale,
-        size=(1, initial_nodes.shape[1]),
+        size=(1, dimension),
     )
 
 
@@ -64,7 +64,7 @@ def interpolate_four(
     dimension = initial_nodes.shape[1]
     if dimension != 2:
         raise NotImplementedError
-    mean = get_mean(scale, initial_nodes)
+    mean = get_mean(scale=scale, dimension=dimension)
     corners_scale = scale * corners_scale_proportion
 
     get_corner_vectors = get_corner_vectors_all

@@ -214,11 +214,15 @@ class BaseDataset:
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
         assert self.data_count == len(self.scene_indices)
 
-    def get_iterator(self, data_tqdm: Iterable[int], scenes_path: Optional[str] = None):
+    def get_scenes_iterator(self, data_tqdm: Iterable[int], with_scenes_file: bool):
+        scenes_file = pkh.open_file_read(self.scenes_data_path)
         for index in data_tqdm:
-            if scenes_path is not None:
-                with open(scenes_path, "rb") as file:
-                    scene = pickle.load(file)
+            if with_scenes_file:
+                scene = pkh.load_index(
+                    index=index,
+                    all_indices=self.scene_indices,
+                    data_file=scenes_file,
+                )
             else:
                 scene, _ = self.generate_scene(index)
 
@@ -246,10 +250,9 @@ class BaseDataset:
             features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
             targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
 
-            scenes_path = self.scenes_data_path if self.with_scenes_file else None
             with features_file, features_indices_file, targets_file, targets_indices_file:
-                for features_data, targets_data in self.get_iterator(
-                    data_tqdm=data_tqdm, scenes_path=scenes_path
+                for features_data, targets_data in self.get_scenes_iterator(
+                    data_tqdm=data_tqdm, with_scenes_file=self.with_scenes_file
                 ):
                     pkh.append_data(features_data, features_file, features_indices_file)
                     pkh.append_data(targets_data, targets_file, targets_indices_file)

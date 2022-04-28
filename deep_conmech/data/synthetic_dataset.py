@@ -95,7 +95,7 @@ def generate_obstacles(config: TrainingConfig, scene: SceneInput):
 
 def generate_base(config: TrainingConfig):
     dimension = config.td.dimension
-    base = nph.generate_normal_circle(rows=dimension, columns=dimension, scale=1)
+    base = nph.generate_normal(rows=dimension, columns=dimension, scale=1)
     base = nph.normalize_euclidean_numba(base)
     base = nph.orthogonalize_gram_schmidt(base)
     base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
