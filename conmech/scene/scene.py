@@ -300,3 +300,9 @@ class Scene(BodyForces):
         if self.has_no_obstacles:
             return False
         return np.any(self.get_boundary_penetration_norm() > 0)
+
+    def clear_for_save(self):
+        self.element_initial_volume = None
+        self.acceleration_operator = None
+        self.thermal_expansion = None
+        self.thermal_conductivity = None

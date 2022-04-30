@@ -10,7 +10,7 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 def get_fig():

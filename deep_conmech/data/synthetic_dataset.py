@@ -4,26 +4,31 @@ from conmech.helpers import cmh, nph, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
+from conmech.scene.scene import Scene
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset, interpolation_helpers
 from deep_conmech.data.base_dataset import BaseDataset
-from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON "pygmsh_spline"
+            [
+                scenarios.M_RECTANGLE,
+                scenarios.M_CIRCLE,
+                scenarios.M_POLYGON,
+            ]  # , scenarios.M_POLYGON "pygmsh_spline"
         )
     return interpolation_helpers.choose(
         [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
     )
 
 
-def generate_base_scene(config: TrainingConfig, base: np.ndarray):
-    scene = SceneInput(
+def generate_base_scene(config: TrainingConfig, base: np.ndarray) -> Scene:
+    scene = Scene(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
             mesh_type=generate_mesh_type(config),
@@ -81,12 +86,12 @@ def generate_velocity(config: TrainingConfig, setting, base: np.ndarray):
     return velocity
 
 
-def generate_obstacles(config: TrainingConfig, scene: SceneInput):
+def generate_obstacles(config: TrainingConfig, scene: Scene):
     obstacle_nodes_unnormaized = nph.generate_uniform_circle(
         rows=1,
         columns=scene.dimension,
-        low=config.td.obstacle_min_scale,
-        high=config.td.obstacle_origin_scale,
+        low=config.td.obstacle_origin_min_scale,
+        high=config.td.obstacle_origin_max_scale,
     )
     obstacle_nodes = obstacle_nodes_unnormaized + scene.mean_moved_nodes
     obstacle_normals_unnormaized = -obstacle_nodes_unnormaized
@@ -140,7 +145,6 @@ class SyntheticDataset(BaseDataset):
 
         base = generate_base(self.config)
         scene = generate_base_scene(self.config, base)
-        scene.unset_randomization()  # TODO #65: Check
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)
         forces = generate_forces(self.config, scene, base)
@@ -154,10 +158,11 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity(velocity)
         scene.prepare(forces)
 
-        add_label = False
-        exact_normalized_a_torch = (
-            thh.to_torch_double(Calculator.solve(scene)) if add_label else None
-        )
+        # add_label = False
+        # exact_normalized_a_torch = (
+        #    thh.to_torch_double(Calculator.solve(scene)) if add_label else None
+        # )
+        exact_normalized_a_torch = None
 
         return scene, exact_normalized_a_torch
 

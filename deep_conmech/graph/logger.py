@@ -57,7 +57,7 @@ class Logger:
         scale = 7
         rows = (df.columns.size // columns) + df.columns.size % columns
         fig, axs = plt.subplots(
-            rows, columns, figsize=(columns * scale, rows * scale)
+            rows, columns, figsize=(columns * scale, rows * scale), sharey="row"
         )  # , sharex="col", sharey="row"
         for i in range(rows * columns):
             row, col = i // columns, i % columns
@@ -69,7 +69,7 @@ class Logger:
                 # bins = np.arange(min_d, max_d + binwidth, binwidth)
                 bins = 500
                 df.hist(
-                    column=df.columns[i], bins=bins, ax=axs[row, col], sharey=True, sharex=True
+                    column=df.columns[i], bins=bins, ax=axs[row, col]
                 )  # bins=12 , figsize=(20, 18)
             else:
                 axs[row, col].axis("off")

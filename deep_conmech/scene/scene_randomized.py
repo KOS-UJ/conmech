@@ -1,36 +1,13 @@
-from typing import Optional
-
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.obstacle_properties import ObstacleProperties
-from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
 from deep_conmech.training_config import TrainingConfig
 
 
-class SceneRandomized(Scene):
-    def __init__(
-        self,
-        mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
-        obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess: bool,
-        with_schur: bool = True,
-    ):
-        super().__init__(
-            mesh_prop=mesh_prop,
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
-            schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
-            create_in_subprocess=create_in_subprocess,
-            with_schur=with_schur,
-        )
+class SceneRandomized:
+    def __init__(self, scene: Scene):
+        self.scene = scene
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0
         self.displacement_to_velocity_noise = 0
@@ -38,6 +15,9 @@ class SceneRandomized(Scene):
         self.displacement_randomization = np.zeros_like(self.initial_nodes)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png",
         # None, "png", 0)
+
+    def __getattr__(self, name):
+        return getattr(self.scene, name)
 
     # def remesh(self):
     #    super().remesh()
@@ -121,4 +101,4 @@ class SceneRandomized(Scene):
         _ = temperature
         if self.randomized_inputs:
             self.regenerate_randomization()
-        super().iterate_self(acceleration)
+        self.scene.iterate_self(acceleration)

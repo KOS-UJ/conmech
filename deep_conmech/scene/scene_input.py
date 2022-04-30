@@ -4,15 +4,10 @@ import torch
 from torch_geometric.data import Data
 
 from conmech.helpers import nph
-from conmech.helpers.config import Config
-from conmech.properties.body_properties import DynamicBodyProperties
-from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.obstacle_properties import ObstacleProperties
-from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
-from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
-from deep_conmech.graph.scene.scene_torch import SceneTorch
+from conmech.scene.scene import EnergyObstacleArguments, Scene, energy_obstacle
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_torch import SceneTorch
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -52,25 +47,8 @@ def get_edges_data_numba(
 
 
 class SceneInput(SceneTorch):
-    def __init__(
-        self,
-        mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
-        obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess: bool,
-        with_schur: bool = True,
-    ):
-        super().__init__(
-            mesh_prop=mesh_prop,
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
-            schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
-            create_in_subprocess=create_in_subprocess,
-            with_schur=with_schur,
-        )
+    def __init__(self, scene: Scene):
+        super().__init__(scene=scene)
 
     @staticmethod
     def edges_data_dim(dimension):
@@ -188,9 +166,3 @@ class SceneInput(SceneTorch):
         transform(data)
         """
         return features_data, target_data
-
-    def clear_for_save(self):
-        self.element_initial_volume = None
-        self.acceleration_operator = None
-        self.thermal_expansion = None
-        self.thermal_conductivity = None

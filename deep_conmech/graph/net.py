@@ -8,9 +8,10 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
+from conmech.scene.scene import Scene
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingData
 
 
@@ -337,17 +338,17 @@ class CustomGraphNet(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
-    def solve_all(self, setting):
+    def solve_all(self, scene: SceneInput):
         self.eval()
 
-        batch = setting.get_data(config=None)[0].to(self.device)
+        batch = scene.get_data(config=None)[0].to(self.device)
         normalized_a_cuda = self(batch)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
-        a = setting.denormalize_rotate(normalized_a)
+        a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a
 
-    def solve(self, setting, initial_a):
+    def solve(self, scene: SceneInput, initial_a):
         _ = initial_a
-        a, _ = self.solve_all(setting)
+        a, _ = self.solve_all(scene)
         return a

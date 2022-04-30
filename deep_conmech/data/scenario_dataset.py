@@ -5,10 +5,10 @@ import numpy as np
 
 from conmech.helpers import cmh, pkh
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import Scene
 from deep_conmech.data.base_dataset import (
     BaseDataset,
     get_assigned_scenarios,
-    get_scene_input,
     is_memory_overflow,
 )
 from deep_conmech.helpers import thh
@@ -58,6 +58,18 @@ class ScenariosDataset(BaseDataset):
     def data_size_id(self):
         return f"f={self.config.td.final_time}_i={self.skip_index}"
 
+    def get_scene(self, scenario: Scenario, config: TrainingConfig) -> Scene:
+        scene = Scene(
+            mesh_prop=scenario.mesh_prop,
+            body_prop=scenario.body_prop,
+            obstacle_prop=scenario.obstacle_prop,
+            schedule=scenario.schedule,
+            normalize_by_rotation=config.normalize_by_rotation,
+            create_in_subprocess=False,
+        )
+        scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+        return scene
+
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
         simulation_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
@@ -79,7 +91,7 @@ class ScenariosDataset(BaseDataset):
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    scene = get_scene_input(scenario=scenario, config=self.config)
+                    scene = self.get_scene(scenario=scenario, config=self.config)
 
                 if is_memory_overflow(
                     config=self.config,

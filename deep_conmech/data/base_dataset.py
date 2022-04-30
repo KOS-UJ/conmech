@@ -9,11 +9,12 @@ from torch_geometric.loader import DataLoader
 from conmech.helpers import cmh, mph, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import dch
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -86,20 +87,6 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
         process_id * assigned_scenarios_count : (process_id + 1) * assigned_scenarios_count
     ]
     return assigned_scenarios
-
-
-def get_scene_input(scenario: Scenario, config: TrainingConfig) -> SceneInput:
-    setting = SceneInput(
-        mesh_prop=scenario.mesh_prop,
-        body_prop=scenario.body_prop,
-        obstacle_prop=scenario.obstacle_prop,
-        schedule=scenario.schedule,
-        normalize_by_rotation=config.normalize_by_rotation,
-        create_in_subprocess=False,
-    )
-    setting.unset_randomization()
-    setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
-    return setting
 
 
 class BaseDataset:
@@ -325,17 +312,20 @@ class BaseDataset:
             )
         return target_data
 
-    def preprocess_example(self, scene, index):
+    def preprocess_example(self, scene: Scene, index):
+        scene_input = SceneInput(scene=scene)
         if self.randomize_at_load:
-            scene.set_randomization(self.config)
-            exact_normalized_a_torch = Calculator.clean_acceleration(
-                scene, scene.exact_normalized_a_torch
-            )
-        else:
-            exact_normalized_a_torch = scene.exact_normalized_a_torch
+            scene_input.set_randomization(self.config)
+            # exact_normalized_a_torch = Calculator.clean_acceleration(
+            #    scene_input, scene_input.exact_normalized_a_torch
+            # )
+        # else:
+        # exact_normalized_a_torch = scene_input.exact_normalized_a_torch
 
-        scene.exact_normalized_a_torch = None
-        features_data, target_data = scene.get_data(self.config, index, exact_normalized_a_torch)
+        exact_normalized_a_torch = None
+        features_data, target_data = scene_input.get_data(
+            self.config, index, exact_normalized_a_torch
+        )
         return features_data, target_data
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):

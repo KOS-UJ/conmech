@@ -17,22 +17,22 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 8
-    mesh_density: int = 6  # 16 if dimension == 2 else 6
-    adaptive_training_mesh: bool = True  # False
+    mesh_density: int = 16 if dimension == 2 else 6
+    adaptive_training_mesh: bool = False
 
     forces_random_scale: float = 4.0
-    obstacle_origin_scale: float = 3.0 * train_scale
-    obstacle_min_scale: float = 0.4 * train_scale
+    obstacle_origin_max_scale: float = 2.0 * train_scale
+    obstacle_origin_min_scale: float = 0.4 * train_scale
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
-    rotate_velocity_proportion: float = 0.0  # 0.5 if dimension == 2 else 0
+    rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
     zero_forces_proportion: float = 0.2
-    corners_scale_proportion: float = 0.5
+    corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.0005 * displacement_random_scale
-    velocity_in_random_factor: float = 0.0005 * velocity_random_scale
+    displacement_in_random_factor: float = 0.005 * displacement_random_scale
+    velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10
@@ -41,7 +41,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 10  # 100
+    synthetic_batches_in_epoch: int = 100  # 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -82,9 +82,9 @@ class TrainingConfig(Config):
 
     dataset_images_count: float = 100
 
-    log_dataset_stats: bool = True
     load_train_features_to_ram: bool = True
-    load_train_targets_to_ram: bool = False
+    load_train_targets_to_ram: bool = False  # False
+    log_dataset_stats: bool = True  # True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

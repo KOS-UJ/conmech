@@ -7,7 +7,7 @@ import scipy.optimize
 from conmech.helpers import nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 class Calculator:
@@ -183,7 +183,7 @@ class Calculator:
         return normalized_a + setting.get_normalized_a_correction()
 
     @staticmethod
-    def clean_temperature(_setting, temperature):
+    def clean_temperature(setting, temperature):
         return temperature if temperature is not None else None
 
     @staticmethod

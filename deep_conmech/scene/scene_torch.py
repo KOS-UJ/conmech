@@ -1,30 +1,13 @@
 import torch
 
-from conmech.helpers.config import Config
-from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from conmech.scene.scene import Scene
+from deep_conmech.scene.scene_randomized import SceneRandomized
 from deep_conmech.helpers import thh
 
 
 class SceneTorch(SceneRandomized):
-    def __init__(
-        self,
-        mesh_prop,
-        body_prop,
-        obstacle_prop,
-        schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess: bool,
-        with_schur: bool = True,
-    ):
-        super().__init__(
-            mesh_prop=mesh_prop,
-            body_prop=body_prop,
-            obstacle_prop=obstacle_prop,
-            schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
-            create_in_subprocess=create_in_subprocess,
-            with_schur=with_schur,
-        )
+    def __init__(self, scene: Scene):
+        super().__init__(scene=scene)
         self.exact_normalized_a_torch = None  # TODO: clear on change
 
     def complete_boundary_data_with_zeros_torch(self, data):

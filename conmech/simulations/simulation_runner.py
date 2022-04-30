@@ -10,6 +10,7 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
+from deep_conmech.scene.scene_input import SceneInput
 
 
 def run_examples(
@@ -74,10 +75,10 @@ def run_scenario(
         scenes_path = ""
         calculator_scenes_path = ""
 
-    def save_scene(scene: Scene, scenes_path: str):
+    def save_scene(scene: SceneInput, scenes_path: str):
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
         with scenes_file, indices_file:
-            pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
+            pkh.append_data(data=scene.scene, data_file=scenes_file, indices_file=indices_file)
 
     step = [0]  # TODO: #65 Clean
 
@@ -178,8 +179,8 @@ def simulate(
         )
     )
 
-    setting = _get_scene_function(randomize=simulate_dirty_data, create_in_subprocess=True)
-    with_temperature = isinstance(setting, SceneTemperature)
+    scene = _get_scene_function(randomize=simulate_dirty_data, create_in_subprocess=True)
+    with_temperature = isinstance(scene, SceneTemperature)
     if compare_with_base_scene:
         base_scene = _get_scene_function(randomize=False, create_in_subprocess=True)
     else:
@@ -194,24 +195,24 @@ def simulate(
     temperature = None
     mean_energy = 0.0
     for time_step in time_tqdm:
-        current_time = (time_step + 1) * setting.time_step
+        current_time = (time_step + 1) * scene.time_step
 
-        prepare(scenario, setting, base_scene, current_time, with_temperature)
+        prepare(scenario, scene, base_scene, current_time, with_temperature)
 
         start_time = time.time()
         if with_temperature:
             acceleration, temperature = solve_function(
-                setting, initial_a=acceleration, initial_t=temperature
+                scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            acceleration = solve_function(setting, initial_a=acceleration)
+            acceleration = solve_function(scene, initial_a=acceleration)
             mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
-                setting=setting, acceleration=acceleration
+                setting=scene, acceleration=acceleration
             )
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
-            setting.make_dirty()
+            scene.make_dirty()
 
         if compare_with_base_scene:
 
@@ -220,9 +221,9 @@ def simulate(
             calculator_time += time.time() - start_time
 
         if operation is not None:
-            operation(setting, base_scene)  # (current_time, setting, base_scene, a, base_a)
+            operation(scene, base_scene)  # (current_time, setting, base_scene, a, base_a)
 
-        setting.iterate_self(acceleration, temperature=temperature)
+        scene.iterate_self(acceleration, temperature=temperature)
 
         if compare_with_base_scene:
             base_scene.iterate_self(base_a)
@@ -231,7 +232,7 @@ def simulate(
 
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_scene else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
-    return setting, mean_energy
+    return scene, mean_energy
 
 
 def plot_setting(
