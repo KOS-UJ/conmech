@@ -124,7 +124,7 @@ class BaseDataset:
     @property
     def data_id(self):
         td = self.config.td
-        return f"{self.description}_d={td.dimension}_m={td.mesh_density}_{self.data_size_id}"
+        return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
 
     @property
     def main_directory(self):
@@ -187,24 +187,14 @@ class BaseDataset:
             print("Clearing old data")
             cmh.clear_folder(self.main_directory)
             self.create_folders()
-
-            result = False
-            while result is False:
-                result = mph.run_processes(
-                    self.generate_data_process,
-                    (),
-                    self.num_workers,
-                )
-                if result is False:
-                    print("Restarting data generation")
-
+            mph.run_process(self.generate_data_simple)
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
         assert self.data_count == len(self.scene_indices)
 
-    def get_scenes_iterator(self, data_tqdm: Iterable[int], with_scenes_file: bool):
+    def get_scenes_iterator(self, data_tqdm: Iterable[int]):
         scenes_file = pkh.open_file_read(self.scenes_data_path)
         for index in data_tqdm:
-            if with_scenes_file:
+            if self.with_scenes_file:
                 scene = pkh.load_index(
                     index=index,
                     all_indices=self.scene_indices,
@@ -238,9 +228,7 @@ class BaseDataset:
             targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
 
             with features_file, features_indices_file, targets_file, targets_indices_file:
-                for features_data, targets_data in self.get_scenes_iterator(
-                    data_tqdm=data_tqdm, with_scenes_file=self.with_scenes_file
-                ):
+                for features_data, targets_data in self.get_scenes_iterator(data_tqdm=data_tqdm):
                     pkh.append_data(features_data, features_file, features_indices_file)
                     pkh.append_data(targets_data, targets_file, targets_indices_file)
 
@@ -312,10 +300,9 @@ class BaseDataset:
             )
         return target_data
 
-    def preprocess_example(self, scene: Scene, index):
-        scene_input = SceneInput(scene=scene)
+    def preprocess_example(self, scene: SceneInput, index):
         if self.randomize_at_load:
-            scene_input.set_randomization(self.config)
+            scene.set_randomization(self.config)
             # exact_normalized_a_torch = Calculator.clean_acceleration(
             #    scene_input, scene_input.exact_normalized_a_torch
             # )
@@ -323,8 +310,8 @@ class BaseDataset:
         # exact_normalized_a_torch = scene_input.exact_normalized_a_torch
 
         exact_normalized_a_torch = None
-        features_data, target_data = scene_input.get_data(
-            self.config, index, exact_normalized_a_torch
+        features_data, target_data = scene.get_data(
+            scene_index=index, exact_normalized_a_torch=exact_normalized_a_torch
         )
         return features_data, target_data
 
@@ -333,17 +320,17 @@ class BaseDataset:
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")
-            self.plot_data_setting(scene, current_index, self.images_directory)
+            self.plot_data_scene(scene, current_index, self.images_directory)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
-    def plot_data_setting(self, setting, filename, catalog):
+    def plot_data_scene(self, scene: Scene, filename, catalog):
         cmh.create_folders(catalog)
         extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
         simulation_runner.plot_setting(
             current_time=0,
-            setting=setting,
+            scene=scene,
             path=path,
             base_scene=None,
             draw_detailed=True,
@@ -351,6 +338,9 @@ class BaseDataset:
         )
 
     def generate_data_process(self, num_workers: int, process_id: int):
+        pass
+
+    def generate_data_simple(self):
         pass
 
     def generate_scene(self, index: int):

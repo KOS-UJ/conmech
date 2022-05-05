@@ -1,30 +1,48 @@
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
+from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
 from deep_conmech.training_config import TrainingConfig
 
 
-class SceneRandomized:
-    def __init__(self, scene: Scene):
-        self.scene = scene
+class SceneRandomized(Scene):
+    def __init__(
+        self,
+        mesh_prop: MeshProperties,
+        body_prop: DynamicBodyProperties,
+        obstacle_prop: ObstacleProperties,
+        schedule: Schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
+    ):
+        super().__init__(
+            mesh_prop=mesh_prop,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
+            create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
+        )
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0
         self.displacement_to_velocity_noise = 0
         self.velocity_randomization = np.zeros_like(self.initial_nodes)
         self.displacement_randomization = np.zeros_like(self.initial_nodes)
-        # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png",
-        # None, "png", 0)
-
-    def __getattr__(self, name):
-        return getattr(self.scene, name)
+        # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
 
     # def remesh(self):
     #    super().remesh()
     #    self.set_randomization(self.randomized_inputs)
+
     @property
     def randomized_inputs(self):
-        return self.displacement_in_random_factor == 0 and self.displacement_to_velocity_noise == 0
+        return self.velocity_in_random_factor != 0 or self.displacement_in_random_factor != 0 or self.displacement_to_velocity_noise != 0
 
     def unset_randomization(self):
         self.velocity_in_random_factor = 0
@@ -54,30 +72,31 @@ class SceneRandomized:
         self.velocity_randomization[self.boundary_indices] = 0.0
 
     @property
-    def randomized_velocity(self):
-        return self.velocity + self.velocity_randomization
+    def normalized_velocity_randomization(self):
+        return self.normalize_rotate(self.velocity_randomization)
 
     @property
-    def randomized_displacement(self):
-        return self.displacement + self.displacement_randomization
+    def normalized_displacement_randomization(self):
+        return self.normalize_rotate(self.displacement_randomization)
 
     @property
-    def norm_rand_velocity(self):
-        return self.normalize_shift_and_rotate(self.velocity + self.velocity_randomization)
+    def randomized_velocity_old(self):
+        return self.velocity_old + self.velocity_randomization
 
     @property
-    def norm_rand_displacement(self):
-        return self.normalize_shift_and_rotate(self.displacement + self.displacement_randomization)
+    def randomized_displacement_old(self):
+        return self.displacement_old + self.displacement_randomization
 
     @property
-    def input_velocity(self):
-        return self.norm_rand_velocity
+    def input_velocity_old(self):  # normalized_randomized_velocity_old
+        return self.normalized_velocity_old + self.normalized_velocity_randomization
 
     @property
-    def input_displacement(self):
-        return self.norm_rand_displacement
+    def input_displacement_old(self):  # normalized_randomized_displacement_old
+        return self.normalized_displacement_old + self.normalized_displacement_randomization
 
-    def get_a_correction(self):
+    @property
+    def a_correction(self):
         u_correction = self.displacement_to_velocity_noise * (
             self.displacement_randomization / (self.time_step**2)
         )
@@ -88,12 +107,13 @@ class SceneRandomized:
         )
         return -1.0 * (u_correction + v_correction)
 
-    def get_normalized_a_correction(self):
-        return self.normalize_rotate(self.get_a_correction())
+    @property
+    def normalized_a_correction(self):
+        return self.normalize_rotate(self.a_correction)
 
     def make_dirty(self):
-        self.velocity = self.randomized_velocity
-        self.displacement = self.randomized_displacement
+        self.velocity_old = self.randomized_velocity_old
+        self.displacement_old = self.randomized_displacement_old
 
         self.unset_randomization()
 
@@ -101,4 +121,4 @@ class SceneRandomized:
         _ = temperature
         if self.randomized_inputs:
             self.regenerate_randomization()
-        self.scene.iterate_self(acceleration)
+        super().iterate_self(acceleration)

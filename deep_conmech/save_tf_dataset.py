@@ -32,7 +32,7 @@ def load_data(meta_path, data_path):
     parser = functools.partial(_parse, meta=meta)
     first_input = tf.data.make_one_shot_iterator(ds).get_next()
     _ = parser(first_input)
-    _
+
     ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
     ds = ds.prefetch(1)  # 10
     inputs = tf.data.make_one_shot_iterator(ds).get_next()

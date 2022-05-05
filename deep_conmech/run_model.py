@@ -2,9 +2,6 @@ import argparse
 from argparse import ArgumentParser, Namespace
 from typing import Optional
 
-import numpy as np
-from conmech.helpers.nph import generate_normal
-
 from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics

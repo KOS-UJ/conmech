@@ -53,14 +53,15 @@ class Calculator:
 
     @staticmethod
     def solve_with_temperature(
-        setting: SceneTemperature,
+        scene: SceneTemperature,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ):
         uzawa = False
         max_iter = 10
         i = 0
-        temperature = setting.temperature
+        normalized_a = None
+        temperature = scene.t_old
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
         while (
             i < 2
@@ -68,17 +69,17 @@ class Calculator:
             and not np.allclose(last_t, temperature)
         ):
             last_normalized_a, last_t = normalized_a, temperature
-            normalized_a = Calculator.solve_acceleration_normalized(setting, temperature, initial_a)
-            temperature = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
+            normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
+            temperature = Calculator.solve_temperature_normalized(scene, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
                 raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
             if uzawa is False:
                 break
 
-        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
-        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
-        cleaned_t = Calculator.clean_temperature(setting, temperature)
+        normalized_cleaned_a = Calculator.clean_acceleration(scene, normalized_a)
+        cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
+        cleaned_t = Calculator.clean_temperature(scene, temperature)
         return cleaned_a, cleaned_t
 
     @staticmethod
@@ -175,15 +176,15 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(setting: Scene, normalized_a):
+    def clean_acceleration(scene: Scene, normalized_a):
         if normalized_a is None:
             return None
-        if not isinstance(setting, SceneRandomized):
+        if not isinstance(scene, SceneRandomized):
             return normalized_a
-        return normalized_a + setting.get_normalized_a_correction()
+        return normalized_a + scene.normalized_a_correction
 
     @staticmethod
-    def clean_temperature(setting, temperature):
+    def clean_temperature(scene, temperature):
         return temperature if temperature is not None else None
 
     @staticmethod

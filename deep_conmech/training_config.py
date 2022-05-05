@@ -17,18 +17,19 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 8
-    mesh_density: int = 16 if dimension == 2 else 6
+    mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
     adaptive_training_mesh: bool = False
 
     forces_random_scale: float = 4.0
-    obstacle_origin_max_scale: float = 2.0 * train_scale
+    obstacle_origin_max_scale: float = 3.0 * train_scale  # less
     obstacle_origin_min_scale: float = 0.4 * train_scale
     displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0
-    zero_forces_proportion: float = 0.2
-    corners_scale_proportion: float = 0.8
+    zero_forces_proportion: float = 0.2  # 0.8
+    corners_scale_proportion: float = 0.8  # less
+    rotate_scale_proportion: float = 0.5
 
     displacement_to_velocity_noise: float = 0.1
     displacement_in_random_factor: float = 0.005 * displacement_random_scale
@@ -41,7 +42,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 100  # 512
+    synthetic_batches_in_epoch: int = 96  # 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -55,7 +56,7 @@ class TrainingData:
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
     initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
-    learning_rate_decay: float = 0.995  # 0.99 0.995 0.999
+    learning_rate_decay: float = 0.995
     final_learning_rate: float = 1e-6
 
     activation = nn.ReLU()  # nn.PReLU()
@@ -63,7 +64,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    message_passes: int = 10
+    message_passes: int = 12
 
 
 @dataclass
@@ -72,7 +73,7 @@ class TrainingConfig(Config):
     device: str = "_"
 
     dataloader_workers = 4
-    synthetic_generation_workers = 1
+    synthetic_generation_workers = 1  # 2
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
     total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)
@@ -83,8 +84,8 @@ class TrainingConfig(Config):
     dataset_images_count: float = 100
 
     load_train_features_to_ram: bool = True
-    load_train_targets_to_ram: bool = False  # False
-    log_dataset_stats: bool = True  # True
+    load_train_targets_to_ram: bool = False
+    log_dataset_stats: bool = True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

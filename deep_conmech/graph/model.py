@@ -7,7 +7,6 @@ import torch
 
 from conmech.helpers import cmh, nph
 from conmech.scenarios.scenarios import Scenario
-from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
@@ -134,7 +133,7 @@ class GraphModelDynamic:
         randomize=False,
         create_in_subprocess: bool = False,
     ) -> SceneInput:
-        scene = Scene(
+        scene = SceneInput(
             mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
@@ -142,13 +141,12 @@ class GraphModelDynamic:
             normalize_by_rotation=config.normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        scene_input = SceneInput(scene)
         if randomize:
-            scene_input.set_randomization(config)
+            scene.set_randomization(config)
         else:
-            scene_input.unset_randomization()
-        scene_input.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
-        return scene_input
+            scene.unset_randomization()
+        scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+        return scene
 
     @staticmethod
     def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: TrainingConfig):

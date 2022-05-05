@@ -13,6 +13,7 @@ from matplotlib.figure import Figure
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
+from conmech.scene.scene import Scene
 
 # TODO: #65 Move to config
 DPI = 800
@@ -50,7 +51,7 @@ def get_t_scale(
                 all_indices=all_indices,
                 data_file=scenes_file,
             )
-            temperatures_list.append(setting.temperature)
+            temperatures_list.append(setting.t_old)
     temperatures = np.array(temperatures_list)
     return np.array([np.min(temperatures), np.max(temperatures)])
 
@@ -203,6 +204,6 @@ def plot_animation(
     plt.close()
 
 
-def get_frame_annotation(setting, current_time):
+def get_frame_annotation(scene: Scene, current_time):
     return f"""time: {str(round(current_time, 1))}
-nodes: {str(setting.nodes_count)}"""
+nodes: {str(scene.nodes_count)}"""

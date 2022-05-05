@@ -37,7 +37,9 @@ def get_mean(dimension, scale):
 
 
 def scale_nodes_to_square(nodes):
-    scaled_nodes = (nodes - np.min(nodes, axis=0)) / (np.max(nodes, axis=0) - np.min(nodes, axis=0))
+    nodes_min = np.min(nodes, axis=0)
+    nodes_max = np.max(nodes, axis=0)
+    scaled_nodes = (nodes - nodes_min) / (nodes_max - nodes_min)
     return scaled_nodes
 
 

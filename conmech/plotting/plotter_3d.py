@@ -7,6 +7,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
+from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 
 
@@ -65,7 +66,14 @@ def get_axs(fig):
     return [ax0, ax1, ax2, ax3]
 
 
-def plot_frame(fig, axs, scene, current_time, base_scene=None, t_scale: Optional[List] = None):
+def plot_frame(
+    fig,
+    axs,
+    scene: Scene,
+    current_time,
+    base_scene: Optional[Scene] = None,
+    t_scale: Optional[List] = None,
+):
     _ = base_scene
     for axes in axs:
         plot_subframe(
@@ -73,21 +81,21 @@ def plot_frame(fig, axs, scene, current_time, base_scene=None, t_scale: Optional
             scene=scene,
             normalized_data=[
                 scene.normalized_inner_forces,
-                scene.normalized_displacement,
-                scene.normalized_velocity,
-                scene.normalized_acceleration,
+                scene.normalized_displacement_old,
+                scene.normalized_velocity_old,
+                scene.normalized_a_old,
             ],
             t_scale=t_scale,
         )
-    draw_parameters(axes=axs[0], setting=scene, current_time=current_time)
+    draw_parameters(axes=axs[0], scene=scene, current_time=current_time)
 
     if isinstance(scene, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale=t_scale)
         plotter_common.plot_colorbar(fig, axs=axs, cbar_settings=cbar_settings)
 
 
-def draw_parameters(axes, setting, current_time):
-    annotation = plotter_common.get_frame_annotation(current_time=current_time, setting=setting)
+def draw_parameters(axes, scene: Scene, current_time):
+    annotation = plotter_common.get_frame_annotation(current_time=current_time, scene=scene)
     x_max = axes.get_xlim()[1]
     y_max = axes.get_ylim()[1]
     z_max = axes.get_zlim()[1]
@@ -108,7 +116,7 @@ def draw_base_arrows(axes, base):
     axes.quiver(*z, *(base[2]), arrow_length_ratio=0.1, color="g")
 
 
-def plot_subframe(axes, scene, normalized_data, t_scale):
+def plot_subframe(axes, scene: Scene, normalized_data, t_scale):
     # draw_base_arrows(axes, setting.moved_base)
 
     if isinstance(scene, SceneTemperature):
@@ -116,7 +124,7 @@ def plot_subframe(axes, scene, normalized_data, t_scale):
         plot_main_temperature(
             axes,
             nodes=scene.moved_nodes,
-            setting=scene,
+            scene=scene,
             cbar_settings=cbar_settings,
         )
     else:
@@ -138,10 +146,10 @@ def plot_subframe(axes, scene, normalized_data, t_scale):
         )
 
 
-def plot_temperature(axes, nodes, scene, cbar_settings: plotter_common.ColorbarSettings):
+def plot_temperature(axes, nodes, scene: Scene, cbar_settings: plotter_common.ColorbarSettings):
     axes.scatter(
         *(nodes.T),
-        c=scene.temperature,
+        c=scene.t_old,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
         cmap=cbar_settings.cmap,
@@ -151,9 +159,9 @@ def plot_temperature(axes, nodes, scene, cbar_settings: plotter_common.ColorbarS
     )
 
 
-def plot_main_temperature(axes, nodes, setting, cbar_settings):
-    boundary_surfaces_nodes = nodes[setting.boundary_surfaces]
-    nodes_temperature = setting.temperature[setting.boundary_surfaces]
+def plot_main_temperature(axes, nodes, scene: Scene, cbar_settings):
+    boundary_surfaces_nodes = nodes[scene.boundary_surfaces]
+    nodes_temperature = scene.t_old[scene.boundary_surfaces]
     faces_temperature = np.mean(nodes_temperature, axis=1)
 
     facecolors = cbar_settings.mappable.to_rgba(faces_temperature)
@@ -167,7 +175,7 @@ def plot_main_temperature(axes, nodes, setting, cbar_settings):
     )
 
 
-def plot_mesh(nodes, scene, color, axes):
+def plot_mesh(nodes, scene: Scene, color, axes):
     boundary_surfaces_nodes = nodes[scene.boundary_surfaces]
     axes.add_collection3d(
         Poly3DCollection(
@@ -180,12 +188,12 @@ def plot_mesh(nodes, scene, color, axes):
     )
 
 
-def plot_obstacles(axes, setting, color):
-    if setting.has_no_obstacles:
+def plot_obstacles(axes, scene: Scene, color):
+    if scene.has_no_obstacles:
         return
     alpha = 0.3
-    node = setting.linear_obstacle_nodes[0]
-    normal = setting.get_obstacle_normals()[0]
+    node = scene.linear_obstacle_nodes[0]
+    normal = scene.get_obstacle_normals()[0]
 
     # a plane is a*x+b*y+c*z+d=0
     # z = (-d-axes-by) / c

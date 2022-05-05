@@ -10,6 +10,7 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
@@ -73,14 +74,14 @@ def plot_frame(
     if isinstance(scene, SceneTemperature):
         cbar_settings = plotter_common.get_t_data(t_scale)
         plotter_common.plot_colorbar(fig, axs=[axes], cbar_settings=cbar_settings)
-        draw_main_temperature(axes=axes, setting=scene, cbar_settings=cbar_settings)
+        draw_main_temperature(axes=axes, scene=scene, cbar_settings=cbar_settings)
     else:
         draw_main_displaced(scene, axes=axes)
     if base_scene is not None:
         draw_base_displaced(base_scene, axes=axes)
 
     draw_parameters(current_time, scene, scale, axes=axes)
-    # draw_angles(setting, axes)
+    # draw_angles(scene, axes)
 
     position = np.array([-4.2, -4.2]) * scale
     shift = 2.5 * scale
@@ -89,9 +90,9 @@ def plot_frame(
         position[0] += shift
         draw_obstacle_resistance_normalized(scene, position, axes=axes)
         position[0] += shift
-        # draw_boundary_surfaces_normals(setting, position, axes)
+        # draw_boundary_surfaces_normals(scene, position, axes)
         # position[0] += shift
-        # draw_boundary_normals(setting, position, axes)
+        # draw_boundary_normals(scene, position, axes)
         # position[0] += shift
 
         draw_boundary_resistance_normal(scene, position, axes=axes)
@@ -116,8 +117,8 @@ def plot_frame(
                 cbar_settings=cbar_settings,
             )
 
-        # draw_edges_data(setting, position, axes)
-        # draw_vertices_data(setting, position, axes)
+        # draw_edges_data(scene, position, axes)
+        # draw_vertices_data(scene, position, axes)
 
 
 def plot_temperature(
@@ -130,7 +131,7 @@ def plot_temperature(
     nodes = (scene.normalized_nodes + position).T
     axes.scatter(
         *nodes,
-        c=scene.temperature,
+        c=scene.t_old,
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
@@ -140,12 +141,12 @@ def plot_temperature(
     )
 
 
-def draw_main_temperature(axes, setting, cbar_settings):
-    draw_main_obstacles(setting, axes)
+def draw_main_temperature(axes, scene, cbar_settings):
+    draw_main_obstacles(scene, axes)
     axes.tricontourf(
-        *setting.moved_nodes.T,
-        setting.elements,
-        setting.temperature.reshape(-1),
+        *scene.moved_nodes.T,
+        scene.elements,
+        scene.t_old.reshape(-1),
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
         vmax=cbar_settings.vmax,
@@ -192,16 +193,16 @@ def plot_arrows(starts, vectors, axes):
     )
 
 
-def draw_main_obstacles(setting, axes):
+def draw_main_obstacles(scene: Scene, axes):
     draw_obstacles(
-        setting.linear_obstacle_nodes, setting.linear_obstacle_normals, [0, 0], "orange", axes
+        scene.linear_obstacle_nodes, scene.linear_obstacle_normals, [0, 0], "orange", axes
     )
 
 
-def draw_normalized_obstacles(setting, position, axes):
+def draw_normalized_obstacles(scene: Scene, position, axes):
     draw_obstacles(
-        setting.normalized_obstacle_nodes,
-        setting.normalized_obstacle_normals,
+        scene.normalized_obstacle_nodes,
+        scene.get_norm_obstacle_normals(),
         position,
         "blue",
         axes,
@@ -209,7 +210,7 @@ def draw_normalized_obstacles(setting, position, axes):
 
 
 def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
-    draw_additional_setting("P", scene, position, axes)
+    draw_additional_scene("P", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_penetration(),
@@ -218,7 +219,7 @@ def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
 
 
 def draw_boundary_normals(scene: Scene, position, axes):
-    draw_additional_setting("N", scene, position, axes)
+    draw_additional_scene("N", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_normals(),
@@ -227,7 +228,7 @@ def draw_boundary_normals(scene: Scene, position, axes):
 
 
 def draw_boundary_v_tangential(scene: Scene, position, axes):
-    draw_additional_setting("V_TNG", scene, position, axes)
+    draw_additional_scene("V_TNG", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_v_tangential(),
@@ -236,7 +237,7 @@ def draw_boundary_v_tangential(scene: Scene, position, axes):
 
 
 def draw_boundary_resistance_normal(scene: Scene, position, axes):
-    draw_additional_setting("RES_N", scene, position, axes)
+    draw_additional_scene("RES_N", scene, position, axes)
     data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
@@ -246,7 +247,7 @@ def draw_boundary_resistance_normal(scene: Scene, position, axes):
 
 
 def draw_boundary_resistance_tangential(scene: Scene, position, axes):
-    draw_additional_setting("RES_T", scene, position, axes)
+    draw_additional_scene("RES_T", scene, position, axes)
     data = scene.get_normalized_boundary_normals() * scene.get_resistance_tangential() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
@@ -293,10 +294,10 @@ def draw_base_displaced(scene: Scene, axes):
     draw_displaced(scene, position, "purple", axes)
 
 
-def draw_displaced(setting, position, color, axes):
-    # draw_rectangle(axes, position, setting.mesh_prop.scale_x, setting.mesh_prop.scale_y)
-    draw_triplot(setting.moved_nodes + position, setting, f"tab:{color}", axes)
-    # draw_data("P", obstacle_forces, setting, [7.5, -1.5], axes)
+def draw_displaced(scene: Scene, position, color, axes):
+    # draw_rectangle(axes, position, scene.mesh_prop.scale_x, scene.mesh_prop.scale_y)
+    draw_triplot(scene.moved_nodes + position, scene, f"tab:{color}", axes)
+    # draw_data("P", obstacle_forces, scene, [7.5, -1.5], axes)
 
 
 def draw_nodes(nodes, position, color, axes):
@@ -304,45 +305,45 @@ def draw_nodes(nodes, position, color, axes):
     axes.scatter(moved_nodes[:, 0], moved_nodes[:, 1], s=0.1, c=f"tab:{color}")
 
 
-def draw_forces(setting, position, axes):
-    return draw_data("F", setting.normalized_inner_forces, setting, position, axes)
+def draw_forces(scene: Scene, position, axes):
+    return draw_data("F", scene.normalized_inner_forces, scene, position, axes)
 
 
-def draw_input_u(setting, position, axes):
-    return draw_data("U", setting.input_displacement, setting, position, axes)
+def draw_input_u(scene: Scene, position, axes):
+    return draw_data("U", scene.input_displacement_old, scene, position, axes)
 
 
-def draw_input_v(setting, position, axes):
-    return draw_data("V", setting.input_velocity, setting, position, axes)
+def draw_input_v(scene: Scene, position, axes):
+    return draw_data("V", scene.input_velocity_old, scene, position, axes)
 
 
-def draw_a(setting, position, axes):
+def draw_a(scene, position, axes):
     return draw_data(
         "A * ts",
-        setting.normalized_acceleration * setting.time_step,
-        setting,
+        scene.normalized_a_old * scene.time_step,
+        scene,
         position,
         axes,
     )
 
 
-def draw_data(annotation, data, setting, position, axes):
-    draw_additional_setting(annotation, setting, position, axes)
-    plot_arrows(setting.normalized_nodes + position, data, axes)
+def draw_data(annotation, data, scene: Scene, position, axes):
+    draw_additional_scene(annotation, scene, position, axes)
+    plot_arrows(scene.normalized_nodes + position, data, axes)
 
 
-def draw_additional_setting(annotation, setting, position, axes):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:blue", axes)
-    add_annotation(annotation, setting, position, axes)
+def draw_additional_scene(annotation, scene: Scene, position, axes):
+    draw_triplot(scene.normalized_nodes + position, scene, "tab:blue", axes)
+    add_annotation(annotation, scene, position, axes)
 
 
-def add_annotation(annotation, setting, position, axes):
-    scale = setting.mesh_prop.scale_x
+def add_annotation(annotation, scene: Scene, position, axes):
+    scale = scene.mesh_prop.scale_x
     description_offset = np.array([-0.5, -1.1]) * scale
     axes.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
 
-def draw_parameters(current_time, setting, scale, axes):
+def draw_parameters(current_time, scene: Scene, scale, axes):
     x_max = axes.get_xlim()[1]
     y_max = axes.get_ylim()[1]
     args = dict(
@@ -350,12 +351,12 @@ def draw_parameters(current_time, setting, scale, axes):
         fontsize=5,
     )
 
-    annotation = plotter_common.get_frame_annotation(current_time=current_time, setting=setting)
+    annotation = plotter_common.get_frame_annotation(current_time=current_time, scene=scene)
     axes.text(x_max - 4.0 * scale, y_max - 2.0 * scale, s=annotation, **args)
 
 
-def draw_triplot(nodes, setting, color, axes):
-    boundary_nodes = nodes[setting.boundary_surfaces]
+def draw_triplot(nodes, scene: Scene, color, axes):
+    boundary_nodes = nodes[scene.boundary_surfaces]
     axes.add_collection(
         collections.LineCollection(
             boundary_nodes,
@@ -363,7 +364,7 @@ def draw_triplot(nodes, setting, color, axes):
             linewidths=0.3,
         )
     )
-    triplot(nodes, setting.elements, color, axes)
+    triplot(nodes, scene.elements, color, axes)
 
 
 def triplot(nodes, elements, color, axes):
@@ -373,22 +374,22 @@ def triplot(nodes, elements, color, axes):
 # TODO #66
 
 
-def draw_edges_data(position, setting, axes):
-    draw_data_at_edges(setting, setting.edges_data[:, 2:4], position, axes)
+def draw_edges_data(position, scene: SceneInput, axes):
+    draw_data_at_edges(scene, scene.edges_data[:, 2:4], position, axes)
 
 
-def draw_vertices_data(position, setting, axes):
-    draw_data_at_vertices(setting, setting.normalized_displacement, position, axes)
+def draw_vertices_data(position, scene: Scene, axes):
+    draw_data_at_vertices(scene, scene.normalized_displacement_old, position, axes)
 
 
-def draw_data_at_edges(setting, features, position, axes):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:orange", axes)
+def draw_data_at_edges(scene: Scene, features, position, axes):
+    draw_triplot(scene.normalized_nodes + position, scene, "tab:orange", axes)
 
-    centers = np.sum(setting.edges_normalized_nodes + position, axis=1) / 2.0
-    vertices = setting.edges_normalized_nodes[:, 0] + position
+    centers = np.sum(scene.edges_normalized_nodes + position, axis=1) / 2.0
+    vertices = scene.edges_normalized_nodes[:, 0] + position
     nodes = (centers + vertices) / 2.0
 
-    for i in range(len(setting.edges_normalized_nodes)):
+    for i in range(len(scene.edges_normalized_nodes)):
         feature = np.around(features[i], 2)
         # np.set_printoptions(precision=3)
         axes.text(
@@ -403,11 +404,11 @@ def draw_data_at_edges(setting, features, position, axes):
         )
 
 
-def draw_data_at_vertices(setting, features, position, axes):
-    draw_triplot(setting.normalized_nodes + position, setting, "tab:orange", axes)
+def draw_data_at_vertices(scene: Scene, features, position, axes):
+    draw_triplot(scene.normalized_nodes + position, scene, "tab:orange", axes)
 
-    nodes = setting.normalized_nodes + position
-    for i in range(len(setting.normalized_nodes)):
+    nodes = scene.normalized_nodes + position
+    for i in range(len(scene.normalized_nodes)):
         feature = np.around(features[i], 2)
         axes.text(
             nodes[i, 0] - 0.04,

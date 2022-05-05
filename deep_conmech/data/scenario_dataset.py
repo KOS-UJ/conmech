@@ -1,5 +1,5 @@
 from ctypes import ArgumentError
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import numpy as np
 
@@ -12,6 +12,7 @@ from deep_conmech.data.base_dataset import (
     is_memory_overflow,
 )
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -56,10 +57,10 @@ class ScenariosDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"f={self.config.td.final_time}_i={self.skip_index}"
+        return f"f:{self.config.td.final_time}_i:{self.skip_index}"
 
     def get_scene(self, scenario: Scenario, config: TrainingConfig) -> Scene:
-        scene = Scene(
+        scene = SceneInput(
             mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
@@ -72,15 +73,32 @@ class ScenariosDataset(BaseDataset):
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
+        tqdm_description = f"P{process_id}: Generating {self.description}"
+        self.generate_data_internal(
+            assigned_scenarios=assigned_scenarios,
+            tqdm_description=tqdm_description,
+            position=process_id,
+        )
+
+    def generate_data_simple(self):
+        tqdm_description = "Generating data"
+        self.generate_data_internal(
+            assigned_scenarios=self.all_scenarios,
+            tqdm_description=tqdm_description,
+            position=None,
+        )
+
+    def generate_data_internal(
+        self, assigned_scenarios, tqdm_description: str, position: Optional[int]
+    ):
         simulation_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
         start_index = process_id * simulation_data_count
         current_index = start_index
-        tqdm_description = f"P{process_id}: Generating {self.description}"
         step_tqdm = cmh.get_tqdm(
             range(simulation_data_count),
             config=self.config,
             desc=tqdm_description,
-            position=process_id,
+            position=position,
         )
         scenario = assigned_scenarios[0]
 

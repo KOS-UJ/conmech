@@ -1,13 +1,31 @@
 import torch
 
-from conmech.scene.scene import Scene
+from conmech.helpers.config import Config
 from deep_conmech.scene.scene_randomized import SceneRandomized
 from deep_conmech.helpers import thh
+from deep_conmech.training_config import TrainingConfig
 
 
 class SceneTorch(SceneRandomized):
-    def __init__(self, scene: Scene):
-        super().__init__(scene=scene)
+    def __init__(
+        self,
+        mesh_prop,
+        body_prop,
+        obstacle_prop,
+        schedule,
+        normalize_by_rotation: bool,
+        create_in_subprocess: bool,
+        with_schur: bool = True,
+    ):
+        super().__init__(
+            mesh_prop=mesh_prop,
+            body_prop=body_prop,
+            obstacle_prop=obstacle_prop,
+            schedule=schedule,
+            normalize_by_rotation=normalize_by_rotation,
+            create_in_subprocess=create_in_subprocess,
+            with_schur=with_schur,
+        )
         self.exact_normalized_a_torch = None  # TODO: clear on change
 
     def complete_boundary_data_with_zeros_torch(self, data):
@@ -19,8 +37,9 @@ class SceneTorch(SceneRandomized):
     def normalized_inner_forces_torch(self):
         return thh.to_torch_double(self.normalized_inner_forces)
 
-    def get_normalized_a_correction_torch(self):
-        return thh.to_torch_double(self.get_normalized_a_correction())
+    @property
+    def normalized_a_correction_torch(self):
+        return thh.to_torch_double(self.normalized_a_correction)
 
     @property
     def elasticity_torch(self):
@@ -47,20 +66,20 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_double(self.normalized_nodes)
 
     @property
-    def normalized_displacement_torch(self):
-        return thh.to_torch_double(self.normalized_displacement)
+    def normalized_displacement_old_torch(self):
+        return thh.to_torch_double(self.normalized_displacement_old)
 
     @property
-    def normalized_velocity_torch(self):
-        return thh.to_torch_double(self.normalized_velocity)
+    def normalized_velocity_old_torch(self):
+        return thh.to_torch_double(self.normalized_velocity_old)
 
     @property
-    def input_displacement_torch(self):
-        return thh.to_torch_double(self.input_displacement)
+    def input_displacement_old_torch(self):
+        return thh.to_torch_double(self.input_displacement_old)
 
     @property
-    def input_velocity_torch(self):
-        return thh.to_torch_double(self.input_velocity)
+    def input_velocity_old_torch(self):
+        return thh.to_torch_double(self.input_velocity_old)
 
     @property
     def boundary_nodes_count_torch(self):
@@ -75,18 +94,18 @@ class SceneTorch(SceneRandomized):
         return thh.to_torch_long(self.boundary_surfaces)
 
     @property
-    def norm_boundary_velocity_torch(self):
-        return thh.to_torch_double(self.norm_boundary_velocity)
+    def normalized_boundary_velocity_old_torch(self):
+        return thh.to_torch_double(self.norm_boundary_velocity_old)
 
     @property
-    def norm_boundary_nodes_torch(self):
+    def normalized_boundary_nodes_torch(self):
         return thh.to_torch_double(self.normalized_boundary_nodes)
 
     def get_normalized_boundary_normals_torch(self):
         return thh.to_torch_double(self.get_normalized_boundary_normals())
 
     @property
-    def norm_boundary_obstacle_nodes_torch(self):
+    def normalized_boundary_obstacle_nodes_torch(self):
         return thh.to_torch_double(self.norm_boundary_obstacle_nodes)
 
     def get_normalized_boundary_penetration_torch(self):

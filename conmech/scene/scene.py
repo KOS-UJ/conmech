@@ -71,7 +71,7 @@ def integrate(args: IntegrateArguments):
 class EnergyObstacleArguments:
     lhs: np.ndarray
     rhs: np.ndarray
-    boundary_velocity: np.ndarray
+    boundary_velocity_old: np.ndarray
     boundary_nodes: np.ndarray
     boundary_normals: np.ndarray
     boundary_obstacle_nodes: np.ndarray
@@ -87,10 +87,10 @@ def energy_obstacle(
 ):
     value = energy(acceleration, args.lhs, args.rhs)
 
-    boundary_nodes_count = args.boundary_velocity.shape[0]
+    boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
-    boundary_v_new = args.boundary_velocity + args.time_step * boundary_a
+    boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
     boundary_nodes_new = args.boundary_nodes + args.time_step * boundary_v_new
 
     integrate_args = IntegrateArguments(
@@ -180,7 +180,7 @@ class Scene(BodyForces):
         args = EnergyObstacleArguments(
             lhs=self.solver_cache.lhs_boundary,
             rhs=normalized_rhs_boundary,
-            boundary_velocity=self.norm_boundary_velocity,
+            boundary_velocity_old=self.norm_boundary_velocity_old,
             boundary_nodes=self.normalized_boundary_nodes,
             boundary_normals=self.get_normalized_boundary_normals(),
             boundary_obstacle_nodes=self.norm_boundary_obstacle_nodes,
@@ -239,16 +239,16 @@ class Scene(BodyForces):
         return self.normalize_rotate(self.obstacle_nodes - self.mean_moved_nodes)
 
     @property
-    def boundary_velocity(self):
-        return self.velocity[self.boundary_indices]
+    def boundary_velocity_old(self):
+        return self.velocity_old[self.boundary_indices]
 
     @property
-    def boundary_acceleration(self):
-        return self.acceleration[self.boundary_indices]
+    def boundary_a_old(self):
+        return self.acceleration_old[self.boundary_indices]
 
     @property
-    def norm_boundary_velocity(self):
-        return self.rotated_velocity[self.boundary_indices]
+    def norm_boundary_velocity_old(self):
+        return self.rotated_velocity_old[self.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
@@ -267,11 +267,11 @@ class Scene(BodyForces):
 
     def get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
-            self.norm_boundary_velocity, self.get_normalized_boundary_normals()
+            self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
         ) * (self.get_boundary_penetration_norm() > 0)
 
     def get_boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_velocity, self.get_boundary_normals())
+        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
 
     def get_resistance_normal(self):
         return obstacle_resistance_potential_normal(

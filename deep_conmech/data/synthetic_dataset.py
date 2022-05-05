@@ -1,12 +1,15 @@
+from typing import Optional
+
 import numpy as np
 
+import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.scene import Scene
 from conmech.solvers.calculator import Calculator
-from deep_conmech.data import base_dataset, interpolation_helpers
+from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
@@ -16,19 +19,16 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [
-                scenarios.M_RECTANGLE,
-                scenarios.M_CIRCLE,
-                scenarios.M_POLYGON,
-            ]  # , scenarios.M_POLYGON "pygmsh_spline"
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
         )
-    return interpolation_helpers.choose(
-        [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
-    )
+    else:
+        return interpolation_helpers.choose(
+            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
+        )
 
 
-def generate_base_scene(config: TrainingConfig, base: np.ndarray) -> Scene:
-    scene = Scene(
+def generate_base_scene(config: TrainingConfig, base: np.ndarray):
+    scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
             mesh_type=generate_mesh_type(config),
@@ -45,6 +45,7 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray) -> Scene:
         create_in_subprocess=False,
         with_schur=False,
     )
+    scene.unset_randomization()
     scene.clear_for_save()
     return scene
 
@@ -63,30 +64,30 @@ def generate_forces(config: TrainingConfig, setting, base: np.ndarray):
     return forces
 
 
-def generate_displacement(config: TrainingConfig, setting, base: np.ndarray):
-    displacement = interpolation_helpers.interpolate_four(
-        initial_nodes=setting.initial_nodes,
+def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
+    displacement_old = interpolation_helpers.interpolate_four(
+        initial_nodes=scene.initial_nodes,
         scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=False,
     )
-    return displacement
+    return displacement_old
 
 
-def generate_velocity(config: TrainingConfig, setting, base: np.ndarray):
+def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
-    velocity = interpolation_helpers.interpolate_four(
-        initial_nodes=setting.initial_nodes,
+    velocity_old = interpolation_helpers.interpolate_four(
+        initial_nodes=scene.initial_nodes,
         scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=interpolate_rotate,
     )
-    return velocity
+    return velocity_old
 
 
-def generate_obstacles(config: TrainingConfig, scene: Scene):
+def generate_obstacles(config: TrainingConfig, scene: SceneInput):
     obstacle_nodes_unnormaized = nph.generate_uniform_circle(
         rows=1,
         columns=scene.dimension,
@@ -138,7 +139,7 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"s={self.data_count}_a={self.config.td.adaptive_training_mesh}"
+        return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
 
     def generate_scene(self, index: int):
         _ = index
@@ -148,33 +149,47 @@ class SyntheticDataset(BaseDataset):
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)
         forces = generate_forces(self.config, scene, base)
-        displacement = generate_displacement(self.config, scene, base)
-        velocity = generate_velocity(self.config, scene, base)
+        displacement_old = generate_displacement_old(self.config, scene, base)
+        velocity_old = generate_velocity_old(self.config, scene, base)
 
         scene.normalize_and_set_obstacles(
             obstacles_unnormalized=obstacles_unnormalized, all_mesh_prop=[]
         )
-        scene.set_displacement(displacement)
-        scene.set_velocity(velocity)
+        scene.set_displacement_old(displacement_old)
+        scene.set_velocity_old(velocity_old)
         scene.prepare(forces)
 
-        # add_label = False
-        # exact_normalized_a_torch = (
-        #    thh.to_torch_double(Calculator.solve(scene)) if add_label else None
-        # )
+        # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         exact_normalized_a_torch = None
 
         return scene, exact_normalized_a_torch
 
     def generate_data_process(self, num_workers, process_id):
         assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)
-
         tqdm_description = f"Process {process_id} - generating data"
+        self.generate_data_internal(
+            assigned_data_range=assigned_data_range,
+            tqdm_description=tqdm_description,
+            position=process_id,
+        )
+
+    def generate_data_simple(self):
+        assigned_data_range = range(self.data_part_count)
+        tqdm_description = "Generating data"
+        self.generate_data_internal(
+            assigned_data_range=assigned_data_range,
+            tqdm_description=tqdm_description,
+            position=None,
+        )
+
+    def generate_data_internal(
+        self, assigned_data_range, tqdm_description: str, position: Optional[int]
+    ):
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,
             desc=tqdm_description,
             config=self.config,
-            position=process_id,
+            position=position,
         )
 
         scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
@@ -190,9 +205,7 @@ class SyntheticDataset(BaseDataset):
                 scene, exact_normalized_a_torch = self.generate_scene(index)
                 _ = exact_normalized_a_torch
 
-                pkh.append_data(
-                    data=scene, data_file=scenes_file, indices_file=indices_file
-                )  # exact_normalized_a_torch
+                pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
 
                 self.check_and_print(
                     len(assigned_data_range),

@@ -10,7 +10,6 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.scene.scene_input import SceneInput
 
 
 def run_examples(
@@ -75,10 +74,10 @@ def run_scenario(
         scenes_path = ""
         calculator_scenes_path = ""
 
-    def save_scene(scene: SceneInput, scenes_path: str):
+    def save_scene(scene: Scene, scenes_path: str):
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
         with scenes_file, indices_file:
-            pkh.append_data(data=scene.scene, data_file=scenes_file, indices_file=indices_file)
+            pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
 
     step = [0]  # TODO: #65 Clean
 
@@ -146,13 +145,13 @@ def plot_scenario_animation(
     )
 
 
-def prepare(scenario, setting, base_scene, current_time, with_temperature):
-    forces = scenario.get_forces_by_function(setting, current_time)
+def prepare(scenario, scene: Scene, base_scene: Scene, current_time, with_temperature):
+    forces = scenario.get_forces_by_function(scene, current_time)
     if with_temperature:
-        heat = scenario.get_heat_by_function(setting, current_time)
-        setting.prepare_tmp(forces, heat)
+        heat = scenario.get_heat_by_function(scene, current_time)
+        scene.prepare_tmp(forces, heat)
     else:
-        setting.prepare(forces)
+        scene.prepare(forces)
 
     if base_scene is not None:
         base_forces = scenario.get_forces_by_function(base_scene, current_time)
@@ -221,7 +220,7 @@ def simulate(
             calculator_time += time.time() - start_time
 
         if operation is not None:
-            operation(scene, base_scene)  # (current_time, setting, base_scene, a, base_a)
+            operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
         scene.iterate_self(acceleration, temperature=temperature)
 
@@ -237,19 +236,19 @@ def simulate(
 
 def plot_setting(
     current_time,
-    setting,
+    scene,
     path,
     base_scene,
     draw_detailed,
     extension,
 ):
-    if setting.dimension == 2:
+    if scene.dimension == 2:
         fig = plotter_2d.get_fig()
         axs = plotter_2d.get_axs(fig)
         plotter_2d.plot_frame(
             fig=fig,
             axs=axs,
-            scene=setting,
+            scene=scene,
             current_time=current_time,
             draw_detailed=draw_detailed,
             base_scene=base_scene,
@@ -258,5 +257,5 @@ def plot_setting(
     else:
         fig = plotter_3d.get_fig()
         axs = plotter_3d.get_axs(fig)
-        plotter_3d.plot_frame(fig=fig, axs=axs, scene=setting, current_time=current_time)
+        plotter_3d.plot_frame(fig=fig, axs=axs, scene=scene, current_time=current_time)
         plotter_common.plt_save(path, extension)
