@@ -4,7 +4,6 @@ import torch
 from torch_geometric.data import Data
 
 from conmech.helpers import nph
-from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -72,10 +71,6 @@ class SceneInput(SceneTorch):
         )
 
     @staticmethod
-    def edges_data_dim(dimension):
-        return (dimension + 1) * 4
-
-    @staticmethod
     def get_edges_data_description(dim):
         desc = []
         for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
@@ -84,6 +79,10 @@ class SceneInput(SceneTorch):
             desc.append(f"{attr}_norm")
 
         return desc
+
+    @staticmethod
+    def edges_data_dim(dimension):
+        return len(SceneInput.get_edges_data_description(dimension))
 
     def get_edges_data_torch(self, edges):
         edges_data = get_edges_data_numba(
@@ -96,27 +95,27 @@ class SceneInput(SceneTorch):
         return thh.to_torch_double(edges_data)
 
     @staticmethod
-    def nodes_data_dim(dimension):
-        return (dimension + 1) * 4 + 1  # 19 # 13
-
-    @staticmethod
-    def get_nodes_data_description(dim):
+    def get_nodes_data_description(dimension: int):
         desc = []
         for attr in [
             "forces",
-            # "displacement_old",
-            # "velocity_old",
+            "displacement_old",
+            "velocity_old",
             "boundary_penetration",
             "boundary_normals",
             "boundary_v_tangential",
         ]:
-            for i in range(dim):
+            for i in range(dimension):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]:
+        for attr in ["boundary_volume", "is_colliding_nodes", "is_colliding_all_nodes"]:
             desc.append(attr)
         return desc
+
+    @staticmethod
+    def nodes_data_dim(dimension: int):
+        return len(SceneInput.get_nodes_data_description(dimension))
 
     def get_nodes_data(self):
         boundary_penetration = self.complete_boundary_data_with_zeros_torch(
@@ -135,12 +134,14 @@ class SceneInput(SceneTorch):
         nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.normalized_inner_forces_torch),
-                # thh.append_euclidean_norm(self.input_displacement_old_torch),
-                # thh.append_euclidean_norm(self.input_velocity_old_torch),
+                thh.append_euclidean_norm(self.input_displacement_old_torch),
+                thh.append_euclidean_norm(self.input_velocity_old_torch),
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
                 thh.append_euclidean_norm(boundary_v_tangential),
                 boundary_volume,
+                self.get_is_colliding_nodes_torch(),
+                self.get_is_colliding_all_nodes_torch(),
             )
         )
         return nodes_data

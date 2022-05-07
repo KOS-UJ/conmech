@@ -92,7 +92,7 @@ class ScenariosDataset(BaseDataset):
         self, assigned_scenarios, tqdm_description: str, position: Optional[int]
     ):
         simulation_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
-        start_index = process_id * simulation_data_count
+        start_index = 0 if position is None else position * simulation_data_count
         current_index = start_index
         step_tqdm = cmh.get_tqdm(
             range(simulation_data_count),

@@ -8,10 +8,8 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.scene import Scene
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
-from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -19,11 +17,11 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON]  # "pygmsh_spline"
         )
     else:
         return interpolation_helpers.choose(
-            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
+            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D]  # , scenarios.M_POLYGON_3D]
         )
 
 

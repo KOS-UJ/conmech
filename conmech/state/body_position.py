@@ -152,13 +152,24 @@ class BodyPosition(Mesh):
         return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
-        return nph.get_in_base(vectors, self.moved_base) if self.normalize_by_rotation else vectors
+        if not self.normalize_by_rotation:
+            return vectors
+        return nph.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
+        if not self.normalize_by_rotation:
+            return vectors
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
+    def normalize_shift(self, vectors):
+        return vectors - np.mean(vectors, axis=0)
+
     def normalize_shift_and_rotate(self, vectors):
-        return self.normalize_rotate(vectors - np.mean(vectors, axis=0))
+        return self.normalize_rotate(self.normalize_shift(vectors))
+
+    @property
+    def normalized_initial_nodes(self):
+        return self.normalize_shift(self.initial_nodes)
 
     @property
     def moved_nodes(self):

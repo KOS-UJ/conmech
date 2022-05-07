@@ -14,6 +14,7 @@ class MeshProperties:
     initial_base: Optional[np.ndarray] = None
     initial_position: Optional[np.ndarray] = None
     mean_at_origin: bool = False
+    corners_vector: Optional[np.ndarray] = None
 
     @staticmethod
     def _get_modulo(array, index):

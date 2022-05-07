@@ -205,13 +205,6 @@ class Mesh:
     def dimension(self):
         return self.mesh_prop.dimension
 
-    @property
-    def mean_initial_nodes(self):
-        return np.mean(self.initial_nodes, axis=0)
-
-    @property
-    def normalized_initial_nodes(self):
-        return self.initial_nodes - self.mean_initial_nodes
 
     @property
     def nodes_count(self):

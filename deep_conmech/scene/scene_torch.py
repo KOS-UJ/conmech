@@ -1,9 +1,7 @@
 import torch
 
-from conmech.helpers.config import Config
-from deep_conmech.scene.scene_randomized import SceneRandomized
 from deep_conmech.helpers import thh
-from deep_conmech.training_config import TrainingConfig
+from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 class SceneTorch(SceneRandomized):
@@ -101,12 +99,12 @@ class SceneTorch(SceneRandomized):
     def normalized_boundary_nodes_torch(self):
         return thh.to_torch_double(self.normalized_boundary_nodes)
 
-    def get_normalized_boundary_normals_torch(self):
-        return thh.to_torch_double(self.get_normalized_boundary_normals())
-
     @property
     def normalized_boundary_obstacle_nodes_torch(self):
         return thh.to_torch_double(self.norm_boundary_obstacle_nodes)
+
+    def get_normalized_boundary_normals_torch(self):
+        return thh.to_torch_double(self.get_normalized_boundary_normals())
 
     def get_normalized_boundary_penetration_torch(self):
         return thh.to_torch_double(self.get_normalized_boundary_penetration())
@@ -122,3 +120,9 @@ class SceneTorch(SceneRandomized):
 
     def get_normalized_rhs_torch(self):
         return thh.to_torch_double(self.get_normalized_rhs_np())
+
+    def get_is_colliding_nodes_torch(self):
+        return thh.to_torch_long(self.get_is_colliding_nodes())
+
+    def get_is_colliding_all_nodes_torch(self):
+        return thh.to_torch_long(self.get_is_colliding_all_nodes())

@@ -42,7 +42,11 @@ class SceneRandomized(Scene):
 
     @property
     def randomized_inputs(self):
-        return self.velocity_in_random_factor != 0 or self.displacement_in_random_factor != 0 or self.displacement_to_velocity_noise != 0
+        return (
+            self.velocity_in_random_factor != 0
+            or self.displacement_in_random_factor != 0
+            or self.displacement_to_velocity_noise != 0
+        )
 
     def unset_randomization(self):
         self.velocity_in_random_factor = 0

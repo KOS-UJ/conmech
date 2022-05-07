@@ -296,10 +296,21 @@ class Scene(BodyForces):
     def has_no_obstacles(self):
         return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
 
-    def is_colliding(self):
+    def get_is_colliding_nodes(self):
         if self.has_no_obstacles:
-            return False
-        return np.any(self.get_boundary_penetration_norm() > 0)
+            return np.zeros((self.nodes_count, 1), dtype=np.int64)
+        return self.complete_boundary_data_with_zeros(
+            (self.get_boundary_penetration_norm() > 0) * 1
+        )
+
+    def is_colliding(self):
+        return np.any(self.get_is_colliding_nodes())
+
+    def get_is_colliding_all_nodes(self):
+        if self.is_colliding():
+            return np.ones((self.nodes_count, 1), dtype=np.int64)
+        else:
+            return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
     def clear_for_save(self):
         self.element_initial_volume = None

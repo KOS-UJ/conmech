@@ -83,10 +83,15 @@ def plot_frame(
     draw_parameters(current_time, scene, scale, axes=axes)
     # draw_angles(scene, axes)
 
-    position = np.array([-4.2, -4.2]) * scale
-    shift = 2.5 * scale
-    draw_forces(scene, position, axes=axes)
-    if draw_detailed:  # detailed:
+    if draw_detailed:
+        position = np.array([-6.2, -4.2]) * scale
+        shift = 2.5 * scale
+
+        position[0] += shift
+        draw_initial(scene, position, axes=axes)
+        position[0] += shift
+        draw_forces(scene, position, axes=axes)
+
         position[0] += shift
         draw_obstacle_resistance_normalized(scene, position, axes=axes)
         position[0] += shift
@@ -193,6 +198,10 @@ def plot_arrows(starts, vectors, axes):
     )
 
 
+def draw_initial(scene: Scene, position, axes):
+    draw_initial_body("I", scene, position, axes)
+
+
 def draw_main_obstacles(scene: Scene, axes):
     draw_obstacles(
         scene.linear_obstacle_nodes, scene.linear_obstacle_normals, [0, 0], "orange", axes
@@ -210,7 +219,7 @@ def draw_normalized_obstacles(scene: Scene, position, axes):
 
 
 def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
-    draw_additional_scene("P", scene, position, axes)
+    draw_moved_body("P", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_penetration(),
@@ -219,7 +228,7 @@ def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
 
 
 def draw_boundary_normals(scene: Scene, position, axes):
-    draw_additional_scene("N", scene, position, axes)
+    draw_moved_body("N", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_normals(),
@@ -228,7 +237,7 @@ def draw_boundary_normals(scene: Scene, position, axes):
 
 
 def draw_boundary_v_tangential(scene: Scene, position, axes):
-    draw_additional_scene("V_TNG", scene, position, axes)
+    draw_moved_body("V_TNG", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         scene.get_normalized_boundary_v_tangential(),
@@ -237,7 +246,7 @@ def draw_boundary_v_tangential(scene: Scene, position, axes):
 
 
 def draw_boundary_resistance_normal(scene: Scene, position, axes):
-    draw_additional_scene("RES_N", scene, position, axes)
+    draw_moved_body("RES_N", scene, position, axes)
     data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
@@ -247,7 +256,7 @@ def draw_boundary_resistance_normal(scene: Scene, position, axes):
 
 
 def draw_boundary_resistance_tangential(scene: Scene, position, axes):
-    draw_additional_scene("RES_T", scene, position, axes)
+    draw_moved_body("RES_T", scene, position, axes)
     data = scene.get_normalized_boundary_normals() * scene.get_resistance_tangential() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
@@ -310,17 +319,17 @@ def draw_forces(scene: Scene, position, axes):
 
 
 def draw_input_u(scene: Scene, position, axes):
-    return draw_data("U", scene.input_displacement_old, scene, position, axes)
+    return draw_data("U", scene.normalized_displacement_old, scene, position, axes)
 
 
 def draw_input_v(scene: Scene, position, axes):
-    return draw_data("V", scene.input_velocity_old, scene, position, axes)
+    return draw_data("V", scene.rotated_velocity_old, scene, position, axes)
 
 
 def draw_a(scene, position, axes):
     return draw_data(
-        "A * ts",
-        scene.normalized_a_old * scene.time_step,
+        "A",
+        scene.normalized_a_old,
         scene,
         position,
         axes,
@@ -328,12 +337,17 @@ def draw_a(scene, position, axes):
 
 
 def draw_data(annotation, data, scene: Scene, position, axes):
-    draw_additional_scene(annotation, scene, position, axes)
+    draw_moved_body(annotation, scene, position, axes)
     plot_arrows(scene.normalized_nodes + position, data, axes)
 
 
-def draw_additional_scene(annotation, scene: Scene, position, axes):
+def draw_moved_body(annotation, scene: Scene, position, axes):
     draw_triplot(scene.normalized_nodes + position, scene, "tab:blue", axes)
+    add_annotation(annotation, scene, position, axes)
+
+
+def draw_initial_body(annotation, scene: Scene, position, axes):
+    draw_triplot(scene.normalized_initial_nodes + position, scene, "tab:blue", axes)
     add_annotation(annotation, scene, position, axes)
 
 
@@ -369,9 +383,6 @@ def draw_triplot(nodes, scene: Scene, color, axes):
 
 def triplot(nodes, elements, color, axes):
     axes.triplot(nodes[:, 0], nodes[:, 1], elements, color=color, linewidth=0.1)
-
-
-# TODO #66
 
 
 def draw_edges_data(position, scene: SceneInput, axes):
