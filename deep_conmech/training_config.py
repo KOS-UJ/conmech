@@ -29,8 +29,8 @@ class TrainingData:
 
     rotate_velocity_proportion: float = 0.0  # 0.5 if dimension == 2 else 0
     zero_forces_proportion: float = 0.2
-    zero_displacement_proportion: float = 0.0  # .4
-    zero_velocity_proportion: float = 0.0  # .4
+    zero_displacement_proportion: float = 0.2  # .4
+    zero_velocity_proportion: float = 0.2  # .4
     corners_scale_proportion: float = 0.8  # less
 
     displacement_to_velocity_noise: float = 0.1
@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 96  # 512
+    synthetic_batches_in_epoch: int = 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True

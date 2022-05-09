@@ -205,7 +205,6 @@ class Mesh:
     def dimension(self):
         return self.mesh_prop.dimension
 
-
     @property
     def nodes_count(self):
         return len(self.initial_nodes)

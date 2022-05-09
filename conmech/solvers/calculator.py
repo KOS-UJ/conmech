@@ -40,7 +40,7 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve(setting: SceneRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
+    def solve(setting: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_a)
         return cleaned_a
 
