@@ -38,8 +38,8 @@ class TrainingData:
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
-    validate_at_epochs: int = 10
-    validate_scenarios_at_epochs: int = 30
+    validate_at_epochs: int = 1 # 10
+    validate_scenarios_at_epochs: int = 3 # 30
 
     use_energy_as_loss: bool = True
     batch_size: int = 128
