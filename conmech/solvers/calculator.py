@@ -185,6 +185,7 @@ class Calculator:
 
     @staticmethod
     def clean_temperature(scene, temperature):
+        _ = scene
         return temperature if temperature is not None else None
 
     @staticmethod

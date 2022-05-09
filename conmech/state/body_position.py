@@ -162,6 +162,7 @@ class BodyPosition(Mesh):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     def normalize_shift(self, vectors):
+        _ = self
         return vectors - np.mean(vectors, axis=0)
 
     def normalize_shift_and_rotate(self, vectors):

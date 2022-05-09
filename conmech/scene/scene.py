@@ -309,8 +309,7 @@ class Scene(BodyForces):
     def get_is_colliding_all_nodes(self):
         if self.is_colliding():
             return np.ones((self.nodes_count, 1), dtype=np.int64)
-        else:
-            return np.zeros((self.nodes_count, 1), dtype=np.int64)
+        return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
     def clear_for_save(self):
         self.element_initial_volume = None

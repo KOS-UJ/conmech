@@ -10,8 +10,6 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 def get_fig():
@@ -61,10 +59,10 @@ def plot_animation(
 def plot_frame(
     fig,
     axs,
-    scene: SceneRandomized,
+    scene: Scene,
     current_time: float,
     draw_detailed: bool = True,
-    base_scene: Optional[SceneRandomized] = None,
+    base_scene: Optional[Scene] = None,
     t_scale: Optional[np.ndarray] = None,
 ):
     axes = axs
@@ -385,7 +383,7 @@ def triplot(nodes, elements, color, axes):
     axes.triplot(nodes[:, 0], nodes[:, 1], elements, color=color, linewidth=0.1)
 
 
-def draw_edges_data(position, scene: SceneInput, axes):
+def draw_edges_data(position, scene: Scene, axes):
     draw_data_at_edges(scene, scene.edges_data[:, 2:4], position, axes)
 
 
