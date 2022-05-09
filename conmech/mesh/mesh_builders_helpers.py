@@ -11,11 +11,7 @@ def random_corner_mesh_size(mesh_density):
     random_data = np.random.rand(4).reshape(-1, 1)
     # random_data = np.zeros(4) #random_data[1] = 1.
     corner_data = (random_data * 2.0 * scale) - scale
-    return 1.0 / (2.0 * (mesh_density + corner_data))
-
-    # z = np.sin(np.sqrt(x**2 + y**2))
-    # z = 2*(6.0e-2) + 2*(2.0e-1) * ((x+0.5) ** 2 + y ** 2)
-    # return z
+    return 1.0 / (mesh_density + corner_data)
 
 
 # CORNERS left, bottom, right, top

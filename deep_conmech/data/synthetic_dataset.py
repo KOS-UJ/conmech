@@ -17,15 +17,18 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON]  # "pygmsh_spline"
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
         )
     else:
         return interpolation_helpers.choose(
-            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D]  # , scenarios.M_POLYGON_3D]
+            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
         )
 
 
 def generate_base_scene(config: TrainingConfig, base: np.ndarray):
+    corner_vectors = interpolation_helpers.get_corner_vectors_all(
+        dimension=config.td.dimension, scale=config.td.initial_corners_scale
+    )
     scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
@@ -35,6 +38,7 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
             is_adaptive=config.td.adaptive_training_mesh,
             initial_base=base,
             mean_at_origin=True,
+            corners_vector=corner_vectors,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
@@ -48,27 +52,26 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
     return scene
 
 
-def generate_forces(config: TrainingConfig, setting, base: np.ndarray):
-    if interpolation_helpers.decide(config.td.zero_forces_proportion):
-        forces = np.zeros([setting.nodes_count, setting.dimension])
-    else:
-        forces = interpolation_helpers.interpolate_four(
-            initial_nodes=setting.initial_nodes,
-            scale=config.td.forces_random_scale,
-            corners_scale_proportion=config.td.corners_scale_proportion,
-            base=base,
-            interpolate_rotate=False,
-        )
+def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
+    forces = interpolation_helpers.interpolate_four(
+        nodes=scene.initial_nodes,
+        mean_scale=config.td.forces_random_scale,
+        corners_scale_proportion=config.td.corners_scale_proportion,
+        base=base,
+        interpolate_rotate=False,
+        zero_out_proportion=config.td.zero_forces_proportion,
+    )
     return forces
 
 
 def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     displacement_old = interpolation_helpers.interpolate_four(
-        initial_nodes=scene.initial_nodes,
-        scale=config.td.displacement_random_scale,
+        nodes=scene.initial_nodes,
+        mean_scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=False,
+        zero_out_proportion=config.td.zero_displacement_proportion,
     )
     return displacement_old
 
@@ -76,11 +79,12 @@ def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.nda
 def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
     velocity_old = interpolation_helpers.interpolate_four(
-        initial_nodes=scene.initial_nodes,
-        scale=config.td.velocity_random_scale,
+        nodes=scene.initial_nodes,
+        mean_scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
         interpolate_rotate=interpolate_rotate,
+        zero_out_proportion=config.td.zero_velocity_proportion,
     )
     return velocity_old
 

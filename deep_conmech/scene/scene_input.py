@@ -99,8 +99,8 @@ class SceneInput(SceneTorch):
         desc = []
         for attr in [
             "forces",
-            "displacement_old",
-            "velocity_old",
+            # "displacement_old",
+            # "velocity_old",
             "boundary_penetration",
             "boundary_normals",
             "boundary_v_tangential",
@@ -109,7 +109,7 @@ class SceneInput(SceneTorch):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume", "is_colliding_nodes", "is_colliding_all_nodes"]:
+        for attr in ["boundary_volume"]:  # , "is_colliding_nodes", "is_colliding_all_nodes"]:
             desc.append(attr)
         return desc
 
@@ -134,14 +134,14 @@ class SceneInput(SceneTorch):
         nodes_data = torch.hstack(
             (
                 thh.append_euclidean_norm(self.normalized_inner_forces_torch),
-                thh.append_euclidean_norm(self.input_displacement_old_torch),
-                thh.append_euclidean_norm(self.input_velocity_old_torch),
+                # thh.append_euclidean_norm(self.input_displacement_old_torch),
+                # thh.append_euclidean_norm(self.input_velocity_old_torch),
                 thh.append_euclidean_norm(boundary_penetration),
                 thh.append_euclidean_norm(boundary_normals),
                 thh.append_euclidean_norm(boundary_v_tangential),
                 boundary_volume,
-                self.get_is_colliding_nodes_torch(),
-                self.get_is_colliding_all_nodes_torch(),
+                # self.get_is_colliding_nodes_torch(),
+                # self.get_is_colliding_all_nodes_torch(),
             )
         )
         return nodes_data

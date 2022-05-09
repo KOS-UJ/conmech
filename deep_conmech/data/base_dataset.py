@@ -1,17 +1,13 @@
 import os
-import pickle
-from typing import Iterable, Optional
+from typing import Iterable
 
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
-from conmech.helpers.config import Config
-from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import dch
 from deep_conmech.scene.scene_input import SceneInput
