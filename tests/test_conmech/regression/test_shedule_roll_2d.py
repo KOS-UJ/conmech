@@ -20,44 +20,27 @@ def generate_test_suits():
             mesh_density=[3],
         ),
         body_prop=scenarios.default_body_prop,
-        schedule=Schedule(final_time=1.5),  # 0.2
+        schedule=Schedule(final_time=1.5),
         forces_function=np.array([0.0, -0.5]),
-        obstacle=Obstacle(np.array([[[0.7, 1.0]], [[0.0, 0.1]]]), scenarios.default_obstacle_prop),
+        obstacle=Obstacle(np.array([[[0.7, 1.0]], [[0.0, 0.2]]]), scenarios.default_obstacle_prop),
     )
 
     expected_boundary_nodes = np.array(
         [
-            [1.09670439, 0.0700615],
-            [0.51874802, 0.7207986],
-            [0.26366884, -0.06828732],
-            [1.11060891, 0.32856888],
-            [0.99402219, 0.56024451],
-            [0.77757494, 0.70261436],
-            [0.28733568, 0.60572044],
-            [0.14549146, 0.39166315],
-            [0.13608484, 0.14131729],
-            [0.46416333, -0.22844126],
-            [0.72052413, -0.25791514],
-            [0.95457633, -0.14578926],
+            [1.06836935, 0.21640903],
+            [0.43501884, 0.817377],
+            [0.2546197, 0.02082238],
+            [1.05973179, 0.47571151],
+            [0.92315777, 0.69700249],
+            [0.69467413, 0.82051599],
+            [0.21427316, 0.68286631],
+            [0.09160728, 0.45794447],
+            [0.10574119, 0.2099006],
+            [0.4668943, -0.13030448],
+            [0.72252617, -0.14164865],
+            [0.94529081, -0.01071903],
         ]
     )
-
-    """
-    expected_boundary_nodes = np.array([
-       [ 1.       ,  0.4895   ],
-       [ 0.25     ,  0.9225127],
-       [ 0.25     ,  0.0564873],
-       [ 0.9330127,  0.7395   ],
-       [ 0.75     ,  0.9225127],
-       [ 0.5      ,  0.9895   ],
-       [ 0.0669873,  0.7395   ],
-       [-0.       ,  0.4895   ],
-       [ 0.0669873,  0.2395   ],
-       [ 0.5      , -0.0105   ],
-       [ 0.75     ,  0.0564873],
-       [ 0.9330127,  0.2395   ]
-    ])
-    """
 
     yield scenario, expected_boundary_nodes
 
@@ -76,10 +59,4 @@ def test_simulation(scenario, expected_boundary_nodes):
         ),
     )
 
-    np.set_printoptions(precision=8, suppress=True)
-    assert 1 == 1
-    """
-    np.testing.assert_array_almost_equal(
-        setting.boundary_nodes, expected_boundary_nodes, decimal=3
-    )
-    """
+    np.testing.assert_array_almost_equal(setting.boundary_nodes, expected_boundary_nodes, decimal=2)
