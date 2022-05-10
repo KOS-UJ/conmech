@@ -6,6 +6,8 @@ from matplotlib import collections
 from matplotlib.patches import Rectangle
 
 from conmech.helpers.config import Config
+from conmech.mesh import mesh_builders_helpers
+from conmech.mesh.remesher import approximate_all_numba
 from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
@@ -85,6 +87,8 @@ def plot_frame(
         position = np.array([-6.2, -4.2]) * scale
         shift = 2.5 * scale
 
+        position[0] += shift
+        draw_sparse(scene, position, axes=axes)
         position[0] += shift
         draw_initial(scene, position, axes=axes)
         position[0] += shift
@@ -347,6 +351,31 @@ def draw_moved_body(annotation, scene: Scene, position, axes):
 def draw_initial_body(annotation, scene: Scene, position, axes):
     draw_triplot(scene.normalized_initial_nodes + position, scene, "tab:blue", axes)
     add_annotation(annotation, scene, position, axes)
+
+
+def draw_sparse(scene: Scene, position, axes):
+    for layer in scene.all_layers:
+        nodes = layer[0]
+        edges = layer[1]
+        new_inner_forces = approximate_all_numba(
+            old_values=scene.normalized_inner_forces,
+            old_nodes=scene.initial_nodes,
+            new_nodes=nodes,
+        )
+
+        triplot(nodes + position, edges, color="tab:orange", axes=axes)
+        plot_arrows(nodes + position, new_inner_forces, axes)
+        position[0] += 2.5
+
+    """
+    nodes = scene.initial_nodes + position
+    mask = np.random.randint(0, 2, size=scene.nodes_count, dtype=bool)
+    nodes = nodes[mask]
+    edges = mesh_builders_helpers.get_edges_numba(nodes=nodes, node_degree=6)
+
+    lc = collections.LineCollection(nodes[edges], linewidths=0.1)
+    axes.add_collection(lc)
+    """
 
 
 def add_annotation(annotation, scene: Scene, position, axes):

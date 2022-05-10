@@ -4,6 +4,7 @@ import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
+from conmech.mesh.mesh_builders_helpers import get_random_corner_data
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -29,16 +30,18 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
     corner_vectors = interpolation_helpers.get_corner_vectors_all(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
+
+    corner_mesh_data = get_random_corner_data() if config.td.adaptive_training_mesh else None
     scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
             mesh_type=generate_mesh_type(config),
             mesh_density=[config.td.mesh_density],
             scale=[config.td.train_scale],
-            is_adaptive=config.td.adaptive_training_mesh,
             initial_base=base,
             mean_at_origin=True,
             corners_vector=corner_vectors,
+            corner_mesh_data=corner_mesh_data,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,

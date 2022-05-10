@@ -33,7 +33,7 @@ def main(mesh_density=4, final_time=5, plot_animation=True):
     ]
     all_scenarios = [
         scenarios.polygon_mesh_obstacles(
-            mesh_density=mesh_density, scale=1, is_adaptive=False, final_time=final_time
+            mesh_density=mesh_density, scale=1, final_time=final_time
         ),
         Scenario(
             name="circle_slide_roll",

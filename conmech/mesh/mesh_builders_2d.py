@@ -3,10 +3,12 @@ from ctypes import ArgumentError
 import meshzoo
 import numpy as np
 import pygmsh
+
 from conmech.mesh import mesh_builders_helpers
+from conmech.properties.mesh_properties import MeshProperties
 
 
-def get_meshzoo_rectangle(mesh_prop):
+def get_meshzoo_rectangle(mesh_prop: MeshProperties):
     # pylint: disable=no-member
     nodes, elements = meshzoo.rectangle_tri(
         np.linspace(0.0, mesh_prop.scale_x, int(mesh_prop.mesh_density_x) + 1),

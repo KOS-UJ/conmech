@@ -8,10 +8,7 @@ def main(mesh_density=4, final_time=5, plot_animation=True):
     config = TrainingConfig()
     simulation_runner.run_examples(
         all_scenarios=scenarios.get_train_data(
-            mesh_density=mesh_density,
-            scale=1,
-            is_adaptive=True,
-            final_time=final_time,
+            mesh_density=mesh_density, scale=1, final_time=final_time
         ),
         file=__file__,
         simulate_dirty_data=True,

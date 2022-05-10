@@ -1,3 +1,4 @@
+import copy
 from typing import Callable
 
 import numba
@@ -106,7 +107,7 @@ class Mesh:
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
-    def reinitialize_data(self, mesh_prop, is_dirichlet, is_contact, create_in_subprocess):
+    def reinitialize_layer(self, mesh_prop, is_dirichlet, is_contact, create_in_subprocess):
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
@@ -114,13 +115,18 @@ class Mesh:
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
+        return BoundariesFactory.identify_boundaries_and_reorder_nodes(
+            unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        )
+
+    def reinitialize_data(
+        self, mesh_prop: MeshProperties, is_dirichlet, is_contact, create_in_subprocess
+    ):
         (
             self.initial_nodes,
             self.elements,
             self.boundaries,
-        ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-            unordered_nodes, unordered_elements, is_dirichlet, is_contact
-        )
+        ) = self.reinitialize_layer(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes

@@ -20,8 +20,7 @@ def generate_test_suits():
             dimension=2,
             mesh_type=scenarios.M_POLYGON,
             scale=[1],
-            mesh_density=[3],
-            is_adaptive=False,
+            mesh_density=[3]
         ),
         body_prop=scenarios.default_temp_body_prop,
         schedule=Schedule(final_time=1.5),

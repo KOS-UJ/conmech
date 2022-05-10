@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 256  # 96
+    synthetic_batches_in_epoch: int = 1  # 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -87,7 +87,7 @@ class TrainingConfig(Config):
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False
-    log_dataset_stats: bool = True
+    log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

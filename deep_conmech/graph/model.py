@@ -281,7 +281,7 @@ class GraphModelDynamic:
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
     def E(self, features_batch, dataset: base_dataset.BaseDataset, test_using_true_solution=False):
-        scene_indices = list(map(np.int64, features_batch.scene_index))
+        scene_indices = list(map(np.int64, features_batch.scene_index_str))
 
         graph_sizes = get_graph_sizes(features_batch)
 

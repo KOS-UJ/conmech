@@ -11,6 +11,7 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.scene.scene_torch import SceneTorch
 
 
@@ -49,7 +50,7 @@ def get_edges_data_numba(
     return edges_data
 
 
-class SceneInput(SceneTorch):
+class SceneInput(SceneLayers):
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -154,7 +155,8 @@ class SceneInput(SceneTorch):
         directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
         # f"{cmh.get_timestamp(self.config)} - {
         features_data = Data(
-            scene_index=str(scene_index),  # str; int is changed by PyG
+            scene_index_str=str(scene_index),  # str; int is changed by PyG
+            scene_index=thh.to_torch_long(np.repeat(scene_index, self.nodes_count)),
             pos=thh.set_precision(self.normalized_initial_nodes_torch),
             x=thh.set_precision(self.get_nodes_data()),
             edge_index=thh.get_contiguous_torch(directional_edges),

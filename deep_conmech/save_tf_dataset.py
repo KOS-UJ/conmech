@@ -165,8 +165,7 @@ def main():
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[1],
-            mesh_density=[32],
-            is_adaptive=False,
+            mesh_density=[32]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=8.0),

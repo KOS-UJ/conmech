@@ -9,8 +9,8 @@ from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingData
 
 
@@ -211,7 +211,7 @@ class ProcessorLayer(MessagePassing):
             td=td,
         )
         self.node_processor = ForwardNet(
-            input_dim=td.latent_dimension * 2,
+            input_dim=td.latent_dimension * 3,
             layers_count=td.processor_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,
@@ -229,12 +229,17 @@ class ProcessorLayer(MessagePassing):
         # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
 
     def forward(self, batch, node_latents, edge_latents):
-        self.new_edge_latents = None
-        return self.propagate(
+        node_latents_means = scatter_sum(node_latents, batch.scene_index, dim=0)
+        mean_node_latents = node_latents_means[batch.scene_index]
+        new_node_latents = self.propagate(
             edge_index=batch.edge_index,
             node_latents=node_latents,
             edge_latents=edge_latents,
+            mean_node_latents=mean_node_latents,
         )
+        new_edge_latents = self.new_edge_latents
+        self.new_edge_latents = None
+        return new_node_latents, new_edge_latents
 
     def message(self, node_latents_i, node_latents_j, edge_latents, index):
         edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
@@ -248,12 +253,12 @@ class ProcessorLayer(MessagePassing):
         aggregated_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
-    def update(self, aggregated_edge_latents, node_latents):
+    def update(self, aggregated_edge_latents, node_latents, mean_node_latents):
         # node_inputs = aggregated_edge_latents
         # node_inputs = ((1 + self.epsilon) * node_latents) + aggregated_edge_latents))
-        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
+        node_inputs = torch.hstack((node_latents, aggregated_edge_latents, mean_node_latents))
         new_node_latents = node_latents + self.node_processor(node_inputs)
-        return new_node_latents, self.new_edge_latents
+        return new_node_latents
 
 
 class CustomGraphNet(nn.Module):
@@ -340,7 +345,7 @@ class CustomGraphNet(nn.Module):
     def solve_all(self, scene: SceneInput):
         self.eval()
 
-        batch = scene.get_data()[0].to(self.device)
+        batch = scene.get_data(scene_index=0)[0].to(self.device)
         normalized_a_cuda = self(batch)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
