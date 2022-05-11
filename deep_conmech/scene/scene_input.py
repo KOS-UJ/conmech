@@ -100,10 +100,10 @@ class SceneInput(SceneLayers):
     def edges_data_dim(dimension):
         return len(SceneInput.get_edges_data_description(dimension))
 
-    def get_edges_data_torch(self, edges):
+    def get_edges_data_torch(self, directional_edges):
         edges_data = get_edges_data_numba(
-            edges,
-            self.normalized_initial_nodes,
+            directional_edges,
+            self.input_initial_nodes,
             self.input_displacement_old,
             self.input_velocity_old,
             self.input_forces,
@@ -146,10 +146,15 @@ class SceneInput(SceneLayers):
         boundary_volume = self.complete_boundary_data_with_zeros(
             self.get_surface_per_boundary_node()
         )
+        input_forces = self.input_forces
+
+        layer_number = 1
+
+
 
         nodes_data = np.hstack(
             (
-                nph.append_euclidean_norm(self.input_forces),
+                nph.append_euclidean_norm(input_forces),
                 # thh.append_euclidean_norm(self.input_displacement_old_torch),
                 # thh.append_euclidean_norm(self.input_velocity_old_torch),
                 nph.append_euclidean_norm(boundary_penetration),
@@ -190,8 +195,8 @@ class SceneInput(SceneLayers):
                 boundary_obstacle_nodes=thh.to_double(self.norm_boundary_obstacle_nodes),
                 boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
                 surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
-                obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
-                time_step=0.01,  # TODO: generalize
+                obstacle_prop=self.obstacle_prop,
+                time_step=self.schedule.time_step,
             ),
         )
         _ = """

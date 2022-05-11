@@ -10,6 +10,7 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from deep_conmech.scene.scene_layers import SceneLayers
 
 
 def get_fig():
@@ -351,13 +352,23 @@ def draw_initial_body(annotation, scene: Scene, position, axes):
     add_annotation(annotation, scene, position, axes)
 
 
-def draw_sparse(scene: Scene, position, axes):
+def draw_sparse(scene: SceneLayers, position, axes):
     for i, layer in enumerate(scene.all_layers):
-        nodes, edges, boundaries, closest_nodes, weighted_closest_distances = layer
-        new_inner_forces = scene.approximate_all(i, scene.normalized_inner_forces)
+        new_inner_forces = scene.approximate_all(
+            layer_number=i, old_values=scene.normalized_inner_forces
+        )
 
-        triplot(nodes + position, edges, color="tab:orange", axes=axes)
-        plot_arrows(nodes + position, new_inner_forces, axes)
+        triplot(layer.nodes + position, layer.elements, color="tab:orange", axes=axes)
+        plot_arrows(layer.nodes + position, new_inner_forces, axes)
+        position[0] += 2.5
+
+        boundary_penetration = scene.get_normalized_boundary_penetration()
+        new_boundary_penetration = scene.approximate_boundary(
+            layer_number=i, old_values=boundary_penetration
+        )
+
+        triplot(layer.nodes + position, layer.elements, color="tab:blue", axes=axes)
+        plot_arrows(layer.boundary_nodes + position, new_boundary_penetration, axes)
         position[0] += 2.5
 
 

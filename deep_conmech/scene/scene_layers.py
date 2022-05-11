@@ -1,4 +1,6 @@
 import copy
+from dataclasses import dataclass
+from typing import List
 
 import numba
 import numpy as np
@@ -12,8 +14,7 @@ from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 @numba.njit
-def get_interlayer_data(old_nodes, new_nodes):
-    closest_count = 3
+def get_interlayer_data(old_nodes, new_nodes, closest_count):
     weighted_closest_distances = np.zeros((len(new_nodes), closest_count))
     closest_nodes = np.zeros((len(new_nodes), closest_count), dtype=np.int64)
     for new_index, new_node in enumerate(new_nodes):
@@ -29,6 +30,17 @@ def get_interlayer_data(old_nodes, new_nodes):
         ##    old_values[closest_nodes], axis=0, weights=distances[closest_nodes]
         # )
     return closest_nodes, weighted_closest_distances
+
+
+@dataclass
+class MeshLayerData:
+    nodes: np.ndarray
+    elements: np.ndarray
+    boundary_nodes: np.ndarray
+    closest_nodes: np.ndarray
+    weights_closest: np.ndarray
+    closest_boundary_nodes: np.ndarray
+    weights_closest_boundary: np.ndarray
 
 
 class SceneLayers(SceneRandomized):
@@ -52,7 +64,7 @@ class SceneLayers(SceneRandomized):
             with_schur=with_schur,
         )
         self.create_in_subprocess = create_in_subprocess
-        self.all_layers = None
+        self.all_layers: List[MeshLayerData] = []
         self.set_layers(layers_count=2)
 
     def set_layers(self, layers_count):
@@ -67,21 +79,48 @@ class SceneLayers(SceneRandomized):
             (nodes, elements, boundaries) = self.reinitialize_layer(
                 layer_mesh_prop, is_dirichlet, is_contact, self.create_in_subprocess
             )
+            boundary_nodes = nodes[slice(boundaries.boundary_nodes_count)]
 
-            closest_nodes, weighted_closest_distances = get_interlayer_data(
+            closest_nodes, weights_closest = get_interlayer_data(
                 old_nodes=self.initial_nodes,
                 new_nodes=nodes,
+                closest_count=self.mesh_prop.dimension + 1
             )
-            # boundary_surfaces = geom_mesh.cells[0].data.astype("long").copy()
-            self.all_layers.append(
-                (nodes, elements, boundaries, closest_nodes, weighted_closest_distances)
+            closest_boundary_nodes, weights_closest_boundary = get_interlayer_data(
+                old_nodes=self.boundary_nodes,
+                new_nodes=boundary_nodes,
+                closest_count=self.mesh_prop.dimension
             )
 
-    def approximate_all(self, layer_number, old_values):
-        nodes, edges, boundaries, closest_nodes, weighted_closest_distances = self.all_layers[
-            layer_number
-        ]
-        new_values = np.sum(
-            old_values[closest_nodes] * weighted_closest_distances[..., np.newaxis], axis=1
+            mesh_layer_data = MeshLayerData(
+                nodes=nodes,
+                elements=elements,
+                boundary_nodes=boundary_nodes,
+                closest_nodes=closest_nodes,
+                weights_closest=weights_closest,
+                closest_boundary_nodes=closest_boundary_nodes,
+                weights_closest_boundary=weights_closest_boundary,
+            )
+            self.all_layers.append(mesh_layer_data)
+
+    def approximate_internal(self, old_values, closest_nodes, weights_closest):
+        return np.sum(
+            old_values[closest_nodes] * weights_closest[..., np.newaxis],
+            axis=1,
         )
-        return new_values
+
+    def approximate_all(self, layer_number, old_values):
+        mesh_layer_data = self.all_layers[layer_number]
+        return self.approximate_internal(
+            old_values=old_values,
+            closest_nodes=mesh_layer_data.closest_nodes,
+            weights_closest=mesh_layer_data.weights_closest,
+        )
+
+    def approximate_boundary(self, layer_number, old_values):
+        mesh_layer_data = self.all_layers[layer_number]
+        return self.approximate_internal(
+            old_values=old_values,
+            closest_nodes=mesh_layer_data.closest_boundary_nodes,
+            weights_closest=mesh_layer_data.weights_closest_boundary,
+        )
