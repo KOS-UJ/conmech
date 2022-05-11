@@ -91,14 +91,6 @@ class SceneRandomized(Scene):
         return self.displacement_old + self.displacement_randomization
 
     @property
-    def input_velocity_old(self):  # normalized_randomized_velocity_old
-        return self.normalized_velocity_old + self.normalized_velocity_randomization
-
-    @property
-    def input_displacement_old(self):  # normalized_randomized_displacement_old
-        return self.normalized_displacement_old + self.normalized_displacement_randomization
-
-    @property
     def a_correction(self):
         u_correction = self.displacement_to_velocity_noise * (
             self.displacement_randomization / (self.time_step**2)
@@ -125,3 +117,15 @@ class SceneRandomized(Scene):
         if self.randomized_inputs:
             self.regenerate_randomization()
         super().iterate_self(acceleration)
+
+    @property
+    def input_velocity_old(self):  # normalized_randomized_velocity_old
+        return self.normalized_velocity_old + self.normalized_velocity_randomization
+
+    @property
+    def input_displacement_old(self):  # normalized_randomized_displacement_old
+        return self.normalized_displacement_old + self.normalized_displacement_randomization
+
+    @property
+    def input_forces(self):
+        return self.normalized_inner_forces

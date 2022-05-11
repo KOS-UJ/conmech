@@ -123,7 +123,7 @@ class ScenariosDataset(BaseDataset):
                 scene.prepare(forces)
 
                 a, normalized_a = self.solve_function(scene)
-                exact_normalized_a_torch = thh.to_torch_double(normalized_a)
+                exact_normalized_a_torch = thh.to_double(normalized_a)
                 _ = exact_normalized_a_torch
 
                 if index % self.skip_index == 0:

@@ -72,21 +72,3 @@ def get_edges_numba(nodes, node_degree):
             i += 1
     assert i == len(edges)
     return edges
-
-
-# @numba.njit
-def approximate_all_numba(old_values, old_nodes, new_nodes):
-    closest_count = 3
-    new_values = np.zeros((len(new_nodes), old_values.shape[1]), dtype=old_values.dtype)
-    for new_index, new_node in enumerate(new_nodes):
-        distances = nph.euclidean_norm_numba(new_node - old_nodes)
-        closest_nodes = distances.argsort()[:closest_count]
-        closest_distances = distances[closest_nodes].reshape(-1, 1)
-        mean_value = np.sum(old_values[closest_nodes] * closest_distances, axis=0) / np.sum(
-            closest_distances
-        )
-        new_values[new_index, :] = mean_value
-        # new_values[new_index, :] = np.average(
-        ##    old_values[closest_nodes], axis=0, weights=distances[closest_nodes]
-        # )
-    return new_values

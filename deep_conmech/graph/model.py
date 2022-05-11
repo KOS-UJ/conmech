@@ -328,14 +328,12 @@ class GraphModelDynamic:
 
     def use_true_solution(self, predicted_normalized_a, energy_args):
         function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(
-            cleaned_a=thh.to_torch_double(nph.unstack(normalized_a_vector, dim=2)).to(
-                self.net.device
-            ),
+            cleaned_a=thh.to_double(nph.unstack(normalized_a_vector, dim=2)).to(self.net.device),
             **energy_args,
         ).item()
 
         # @v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
-        predicted_normalized_a = thh.to_torch_double(
+        predicted_normalized_a = thh.to_double(
             nph.unstack(
                 Calculator.minimize(
                     function,

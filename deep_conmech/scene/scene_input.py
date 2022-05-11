@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numba
 import numpy as np
 import torch
@@ -12,7 +14,6 @@ from conmech.scenarios import scenarios
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import SceneLayers
-from deep_conmech.scene.scene_torch import SceneTorch
 
 
 def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyObstacleArguments):
@@ -48,6 +49,20 @@ def get_edges_data_numba(
         set_diff_numba(velocity_old, 2 * (dimension + 1), edges_data[e], i, j)
         set_diff_numba(forces, 3 * (dimension + 1), edges_data[e], i, j)
     return edges_data
+
+
+@dataclass
+class EnergyObstacleArgumentsTorch:
+    lhs: torch.Tensor
+    rhs: torch.Tensor
+    boundary_velocity_old: torch.Tensor
+    boundary_nodes: torch.Tensor
+    boundary_normals: torch.Tensor
+    boundary_obstacle_nodes: torch.Tensor
+    boundary_obstacle_normals: torch.Tensor
+    surface_per_boundary_node: torch.Tensor
+    obstacle_prop: ObstacleProperties
+    time_step: float
 
 
 class SceneInput(SceneLayers):
@@ -91,9 +106,9 @@ class SceneInput(SceneLayers):
             self.normalized_initial_nodes,
             self.input_displacement_old,
             self.input_velocity_old,
-            self.normalized_inner_forces,
+            self.input_forces,
         )
-        return thh.to_torch_double(edges_data)
+        return thh.to_double(edges_data)
 
     @staticmethod
     def get_nodes_data_description(dimension: int):
@@ -119,33 +134,33 @@ class SceneInput(SceneLayers):
         return len(SceneInput.get_nodes_data_description(dimension))
 
     def get_nodes_data(self):
-        boundary_penetration = self.complete_boundary_data_with_zeros_torch(
-            self.get_normalized_boundary_penetration_torch()
+        boundary_penetration = self.complete_boundary_data_with_zeros(
+            self.get_normalized_boundary_penetration()
         )
-        boundary_normals = self.complete_boundary_data_with_zeros_torch(
-            self.get_normalized_boundary_normals_torch()
+        boundary_normals = self.complete_boundary_data_with_zeros(
+            self.get_normalized_boundary_normals()
         )
-        boundary_v_tangential = self.complete_boundary_data_with_zeros_torch(
-            self.get_normalized_boundary_v_tangential_torch()
+        boundary_v_tangential = self.complete_boundary_data_with_zeros(
+            self.get_normalized_boundary_v_tangential()
         )
-        boundary_volume = self.complete_boundary_data_with_zeros_torch(
-            self.get_surface_per_boundary_node_torch()
+        boundary_volume = self.complete_boundary_data_with_zeros(
+            self.get_surface_per_boundary_node()
         )
 
-        nodes_data = torch.hstack(
+        nodes_data = np.hstack(
             (
-                thh.append_euclidean_norm(self.normalized_inner_forces_torch),
+                nph.append_euclidean_norm(self.input_forces),
                 # thh.append_euclidean_norm(self.input_displacement_old_torch),
                 # thh.append_euclidean_norm(self.input_velocity_old_torch),
-                thh.append_euclidean_norm(boundary_penetration),
-                thh.append_euclidean_norm(boundary_normals),
-                thh.append_euclidean_norm(boundary_v_tangential),
+                nph.append_euclidean_norm(boundary_penetration),
+                nph.append_euclidean_norm(boundary_normals),
+                nph.append_euclidean_norm(boundary_v_tangential),
                 boundary_volume,
                 # self.get_is_colliding_nodes_torch(),
                 # self.get_is_colliding_all_nodes_torch(),
             )
         )
-        return nodes_data
+        return thh.to_double(nodes_data)
 
     def get_data(self, scene_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
@@ -156,8 +171,8 @@ class SceneInput(SceneLayers):
         # f"{cmh.get_timestamp(self.config)} - {
         features_data = Data(
             scene_index_str=str(scene_index),  # str; int is changed by PyG
-            scene_index=thh.to_torch_long(np.repeat(scene_index, self.nodes_count)),
-            pos=thh.set_precision(self.normalized_initial_nodes_torch),
+            scene_index=thh.to_long(np.repeat(scene_index, self.nodes_count)),
+            pos=thh.set_precision(thh.to_double(self.normalized_initial_nodes)),
             x=thh.set_precision(self.get_nodes_data()),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
@@ -165,16 +180,16 @@ class SceneInput(SceneLayers):
             # num_workers=1
         )
         target_data = dict(
-            a_correction=self.normalized_a_correction_torch,
-            args=EnergyObstacleArguments(
-                lhs=self.lhs_torch,
-                rhs=self.get_normalized_rhs_torch(),
-                boundary_velocity_old=self.normalized_boundary_velocity_old_torch,
-                boundary_nodes=self.normalized_boundary_nodes_torch,
-                boundary_normals=self.get_normalized_boundary_normals_torch(),
-                boundary_obstacle_nodes=self.normalized_boundary_obstacle_nodes_torch,
-                boundary_obstacle_normals=self.get_normalized_boundary_obstacle_normals_torch(),
-                surface_per_boundary_node=self.get_surface_per_boundary_node_torch(),
+            a_correction=thh.to_double(self.normalized_a_correction),
+            args=EnergyObstacleArgumentsTorch(
+                lhs=thh.to_double(self.solver_cache.lhs),
+                rhs=thh.to_double(self.get_normalized_rhs_np()),
+                boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
+                boundary_nodes=thh.to_double(self.normalized_boundary_nodes),
+                boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
+                boundary_obstacle_nodes=thh.to_double(self.norm_boundary_obstacle_nodes),
+                boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
+                surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
                 obstacle_prop=scenarios.default_obstacle_prop,  # TODO: generalize
                 time_step=0.01,  # TODO: generalize
             ),
