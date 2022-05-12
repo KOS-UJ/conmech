@@ -135,6 +135,14 @@ class Mesh:
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
+    def normalize_shift(self, vectors):
+        _ = self
+        return vectors - np.mean(vectors, axis=0)
+
+    @property
+    def normalized_initial_nodes(self):
+        return self.normalize_shift(self.initial_nodes)
+
     @property
     def boundary_surfaces(self):
         return self.boundaries.boundary_surfaces
@@ -182,7 +190,11 @@ class Mesh:
 
     @property
     def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
+        return self.boundaries.boundary_indices
+
+    @property
+    def initial_boundary_nodes(self):
+        return self.initial_nodes[self.boundary_indices]
 
     @property
     def contact_indices(self):

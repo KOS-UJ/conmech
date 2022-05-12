@@ -1,5 +1,5 @@
 import os
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import numpy as np
 import torch
@@ -90,7 +90,8 @@ class BaseDataset:
         self,
         description: str,
         dimension: int,
-        data_count: int,
+        scenes_count: int,
+        layers_count: int,
         randomize_at_load: bool,
         num_workers: int,
         load_features_to_ram: bool,
@@ -100,7 +101,8 @@ class BaseDataset:
     ):
         self.dimension = dimension
         self.description = description
-        self.data_count = data_count
+        self.scenes_count = scenes_count
+        self.layers_count = layers_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.load_features_to_ram = load_features_to_ram
@@ -112,6 +114,10 @@ class BaseDataset:
         self.loaded_targets_data = None
         self.features_indices = None
         self.targets_indices = None
+
+    @property
+    def data_count(self):
+        return self.scenes_count * self.layers_count
 
     @property
     def data_size_id(self):
@@ -175,7 +181,7 @@ class BaseDataset:
 
     def initialize_scenes(self):
         self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
-        if self.data_count == len(self.scene_indices):
+        if self.scenes_count == len(self.scene_indices):
             file_size_gb = os.path.getsize(self.scenes_data_path) / 1024**3
             print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
 
@@ -185,27 +191,34 @@ class BaseDataset:
             self.create_folders()
             mph.run_process(self.generate_data_simple)
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
-        assert self.data_count == len(self.scene_indices)
+        assert self.scenes_count == len(self.scene_indices)
 
     def get_scenes_iterator(self, data_tqdm: Iterable[int]):
         scenes_file = pkh.open_file_read(self.scenes_data_path)
-        for index in data_tqdm:
+        for scene_index in data_tqdm:
             if self.with_scenes_file:
                 scene = pkh.load_index(
-                    index=index,
+                    index=scene_index,
                     all_indices=self.scene_indices,
                     data_file=scenes_file,
                 )
             else:
-                scene, _ = self.generate_scene(index)
+                scene, _ = self.generate_scene(scene_index)
 
-            features_data, target_data = self.preprocess_example(scene, index)
-            yield (features_data, target_data)
+            if self.randomize_at_load:
+                scene.set_randomization(self.config)
+
+            # exact_normalized_a_torch = Calculator.clean_acceleration(
+            #    scene_input, scene_input.exact_normalized_a_torch)
+            # else:
+            #   exact_normalized_a_torch = scene_input.exact_normalized_a_torch
+
+            yield scene, scene_index
 
     def initialize_features_and_targets(self):
         self.features_indices = pkh.get_all_indices(self.features_data_path)
         self.targets_indices = pkh.get_all_indices(self.targets_data_path)
-        if self.data_count == len(self.features_indices) and self.data_count == len(
+        if self.data_count == len(self.features_indices) and self.scenes_count == len(
             self.targets_indices
         ):
             features_size_gb = os.path.getsize(self.features_data_path) / 1024**3
@@ -214,25 +227,35 @@ class BaseDataset:
                 f"Taking prepared features ({features_size_gb:.2f} GB) and targets ({targets_size_gb:.2f} GB) dataset"
             )
         else:
+            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
+            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
+
             data_tqdm = cmh.get_tqdm(
-                iterable=range(self.data_count),
+                iterable=range(self.scenes_count),
                 config=self.config,
                 desc="Preprocessing dataset",
             )
 
-            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
-            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
-
             with features_file, features_indices_file, targets_file, targets_indices_file:
-                for features_data, targets_data in self.get_scenes_iterator(data_tqdm=data_tqdm):
-                    pkh.append_data(features_data, features_file, features_indices_file)
-                    pkh.append_data(targets_data, targets_file, targets_indices_file)
+                for scene, scene_index in self.get_scenes_iterator(data_tqdm=data_tqdm):
+
+                    target_data = scene.get_target_data()
+                    pkh.append_data(target_data, targets_file, targets_indices_file)
+
+                    for layer_number in range(self.layers_count):
+                        features_data = scene.get_features_data(
+                            scene_index=scene_index,
+                            exact_normalized_a_torch=None,
+                            layer_number=layer_number,
+                        )
+
+                        pkh.append_data(features_data, features_file, features_indices_file)
 
             self.features_indices = pkh.get_all_indices(self.features_data_path)
             self.targets_indices = pkh.get_all_indices(self.targets_data_path)
 
         assert self.data_count == len(self.features_indices)
-        assert self.data_count == len(self.targets_indices)
+        assert self.scenes_count == len(self.targets_indices)
 
     def load_features(self):
         self.loaded_features_data = self.get_data_loaded_to_ram(
@@ -296,21 +319,6 @@ class BaseDataset:
             )
         return target_data
 
-    def preprocess_example(self, scene: SceneInput, index):
-        if self.randomize_at_load:
-            scene.set_randomization(self.config)
-            # exact_normalized_a_torch = Calculator.clean_acceleration(
-            #    scene_input, scene_input.exact_normalized_a_torch
-            # )
-        # else:
-        # exact_normalized_a_torch = scene_input.exact_normalized_a_torch
-
-        exact_normalized_a_torch = None
-        features_data, target_data = scene.get_data(
-            scene_index=index, exact_normalized_a_torch=exact_normalized_a_torch
-        )
-        return features_data, target_data
-
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
         plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
@@ -339,7 +347,7 @@ class BaseDataset:
     def generate_data_simple(self):
         pass
 
-    def generate_scene(self, index: int):
+    def generate_scene(self, index: int) -> Tuple[SceneInput, np.ndarray]:
         _ = index
         return None, None
 

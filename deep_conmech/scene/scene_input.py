@@ -6,11 +6,11 @@ import torch
 from torch_geometric.data import Data
 
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios import scenarios
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import SceneLayers
@@ -74,6 +74,7 @@ class SceneInput(SceneLayers):
         schedule: Schedule,
         normalize_by_rotation: bool,
         create_in_subprocess: bool,
+        layers_count: int,
         with_schur: bool = True,
     ):
         super().__init__(
@@ -83,6 +84,7 @@ class SceneInput(SceneLayers):
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
+            layers_count=layers_count,
             with_schur=with_schur,
         )
 
@@ -133,33 +135,37 @@ class SceneInput(SceneLayers):
     def nodes_data_dim(dimension: int):
         return len(SceneInput.get_nodes_data_description(dimension))
 
-    def get_nodes_data(self):
-        boundary_penetration = self.complete_boundary_data_with_zeros(
-            self.get_normalized_boundary_penetration()
-        )
-        boundary_normals = self.complete_boundary_data_with_zeros(
-            self.get_normalized_boundary_normals()
-        )
-        boundary_v_tangential = self.complete_boundary_data_with_zeros(
-            self.get_normalized_boundary_v_tangential()
-        )
-        boundary_volume = self.complete_boundary_data_with_zeros(
-            self.get_surface_per_boundary_node()
-        )
-        input_forces = self.input_forces
+    def prepare_nodes(self, layer_number, data, add_norm=True):
+        new_data = self.approximate_boundary_or_all(layer_number=layer_number, old_values=data)
+        mesh = self.all_layers[layer_number].mesh
+        result = self.complete_boundary_data_with_zeros_layer(mesh=mesh, data=new_data)
+        if add_norm:
+            result = nph.append_euclidean_norm(result)
+        return result
 
-        layer_number = 1
-
-
+    def get_nodes_data(self, layer_number):
+        boundary_penetration = self.prepare_nodes(
+            layer_number=layer_number, data=self.get_normalized_boundary_penetration()
+        )
+        boundary_normals = self.prepare_nodes(
+            layer_number=layer_number, data=self.get_normalized_boundary_normals()
+        )
+        boundary_v_tangential = self.prepare_nodes(
+            layer_number=layer_number, data=self.get_normalized_boundary_v_tangential()
+        )
+        input_forces = self.prepare_nodes(layer_number=layer_number, data=self.input_forces)
+        boundary_volume = self.prepare_nodes(
+            layer_number=layer_number, data=self.get_surface_per_boundary_node(), add_norm=False
+        )
 
         nodes_data = np.hstack(
             (
-                nph.append_euclidean_norm(input_forces),
-                # thh.append_euclidean_norm(self.input_displacement_old_torch),
-                # thh.append_euclidean_norm(self.input_velocity_old_torch),
-                nph.append_euclidean_norm(boundary_penetration),
-                nph.append_euclidean_norm(boundary_normals),
-                nph.append_euclidean_norm(boundary_v_tangential),
+                input_forces,
+                # self.input_displacement_old_torch,
+                # self.input_velocity_old_torch,
+                boundary_penetration,
+                boundary_normals,
+                boundary_v_tangential,
                 boundary_volume,
                 # self.get_is_colliding_nodes_torch(),
                 # self.get_is_colliding_all_nodes_torch(),
@@ -167,23 +173,37 @@ class SceneInput(SceneLayers):
         )
         return thh.to_double(nodes_data)
 
-    def get_data(self, scene_index=None, exact_normalized_a_torch=None):
+    def complete_boundary_data_with_zeros_layer(self, mesh: Mesh, data):
+        # return np.resize(data, (self.nodes_count, data.shape[1]))
+        if len(data) == mesh.nodes_count:
+            return data
+
+        completed_data = np.zeros((mesh.nodes_count, data.shape[1]), dtype=data.dtype)
+        completed_data[mesh.boundary_indices] = data
+        return completed_data
+
+    def get_features_data(self, layer_number=0, scene_index=None, exact_normalized_a_torch=None):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
         # Do not use "face" in any name (reserved in PyG)
-        directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
-        # f"{cmh.get_timestamp(self.config)} - {
+        mesh = self.all_layers[layer_number].mesh
+        directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
+        link_down = self.all_layers[layer_number].link_down
         features_data = Data(
             scene_index_str=str(scene_index),  # str; int is changed by PyG
-            scene_index=thh.to_long(np.repeat(scene_index, self.nodes_count)),
-            pos=thh.set_precision(thh.to_double(self.normalized_initial_nodes)),
-            x=thh.set_precision(self.get_nodes_data()),
+            scene_index=thh.to_long(np.repeat(scene_index, mesh.nodes_count)),
+            link_down=[None] if link_down is None else link_down,
+            pos=thh.set_precision(thh.to_double(mesh.normalized_initial_nodes)),
+            x=thh.set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
             # pin_memory=True,
             # num_workers=1
         )
+        return features_data
+
+    def get_target_data(self):
         target_data = dict(
             a_correction=thh.to_double(self.normalized_a_correction),
             args=EnergyObstacleArgumentsTorch(
@@ -209,4 +229,4 @@ class SceneInput(SceneLayers):
         )  # T.OneHotDegree(),
         transform(data)
         """
-        return features_data, target_data
+        return target_data

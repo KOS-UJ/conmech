@@ -141,6 +141,10 @@ class Boundaries:
     def boundary_nodes_count(self):
         return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
+    @property
+    def boundary_indices(self):
+        return slice(self.boundary_nodes_count)
+
 
 class BoundariesFactory:
     """

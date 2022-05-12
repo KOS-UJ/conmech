@@ -139,6 +139,7 @@ class GraphModelDynamic:
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
             normalize_by_rotation=config.normalize_by_rotation,
+            layers_count=1,
             create_in_subprocess=create_in_subprocess,
         )
         if randomize:
@@ -294,7 +295,11 @@ class GraphModelDynamic:
 
         for i, scene_index in enumerate(scene_indices):
             energy_args = dataset.get_targets_data(scene_index)
-            predicted_normalized_a = predicted_normalized_a_split[i]
+            link = features_batch.link_down[i]
+            init_predicted_normalized_a = predicted_normalized_a_split[i]
+            predicted_normalized_a = SceneInput.approximate_link(
+                link=link, old_values=init_predicted_normalized_a
+            )
 
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)

@@ -26,7 +26,7 @@ def generate_mesh_type(config: TrainingConfig):
         )
 
 
-def generate_base_scene(config: TrainingConfig, base: np.ndarray):
+def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingConfig):
     corner_vectors = interpolation_helpers.get_corner_vectors_all(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
@@ -48,6 +48,7 @@ def generate_base_scene(config: TrainingConfig, base: np.ndarray):
         schedule=Schedule(final_time=config.td.final_time),
         normalize_by_rotation=config.normalize_by_rotation,
         create_in_subprocess=False,
+        layers_count=layers_count,
         with_schur=False,
     )
     scene.unset_randomization()
@@ -117,6 +118,7 @@ class SyntheticDataset(BaseDataset):
     def __init__(
         self,
         description: str,
+        layers_count: int,
         load_features_to_ram: bool,
         load_targets_to_ram: bool,
         randomize_at_load: bool,
@@ -127,7 +129,8 @@ class SyntheticDataset(BaseDataset):
         super().__init__(
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
-            data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
+            scenes_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
+            layers_count=layers_count,
             randomize_at_load=randomize_at_load,
             num_workers=num_workers,
             load_features_to_ram=load_features_to_ram,
@@ -138,7 +141,7 @@ class SyntheticDataset(BaseDataset):
 
         if self.data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
-        self.data_part_count = int(self.data_count / num_workers)
+        self.data_part_count = int(self.data_count / num_workers) // 3
 
         self.initialize_data()
 
@@ -150,7 +153,7 @@ class SyntheticDataset(BaseDataset):
         _ = index
 
         base = generate_base(self.config)
-        scene = generate_base_scene(self.config, base)
+        scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)
         forces = generate_forces(self.config, scene, base)

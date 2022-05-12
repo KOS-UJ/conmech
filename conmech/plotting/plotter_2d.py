@@ -354,21 +354,22 @@ def draw_initial_body(annotation, scene: Scene, position, axes):
 
 def draw_sparse(scene: SceneLayers, position, axes):
     for i, layer in enumerate(scene.all_layers):
-        new_inner_forces = scene.approximate_all(
+        mesh = layer.mesh
+        new_inner_forces = scene.approximate_boundary_or_all(
             layer_number=i, old_values=scene.normalized_inner_forces
         )
 
-        triplot(layer.nodes + position, layer.elements, color="tab:orange", axes=axes)
-        plot_arrows(layer.nodes + position, new_inner_forces, axes)
+        triplot(mesh.initial_nodes + position, mesh.elements, color="tab:orange", axes=axes)
+        plot_arrows(mesh.initial_nodes + position, new_inner_forces, axes)
         position[0] += 2.5
 
         boundary_penetration = scene.get_normalized_boundary_penetration()
-        new_boundary_penetration = scene.approximate_boundary(
+        new_boundary_penetration = scene.approximate_boundary_or_all(
             layer_number=i, old_values=boundary_penetration
         )
 
-        triplot(layer.nodes + position, layer.elements, color="tab:blue", axes=axes)
-        plot_arrows(layer.boundary_nodes + position, new_boundary_penetration, axes)
+        triplot(mesh.initial_nodes + position, mesh.elements, color="tab:blue", axes=axes)
+        plot_arrows(mesh.initial_boundary_nodes + position, new_boundary_penetration, axes)
         position[0] += 2.5
 
 

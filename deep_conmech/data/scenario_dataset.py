@@ -28,6 +28,7 @@ class ScenariosDataset(BaseDataset):
         self,
         description: str,
         all_scenarios: List[Scenario],
+        layers_count: int,
         skip_index: int,
         solve_function: Callable,
         load_features_to_ram: bool,
@@ -42,7 +43,8 @@ class ScenariosDataset(BaseDataset):
         super().__init__(
             description=description,
             dimension=check_and_get_dimension(all_scenarios),
-            data_count=self.get_data_count(self.all_scenarios),
+            scenes_count=self.get_data_count(self.all_scenarios),
+            layers_count=layers_count,
             randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check
             load_features_to_ram=load_features_to_ram,
@@ -59,7 +61,7 @@ class ScenariosDataset(BaseDataset):
     def data_size_id(self):
         return f"f:{self.config.td.final_time}_i:{self.skip_index}"
 
-    def get_scene(self, scenario: Scenario, config: TrainingConfig) -> Scene:
+    def get_scene(self, scenario: Scenario, layers_count: int, config: TrainingConfig) -> Scene:
         scene = SceneInput(
             mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
@@ -67,6 +69,7 @@ class ScenariosDataset(BaseDataset):
             schedule=scenario.schedule,
             normalize_by_rotation=config.normalize_by_rotation,
             create_in_subprocess=False,
+            layers_count=layers_count,
         )
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
@@ -109,7 +112,9 @@ class ScenariosDataset(BaseDataset):
                 ts = (index % episode_steps) + 1
                 if ts == 1:
                     scenario = assigned_scenarios[int(index / episode_steps)]
-                    scene = self.get_scene(scenario=scenario, config=self.config)
+                    scene = self.get_scene(
+                        scenario=scenario, layers_count=self.layers_count, config=self.config
+                    )
 
                 if is_memory_overflow(
                     config=self.config,

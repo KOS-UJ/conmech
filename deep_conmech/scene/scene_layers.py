@@ -1,16 +1,34 @@
 import copy
+from ctypes import ArgumentError
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numba
 import numpy as np
+import torch
 
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from deep_conmech.scene.scene_randomized import SceneRandomized
+
+
+@dataclass
+class MeshLayerLinkData:
+    closest_nodes: np.ndarray
+    weights_closest: np.ndarray
+    closest_boundary_nodes: np.ndarray
+    weights_closest_boundary: np.ndarray
+
+
+@dataclass
+class MeshLayerData:
+    mesh: Mesh
+    link_down: Optional[MeshLayerLinkData]
+    link_up: Optional[MeshLayerLinkData]
 
 
 @numba.njit
@@ -32,17 +50,6 @@ def get_interlayer_data(old_nodes, new_nodes, closest_count):
     return closest_nodes, weighted_closest_distances
 
 
-@dataclass
-class MeshLayerData:
-    nodes: np.ndarray
-    elements: np.ndarray
-    boundary_nodes: np.ndarray
-    closest_nodes: np.ndarray
-    weights_closest: np.ndarray
-    closest_boundary_nodes: np.ndarray
-    weights_closest_boundary: np.ndarray
-
-
 class SceneLayers(SceneRandomized):
     def __init__(
         self,
@@ -52,6 +59,7 @@ class SceneLayers(SceneRandomized):
         schedule: Schedule,
         normalize_by_rotation: bool,
         create_in_subprocess: bool,
+        layers_count: int,
         with_schur: bool = True,
     ):
         super().__init__(
@@ -65,62 +73,89 @@ class SceneLayers(SceneRandomized):
         )
         self.create_in_subprocess = create_in_subprocess
         self.all_layers: List[MeshLayerData] = []
-        self.set_layers(layers_count=2)
+        self.set_layers(layers_count=layers_count)
 
     def set_layers(self, layers_count):
         self.all_layers = []
         is_dirichlet = lambda _: False
         is_contact = lambda _: True
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
-        for _ in range(layers_count):
+
+        base_mesh_layer_data = MeshLayerData(mesh=self, link_down=None, link_up=None)
+        self.all_layers.append(base_mesh_layer_data)
+
+        for _ in range(layers_count - 1):
             layer_mesh_prop.mesh_density = list(
                 np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // 2
             )
-            (nodes, elements, boundaries) = self.reinitialize_layer(
-                layer_mesh_prop, is_dirichlet, is_contact, self.create_in_subprocess
-            )
-            boundary_nodes = nodes[slice(boundaries.boundary_nodes_count)]
 
-            closest_nodes, weights_closest = get_interlayer_data(
-                old_nodes=self.initial_nodes,
-                new_nodes=nodes,
-                closest_count=self.mesh_prop.dimension + 1
+            layer_mesh = Mesh(
+                mesh_prop=layer_mesh_prop,
+                is_dirichlet=is_dirichlet,
+                is_contact=is_contact,
+                create_in_subprocess=self.create_in_subprocess,
             )
-            closest_boundary_nodes, weights_closest_boundary = get_interlayer_data(
-                old_nodes=self.boundary_nodes,
-                new_nodes=boundary_nodes,
-                closest_count=self.mesh_prop.dimension
-            )
+            link_up = self.get_link(from_mesh=self, to_mesh=layer_mesh)
+            link_down = self.get_link(from_mesh=layer_mesh, to_mesh=self)
 
-            mesh_layer_data = MeshLayerData(
-                nodes=nodes,
-                elements=elements,
-                boundary_nodes=boundary_nodes,
-                closest_nodes=closest_nodes,
-                weights_closest=weights_closest,
-                closest_boundary_nodes=closest_boundary_nodes,
-                weights_closest_boundary=weights_closest_boundary,
-            )
+            mesh_layer_data = MeshLayerData(mesh=layer_mesh, link_down=link_down, link_up=link_up)
             self.all_layers.append(mesh_layer_data)
 
-    def approximate_internal(self, old_values, closest_nodes, weights_closest):
+    def get_link(self, from_mesh: Mesh, to_mesh: Mesh):
+        closest_nodes, weights_closest = get_interlayer_data(
+            old_nodes=from_mesh.initial_nodes,
+            new_nodes=to_mesh.initial_nodes,
+            closest_count=self.mesh_prop.dimension + 1,
+        )
+        closest_boundary_nodes, weights_closest_boundary = get_interlayer_data(
+            old_nodes=from_mesh.initial_boundary_nodes,
+            new_nodes=to_mesh.initial_boundary_nodes,
+            closest_count=self.mesh_prop.dimension,
+        )
+
+        return MeshLayerLinkData(
+            closest_nodes=closest_nodes,
+            weights_closest=weights_closest,
+            closest_boundary_nodes=closest_boundary_nodes,
+            weights_closest_boundary=weights_closest_boundary,
+        )
+
+    @staticmethod
+    def approximate_internal(old_values, closest_nodes, weights_closest):
         return np.sum(
             old_values[closest_nodes] * weights_closest[..., np.newaxis],
             axis=1,
         )
 
-    def approximate_all(self, layer_number, old_values):
-        mesh_layer_data = self.all_layers[layer_number]
-        return self.approximate_internal(
-            old_values=old_values,
-            closest_nodes=mesh_layer_data.closest_nodes,
-            weights_closest=mesh_layer_data.weights_closest,
-        )
+    @staticmethod
+    def approximate_link(link: Optional[MeshLayerLinkData], old_values: torch.Tensor):
+        if not isinstance(link, MeshLayerLinkData):
+            return old_values
+        closest_nodes = link.closest_nodes
+        weights_closest = link.weights_closest
+        return (
+            old_values[torch.tensor(closest_nodes)] * torch.tensor(weights_closest[..., np.newaxis])
+        ).sum(axis=1)
 
-    def approximate_boundary(self, layer_number, old_values):
+    def approximate_boundary_or_all(self, layer_number: int, old_values: np.ndarray):
+        if layer_number == 0:
+            return old_values
+
         mesh_layer_data = self.all_layers[layer_number]
-        return self.approximate_internal(
-            old_values=old_values,
-            closest_nodes=mesh_layer_data.closest_boundary_nodes,
-            weights_closest=mesh_layer_data.weights_closest_boundary,
+        link = mesh_layer_data.link_up
+        if link is None:
+            raise ArgumentError
+
+        if len(old_values) == self.nodes_count:
+            closest_nodes = link.closest_nodes
+            weights_closest = link.weights_closest
+
+        elif len(old_values) == self.boundary_nodes_count:
+            closest_nodes = link.closest_boundary_nodes
+            weights_closest = link.weights_closest_boundary
+        else:
+            raise ArgumentError
+
+        return SceneLayers.approximate_internal(
+            old_values=old_values, closest_nodes=closest_nodes, weights_closest=weights_closest
         )
