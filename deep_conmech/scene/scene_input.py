@@ -195,10 +195,10 @@ class SceneInput(SceneLayers):
         directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
 
         def get_closest_nodes(link: Optional[MeshLayerLinkData]):
-            return [None] if link is None else torch.tensor(link.closest_nodes)
+            return None if link is None else torch.tensor(link.closest_nodes)
 
         def get_closest_weights(link: Optional[MeshLayerLinkData]):
-            return [None] if link is None else torch.tensor(link.weights_closest)
+            return None if link is None else torch.tensor(link.weights_closest)
 
         features_data = Data(
             scene_id=torch.tensor([scene_index]),

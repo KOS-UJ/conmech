@@ -310,13 +310,7 @@ class GraphModelDynamic:
         )
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def calculate_loss(
-        self,
-        batch_list: List[Data],
-        layer: int,
-        dataset: base_dataset.BaseDataset,
-        test_using_true_solution=True,
-    ):
+    def calculate_loss(self, batch_list: List[Data], layer: int, dataset: base_dataset.BaseDataset):
         batch_list_cuda = [batch.to(self.net.device) for batch in batch_list]
         batch_main = batch_list[layer]
         graph_sizes_base = get_graph_sizes(batch_list[0])
@@ -324,7 +318,7 @@ class GraphModelDynamic:
         all_predicted_normalized_a_init = self.net(batch_list_cuda, layer)
         all_predicted_normalized_a = (
             all_predicted_normalized_a_init
-            if batch_main.closest_nodes_base[0][0] is None
+            if not hasattr(batch_main, "closest_nodes_base")
             else SceneInput.approximate_internal(
                 closest_nodes=batch_main.closest_nodes_base,
                 weights_closest=batch_main.weights_closest_base,
@@ -340,9 +334,6 @@ class GraphModelDynamic:
             energy_args = dataset.get_targets_data(scene_index)
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
-
-            if test_using_true_solution:
-                predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
 
             predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, **energy_args
@@ -371,21 +362,3 @@ class GraphModelDynamic:
         loss /= batch_main.num_graphs
         loss_array /= batch_main.num_graphs
         return loss, loss_array
-
-    def use_true_solution(self, predicted_normalized_a, energy_args):
-        function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(
-            cleaned_a=thh.to_double(nph.unstack(normalized_a_vector, dim=2)),
-            **energy_args,
-        ).item()
-
-        # @v = function(thh.to_np_double(torch.zeros_like(predicted_normalized_a)))
-        predicted_normalized_a = thh.to_double(
-            nph.unstack(
-                Calculator.minimize(
-                    function,
-                    thh.to_np_double(torch.zeros_like(predicted_normalized_a)),
-                ),
-                dim=2,
-            )
-        )
-        return predicted_normalized_a
