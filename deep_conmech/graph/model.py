@@ -315,28 +315,23 @@ class GraphModelDynamic:
         batch_list: List[Data],
         layer: int,
         dataset: base_dataset.BaseDataset,
-        test_using_true_solution=False,
+        test_using_true_solution=True,
     ):
         batch_list_cuda = [batch.to(self.net.device) for batch in batch_list]
         batch_main = batch_list[layer]
-        graph_sizes = get_graph_sizes(batch_main)
         graph_sizes_base = get_graph_sizes(batch_list[0])
 
-        all_predicted_normalized_a = self.net(batch_list_cuda, layer)
-
-        if batch_main.closest_nodes_base[0][0] is None:
-            all_predicted_normalized_a_approx = all_predicted_normalized_a
-        else:
-            all_predicted_normalized_a_approx = SceneInput.approximate_internal(
+        all_predicted_normalized_a_init = self.net(batch_list_cuda, layer)
+        all_predicted_normalized_a = (
+            all_predicted_normalized_a_init
+            if batch_main.closest_nodes_base[0][0] is None
+            else SceneInput.approximate_internal(
                 closest_nodes=batch_main.closest_nodes_base,
                 weights_closest=batch_main.weights_closest_base,
-                old_values=all_predicted_normalized_a,
+                old_values=all_predicted_normalized_a_init,
             )
-
-        predicted_normalized_a_approx_split = all_predicted_normalized_a_approx.to("cpu").split(
-            graph_sizes_base
         )
-        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes)
+        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
@@ -344,20 +339,7 @@ class GraphModelDynamic:
         for batch_graph_index, scene_index in enumerate(batch_main.scene_id):
             energy_args = dataset.get_targets_data(scene_index)
 
-            init_predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
-
-            link_base = batch_main.link_base[batch_graph_index]
-            predicted_normalized_a = (
-                init_predicted_normalized_a
-                if not isinstance(link_base, MeshLayerLinkData)
-                else SceneInput.approximate_internal(
-                    closest_nodes=torch.tensor(link_base.closest_nodes),
-                    weights_closest=torch.tensor(link_base.weights_closest),
-                    old_values=init_predicted_normalized_a,
-                )
-            )
-            predicted_normalized_a_approx = predicted_normalized_a_approx_split[batch_graph_index]
-            assert torch.allclose(predicted_normalized_a, predicted_normalized_a_approx)
+            predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
 
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
@@ -392,7 +374,7 @@ class GraphModelDynamic:
 
     def use_true_solution(self, predicted_normalized_a, energy_args):
         function = lambda normalized_a_vector: scene_input.energy_normalized_obstacle_correction(
-            cleaned_a=thh.to_double(nph.unstack(normalized_a_vector, dim=2)).to(self.net.device),
+            cleaned_a=thh.to_double(nph.unstack(normalized_a_vector, dim=2)),
             **energy_args,
         ).item()
 
@@ -405,5 +387,5 @@ class GraphModelDynamic:
                 ),
                 dim=2,
             )
-        ).to(self.net.device)
+        )
         return predicted_normalized_a

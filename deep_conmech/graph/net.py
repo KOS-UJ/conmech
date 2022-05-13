@@ -340,7 +340,7 @@ class CustomGraphNet(nn.Module):
 
     def forward(self, batch_list: List[Data], layer: int):
         batch_main = batch_list[layer]
-        self.check_layer_data(batch_list)
+        # self.check_layer_data(batch_list)
 
         node_input = batch_main.x  # position "pos" will not generalize
         edge_input = batch_main.edge_attr

@@ -215,8 +215,7 @@ class SceneInput(SceneLayers):
             weights_closest_down=get_closest_weights(mesh_layer_data.link_down),
             closest_nodes_base=get_closest_nodes(mesh_layer_data.link_base),
             weights_closest_base=get_closest_weights(mesh_layer_data.link_base),
-            link_base=[None] if mesh_layer_data.link_base is None else mesh_layer_data.link_base,
-            # pin_memory=True,
+            # link_base pin_memory=True,
             # num_workers=1
         )
         return features_data
