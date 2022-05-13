@@ -324,17 +324,23 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
+    def check_layer_data(self, batch_list):
+        if len(batch_list) == 1:
+            return
+
+        for layer in range(1, len(batch_list)):
+            diff = batch_list[layer].pos.double() - SceneLayers.approximate_internal(
+                old_values=batch_list[layer - 1].pos,
+                closest_nodes=batch_list[layer].closest_nodes_up,
+                weights_closest=batch_list[layer].weights_closest_up,
+            )
+            diff_norm = torch.linalg.norm(diff, dim=1)
+            base_norm = torch.linalg.norm(batch_list[layer].pos.double(), dim=1)
+            assert torch.sum(diff_norm) / torch.sum(base_norm) < 0.1 * layer
+
     def forward(self, batch_list: List[Data], layer: int):
         batch_main = batch_list[layer]
-
-        diff = batch_list[1].pos.double() - SceneLayers.approximate_internal(
-            old_values=batch_list[0].pos,
-            closest_nodes=batch_list[1].closest_nodes_up,
-            weights_closest=batch_list[1].weights_closest_up,
-        )
-        diff_norm = torch.linalg.norm(diff, dim=1)
-        base_norm = torch.linalg.norm(batch_list[1].pos.double(), dim=1)
-        assert torch.sum(diff_norm) / torch.sum(base_norm) < 0.1
+        self.check_layer_data(batch_list)
 
         node_input = batch_main.x  # position "pos" will not generalize
         edge_input = batch_main.edge_attr
