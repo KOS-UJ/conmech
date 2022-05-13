@@ -204,7 +204,7 @@ class ProcessorLayer(MessagePassing):
         super().__init__()
 
         self.edge_processor = ForwardNet(
-            input_dim=td.latent_dimension * 3,
+            input_dim=td.latent_dimension * 2,  # 3,
             layers_count=td.processor_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,
@@ -213,7 +213,7 @@ class ProcessorLayer(MessagePassing):
             td=td,
         )
         self.node_processor = ForwardNet(
-            input_dim=td.latent_dimension * 3,
+            input_dim=td.latent_dimension * 2,
             layers_count=td.processor_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,
@@ -231,21 +231,18 @@ class ProcessorLayer(MessagePassing):
         # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
 
     def forward(self, batch, node_latents, edge_latents):
-        node_latents_means = scatter_sum(node_latents, batch.node_scene_id, dim=0)
-        mean_node_latents = node_latents_means[batch.node_scene_id]
         new_node_latents = self.propagate(
-            edge_index=batch.edge_index,
-            node_latents=node_latents,
-            edge_latents=edge_latents,
-            mean_node_latents=mean_node_latents,
+            edge_index=batch.edge_index, node_latents=node_latents, edge_latents=edge_latents
         )
         new_edge_latents = self.new_edge_latents
         self.new_edge_latents = None
         return new_node_latents, new_edge_latents
 
     def message(self, node_latents_i, node_latents_j, edge_latents, index):
-        edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
-        self.new_edge_latents = edge_latents + self.edge_processor(edge_inputs)
+        edge_inputs = torch.hstack((node_latents_i, node_latents_j))  # , edge_latents))
+        self.new_edge_latents = self.edge_processor(
+            edge_inputs
+        )  ##### edge_latents + self.edge_processor(edge_inputs)
 
         alpha = self.attention(edge_latents, index)
         weighted_edge_latents = alpha * self.new_edge_latents
@@ -255,10 +252,10 @@ class ProcessorLayer(MessagePassing):
         aggregated_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
-    def update(self, aggregated_edge_latents, node_latents, mean_node_latents):
+    def update(self, aggregated_edge_latents, node_latents):
         # node_inputs = aggregated_edge_latents
         # node_inputs = ((1 + self.epsilon) * node_latents) + aggregated_edge_latents))
-        node_inputs = torch.hstack((node_latents, aggregated_edge_latents, mean_node_latents))
+        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
         new_node_latents = node_latents + self.node_processor(node_inputs)
         return new_node_latents
 
@@ -324,33 +321,43 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def check_layer_data(self, batch_list):
-        if len(batch_list) == 1:
-            return
+    def move_up_to(self, node_latents, layer):
+        return SceneLayers.approximate_internal(
+            old_values=node_latents,
+            closest_nodes=layer.closest_nodes_up,
+            weights_closest=layer.weights_closest_up,
+        )
 
-        for layer in range(1, len(batch_list)):
-            diff = batch_list[layer].pos.double() - SceneLayers.approximate_internal(
-                old_values=batch_list[layer - 1].pos,
-                closest_nodes=batch_list[layer].closest_nodes_up,
-                weights_closest=batch_list[layer].weights_closest_up,
-            )
-            diff_norm = torch.linalg.norm(diff, dim=1)
-            base_norm = torch.linalg.norm(batch_list[layer].pos.double(), dim=1)
-            assert torch.sum(diff_norm) / torch.sum(base_norm) < 0.1 * layer
+    def move_down_from(self, node_latents, layer):
+        return SceneLayers.approximate_internal(
+            old_values=node_latents,
+            closest_nodes=layer.closest_nodes_down,
+            weights_closest=layer.weights_closest_down,
+        )
 
-    def forward(self, batch_list: List[Data], layer: int):
-        batch_main = batch_list[layer]
-        # self.check_layer_data(batch_list)
+    def forward(self, layer_list: List[Data], main_layer_number: int):
+        main_layer = layer_list[main_layer_number]
 
-        node_input = batch_main.x  # position "pos" will not generalize
-        edge_input = batch_main.edge_attr
+        node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
 
-        node_latents = self.node_encoder(node_input)
-        edge_latents = self.edge_encoder(edge_input)
+        for layer_number, layer in enumerate(layer_list[main_layer_number:-1]):
+            # edge_latents = self.edge_encoder(layer.edge_attr)
+            edge_latents = None
 
-        # for...
-        for processor_layer in self.processor_layers:
-            node_latents, edge_latents = processor_layer(batch_main, node_latents, edge_latents)
+            for processor_layer in self.processor_layers:
+                node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)
+
+            next_layer = layer_list[layer_number + 1]
+            node_latents = self.move_up_to(node_latents=node_latents, layer=next_layer)
+
+        for layer_number, layer in enumerate(layer_list[main_layer_number + 1 :][::-1]):
+            # edge_latents = self.edge_encoder(layer.edge_attr)
+            edge_latents = None
+
+            for processor_layer in self.processor_layers:
+                node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)
+
+            node_latents = self.move_down_from(node_latents=node_latents, layer=layer)
 
         net_output = self.decoder(node_latents)
         return net_output
@@ -366,7 +373,7 @@ class CustomGraphNet(nn.Module):
         self.eval()
 
         batch_base = scene.get_features_data(scene_index=0, layer_number=0).to(self.device)
-        normalized_a_cuda = self(batch_list=[batch_base], layer=0)
+        normalized_a_cuda = self(layer_list=[batch_base], main_layer_number=0)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = scene.denormalize_rotate(normalized_a)
