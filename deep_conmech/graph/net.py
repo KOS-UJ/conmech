@@ -12,6 +12,7 @@ from torch_scatter import scatter_sum
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingData
 
 
@@ -323,10 +324,17 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def forward(self, batch_list: List[Data]):
-        batch_main = batch_list[0]
+    def forward(self, batch_list: List[Data], layer: int):
+        batch_main = batch_list[layer]
 
-        # batch_list[1].pos - SceneLayers.approximate_internal(old_values=batch_list[0].pos, closest_nodes=batch_list[1].closest_nodes_up, weights_closest=batch_list[1].weights_closest_up)
+        diff = batch_list[1].pos.double() - SceneLayers.approximate_internal(
+            old_values=batch_list[0].pos,
+            closest_nodes=batch_list[1].closest_nodes_up,
+            weights_closest=batch_list[1].weights_closest_up,
+        )
+        diff_norm = torch.linalg.norm(diff, dim=1)
+        base_norm = torch.linalg.norm(batch_list[1].pos.double(), dim=1)
+        assert torch.sum(diff_norm) / torch.sum(base_norm) < 0.1
 
         node_input = batch_main.x  # position "pos" will not generalize
         edge_input = batch_main.edge_attr
@@ -352,7 +360,7 @@ class CustomGraphNet(nn.Module):
         self.eval()
 
         batch_base = scene.get_features_data(scene_index=0, layer_number=0).to(self.device)
-        normalized_a_cuda = self([batch_base])
+        normalized_a_cuda = self(batch_list=[batch_base], layer=0)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = scene.denormalize_rotate(normalized_a)

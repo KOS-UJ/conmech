@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 1  # 96  # 256  # 96
+    synthetic_batches_in_epoch: int = 4  # 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True

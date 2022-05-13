@@ -182,7 +182,7 @@ class GraphModelDynamic:
 
         loss_array = np.zeros(self.labels_count)
         for layer in range(len(batch_list)):
-            loss, loss_array_step = self.calculate_loss(batch_list[layer:], dataset)
+            loss, loss_array_step = self.calculate_loss(batch_list, layer, dataset)
             loss_array += loss_array_step
             loss.backward()
             if self.config.td.gradient_clip is not None:
@@ -197,7 +197,7 @@ class GraphModelDynamic:
         loss_array = np.zeros(self.labels_count)
         for layer in range(len(batch_list)):
             with torch.no_grad():  # with tc.set_grad_enabled(train):
-                _, loss_array_step = self.calculate_loss(batch_list[layer:], dataset)
+                _, loss_array_step = self.calculate_loss(batch_list, layer, dataset)
             loss_array += loss_array_step
 
         return loss_array
@@ -217,12 +217,14 @@ class GraphModelDynamic:
             return mask
 
         layers_number = len(batch_list)
+        batch_base = batch_list[0]
         for i in range(1, layers_number):
             batch_dense = batch_list[i - 1]
             batch_sparse = batch_list[i]
 
             batch_sparse.closest_nodes_up += batch_dense.ptr[get_mask(batch_sparse)]
             batch_sparse.closest_nodes_down += batch_sparse.ptr[get_mask(batch_dense)]
+            batch_sparse.closest_nodes_base += batch_sparse.ptr[get_mask(batch_base)]
 
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
@@ -311,21 +313,30 @@ class GraphModelDynamic:
     def calculate_loss(
         self,
         batch_list: List[Data],
+        layer: int,
         dataset: base_dataset.BaseDataset,
         test_using_true_solution=False,
     ):
         batch_list_cuda = [batch.to(self.net.device) for batch in batch_list]
-        batch_main = batch_list[0]
+        batch_main = batch_list[layer]
         graph_sizes = get_graph_sizes(batch_main)
+        graph_sizes_base = get_graph_sizes(batch_list[0])
 
-        all_predicted_normalized_a = self.net(batch_list_cuda).to("cpu")
-        predicted_normalized_a_split = all_predicted_normalized_a.split(graph_sizes)
+        all_predicted_normalized_a = self.net(batch_list_cuda, layer)
 
-        # all_predicted_normalized_a_approx = SceneInput.approximate_internal(
-        #     closest_nodes=torch.tensor(batch_main.closest_nodes_base),
-        #     weights_closest=torch.tensor(batch_main.weights_closest_base),
-        #     old_values=all_predicted_normalized_a,
-        # )
+        if batch_main.closest_nodes_base[0][0] is None:
+            all_predicted_normalized_a_approx = all_predicted_normalized_a
+        else:
+            all_predicted_normalized_a_approx = SceneInput.approximate_internal(
+                closest_nodes=batch_main.closest_nodes_base,
+                weights_closest=batch_main.weights_closest_base,
+                old_values=all_predicted_normalized_a,
+            )
+
+        predicted_normalized_a_approx_split = all_predicted_normalized_a_approx.to("cpu").split(
+            graph_sizes_base
+        )
+        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes)
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
@@ -345,6 +356,8 @@ class GraphModelDynamic:
                     old_values=init_predicted_normalized_a,
                 )
             )
+            predicted_normalized_a_approx = predicted_normalized_a_approx_split[batch_graph_index]
+            assert torch.allclose(predicted_normalized_a, predicted_normalized_a_approx)
 
             if test_using_true_solution:
                 predicted_normalized_a = self.use_true_solution(predicted_normalized_a, energy_args)
