@@ -43,7 +43,7 @@ class ScenariosDataset(BaseDataset):
         super().__init__(
             description=description,
             dimension=check_and_get_dimension(all_scenarios),
-            scenes_count=self.get_data_count(self.all_scenarios),
+            data_count=self.get_data_count(self.all_scenarios),
             layers_count=layers_count,
             randomize_at_load=randomize_at_load,
             num_workers=1,  # TODO: #65 Check

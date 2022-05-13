@@ -1,9 +1,10 @@
 from ctypes import ArgumentError
-from typing import Optional
+from typing import List, Optional
 
 import torch
 from torch import nn
 from torch.nn import Parameter
+from torch_geometric.data.batch import Data
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
@@ -229,8 +230,8 @@ class ProcessorLayer(MessagePassing):
         # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
 
     def forward(self, batch, node_latents, edge_latents):
-        node_latents_means = scatter_sum(node_latents, batch.scene_index, dim=0)
-        mean_node_latents = node_latents_means[batch.scene_index]
+        node_latents_means = scatter_sum(node_latents, batch.node_scene_id, dim=0)
+        mean_node_latents = node_latents_means[batch.node_scene_id]
         new_node_latents = self.propagate(
             edge_index=batch.edge_index,
             node_latents=node_latents,
@@ -322,15 +323,20 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def forward(self, batch):
-        node_input = batch.x  # position "pos" will not generalize
-        edge_input = batch.edge_attr
+    def forward(self, batch_list: List[Data]):
+        batch_main = batch_list[0]
+
+        # batch_list[1].pos - SceneLayers.approximate_internal(old_values=batch_list[0].pos, closest_nodes=batch_list[1].closest_nodes_up, weights_closest=batch_list[1].weights_closest_up)
+
+        node_input = batch_main.x  # position "pos" will not generalize
+        edge_input = batch_main.edge_attr
 
         node_latents = self.node_encoder(node_input)
         edge_latents = self.edge_encoder(edge_input)
 
+        # for...
         for processor_layer in self.processor_layers:
-            node_latents, edge_latents = processor_layer(batch, node_latents, edge_latents)
+            node_latents, edge_latents = processor_layer(batch_main, node_latents, edge_latents)
 
         net_output = self.decoder(node_latents)
         return net_output
@@ -345,8 +351,8 @@ class CustomGraphNet(nn.Module):
     def solve_all(self, scene: SceneInput):
         self.eval()
 
-        batch = scene.get_features_data(scene_index=0).to(self.device)
-        normalized_a_cuda = self(batch)
+        batch_base = scene.get_features_data(scene_index=0, layer_number=0).to(self.device)
+        normalized_a_cuda = self([batch_base])
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = scene.denormalize_rotate(normalized_a)

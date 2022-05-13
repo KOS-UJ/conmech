@@ -6,6 +6,10 @@ from io import BufferedReader
 from typing import List
 
 
+def open_files_write(path: str):
+    return open(path, "wb+"), open(f"{path}_indices", "wb+")
+
+
 def open_files_append(path: str):
     return open(path, "ab+"), open(f"{path}_indices", "ab+")
 

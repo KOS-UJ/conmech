@@ -129,7 +129,7 @@ class SyntheticDataset(BaseDataset):
         super().__init__(
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
-            scenes_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
+            data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
             layers_count=layers_count,
             randomize_at_load=randomize_at_load,
             num_workers=num_workers,
@@ -141,7 +141,7 @@ class SyntheticDataset(BaseDataset):
 
         if self.data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
-        self.data_part_count = int(self.data_count / num_workers) // 3
+        self.scenes_part_count = int(self.data_count / num_workers)
 
         self.initialize_data()
 
@@ -173,7 +173,9 @@ class SyntheticDataset(BaseDataset):
         return scene, exact_normalized_a_torch
 
     def generate_data_process(self, num_workers, process_id):
-        assigned_data_range = base_dataset.get_process_data_range(process_id, self.data_part_count)
+        assigned_data_range = base_dataset.get_process_data_range(
+            process_id, self.scenes_part_count
+        )
         tqdm_description = f"Process {process_id} - generating data"
         self.generate_data_internal(
             assigned_data_range=assigned_data_range,
@@ -182,7 +184,7 @@ class SyntheticDataset(BaseDataset):
         )
 
     def generate_data_simple(self):
-        assigned_data_range = range(self.data_part_count)
+        assigned_data_range = range(self.scenes_part_count)
         tqdm_description = "Generating data"
         self.generate_data_internal(
             assigned_data_range=assigned_data_range,

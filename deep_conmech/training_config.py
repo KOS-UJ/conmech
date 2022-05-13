@@ -16,7 +16,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 8
+    final_time: float = 0.5  # 8
     mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
     adaptive_training_mesh: bool = True
 
@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 96  # 256  # 96
+    synthetic_batches_in_epoch: int = 1  # 96  # 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -83,7 +83,7 @@ class TrainingConfig(Config):
         (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
     )
 
-    dataset_images_count: float = 100
+    dataset_images_count: float = 1  # 100
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False

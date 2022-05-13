@@ -90,7 +90,7 @@ class BaseDataset:
         self,
         description: str,
         dimension: int,
-        scenes_count: int,
+        data_count: int,
         layers_count: int,
         randomize_at_load: bool,
         num_workers: int,
@@ -101,7 +101,7 @@ class BaseDataset:
     ):
         self.dimension = dimension
         self.description = description
-        self.scenes_count = scenes_count
+        self.data_count = data_count
         self.layers_count = layers_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
@@ -114,10 +114,6 @@ class BaseDataset:
         self.loaded_targets_data = None
         self.features_indices = None
         self.targets_indices = None
-
-    @property
-    def data_count(self):
-        return self.scenes_count * self.layers_count
 
     @property
     def data_size_id(self):
@@ -181,7 +177,7 @@ class BaseDataset:
 
     def initialize_scenes(self):
         self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
-        if self.scenes_count == len(self.scene_indices):
+        if self.data_count == len(self.scene_indices):
             file_size_gb = os.path.getsize(self.scenes_data_path) / 1024**3
             print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
 
@@ -191,7 +187,7 @@ class BaseDataset:
             self.create_folders()
             mph.run_process(self.generate_data_simple)
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
-        assert self.scenes_count == len(self.scene_indices)
+        assert self.data_count == len(self.scene_indices)
 
     def get_scenes_iterator(self, data_tqdm: Iterable[int]):
         scenes_file = pkh.open_file_read(self.scenes_data_path)
@@ -215,47 +211,52 @@ class BaseDataset:
 
             yield scene, scene_index
 
-    def initialize_features_and_targets(self):
+    def check_indices(self):
+        return self.data_count == len(self.features_indices) and self.data_count == len(
+            self.targets_indices
+        )
+
+    def load_indices(self):
         self.features_indices = pkh.get_all_indices(self.features_data_path)
         self.targets_indices = pkh.get_all_indices(self.targets_data_path)
-        if self.data_count == len(self.features_indices) and self.scenes_count == len(
-            self.targets_indices
-        ):
-            features_size_gb = os.path.getsize(self.features_data_path) / 1024**3
-            targets_size_gb = os.path.getsize(self.targets_data_path) / 1024**3
+
+    def get_size(self, data_path):
+        return os.path.getsize(data_path) / 1024**3
+
+    def initialize_features_and_targets(self):
+        self.load_indices()
+        if self.check_indices():
             print(
-                f"Taking prepared features ({features_size_gb:.2f} GB) and targets ({targets_size_gb:.2f} GB) dataset"
+                f"Taking prepared features ({self.get_size(self.features_data_path):.2f} GB) and targets ({self.get_size(self.targets_data_path):.2f} GB) dataset"
             )
-        else:
-            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
-            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
+            return
 
-            data_tqdm = cmh.get_tqdm(
-                iterable=range(self.scenes_count),
-                config=self.config,
-                desc="Preprocessing dataset",
-            )
+        data_tqdm = cmh.get_tqdm(
+            iterable=range(self.data_count),
+            config=self.config,
+            desc="Preprocessing dataset",
+        )
 
-            with features_file, features_indices_file, targets_file, targets_indices_file:
-                for scene, scene_index in self.get_scenes_iterator(data_tqdm=data_tqdm):
+        features_file, features_indices_file = pkh.open_files_write(self.features_data_path)
+        targets_file, targets_indices_file = pkh.open_files_write(self.targets_data_path)
 
-                    target_data = scene.get_target_data()
-                    pkh.append_data(target_data, targets_file, targets_indices_file)
+        with features_file, features_indices_file, targets_file, targets_indices_file:
+            for scene, scene_index in self.get_scenes_iterator(data_tqdm=data_tqdm):
 
-                    for layer_number in range(self.layers_count):
-                        features_data = scene.get_features_data(
-                            scene_index=scene_index,
-                            exact_normalized_a_torch=None,
-                            layer_number=layer_number,
-                        )
+                pkh.append_data(scene.get_target_data(), targets_file, targets_indices_file)
 
-                        pkh.append_data(features_data, features_file, features_indices_file)
+                features_data_list = [
+                    scene.get_features_data(
+                        scene_index=scene_index,
+                        layer_number=layer_number,
+                    )
+                    for layer_number in range(self.layers_count)
+                ]
 
-            self.features_indices = pkh.get_all_indices(self.features_data_path)
-            self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+                pkh.append_data(features_data_list, features_file, features_indices_file)
 
-        assert self.data_count == len(self.features_indices)
-        assert self.scenes_count == len(self.targets_indices)
+        self.load_indices()
+        assert self.check_indices()
 
     def load_features(self):
         self.loaded_features_data = self.get_data_loaded_to_ram(
@@ -301,12 +302,12 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def get_features_data(self, index):
+    def get_features_data(self, scene_index):
         if self.loaded_features_data is not None:
-            return self.loaded_features_data[index]
+            return self.loaded_features_data[scene_index]
         with pkh.open_file_read(self.features_data_path) as file:
             features_data = pkh.load_index(
-                index=index, all_indices=self.features_indices, data_file=file
+                index=scene_index, all_indices=self.features_indices, data_file=file
             )
         return features_data
 

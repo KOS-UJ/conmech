@@ -1,9 +1,10 @@
 import time
 from ctypes import ArgumentError
-from typing import List
+from typing import Callable, List
 
 import numpy as np
 import torch
+from torch_geometric.data.batch import Data
 
 from conmech.helpers import cmh, nph
 from conmech.scenarios.scenarios import Scenario
@@ -15,6 +16,7 @@ from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
 from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.scene.scene_layers import MeshLayerLinkData
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -150,7 +152,9 @@ class GraphModelDynamic:
         return scene
 
     @staticmethod
-    def plot_all_scenarios(net: CustomGraphNet, print_scenarios, config: TrainingConfig):
+    def plot_all_scenarios(
+        net: CustomGraphNet, print_scenarios: List[Scenario], config: TrainingConfig
+    ):
         print("----PLOTTING----")
         start_time = time.time()
         timestamp = cmh.get_timestamp(config)
@@ -172,25 +176,31 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, batch, dataset):
+    def train_step(self, batch_list: List[Data], dataset):
         self.net.train()
         self.net.zero_grad()
 
-        loss, loss_array_np = self.E(batch, dataset)
-        loss.backward()
-        if self.config.td.gradient_clip is not None:
-            self.clip_gradients(self.config.td.gradient_clip)
-        self.optimizer.step()
+        loss_array = np.zeros(self.labels_count)
+        for layer in range(len(batch_list)):
+            loss, loss_array_step = self.calculate_loss(batch_list[layer:], dataset)
+            loss_array += loss_array_step
+            loss.backward()
+            if self.config.td.gradient_clip is not None:
+                self.clip_gradients(self.config.td.gradient_clip)
+            self.optimizer.step()
 
-        return loss_array_np
+        return loss_array
 
-    def test_step(self, batch, dataset):
+    def test_step(self, batch_list: List[Data], dataset):
         self.net.eval()
 
-        with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array_np = self.E(batch, dataset)
+        loss_array = np.zeros(self.labels_count)
+        for layer in range(len(batch_list)):
+            with torch.no_grad():  # with tc.set_grad_enabled(train):
+                _, loss_array_step = self.calculate_loss(batch_list[layer:], dataset)
+            loss_array += loss_array_step
 
-        return loss_array_np
+        return loss_array
 
     def clip_gradients(self, max_norm: float):
         parameters = self.net.parameters()
@@ -199,21 +209,38 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
+    def order_batch_layer_indices(self, batch_list: List[Data]):
+        def get_mask(batch):
+            mask = torch.zeros((len(batch.x), 1), dtype=torch.int64)
+            for j in batch.ptr[1:]:
+                mask[j:] += 1
+            return mask
+
+        layers_number = len(batch_list)
+        for i in range(1, layers_number):
+            batch_dense = batch_list[i - 1]
+            batch_sparse = batch_list[i]
+
+            batch_sparse.closest_nodes_up += batch_dense.ptr[get_mask(batch_sparse)]
+            batch_sparse.closest_nodes_down += batch_sparse.ptr[get_mask(batch_dense)]
+
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
 
         examples_seen = 0
         mean_loss_array = np.zeros(self.labels_count)
-        for _, features_batch in enumerate(batch_tqdm):
+        for _, batch_list in enumerate(batch_tqdm):
             # len(batch) ?
-            loss_array = step_function(features_batch, dataset)
+            self.order_batch_layer_indices(batch_list)
+
+            loss_array = step_function(batch_list, dataset)
 
             old_examples_seen = examples_seen
-            examples_seen += features_batch.num_graphs
+            examples_seen += batch_list[0].num_graphs
 
             mean_loss_array = mean_loss_array * (old_examples_seen / examples_seen) + loss_array * (
-                features_batch.num_graphs / examples_seen
+                batch_list[0].num_graphs / examples_seen
             )
 
             batch_tqdm.set_description(
@@ -281,24 +308,42 @@ class GraphModelDynamic:
         )
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def E(self, features_batch, dataset: base_dataset.BaseDataset, test_using_true_solution=False):
-        scene_indices = list(map(np.int64, features_batch.scene_index_str))
+    def calculate_loss(
+        self,
+        batch_list: List[Data],
+        dataset: base_dataset.BaseDataset,
+        test_using_true_solution=False,
+    ):
+        batch_list_cuda = [batch.to(self.net.device) for batch in batch_list]
+        batch_main = batch_list[0]
+        graph_sizes = get_graph_sizes(batch_main)
 
-        graph_sizes = get_graph_sizes(features_batch)
-
-        batch_cuda = features_batch.to(self.net.device)
-        all_predicted_normalized_a = self.net(batch_cuda).to("cpu")
+        all_predicted_normalized_a = self.net(batch_list_cuda).to("cpu")
         predicted_normalized_a_split = all_predicted_normalized_a.split(graph_sizes)
+
+        # all_predicted_normalized_a_approx = SceneInput.approximate_internal(
+        #     closest_nodes=torch.tensor(batch_main.closest_nodes_base),
+        #     weights_closest=torch.tensor(batch_main.weights_closest_base),
+        #     old_values=all_predicted_normalized_a,
+        # )
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
 
-        for i, scene_index in enumerate(scene_indices):
+        for batch_graph_index, scene_index in enumerate(batch_main.scene_id):
             energy_args = dataset.get_targets_data(scene_index)
-            link = features_batch.link_down[i]
-            init_predicted_normalized_a = predicted_normalized_a_split[i]
-            predicted_normalized_a = SceneInput.approximate_link(
-                link=link, old_values=init_predicted_normalized_a
+
+            init_predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
+
+            link_base = batch_main.link_base[batch_graph_index]
+            predicted_normalized_a = (
+                init_predicted_normalized_a
+                if not isinstance(link_base, MeshLayerLinkData)
+                else SceneInput.approximate_internal(
+                    closest_nodes=torch.tensor(link_base.closest_nodes),
+                    weights_closest=torch.tensor(link_base.weights_closest),
+                    old_values=init_predicted_normalized_a,
+                )
             )
 
             if test_using_true_solution:
@@ -311,10 +356,11 @@ class GraphModelDynamic:
             #    exact_normalized_a = exact_normalized_a_split[i]
             exact_normalized_a = None
 
-            if self.config.td.use_energy_as_loss:
-                loss += predicted_normalized_energy
-            else:
-                loss += thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
+            loss += (
+                predicted_normalized_energy
+                if self.config.td.use_energy_as_loss
+                else thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
+            )
 
             loss_array[0] += predicted_normalized_energy
             if hasattr(energy_args, "exact_normalized_a"):
@@ -327,8 +373,8 @@ class GraphModelDynamic:
                 )
                 loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
 
-        loss /= features_batch.num_graphs
-        loss_array /= features_batch.num_graphs
+        loss /= batch_main.num_graphs
+        loss_array /= batch_main.num_graphs
         return loss, loss_array
 
     def use_true_solution(self, predicted_normalized_a, energy_args):

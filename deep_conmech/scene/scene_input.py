@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List, Optional
 
 import numba
 import numpy as np
@@ -13,7 +14,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
 from deep_conmech.helpers import thh
-from deep_conmech.scene.scene_layers import SceneLayers
+from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
 
 def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyObstacleArguments):
@@ -177,27 +178,44 @@ class SceneInput(SceneLayers):
         # return np.resize(data, (self.nodes_count, data.shape[1]))
         if len(data) == mesh.nodes_count:
             return data
-
         completed_data = np.zeros((mesh.nodes_count, data.shape[1]), dtype=data.dtype)
         completed_data[mesh.boundary_indices] = data
         return completed_data
 
-    def get_features_data(self, layer_number=0, scene_index=None, exact_normalized_a_torch=None):
+    def get_features_data(self, layer_number: int, scene_index: int):
+        # exact_normalized_a_torch=None
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
         # Do not use "face" in any name (reserved in PyG)
-        mesh = self.all_layers[layer_number].mesh
+        # Do not use "index", "batch" in any name (PyG stacks values to create single graph; batch - adds one, index adds nodes count (?))
+
+        mesh_layer_data = self.all_layers[layer_number]
+        mesh = mesh_layer_data.mesh
         directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
-        link_down = self.all_layers[layer_number].link_down
+
+        def get_closest_nodes(link: Optional[MeshLayerLinkData]):
+            return [None] if link is None else torch.tensor(link.closest_nodes)
+
+        def get_closest_weights(link: Optional[MeshLayerLinkData]):
+            return [None] if link is None else torch.tensor(link.weights_closest)
+
         features_data = Data(
-            scene_index_str=str(scene_index),  # str; int is changed by PyG
-            scene_index=thh.to_long(np.repeat(scene_index, mesh.nodes_count)),
-            link_down=[None] if link_down is None else link_down,
+            scene_id=torch.tensor([scene_index]),
+            layer_number=torch.tensor([layer_number]),
+            node_scene_id=thh.to_long(np.repeat(scene_index, mesh.nodes_count)),
             pos=thh.set_precision(thh.to_double(mesh.normalized_initial_nodes)),
             x=thh.set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
+            ###
+            closest_nodes_up=get_closest_nodes(mesh_layer_data.link_up),
+            weights_closest_up=get_closest_weights(mesh_layer_data.link_up),
+            closest_nodes_down=get_closest_nodes(mesh_layer_data.link_down),
+            weights_closest_down=get_closest_weights(mesh_layer_data.link_down),
+            closest_nodes_base=get_closest_nodes(mesh_layer_data.link_base),
+            weights_closest_base=get_closest_weights(mesh_layer_data.link_base),
+            link_base=[None] if mesh_layer_data.link_base is None else mesh_layer_data.link_base,
             # pin_memory=True,
             # num_workers=1
         )
