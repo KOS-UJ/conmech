@@ -1,8 +1,9 @@
 import os
-from typing import Iterable, Tuple
+from typing import Iterable, List, Tuple
 
 import numpy as np
 import torch
+from torch_geometric.data.batch import Data
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
@@ -83,6 +84,25 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
         process_id * assigned_scenarios_count : (process_id + 1) * assigned_scenarios_count
     ]
     return assigned_scenarios
+
+
+def order_batch_layer_indices(layer_list: List[Data]):
+    def get_mask(layer):
+        mask = torch.zeros((len(layer.x), 1), dtype=torch.int64)
+        for j in layer.ptr[1:]:
+            mask[j:] += 1
+        return mask
+
+    layers_number = len(layer_list)
+    base_layer = layer_list[0]
+    for i in range(1, layers_number):
+        dense_layer = layer_list[i - 1]
+        sparse_layer = layer_list[i]
+
+        sparse_layer.closest_nodes_from_down += dense_layer.ptr[get_mask(sparse_layer)]
+        sparse_layer.closest_nodes_to_down += sparse_layer.ptr[get_mask(dense_layer)]
+        sparse_layer.closest_nodes_from_base += base_layer.ptr[get_mask(sparse_layer)]
+        sparse_layer.closest_nodes_to_base += sparse_layer.ptr[get_mask(base_layer)]
 
 
 class BaseDataset:
@@ -279,17 +299,18 @@ class BaseDataset:
             data = [pkh.load_index(index, indices, file) for index in data_tqdm]
         return data
 
-    def get_statistics(self):
+    def get_statistics(self, layer_number):
         dataloader = get_train_dataloader(self)
 
         dimension = self.config.td.dimension
         nodes_data = torch.empty((0, SceneInput.nodes_data_dim(dimension)))
         edges_data = torch.empty((0, SceneInput.edges_data_dim(dimension)))
-        for features_data in cmh.get_tqdm(
+        for layers_list in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            nodes_data = torch.cat((nodes_data, features_data.x))
-            edges_data = torch.cat((edges_data, features_data.edge_attr))
+            layer = layers_list[layer_number]
+            nodes_data = torch.cat((nodes_data, layer.x))
+            edges_data = torch.cat((edges_data, layer.edge_attr))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)

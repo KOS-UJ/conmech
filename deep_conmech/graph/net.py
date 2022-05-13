@@ -204,7 +204,7 @@ class ProcessorLayer(MessagePassing):
         super().__init__()
 
         self.edge_processor = ForwardNet(
-            input_dim=td.latent_dimension * 2,  # 3,
+            input_dim=td.latent_dimension * 3,
             layers_count=td.processor_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,
@@ -239,10 +239,8 @@ class ProcessorLayer(MessagePassing):
         return new_node_latents, new_edge_latents
 
     def message(self, node_latents_i, node_latents_j, edge_latents, index):
-        edge_inputs = torch.hstack((node_latents_i, node_latents_j))  # , edge_latents))
-        self.new_edge_latents = self.edge_processor(
-            edge_inputs
-        )  ##### edge_latents + self.edge_processor(edge_inputs)
+        edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
+        self.new_edge_latents = edge_latents + self.edge_processor(edge_inputs)
 
         alpha = self.attention(edge_latents, index)
         weighted_edge_latents = alpha * self.new_edge_latents
@@ -323,16 +321,16 @@ class CustomGraphNet(nn.Module):
 
     def move_up_to(self, node_latents, layer):
         return SceneLayers.approximate_internal(
-            old_values=node_latents,
-            closest_nodes=layer.closest_nodes_up,
-            weights_closest=layer.weights_closest_up,
+            from_values=node_latents,
+            closest_nodes=layer.closest_nodes_from_down,
+            closest_weights=layer.closest_weights_from_down,
         )
 
     def move_down_from(self, node_latents, layer):
         return SceneLayers.approximate_internal(
-            old_values=node_latents,
-            closest_nodes=layer.closest_nodes_down,
-            weights_closest=layer.weights_closest_down,
+            from_values=node_latents,
+            closest_nodes=layer.closest_nodes_to_down,
+            closest_weights=layer.closest_weights_to_down,
         )
 
     def forward(self, layer_list: List[Data], main_layer_number: int):
@@ -341,8 +339,7 @@ class CustomGraphNet(nn.Module):
         node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
 
         for layer_number, layer in enumerate(layer_list[main_layer_number:-1]):
-            # edge_latents = self.edge_encoder(layer.edge_attr)
-            edge_latents = None
+            edge_latents = self.edge_encoder(layer.edge_attr)
 
             for processor_layer in self.processor_layers:
                 node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)
@@ -351,8 +348,7 @@ class CustomGraphNet(nn.Module):
             node_latents = self.move_up_to(node_latents=node_latents, layer=next_layer)
 
         for layer_number, layer in enumerate(layer_list[main_layer_number + 1 :][::-1]):
-            # edge_latents = self.edge_encoder(layer.edge_attr)
-            edge_latents = None
+            edge_latents = self.edge_encoder(layer.edge_attr)
 
             for processor_layer in self.processor_layers:
                 node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)

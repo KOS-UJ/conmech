@@ -14,7 +14,7 @@ from deep_conmech.training_config import TrainingConfig
 
 def train(config: TrainingConfig):
     train_dataset = get_train_dataset(config.td.dataset, config=config)
-    statistics = train_dataset.get_statistics() if config.td.use_dataset_statistics else None
+    statistics = train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     net = get_net(statistics, config)
 
     all_val_datasets = get_all_val_datasets(config=config)
@@ -32,7 +32,7 @@ def train(config: TrainingConfig):
 def plot(config: TrainingConfig):
     if config.td.use_dataset_statistics:
         train_dataset = get_train_dataset(config.td.dataset, config=config)
-        statistics = train_dataset.get_statistics()
+        statistics = train_dataset.get_statistics(layer_number=0)
     else:
         statistics = None
 

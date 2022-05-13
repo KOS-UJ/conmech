@@ -27,9 +27,10 @@ class MeshLayerLinkData:
 @dataclass
 class MeshLayerData:
     mesh: Mesh
-    link_down: Optional[MeshLayerLinkData]
-    link_up: Optional[MeshLayerLinkData]
-    link_base: Optional[MeshLayerLinkData]
+    link_to_down: Optional[MeshLayerLinkData]
+    link_from_down: Optional[MeshLayerLinkData]
+    link_to_base: Optional[MeshLayerLinkData]
+    link_from_base: Optional[MeshLayerLinkData]
 
 
 @numba.njit
@@ -83,7 +84,11 @@ class SceneLayers(SceneRandomized):
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
 
         base_mesh_layer_data = MeshLayerData(
-            mesh=self, link_down=None, link_up=None, link_base=None
+            mesh=self,
+            link_to_down=None,
+            link_from_down=None,
+            link_to_base=None,
+            link_from_base=None,
         )
         self.all_layers.append(base_mesh_layer_data)
 
@@ -99,12 +104,12 @@ class SceneLayers(SceneRandomized):
                 is_contact=is_contact,
                 create_in_subprocess=self.create_in_subprocess,
             )
-            link_up = self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh)
-            link_down = self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh)
-            link_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self)
-
             mesh_layer_data = MeshLayerData(
-                mesh=sparse_mesh, link_down=link_down, link_up=link_up, link_base=link_base
+                mesh=sparse_mesh,
+                link_to_down=self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh),
+                link_from_down=self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh),
+                link_to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self),
+                link_from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh),
             )
             self.all_layers.append(mesh_layer_data)
             dense_mesh = sparse_mesh
@@ -129,30 +134,30 @@ class SceneLayers(SceneRandomized):
         )
 
     @staticmethod
-    def approximate_internal(old_values, closest_nodes, weights_closest):
-        return (old_values[closest_nodes] * weights_closest.reshape(*weights_closest.shape, 1)).sum(
-            axis=1
-        )
+    def approximate_internal(from_values, closest_nodes, closest_weights):
+        return (
+            from_values[closest_nodes] * closest_weights.reshape(*closest_weights.shape, 1)
+        ).sum(axis=1)
 
-    def approximate_boundary_or_all(self, layer_number: int, old_values: np.ndarray):
+    def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if layer_number == 0:
-            return old_values
+            return base_values
 
         mesh_layer_data = self.all_layers[layer_number]
-        link = mesh_layer_data.link_up
+        link = mesh_layer_data.link_from_base
         if link is None:
             raise ArgumentError
 
-        if len(old_values) == self.nodes_count:
+        if len(base_values) == self.nodes_count:
             closest_nodes = link.closest_nodes
             weights_closest = link.weights_closest
 
-        elif len(old_values) == self.boundary_nodes_count:
+        elif len(base_values) == self.boundary_nodes_count:
             closest_nodes = link.closest_boundary_nodes
             weights_closest = link.weights_closest_boundary
         else:
             raise ArgumentError
 
         return SceneLayers.approximate_internal(
-            old_values=old_values, closest_nodes=closest_nodes, weights_closest=weights_closest
+            from_values=base_values, closest_nodes=closest_nodes, closest_weights=weights_closest
         )

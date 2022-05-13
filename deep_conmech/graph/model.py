@@ -6,10 +6,9 @@ import numpy as np
 import torch
 from torch_geometric.data.batch import Data
 
-from conmech.helpers import cmh, nph
+from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.net import CustomGraphNet
@@ -209,23 +208,6 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
-    def order_batch_layer_indices(self, layer_list: List[Data]):
-        def get_mask(batch):
-            mask = torch.zeros((len(batch.x), 1), dtype=torch.int64)
-            for j in batch.ptr[1:]:
-                mask[j:] += 1
-            return mask
-
-        layers_number = len(layer_list)
-        batch_base = layer_list[0]
-        for i in range(1, layers_number):
-            batch_dense = layer_list[i - 1]
-            batch_sparse = layer_list[i]
-
-            batch_sparse.closest_nodes_up += batch_dense.ptr[get_mask(batch_sparse)]
-            batch_sparse.closest_nodes_down += batch_sparse.ptr[get_mask(batch_dense)]
-            batch_sparse.closest_nodes_base += batch_sparse.ptr[get_mask(batch_base)]
-
     def iterate_dataset(self, dataset, dataloader_function, step_function, description):
         dataloader = dataloader_function(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
@@ -234,7 +216,7 @@ class GraphModelDynamic:
         mean_loss_array = np.zeros(self.labels_count)
         for _, layer_list in enumerate(batch_tqdm):
             # len(batch) ?
-            self.order_batch_layer_indices(layer_list)
+            base_dataset.order_batch_layer_indices(layer_list)
 
             loss_array = step_function(layer_list, dataset)
 
@@ -310,36 +292,21 @@ class GraphModelDynamic:
         )
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def check_layer_data(self, layer_list):
-        if len(layer_list) == 1:
-            return
-
-        for layer in range(1, len(layer_list)):
-            diff = layer_list[layer].pos.double() - SceneLayers.approximate_internal(
-                old_values=layer_list[layer - 1].pos,
-                closest_nodes=layer_list[layer].closest_nodes_up,
-                weights_closest=layer_list[layer].weights_closest_up,
-            )
-            diff_norm = torch.linalg.norm(diff, dim=1)
-            base_norm = torch.linalg.norm(layer_list[layer].pos.double(), dim=1)
-            assert torch.sum(diff_norm) / torch.sum(base_norm) < 0.1 * layer
-
     def calculate_loss(
-        self, batch_layer_list: List[Data], layer_number: int, dataset: base_dataset.BaseDataset
+        self, layer_list: List[Data], layer_number: int, dataset: base_dataset.BaseDataset
     ):
-        self.check_layer_data(batch_layer_list)
-        batch_layer_list_cuda = [batch.to(self.net.device) for batch in batch_layer_list]
-        batch_main_layer = batch_layer_list[layer_number]
-        graph_sizes_base = get_graph_sizes(batch_layer_list[0])
+        layer_list_cuda = [layer.to(self.net.device) for layer in layer_list]
+        batch_main_layer = layer_list[layer_number]
+        graph_sizes_base = get_graph_sizes(layer_list[0])
 
-        all_predicted_normalized_a_init = self.net(batch_layer_list_cuda, layer_number)
+        all_predicted_normalized_a_init = self.net(layer_list_cuda, layer_number)
         all_predicted_normalized_a = (
             all_predicted_normalized_a_init
             if not hasattr(batch_main_layer, "closest_nodes_base")
             else SceneInput.approximate_internal(
                 closest_nodes=batch_main_layer.closest_nodes_base,
-                weights_closest=batch_main_layer.weights_closest_base,
-                old_values=all_predicted_normalized_a_init,
+                closest_weights=batch_main_layer.weights_closest_base,
+                from_values=all_predicted_normalized_a_init,
             )
         )
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)

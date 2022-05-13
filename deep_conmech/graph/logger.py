@@ -22,11 +22,16 @@ class Logger:
     def save_parameters_and_statistics(self):
         print("Saving parameters...")
         self.save_parameters()
-        if self.config.log_dataset_stats:
-            statistics = self.dataset.get_statistics()
-            print("Saving statistics...")
-            self.save_hist_and_json(statistics.nodes_statistics, "nodes_statistics")
-            self.save_hist_and_json(statistics.edges_statistics, "edges_statistics")
+        for layer_number in range(self.config.td.train_layers_count):
+            if self.config.log_dataset_stats:
+                print(f"Saving statistics (layer {layer_number})...")
+                statistics = self.dataset.get_statistics(layer_number=layer_number)
+                self.save_hist_and_json(
+                    statistics.nodes_statistics, f"nodes_statistics_layer{layer_number}"
+                )
+                self.save_hist_and_json(
+                    statistics.edges_statistics, f"edges_statistics_layer{layer_number}"
+                )
 
     def save_parameters(self):
         def pretty_json(value):

@@ -3,7 +3,6 @@ from deep_conmech import run_model
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
 
-# Caution: may take some time to complete
 def test_smoke_train_and_plot():
     output_catalog = "output/TEST_TMP"
     databases_main_path = f"{output_catalog}/DATA"

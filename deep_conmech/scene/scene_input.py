@@ -99,17 +99,33 @@ class SceneInput(SceneLayers):
 
         return desc
 
+    def prepare_data(self, data: np.ndarray, layer_number: int, add_norm=True):
+        new_data = self.approximate_boundary_or_all_from_base(
+            layer_number=layer_number, base_values=data
+        )
+        mesh = self.all_layers[layer_number].mesh
+        result = self.complete_boundary_data_with_zeros_layer(mesh=mesh, data=new_data)
+        if add_norm:
+            result = nph.append_euclidean_norm(result)
+        return result
+
     @staticmethod
     def edges_data_dim(dimension):
         return len(SceneInput.get_edges_data_description(dimension))
 
-    def get_edges_data_torch(self, directional_edges):
+    def get_edges_data_torch(self, directional_edges, layer_number: int):
         edges_data = get_edges_data_numba(
             directional_edges,
-            self.input_initial_nodes,
-            self.input_displacement_old,
-            self.input_velocity_old,
-            self.input_forces,
+            self.prepare_data(
+                data=self.input_initial_nodes, layer_number=layer_number, add_norm=False
+            ),
+            self.prepare_data(
+                data=self.input_displacement_old, layer_number=layer_number, add_norm=False
+            ),
+            self.prepare_data(
+                data=self.input_velocity_old, layer_number=layer_number, add_norm=False
+            ),
+            self.prepare_data(data=self.input_forces, layer_number=layer_number, add_norm=False),
         )
         return thh.to_double(edges_data)
 
@@ -136,27 +152,19 @@ class SceneInput(SceneLayers):
     def nodes_data_dim(dimension: int):
         return len(SceneInput.get_nodes_data_description(dimension))
 
-    def prepare_nodes(self, layer_number, data, add_norm=True):
-        new_data = self.approximate_boundary_or_all(layer_number=layer_number, old_values=data)
-        mesh = self.all_layers[layer_number].mesh
-        result = self.complete_boundary_data_with_zeros_layer(mesh=mesh, data=new_data)
-        if add_norm:
-            result = nph.append_euclidean_norm(result)
-        return result
-
     def get_nodes_data(self, layer_number):
-        boundary_penetration = self.prepare_nodes(
-            layer_number=layer_number, data=self.get_normalized_boundary_penetration()
+        boundary_penetration = self.prepare_data(
+            data=self.get_normalized_boundary_penetration(), layer_number=layer_number
         )
-        boundary_normals = self.prepare_nodes(
-            layer_number=layer_number, data=self.get_normalized_boundary_normals()
+        boundary_normals = self.prepare_data(
+            data=self.get_normalized_boundary_normals(), layer_number=layer_number
         )
-        boundary_v_tangential = self.prepare_nodes(
-            layer_number=layer_number, data=self.get_normalized_boundary_v_tangential()
+        boundary_v_tangential = self.prepare_data(
+            data=self.get_normalized_boundary_v_tangential(), layer_number=layer_number
         )
-        input_forces = self.prepare_nodes(layer_number=layer_number, data=self.input_forces)
-        boundary_volume = self.prepare_nodes(
-            layer_number=layer_number, data=self.get_surface_per_boundary_node(), add_norm=False
+        input_forces = self.prepare_data(layer_number=layer_number, data=self.input_forces)
+        boundary_volume = self.prepare_data(
+            data=self.get_surface_per_boundary_node(), layer_number=layer_number, add_norm=False
         )
 
         nodes_data = np.hstack(
@@ -207,15 +215,20 @@ class SceneInput(SceneLayers):
             pos=thh.set_precision(thh.to_double(mesh.normalized_initial_nodes)),
             x=thh.set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(directional_edges),
-            edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges)),
+            edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges, layer_number)),
             ###
-            closest_nodes_up=get_closest_nodes(mesh_layer_data.link_up),
-            weights_closest_up=get_closest_weights(mesh_layer_data.link_up),
-            closest_nodes_down=get_closest_nodes(mesh_layer_data.link_down),
-            weights_closest_down=get_closest_weights(mesh_layer_data.link_down),
-            closest_nodes_base=get_closest_nodes(mesh_layer_data.link_base),
-            weights_closest_base=get_closest_weights(mesh_layer_data.link_base),
-            # link_base pin_memory=True,
+            closest_nodes_from_down=get_closest_nodes(mesh_layer_data.link_from_down),
+            closest_weights_from_down=get_closest_weights(mesh_layer_data.link_from_down),
+            #
+            closest_nodes_from_base=get_closest_nodes(mesh_layer_data.link_from_base),
+            closest_weights_from_base=get_closest_weights(mesh_layer_data.link_from_base),
+            #
+            closest_nodes_to_down=get_closest_nodes(mesh_layer_data.link_to_down),
+            closest_weights_to_down=get_closest_weights(mesh_layer_data.link_to_down),
+            #
+            closest_nodes_to_base=get_closest_nodes(mesh_layer_data.link_to_base),
+            closest_weights_to_base=get_closest_weights(mesh_layer_data.link_to_base),
+            # pin_memory=True,
             # num_workers=1
         )
         return features_data
