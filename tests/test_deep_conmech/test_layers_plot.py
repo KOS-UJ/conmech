@@ -1,14 +1,11 @@
-from email.mime import base
+from ctypes import ArgumentError
 
 import numpy as np
-import torch
 
 from conmech.helpers import cmh
 from conmech.plotting import plotter_2d, plotter_common
 from deep_conmech.data import base_dataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from deep_conmech.helpers import thh
-from deep_conmech.scene import scene_layers
 from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
@@ -41,8 +38,99 @@ def save_plot(description):
     plotter_common.plt_save(f"./output/LAYERS {description}.png", "png")
 
 
+def plot_comparison(from_layer, to_layer, approximated_nodes, description):
+    def get_ptr(nodes):
+        if len(nodes) == from_layer.ptr[-1]:
+            return from_layer.ptr
+        if len(nodes) == to_layer.ptr[-1]:
+            return to_layer.ptr
+        raise ArgumentError
+
+    axs = get_axs()
+    draw_nodes(from_layer.pos.numpy(), get_ptr(from_layer.pos), axs=axs, shift=0)
+    draw_nodes(approximated_nodes, get_ptr(approximated_nodes), axs=axs, shift=1.5)
+    draw_nodes(to_layer.pos.numpy(), get_ptr(to_layer.pos), axs=axs, shift=3.0)
+    save_plot(description)
+
+
 def plot_graph_layers():
     output_catalog = "output/TEST_TMP"
+    cmh.clear_folder(output_catalog)
+    dataset = get_dataset(output_catalog)
+
+    dataloader = base_dataset.get_train_dataloader(dataset)
+    for batch_number, layer_list in enumerate(dataloader):
+        base_dataset.order_batch_layer_indices(layer_list)
+        base_layer = layer_list[0]
+        for layer_number in range(1, len(layer_list)):
+            up_layer = layer_list[layer_number]
+            down_layer = layer_list[layer_number - 1]
+            desc = f"batch_number={batch_number} layer_number={layer_number}"
+
+            approximated_nodes = SceneLayers.approximate_internal(
+                from_values=up_layer.pos,
+                closest_nodes=up_layer.closest_nodes_to_down,
+                closest_weights=up_layer.closest_weights_to_down,
+            )
+
+            plot_comparison(
+                from_layer=up_layer,
+                to_layer=down_layer,
+                approximated_nodes=approximated_nodes,
+                description=f"{desc} to_down",
+            )
+
+            #####
+
+            approximated_nodes = SceneLayers.approximate_internal(
+                from_values=down_layer.pos,
+                closest_nodes=up_layer.closest_nodes_from_down,
+                closest_weights=up_layer.closest_weights_from_down,
+            )
+
+            plot_comparison(
+                from_layer=down_layer,
+                to_layer=up_layer,
+                approximated_nodes=approximated_nodes,
+                description=f"{desc} from_down",
+            )
+
+            ##########
+
+            approximated_nodes = SceneLayers.approximate_internal(
+                from_values=up_layer.pos,
+                closest_nodes=up_layer.closest_nodes_to_base,
+                closest_weights=up_layer.closest_weights_to_base,
+            )
+
+            plot_comparison(
+                from_layer=up_layer,
+                to_layer=base_layer,
+                approximated_nodes=approximated_nodes,
+                description=f"{desc} to_base",
+            )
+
+            #####
+
+            approximated_nodes = SceneLayers.approximate_internal(
+                from_values=base_layer.pos,
+                closest_nodes=up_layer.closest_nodes_from_base,
+                closest_weights=up_layer.closest_weights_from_base,
+            )
+
+            plot_comparison(
+                from_layer=base_layer,
+                to_layer=up_layer,
+                approximated_nodes=approximated_nodes,
+                description=f"{desc} from_base",
+            )
+
+            a = 0
+
+    cmh.clear_folder(output_catalog)
+
+
+def get_dataset(output_catalog):
     databases_main_path = f"{output_catalog}/DATA"
     log_catalog = f"{output_catalog}/LOG"
 
@@ -50,11 +138,12 @@ def plot_graph_layers():
         dataset="synthetic",
         mesh_density=8,
         adaptive_training_mesh=False,
-        batch_size=1,
-        synthetic_batches_in_epoch=1,
+        batch_size=3,
+        synthetic_batches_in_epoch=2,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
+        mesh_layers_count=3,
     )
     config = TrainingConfig(
         td=td,
@@ -66,8 +155,6 @@ def plot_graph_layers():
         output_catalog=output_catalog,
         log_catalog=log_catalog,
     )
-
-    cmh.clear_folder(output_catalog)
     dataset = SyntheticDataset(
         description="train",
         layers_count=config.td.mesh_layers_count,
@@ -78,54 +165,7 @@ def plot_graph_layers():
         config=config,
     )
 
-    dataloader = base_dataset.get_train_dataloader(dataset)
-    for batch_number, layer_list in enumerate(dataloader):
-        base_dataset.order_batch_layer_indices(layer_list)
-        up_layer = layer_list[1]
-        down_layer = layer_list[0]
-        _ = """
-        ptr = up_layer.ptr
-        nodes_1 = up_layer.pos.numpy()
-        nodes_2 = SceneLayers.approximate_internal(
-            from_values=down_layer.pos,
-            closest_nodes=up_layer.closest_nodes_from_down,
-            closest_weights=up_layer.closest_weights_from_down,
-        ).numpy()
-        axs = get_axs()
-        draw_nodes(nodes_1, ptr, axs=axs, shift=0)
-        draw_nodes(nodes_2, ptr, axs=axs, shift=1.5)
-        save_plot(f"batch_number={batch_number} up_layer")
-        """
-
-        ptr = down_layer.ptr
-        nodes_1 = down_layer.pos.double()
-        base_nodes = up_layer.pos.numpy()[:4]
-        closest_nodes, closest_weights = scene_layers.get_interlayer_data(
-            old_nodes=base_nodes, new_nodes=down_layer.pos.numpy(), closest_count=3
-        )
-        nodes_2 = SceneLayers.approximate_internal(
-            from_values=base_nodes,
-            closest_nodes=closest_nodes,
-            closest_weights=closest_weights,
-        )
-        nodes_3 = base_nodes
-        _ = """
-        nodes_2 = SceneLayers.approximate_internal(
-            from_values=up_layer.pos,
-            closest_nodes=up_layer.closest_nodes_to_down,
-            closest_weights=up_layer.closest_weights_to_down,
-        )
-        """
-        axs = get_axs()
-        draw_nodes(nodes_1, ptr, axs=axs, shift=0)
-        draw_nodes(nodes_2, ptr, axs=axs, shift=1.5)
-        draw_nodes(nodes_3, ptr, axs=axs, shift=3.0)
-
-        save_plot(f"batch_number={batch_number} down_layer")
-
-        a = 0
-
-    cmh.clear_folder(output_catalog)
+    return dataset
 
 
 plot_graph_layers()

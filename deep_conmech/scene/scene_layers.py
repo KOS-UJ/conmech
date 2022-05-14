@@ -42,6 +42,7 @@ def get_interlayer_data(old_nodes, new_nodes, closest_count):
         closest_node_list = distances.argsort()[:closest_count]
         base_nodes = old_nodes[closest_node_list]
         closest_weight_list = new_node @ np.linalg.pinv(base_nodes)  # Moore-Penrose pseudo-inverse
+        # (np.linalg.pinv(base_nodes).T @ new_node.reshape(-1, 1)).reshape(-1)
 
         closest_nodes[new_index, :] = closest_node_list
         closest_weights[new_index, :] = closest_weight_list
