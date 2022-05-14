@@ -140,7 +140,7 @@ class GraphModelDynamic:
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
             normalize_by_rotation=config.normalize_by_rotation,
-            layers_count=1,
+            layers_count=config.td.mesh_layers_count,
             create_in_subprocess=create_in_subprocess,
         )
         if randomize:

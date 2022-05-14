@@ -22,7 +22,7 @@ class Logger:
     def save_parameters_and_statistics(self):
         print("Saving parameters...")
         self.save_parameters()
-        for layer_number in range(self.config.td.train_layers_count):
+        for layer_number in range(self.config.td.mesh_layers_count):
             if self.config.log_dataset_stats:
                 print(f"Saving statistics (layer {layer_number})...")
                 statistics = self.dataset.get_statistics(layer_number=layer_number)

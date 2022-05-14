@@ -39,7 +39,7 @@ class TrainingData:
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 10  # 1  # 10
-    validate_scenarios_at_epochs: int = 30  # 3  # 30
+    validate_scenarios_at_epochs: int = 10  # 30  # 3  # 30
 
     use_energy_as_loss: bool = True
     batch_size: int = 128
@@ -66,8 +66,8 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    train_layers_count: int = 3
-    message_passes: int = 3  # 12
+    mesh_layers_count: int = 2
+    message_passes: int = 4  # 12
 
 
 @dataclass
@@ -88,7 +88,7 @@ class TrainingConfig(Config):
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False
-    log_dataset_stats: bool = True
+    log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

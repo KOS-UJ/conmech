@@ -12,7 +12,7 @@ def device(training_config: TrainingConfig):
 
 
 def get_device_id():
-    return "cpu"  # "cuda" if torch.cuda.is_available() else "cpu"
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def set_precision(data):

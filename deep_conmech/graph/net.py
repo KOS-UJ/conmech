@@ -290,7 +290,10 @@ class CustomGraphNet(nn.Module):
         self.attention = Attention(td=td)
 
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer(attention=self.attention, td=td) for _ in range(td.message_passes)]
+            [
+                ProcessorLayer(attention=self.attention, td=td)
+                for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
+            ]
         )
 
         self.decoder = ForwardNet(
@@ -319,14 +322,14 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def move_up_to(self, node_latents, layer):
+    def move_from_down(self, node_latents, layer):
         return SceneLayers.approximate_internal(
             from_values=node_latents,
             closest_nodes=layer.closest_nodes_from_down,
             closest_weights=layer.closest_weights_from_down,
         )
 
-    def move_down_from(self, node_latents, layer):
+    def move_to_down(self, node_latents, layer):
         return SceneLayers.approximate_internal(
             from_values=node_latents,
             closest_nodes=layer.closest_nodes_to_down,
@@ -334,26 +337,61 @@ class CustomGraphNet(nn.Module):
         )
 
     def forward(self, layer_list: List[Data], main_layer_number: int):
+        layer_count = len(layer_list)
         main_layer = layer_list[main_layer_number]
+        processor_number = 0
 
+        edge_latents = self.edge_encoder(main_layer.edge_attr)
         node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
 
-        for layer_number, layer in enumerate(layer_list[main_layer_number:-1]):
+        _ = """
+        for _ in range(len(self.processor_layers) // 2):  # range(self.td.message_passes):
+            node_latents, edge_latents = self.processor_layers[processor_number](
+                main_layer, node_latents, edge_latents
+            )
+            processor_number += 1
+
+        node_latents_up = self.move_from_down(node_latents=node_latents, layer=layer_list[1])
+        node_latents_new = self.move_to_down(node_latents=node_latents_up, layer=layer_list[1])
+
+        node_latents = node_latents_new
+        for _ in range(len(self.processor_layers) // 2):  # range(self.td.message_passes):
+            node_latents, edge_latents = self.processor_layers[processor_number](
+                main_layer, node_latents, edge_latents
+            )
+            processor_number += 1
+        """
+
+        for _ in range(self.td.message_passes):
+            node_latents, edge_latents = self.processor_layers[processor_number](
+                main_layer, node_latents, edge_latents
+            )
+            processor_number += 1
+
+        for layer_number in range(1, layer_count):
+            layer = layer_list[layer_number]
+
+            node_latents = self.move_from_down(node_latents=node_latents, layer=layer)
             edge_latents = self.edge_encoder(layer.edge_attr)
 
-            for processor_layer in self.processor_layers:
-                node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)
+            for _ in range(self.td.message_passes):
+                node_latents, edge_latents = self.processor_layers[processor_number](
+                    layer, node_latents, edge_latents
+                )
+                processor_number += 1
 
-            next_layer = layer_list[layer_number + 1]
-            node_latents = self.move_up_to(node_latents=node_latents, layer=next_layer)
+        for layer_number in range(layer_count - 2, -1, -1):
+            layer = layer_list[layer_number]
+            layer_up = layer_list[layer_number + 1]
 
-        for layer_number, layer in enumerate(layer_list[main_layer_number + 1 :][::-1]):
+            node_latents = self.move_to_down(node_latents=node_latents, layer=layer_up)
             edge_latents = self.edge_encoder(layer.edge_attr)
 
-            for processor_layer in self.processor_layers:
-                node_latents, edge_latents = processor_layer(layer, node_latents, edge_latents)
-
-            node_latents = self.move_down_from(node_latents=node_latents, layer=layer)
+            for _ in range(self.td.message_passes):
+                node_latents, edge_latents = self.processor_layers[processor_number](
+                    layer, node_latents, edge_latents
+                )
+                processor_number += 1
 
         net_output = self.decoder(node_latents)
         return net_output
@@ -367,9 +405,13 @@ class CustomGraphNet(nn.Module):
 
     def solve_all(self, scene: SceneInput):
         self.eval()
-
-        batch_base = scene.get_features_data(scene_index=0, layer_number=0).to(self.device)
-        normalized_a_cuda = self(layer_list=[batch_base], main_layer_number=0)
+        ################################################## layer_count=2
+        layers_count = len(scene.all_layers)
+        layers_list = [
+            scene.get_features_data(scene_index=0, layer_number=layer_number).to(self.device)
+            for layer_number in range(layers_count)
+        ]
+        normalized_a_cuda = self(layer_list=layers_list, main_layer_number=0)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = scene.denormalize_rotate(normalized_a)

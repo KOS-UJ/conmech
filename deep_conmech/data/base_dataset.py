@@ -101,6 +101,7 @@ def order_batch_layer_indices(layer_list: List[Data]):
 
         sparse_layer.closest_nodes_from_down += dense_layer.ptr[get_mask(sparse_layer)]
         sparse_layer.closest_nodes_to_down += sparse_layer.ptr[get_mask(dense_layer)]
+
         sparse_layer.closest_nodes_from_base += base_layer.ptr[get_mask(sparse_layer)]
         sparse_layer.closest_nodes_to_base += sparse_layer.ptr[get_mask(base_layer)]
 
@@ -265,7 +266,7 @@ class BaseDataset:
 
                 pkh.append_data(scene.get_target_data(), targets_file, targets_indices_file)
 
-                features_data_list = [
+                features_layers_list = [
                     scene.get_features_data(
                         scene_index=scene_index,
                         layer_number=layer_number,
@@ -273,7 +274,7 @@ class BaseDataset:
                     for layer_number in range(self.layers_count)
                 ]
 
-                pkh.append_data(features_data_list, features_file, features_indices_file)
+                pkh.append_data(features_layers_list, features_file, features_indices_file)
 
         self.load_indices()
         assert self.check_indices()
@@ -374,7 +375,7 @@ class BaseDataset:
         return None, None
 
     def __getitem__(self, index):
-        return self.get_features_data(index)
+        return self.get_features_data(index)[: self.layers_count]
 
     def __len__(self):
         return self.data_count

@@ -80,7 +80,7 @@ def test_graph_layers():
     cmh.clear_folder(output_catalog)
     dataset = SyntheticDataset(
         description="train",
-        layers_count=config.td.train_layers_count,
+        layers_count=config.td.mesh_layers_count,
         load_features_to_ram=config.load_train_features_to_ram,
         load_targets_to_ram=config.load_train_targets_to_ram,
         with_scenes_file=config.with_train_scenes_file,
@@ -92,5 +92,8 @@ def test_graph_layers():
     for _, layer_list in enumerate(dataloader):
         base_dataset.order_batch_layer_indices(layer_list)
         check_layer_data(layer_list)
+
+
+        
 
     cmh.clear_folder(output_catalog)

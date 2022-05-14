@@ -35,21 +35,18 @@ class MeshLayerData:
 
 @numba.njit
 def get_interlayer_data(old_nodes, new_nodes, closest_count):
-    weighted_closest_distances = np.zeros((len(new_nodes), closest_count))
+    closest_weights = np.zeros((len(new_nodes), closest_count))
     closest_nodes = np.zeros((len(new_nodes), closest_count), dtype=np.int64)
     for new_index, new_node in enumerate(new_nodes):
         distances = nph.euclidean_norm_numba(new_node - old_nodes)
-        closest_node = distances.argsort()[:closest_count]
-        closest_nodes[new_index, :] = closest_node
-        closest_distances = distances[closest_node]
-        weighted_closest_distances[new_index, :] = closest_distances / np.sum(closest_distances)
+        closest_node_list = distances.argsort()[:closest_count]
+        base_nodes = old_nodes[closest_node_list]
+        closest_weight_list = new_node @ np.linalg.pinv(base_nodes)  # Moore-Penrose pseudo-inverse
 
-        # mean_value = np.sum(old_values[closest_nodes] * weighted_closest_distances, axis=0)
-        # new_values[new_index, :] = mean_value
-        # new_values[new_index, :] = np.average(
-        ##    old_values[closest_nodes], axis=0, weights=distances[closest_nodes]
-        # )
-    return closest_nodes, weighted_closest_distances
+        closest_nodes[new_index, :] = closest_node_list
+        closest_weights[new_index, :] = closest_weight_list
+
+    return closest_nodes, closest_weights
 
 
 class SceneLayers(SceneRandomized):
