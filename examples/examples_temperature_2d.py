@@ -41,10 +41,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
         TemperatureScenario(
             name=f"C_{i}",
             mesh_prop=MeshProperties(
-                dimension=2,
-                mesh_type=M_RECTANGLE,
-                scale=[1],
-                mesh_density=[mesh_density]
+                dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
             schedule=Schedule(final_time=final_time),
@@ -96,10 +93,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
         TemperatureScenario(
             name=f"K_{i}",
             mesh_prop=MeshProperties(
-                dimension=2,
-                mesh_type=M_RECTANGLE,
-                scale=[1],
-                mesh_density=[mesh_density]
+                dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
             schedule=Schedule(final_time=final_time),
@@ -115,10 +109,7 @@ def get_polygon_scenarios(mesh_density, final_time):
     polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
         name=f"polygon_{i}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[1],
-            mesh_density=[mesh_density]
+            dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[mesh_density]
         ),
         body_prop=default_temp_body_prop,
         schedule=Schedule(final_time=final_time),

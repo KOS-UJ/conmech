@@ -161,12 +161,7 @@ def main():
 
     scenario = Scenario(
         name="polygon_rotate",
-        mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[1],
-            mesh_density=[32]
-        ),
+        mesh_prop=MeshProperties(dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[32]),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=8.0),
         forces_function=f_rotate,

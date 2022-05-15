@@ -1,4 +1,3 @@
-import numba
 import numpy as np
 
 from conmech.properties.mesh_properties import MeshProperties

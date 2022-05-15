@@ -118,7 +118,6 @@ class SceneRandomized(Scene):
             self.regenerate_randomization()
         super().iterate_self(acceleration)
 
-
     @property
     def input_velocity_old(self):  # normalized_randomized_velocity_old
         return self.normalized_velocity_old + self.normalized_velocity_randomization
