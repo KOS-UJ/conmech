@@ -83,11 +83,11 @@ def plot_frame(
     # draw_angles(scene, axes)
 
     if draw_detailed:
+        position = np.array([-3.7, 4.2]) * scale
+        draw_all_sparse(scene, position, axes=axes)
+
         position = np.array([-6.2, -4.2]) * scale
         shift = 2.5 * scale
-
-        position[0] += shift
-        draw_sparse(scene, position, axes=axes)
         position[0] += shift
         draw_initial(scene, position, axes=axes)
         position[0] += shift
@@ -352,7 +352,7 @@ def draw_initial_body(annotation, scene: Scene, position, axes):
     add_annotation(annotation, scene, position, axes)
 
 
-def draw_sparse(scene: SceneLayers, position, axes):
+def draw_all_sparse(scene: SceneLayers, position, axes):
     for i, layer in enumerate(scene.all_layers):
         mesh = layer.mesh
         new_inner_forces = scene.approximate_boundary_or_all_from_base(

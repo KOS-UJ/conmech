@@ -166,6 +166,3 @@ def get_dataset(output_catalog):
     )
 
     return dataset
-
-
-plot_graph_layers()

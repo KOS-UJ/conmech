@@ -52,7 +52,7 @@ def check_layer_data(layer_list):
 
 
 def test_graph_layers():
-    output_catalog = "output/TEST_TMP"
+    output_catalog = "output/TEST_LAYERS"
     databases_main_path = f"{output_catalog}/DATA"
     log_catalog = f"{output_catalog}/LOG"
 

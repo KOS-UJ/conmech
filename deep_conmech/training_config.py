@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 96  # 256  # 96
+    synthetic_batches_in_epoch: int = 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -66,7 +66,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 2
+    mesh_layers_count: int = 3
     message_passes: int = 4  # 12
 
 
@@ -84,7 +84,7 @@ class TrainingConfig(Config):
         (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
     )
 
-    dataset_images_count: float = 1  # 100
+    dataset_images_count: float = 100
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False
