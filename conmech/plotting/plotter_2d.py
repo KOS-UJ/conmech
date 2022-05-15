@@ -10,7 +10,6 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.scene.scene_layers import SceneLayers
 
 
 def get_fig():
@@ -352,7 +351,7 @@ def draw_initial_body(annotation, scene: Scene, position, axes):
     add_annotation(annotation, scene, position, axes)
 
 
-def draw_all_sparse(scene: SceneLayers, position, axes):
+def draw_all_sparse(scene: Scene, position, axes):
     for i, layer in enumerate(scene.all_layers):
         mesh = layer.mesh
         new_inner_forces = scene.approximate_boundary_or_all_from_base(

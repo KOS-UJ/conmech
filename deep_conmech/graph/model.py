@@ -179,25 +179,23 @@ class GraphModelDynamic:
         self.net.train()
         self.net.zero_grad()
 
-        loss_array = np.zeros(self.labels_count)
-        for layer in [0]:  #####range(len(layer_list)):
-            loss, loss_array_step = self.calculate_loss(layer_list, layer, dataset)
-            loss_array += loss_array_step
-            loss.backward()
-            if self.config.td.gradient_clip is not None:
-                self.clip_gradients(self.config.td.gradient_clip)
-            self.optimizer.step()
+        loss, loss_array = self.calculate_loss(
+            layer_list=layer_list, layer_number=0, dataset=dataset
+        )
+        loss.backward()
+        if self.config.td.gradient_clip is not None:
+            self.clip_gradients(self.config.td.gradient_clip)
+        self.optimizer.step()
 
         return loss_array
 
     def test_step(self, layer_list: List[Data], dataset):
         self.net.eval()
 
-        loss_array = np.zeros(self.labels_count)
-        for layer in [0]:  #####range(len(layer_list)):
-            with torch.no_grad():  # with tc.set_grad_enabled(train):
-                _, loss_array_step = self.calculate_loss(layer_list, layer, dataset)
-            loss_array += loss_array_step
+        with torch.no_grad():  # with tc.set_grad_enabled(train):
+            _, loss_array = self.calculate_loss(
+                layer_list=layer_list, layer_number=0, dataset=dataset
+            )
 
         return loss_array
 

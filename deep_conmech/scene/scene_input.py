@@ -216,7 +216,7 @@ class SceneInput(SceneLayers):
             x=thh.set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(directional_edges),
             edge_attr=thh.set_precision(self.get_edges_data_torch(directional_edges, layer_number)),
-            ###
+            #
             closest_nodes_from_down=get_closest_nodes(mesh_layer_data.link_from_down),
             closest_weights_from_down=get_closest_weights(mesh_layer_data.link_from_down),
             #
