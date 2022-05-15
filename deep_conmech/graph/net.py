@@ -344,29 +344,16 @@ class CustomGraphNet(nn.Module):
         edge_latents = self.edge_encoder(main_layer.edge_attr)
         node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
 
-        _ = """
-        for _ in range(len(self.processor_layers) // 2):  # range(self.td.message_passes):
-            node_latents, edge_latents = self.processor_layers[processor_number](
-                main_layer, node_latents, edge_latents
-            )
-            processor_number += 1
-
-        node_latents_up = self.move_from_down(node_latents=node_latents, layer=layer_list[1])
-        node_latents_new = self.move_to_down(node_latents=node_latents_up, layer=layer_list[1])
-
-        node_latents = node_latents_new
-        for _ in range(len(self.processor_layers) // 2):  # range(self.td.message_passes):
-            node_latents, edge_latents = self.processor_layers[processor_number](
-                main_layer, node_latents, edge_latents
-            )
-            processor_number += 1
-        """
-
         for _ in range(self.td.message_passes):
             node_latents, edge_latents = self.processor_layers[processor_number](
                 main_layer, node_latents, edge_latents
             )
             processor_number += 1
+
+        # nodes = main_layer.pos
+        # nodes_up = self.move_from_down(node_latents=nodes, layer=layer_list[1])
+        # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
+        # assert torch.allclose(nodes, nodes_new)
 
         for layer_number in range(1, layer_count):
             layer = layer_list[layer_number]
@@ -405,7 +392,6 @@ class CustomGraphNet(nn.Module):
 
     def solve_all(self, scene: SceneInput):
         self.eval()
-        ################################################## layer_count=2
         layers_count = len(scene.all_layers)
         layers_list = [
             scene.get_features_data(scene_index=0, layer_number=layer_number).to(self.device)

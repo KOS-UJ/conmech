@@ -140,10 +140,10 @@ def get_dataset(output_catalog):
         adaptive_training_mesh=False,
         batch_size=3,
         synthetic_batches_in_epoch=2,
+        mesh_layers_count=3,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
-        mesh_layers_count=3,
     )
     config = TrainingConfig(
         td=td,

@@ -1,5 +1,3 @@
-from email.mime import base
-
 import torch
 
 from conmech.helpers import cmh
@@ -16,7 +14,8 @@ def check_layer_data(layer_list):
     def check_diff(diff, layer, precision):
         diff_norm = torch.linalg.norm(diff, dim=1)
         base_norm = torch.linalg.norm(layer.pos.double(), dim=1)
-        assert torch.sum(diff_norm) / torch.sum(base_norm) < precision
+        result = torch.sum(diff_norm) / torch.sum(base_norm)
+        assert result < precision
 
     layer_base = layer_list[0]
     for layer_number in range(1, len(layer_list)):
@@ -28,28 +27,28 @@ def check_layer_data(layer_list):
             closest_nodes=layer.closest_nodes_from_down,
             closest_weights=layer.closest_weights_from_down,
         )
-        check_diff(diff, layer, precision=0.1 * layer_number)
+        check_diff(diff, layer, precision=0.02)
 
         diff = layer.pos.double() - SceneLayers.approximate_internal(
             from_values=layer_base.pos,
             closest_nodes=layer.closest_nodes_from_base,
             closest_weights=layer.closest_weights_from_base,
         )
-        check_diff(diff, layer, precision=0.1)
+        check_diff(diff, layer, precision=0.02)
 
         diff = layer_down.pos.double() - SceneLayers.approximate_internal(
             from_values=layer.pos,
             closest_nodes=layer.closest_nodes_to_down,
             closest_weights=layer.closest_weights_to_down,
         )
-        check_diff(diff, layer, precision=0.5 * layer_number)
+        check_diff(diff, layer, precision=0.1)
 
         diff = layer_base.pos.double() - SceneLayers.approximate_internal(
             from_values=layer.pos,
             closest_nodes=layer.closest_nodes_to_base,
             closest_weights=layer.closest_weights_to_base,
         )
-        check_diff(diff, layer, precision=1.5 * layer_number)
+        check_diff(diff, layer, precision=0.1 * layer_number)
 
 
 def test_graph_layers():
@@ -62,6 +61,7 @@ def test_graph_layers():
         mesh_density=16,
         batch_size=16,
         synthetic_batches_in_epoch=2,
+        mesh_layers_count=3,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
@@ -92,8 +92,5 @@ def test_graph_layers():
     for _, layer_list in enumerate(dataloader):
         base_dataset.order_batch_layer_indices(layer_list)
         check_layer_data(layer_list)
-
-
-        
 
     cmh.clear_folder(output_catalog)
