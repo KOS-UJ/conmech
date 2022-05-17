@@ -3,6 +3,8 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 
+import numpy as np
+
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
@@ -91,7 +93,7 @@ def run_scenario(
         if plot_index:
             plot_scenes_count[0] += 1
 
-    setting, mean_energy = simulate(
+    setting, energy_values = simulate(
         solve_function=solve_function,
         scenario=scenario,
         simulate_dirty_data=run_config.simulate_dirty_data,
@@ -116,7 +118,7 @@ def run_scenario(
             else None,
         )
 
-    return setting, scenes_path, mean_energy
+    return setting, scenes_path, energy_values
 
 
 def plot_scenario_animation(
@@ -192,7 +194,7 @@ def simulate(
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
     temperature = None
-    mean_energy = 0.0
+    energy_values = np.zeros(len(time_tqdm))
     for time_step in time_tqdm:
         current_time = (time_step + 1) * scene.time_step
 
@@ -205,9 +207,10 @@ def simulate(
             )
         else:
             acceleration = solve_function(scene, initial_a=acceleration)
-            mean_energy += (1.0 / len(time_tqdm)) * Calculator.get_acceleration_energy(
+            energy_value = Calculator.get_acceleration_energy(
                 setting=scene, acceleration=acceleration
-            )
+            ).item()
+            energy_values[time_step] = energy_value
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
@@ -231,7 +234,7 @@ def simulate(
 
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_scene else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
-    return scene, mean_energy
+    return scene, energy_values
 
 
 def plot_setting(

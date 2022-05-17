@@ -2,8 +2,8 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.scene import scene
-from conmech.scene.scene import Scene
 from conmech.scene.body_forces import energy
+from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
 
 

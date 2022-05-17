@@ -200,7 +200,7 @@ class Attention(nn.Module):
 
 # pylint: disable=W0223, W0221
 class ProcessorLayer(MessagePassing):
-    def __init__(self, attention: Attention, td: TrainingData):
+    def __init__(self, td: TrainingData):
         super().__init__()
 
         self.edge_processor = ForwardNet(
@@ -221,40 +221,33 @@ class ProcessorLayer(MessagePassing):
             layer_norm=td.layer_norm,
             td=td,
         )
-        self.attention = attention
+        self.attention = Attention(td=td)
 
         self.epsilon = Parameter(torch.Tensor(1))
         self.new_edge_latents = None
 
-        # change heads to a
-        # self.bias = Parameter(torch.Tensor(out_channels))
-        # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
-
-    def forward(self, batch, node_latents, edge_latents):
+    def forward(self, edge_index, node_latents, edge_latents):
         new_node_latents = self.propagate(
-            edge_index=batch.edge_index, node_latents=node_latents, edge_latents=edge_latents
+            edge_index=edge_index, node_latents=node_latents, edge_latents=edge_latents
         )
         new_edge_latents = self.new_edge_latents
         self.new_edge_latents = None
         return new_node_latents, new_edge_latents
 
-    def message(self, node_latents_i, node_latents_j, edge_latents, index):
+    def message(self, node_latents_i, node_latents_j, edge_latents):  # index
         edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
         self.new_edge_latents = edge_latents + self.edge_processor(edge_inputs)
+        return self.new_edge_latents
 
-        alpha = self.attention(edge_latents, index)
-        weighted_edge_latents = alpha * self.new_edge_latents
-        return weighted_edge_latents
-
-    def aggregate(self, weighted_edge_latents, index):
-        aggregated_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
+    def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
+        alpha = self.attention(new_edge_latents, index)
+        aggregated_edge_latents = scatter_sum(alpha * self.new_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
     def update(self, aggregated_edge_latents, node_latents):
-        # node_inputs = aggregated_edge_latents
-        # node_inputs = ((1 + self.epsilon) * node_latents) + aggregated_edge_latents))
-        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
-        new_node_latents = node_latents + self.node_processor(node_inputs)
+        to_node_latents = node_latents[-1] if isinstance(node_latents, tuple) else node_latents
+        node_inputs = torch.hstack((to_node_latents, aggregated_edge_latents))
+        new_node_latents = to_node_latents + self.node_processor(node_inputs)
         return new_node_latents
 
 
@@ -268,7 +261,7 @@ class CustomGraphNet(nn.Module):
         self.td = td
 
         self.node_encoder = ForwardNet(
-            input_dim=SceneInput.nodes_data_dim(td.dimension),
+            input_dim=SceneInput.get_nodes_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -278,7 +271,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.edge_encoder = ForwardNet(
-            input_dim=SceneInput.edges_data_dim(td.dimension),
+            input_dim=SceneInput.get_edges_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.edges_statistics,
@@ -287,14 +280,14 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        self.attention = Attention(td=td)
-
         self.processor_layers = nn.ModuleList(
             [
-                ProcessorLayer(attention=self.attention, td=td)
+                ProcessorLayer(td=td)
                 for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
             ]
         )
+        self.upward_processor_layer = ProcessorLayer(td=td)
+        self.downward_processor_layer = ProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
             input_dim=td.latent_dimension,
@@ -322,31 +315,49 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def move_from_down(self, node_latents, layer):
-        return SceneLayers.approximate_internal(
+    def move_from_down(self, node_latents, edge_latents, layer):
+        node_latents_to = torch.zeros((len(layer.x), 128))
+        new_node_latents, new_edge_latents = self.upward_processor_layer(
+            edge_index=layer.edge_index_from_down,
+            node_latents=(node_latents, node_latents_to),
+            edge_latents=edge_latents,
+        )
+        """
+        result = SceneLayers.approximate_internal(
             from_values=node_latents,
             closest_nodes=layer.closest_nodes_from_down,
             closest_weights=layer.closest_weights_from_down,
         )
+        """
+        return new_node_latents
 
-    def move_to_down(self, node_latents, layer):
-        return SceneLayers.approximate_internal(
+    def move_to_down(self, node_latents, edge_latents, layer):
+        node_latents_to = torch.zeros((torch.sum(layer.down_layer_nodes_count), 128))
+        new_node_latents, new_edge_latents = self.downward_processor_layer(
+            edge_index=layer.edge_index_to_down,
+            node_latents=(node_latents, node_latents_to),
+            edge_latents=edge_latents,
+        )
+        """
+        result = SceneLayers.approximate_internal(
             from_values=node_latents,
             closest_nodes=layer.closest_nodes_to_down,
             closest_weights=layer.closest_weights_to_down,
         )
+        """
+        return new_node_latents
 
     def forward(self, layer_list: List[Data], main_layer_number: int):
         layer_count = len(layer_list)
         main_layer = layer_list[main_layer_number]
         processor_number = 0
 
-        edge_latents = self.edge_encoder(main_layer.edge_attr)
         node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
+        edge_latents = self.edge_encoder(main_layer.edge_attr)
 
         for _ in range(self.td.message_passes):
             node_latents, edge_latents = self.processor_layers[processor_number](
-                main_layer, node_latents, edge_latents
+                main_layer.edge_index, node_latents, edge_latents
             )
             processor_number += 1
 
@@ -358,12 +369,16 @@ class CustomGraphNet(nn.Module):
         for layer_number in range(1, layer_count):
             layer = layer_list[layer_number]
 
-            node_latents = self.move_from_down(node_latents=node_latents, layer=layer)
+            node_latents = self.move_from_down(
+                node_latents=node_latents,
+                edge_latents=self.edge_encoder(layer.edge_attr_from_down),
+                layer=layer,
+            )
             edge_latents = self.edge_encoder(layer.edge_attr)
 
             for _ in range(self.td.message_passes):
                 node_latents, edge_latents = self.processor_layers[processor_number](
-                    layer, node_latents, edge_latents
+                    layer.edge_index, node_latents, edge_latents
                 )
                 processor_number += 1
 
@@ -371,12 +386,16 @@ class CustomGraphNet(nn.Module):
             layer = layer_list[layer_number]
             layer_up = layer_list[layer_number + 1]
 
-            node_latents = self.move_to_down(node_latents=node_latents, layer=layer_up)
+            node_latents = self.move_to_down(
+                node_latents=node_latents,
+                edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
+                layer=layer_up,
+            )
             edge_latents = self.edge_encoder(layer.edge_attr)
 
             for _ in range(self.td.message_passes):
                 node_latents, edge_latents = self.processor_layers[processor_number](
-                    layer, node_latents, edge_latents
+                    layer.edge_index, node_latents, edge_latents
                 )
                 processor_number += 1
 

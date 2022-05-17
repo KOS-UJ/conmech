@@ -5,7 +5,6 @@ from typing import List, Optional
 
 import numba
 import numpy as np
-import torch
 
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
@@ -19,35 +18,40 @@ from deep_conmech.scene.scene_randomized import SceneRandomized
 @dataclass
 class MeshLayerLinkData:
     closest_nodes: np.ndarray
-    weights_closest: np.ndarray
+    closest_weights: np.ndarray
+    closest_distances: np.ndarray
     closest_boundary_nodes: np.ndarray
-    weights_closest_boundary: np.ndarray
+    closest_weights_boundary: np.ndarray
+    closest_distances_boundary: np.ndarray
 
 
 @dataclass
 class MeshLayerData:
     mesh: Mesh
-    link_to_down: Optional[MeshLayerLinkData]
-    link_from_down: Optional[MeshLayerLinkData]
-    link_to_base: Optional[MeshLayerLinkData]
-    link_from_base: Optional[MeshLayerLinkData]
+    to_down: Optional[MeshLayerLinkData]
+    from_down: Optional[MeshLayerLinkData]
+    to_base: Optional[MeshLayerLinkData]
+    from_base: Optional[MeshLayerLinkData]
 
 
 @numba.njit
 def get_interlayer_data(old_nodes, new_nodes, closest_count):
-    closest_weights = np.zeros((len(new_nodes), closest_count))
     closest_nodes = np.zeros((len(new_nodes), closest_count), dtype=np.int64)
+    closest_weights = np.zeros((len(new_nodes), closest_count))
+    closest_distances = np.zeros((len(new_nodes), closest_count))
     for new_index, new_node in enumerate(new_nodes):
-        distances = nph.euclidean_norm_numba(new_node - old_nodes)
+        distances = nph.euclidean_norm_numba(old_nodes - new_node)
         closest_node_list = distances.argsort()[:closest_count]
+        closest_distance_list = distances[closest_node_list]
         base_nodes = old_nodes[closest_node_list]
         # Moore-Penrose pseudo-inverse
         closest_weight_list = np.ascontiguousarray(new_node) @ np.linalg.pinv(base_nodes)
 
         closest_nodes[new_index, :] = closest_node_list
         closest_weights[new_index, :] = closest_weight_list
+        closest_distances[new_index, :] = closest_distance_list
 
-    return closest_nodes, closest_weights
+    return closest_nodes, closest_weights, closest_distances
 
 
 class SceneLayers(SceneRandomized):
@@ -83,10 +87,10 @@ class SceneLayers(SceneRandomized):
 
         base_mesh_layer_data = MeshLayerData(
             mesh=self,
-            link_to_down=None,
-            link_from_down=None,
-            link_to_base=None,
-            link_from_base=None,
+            to_down=None,
+            from_down=None,
+            to_base=None,
+            from_base=None,
         )
         self.all_layers.append(base_mesh_layer_data)
 
@@ -104,31 +108,36 @@ class SceneLayers(SceneRandomized):
             )
             mesh_layer_data = MeshLayerData(
                 mesh=sparse_mesh,
-                link_to_down=self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh),
-                link_from_down=self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh),
-                link_to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self),
-                link_from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh),
+                to_down=self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh),
+                from_down=self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh),
+                to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self),
+                from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh),
             )
             self.all_layers.append(mesh_layer_data)
             dense_mesh = sparse_mesh
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh):
-        closest_nodes, weights_closest = get_interlayer_data(
-            old_nodes=from_mesh.initial_nodes,
-            new_nodes=to_mesh.initial_nodes,
+        closest_nodes, closest_weights, closest_distances = get_interlayer_data(
+            old_nodes=from_mesh.normalized_initial_nodes,
+            new_nodes=to_mesh.normalized_initial_nodes,
             closest_count=self.mesh_prop.dimension + 1,
         )
-        closest_boundary_nodes, weights_closest_boundary = get_interlayer_data(
+        (
+            closest_boundary_nodes,
+            closest_weights_boundary,
+            closest_distances_boundary,
+        ) = get_interlayer_data(
             old_nodes=from_mesh.initial_boundary_nodes,
             new_nodes=to_mesh.initial_boundary_nodes,
             closest_count=self.mesh_prop.dimension,
         )
-
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,
-            weights_closest=weights_closest,
+            closest_weights=closest_weights,
+            closest_distances=closest_distances,
             closest_boundary_nodes=closest_boundary_nodes,
-            weights_closest_boundary=weights_closest_boundary,
+            closest_weights_boundary=closest_weights_boundary,
+            closest_distances_boundary=closest_distances_boundary,
         )
 
     @staticmethod
@@ -142,20 +151,20 @@ class SceneLayers(SceneRandomized):
             return base_values
 
         mesh_layer_data = self.all_layers[layer_number]
-        link = mesh_layer_data.link_from_base
+        link = mesh_layer_data.from_base
         if link is None:
             raise ArgumentError
 
         if len(base_values) == self.nodes_count:
             closest_nodes = link.closest_nodes
-            weights_closest = link.weights_closest
+            closest_weights = link.closest_weights
 
         elif len(base_values) == self.boundary_nodes_count:
             closest_nodes = link.closest_boundary_nodes
-            weights_closest = link.weights_closest_boundary
+            closest_weights = link.closest_weights_boundary
         else:
             raise ArgumentError
 
         return SceneLayers.approximate_internal(
-            from_values=base_values, closest_nodes=closest_nodes, closest_weights=weights_closest
+            from_values=base_values, closest_nodes=closest_nodes, closest_weights=closest_weights
         )

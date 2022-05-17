@@ -166,3 +166,7 @@ def get_dataset(output_catalog):
     )
 
     return dataset
+
+
+if __name__ == "__main__":
+    plot_graph_layers()

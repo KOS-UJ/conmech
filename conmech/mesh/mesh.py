@@ -138,6 +138,10 @@ class Mesh:
         return self.normalize_shift(self.initial_nodes)
 
     @property
+    def input_initial_nodes(self):
+        return self.normalized_initial_nodes
+
+    @property
     def boundary_surfaces(self):
         return self.boundaries.boundary_surfaces
 

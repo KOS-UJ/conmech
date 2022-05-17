@@ -266,28 +266,36 @@ class GraphModelDynamic:
     def validate_all_scenarios_raport(self, examples_seen):
         print("----VALIDATING SCENARIOS----")
         start_time = time.time()
-        total_mean_energy = 0.0
+        episode_steps = self.print_scenarios[0].schedule.episode_steps
+        all_energy_values = np.zeros(episode_steps)
         for scenario in self.print_scenarios:
-            _, _, mean_energy = simulation_runner.run_scenario(
+            assert episode_steps == scenario.schedule.episode_steps
+            _, _, energy_values = simulation_runner.run_scenario(
                 solve_function=self.net.solve,
                 scenario=scenario,
                 config=self.config,
                 run_config=simulation_runner.RunScenarioConfig(),
                 get_scene_function=GraphModelDynamic.get_scene_function,
             )
+            # time_step = scenario.time_step
+            # integrated_energy = np.sum(time_step * energy_values) /  scenario.episode_length
+            _ = """
             self.logger.writer.add_scalar(
-                f"Loss/Validation/{scenario.name}/mean_energy",
+                f"Loss/Validation/{scenario.name}/mean_energy_all",
                 mean_energy,
                 examples_seen,
             )
-            total_mean_energy += mean_energy / len(self.print_scenarios)
+            """
+            all_energy_values += energy_values / len(self.print_scenarios)
             print("---")
 
-        self.logger.writer.add_scalar(
-            "Loss/Validation/total_mean_energy",
-            total_mean_energy,
-            examples_seen,
-        )
+        for i in [1, 10, 50, 100, 200, 800]:
+            self.logger.writer.add_scalar(
+                f"Loss/Validation/energy_mean_{i}_steps",
+                np.mean(all_energy_values[:i]),
+                examples_seen,
+            )
+
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
     def calculate_loss(
@@ -303,7 +311,7 @@ class GraphModelDynamic:
             if not hasattr(batch_main_layer, "closest_nodes_base")
             else SceneInput.approximate_internal(
                 closest_nodes=batch_main_layer.closest_nodes_base,
-                closest_weights=batch_main_layer.weights_closest_base,
+                closest_weights=batch_main_layer.closest_weights_base,
                 from_values=all_predicted_normalized_a_init,
             )
         )

@@ -127,9 +127,5 @@ class SceneRandomized(Scene):
         return self.normalized_displacement_old + self.normalized_displacement_randomization
 
     @property
-    def input_initial_nodes(self):
-        return self.normalized_initial_nodes
-
-    @property
     def input_forces(self):
         return self.normalized_inner_forces

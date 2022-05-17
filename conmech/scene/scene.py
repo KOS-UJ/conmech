@@ -6,6 +6,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -286,13 +287,12 @@ class Scene(BodyForces):
             self.time_step,
         )
 
-    def complete_boundary_data_with_zeros(self, data):
-        # return np.resize(data, (self.nodes_count, data.shape[1]))
-        if len(data) == self.nodes_count:
-            return data
-        completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
-        completed_data[self.boundary_indices] = data
-        return completed_data
+    @staticmethod
+    def complete_mesh_boundary_data_with_zeros(mesh: Mesh, data: np.ndarray):
+        return np.pad(data, ((0, mesh.nodes_count - len(data)), (0, 0)), "constant")
+
+    def complete_boundary_data_with_zeros(self, data: np.ndarray):
+        return Scene.complete_mesh_boundary_data_with_zeros(self, data)
 
     @property
     def has_no_obstacles(self):

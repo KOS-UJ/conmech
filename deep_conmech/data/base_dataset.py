@@ -11,6 +11,7 @@ from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import dch
+from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -101,9 +102,25 @@ def order_batch_layer_indices(layer_list: List[Data]):
 
         sparse_layer.closest_nodes_from_down += dense_layer.ptr[get_mask(sparse_layer)]
         sparse_layer.closest_nodes_to_down += sparse_layer.ptr[get_mask(dense_layer)]
-
         sparse_layer.closest_nodes_from_base += base_layer.ptr[get_mask(sparse_layer)]
         sparse_layer.closest_nodes_to_base += sparse_layer.ptr[get_mask(base_layer)]
+
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_down.numpy()),
+            sparse_layer.edge_index_from_down.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_down.numpy()),
+            sparse_layer.edge_index_to_down.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_base.numpy()),
+            sparse_layer.edge_index_from_base.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_base.numpy()),
+            sparse_layer.edge_index_to_base.T.numpy(),
+        )
 
 
 class BaseDataset:
@@ -304,8 +321,8 @@ class BaseDataset:
         dataloader = get_train_dataloader(self)
 
         dimension = self.config.td.dimension
-        nodes_data = torch.empty((0, SceneInput.nodes_data_dim(dimension)))
-        edges_data = torch.empty((0, SceneInput.edges_data_dim(dimension)))
+        nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(dimension)))
+        edges_data = torch.empty((0, SceneInput.get_edges_data_dim(dimension)))
         for layers_list in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
