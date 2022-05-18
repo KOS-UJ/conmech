@@ -15,7 +15,6 @@ from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
 from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 from deep_conmech.training_config import TrainingConfig
 
 

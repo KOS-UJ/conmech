@@ -16,7 +16,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 0.5  # 8
+    final_time: float = 8
     mesh_density: int = 16 if dimension == 2 else 6  # !# 8 #16
     adaptive_training_mesh: bool = True
 
@@ -44,7 +44,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128
     valid_batch_size: int = 128
-    synthetic_batches_in_epoch: int = 1  # 256  # 96
+    synthetic_batches_in_epoch: int = 256  # 96
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -66,8 +66,8 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 3  # 3
-    message_passes: int = 4  # 3 # 12
+    mesh_layers_count: int = 1  # 3
+    message_passes: int = 12
 
 
 @dataclass

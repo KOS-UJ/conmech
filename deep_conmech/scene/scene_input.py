@@ -76,7 +76,7 @@ class EnergyObstacleArgumentsTorch:
     time_step: float
 
 
-class BipartiteData(Data):
+class MeshLayerData(Data):
     # def __init__(self):
     #    super().__init__()
 
@@ -190,7 +190,7 @@ class SceneInput(SceneLayers):
                 layer_number_to=layer_number_to,
             )
         )
-        edges_index = thh.get_contiguous_torch(torch.tensor(edges_index_np))
+        edges_index = thh.get_contiguous_torch(edges_index_np)
         distances_link = link.closest_distances
         closest_nodes_count = link.closest_distances.shape[1]
         distance_norm_index = 2
@@ -212,7 +212,7 @@ class SceneInput(SceneLayers):
         mesh = layer_data.mesh
         layer_directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
 
-        data = BipartiteData(
+        data = MeshLayerData(
             scene_id=torch.tensor([scene_index]),
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),

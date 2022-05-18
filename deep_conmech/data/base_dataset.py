@@ -105,23 +105,6 @@ def order_batch_layer_indices(layer_list: List[Data]):
         sparse_layer.closest_nodes_from_base += base_layer.ptr[get_mask(sparse_layer)]
         sparse_layer.closest_nodes_to_base += sparse_layer.ptr[get_mask(base_layer)]
 
-        assert np.allclose(
-            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_down.numpy()),
-            sparse_layer.edge_index_from_down.T.numpy(),
-        )
-        assert np.allclose(
-            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_down.numpy()),
-            sparse_layer.edge_index_to_down.T.numpy(),
-        )
-        assert np.allclose(
-            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_base.numpy()),
-            sparse_layer.edge_index_from_base.T.numpy(),
-        )
-        assert np.allclose(
-            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_base.numpy()),
-            sparse_layer.edge_index_to_base.T.numpy(),
-        )
-
 
 class BaseDataset:
     def __init__(

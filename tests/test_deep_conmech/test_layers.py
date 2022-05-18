@@ -1,13 +1,17 @@
+from re import X
+
+import numpy as np
 import torch
 
 from conmech.helpers import cmh
 from deep_conmech.data import base_dataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
+from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
 
-def check_layer_data(layer_list):
+def check_layer_data_approximation(layer_list):
     if len(layer_list) == 1:
         return
 
@@ -51,6 +55,29 @@ def check_layer_data(layer_list):
         check_diff(diff, layer, precision=0.1 * layer_number)
 
 
+def check_layer_data_edges(layer_list):
+    layers_number = len(layer_list)
+    for i in range(1, layers_number):
+        sparse_layer = layer_list[i]
+
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_down.numpy()),
+            sparse_layer.edge_index_from_down.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_down.numpy()),
+            sparse_layer.edge_index_to_down.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_from_base.numpy()),
+            sparse_layer.edge_index_from_base.T.numpy(),
+        )
+        assert np.allclose(
+            scene_input.get_multilayer_edges_numba(sparse_layer.closest_nodes_to_base.numpy()),
+            sparse_layer.edge_index_to_base.T.numpy(),
+        )
+
+
 def test_graph_layers():
     output_catalog = "output/TEST_LAYERS"
     databases_main_path = f"{output_catalog}/DATA"
@@ -91,6 +118,7 @@ def test_graph_layers():
     dataloader = base_dataset.get_train_dataloader(dataset)
     for _, layer_list in enumerate(dataloader):
         base_dataset.order_batch_layer_indices(layer_list)
-        check_layer_data(layer_list)
+        check_layer_data_edges(layer_list)
+        check_layer_data_approximation(layer_list)
 
     cmh.clear_folder(output_catalog)

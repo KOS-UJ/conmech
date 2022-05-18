@@ -316,8 +316,8 @@ class CustomGraphNet(nn.Module):
         return self.edge_encoder.statistics
 
     def move_from_down(self, node_latents, edge_latents, layer):
-        node_latents_to = torch.zeros((len(layer.x), 128))
-        new_node_latents, new_edge_latents = self.upward_processor_layer(
+        node_latents_to = self.node_encoder(layer.x)
+        new_node_latents, _ = self.upward_processor_layer(
             edge_index=layer.edge_index_from_down,
             node_latents=(node_latents, node_latents_to),
             edge_latents=edge_latents,
@@ -331,74 +331,89 @@ class CustomGraphNet(nn.Module):
         """
         return new_node_latents
 
-    def move_to_down(self, node_latents, edge_latents, layer):
-        node_latents_to = torch.zeros((torch.sum(layer.down_layer_nodes_count), 128))
-        new_node_latents, new_edge_latents = self.downward_processor_layer(
+    def move_to_down(self, node_latents_up, node_latents, edge_latents, layer):
+        # node_latents_to = torch.zeros((torch.sum(layer.down_layer_nodes_count), 128))
+        new_node_latents, _ = self.downward_processor_layer(
             edge_index=layer.edge_index_to_down,
-            node_latents=(node_latents, node_latents_to),
+            node_latents=(node_latents_up, node_latents),
             edge_latents=edge_latents,
         )
+        # residual connection (included in processor)
+        # new_node_latents = node_latents + node_latents_from_up
+        return new_node_latents
         """
         result = SceneLayers.approximate_internal(
             from_values=node_latents,
             closest_nodes=layer.closest_nodes_to_down,
             closest_weights=layer.closest_weights_to_down,
         )
-        """
         return new_node_latents
+        """
+
+    def propagate_messages(
+        self, layer: Data, node_latents: torch.Tensor, edge_latents: torch.Tensor
+    ):
+        for _ in range(self.td.message_passes):
+            node_latents, edge_latents = self.processor_layers[self.processor_number](
+                layer.edge_index, node_latents, edge_latents
+            )
+            self.processor_number += 1
+        return node_latents, edge_latents
+
+    def process_by_layer(
+        self, layer_list: List[Data], layer_number: int, node_latents: torch.Tensor
+    ):
+        layer = layer_list[layer_number]
+        edge_latents = self.edge_encoder(layer.edge_attr)
+
+        node_latents, edge_latents = self.propagate_messages(
+            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+        )
+
+        if layer_number == len(layer_list) - 1:
+            return node_latents
+
+        layer_up = layer_list[layer_number + 1]
+
+        node_latents_up = self.move_from_down(
+            node_latents=node_latents,
+            edge_latents=self.edge_encoder(layer_up.edge_attr_from_down),
+            layer=layer_up,
+        )
+
+        node_latents_up = self.process_by_layer(
+            layer_list=layer_list,
+            layer_number=layer_number + 1,
+            node_latents=node_latents_up,
+        )
+
+        node_latents = self.move_to_down(
+            node_latents_up=node_latents_up,
+            edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
+            layer=layer_up,
+            node_latents=node_latents,
+        )
+
+        node_latents, edge_latents = self.propagate_messages(
+            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+        )
+        return node_latents
 
     def forward(self, layer_list: List[Data], main_layer_number: int):
-        layer_count = len(layer_list)
         main_layer = layer_list[main_layer_number]
-        processor_number = 0
-
-        node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
-        edge_latents = self.edge_encoder(main_layer.edge_attr)
-
-        for _ in range(self.td.message_passes):
-            node_latents, edge_latents = self.processor_layers[processor_number](
-                main_layer.edge_index, node_latents, edge_latents
-            )
-            processor_number += 1
+        self.processor_number = 0
 
         # nodes = main_layer.pos
         # nodes_up = self.move_from_down(node_latents=nodes, layer=layer_list[1])
         # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
         # assert torch.allclose(nodes, nodes_new)
 
-        for layer_number in range(1, layer_count):
-            layer = layer_list[layer_number]
-
-            node_latents = self.move_from_down(
-                node_latents=node_latents,
-                edge_latents=self.edge_encoder(layer.edge_attr_from_down),
-                layer=layer,
-            )
-            edge_latents = self.edge_encoder(layer.edge_attr)
-
-            for _ in range(self.td.message_passes):
-                node_latents, edge_latents = self.processor_layers[processor_number](
-                    layer.edge_index, node_latents, edge_latents
-                )
-                processor_number += 1
-
-        for layer_number in range(layer_count - 2, -1, -1):
-            layer = layer_list[layer_number]
-            layer_up = layer_list[layer_number + 1]
-
-            node_latents = self.move_to_down(
-                node_latents=node_latents,
-                edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
-                layer=layer_up,
-            )
-            edge_latents = self.edge_encoder(layer.edge_attr)
-
-            for _ in range(self.td.message_passes):
-                node_latents, edge_latents = self.processor_layers[processor_number](
-                    layer.edge_index, node_latents, edge_latents
-                )
-                processor_number += 1
-
+        node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
+        node_latents = self.process_by_layer(
+            layer_list=layer_list,
+            layer_number=main_layer_number,
+            node_latents=node_latents,
+        )
         net_output = self.decoder(node_latents)
         return net_output
 
