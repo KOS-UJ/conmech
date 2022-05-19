@@ -4,6 +4,7 @@ torch helpers
 import numpy as np
 import torch
 
+from deep_conmech import training_config
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -12,7 +13,7 @@ def device(training_config: TrainingConfig):
 
 
 def get_device_id():
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cuda" if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
 
 
 def set_precision(data):

@@ -35,6 +35,10 @@ def get_edges_data_numba(
     initial_nodes_to,
     displacement_old_from,
     displacement_old_to,
+    velocity_old_from,
+    velocity_old_to,
+    # forces_from,
+    # forces_to,
     edges_data_dim,
 ):
     dimension = initial_nodes_to.shape[1]
@@ -46,7 +50,11 @@ def get_edges_data_numba(
         set_diff_numba(initial_nodes_from, initial_nodes_to, 0, edges_data[edge_index], i, j)
         set_diff_numba(
             displacement_old_from, displacement_old_to, dimension + 1, edges_data[edge_index], i, j
-        )  # 2 * (dimension + 1)
+        )
+        set_diff_numba(
+            velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
+        )
+        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -137,6 +145,16 @@ class SceneInput(SceneLayers):
             displacement_old_to=self.prepare_node_data(
                 data=self.input_displacement_old, layer_number=layer_number_to
             ),
+            velocity_old_from=self.prepare_node_data(
+                data=self.input_velocity_old, layer_number=layer_number_from
+            ),
+            velocity_old_to=self.prepare_node_data(
+                data=self.input_velocity_old, layer_number=layer_number_to
+            ),
+            # forces_from=self.prepare_node_data(
+            #    data=self.input_forces, layer_number=layer_number_from
+            # ),
+            # forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
             edges_data_dim=self.get_edges_data_dim(self.dimension),
         )
         return thh.to_double(edges_data)
@@ -338,7 +356,7 @@ class SceneInput(SceneLayers):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old"]:  # , "velocity_old", "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old"]:  # "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
