@@ -304,16 +304,7 @@ class GraphModelDynamic:
         batch_main_layer = layer_list[layer_number]
         graph_sizes_base = get_graph_sizes(layer_list[0])
 
-        all_predicted_normalized_a_init = self.net(layer_list_cuda, layer_number)
-        all_predicted_normalized_a = (
-            all_predicted_normalized_a_init
-            if not hasattr(batch_main_layer, "closest_nodes_base")
-            else SceneInput.approximate_internal(
-                closest_nodes=batch_main_layer.closest_nodes_base,
-                closest_weights=batch_main_layer.closest_weights_base,
-                from_values=all_predicted_normalized_a_init,
-            )
-        )
+        all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
 
         loss = 0.0

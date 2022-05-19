@@ -12,7 +12,6 @@ from torch_scatter import scatter_sum
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingData
 
 
@@ -332,7 +331,6 @@ class CustomGraphNet(nn.Module):
         return new_node_latents
 
     def move_to_down(self, node_latents_up, node_latents, edge_latents, layer):
-        # node_latents_to = torch.zeros((torch.sum(layer.down_layer_nodes_count), 128))
         new_node_latents, _ = self.downward_processor_layer(
             edge_index=layer.edge_index_to_down,
             node_latents=(node_latents_up, node_latents),

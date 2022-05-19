@@ -55,9 +55,9 @@ class SceneTemperature(Scene):
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None
 
-    def get_normalized_energy_temperature_np(self, normalized_a):
+    def get_normalized_energy_temperature_np(self, normalized_acceleration):
         normalized_t_rhs_boundary, normalized_t_rhs_free = self.get_all_normalized_t_rhs_np(
-            normalized_a
+            normalized_acceleration
         )
         return (
             lambda normalized_boundary_t_vector: energy(
@@ -89,8 +89,8 @@ class SceneTemperature(Scene):
             value += self.thermal_expansion.T @ temperature
         return value
 
-    def get_all_normalized_t_rhs_np(self, normalized_a):
-        normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_a)
+    def get_all_normalized_t_rhs_np(self, normalized_acceleration):
+        normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_acceleration)
         (
             normalized_t_rhs_boundary,
             normalized_t_rhs_free,
@@ -104,10 +104,10 @@ class SceneTemperature(Scene):
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
-    def get_normalized_t_rhs_np(self, normalized_a):
+    def get_normalized_t_rhs_np(self, normalized_acceleration):
         U = self.acceleration_operator[self.independent_indices, self.independent_indices]
 
-        v = self.normalized_velocity_old + normalized_a * self.time_step
+        v = self.normalized_velocity_old + normalized_acceleration * self.time_step
         v_vector = nph.stack_column(v)
 
         A = nph.stack_column(self.volume_at_nodes @ self.heat)

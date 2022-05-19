@@ -298,7 +298,7 @@ class Scene(BodyForces):
     def has_no_obstacles(self):
         return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
 
-    def get_is_colliding_nodes(self):
+    def get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
             return np.zeros((self.nodes_count, 1), dtype=np.int64)
         return self.complete_boundary_data_with_zeros(
@@ -306,9 +306,9 @@ class Scene(BodyForces):
         )
 
     def is_colliding(self):
-        return np.any(self.get_is_colliding_nodes())
+        return np.any(self.get_colliding_nodes_indicator())
 
-    def get_is_colliding_all_nodes(self):
+    def get_colliding_all_nodes_indicator(self):
         if self.is_colliding():
             return np.ones((self.nodes_count, 1), dtype=np.int64)
         return np.zeros((self.nodes_count, 1), dtype=np.int64)

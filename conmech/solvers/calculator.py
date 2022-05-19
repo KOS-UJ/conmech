@@ -83,8 +83,10 @@ class Calculator:
         return cleaned_a, cleaned_t
 
     @staticmethod
-    def solve_temperature(setting: SceneTemperature, normalized_a: np.ndarray, initial_t):
-        t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
+    def solve_temperature(
+        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
+    ):
+        t = Calculator.solve_temperature_normalized(setting, normalized_acceleration, initial_t)
         cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_t
 
@@ -102,22 +104,24 @@ class Calculator:
     @staticmethod
     def solve_temperature_normalized(
         setting: SceneTemperature,
-        normalized_a: np.ndarray,
+        normalized_acceleration: np.ndarray,
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding():
             return Calculator.solve_temperature_normalized_optimization(
-                setting, normalized_a, initial_t
+                setting, normalized_acceleration, initial_t
             )
-        return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
+        return Calculator.solve_temperature_normalized_function(
+            setting, normalized_acceleration, initial_t
+        )
 
     @staticmethod
     def solve_temperature_normalized_function(
-        setting: SceneTemperature, normalized_a: np.ndarray, initial_t
+        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         _ = initial_t
-        normalized_Q = setting.get_normalized_t_rhs_np(normalized_a)
+        normalized_Q = setting.get_normalized_t_rhs_np(normalized_acceleration)
         t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_Q)
         return t_vector
 
@@ -176,12 +180,12 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(scene: Scene, normalized_a):
-        if normalized_a is None:
+    def clean_acceleration(scene: Scene, normalized_acceleration):
+        if normalized_acceleration is None:
             return None
         if not isinstance(scene, SceneRandomized):
-            return normalized_a
-        return normalized_a + scene.normalized_a_correction
+            return normalized_acceleration
+        return normalized_acceleration + scene.normalized_a_correction
 
     @staticmethod
     def clean_temperature(scene, temperature):

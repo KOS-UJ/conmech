@@ -189,8 +189,8 @@ class SceneInput(SceneLayers):
                 boundary_normals,
                 boundary_v_tangential,
                 boundary_volume,
-                # self.get_is_colliding_nodes_torch(),
-                # self.get_is_colliding_all_nodes_torch(),
+                # self.get_colliding_nodes_indicator_torch(),
+                # self.get_colliding_all_nodes_indicator_torch(),
             )
         )
         return thh.to_double(nodes_data)
