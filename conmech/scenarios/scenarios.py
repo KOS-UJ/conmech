@@ -268,6 +268,39 @@ def f_accelerate_slow_left(
     return force
 
 
+def f_accelerate_slow_up(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([0.0, 0.5])
+    return force
+
+
+def f_accelerate_slow_down(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([0.0, -0.5])
+    return force
+
+
+def f_accelerate_slow_up_left(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([-0.5, 0.5])
+    return force
+
+
 def f_stay(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
@@ -357,30 +390,30 @@ def circle_slope(mesh_density, scale, final_time, tag=""):
     )
 
 
-def spline_right(mesh_density, scale, final_time, tag=""):
-    obstacle = Obstacle.get_linear_obstacle("front", default_obstacle_prop)
+def spline_down(mesh_density, scale, final_time, tag=""):
+    obstacle = Obstacle.get_linear_obstacle("bottom", default_obstacle_prop)
     return Scenario(
-        name=f"spline_right{tag}",
+        name=f"spline_down{tag}",
         mesh_prop=MeshProperties(
             dimension=2, mesh_type=M_SPLINE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_accelerate_slow_right,
+        forces_function=f_accelerate_slow_down,
         obstacle=obstacle,
     )
 
 
-def circle_left(mesh_density, scale, final_time, tag=""):
+def circle_up_left(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
-        name=f"circle_left{tag}",
+        name=f"circle_up_left{tag}",
         mesh_prop=MeshProperties(
             dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_accelerate_slow_left,
+        forces_function=f_accelerate_slow_up_left,
         obstacle=obstacle,
     )
 
@@ -490,8 +523,8 @@ def get_train_data(**args):
     tag = "_train"
     return [
         polygon_two(**args, tag=tag),
-        spline_right(**args, tag=tag),
-        circle_left(**args, tag=tag),
+        spline_down(**args, tag=tag),
+        circle_up_left(**args, tag=tag),
         circle_rotate(**args, tag=tag),
         polygon_stay(**args, tag=tag),
     ]

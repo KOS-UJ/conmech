@@ -10,6 +10,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.body_forces import energy
 from conmech.scene.scene import EnergyObstacleArguments
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
@@ -19,19 +20,23 @@ def clean_acceleration(cleaned_a, a_correction):
     return cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
 
 
+def get_mean_loss(acceleration, forces):
+    return torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+
+
 def loss_normalized_obstacle_correction(
     cleaned_a: torch.Tensor,
-    forces: torch.Tensor,
     a_correction: torch.Tensor,
+    forces: torch.Tensor,
     args: EnergyObstacleArguments,
 ):
     acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
-    # main_loss = energy(acceleration, args.lhs, args.rhs)
+    main_loss = energy(acceleration, args.lhs, args.rhs)
     # boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
-    # check if is colliding, include mass_density
 
-    mean_loss = torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0))
-    return mean_loss  # main_loss  # + boundary_integral
+    # check if is colliding, include mass_density
+    mean_loss = get_mean_loss(forces, acceleration)
+    return main_loss + 100 * mean_loss  # + boundary_integral
 
 
 @numba.njit
@@ -51,8 +56,8 @@ def get_edges_data_numba(
     displacement_old_to,
     velocity_old_from,
     velocity_old_to,
-    forces_from,
-    forces_to,
+    # forces_from,
+    # forces_to,
     edges_data_dim,
 ):
     dimension = initial_nodes_to.shape[1]
@@ -68,7 +73,7 @@ def get_edges_data_numba(
         set_diff_numba(
             velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
         )
-        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
+        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -89,10 +94,8 @@ class EnergyObstacleArgumentsTorch:
     lhs: torch.Tensor
     rhs: torch.Tensor
     boundary_velocity_old: torch.Tensor
-    boundary_nodes: torch.Tensor
     boundary_normals: torch.Tensor
-    boundary_obstacle_nodes: torch.Tensor
-    boundary_obstacle_normals: torch.Tensor
+    initial_penetration: torch.Tensor
     surface_per_boundary_node: torch.Tensor
     obstacle_prop: ObstacleProperties
     time_step: float
@@ -165,34 +168,28 @@ class SceneInput(SceneLayers):
             velocity_old_to=self.prepare_node_data(
                 data=self.input_velocity_old, layer_number=layer_number_to
             ),
-            forces_from=self.prepare_node_data(
-                data=self.input_forces, layer_number=layer_number_from
-            ),
-            forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
+            # forces_from=self.prepare_node_data(
+            #     data=self.input_forces, layer_number=layer_number_from
+            # ),
+            # forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
             edges_data_dim=self.get_edges_data_dim(self.dimension),
         )
         return edges_data
 
     def get_nodes_data(self, layer_number):
-        boundary_penetration = self.prepare_node_data(
-            data=self.get_normalized_boundary_penetration(),
-            layer_number=layer_number,
-            add_norm=True,
-        )
-        boundary_normals = self.prepare_node_data(
-            data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
-        )
-        boundary_v_tangential = self.prepare_node_data(
-            data=self.get_normalized_boundary_v_tangential(),
-            layer_number=layer_number,
-            add_norm=True,
-        )
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
-        # boundary_forces = self.prepare_node_data(
-        #     layer_number=layer_number, data=self.boundary_forces, add_norm=True
-        # )
+        boundary_damping = self.prepare_node_data(
+            data=self.get_damping_input(),
+            layer_number=layer_number,
+            add_norm=True,
+        )
+        boundary_friction = self.prepare_node_data(
+            data=self.get_friction_input(),
+            layer_number=layer_number,
+            add_norm=True,
+        )
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
@@ -200,10 +197,8 @@ class SceneInput(SceneLayers):
         nodes_data = np.hstack(
             (
                 input_forces,
-                # boundary_forces,
-                boundary_penetration,
-                boundary_normals,
-                boundary_v_tangential,
+                boundary_damping,
+                boundary_friction,
                 boundary_volume,
             )
         )
@@ -305,10 +300,8 @@ class SceneInput(SceneLayers):
                 lhs=thh.to_double(self.solver_cache.lhs),
                 rhs=thh.to_double(self.get_normalized_rhs_np()),
                 boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
-                boundary_nodes=thh.to_double(self.normalized_boundary_nodes),
                 boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
-                boundary_obstacle_nodes=thh.to_double(self.norm_boundary_obstacle_nodes),
-                boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
+                initial_penetration=thh.to_double(self.get_penetration()),
                 surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
                 obstacle_prop=self.obstacle_prop,
                 time_step=self.schedule.time_step,
@@ -331,10 +324,8 @@ class SceneInput(SceneLayers):
         desc = []
         for attr in [
             "forces",
-            # "boundary_forces",
-            "boundary_penetration",
-            "boundary_normals",
-            "boundary_v_tangential",
+            "boundary_damping",
+            "boundary_friction",
         ]:
             for i in range(dimension):
                 desc.append(f"{attr}_{i}")
@@ -355,7 +346,7 @@ class SceneInput(SceneLayers):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old"]:  # , "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

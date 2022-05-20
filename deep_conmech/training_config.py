@@ -90,7 +90,7 @@ class TrainingConfig(Config):
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False
-    log_dataset_stats: bool = False  # True
+    log_dataset_stats: bool = True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

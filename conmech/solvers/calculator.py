@@ -121,8 +121,8 @@ class Calculator:
         setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         _ = initial_t
-        normalized_Q = setting.get_normalized_t_rhs_np(normalized_acceleration)
-        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_Q)
+        normalized_rhs = setting.get_normalized_t_rhs_np(normalized_acceleration)
+        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_rhs)
         return t_vector
 
     @staticmethod

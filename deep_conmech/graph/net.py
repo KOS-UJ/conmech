@@ -397,8 +397,8 @@ class CustomGraphNet(nn.Module):
             layer_number=main_layer_number,
             node_latents=node_latents,
         )
-        node_latents = node_latents + processed_node_latents * 0.0001
-        net_output = self.decoder(node_latents)
+        # node_latents = node_latents + processed_node_latents
+        net_output = self.decoder(processed_node_latents)
 
         # TODO: #65 Include mass_density
         return net_output  # main_layer.forces + net_output

@@ -10,6 +10,7 @@ from conmech.plotting import plotter_common
 from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from deep_conmech.scene.scene_input import SceneInput
 
 
 def get_fig():
@@ -83,7 +84,8 @@ def plot_frame(
 
     if draw_detailed:
         position = np.array([-3.7, 4.2]) * scale
-        draw_all_sparse(scene, position, axes=axes)
+        if isinstance(scene, SceneInput):
+            draw_all_sparse(scene, position, axes=axes)
 
         position = np.array([-6.2, -4.2]) * scale
         shift = 2.5 * scale
@@ -240,14 +242,14 @@ def draw_boundary_v_tangential(scene: Scene, position, axes):
     draw_moved_body("V_TNG", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        scene.get_normalized_boundary_v_tangential(),
+        scene.get_friction_input(),
         axes,
     )
 
 
 def draw_boundary_resistance_normal(scene: Scene, position, axes):
     draw_moved_body("RES_N", scene, position, axes)
-    data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
+    data = scene.get_damping_input() * scene.get_resistance_normal() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         data,

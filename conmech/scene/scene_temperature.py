@@ -1,7 +1,6 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.scene import scene
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
@@ -18,15 +17,14 @@ def obstacle_heat(
 
 
 def integrate(
-    nodes,
     nodes_normals,
-    obstacle_nodes,
-    obstacle_normals,
     velocity,
+    initial_penetration,
     nodes_volume,
     heat_coeff,
 ):
-    penetration_norm = scene.get_penetration_norm(nodes, obstacle_nodes, obstacle_normals)
+    penetration_norm = initial_penetration
+    # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
     v_tangential = nph.get_tangential(velocity, nodes_normals)
 
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
@@ -122,14 +120,10 @@ class SceneTemperature(Scene):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
-        boundary_normals = self.get_boundary_normals()
-        boundary_obstacle_normals = self.get_boundary_obstacle_normals()
         return integrate(
-            nodes=self.boundary_nodes,
-            nodes_normals=boundary_normals,
-            obstacle_nodes=self.boundary_obstacle_nodes,
-            obstacle_normals=boundary_obstacle_normals,
+            nodes_normals=self.get_boundary_normals(),
             velocity=self.boundary_velocity_old,
+            initial_penetration=self.get_penetration(),
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
         )
