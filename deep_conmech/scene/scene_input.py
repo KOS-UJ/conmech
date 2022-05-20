@@ -36,7 +36,7 @@ def loss_normalized_obstacle_correction(
 
     # check if is colliding, include mass_density
     mean_loss = get_mean_loss(forces, acceleration)
-    return main_loss + 100 * mean_loss  # + boundary_integral
+    return main_loss + 1000. * mean_loss  # + boundary_integral
 
 
 @numba.njit
