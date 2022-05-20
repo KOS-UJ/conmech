@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import numba
 import numpy as np
+import torch
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.helpers import nph
@@ -82,12 +83,7 @@ class EnergyObstacleArguments:
     time_step: float
 
 
-def energy_obstacle(
-    acceleration: np.ndarray,
-    args: EnergyObstacleArguments,
-):
-    value = energy(acceleration, args.lhs, args.rhs)
-
+def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
@@ -107,8 +103,17 @@ def energy_obstacle(
     )
 
     boundary_integral = integrate(integrate_args)
+    return boundary_integral
 
-    return value + boundary_integral
+
+def energy_obstacle(
+    acceleration,
+    args: EnergyObstacleArguments,
+):
+    main_loss = energy(acceleration, args.lhs, args.rhs)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+
+    return main_loss + boundary_integral
 
 
 @numba.njit

@@ -129,3 +129,7 @@ class SceneRandomized(Scene):
     @property
     def input_forces(self):
         return self.normalized_inner_forces
+
+    @property
+    def boundary_forces(self):
+        return self.normalized_inner_forces[self.boundary_indices]

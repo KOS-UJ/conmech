@@ -321,13 +321,6 @@ class CustomGraphNet(nn.Module):
             node_latents=(node_latents, node_latents_to),
             edge_latents=edge_latents,
         )
-        """
-        result = SceneLayers.approximate_internal(
-            from_values=node_latents,
-            closest_nodes=layer.closest_nodes_from_down,
-            closest_weights=layer.closest_weights_from_down,
-        )
-        """
         return new_node_latents
 
     def move_to_down(self, node_latents_up, node_latents, edge_latents, layer):
@@ -339,14 +332,6 @@ class CustomGraphNet(nn.Module):
         # residual connection (included in processor)
         # new_node_latents = node_latents + node_latents_from_up
         return new_node_latents
-        """
-        result = SceneLayers.approximate_internal(
-            from_values=node_latents,
-            closest_nodes=layer.closest_nodes_to_down,
-            closest_weights=layer.closest_weights_to_down,
-        )
-        return new_node_latents
-        """
 
     def propagate_messages(
         self, layer: Data, node_latents: torch.Tensor, edge_latents: torch.Tensor
@@ -407,13 +392,16 @@ class CustomGraphNet(nn.Module):
         # assert torch.allclose(nodes, nodes_new)
 
         node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
-        node_latents = self.process_by_layer(
+        processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
             layer_number=main_layer_number,
             node_latents=node_latents,
         )
+        node_latents = node_latents + processed_node_latents * 0.0001
         net_output = self.decoder(node_latents)
-        return net_output
+
+        # TODO: #65 Include mass_density
+        return net_output  # main_layer.forces + net_output
 
     def save(self, path):
         torch.save(self.state_dict(), path)

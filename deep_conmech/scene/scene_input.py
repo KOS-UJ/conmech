@@ -10,14 +10,28 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle
+from conmech.scene.scene import EnergyObstacleArguments
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
 
-def energy_normalized_obstacle_correction(cleaned_a, a_correction, args: EnergyObstacleArguments):
-    a = cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
-    return energy_obstacle(acceleration=a, args=args)
+def clean_acceleration(cleaned_a, a_correction):
+    return cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
+
+
+def loss_normalized_obstacle_correction(
+    cleaned_a: torch.Tensor,
+    forces: torch.Tensor,
+    a_correction: torch.Tensor,
+    args: EnergyObstacleArguments,
+):
+    acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
+    # main_loss = energy(acceleration, args.lhs, args.rhs)
+    # boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    # check if is colliding, include mass_density
+
+    mean_loss = torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0))
+    return mean_loss  # main_loss  # + boundary_integral
 
 
 @numba.njit
@@ -37,8 +51,8 @@ def get_edges_data_numba(
     displacement_old_to,
     velocity_old_from,
     velocity_old_to,
-    # forces_from,
-    # forces_to,
+    forces_from,
+    forces_to,
     edges_data_dim,
 ):
     dimension = initial_nodes_to.shape[1]
@@ -54,7 +68,7 @@ def get_edges_data_numba(
         set_diff_numba(
             velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
         )
-        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
+        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -89,10 +103,10 @@ class MeshLayerData(Data):
     #    super().__init__()
 
     def __inc__(self, key, value, *args, **kwargs):
-        if key == "edge_index_to_base":
-            return torch.tensor([[self.layer_nodes_count], [self.base_layer_nodes_count]])
-        if key == "edge_index_from_base":
-            return torch.tensor([[self.base_layer_nodes_count], [self.layer_nodes_count]])
+        if key == "closest_nodes_to_down":
+            return torch.tensor([self.layer_nodes_count])
+        if key == "closest_nodes_from_down":
+            return torch.tensor([self.down_layer_nodes_count])
         if key == "edge_index_to_down":
             return torch.tensor([[self.layer_nodes_count], [self.down_layer_nodes_count]])
         if key == "edge_index_from_down":
@@ -151,13 +165,13 @@ class SceneInput(SceneLayers):
             velocity_old_to=self.prepare_node_data(
                 data=self.input_velocity_old, layer_number=layer_number_to
             ),
-            # forces_from=self.prepare_node_data(
-            #    data=self.input_forces, layer_number=layer_number_from
-            # ),
-            # forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
+            forces_from=self.prepare_node_data(
+                data=self.input_forces, layer_number=layer_number_from
+            ),
+            forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
             edges_data_dim=self.get_edges_data_dim(self.dimension),
         )
-        return thh.to_double(edges_data)
+        return edges_data
 
     def get_nodes_data(self, layer_number):
         boundary_penetration = self.prepare_node_data(
@@ -176,6 +190,9 @@ class SceneInput(SceneLayers):
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
+        # boundary_forces = self.prepare_node_data(
+        #     layer_number=layer_number, data=self.boundary_forces, add_norm=True
+        # )
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
@@ -183,25 +200,22 @@ class SceneInput(SceneLayers):
         nodes_data = np.hstack(
             (
                 input_forces,
-                # self.input_displacement_old_torch,
-                # self.input_velocity_old_torch,
+                # boundary_forces,
                 boundary_penetration,
                 boundary_normals,
                 boundary_v_tangential,
                 boundary_volume,
-                # self.get_colliding_nodes_indicator_torch(),
-                # self.get_colliding_all_nodes_indicator_torch(),
             )
         )
-        return thh.to_double(nodes_data)
+        return nodes_data
 
     def get_multilayer_edges_with_data(
         self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
     ):
         closest_nodes = torch.tensor(link.closest_nodes)
-        closest_weights = thh.set_precision(torch.tensor(link.closest_weights))
+        closest_weights = thh.to_torch_set_precision(link.closest_weights)
         edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
-        edges_data = thh.set_precision(
+        edges_data = thh.to_torch_set_precision(
             self.get_edges_data(
                 directional_edges=edges_index_np,
                 layer_number_from=layer_number_from,
@@ -216,6 +230,10 @@ class SceneInput(SceneLayers):
             edges_data[:, distance_norm_index].numpy().reshape(-1, closest_nodes_count)
         )
         assert np.allclose(distances_link, distances_edges)
+        assert np.allclose(
+            edges_index_np,
+            edges_index.T.numpy(),
+        )
         return edges_index, edges_data, closest_nodes, closest_weights
 
     def get_features_data(self, layer_number: int, scene_index: int):
@@ -234,11 +252,13 @@ class SceneInput(SceneLayers):
             scene_id=torch.tensor([scene_index]),
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
-            node_scene_id=thh.to_long(np.repeat(scene_index, mesh.nodes_count)),
-            pos=thh.set_precision(thh.to_double(mesh.normalized_initial_nodes)),
-            x=thh.set_precision(self.get_nodes_data(layer_number)),
+            forces=thh.to_torch_set_precision(
+                self.prepare_node_data(layer_number=0, data=self.input_forces)
+            ),
+            pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
+            x=thh.to_torch_set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(layer_directional_edges),
-            edge_attr=thh.set_precision(
+            edge_attr=thh.to_torch_set_precision(
                 self.get_edges_data(
                     layer_directional_edges,
                     layer_number_from=layer_number,
@@ -254,27 +274,7 @@ class SceneInput(SceneLayers):
             data.down_layer_nodes_count = torch.tensor(
                 [self.all_layers[layer_number - 1].mesh.nodes_count]
             )
-            data.base_layer_nodes_count = torch.tensor([self.all_layers[0].mesh.nodes_count])
-            (
-                data.edge_index_to_base,
-                data.edge_attr_to_base,
-                data.closest_nodes_to_base,
-                data.closest_weights_to_base,
-            ) = self.get_multilayer_edges_with_data(
-                link=layer_data.to_base,
-                layer_number_from=layer_number,
-                layer_number_to=0,
-            )
-            (
-                data.edge_index_from_base,
-                data.edge_attr_from_base,
-                data.closest_nodes_from_base,
-                data.closest_weights_from_base,
-            ) = self.get_multilayer_edges_with_data(
-                link=layer_data.from_base,
-                layer_number_from=0,
-                layer_number_to=layer_number,
-            )
+
             (
                 data.edge_index_to_down,
                 data.edge_attr_to_down,
@@ -331,8 +331,7 @@ class SceneInput(SceneLayers):
         desc = []
         for attr in [
             "forces",
-            # "displacement_old",
-            # "velocity_old",
+            # "boundary_forces",
             "boundary_penetration",
             "boundary_normals",
             "boundary_v_tangential",
@@ -341,7 +340,7 @@ class SceneInput(SceneLayers):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]:  # , "is_colliding_nodes", "is_colliding_all_nodes"]:
+        for attr in ["boundary_volume"]:
             desc.append(attr)
         return desc
 
@@ -356,7 +355,7 @@ class SceneInput(SceneLayers):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old"]:  # "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

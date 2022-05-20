@@ -60,8 +60,6 @@ def plot_graph_layers():
 
     dataloader = base_dataset.get_train_dataloader(dataset)
     for batch_number, layer_list in enumerate(dataloader):
-        base_dataset.order_batch_layer_indices(layer_list)
-        base_layer = layer_list[0]
         for layer_number in range(1, len(layer_list)):
             up_layer = layer_list[layer_number]
             down_layer = layer_list[layer_number - 1]
@@ -72,7 +70,6 @@ def plot_graph_layers():
                 closest_nodes=up_layer.closest_nodes_to_down,
                 closest_weights=up_layer.closest_weights_to_down,
             )
-
             plot_comparison(
                 from_layer=up_layer,
                 to_layer=down_layer,
@@ -80,52 +77,17 @@ def plot_graph_layers():
                 description=f"{desc} to_down",
             )
 
-            #####
-
             approximated_nodes = SceneLayers.approximate_internal(
                 from_values=down_layer.pos,
                 closest_nodes=up_layer.closest_nodes_from_down,
                 closest_weights=up_layer.closest_weights_from_down,
             )
-
             plot_comparison(
                 from_layer=down_layer,
                 to_layer=up_layer,
                 approximated_nodes=approximated_nodes,
                 description=f"{desc} from_down",
             )
-
-            ##########
-
-            approximated_nodes = SceneLayers.approximate_internal(
-                from_values=up_layer.pos,
-                closest_nodes=up_layer.closest_nodes_to_base,
-                closest_weights=up_layer.closest_weights_to_base,
-            )
-
-            plot_comparison(
-                from_layer=up_layer,
-                to_layer=base_layer,
-                approximated_nodes=approximated_nodes,
-                description=f"{desc} to_base",
-            )
-
-            #####
-
-            approximated_nodes = SceneLayers.approximate_internal(
-                from_values=base_layer.pos,
-                closest_nodes=up_layer.closest_nodes_from_base,
-                closest_weights=up_layer.closest_weights_from_base,
-            )
-
-            plot_comparison(
-                from_layer=base_layer,
-                to_layer=up_layer,
-                approximated_nodes=approximated_nodes,
-                description=f"{desc} from_base",
-            )
-
-            a = 0
 
     cmh.clear_folder(output_catalog)
 

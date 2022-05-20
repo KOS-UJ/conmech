@@ -86,26 +86,6 @@ def get_assigned_scenarios(all_scenarios, num_workers, process_id):
     ]
     return assigned_scenarios
 
-
-def order_batch_layer_indices(layer_list: List[Data]):
-    def get_mask(layer):
-        mask = torch.zeros((len(layer.x), 1), dtype=torch.int64)
-        for j in layer.ptr[1:]:
-            mask[j:] += 1
-        return mask
-
-    layers_number = len(layer_list)
-    base_layer = layer_list[0]
-    for i in range(1, layers_number):
-        dense_layer = layer_list[i - 1]
-        sparse_layer = layer_list[i]
-
-        sparse_layer.closest_nodes_from_down += dense_layer.ptr[get_mask(sparse_layer)]
-        sparse_layer.closest_nodes_to_down += sparse_layer.ptr[get_mask(dense_layer)]
-        sparse_layer.closest_nodes_from_base += base_layer.ptr[get_mask(sparse_layer)]
-        sparse_layer.closest_nodes_to_base += sparse_layer.ptr[get_mask(base_layer)]
-
-
 class BaseDataset:
     def __init__(
         self,

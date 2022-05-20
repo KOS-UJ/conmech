@@ -24,5 +24,5 @@ jobs:
           pip install black==22.3.0 pylint==2.13.5
       - name: Checking code quality
         run: |
-          black -l 100 -t py37 --diff --check .
+          black -l 100 -t py37 --diff --check $(git ls-files '*.py')
           PYTHONPATH=. pylint --argument-rgx='[a-z_][a-z0-9_]{1,30}$|[xUVW]' --attr-rgx='[a-z_][a-z0-9_]{1,30}$' --variable-rgx='[a-z_A][a-z0-9_]{0,30}|[UVWXYZ]$' --disable=missing-docstring --disable=too-few-public-methods --disable=duplicate-code --notes='FIXME,XXX,###' --max-args=8 --max-attributes=16 --max-public-methods=32 --max-locals=24 --max-attributes=16 --generated-members=torch.* conmech/

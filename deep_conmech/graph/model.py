@@ -213,7 +213,6 @@ class GraphModelDynamic:
         mean_loss_array = np.zeros(self.labels_count)
         for _, layer_list in enumerate(batch_tqdm):
             # len(batch) ?
-            base_dataset.order_batch_layer_indices(layer_list)
 
             loss_array = step_function(layer_list, dataset)
 
@@ -306,6 +305,7 @@ class GraphModelDynamic:
 
         all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
+        forces_split = batch_main_layer.forces.to("cpu").split(graph_sizes_base)
 
         loss = 0.0
         loss_array = np.zeros(self.labels_count)
@@ -314,9 +314,10 @@ class GraphModelDynamic:
             energy_args = dataset.get_targets_data(scene_index)
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
+            forces = forces_split[batch_graph_index]
 
-            predicted_normalized_energy = scene_input.energy_normalized_obstacle_correction(
-                cleaned_a=predicted_normalized_a, **energy_args
+            predicted_normalized_energy = scene_input.loss_normalized_obstacle_correction(
+                cleaned_a=predicted_normalized_a, forces=forces, **energy_args
             )
             # if hasattr(energy_args, "exact_normalized_a"):
             #    exact_normalized_a = exact_normalized_a_split[i]
@@ -330,7 +331,7 @@ class GraphModelDynamic:
 
             loss_array[0] += predicted_normalized_energy
             if hasattr(energy_args, "exact_normalized_a"):
-                exact_normalized_energy = scene_input.energy_normalized_obstacle_correction(
+                exact_normalized_energy = scene_input.loss_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
                 loss_array[1] += float(

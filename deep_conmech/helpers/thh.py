@@ -16,7 +16,11 @@ def get_device_id():
     return "cuda" if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
 
 
-def set_precision(data):
+def to_torch_set_precision(data: np.ndarray):
+    return set_precision(to_double(data))
+
+
+def set_precision(data: torch.Tensor):
     return data.float()
 
 
