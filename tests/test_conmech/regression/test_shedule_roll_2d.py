@@ -59,4 +59,4 @@ def test_simulation(scenario, expected_boundary_nodes):
         ),
     )
 
-    np.testing.assert_array_almost_equal(setting.boundary_nodes, expected_boundary_nodes, decimal=2)
+    np.testing.assert_allclose(setting.boundary_nodes, expected_boundary_nodes, atol=0.01)
