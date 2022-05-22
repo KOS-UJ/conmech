@@ -43,6 +43,7 @@ class GraphModelDynamic:
         self.print_scenarios = print_scenarios
         self.loss_labels = [
             "energy",
+            "mean"
             # "energy_diff",
             # "RMSE_acc",
         ]  # "energy_diff", "energy_no_acc"]  # . "energy_main", "v_step_diff"]
@@ -316,7 +317,10 @@ class GraphModelDynamic:
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
             forces = forces_split[batch_graph_index]
 
-            predicted_normalized_energy = scene_input.loss_normalized_obstacle_correction(
+            (
+                predicted_normalized_energy,
+                mean_loss,
+            ) = scene_input.loss_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a, forces=forces, **energy_args
             )
             # if hasattr(energy_args, "exact_normalized_a"):
@@ -330,8 +334,12 @@ class GraphModelDynamic:
             )
 
             loss_array[0] += predicted_normalized_energy
+            loss_array[1] += mean_loss
             if hasattr(energy_args, "exact_normalized_a"):
-                exact_normalized_energy = scene_input.loss_normalized_obstacle_correction(
+                (
+                    exact_normalized_energy,
+                    exact_mean_energy,
+                ) = scene_input.loss_normalized_obstacle_correction(
                     cleaned_a=exact_normalized_a, **energy_args
                 )
                 loss_array[1] += float(

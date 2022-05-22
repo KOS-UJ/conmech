@@ -391,16 +391,17 @@ class CustomGraphNet(nn.Module):
         # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
         # assert torch.allclose(nodes, nodes_new)
 
-        node_latents = self.node_encoder(main_layer.x)  # position "pos" will not generalize
+        node_latents = self.node_encoder(main_layer.x)
+        # position "pos" will not generalize
         processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
             layer_number=main_layer_number,
             node_latents=node_latents,
         )
-        # node_latents = node_latents + processed_node_latents
-        net_output = self.decoder(processed_node_latents)
+        net_output = self.decoder(node_latents + processed_node_latents)  # processed_node_latents
 
         # TODO: #65 Include mass_density
+        # main_layer.x[:,:2]
         return net_output  # main_layer.forces + net_output
 
     def save(self, path):

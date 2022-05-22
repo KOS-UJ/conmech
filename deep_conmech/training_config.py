@@ -24,16 +24,16 @@ class TrainingData:
 
     forces_random_scale: float = 4.0
     obstacle_origin_max_scale: float = 3.0 * train_scale  # less
-    obstacle_origin_min_scale: float = 0.4 * train_scale
+    obstacle_origin_min_scale: float = 2.9 * train_scale  ## 0.4 * train_scale
     initial_corners_scale: float = 0.1
     displacement_random_scale: float = 0.2  # 0.2
     velocity_random_scale: float = 2.5
 
-    rotate_velocity_proportion: float = 0.0  # 0.5 if dimension == 2 else 0
-    zero_forces_proportion: float = 0.2
-    zero_displacement_proportion: float = 0.2  # .4
-    zero_velocity_proportion: float = 0.2  # .4
-    corners_scale_proportion: float = 0.8  # less
+    rotate_velocity_proportion: float = 0.5 if dimension == 2 else 0  ## 0.0
+    zero_forces_proportion: float = 0.4  ## 0.2
+    zero_displacement_proportion: float = 0.4  ## 0.2
+    zero_velocity_proportion: float = 0.4  ## 0.2
+    corners_scale_proportion: float = 0.6  ## 0.8
 
     displacement_to_velocity_noise: float = 0.1
     displacement_in_random_factor: float = 0.005 * displacement_random_scale

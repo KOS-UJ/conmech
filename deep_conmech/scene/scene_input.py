@@ -11,7 +11,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import energy
-from conmech.scene.scene import EnergyObstacleArguments
+from conmech.scene.scene import EnergyObstacleArguments, get_boundary_integral
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
@@ -21,7 +21,7 @@ def clean_acceleration(cleaned_a, a_correction):
 
 
 def get_mean_loss(acceleration, forces):
-    return torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+    return 1000.0 * torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
 
 
 def loss_normalized_obstacle_correction(
@@ -32,11 +32,12 @@ def loss_normalized_obstacle_correction(
 ):
     acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
     main_loss = energy(acceleration, args.lhs, args.rhs)
-    # boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
 
     # check if is colliding, include mass_density
     mean_loss = get_mean_loss(forces, acceleration)
-    return main_loss + 1000. * mean_loss  # + boundary_integral
+    # + mean_loss * (boundary_integral == 0)
+    return main_loss + boundary_integral, mean_loss
 
 
 @numba.njit
@@ -180,6 +181,23 @@ class SceneInput(SceneLayers):
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
+        # boundary_normals = self.prepare_node_data(
+        #     data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
+        # )
+        # friction_vector = self.prepare_node_data(
+        #     data=self.get_friction_vector(),
+        #     layer_number=layer_number,
+        # )
+        # # boundary_penetration = self.prepare_node_data(
+        # #     data=self.get_normalized_boundary_penetration(),
+        # #     layer_number=layer_number,
+        # #     add_norm=True,
+        # # )
+        # boundary_penetration_norm = self.prepare_node_data(
+        #     data=self.get_penetration_norm(),
+        #     layer_number=layer_number,
+        # )
+
         boundary_damping = self.prepare_node_data(
             data=self.get_damping_input(),
             layer_number=layer_number,
@@ -190,10 +208,10 @@ class SceneInput(SceneLayers):
             layer_number=layer_number,
             add_norm=True,
         )
+
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
-
         nodes_data = np.hstack(
             (
                 input_forces,
