@@ -59,4 +59,4 @@ def test_simulation(scenario, expected_boundary_nodes):
         ),
     )
 
-    np.testing.assert_allclose(setting.boundary_nodes, expected_boundary_nodes, atol=0.02)
+    np.testing.assert_allclose(setting.boundary_nodes, expected_boundary_nodes, atol=0.03)
