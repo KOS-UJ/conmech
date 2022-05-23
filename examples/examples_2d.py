@@ -32,9 +32,7 @@ def main(mesh_density=4, final_time=5, plot_animation=True):
         Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), scenarios.default_obstacle_prop),
     ]
     all_scenarios = [
-        scenarios.polygon_mesh_obstacles(
-            mesh_density=mesh_density, scale=1, is_adaptive=False, final_time=final_time
-        ),
+        scenarios.polygon_mesh_obstacles(mesh_density=mesh_density, scale=1, final_time=final_time),
         Scenario(
             name="circle_slide_roll",
             mesh_prop=MeshProperties(

@@ -66,7 +66,7 @@ class Scenario:
     def get_solve_function():
         return Calculator.solve
 
-    def get_setting(
+    def get_scene(
         self,
         normalize_by_rotation=True,
         randomize=False,
@@ -125,7 +125,7 @@ class TemperatureScenario(Scenario):
     def get_solve_function():
         return Calculator.solve_with_temperature
 
-    def get_setting(
+    def get_scene(
         self,
         normalize_by_rotation=True,
         randomize=False,
@@ -173,7 +173,6 @@ obstacle_mesh_prop = [
         mesh_type="pygmsh_circle",
         scale=[1],
         mesh_density=[4],
-        is_adaptive=False,
         initial_position=np.array([1.5, 0.0]),
     ),
     MeshProperties(
@@ -181,7 +180,6 @@ obstacle_mesh_prop = [
         mesh_type="pygmsh_rectangle",
         scale=[1],
         mesh_density=[4],
-        is_adaptive=False,
         initial_position=np.array([-1.5, 0.0]),
     ),
 ]
@@ -270,6 +268,39 @@ def f_accelerate_slow_left(
     return force
 
 
+def f_accelerate_slow_up(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([0.0, 0.5])
+    return force
+
+
+def f_accelerate_slow_down(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([0.0, -0.5])
+    return force
+
+
+def f_accelerate_slow_up_left(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = initial_node, moved_node, mesh_prop, time
+    force = np.array([-0.5, 0.5])
+    return force
+
+
 def f_stay(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
@@ -329,18 +360,14 @@ def f_rotate_3d(
     return np.array([0.0, 0.0, 0.0])
 
 
-def polygon_mesh_obstacles(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle(
         geometry=None, properties=default_obstacle_prop, all_mesh=obstacle_mesh_prop
     )
     return Scenario(
         name=f"polygon_mesh_obstacles{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -349,16 +376,12 @@ def polygon_mesh_obstacles(mesh_density, scale, is_adaptive, final_time, tag="")
     )
 
 
-def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
+def circle_slope(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"circle_slope{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_CIRCLE,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -367,53 +390,41 @@ def circle_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def spline_right(mesh_density, scale, is_adaptive, final_time, tag=""):
-    obstacle = Obstacle.get_linear_obstacle("front", default_obstacle_prop)
+def spline_down(mesh_density, scale, final_time, tag=""):
+    obstacle = Obstacle.get_linear_obstacle("bottom", default_obstacle_prop)
     return Scenario(
-        name=f"spline_right{tag}",
+        name=f"spline_down{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_SPLINE,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_SPLINE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_accelerate_slow_right,
+        forces_function=f_accelerate_slow_down,
         obstacle=obstacle,
     )
 
 
-def circle_left(mesh_density, scale, is_adaptive, final_time, tag=""):
+def circle_up_left(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
-        name=f"circle_left{tag}",
+        name=f"circle_up_left{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_CIRCLE,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_accelerate_slow_left,
+        forces_function=f_accelerate_slow_up_left,
         obstacle=obstacle,
     )
 
 
-def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_left(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     obstacle.geometry *= scale
     return Scenario(
         name=f"polygon_left{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -422,16 +433,12 @@ def polygon_left(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_slope(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"polygon_slope{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -440,16 +447,12 @@ def polygon_slope(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
+def circle_rotate(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_CIRCLE,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -458,16 +461,12 @@ def circle_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_rotate(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_rotate{tag}",
         mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[scale],
-            mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
+            dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -476,7 +475,7 @@ def polygon_rotate(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_stay(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_stay{tag}",
@@ -485,7 +484,6 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
             mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -494,7 +492,7 @@ def polygon_stay(mesh_density, scale, is_adaptive, final_time, tag=""):
     )
 
 
-def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
+def polygon_two(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("two", default_obstacle_prop)
     return Scenario(
         name=f"polygon_two{tag}",
@@ -503,7 +501,6 @@ def polygon_two(mesh_density, scale, is_adaptive, final_time, tag=""):
             mesh_type=M_POLYGON,
             scale=[scale],
             mesh_density=[mesh_density],
-            is_adaptive=is_adaptive,
         ),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=final_time),
@@ -526,8 +523,8 @@ def get_train_data(**args):
     tag = "_train"
     return [
         polygon_two(**args, tag=tag),
-        spline_right(**args, tag=tag),
-        circle_left(**args, tag=tag),
+        spline_down(**args, tag=tag),
+        circle_up_left(**args, tag=tag),
         circle_rotate(**args, tag=tag),
         polygon_stay(**args, tag=tag),
     ]
@@ -548,7 +545,6 @@ def all_train(td):
     return get_train_data(
         mesh_density=td.mesh_density,
         scale=td.train_scale,
-        is_adaptive=False,
         final_time=td.final_time,
     )
 
@@ -559,7 +555,6 @@ def all_validation(td):
     return get_valid_data(
         mesh_density=td.mesh_density,
         scale=td.validation_scale,
-        is_adaptive=False,
         final_time=td.final_time,
     )
 
@@ -575,13 +570,11 @@ def all_print(td):
         *get_valid_data(
             mesh_density=td.mesh_density,
             scale=td.print_scale,
-            is_adaptive=False,
             final_time=td.final_time,
         ),
         *get_train_data(
             mesh_density=td.mesh_density,
             scale=td.print_scale,
-            is_adaptive=False,
             final_time=td.final_time,
         ),
     ]

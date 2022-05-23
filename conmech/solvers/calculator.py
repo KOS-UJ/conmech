@@ -7,7 +7,7 @@ import scipy.optimize
 from conmech.helpers import nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.graph.scene.scene_randomized import SceneRandomized
+from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 class Calculator:
@@ -40,7 +40,7 @@ class Calculator:
         ).x
 
     @staticmethod
-    def solve(setting: SceneRandomized, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
+    def solve(setting: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
         cleaned_a, _ = Calculator.solve_all(setting, initial_a)
         return cleaned_a
 
@@ -53,7 +53,7 @@ class Calculator:
 
     @staticmethod
     def solve_with_temperature(
-        setting: SceneTemperature,
+        scene: SceneTemperature,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ):
@@ -61,7 +61,7 @@ class Calculator:
         max_iter = 10
         i = 0
         normalized_a = None
-        temperature = setting.t_old
+        temperature = scene.t_old
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
         while (
             i < 2
@@ -69,22 +69,24 @@ class Calculator:
             and not np.allclose(last_t, temperature)
         ):
             last_normalized_a, last_t = normalized_a, temperature
-            normalized_a = Calculator.solve_acceleration_normalized(setting, temperature, initial_a)
-            temperature = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
+            normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
+            temperature = Calculator.solve_temperature_normalized(scene, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
                 raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
             if uzawa is False:
                 break
 
-        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
-        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
-        cleaned_t = Calculator.clean_temperature(setting, temperature)
+        normalized_cleaned_a = Calculator.clean_acceleration(scene, normalized_a)
+        cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
+        cleaned_t = Calculator.clean_temperature(scene, temperature)
         return cleaned_a, cleaned_t
 
     @staticmethod
-    def solve_temperature(setting: SceneTemperature, normalized_a: np.ndarray, initial_t):
-        t = Calculator.solve_temperature_normalized(setting, normalized_a, initial_t)
+    def solve_temperature(
+        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
+    ):
+        t = Calculator.solve_temperature_normalized(setting, normalized_acceleration, initial_t)
         cleaned_t = Calculator.clean_temperature(setting, t)
         return cleaned_t
 
@@ -102,23 +104,25 @@ class Calculator:
     @staticmethod
     def solve_temperature_normalized(
         setting: SceneTemperature,
-        normalized_a: np.ndarray,
+        normalized_acceleration: np.ndarray,
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding():
             return Calculator.solve_temperature_normalized_optimization(
-                setting, normalized_a, initial_t
+                setting, normalized_acceleration, initial_t
             )
-        return Calculator.solve_temperature_normalized_function(setting, normalized_a, initial_t)
+        return Calculator.solve_temperature_normalized_function(
+            setting, normalized_acceleration, initial_t
+        )
 
     @staticmethod
     def solve_temperature_normalized_function(
-        setting: SceneTemperature, normalized_a: np.ndarray, initial_t
+        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         _ = initial_t
-        normalized_Q = setting.get_normalized_t_rhs_np(normalized_a)
-        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_Q)
+        normalized_rhs = setting.get_normalized_t_rhs_np(normalized_acceleration)
+        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_rhs)
         return t_vector
 
     @staticmethod
@@ -176,15 +180,16 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(setting: Scene, normalized_a):
-        if normalized_a is None:
+    def clean_acceleration(scene: Scene, normalized_acceleration):
+        if normalized_acceleration is None:
             return None
-        if not isinstance(setting, SceneRandomized):
-            return normalized_a
-        return normalized_a + setting.normalized_a_correction
+        if not isinstance(scene, SceneRandomized):
+            return normalized_acceleration
+        return normalized_acceleration + scene.normalized_a_correction
 
     @staticmethod
-    def clean_temperature(_setting, temperature):
+    def clean_temperature(scene, temperature):
+        _ = scene
         return temperature if temperature is not None else None
 
     @staticmethod

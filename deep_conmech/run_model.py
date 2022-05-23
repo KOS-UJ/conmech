@@ -14,7 +14,9 @@ from deep_conmech.training_config import TrainingConfig
 
 def train(config: TrainingConfig):
     train_dataset = get_train_dataset(config.td.dataset, config=config)
-    statistics = train_dataset.get_statistics() if config.td.use_dataset_statistics else None
+    statistics = (
+        train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
+    )
     net = get_net(statistics, config)
 
     all_val_datasets = get_all_val_datasets(config=config)
@@ -32,7 +34,7 @@ def train(config: TrainingConfig):
 def plot(config: TrainingConfig):
     if config.td.use_dataset_statistics:
         train_dataset = get_train_dataset(config.td.dataset, config=config)
-        statistics = train_dataset.get_statistics()
+        statistics = train_dataset.get_statistics(layer_number=0)
     else:
         statistics = None
 
@@ -48,6 +50,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
+            layers_count=config.td.mesh_layers_count,
             load_features_to_ram=config.load_train_features_to_ram,
             load_targets_to_ram=config.load_train_targets_to_ram,
             with_scenes_file=config.with_train_scenes_file,
@@ -58,6 +61,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
         train_dataset = CalculatorDataset(
             description="train",
             all_scenarios=scenarios.all_train(config.td),
+            layers_count=config.td.mesh_layers_count,
             skip_index=1,
             load_features_to_ram=config.load_train_features_to_ram,
             load_targets_to_ram=config.load_train_targets_to_ram,
@@ -87,6 +91,7 @@ def get_all_val_datasets(config: TrainingConfig):
         CalculatorDataset(
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
+            layers_count=config.td.mesh_layers_count,
             skip_index=skip_index,
             load_features_to_ram=False,
             load_targets_to_ram=False,

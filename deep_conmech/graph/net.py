@@ -1,16 +1,17 @@
 from ctypes import ArgumentError
-from typing import Optional
+from typing import List, Optional
 
 import torch
 from torch import nn
 from torch.nn import Parameter
+from torch_geometric.data.batch import Data
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingData
 
 
@@ -196,8 +197,9 @@ class Attention(nn.Module):
         return alpha
 
 
+# pylint: disable=W0223, W0221
 class ProcessorLayer(MessagePassing):
-    def __init__(self, attention: Attention, td: TrainingData):
+    def __init__(self, td: TrainingData):
         super().__init__()
 
         self.edge_processor = ForwardNet(
@@ -218,41 +220,34 @@ class ProcessorLayer(MessagePassing):
             layer_norm=td.layer_norm,
             td=td,
         )
-        self.attention = attention
+        self.attention = Attention(td=td)
 
         self.epsilon = Parameter(torch.Tensor(1))
         self.new_edge_latents = None
 
-        # change heads to a
-        # self.bias = Parameter(torch.Tensor(out_channels))
-        # self.att_dst = Parameter(torch.Tensor(1, heads, out_channels))
-
-    def forward(self, batch, node_latents, edge_latents):
-        self.new_edge_latents = None
-        return self.propagate(
-            edge_index=batch.edge_index,
-            node_latents=node_latents,
-            edge_latents=edge_latents,
+    def forward(self, edge_index, node_latents, edge_latents):
+        new_node_latents = self.propagate(
+            edge_index=edge_index, node_latents=node_latents, edge_latents=edge_latents
         )
+        new_edge_latents = self.new_edge_latents
+        self.new_edge_latents = None
+        return new_node_latents, new_edge_latents
 
-    def message(self, node_latents_i, node_latents_j, edge_latents, index):
+    def message(self, node_latents_i, node_latents_j, edge_latents):  # index
         edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
         self.new_edge_latents = edge_latents + self.edge_processor(edge_inputs)
+        return self.new_edge_latents
 
-        alpha = self.attention(edge_latents, index)
-        weighted_edge_latents = alpha * self.new_edge_latents
-        return weighted_edge_latents
-
-    def aggregate(self, weighted_edge_latents, index):
-        aggregated_edge_latents = scatter_sum(weighted_edge_latents, index, dim=0)
+    def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
+        alpha = self.attention(new_edge_latents, index)
+        aggregated_edge_latents = scatter_sum(alpha * self.new_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
     def update(self, aggregated_edge_latents, node_latents):
-        # node_inputs = aggregated_edge_latents
-        # node_inputs = ((1 + self.epsilon) * node_latents) + aggregated_edge_latents))
-        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
-        new_node_latents = node_latents + self.node_processor(node_inputs)
-        return new_node_latents, self.new_edge_latents
+        to_node_latents = node_latents[-1] if isinstance(node_latents, tuple) else node_latents
+        node_inputs = torch.hstack((to_node_latents, aggregated_edge_latents))
+        new_node_latents = to_node_latents + self.node_processor(node_inputs)
+        return new_node_latents
 
 
 class CustomGraphNet(nn.Module):
@@ -265,7 +260,7 @@ class CustomGraphNet(nn.Module):
         self.td = td
 
         self.node_encoder = ForwardNet(
-            input_dim=SceneInput.nodes_data_dim(td.dimension),
+            input_dim=SceneInput.get_nodes_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -275,7 +270,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.edge_encoder = ForwardNet(
-            input_dim=SceneInput.edges_data_dim(td.dimension),
+            input_dim=SceneInput.get_edges_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.edges_statistics,
@@ -284,11 +279,14 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        self.attention = Attention(td=td)
-
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer(attention=self.attention, td=td) for _ in range(td.message_passes)]
+            [
+                ProcessorLayer(td=td)
+                for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
+            ]
         )
+        self.upward_processor_layer = ProcessorLayer(td=td)
+        self.downward_processor_layer = ProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
             input_dim=td.latent_dimension,
@@ -316,18 +314,95 @@ class CustomGraphNet(nn.Module):
     def edge_statistics(self):
         return self.edge_encoder.statistics
 
-    def forward(self, batch):
-        node_input = batch.x  # position "pos" will not generalize
-        edge_input = batch.edge_attr
+    def move_from_down(self, node_latents, edge_latents, layer):
+        node_latents_to = self.node_encoder(layer.x)
+        new_node_latents, _ = self.upward_processor_layer(
+            edge_index=layer.edge_index_from_down,
+            node_latents=(node_latents, node_latents_to),
+            edge_latents=edge_latents,
+        )
+        return new_node_latents
 
-        node_latents = self.node_encoder(node_input)
-        edge_latents = self.edge_encoder(edge_input)
+    def move_to_down(self, node_latents_up, node_latents, edge_latents, layer):
+        new_node_latents, _ = self.downward_processor_layer(
+            edge_index=layer.edge_index_to_down,
+            node_latents=(node_latents_up, node_latents),
+            edge_latents=edge_latents,
+        )
+        # residual connection (included in processor)
+        # new_node_latents = node_latents + node_latents_from_up
+        return new_node_latents
 
-        for processor_layer in self.processor_layers:
-            node_latents, edge_latents = processor_layer(batch, node_latents, edge_latents)
+    def propagate_messages(
+        self, layer: Data, node_latents: torch.Tensor, edge_latents: torch.Tensor
+    ):
+        for _ in range(self.td.message_passes):
+            node_latents, edge_latents = self.processor_layers[self.processor_number](
+                layer.edge_index, node_latents, edge_latents
+            )
+            self.processor_number += 1
+        return node_latents, edge_latents
 
-        net_output = self.decoder(node_latents)
-        return net_output
+    def process_by_layer(
+        self, layer_list: List[Data], layer_number: int, node_latents: torch.Tensor
+    ):
+        layer = layer_list[layer_number]
+        edge_latents = self.edge_encoder(layer.edge_attr)
+
+        node_latents, edge_latents = self.propagate_messages(
+            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+        )
+
+        if layer_number == len(layer_list) - 1:
+            return node_latents
+
+        layer_up = layer_list[layer_number + 1]
+
+        node_latents_up = self.move_from_down(
+            node_latents=node_latents,
+            edge_latents=self.edge_encoder(layer_up.edge_attr_from_down),
+            layer=layer_up,
+        )
+
+        node_latents_up = self.process_by_layer(
+            layer_list=layer_list,
+            layer_number=layer_number + 1,
+            node_latents=node_latents_up,
+        )
+
+        node_latents = self.move_to_down(
+            node_latents_up=node_latents_up,
+            edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
+            layer=layer_up,
+            node_latents=node_latents,
+        )
+
+        node_latents, edge_latents = self.propagate_messages(
+            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+        )
+        return node_latents
+
+    def forward(self, layer_list: List[Data], main_layer_number: int):
+        main_layer = layer_list[main_layer_number]
+        self.processor_number = 0
+
+        # nodes = main_layer.pos
+        # nodes_up = self.move_from_down(node_latents=nodes, layer=layer_list[1])
+        # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
+        # assert torch.allclose(nodes, nodes_new)
+
+        node_latents = self.node_encoder(main_layer.x)
+        # position "pos" will not generalize
+        processed_node_latents = self.process_by_layer(
+            layer_list=layer_list,
+            layer_number=main_layer_number,
+            node_latents=node_latents,
+        )
+        net_output = self.decoder(node_latents + processed_node_latents)  # processed_node_latents
+
+        # TODO: #65 Include mass_density
+        # main_layer.x[:,:2]
+        return net_output  # main_layer.forces + net_output
 
     def save(self, path):
         torch.save(self.state_dict(), path)
@@ -336,16 +411,20 @@ class CustomGraphNet(nn.Module):
         self.load_state_dict(torch.load(path))
         self.eval()
 
-    def solve_all(self, setting):
+    def solve_all(self, scene: SceneInput):
         self.eval()
-
-        batch = setting.get_data()[0].to(self.device)
-        normalized_a_cuda = self(batch)
+        layers_count = len(scene.all_layers)
+        layers_list = [
+            scene.get_features_data(scene_index=0, layer_number=layer_number).to(self.device)
+            for layer_number in range(layers_count)
+        ]
+        normalized_a_cuda = self(layer_list=layers_list, main_layer_number=0)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
-        a = setting.denormalize_rotate(normalized_a)
+        a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a
 
-    def solve(self, setting, initial_a):
-        a, _ = self.solve_all(setting)
+    def solve(self, scene: SceneInput, initial_a):
+        _ = initial_a
+        a, _ = self.solve_all(scene)
         return a

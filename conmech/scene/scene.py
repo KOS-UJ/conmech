@@ -6,6 +6,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -14,10 +15,8 @@ from conmech.scene.body_forces import BodyForces, energy
 from conmech.state.body_position import BodyPosition
 
 
-def get_penetration_norm(nodes, obstacle_nodes, obstacle_normals):
-    projection = (-1) * nph.elementwise_dot((nodes - obstacle_nodes), obstacle_normals).reshape(
-        -1, 1
-    )
+def get_new_penetration_norm(displacement_step, normals, penetration):
+    projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
     return (projection > 0) * projection
 
 
@@ -42,10 +41,9 @@ def obstacle_resistance_potential_tangential(
 @dataclass
 class IntegrateArguments:
     velocity: np.ndarray
-    nodes: np.ndarray
+    displacement_step: np.ndarray
+    penetration: np.ndarray
     normals: np.ndarray
-    obstacle_nodes: np.ndarray
-    obstacle_normals: np.ndarray
     nodes_volume: np.ndarray
     hardness: float
     friction: float
@@ -53,15 +51,16 @@ class IntegrateArguments:
 
 
 def integrate(args: IntegrateArguments):
-    penetration_norm = get_penetration_norm(args.nodes, args.obstacle_nodes, args.obstacle_normals)
-
+    penetration_norm = get_new_penetration_norm(
+        args.displacement_step, args.normals, args.penetration
+    )
     velocity_tangential = nph.get_tangential(args.velocity, args.normals)
 
     resistance_normal = obstacle_resistance_potential_normal(
         penetration_norm, args.hardness, args.time_step
     )
     resistance_tangential = obstacle_resistance_potential_tangential(
-        penetration_norm, velocity_tangential, args.friction, args.time_step
+        args.penetration, velocity_tangential, args.friction, args.time_step
     )
     result = (args.nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return result
@@ -72,33 +71,25 @@ class EnergyObstacleArguments:
     lhs: np.ndarray
     rhs: np.ndarray
     boundary_velocity_old: np.ndarray
-    boundary_nodes: np.ndarray
     boundary_normals: np.ndarray
-    boundary_obstacle_nodes: np.ndarray
-    boundary_obstacle_normals: np.ndarray
+    penetration: np.ndarray
     surface_per_boundary_node: np.ndarray
     obstacle_prop: ObstacleProperties
     time_step: float
 
 
-def energy_obstacle(
-    acceleration: np.ndarray,
-    args: EnergyObstacleArguments,
-):
-    value = energy(acceleration, args.lhs, args.rhs)
-
+def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
     boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
-    boundary_nodes_new = args.boundary_nodes + args.time_step * boundary_v_new
+    boundary_displacement_step = args.time_step * boundary_v_new
 
     integrate_args = IntegrateArguments(
         velocity=boundary_v_new,
-        nodes=boundary_nodes_new,
+        displacement_step=boundary_displacement_step,
+        penetration=args.penetration,
         normals=args.boundary_normals,
-        obstacle_nodes=args.boundary_obstacle_nodes,
-        obstacle_normals=args.boundary_obstacle_normals,
         nodes_volume=args.surface_per_boundary_node,
         hardness=args.obstacle_prop.hardness,
         friction=args.obstacle_prop.friction,
@@ -106,8 +97,17 @@ def energy_obstacle(
     )
 
     boundary_integral = integrate(integrate_args)
+    return boundary_integral
 
-    return value + boundary_integral
+
+def energy_obstacle(
+    acceleration,
+    args: EnergyObstacleArguments,
+):
+    main_energy = energy(acceleration, args.lhs, args.rhs)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+
+    return main_energy + boundary_integral
 
 
 @numba.njit
@@ -177,14 +177,13 @@ class Scene(BodyForces):
 
     def get_normalized_energy_obstacle_np(self, temperature=None):
         normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_np(temperature)
+        penetration = self.get_penetration()
         args = EnergyObstacleArguments(
             lhs=self.solver_cache.lhs_boundary,
             rhs=normalized_rhs_boundary,
             boundary_velocity_old=self.norm_boundary_velocity_old,
-            boundary_nodes=self.normalized_boundary_nodes,
             boundary_normals=self.get_normalized_boundary_normals(),
-            boundary_obstacle_nodes=self.norm_boundary_obstacle_nodes,
-            boundary_obstacle_normals=self.get_norm_boundary_obstacle_normals(),
+            penetration=penetration,
             surface_per_boundary_node=self.get_surface_per_boundary_node(),
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
@@ -254,49 +253,80 @@ class Scene(BodyForces):
     def normalized_boundary_nodes(self):
         return self.normalized_nodes[self.boundary_indices]
 
-    def get_boundary_penetration_norm(self):
-        return get_penetration_norm(
-            self.boundary_nodes, self.boundary_obstacle_nodes, self.get_boundary_obstacle_normals()
-        )
+    def get_penetration(self):
+        return (-1) * nph.elementwise_dot(
+            (self.normalized_boundary_nodes - self.norm_boundary_obstacle_nodes),
+            self.get_norm_boundary_obstacle_normals(),
+        ).reshape(-1, 1)
 
-    def get_boundary_penetration(self):
-        return self.get_boundary_penetration_norm() * self.get_boundary_obstacle_normals()
+    def get_penetration_norm(self):
+        penetration = self.get_penetration()
+        return penetration * (penetration > 0)
+
+    def __get_boundary_penetration(self):
+        return (-1) * self.get_penetration_norm() * self.get_boundary_normals()
 
     def get_normalized_boundary_penetration(self):
-        return self.normalize_rotate(self.get_boundary_penetration())
+        return self.normalize_rotate(self.__get_boundary_penetration())
 
-    def get_normalized_boundary_v_tangential(self):
+    def get_damping_input(self):
+        return self.obstacle_prop.hardness * self.get_normalized_boundary_penetration()
+
+    def __get_boundary_v_tangential(self):
+        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
+
+    def __get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
             self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
-        ) * (self.get_boundary_penetration_norm() > 0)
+        )
 
-    def get_boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
+    def get_friction_vector(self):
+        return (self.get_penetration() > 0) * np.nan_to_num(
+            nph.normalize_euclidean_numba(self.__get_normalized_boundary_v_tangential())
+        )
+
+    def get_friction_input(self):
+        return self.obstacle_prop.friction * self.get_friction_vector()
 
     def get_resistance_normal(self):
         return obstacle_resistance_potential_normal(
-            self.get_boundary_penetration_norm(), self.obstacle_prop.hardness, self.time_step
+            self.get_penetration_norm(), self.obstacle_prop.hardness, self.time_step
         )
 
     def get_resistance_tangential(self):
         return obstacle_resistance_potential_tangential(
-            self.get_boundary_penetration_norm(),
-            self.get_boundary_v_tangential(),
+            self.get_penetration_norm(),
+            self.__get_boundary_v_tangential(),
             self.obstacle_prop.friction,
             self.time_step,
         )
 
-    def complete_boundary_data_with_zeros(self, data):
-        # return np.resize(data, (self.nodes_count, data.shape[1]))
-        completed_data = np.zeros((self.nodes_count, data.shape[1]), dtype=data.dtype)
-        completed_data[self.boundary_indices] = data
-        return completed_data
+    @staticmethod
+    def complete_mesh_boundary_data_with_zeros(mesh: Mesh, data: np.ndarray):
+        return np.pad(data, ((0, mesh.nodes_count - len(data)), (0, 0)), "constant")
+
+    def complete_boundary_data_with_zeros(self, data: np.ndarray):
+        return Scene.complete_mesh_boundary_data_with_zeros(self, data)
 
     @property
     def has_no_obstacles(self):
         return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
 
-    def is_colliding(self):
+    def get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
-            return False
-        return np.any(self.get_boundary_penetration_norm() > 0)
+            return np.zeros((self.nodes_count, 1), dtype=np.int64)
+        return self.complete_boundary_data_with_zeros((self.get_penetration() > 0) * 1)
+
+    def is_colliding(self):
+        return np.any(self.get_colliding_nodes_indicator())
+
+    def get_colliding_all_nodes_indicator(self):
+        if self.is_colliding():
+            return np.ones((self.nodes_count, 1), dtype=np.int64)
+        return np.zeros((self.nodes_count, 1), dtype=np.int64)
+
+    def clear_for_save(self):
+        self.element_initial_volume = None
+        self.acceleration_operator = None
+        self.thermal_expansion = None
+        self.thermal_conductivity = None

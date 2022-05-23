@@ -4,6 +4,7 @@ torch helpers
 import numpy as np
 import torch
 
+from deep_conmech import training_config
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -12,18 +13,22 @@ def device(training_config: TrainingConfig):
 
 
 def get_device_id():
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    return "cuda" if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
 
 
-def set_precision(data):
+def to_torch_set_precision(data: np.ndarray):
+    return set_precision(to_double(data))
+
+
+def set_precision(data: torch.Tensor):
     return data.float()
 
 
-def to_torch_double(data):
+def to_double(data):
     return torch.tensor(data, dtype=torch.float64)
 
 
-def to_torch_long(data):
+def to_long(data):
     return torch.tensor(data, dtype=torch.long)
 
 
@@ -36,7 +41,7 @@ def to_np_long(data):
 
 
 def get_contiguous_torch(data):
-    return to_torch_long(data).t().contiguous()
+    return to_long(data).t().contiguous()
 
 
 def append_euclidean_norm(data):

@@ -1,9 +1,8 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.scene import scene
-from conmech.scene.scene import Scene
 from conmech.scene.body_forces import energy
+from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
 
 
@@ -18,15 +17,14 @@ def obstacle_heat(
 
 
 def integrate(
-    nodes,
     nodes_normals,
-    obstacle_nodes,
-    obstacle_normals,
     velocity,
+    initial_penetration,
     nodes_volume,
     heat_coeff,
 ):
-    penetration_norm = scene.get_penetration_norm(nodes, obstacle_nodes, obstacle_normals)
+    penetration_norm = initial_penetration
+    # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
     v_tangential = nph.get_tangential(velocity, nodes_normals)
 
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
@@ -55,9 +53,9 @@ class SceneTemperature(Scene):
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None
 
-    def get_normalized_energy_temperature_np(self, normalized_a):
+    def get_normalized_energy_temperature_np(self, normalized_acceleration):
         normalized_t_rhs_boundary, normalized_t_rhs_free = self.get_all_normalized_t_rhs_np(
-            normalized_a
+            normalized_acceleration
         )
         return (
             lambda normalized_boundary_t_vector: energy(
@@ -79,8 +77,7 @@ class SceneTemperature(Scene):
     def set_temperature_old(self, temperature):
         self.t_old = temperature
 
-    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
-        _ = randomized_inputs
+    def iterate_self(self, acceleration, temperature=None):
         self.set_temperature_old(temperature)
         return super().iterate_self(acceleration=acceleration)
 
@@ -90,8 +87,8 @@ class SceneTemperature(Scene):
             value += self.thermal_expansion.T @ temperature
         return value
 
-    def get_all_normalized_t_rhs_np(self, normalized_a):
-        normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_a)
+    def get_all_normalized_t_rhs_np(self, normalized_acceleration):
+        normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_acceleration)
         (
             normalized_t_rhs_boundary,
             normalized_t_rhs_free,
@@ -105,12 +102,10 @@ class SceneTemperature(Scene):
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
-    def get_normalized_t_rhs_np(self, normalized_a):
-        acceleration = normalized_a
-        velocity_old = self.normalized_velocity_old
+    def get_normalized_t_rhs_np(self, normalized_acceleration):
         U = self.acceleration_operator[self.independent_indices, self.independent_indices]
 
-        v = velocity_old + acceleration * self.time_step
+        v = self.normalized_velocity_old + normalized_acceleration * self.time_step
         v_vector = nph.stack_column(v)
 
         A = nph.stack_column(self.volume_at_nodes @ self.heat)
@@ -125,14 +120,10 @@ class SceneTemperature(Scene):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
-        boundary_normals = self.get_boundary_normals()
-        boundary_obstacle_normals = self.get_boundary_obstacle_normals()
         return integrate(
-            nodes=self.boundary_nodes,
-            nodes_normals=boundary_normals,
-            obstacle_nodes=self.boundary_obstacle_nodes,
-            obstacle_normals=boundary_obstacle_normals,
+            nodes_normals=self.get_boundary_normals(),
             velocity=self.boundary_velocity_old,
+            initial_penetration=self.get_penetration(),
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
         )

@@ -1,27 +1,28 @@
 import os
-import pickle
-from typing import Iterable, Optional
+from typing import Iterable, List, Tuple
 
 import numpy as np
 import torch
+from torch_geometric.data.batch import Data
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
-from conmech.helpers.config import Config
-from conmech.scenarios.scenarios import Scenario
+from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.graph.scene.scene_input import SceneInput
 from deep_conmech.helpers import dch
+from deep_conmech.scene import scene_input
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
 def print_dataset(dataset, cutoff, timestamp, description):
+    _ = timestamp
     print(f"Printing dataset {description}...")
     dataloader = get_print_dataloader(dataset)
     batch = next(iter(dataloader))
     iterations = np.min([len(batch), cutoff])
+    _ = iterations
 
 
 def get_print_dataloader(dataset: "BaseDataset"):
@@ -92,6 +93,7 @@ class BaseDataset:
         description: str,
         dimension: int,
         data_count: int,
+        layers_count: int,
         randomize_at_load: bool,
         num_workers: int,
         load_features_to_ram: bool,
@@ -102,6 +104,7 @@ class BaseDataset:
         self.dimension = dimension
         self.description = description
         self.data_count = data_count
+        self.layers_count = layers_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.load_features_to_ram = load_features_to_ram
@@ -184,65 +187,78 @@ class BaseDataset:
             print("Clearing old data")
             cmh.clear_folder(self.main_directory)
             self.create_folders()
-
-            result = False
-            while result is False:
-                result = mph.run_processes(
-                    self.generate_data_process,
-                    (),
-                    self.num_workers,
-                )
-                if result is False:
-                    print("Restarting data generation")
-
+            mph.run_process(self.generate_data_simple)
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
         assert self.data_count == len(self.scene_indices)
 
-    def get_iterator(self, data_tqdm: Iterable[int], scenes_path: Optional[str] = None):
-        for index in data_tqdm:
-            if scenes_path is not None:
-                with open(scenes_path, "rb") as file:
-                    scene = pickle.load(file)
+    def get_scenes_iterator(self, data_tqdm: Iterable[int]):
+        scenes_file = pkh.open_file_read(self.scenes_data_path)
+        for scene_index in data_tqdm:
+            if self.with_scenes_file:
+                scene = pkh.load_index(
+                    index=scene_index,
+                    all_indices=self.scene_indices,
+                    data_file=scenes_file,
+                )
             else:
-                scene, _ = self.generate_scene(index)
+                scene, _ = self.generate_scene(scene_index)
 
-            features_data, target_data = self.preprocess_example(scene, index)
-            yield (features_data, target_data)
+            if self.randomize_at_load:
+                scene.set_randomization(self.config)
 
-    def initialize_features_and_targets(self):
+            # exact_normalized_a_torch = Calculator.clean_acceleration(
+            #    scene_input, scene_input.exact_normalized_a_torch)
+            # else:
+            #   exact_normalized_a_torch = scene_input.exact_normalized_a_torch
+
+            yield scene, scene_index
+
+    def check_indices(self):
+        return self.data_count == len(self.features_indices) and self.data_count == len(
+            self.targets_indices
+        )
+
+    def load_indices(self):
         self.features_indices = pkh.get_all_indices(self.features_data_path)
         self.targets_indices = pkh.get_all_indices(self.targets_data_path)
-        if self.data_count == len(self.features_indices) and self.data_count == len(
-            self.targets_indices
-        ):
-            features_size_gb = os.path.getsize(self.features_data_path) / 1024**3
-            targets_size_gb = os.path.getsize(self.targets_data_path) / 1024**3
+
+    def get_size(self, data_path):
+        return os.path.getsize(data_path) / 1024**3
+
+    def initialize_features_and_targets(self):
+        self.load_indices()
+        if self.check_indices():
             print(
-                f"Taking prepared features ({features_size_gb:.2f} GB) and targets ({targets_size_gb:.2f} GB) dataset"
+                f"Taking prepared features ({self.get_size(self.features_data_path):.2f} GB) and targets ({self.get_size(self.targets_data_path):.2f} GB) dataset"
             )
-        else:
-            data_tqdm = cmh.get_tqdm(
-                iterable=range(self.data_count),
-                config=self.config,
-                desc="Preprocessing dataset",
-            )
+            return
 
-            features_file, features_indices_file = pkh.open_files_append(self.features_data_path)
-            targets_file, targets_indices_file = pkh.open_files_append(self.targets_data_path)
+        data_tqdm = cmh.get_tqdm(
+            iterable=range(self.data_count),
+            config=self.config,
+            desc="Preprocessing dataset",
+        )
 
-            scenes_path = self.scenes_data_path if self.with_scenes_file else None
-            with features_file, features_indices_file, targets_file, targets_indices_file:
-                for features_data, targets_data in self.get_iterator(
-                    data_tqdm=data_tqdm, scenes_path=scenes_path
-                ):
-                    pkh.append_data(features_data, features_file, features_indices_file)
-                    pkh.append_data(targets_data, targets_file, targets_indices_file)
+        features_file, features_indices_file = pkh.open_files_write(self.features_data_path)
+        targets_file, targets_indices_file = pkh.open_files_write(self.targets_data_path)
 
-            self.features_indices = pkh.get_all_indices(self.features_data_path)
-            self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+        with features_file, features_indices_file, targets_file, targets_indices_file:
+            for scene, scene_index in self.get_scenes_iterator(data_tqdm=data_tqdm):
 
-        assert self.data_count == len(self.features_indices)
-        assert self.data_count == len(self.targets_indices)
+                pkh.append_data(scene.get_target_data(), targets_file, targets_indices_file)
+
+                features_layers_list = [
+                    scene.get_features_data(
+                        scene_index=scene_index,
+                        layer_number=layer_number,
+                    )
+                    for layer_number in range(self.layers_count)
+                ]
+
+                pkh.append_data(features_layers_list, features_file, features_indices_file)
+
+        self.load_indices()
+        assert self.check_indices()
 
     def load_features(self):
         self.loaded_features_data = self.get_data_loaded_to_ram(
@@ -265,30 +281,18 @@ class BaseDataset:
             data = [pkh.load_index(index, indices, file) for index in data_tqdm]
         return data
 
-    def get_scene_input(self, scenario: Scenario, config: Config) -> SceneInput:
-        setting = SceneInput(
-            mesh_prop=scenario.mesh_prop,
-            body_prop=scenario.body_prop,
-            obstacle_prop=scenario.obstacle_prop,
-            schedule=scenario.schedule,
-            config=config,
-            create_in_subprocess=False,
-        )
-        setting.set_randomization(False)
-        setting.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
-        return setting
-
-    def get_statistics(self):
+    def get_statistics(self, layer_number):
         dataloader = get_train_dataloader(self)
 
         dimension = self.config.td.dimension
-        nodes_data = torch.empty((0, SceneInput.nodes_data_dim(dimension)))
-        edges_data = torch.empty((0, SceneInput.edges_data_dim(dimension)))
-        for features_data in cmh.get_tqdm(
+        nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(dimension)))
+        edges_data = torch.empty((0, SceneInput.get_edges_data_dim(dimension)))
+        for layers_list in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            nodes_data = torch.cat((nodes_data, features_data.x))
-            edges_data = torch.cat((edges_data, features_data.edge_attr))
+            layer = layers_list[layer_number]
+            nodes_data = torch.cat((nodes_data, layer.x))
+            edges_data = torch.cat((edges_data, layer.edge_attr))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)
@@ -301,57 +305,42 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def get_features_data(self, index):
+    def get_features_data(self, scene_index):
         if self.loaded_features_data is not None:
-            return self.loaded_features_data[index]
-        else:
-            with pkh.open_file_read(self.features_data_path) as file:
-                features_data = pkh.load_index(
-                    index=index, all_indices=self.features_indices, data_file=file
-                )
+            return self.loaded_features_data[scene_index]
+        with pkh.open_file_read(self.features_data_path) as file:
+            features_data = pkh.load_index(
+                index=scene_index, all_indices=self.features_indices, data_file=file
+            )
         return features_data
 
     def get_targets_data(self, index):
         if self.loaded_targets_data is not None:
             return self.loaded_targets_data[index]
-        else:
-            with pkh.open_file_read(self.targets_data_path) as file:
-                target_data = pkh.load_index(
-                    index=index, all_indices=self.targets_indices, data_file=file
-                )
-        return target_data
-
-    def preprocess_example(self, scene, index):
-        if self.randomize_at_load:
-            scene.set_randomization(True)
-            exact_normalized_a_torch = Calculator.clean_acceleration(
-                scene, scene.exact_normalized_a_torch
+        with pkh.open_file_read(self.targets_data_path) as file:
+            target_data = pkh.load_index(
+                index=index, all_indices=self.targets_indices, data_file=file
             )
-        else:
-            exact_normalized_a_torch = scene.exact_normalized_a_torch
-
-        scene.exact_normalized_a_torch = None
-        features_data, target_data = scene.get_data(index, exact_normalized_a_torch)
-        return features_data, target_data
+        return target_data
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
         plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")
-            self.plot_data_setting(scene, current_index, self.images_directory)
+            self.plot_data_scene(scene, current_index, self.images_directory)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
-    def plot_data_setting(self, setting, filename, catalog):
+    def plot_data_scene(self, scene: Scene, filename, catalog):
         cmh.create_folders(catalog)
         extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
         simulation_runner.plot_setting(
             current_time=0,
-            setting=setting,
+            scene=scene,
             path=path,
-            base_setting=None,
+            base_scene=None,
             draw_detailed=True,
             extension=extension,
         )
@@ -359,11 +348,15 @@ class BaseDataset:
     def generate_data_process(self, num_workers: int, process_id: int):
         pass
 
-    def generate_scene(self, index: int):
+    def generate_data_simple(self):
         pass
 
+    def generate_scene(self, index: int) -> Tuple[SceneInput, np.ndarray]:
+        _ = index
+        return None, None
+
     def __getitem__(self, index):
-        return self.get_features_data(index)
+        return self.get_features_data(index)[: self.layers_count]
 
     def __len__(self):
         return self.data_count

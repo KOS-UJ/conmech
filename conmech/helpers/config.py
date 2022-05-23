@@ -10,7 +10,7 @@ class Config:
     run_timestamp: float = int(time.time() * timestamp_skip)
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
-    normalize_rotate: bool = True
+    normalize_by_rotation: bool = True
 
     print_skip: float = 0.1
 

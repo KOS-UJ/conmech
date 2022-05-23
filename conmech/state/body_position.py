@@ -136,8 +136,8 @@ class BodyPosition(Mesh):
     def get_copy(self):
         return copy.deepcopy(self)
 
-    def iterate_self(self, acceleration, temperature=None, randomized_inputs=False):
-        _ = temperature, randomized_inputs
+    def iterate_self(self, acceleration, temperature=None):
+        _ = temperature
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
 
@@ -152,10 +152,17 @@ class BodyPosition(Mesh):
         return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
-        return nph.get_in_base(vectors, self.moved_base) if self.normalize_by_rotation else vectors
+        if not self.normalize_by_rotation:
+            return vectors
+        return nph.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
+        if not self.normalize_by_rotation:
+            return vectors
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
+
+    def normalize_shift_and_rotate(self, vectors):
+        return self.normalize_rotate(self.normalize_shift(vectors))
 
     @property
     def moved_nodes(self):
@@ -163,7 +170,7 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_nodes(self):
-        return self.normalize_rotate(self.moved_nodes - self.mean_moved_nodes)
+        return self.normalize_shift_and_rotate(self.moved_nodes)
 
     @property
     def boundary_nodes(self):
@@ -206,7 +213,7 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_velocity_old(self):
-        return self.normalize_rotate(self.velocity_old - np.mean(self.velocity_old, axis=0))
+        return self.normalize_shift_and_rotate(self.velocity_old)
 
     @property
     def normalized_displacement_old(self):

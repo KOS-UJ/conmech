@@ -4,14 +4,14 @@ from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
-    default_temp_body_prop,
-    default_thermal_conductivity_coefficients,
-    get_temp_body_prop,
-    TemperatureScenario,
     M_CUBE_3D,
+    TemperatureScenario,
+    default_temp_body_prop,
     default_temp_obstacle_prop,
+    default_thermal_conductivity_coefficients,
     default_thermal_expansion_coefficients,
     f_rotate_3d,
+    get_temp_body_prop,
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
@@ -44,11 +44,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
         TemperatureScenario(
             name=f"C_{i}",
             mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_CUBE_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-                is_adaptive=False,
+                dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
             schedule=Schedule(final_time=final_time),
@@ -106,11 +102,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
         TemperatureScenario(
             name=f"K_{i}",
             mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_CUBE_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-                is_adaptive=False,
+                dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
             schedule=Schedule(final_time=final_time),

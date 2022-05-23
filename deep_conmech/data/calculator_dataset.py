@@ -11,6 +11,7 @@ class CalculatorDataset(ScenariosDataset):
         self,
         description: str,
         all_scenarios: List[Scenario],
+        layers_count: int,
         skip_index: int,
         load_features_to_ram: bool,
         load_targets_to_ram: bool,
@@ -20,6 +21,7 @@ class CalculatorDataset(ScenariosDataset):
         super().__init__(
             description=f"{description}_calculator",
             all_scenarios=all_scenarios,
+            layers_count=layers_count,
             skip_index=skip_index,
             solve_function=Calculator.solve_all,
             load_features_to_ram=load_features_to_ram,

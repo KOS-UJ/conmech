@@ -106,7 +106,9 @@ class Mesh:
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
-    def reinitialize_data(self, mesh_prop, is_dirichlet, is_contact, create_in_subprocess):
+    def reinitialize_data(
+        self, mesh_prop: MeshProperties, is_dirichlet, is_contact, create_in_subprocess
+    ):
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
@@ -121,13 +123,23 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, is_dirichlet, is_contact
         )
-
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
             self.initial_nodes
         )
-
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
+
+    def normalize_shift(self, vectors):
+        _ = self
+        return vectors - np.mean(vectors, axis=0)
+
+    @property
+    def normalized_initial_nodes(self):
+        return self.normalize_shift(self.initial_nodes)
+
+    @property
+    def input_initial_nodes(self):
+        return self.normalized_initial_nodes
 
     @property
     def boundary_surfaces(self):
@@ -176,7 +188,11 @@ class Mesh:
 
     @property
     def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
+        return self.boundaries.boundary_indices
+
+    @property
+    def initial_boundary_nodes(self):
+        return self.initial_nodes[self.boundary_indices]
 
     @property
     def contact_indices(self):
@@ -204,14 +220,6 @@ class Mesh:
     @property
     def dimension(self):
         return self.mesh_prop.dimension
-
-    @property
-    def mean_initial_nodes(self):
-        return np.mean(self.initial_nodes, axis=0)
-
-    @property
-    def normalized_initial_nodes(self):
-        return self.initial_nodes - self.mean_initial_nodes
 
     @property
     def nodes_count(self):

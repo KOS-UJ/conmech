@@ -13,6 +13,7 @@ from matplotlib.figure import Figure
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
+from conmech.scene.scene import Scene
 
 # TODO: #65 Move to config
 DPI = 800
@@ -125,28 +126,28 @@ def make_animation(get_axs, plot_frame, t_scale):
         args.animation_tqdm.update(1)
         args.fig.clf()
         axs = get_axs(args.fig)
-        setting = pkh.load_index(
+        scene = pkh.load_index(
             index=step * args.index_skip,
             all_indices=args.all_indices,
             data_file=args.scenes_file,
         )
 
         if args.base_scenes_file is not None:
-            base_setting = pkh.load_index(
+            base_scene = pkh.load_index(
                 index=step * args.index_skip,
                 all_indices=args.base_all_indices,
                 data_file=args.base_scenes_file,
             )
         else:
-            base_setting = None
+            base_scene = None
 
         plot_frame(
             axs=axs,
             fig=args.fig,
-            setting=setting,
+            scene=scene,
             current_time=step * args.time_skip,
             t_scale=t_scale,
-            base_setting=base_setting,
+            base_scene=base_scene,
         )
         return args.fig
 
@@ -203,6 +204,6 @@ def plot_animation(
     plt.close()
 
 
-def get_frame_annotation(setting, current_time):
+def get_frame_annotation(scene: Scene, current_time):
     return f"""time: {str(round(current_time, 1))}
-nodes: {str(setting.nodes_count)}"""
+nodes: {str(scene.nodes_count)}"""

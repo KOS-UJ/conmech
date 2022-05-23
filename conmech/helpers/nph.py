@@ -152,31 +152,19 @@ def get_node_index_numba(node, nodes):
     raise ArgumentError
 
 
-def get_random_uniform(rows, columns, scale):
-    return np.random.uniform(low=-scale, high=scale, size=[rows, columns])
-
-
 def generate_normal(rows, columns, scale):
-    noise = np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
-    return noise
-
-
-def generate_circle(rows, columns):
-    result = np.random.normal(loc=0.0, scale=1.0, size=[rows, columns])
-    result = normalize_euclidean_numba(result)
-    return result
-
-
-def generate_normal_circle(rows, columns, scale):
-    result = generate_circle(rows, columns)
-    r = np.abs(np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, 1]))
-    return result * r
+    return np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
 
 
 def generate_uniform_circle(rows, columns, low, high):
-    result = generate_circle(rows, columns)
-    r = np.abs(np.random.uniform(low=low, high=high, size=[rows, 1]))
-    return result * r
+    result = generate_normal(rows=rows, columns=columns, scale=1.0)
+    normalized_result = normalize_euclidean_numba(result)
+    radius = np.random.uniform(low=low, high=high, size=[rows, 1])
+    return radius * normalized_result
+
+
+def append_euclidean_norm(data):
+    return np.hstack((data, euclidean_norm(data, keepdims=True)))
 
 
 @numba.njit(inline="always")

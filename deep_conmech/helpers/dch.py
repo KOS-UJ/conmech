@@ -3,9 +3,10 @@ deep_conmech helpers
 """
 import os
 
+import resource
 import pandas
 import psutil
-import resource
+
 
 from deep_conmech.training_config import TrainingConfig
 
@@ -27,7 +28,7 @@ def cuda_launch_blocking():
 
 def set_memory_limit(config: TrainingConfig):
     rsrc = resource.RLIMIT_DATA
-    soft, hard = resource.getrlimit(rsrc)
+    _, hard = resource.getrlimit(rsrc)
     new_limit_gb = config.total_memory_limit_gb
     new_soft = int(new_limit_gb * 1024**3)
     resource.setrlimit(rsrc, (new_soft, hard))

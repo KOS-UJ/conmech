@@ -31,7 +31,7 @@ def load_data(meta_path, data_path):
     ds = tf.data.TFRecordDataset(data_path)
     parser = functools.partial(_parse, meta=meta)
     first_input = tf.data.make_one_shot_iterator(ds).get_next()
-    result = parser(first_input)
+    _ = parser(first_input)
 
     ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
     ds = ds.prefetch(1)  # 10
@@ -68,12 +68,12 @@ def save_tf_data(data, path: str):
 
 
 def save_meta(meta: dict, path: str):
-    with open(path, "w") as file:
+    with open(path, mode="w", encoding="utf-8") as file:
         json.dump(meta, file)
 
 
 def load_meta(path: str):
-    with open(path, "r") as file:
+    with open(path, mode="r", encoding="utf-8") as file:
         meta = json.loads(file.read())
     return meta
 
@@ -82,8 +82,8 @@ def to_bytes(array):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[array.tobytes()]))
 
 
-def to_dict(type, array):
-    return dict(type=type, shape=[*array.shape], dtype=str(array.dtype))
+def to_dict(mode, array):
+    return dict(type=mode, shape=[*array.shape], dtype=str(array.dtype))
 
 
 def simulate(config: Config, scenario) -> str:
@@ -108,11 +108,11 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
         load_function = lambda index: pkh.load_index(
             index=index, all_indices=all_indices, data_file=scenes_file
         )
-        base_setting = load_function(index=0)
-        elements = base_setting.elements[np.newaxis, ...].astype("int32")
-        initial_nodes = base_setting.initial_nodes[np.newaxis, ...].astype("float32")
+        base_scene = load_function(index=0)
+        elements = base_scene.elements[np.newaxis, ...].astype("int32")
+        initial_nodes = base_scene.initial_nodes[np.newaxis, ...].astype("float32")
         node_type = np.zeros(
-            (1, base_setting.nodes_count, 1), dtype="int32"
+            (1, base_scene.nodes_count, 1), dtype="int32"
         )  # TODO #65: Mask boundary nodes
 
         moved_nodes_list = []
@@ -127,7 +127,7 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
 
     meta = dict(
         simulator="conmech",
-        dt=base_setting.time_step,
+        dt=base_scene.time_step,
         collision_radius=None,
         features=dict(
             cells=to_dict("static", elements),
@@ -161,13 +161,7 @@ def main():
 
     scenario = Scenario(
         name="polygon_rotate",
-        mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_POLYGON,
-            scale=[1],
-            mesh_density=[32],
-            is_adaptive=False,
-        ),
+        mesh_prop=MeshProperties(dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[32]),
         body_prop=default_body_prop,
         schedule=Schedule(final_time=8.0),
         forces_function=f_rotate,
