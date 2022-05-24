@@ -2,7 +2,7 @@
 
 conmech is a simulating package written in Python that allows to numerically solve contact mechanics problems. It uses the Finite Element Method, works with static, quasistatic and dynamic models, both in 2D and 3D. It can simulate various physical phenomena, such as Coulomb friction and hardness of the obstacle. Additional variables, such as the temperature of the body, can also be calculated. The code is modular and can be further extended to include other models.
 
-| 2D, with temperature | 3D |
+| 2D with temperature | 3D |
 :-------------------------:|:-------------------------:
 <img src="https://user-images.githubusercontent.com/56348419/170043164-69a5c6b0-0f48-4755-822b-8706a4712994.gif" width="100%" /> |  <img src="https://user-images.githubusercontent.com/56348419/170040202-b2f15c61-4beb-4e74-bbef-789cda924071.gif" width="100%" />
 
