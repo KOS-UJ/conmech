@@ -3,6 +3,7 @@ from typing import Callable
 
 import numba
 import numpy as np
+from scipy import sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
 from conmech.properties.body_properties import (
@@ -32,19 +33,27 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 @dataclass
 class SolverMatrices:
     def __init__(self):
-        self.lhs: np.ndarray
+        self.lhs_sparse: sparse.base.spmatrix
         # TODO: #75 move to schur (careful - some properties are used by net)
         self.lhs_boundary: np.ndarray
         self.free_x_contact: np.ndarray
         self.contact_x_free: np.ndarray
         self.free_x_free_inverted: np.ndarray
 
-        self.lhs_temperature: np.ndarray
+        self.lhs_temperature_sparse: sparse.base.spmatrix
         # TODO: #75 move to schur (careful - some properties are used by net)
         self.temperature_boundary: np.ndarray
         self.temperature_free_x_contact: np.ndarray
         self.temperature_contact_x_free: np.ndarray
         self.temperature_free_x_free_inv: np.ndarray
+
+    @property
+    def lhs(self):
+        return self.lhs_sparse.toarray()
+
+    @property
+    def lhs_temperature(self):
+        return self.lhs_temperature_sparse.toarray()
 
 
 @dataclass
@@ -78,12 +87,12 @@ class Dynamics(BodyPosition):
         self.with_schur = dynamics_config.with_schur
 
         self.element_initial_volume: np.ndarray
-        self.volume_at_nodes: np.ndarray
-        self.acceleration_operator: np.ndarray
-        self.elasticity: np.ndarray
-        self.viscosity: np.ndarray
-        self.thermal_expansion: np.ndarray
-        self.thermal_conductivity: np.ndarray
+        self.volume_at_nodes_sparse: sparse.base.spmatrix
+        self.acceleration_operator_sparse: sparse.base.spmatrix
+        self.elasticity_sparse: sparse.base.spmatrix
+        self.viscosity_sparse: sparse.base.spmatrix
+        self.thermal_expansion_sparse: sparse.base.spmatrix
+        self.thermal_conductivity_sparse: sparse.base.spmatrix
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
@@ -95,12 +104,12 @@ class Dynamics(BodyPosition):
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
-            self.volume_at_nodes,
-            self.acceleration_operator,
-            self.elasticity,
-            self.viscosity,
-            self.thermal_expansion,
-            self.thermal_conductivity,
+            self.volume_at_nodes_sparse,
+            self.acceleration_operator_sparse,
+            self.elasticity_sparse,
+            self.viscosity_sparse,
+            self.thermal_expansion_sparse,
+            self.thermal_conductivity_sparse,
         ) = get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
@@ -111,9 +120,9 @@ class Dynamics(BodyPosition):
         if not self.with_lhs:
             return
 
-        self.solver_cache.lhs = (
-            self.acceleration_operator
-            + (self.viscosity + self.elasticity * self.time_step) * self.time_step
+        self.solver_cache.lhs_sparse = (
+            self.acceleration_operator_sparse
+            + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
         )
         if self.with_schur:
             (
@@ -130,9 +139,9 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.solver_cache.lhs_temperature = (
+                self.solver_cache.lhs_temperature_sparse = (
                     1 / self.time_step
-                ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
+                ) * self.acceleration_operator_sparse[i, i] + self.thermal_conductivity_sparse[i, i]
                 (
                     self.solver_cache.temperature_boundary,
                     self.solver_cache.temperature_free_x_contact,
@@ -144,6 +153,30 @@ class Dynamics(BodyPosition):
                     contact_indices=self.contact_indices,
                     free_indices=self.free_indices,
                 )
+
+    @property
+    def volume_at_nodes(self):
+        return self.volume_at_nodes_sparse.toarray()
+
+    @property
+    def acceleration_operator(self):
+        return self.acceleration_operator_sparse.toarray()
+
+    @property
+    def elasticity(self):
+        return self.elasticity_sparse.toarray()
+
+    @property
+    def viscosity(self):
+        return self.viscosity_sparse.toarray()
+
+    @property
+    def thermal_expansion(self):
+        return self.thermal_expansion_sparse.toarray()
+
+    @property
+    def thermal_conductivity(self):
+        return self.thermal_conductivity_sparse.toarray()
 
     @property
     def with_temperature(self):

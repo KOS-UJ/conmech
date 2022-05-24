@@ -21,7 +21,7 @@ def clean_acceleration(cleaned_a, a_correction):
 
 
 def get_mean_loss(acceleration, forces):
-    return 1000.0 * torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+    return torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
 
 
 def loss_normalized_obstacle_correction(
@@ -312,10 +312,11 @@ class SceneInput(SceneLayers):
         return data
 
     def get_target_data(self):
+        lhs_torch = thh.to_double(self.solver_cache.lhs).to_sparse()
         target_data = dict(
             a_correction=thh.to_double(self.normalized_a_correction),
             args=EnergyObstacleArgumentsTorch(
-                lhs=thh.to_double(self.solver_cache.lhs),
+                lhs=lhs_torch,
                 rhs=thh.to_double(self.get_normalized_rhs_np()),
                 boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
                 boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),

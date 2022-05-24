@@ -325,7 +325,7 @@ class Scene(BodyForces):
             return np.ones((self.nodes_count, 1), dtype=np.int64)
         return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
-    def clear_for_save(self):
+    def prepare_to_save(self):
         self.element_initial_volume = None
         self.acceleration_operator = None
         self.thermal_expansion = None

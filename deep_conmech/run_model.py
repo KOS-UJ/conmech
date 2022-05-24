@@ -17,7 +17,7 @@ def train(config: TrainingConfig):
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
-    net = get_net(statistics, config)
+    net = get_net(statistics, config, load_newest=config.load_newest_train)
 
     all_val_datasets = get_all_val_datasets(config=config)
     all_print_datasets = scenarios.all_print(config.td)
@@ -38,10 +38,8 @@ def plot(config: TrainingConfig):
     else:
         statistics = None
 
-    net = get_net(statistics, config)
+    net = get_net(statistics, config, load_newest=True)
 
-    path = GraphModelDynamic.get_newest_saved_model_path(config)
-    net.load(path)
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
@@ -105,9 +103,13 @@ def get_all_val_datasets(config: TrainingConfig):
     return all_val_datasets
 
 
-def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig):
+def get_net(statistics: Optional[DatasetStatistics], config: TrainingConfig, load_newest: bool):
     net = CustomGraphNet(statistics=statistics, td=config.td)
     net.to(thh.device(config))
+    if load_newest:
+        print("Loading saved net parameters")
+        path = GraphModelDynamic.get_newest_saved_model_path(config)
+        net.load(path)
     return net
 
 

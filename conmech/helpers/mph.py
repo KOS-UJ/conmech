@@ -8,7 +8,6 @@ from multiprocessing import Process, Queue
 def is_supported():
     return "linux" in sys.platform
 
-
 if not is_supported():
     print("Warning: Multiprocessing implemented only for Linux")
 

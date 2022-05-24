@@ -52,7 +52,6 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
         with_schur=False,
     )
     scene.unset_randomization()
-    scene.clear_for_save()
     return scene
 
 
@@ -169,7 +168,6 @@ class SyntheticDataset(BaseDataset):
 
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         exact_normalized_a_torch = None
-
         return scene, exact_normalized_a_torch
 
     def generate_data_process(self, num_workers, process_id):
@@ -215,7 +213,7 @@ class SyntheticDataset(BaseDataset):
                 scene, exact_normalized_a_torch = self.generate_scene(index)
                 _ = exact_normalized_a_torch
 
-                pkh.append_data(data=scene, data_file=scenes_file, indices_file=indices_file)
+                self.save_scene(scene=scene, scenes_file=scenes_file, indices_file=indices_file)
 
                 self.check_and_print(
                     len(assigned_data_range),

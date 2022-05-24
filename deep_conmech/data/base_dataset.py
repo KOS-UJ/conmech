@@ -1,4 +1,7 @@
+import copy
+import cProfile
 import os
+from pstats import Stats
 from typing import Iterable, List, Tuple
 
 import numpy as np
@@ -11,7 +14,6 @@ from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import dch
-from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -187,7 +189,11 @@ class BaseDataset:
             print("Clearing old data")
             cmh.clear_folder(self.main_directory)
             self.create_folders()
+
             mph.run_process(self.generate_data_simple)
+            # cmh.profile(self.generate_data_simple)
+            # self.generate_data_simple()
+
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
         assert self.data_count == len(self.scene_indices)
 
@@ -351,9 +357,10 @@ class BaseDataset:
     def generate_data_simple(self):
         pass
 
-    def generate_scene(self, index: int) -> Tuple[SceneInput, np.ndarray]:
-        _ = index
-        return None, None
+    def save_scene(self, scene, scenes_file, indices_file):
+        scene_copy = copy.deepcopy(scene)
+        scene_copy.prepare_to_save()
+        pkh.append_data(data=scene_copy, data_file=scenes_file, indices_file=indices_file)
 
     def __getitem__(self, index):
         return self.get_features_data(index)[: self.layers_count]

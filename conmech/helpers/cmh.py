@@ -1,9 +1,12 @@
 """
 conmech helpers
 """
+import cProfile
 import os
 import shutil
 import time
+from pstats import Stats
+from typing import Callable
 
 from tqdm import tqdm
 
@@ -53,3 +56,14 @@ def find_files_by_extension(directory, extension):
             path = os.path.join(dirpath, filename)
             files.append(path)
     return files
+
+
+def profile(function: Callable):
+    pr = cProfile.Profile()
+    pr.enable()
+
+    function()
+
+    pr.disable()
+    stats = Stats(pr)
+    stats.sort_stats("tottime").print_stats(10)

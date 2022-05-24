@@ -53,7 +53,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
 
 
 @numba.njit
-def get_closest_to_axis_numba(nodes, variable):
+def get_closest_to_axis_numba_OLD(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
     nodes_count = len(nodes)
@@ -71,12 +71,34 @@ def get_closest_to_axis_numba(nodes, variable):
 
 
 @numba.njit
-def get_base_seed_indices_numba(nodes):
+def get_closest_to_axis_numba(nodes, variable):
+    min_error = 1.0
+    final_i, final_j = 0, 0
+    nodes_projection = nodes.copy()
+    nodes_projection[:, variable] = 0
+    for i, node in enumerate(nodes_projection[:-1]):
+        start_index = i + 1
+        error_i = nph.euclidean_norm_numba(nodes_projection[start_index:, :] - node)
+        internal_j = np.argmin(error_i)
+        error = error_i[internal_j]
+        j = internal_j + start_index
+
+        if error < min_error:
+            min_error, final_i, final_j = error, i, j
+
+    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
+    indices = (final_i, final_j) if correct_order else (final_j, final_i)
+    return np.array([min_error, indices[0], indices[1]])
+
+
+def get_base_seed_indices(nodes):
     dim = nodes.shape[1]
     base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
     errors = np.zeros(dim)
     for i in range(dim):
         result = get_closest_to_axis_numba(nodes, i)
+        result2 = get_closest_to_axis_numba_OLD(nodes, i)
+        assert np.all(result == result2)
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
     return base_seed_indices, int(np.argmin(errors))
@@ -123,9 +145,7 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, is_dirichlet, is_contact
         )
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
-            self.initial_nodes
-        )
+        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 

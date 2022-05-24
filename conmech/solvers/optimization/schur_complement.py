@@ -2,12 +2,13 @@
 Created at 22.02.2021
 """
 import math
+
 import numpy as np
 
 from conmech.dynamics.statement import (
-    StaticStatement,
-    QuasistaticStatement,
     DynamicStatement,
+    QuasistaticStatement,
+    StaticStatement,
     TemperatureStatement,
     Variables,
 )

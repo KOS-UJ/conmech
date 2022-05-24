@@ -1,6 +1,8 @@
 import numpy as np
+
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
+from conmech.helpers import nph
 from conmech.properties.body_properties import (
     DynamicBodyProperties,
     StaticBodyProperties,
@@ -66,10 +68,10 @@ def get_dynamics(
 
     return (
         element_initial_volume,
-        volume_at_nodes,
-        acceleration_operator,
-        elasticity,
-        viscosity,
-        thermal_expansion,
-        thermal_conductivity,
+        nph.to_sparse(volume_at_nodes),
+        nph.to_sparse(acceleration_operator),
+        nph.to_sparse(elasticity),
+        nph.to_sparse(viscosity),
+        nph.to_sparse(thermal_expansion),
+        nph.to_sparse(thermal_conductivity),
     )

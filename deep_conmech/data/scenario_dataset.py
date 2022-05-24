@@ -132,8 +132,8 @@ class ScenariosDataset(BaseDataset):
                 _ = exact_normalized_a_torch
 
                 if index % self.skip_index == 0:
-                    pkh.append_data(
-                        data=scene, data_file=scenes_file, indices_file=indices_file
+                    self.save_scene(
+                        scene=scene, scenes_file=scenes_file, indices_file=indices_file
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(
