@@ -326,7 +326,7 @@ class Scene(BodyForces):
         return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
     def prepare_to_save(self):
-        self.element_initial_volume = None
-        self.acceleration_operator = None
-        self.thermal_expansion = None
-        self.thermal_conductivity = None
+        self.element_initial_volume_spare = None
+        self.acceleration_operator_spare = None
+        self.thermal_expansion_spare = None
+        self.thermal_conductivity_spare = None
