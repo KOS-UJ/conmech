@@ -1,6 +1,10 @@
 # conmech
 
-conmech is a simulating package written in Python that allows to numerically solve contact mechanics problems. It uses the Finite Element Method, works with static, quasistatic and dynamic models, both in 2D and 3D. It can simulate various physical phenomena, such as Coulomb friction and hardness of the obstacle. Additional variables, such as the temperature of the body, can also be calculated. The code is modular and can be further extended to include other models.
+conmech is a simulating package written in Python that allows to numerically solve contact mechanics problems. 
+
+### Description
+
+Contact mechanics describes behaviour of the physical body in contact with the obstacle. Majority of such problems cannot be solved analitically and require numerical procedure. This package implements the Finite Element Method for 2D and 3D bodies and works with static, quasistatic and dynamic problems. It can simulate various physical phenomena, such as friction and obstacle resistance. Additional variables besides displacement, such as the temperature of the body, can be calculated. The project is almost entirely self contained, requires basic Python libraries, [pygmsh](https://github.com/meshpro/pygmsh) along with [Gmsh](https://gmsh.info/) for mesh construction and [Scipy](https://scipy.org/) for solving reformulated problem. The code is modular and can be further extended to include new physical models.
 
 ### Sample results
 
@@ -25,7 +29,7 @@ To run sample simulations, start any file from examples folder
 
 # deep_conmech
 
-deep_conmech uses Graph Neural Networks to learn dynamic contact mechanics simulations based on energy function implemented in conmech.
+deep_conmech uses Graph Neural Networks to learn dynamic contact mechanics simulations based on energy function implemented in conmech. It is implemented in [PyTorch](https://pytorch.org/) using [PyTorch Geometric](https://github.com/pyg-team/pytorch_geometric) library.
 
 ### Sample results
 
