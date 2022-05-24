@@ -53,24 +53,6 @@ def remove_unconnected_nodes_numba(nodes, elements):
 
 
 @numba.njit
-def get_closest_to_axis_numba_OLD(nodes, variable):
-    min_error = 1.0
-    final_i, final_j = 0, 0
-    nodes_count = len(nodes)
-    for i in range(nodes_count):
-        for j in range(i + 1, nodes_count):
-            error = nph.euclidean_norm_numba(
-                np.delete(nodes[i], variable) - np.delete(nodes[j], variable)
-            )
-            if error < min_error:
-                min_error, final_i, final_j = error, i, j
-
-    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
-    indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([min_error, indices[0], indices[1]])
-
-
-@numba.njit
 def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
@@ -97,8 +79,6 @@ def get_base_seed_indices(nodes):
     errors = np.zeros(dim)
     for i in range(dim):
         result = get_closest_to_axis_numba(nodes, i)
-        result2 = get_closest_to_axis_numba_OLD(nodes, i)
-        assert np.all(result == result2)
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
     return base_seed_indices, int(np.argmin(errors))
