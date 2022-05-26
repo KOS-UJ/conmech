@@ -31,7 +31,7 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
 
-    corner_mesh_data = get_random_corner_data() if config.td.adaptive_training_mesh else None
+    corner_mesh_data = get_random_corner_data(config.td.adaptive_training_mesh_scale)
     scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
@@ -106,7 +106,7 @@ def generate_obstacles(config: TrainingConfig, scene: SceneInput):
 
 def generate_base(config: TrainingConfig):
     dimension = config.td.dimension
-    base = nph.generate_normal(rows=dimension, columns=dimension, scale=1)
+    base = nph.generate_normal(rows=dimension, columns=dimension, sigma=1)
     base = nph.normalize_euclidean_numba(base)
     base = nph.orthogonalize_gram_schmidt(base)
     base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
@@ -146,7 +146,7 @@ class SyntheticDataset(BaseDataset):
 
     @property
     def data_size_id(self):
-        return f"s:{self.data_count}_a:{self.config.td.adaptive_training_mesh}"
+        return f"s:{self.data_count}"
 
     def generate_scene(self, index: int):
         _ = index

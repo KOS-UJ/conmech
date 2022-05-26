@@ -1,12 +1,9 @@
 import copy
-import cProfile
 import os
-from pstats import Stats
-from typing import Iterable, List, Tuple
+from typing import Iterable
 
 import numpy as np
 import torch
-from torch_geometric.data.batch import Data
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh

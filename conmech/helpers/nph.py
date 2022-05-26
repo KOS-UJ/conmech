@@ -157,12 +157,12 @@ def get_node_index_numba(node, nodes):
     raise ArgumentError
 
 
-def generate_normal(rows, columns, scale):
-    return np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
+def generate_normal(rows, columns, sigma):
+    return np.random.normal(loc=0.0, scale=sigma, size=[rows, columns])
 
 
 def generate_uniform_circle(rows, columns, low, high):
-    result = generate_normal(rows=rows, columns=columns, scale=1.0)
+    result = generate_normal(rows=rows, columns=columns, sigma=1.0)
     normalized_result = normalize_euclidean_numba(result)
     radius = np.random.uniform(low=low, high=high, size=[rows, 1])
     return radius * normalized_result

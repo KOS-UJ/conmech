@@ -4,7 +4,7 @@ from typing import List, Optional
 import numba
 import numpy as np
 
-from conmech.dynamics.dynamics import DynamicsConfiguration
+from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
@@ -330,3 +330,7 @@ class Scene(BodyForces):
         self.acceleration_operator_spare = None
         self.thermal_expansion_spare = None
         self.thermal_conductivity_spare = None
+
+        lhs_sparse = self.solver_cache.lhs_sparse
+        self.solver_cache = SolverMatrices()
+        self.solver_cache.lhs_sparse = lhs_sparse

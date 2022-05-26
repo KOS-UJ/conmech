@@ -179,11 +179,14 @@ def simulate(
             create_in_subprocess=create_in_subprocess,
         )
     )
-
-    scene = _get_scene_function(randomize=simulate_dirty_data, create_in_subprocess=True)
+    create_in_subprocess = False
+    print("Creating scene...")
+    scene = _get_scene_function(
+        randomize=simulate_dirty_data, create_in_subprocess=create_in_subprocess
+    )
     with_temperature = isinstance(scene, SceneTemperature)
     if compare_with_base_scene:
-        base_scene = _get_scene_function(randomize=False, create_in_subprocess=True)
+        base_scene = _get_scene_function(randomize=False, create_in_subprocess=create_in_subprocess)
     else:
         base_scene = None
         base_a = None

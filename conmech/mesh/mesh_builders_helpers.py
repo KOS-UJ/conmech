@@ -1,19 +1,19 @@
 import numpy as np
 
+from conmech.helpers import nph
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.data.interpolation_helpers import interpolate_nodes
 
 
-def get_random_corner_data():
-    return np.random.rand(4).reshape(-1, 1)
-    # random_data = np.zeros(4) #random_data[1] = 1.
+def get_random_corner_data(scale: float):
+    random_vector = nph.generate_normal(rows=4, columns=1, sigma=scale / 3)
+    clipped_vector = np.maximum(-scale, np.minimum(random_vector, scale))
+    normalized_cliped_vector = clipped_vector - np.mean(clipped_vector)
+    return 1 + normalized_cliped_vector
 
 
 def get_random_corner_mesh_size(mesh_prop: MeshProperties):
-    mesh_density = mesh_prop.mesh_density_x
-    scale = mesh_density * 0.8
-    corner_data = (mesh_prop.corner_mesh_data * 2.0 * scale) - scale
-    return 1.0 / (mesh_density + corner_data)
+    return 1.0 / (mesh_prop.corner_mesh_data * mesh_prop.mesh_density_x)
 
 
 # CORNERS left, bottom, right, top

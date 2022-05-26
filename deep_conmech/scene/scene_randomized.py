@@ -60,14 +60,16 @@ class SceneRandomized(Scene):
         self.regenerate_randomization()
 
     def regenerate_randomization(self):
-        self.velocity_randomization = nph.generate_normal(
+        get_random = lambda scale: nph.generate_normal(
             rows=self.nodes_count,
             columns=self.dimension,
+            sigma=scale / 3,
+        )
+
+        self.velocity_randomization = get_random(
             scale=self.velocity_in_random_factor,
         )
-        self.displacement_randomization = nph.generate_normal(
-            rows=self.nodes_count,
-            columns=self.dimension,
+        self.displacement_randomization = get_random(
             scale=self.displacement_in_random_factor,
         )
         # Do not randomize boundaries

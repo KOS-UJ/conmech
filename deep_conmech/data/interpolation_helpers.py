@@ -14,11 +14,7 @@ def choose(options):
 
 
 def get_mean(dimension, scale):
-    return np.random.uniform(
-        low=-scale,
-        high=scale,
-        size=(1, dimension),
-    )
+    return nph.generate_normal(rows=1, columns=dimension, sigma=scale / 3)
 
 
 def get_corner_vectors_rotate(dimension, scale):
@@ -26,13 +22,13 @@ def get_corner_vectors_rotate(dimension, scale):
         raise NotImplementedError
     # 1 2
     # 0 3
-    corner_vector = nph.generate_normal(rows=1, columns=dimension, scale=scale)
+    corner_vector = nph.generate_normal(rows=1, columns=dimension, sigma=scale / 3)
     corner_vectors = corner_vector * [[1, 1], [-1, 1], [-1, -1], [1, -1]]
     return corner_vectors
 
 
 def get_corner_vectors_all(dimension, scale):
-    corner_vectors = nph.generate_normal(rows=dimension * 2, columns=dimension, scale=scale)
+    corner_vectors = nph.generate_normal(rows=dimension * 2, columns=dimension, sigma=scale / 3)
     return corner_vectors
 
 

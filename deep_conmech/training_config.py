@@ -20,20 +20,20 @@ class TrainingData:
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
     mesh_density: int = 64 if dimension == 2 else 6  # !# 8 #16
-    adaptive_training_mesh: bool = True  # True
+    adaptive_training_mesh_scale: float = 0.8
 
     forces_random_scale: float = 4.0
     obstacle_origin_max_scale: float = 3.0 * train_scale  # less
-    obstacle_origin_min_scale: float = 2.9 * train_scale  ## 0.4 * train_scale
+    obstacle_origin_min_scale: float = 0.4 * train_scale  # 2.9
     initial_corners_scale: float = 0.1
     displacement_random_scale: float = 0.2  # 0.2
     velocity_random_scale: float = 2.5
 
     rotate_velocity_proportion: float = 0  # 0.5 if dimension == 2 else 0  ## 0.0
-    zero_forces_proportion: float = 0.3  ## 0.2
-    zero_displacement_proportion: float = 0.3  ## 0.2
-    zero_velocity_proportion: float = 0.3  ## 0.2
-    corners_scale_proportion: float = 0.7  ## 0.8
+    zero_forces_proportion: float = 0.2
+    zero_displacement_proportion: float = 0.2
+    zero_velocity_proportion: float = 0.2
+    corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
     displacement_in_random_factor: float = 0.005 * displacement_random_scale
@@ -41,12 +41,12 @@ class TrainingData:
 
     save_at_minutes: int = 10
     validate_at_epochs: int = 1  # 10
-    validate_scenarios_at_epochs: int = 3  # 30  # 3  # 30
+    validate_scenarios_at_epochs: int = 30  # 3  # 30
 
     use_energy_as_loss: bool = True
-    batch_size: int = 32  # 128
+    batch_size: int = 16  # 128
     valid_batch_size: int = batch_size  # 128
-    synthetic_batches_in_epoch: int = 1 if TEST else 256  # 96
+    synthetic_batches_in_epoch: int = 1 if TEST else 512  # 256 * 9
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
