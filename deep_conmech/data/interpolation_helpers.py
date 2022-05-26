@@ -17,19 +17,19 @@ def get_mean(dimension, scale):
     return nph.generate_normal(rows=1, columns=dimension, sigma=scale / 3)
 
 
-def get_corner_vectors_rotate(dimension, scale):
-    if dimension != 2:
-        raise NotImplementedError
-    # 1 2
-    # 0 3
-    corner_vector = nph.generate_normal(rows=1, columns=dimension, sigma=scale / 3)
-    corner_vectors = corner_vector * [[1, 1], [-1, 1], [-1, -1], [1, -1]]
-    return corner_vectors
+# def get_corner_vectors_rotate(dimension, scale):
+#     if dimension != 2:
+#         raise NotImplementedError
+#     # 1 2
+#     # 0 3
+#     corner_vector = nph.generate_normal(rows=1, columns=dimension, sigma=scale / 3)
+#     corner_vectors = corner_vector * [[1, 1], [-1, 1], [-1, -1], [1, -1]]
+#     return corner_vectors
 
 
-def get_corner_vectors_all(dimension, scale):
+def get_corner_vectors(dimension, scale):
     corner_vectors = nph.generate_normal(rows=dimension * 2, columns=dimension, sigma=scale / 3)
-    return corner_vectors
+    return corner_vectors #- np.mean(corner_vectors, axis=0)
 
 
 def scale_nodes_to_square(nodes):
@@ -66,12 +66,11 @@ def get_nodes_interpolation(nodes: np.ndarray, base: np.ndarray, corner_vectors:
     return nodes_interpolation
 
 
-def interpolate_four(
+def interpolate_corners(
     nodes: np.ndarray,
     mean_scale: float,
     corners_scale_proportion: float,
     base: np.ndarray,
-    interpolate_rotate: bool,
     zero_out_proportion: float = 0,
 ):
     if decide(zero_out_proportion):
@@ -82,7 +81,6 @@ def interpolate_four(
 
     mean = get_mean(dimension=dimension, scale=mean_scale)
 
-    get_corner_vectors = get_corner_vectors_rotate if interpolate_rotate else get_corner_vectors_all
     corner_vectors = get_corner_vectors(dimension=dimension, scale=corners_scale)
     nodes_interpolation = get_nodes_interpolation(
         nodes=nodes, base=base, corner_vectors=corner_vectors

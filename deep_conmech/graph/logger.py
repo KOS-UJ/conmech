@@ -27,10 +27,14 @@ class Logger:
                 print(f"Saving statistics (layer {layer_number})...")
                 statistics = self.dataset.get_statistics(layer_number=layer_number)
                 self.save_hist_and_json(
-                    statistics.nodes_statistics, f"nodes_statistics_layer{layer_number}"
+                    st=statistics.nodes_statistics,
+                    columns=self.config.td.dimension + 1,
+                    name=f"nodes_statistics_layer{layer_number}",
                 )
                 self.save_hist_and_json(
-                    statistics.edges_statistics, f"edges_statistics_layer{layer_number}"
+                    st=statistics.edges_statistics,
+                    columns=self.config.td.dimension + 1,
+                    name=f"edges_statistics_layer{layer_number}",
                 )
 
     def save_parameters(self):
@@ -45,9 +49,9 @@ class Logger:
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(data_str)
 
-    def save_hist_and_json(self, st: FeaturesStatistics, name: str):
+    def save_hist_and_json(self, st: FeaturesStatistics, columns: int, name: str):
         df = st.pandas_data
-        self.save_hist(df=df, name=name)
+        self.save_hist(df=df, columns=columns, name=name)
 
         # normalized_df = (df - df.mean()) / df.std()
         # self.save_hist(df=normalized_df, name=f"{name}_normalized")
@@ -55,9 +59,8 @@ class Logger:
         data_str = st.describe().to_json()
         self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)
 
-    def save_hist(self, df: DataFrame, name: str):
+    def save_hist(self, df: DataFrame, columns: int, name: str):
         # pandas_axs = st.pandas_data.hist(figsize=(20, 10))  # , ec="k")
-        columns = 3
         scale = 7
         rows = (df.columns.size // columns) + df.columns.size % columns
         fig, axs = plt.subplots(

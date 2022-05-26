@@ -327,7 +327,8 @@ class BaseDataset:
         return target_data
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
-        plot_index_skip = int(data_count * (1 / self.config.dataset_images_count))
+        images_count = self.config.dataset_images_count
+        plot_index_skip = 1 if data_count < images_count else int(data_count / images_count)
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")

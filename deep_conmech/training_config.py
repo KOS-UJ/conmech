@@ -6,12 +6,12 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True
 
 
 @dataclass
 class TrainingData:
-    dimension: int = 2
+    dimension: int = 3
 
     train_scale: int = 1
     validation_scale: int = 1
@@ -19,7 +19,7 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 64 if dimension == 2 else 6  # !# 8 #16
+    mesh_density: int = 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: float = 0.8
 
     forces_random_scale: float = 4.0
@@ -29,7 +29,6 @@ class TrainingData:
     displacement_random_scale: float = 0.2  # 0.2
     velocity_random_scale: float = 2.5
 
-    rotate_velocity_proportion: float = 0  # 0.5 if dimension == 2 else 0  ## 0.0
     zero_forces_proportion: float = 0.2
     zero_displacement_proportion: float = 0.2
     zero_velocity_proportion: float = 0.2

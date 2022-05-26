@@ -35,10 +35,10 @@ class MeshLayerData:
 
 
 @numba.njit
-def get_interlayer_data(old_nodes, new_nodes, closest_count):
-    closest_nodes = np.zeros((len(new_nodes), closest_count), dtype=np.int64)
-    closest_weights = np.zeros((len(new_nodes), closest_count))
+def get_interlayer_data(old_nodes: np.ndarray, new_nodes: np.ndarray, closest_count: int):
     closest_distances = np.zeros((len(new_nodes), closest_count))
+    closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
+    closest_weights = np.zeros_like(closest_distances)
     for new_index, new_node in enumerate(new_nodes):
         distances = nph.euclidean_norm_numba(old_nodes - new_node)
         closest_node_list = distances.argsort()[:closest_count]
@@ -117,11 +117,17 @@ class SceneLayers(SceneRandomized):
             dense_mesh = sparse_mesh
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh):
+        old_nodes = from_mesh.normalized_initial_nodes
+        new_nodes = to_mesh.normalized_initial_nodes
         closest_nodes, closest_weights, closest_distances = get_interlayer_data(
-            old_nodes=from_mesh.normalized_initial_nodes,
-            new_nodes=to_mesh.normalized_initial_nodes,
+            old_nodes=old_nodes,
+            new_nodes=new_nodes,
             closest_count=self.mesh_prop.dimension + 1,
         )
+        # assert np.allclose(
+        #     new_nodes,
+        #     nph.elementwise_dot(old_nodes[closest_nodes], closest_weights[..., np.newaxis]),
+        # )
         (
             closest_boundary_nodes,
             closest_weights_boundary,

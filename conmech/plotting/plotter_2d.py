@@ -356,12 +356,12 @@ def draw_all_sparse(scene: Scene, position, axes):
         return
     for i, layer in enumerate(scene.all_layers):
         mesh = layer.mesh
-        new_inner_forces = scene.approximate_boundary_or_all_from_base(
+        layer_inner_forces = scene.approximate_boundary_or_all_from_base(
             layer_number=i, base_values=scene.normalized_inner_forces
         )
 
         triplot(mesh.initial_nodes + position, mesh.elements, color="tab:orange", axes=axes)
-        plot_arrows(mesh.initial_nodes + position, new_inner_forces, axes)
+        plot_arrows(mesh.initial_nodes + position, layer_inner_forces, axes)
         position[0] += 2.5
 
         boundary_penetration = scene.get_normalized_boundary_penetration()

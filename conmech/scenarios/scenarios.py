@@ -509,14 +509,19 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
     )
 
 
-scenario_3d = Scenario(
-    name="ball_roll",
-    mesh_prop=MeshProperties(dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]),
-    body_prop=default_body_prop,
-    schedule=Schedule(final_time=1),
-    forces_function=np.array([0.0, 0.0, -0.5]),
-    obstacle=Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
-)
+def scenario_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+    return Scenario(
+        name="ball_roll",
+        mesh_prop=MeshProperties(
+            dimension=3, mesh_type=M_BALL_3D, scale=[scale], mesh_density=[mesh_density]
+        ),
+        body_prop=default_body_prop,
+        schedule=Schedule(final_time=final_time),
+        forces_function=np.array([0.0, 0.0, -0.5]),
+        obstacle=Obstacle(
+            np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
+        ),
+    )
 
 
 def get_train_data(**args):
@@ -539,24 +544,26 @@ def get_valid_data(**args):
     ]
 
 
-def all_train(td):
-    if td.dimension == 3:
-        return [scenario_3d]
-    return get_train_data(
+def get_args(td):
+    return dict(
         mesh_density=td.mesh_density,
         scale=td.train_scale,
         final_time=td.final_time,
     )
 
 
-def all_validation(td):
+def all_train(td):
+    args = get_args(td)
     if td.dimension == 3:
-        return [scenario_3d]
-    return get_valid_data(
-        mesh_density=td.mesh_density,
-        scale=td.validation_scale,
-        final_time=td.final_time,
-    )
+        return [scenario_3d(**args)]
+    return get_train_data(**args)
+
+
+def all_validation(td):
+    args = get_args(td)
+    if td.dimension == 3:
+        return [scenario_3d(**args)]
+    return get_valid_data(**args)
 
 
 def all_train_and_validation(td):
@@ -564,17 +571,10 @@ def all_train_and_validation(td):
 
 
 def all_print(td):
+    args = get_args(td)
     if td.dimension == 3:
-        return [scenario_3d]
+        return [scenario_3d(**args)]
     return [
-        *get_valid_data(
-            mesh_density=td.mesh_density,
-            scale=td.print_scale,
-            final_time=td.final_time,
-        ),
-        *get_train_data(
-            mesh_density=td.mesh_density,
-            scale=td.print_scale,
-            final_time=td.final_time,
-        ),
+        *get_valid_data(**args),
+        *get_train_data(**args),
     ]

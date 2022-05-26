@@ -20,8 +20,10 @@ def clean_acceleration(cleaned_a, a_correction):
     return cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
 
 
-def get_mean_loss(acceleration, forces):
-    return torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+def get_mean_loss(acceleration, forces, boundary_integral):
+    return (boundary_integral == 0) * (
+        torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+    )
 
 
 def loss_normalized_obstacle_correction(
@@ -31,13 +33,15 @@ def loss_normalized_obstacle_correction(
     args: EnergyObstacleArguments,
 ):
     acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
-    main_loss = energy(acceleration, args.lhs, args.rhs)
+    energy_loss = energy(acceleration, args.lhs, args.rhs)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    loss = energy_loss + boundary_integral
 
-    # check if is colliding, include mass_density
-    mean_loss = get_mean_loss(forces, acceleration)
-    # + mean_loss * (boundary_integral == 0)
-    return main_loss + boundary_integral, mean_loss
+    # include mass_density
+    mean_loss = get_mean_loss(
+        acceleration=acceleration, forces=forces, boundary_integral=boundary_integral
+    )
+    return loss, mean_loss
 
 
 @numba.njit
@@ -238,7 +242,7 @@ class SceneInput(SceneLayers):
         edges_index = thh.get_contiguous_torch(edges_index_np)
         distances_link = link.closest_distances
         closest_nodes_count = link.closest_distances.shape[1]
-        distance_norm_index = 2
+        distance_norm_index = self.dimension
         distances_edges = (
             edges_data[:, distance_norm_index].numpy().reshape(-1, closest_nodes_count)
         )

@@ -27,11 +27,12 @@ def generate_mesh_type(config: TrainingConfig):
 
 
 def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingConfig):
-    corner_vectors = interpolation_helpers.get_corner_vectors_all(
+    corner_vectors = interpolation_helpers.get_corner_vectors(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
-
-    corner_mesh_data = get_random_corner_data(config.td.adaptive_training_mesh_scale)
+    corner_mesh_data = get_random_corner_data(
+        dimension=config.td.dimension, scale=config.td.adaptive_training_mesh_scale
+    )
     scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
@@ -56,37 +57,33 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
 
 
 def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
-    forces = interpolation_helpers.interpolate_four(
+    forces = interpolation_helpers.interpolate_corners(
         nodes=scene.initial_nodes,
         mean_scale=config.td.forces_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
-        interpolate_rotate=False,
         zero_out_proportion=config.td.zero_forces_proportion,
     )
     return forces
 
 
 def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
-    displacement_old = interpolation_helpers.interpolate_four(
+    displacement_old = interpolation_helpers.interpolate_corners(
         nodes=scene.initial_nodes,
         mean_scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
-        interpolate_rotate=False,
         zero_out_proportion=config.td.zero_displacement_proportion,
     )
     return displacement_old
 
 
 def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
-    interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
-    velocity_old = interpolation_helpers.interpolate_four(
+    velocity_old = interpolation_helpers.interpolate_corners(
         nodes=scene.initial_nodes,
         mean_scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
-        interpolate_rotate=interpolate_rotate,
         zero_out_proportion=config.td.zero_velocity_proportion,
     )
     return velocity_old
