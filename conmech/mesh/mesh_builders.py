@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from conmech.helpers import mph, nph
+from conmech.helpers import lnh, mph
 from conmech.mesh import mesh_builders_2d, mesh_builders_3d, mesh_builders_legacy
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.data import interpolation_helpers
@@ -23,7 +23,7 @@ def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
     if mesh_prop.mean_at_origin:
         nodes -= np.mean(nodes, axis=0)
     if mesh_prop.initial_base is not None:
-        nodes = nph.get_in_base(nodes, mesh_prop.initial_base)
+        nodes = lnh.get_in_base(nodes, mesh_prop.initial_base)
     # TODO #65: Check if works with all combinations of options
     if mesh_prop.initial_nodes_corner_vectors is not None:
         nodes_interpolation = interpolation_helpers.interpolate_corner_vectors(

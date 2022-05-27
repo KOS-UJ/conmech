@@ -142,15 +142,16 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
         shift += np.array([2.5, 0, 0])
 
     shift = np.array([0, 2.0, 1.5])
-    for i, layer in enumerate(scene.all_layers):
-        mesh = layer.mesh
-        shifted_normalized_nodes = mesh.initial_nodes + shift
-        # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
-        #     layer_number=i, base_values=scene.normalized_inner_forces
-        # )
-        # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
-        plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
-        shift += np.array([2.5, 0, 0])
+    if hasattr(scene, "all_layers"):
+        for i, layer in enumerate(scene.all_layers):
+            mesh = layer.mesh
+            shifted_normalized_nodes = mesh.initial_nodes + shift
+            # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
+            #     layer_number=i, base_values=scene.normalized_inner_forces
+            # )
+            # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
+            plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
+            shift += np.array([2.5, 0, 0])
 
     if isinstance(scene, SceneTemperature):
         plot_temperature(

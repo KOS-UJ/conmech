@@ -5,8 +5,8 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.plotting import plotter_2d, plotter_common
 from deep_conmech.data import base_dataset
+from deep_conmech.data.interpolation_helpers import approximate_internal
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
 
@@ -65,8 +65,8 @@ def plot_graph_layers():
             down_layer = layer_list[layer_number - 1]
             desc = f"batch_number={batch_number} layer_number={layer_number}"
 
-            approximated_nodes = SceneLayers.approximate_internal(
-                from_values=up_layer.pos,
+            approximated_nodes = approximate_internal(
+                base_values=up_layer.pos,
                 closest_nodes=up_layer.closest_nodes_to_down,
                 closest_weights=up_layer.closest_weights_to_down,
             )
@@ -77,8 +77,8 @@ def plot_graph_layers():
                 description=f"{desc} to_down",
             )
 
-            approximated_nodes = SceneLayers.approximate_internal(
-                from_values=down_layer.pos,
+            approximated_nodes = approximate_internal(
+                base_values=down_layer.pos,
                 closest_nodes=up_layer.closest_nodes_from_down,
                 closest_weights=up_layer.closest_weights_from_down,
             )

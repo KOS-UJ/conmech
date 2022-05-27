@@ -1,11 +1,9 @@
-import numpy as np
 import torch
 
 from conmech.helpers import cmh
 from deep_conmech.data import base_dataset
+from deep_conmech.data.interpolation_helpers import approximate_internal
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from deep_conmech.scene import scene_input
-from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
 
@@ -24,15 +22,15 @@ def check_layer_data_approximation(layer_list):
         layer = layer_list[layer_number]
         layer_down = layer_list[layer_number - 1]
 
-        diff = layer.pos.double() - SceneLayers.approximate_internal(
-            from_values=layer_down.pos,
+        diff = layer.pos.double() - approximate_internal(
+            base_values=layer_down.pos,
             closest_nodes=layer.closest_nodes_from_down,
             closest_weights=layer.closest_weights_from_down,
         )
         check_diff(diff, layer, precision=0.02)
 
-        diff = layer_down.pos.double() - SceneLayers.approximate_internal(
-            from_values=layer.pos,
+        diff = layer_down.pos.double() - approximate_internal(
+            base_values=layer.pos,
             closest_nodes=layer.closest_nodes_to_down,
             closest_weights=layer.closest_weights_to_down,
         )

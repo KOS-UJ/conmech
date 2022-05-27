@@ -5,16 +5,16 @@ from typing import Callable
 import numba
 import numpy as np
 
-from conmech.helpers import nph
+from conmech.helpers import lnh, nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 
 
-def get_base(nodes, base_seed_indices, closest_seed_index):
+def get_base(nodes, base_seed_indices, best_seed_index):
     base_seed_initial_nodes = nodes[base_seed_indices]
     base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
-    return nph.complete_base(base_seed, closest_seed_index)
+    return lnh.complete_base(base_seed, best_seed_index)
 
 
 def get_unoriented_normals_2d(faces_nodes):
@@ -154,12 +154,12 @@ class BodyPosition(Mesh):
     def normalize_rotate(self, vectors):
         if not self.normalize_by_rotation:
             return vectors
-        return nph.get_in_base(vectors, self.moved_base)
+        return lnh.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
         if not self.normalize_by_rotation:
             return vectors
-        return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
+        return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     def normalize_shift_and_rotate(self, vectors):
         return self.normalize_rotate(self.normalize_shift(vectors))

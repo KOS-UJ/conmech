@@ -14,6 +14,6 @@ class Config:
 
     print_skip: float = 0.1
 
-    plot_tests: bool = True
+    plot_tests: bool = False
 
     output_catalog: str = "output"

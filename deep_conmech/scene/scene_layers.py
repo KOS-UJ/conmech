@@ -10,9 +10,9 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.body_forces import default_is_contact, default_is_dirichlet
 from deep_conmech.data import interpolation_helpers
 from deep_conmech.scene.scene_randomized import SceneRandomized
-from conmech.scene.body_forces import default_is_dirichlet, default_is_contact
 
 
 @dataclass
@@ -83,7 +83,6 @@ class SceneLayers(SceneRandomized):
                 is_dirichlet=default_is_dirichlet,
                 is_contact=default_is_contact,
                 create_in_subprocess=self.create_in_subprocess,
-                with_edges=False,
             )
             mesh_layer_data = MeshLayerData(
                 mesh=sparse_mesh,

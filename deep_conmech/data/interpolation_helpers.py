@@ -3,9 +3,8 @@ from ctypes import ArgumentError
 
 import numba
 import numpy as np
-from scipy.interpolate import interpn
 
-from conmech.helpers import nph
+from conmech.helpers import nph, lnh
 
 
 def decide(scale):
@@ -90,14 +89,14 @@ def scale_nodes_to_cube(nodes):
 
 def interpolate_corner_vectors(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):
     # orthonormal matrix; inverse equals transposition
-    upward_nodes = nph.get_in_base(nodes, base.T)
+    upward_nodes = lnh.get_in_base(nodes, base.T)
     scaled_nodes = scale_nodes_to_cube(upward_nodes)
     upward_vectors_interpolation = interpolate_scaled_nodes(
         scaled_nodes=scaled_nodes,
         corner_vectors=corner_vectors,
     )
 
-    vectors_interpolation = nph.get_in_base(upward_vectors_interpolation, base)
+    vectors_interpolation = lnh.get_in_base(upward_vectors_interpolation, base)
     # assert np.abs(np.mean(vectors_interpolation)) < 0.1
     return vectors_interpolation
 

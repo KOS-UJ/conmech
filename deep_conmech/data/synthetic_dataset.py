@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
-from conmech.helpers import cmh, nph, pkh
+from conmech.helpers import cmh, nph, pkh, lnh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -138,7 +138,7 @@ class SyntheticDataset(BaseDataset):
     def generate_scene(self, index: int):
         _ = index
 
-        base = nph.generate_base(self.config.td.dimension)
+        base = lnh.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)

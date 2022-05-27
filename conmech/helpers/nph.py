@@ -93,62 +93,6 @@ def get_tangential_2d(normal):
     return np.array((normal[..., 1], -normal[..., 0])).T
 
 
-def complete_base(base_seed, closest_seed_index=0):
-    dim = base_seed.shape[-1]
-    # normalized_base_seed = normalize_euclidean_numba(base_seed)
-    if dim == 2:
-        base = orthonormalize(base_seed)
-    elif dim == 3:
-        rolled_base_seed = np.roll(base_seed, -closest_seed_index, axis=0)
-        rolled_base = orthonormalize(rolled_base_seed)
-        base = np.roll(rolled_base, closest_seed_index, axis=0)
-    else:
-        raise ArgumentError
-    # base = normalize_euclidean_numba(unnormalized_base)
-    return base
-
-
-def generate_base(dimension):
-    while True:
-        vectors = generate_normal(rows=dimension, columns=dimension, sigma=1)
-        try:
-            base = orthonormalize(vectors)
-            return base
-        except:
-            print("Base generation error")
-
-
-def correct_base(base):
-    dim = len(base)
-    for i in range(dim):
-        for j in range(i + 1, dim):
-            if not np.allclose(base[i] @ base[j], 0):
-                return False
-
-    if not np.allclose(euclidean_norm(base), np.ones(dim)):
-        return False
-
-    if len(base) == 2 and not np.allclose(np.cross(*base), 1):
-        return False
-    if len(base) == 3 and not np.allclose(np.cross(*base[:2]), base[2]):
-        return False
-    return True
-
-
-def orthonormalize(vectors):
-    vectors = normalize_euclidean_numba(vectors)
-    base = np.linalg.qr(vectors)[0]
-    if len(base) == 2:
-        base[0] *= np.cross(*base)  # keep right orientetion
-    if correct_base(base):
-        return base
-    raise ArgumentError
-
-
-def get_in_base(vectors, base):
-    return vectors @ base.T
-
-
 @numba.njit
 def len_x_numba(corners):
     return corners[2] - corners[0]
