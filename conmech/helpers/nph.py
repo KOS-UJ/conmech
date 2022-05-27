@@ -139,7 +139,7 @@ def orthonormalize(vectors):
     vectors = normalize_euclidean_numba(vectors)
     base = np.linalg.qr(vectors)[0]
     if len(base) == 2:
-        base[0] *= -1.0  # keep right orientetion
+        base[0] *= np.cross(*base)  # keep right orientetion
     if correct_base(base):
         return base
     raise ArgumentError

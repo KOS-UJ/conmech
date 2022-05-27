@@ -12,6 +12,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from deep_conmech.data import interpolation_helpers
 from deep_conmech.scene.scene_randomized import SceneRandomized
+from conmech.scene.body_forces import default_is_dirichlet, default_is_contact
 
 
 @dataclass
@@ -60,8 +61,6 @@ class SceneLayers(SceneRandomized):
 
     def set_layers(self, layers_count):
         self.all_layers = []
-        is_dirichlet = lambda _: False
-        is_contact = lambda _: True
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
 
         base_mesh_layer_data = MeshLayerData(
@@ -81,9 +80,10 @@ class SceneLayers(SceneRandomized):
 
             sparse_mesh = Mesh(
                 mesh_prop=layer_mesh_prop,
-                is_dirichlet=is_dirichlet,
-                is_contact=is_contact,
+                is_dirichlet=default_is_dirichlet,
+                is_contact=default_is_contact,
                 create_in_subprocess=self.create_in_subprocess,
+                with_edges=False,
             )
             mesh_layer_data = MeshLayerData(
                 mesh=sparse_mesh,

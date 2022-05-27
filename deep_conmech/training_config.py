@@ -6,8 +6,8 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True
-DIMENSION = 3
+TEST = False
+DIMENSION = 2
 
 
 @dataclass

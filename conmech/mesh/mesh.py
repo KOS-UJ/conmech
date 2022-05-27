@@ -91,8 +91,10 @@ class Mesh:
         is_dirichlet: Callable,
         is_contact: Callable,
         create_in_subprocess: bool,
+        with_edges: bool = True,
     ):
         self.mesh_prop = mesh_prop
+        self.with_edges = with_edges
 
         self.initial_nodes: np.ndarray
         self.elements: np.ndarray
@@ -125,10 +127,12 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, is_dirichlet, is_contact
         )
-        ### OPTIONAL
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
-        edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
-        self.edges = get_edges_list_numba(edges_matrix)
+        if self.with_edges:
+            self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(
+                self.initial_nodes
+            )
+            edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
+            self.edges = get_edges_list_numba(edges_matrix)
 
     def normalize_shift(self, vectors):
         _ = self

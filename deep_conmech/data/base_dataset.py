@@ -187,8 +187,8 @@ class BaseDataset:
             cmh.clear_folder(self.main_directory)
             self.create_folders()
 
-            # mph.run_process(self.generate_data_simple)
-            cmh.profile(self.generate_data_simple)
+            mph.run_process(self.generate_data_simple)
+            # cmh.profile(self.generate_data_simple)
             # self.generate_data_simple()
 
             self.scene_indices = pkh.get_all_indices(self.scenes_data_path)

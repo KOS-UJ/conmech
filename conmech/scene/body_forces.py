@@ -1,5 +1,6 @@
 from typing import Callable
 
+import numba
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
@@ -18,6 +19,10 @@ def energy(value, lhs, rhs):
     return value
 
 
+default_is_dirichlet = lambda _: False
+default_is_contact = lambda _: True
+
+
 class BodyForces(Dynamics):
     def __init__(
         self,
@@ -25,8 +30,8 @@ class BodyForces(Dynamics):
         body_prop: DynamicBodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
+        is_dirichlet: Callable = default_is_dirichlet,
+        is_contact: Callable = default_is_contact,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
