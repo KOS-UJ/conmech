@@ -125,6 +125,7 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, is_dirichlet, is_contact
         )
+        ### OPTIONAL
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)

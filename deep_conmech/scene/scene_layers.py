@@ -3,15 +3,14 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import List, Optional
 
-import numba
 import numpy as np
 
-from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from deep_conmech.data import interpolation_helpers
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
@@ -32,26 +31,6 @@ class MeshLayerData:
     from_down: Optional[MeshLayerLinkData]
     to_base: Optional[MeshLayerLinkData]
     from_base: Optional[MeshLayerLinkData]
-
-
-@numba.njit
-def get_interlayer_data(old_nodes: np.ndarray, new_nodes: np.ndarray, closest_count: int):
-    closest_distances = np.zeros((len(new_nodes), closest_count))
-    closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
-    closest_weights = np.zeros_like(closest_distances)
-    for new_index, new_node in enumerate(new_nodes):
-        distances = nph.euclidean_norm_numba(old_nodes - new_node)
-        closest_node_list = distances.argsort()[:closest_count]
-        closest_distance_list = distances[closest_node_list]
-        base_nodes = old_nodes[closest_node_list]
-        # Moore-Penrose pseudo-inverse
-        closest_weight_list = np.ascontiguousarray(new_node) @ np.linalg.pinv(base_nodes)
-
-        closest_nodes[new_index, :] = closest_node_list
-        closest_weights[new_index, :] = closest_weight_list
-        closest_distances[new_index, :] = closest_distance_list
-
-    return closest_nodes, closest_weights, closest_distances
 
 
 class SceneLayers(SceneRandomized):
@@ -119,9 +98,13 @@ class SceneLayers(SceneRandomized):
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh):
         old_nodes = from_mesh.normalized_initial_nodes
         new_nodes = to_mesh.normalized_initial_nodes
-        closest_nodes, closest_weights, closest_distances = get_interlayer_data(
-            old_nodes=old_nodes,
-            new_nodes=new_nodes,
+        (
+            closest_nodes,
+            closest_weights,
+            closest_distances,
+        ) = interpolation_helpers.get_interlayer_data(
+            base_nodes=old_nodes,
+            interpolated_nodes=new_nodes,
             closest_count=self.mesh_prop.dimension + 1,
         )
         # assert np.allclose(
@@ -132,9 +115,9 @@ class SceneLayers(SceneRandomized):
             closest_boundary_nodes,
             closest_weights_boundary,
             closest_distances_boundary,
-        ) = get_interlayer_data(
-            old_nodes=from_mesh.initial_boundary_nodes,
-            new_nodes=to_mesh.initial_boundary_nodes,
+        ) = interpolation_helpers.get_interlayer_data(
+            base_nodes=from_mesh.initial_boundary_nodes,
+            interpolated_nodes=to_mesh.initial_boundary_nodes,
             closest_count=self.mesh_prop.dimension,
         )
         return MeshLayerLinkData(
@@ -145,12 +128,6 @@ class SceneLayers(SceneRandomized):
             closest_weights_boundary=closest_weights_boundary,
             closest_distances_boundary=closest_distances_boundary,
         )
-
-    @staticmethod
-    def approximate_internal(from_values, closest_nodes, closest_weights):
-        return (
-            from_values[closest_nodes] * closest_weights.reshape(*closest_weights.shape, 1)
-        ).sum(axis=1)
 
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if layer_number == 0:
@@ -171,6 +148,6 @@ class SceneLayers(SceneRandomized):
         else:
             raise ArgumentError
 
-        return SceneLayers.approximate_internal(
-            from_values=base_values, closest_nodes=closest_nodes, closest_weights=closest_weights
+        return interpolation_helpers.approximate_internal(
+            base_values=base_values, closest_nodes=closest_nodes, closest_weights=closest_weights
         )

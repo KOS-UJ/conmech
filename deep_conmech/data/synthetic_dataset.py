@@ -4,7 +4,6 @@ import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
-from conmech.mesh.mesh_builders_helpers import get_random_corner_data
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -18,19 +17,19 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE, scenarios.M_POLYGON]  # "pygmsh_spline"
+            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON]
         )
     else:
         return interpolation_helpers.choose(
-            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D, scenarios.M_POLYGON_3D]
+            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D]  # , scenarios.M_POLYGON_3D]
         )
 
 
 def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingConfig):
-    corner_vectors = interpolation_helpers.get_corner_vectors(
+    initial_nodes_corner_vectors = interpolation_helpers.generate_corner_vectors(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
-    corner_mesh_data = get_random_corner_data(
+    mesh_corner_scalars = interpolation_helpers.generate_mesh_corner_scalars(
         dimension=config.td.dimension, scale=config.td.adaptive_training_mesh_scale
     )
     scene = SceneInput(
@@ -41,8 +40,8 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
             scale=[config.td.train_scale],
             initial_base=base,
             mean_at_origin=True,
-            corners_vector=corner_vectors,
-            corner_mesh_data=corner_mesh_data,
+            initial_nodes_corner_vectors=initial_nodes_corner_vectors,
+            mesh_corner_scalars=mesh_corner_scalars,
         ),
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
@@ -58,7 +57,7 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
 
 def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
     forces = interpolation_helpers.interpolate_corners(
-        nodes=scene.initial_nodes,
+        initial_nodes=scene.initial_nodes,
         mean_scale=config.td.forces_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -69,7 +68,7 @@ def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
 
 def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     displacement_old = interpolation_helpers.interpolate_corners(
-        nodes=scene.initial_nodes,
+        initial_nodes=scene.initial_nodes,
         mean_scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -80,7 +79,7 @@ def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.nda
 
 def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     velocity_old = interpolation_helpers.interpolate_corners(
-        nodes=scene.initial_nodes,
+        initial_nodes=scene.initial_nodes,
         mean_scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -99,15 +98,6 @@ def generate_obstacles(config: TrainingConfig, scene: SceneInput):
     obstacle_nodes = obstacle_nodes_unnormaized + scene.mean_moved_nodes
     obstacle_normals_unnormaized = -obstacle_nodes_unnormaized
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
-
-
-def generate_base(config: TrainingConfig):
-    dimension = config.td.dimension
-    base = nph.generate_normal(rows=dimension, columns=dimension, sigma=1)
-    base = nph.normalize_euclidean_numba(base)
-    base = nph.orthogonalize_gram_schmidt(base)
-    base = nph.normalize_euclidean_numba(base)  # second time for numerical stability
-    return base
 
 
 class SyntheticDataset(BaseDataset):
@@ -148,7 +138,7 @@ class SyntheticDataset(BaseDataset):
     def generate_scene(self, index: int):
         _ = index
 
-        base = generate_base(self.config)
+        base = nph.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)

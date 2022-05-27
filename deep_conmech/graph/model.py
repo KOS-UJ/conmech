@@ -97,9 +97,12 @@ class GraphModelDynamic:
                 self.save_net()
                 last_save_time = time.time()
 
-            if epoch_number % self.config.td.validate_at_epochs == 0:
+            def is_at_skip(skip):
+                return skip is not None and epoch_number % skip == 0
+
+            if is_at_skip(self.config.td.validate_at_epochs):
                 self.validation_raport(examples_seen=examples_seen)
-            if epoch_number % self.config.td.validate_scenarios_at_epochs == 0:
+            if is_at_skip(self.config.td.validate_scenarios_at_epochs):
                 self.validate_all_scenarios_raport(examples_seen=examples_seen)
 
             # print(prof.key_averages().table(row_limit=10))

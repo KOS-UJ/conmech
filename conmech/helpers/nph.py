@@ -95,34 +95,54 @@ def get_tangential_2d(normal):
 
 def complete_base(base_seed, closest_seed_index=0):
     dim = base_seed.shape[-1]
-    normalized_base_seed = normalize_euclidean_numba(base_seed)
+    # normalized_base_seed = normalize_euclidean_numba(base_seed)
     if dim == 2:
-        unnormalized_base = orthogonalize_gram_schmidt(normalized_base_seed)
+        base = orthonormalize(base_seed)
     elif dim == 3:
-        rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
-        unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
-        unnormalized_base = np.roll(unnormalized_rolled_base, closest_seed_index, axis=0)
+        rolled_base_seed = np.roll(base_seed, -closest_seed_index, axis=0)
+        rolled_base = orthonormalize(rolled_base_seed)
+        base = np.roll(rolled_base, closest_seed_index, axis=0)
     else:
         raise ArgumentError
-    base = normalize_euclidean_numba(unnormalized_base)
+    # base = normalize_euclidean_numba(unnormalized_base)
     return base
 
 
-def orthogonalize_gram_schmidt(vectors):
-    # Gramm-schmidt orthog.
-    b0 = vectors[0]
-    if len(vectors) == 1:
-        return np.array((b0))
+def generate_base(dimension):
+    while True:
+        vectors = generate_normal(rows=dimension, columns=dimension, sigma=1)
+        try:
+            base = orthonormalize(vectors)
+            return base
+        except:
+            print("Base generation error")
 
-    b1 = vectors[1] - (vectors[1] @ b0) * b0
-    if len(vectors) == 2:
-        return np.array((b0, b1))
 
-    # MGS for stability
-    w2 = vectors[2] - (vectors[2] @ b0) * b0
-    b2 = w2 - (w2 @ b1) * b1
-    # nx = np.cross(ny,nz)
-    return np.array((b0, b1, b2))
+def correct_base(base):
+    dim = len(base)
+    for i in range(dim):
+        for j in range(i + 1, dim):
+            if not np.allclose(base[i] @ base[j], 0):
+                return False
+
+    if not np.allclose(euclidean_norm(base), np.ones(dim)):
+        return False
+
+    if len(base) == 2 and not np.allclose(np.cross(*base), 1):
+        return False
+    if len(base) == 3 and not np.allclose(np.cross(*base[:2]), base[2]):
+        return False
+    return True
+
+
+def orthonormalize(vectors):
+    vectors = normalize_euclidean_numba(vectors)
+    base = np.linalg.qr(vectors)[0]
+    if len(base) == 2:
+        base[0] *= -1.0  # keep right orientetion
+    if correct_base(base):
+        return base
+    raise ArgumentError
 
 
 def get_in_base(vectors, base):

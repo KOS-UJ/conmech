@@ -25,11 +25,11 @@ def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
     if mesh_prop.initial_base is not None:
         nodes = nph.get_in_base(nodes, mesh_prop.initial_base)
     # TODO #65: Check if works with all combinations of options
-    if mesh_prop.corners_vector is not None:
-        nodes_interpolation = interpolation_helpers.get_nodes_interpolation(
+    if mesh_prop.initial_nodes_corner_vectors is not None:
+        nodes_interpolation = interpolation_helpers.interpolate_corner_vectors(
             nodes=nodes,
             base=mesh_prop.initial_base,
-            corner_vectors=mesh_prop.corners_vector,
+            corner_vectors=mesh_prop.initial_nodes_corner_vectors,
         )
         nodes += nodes_interpolation
     if mesh_prop.initial_position is not None:
@@ -64,4 +64,4 @@ def build_initial_mesh(
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
-    raise NotImplementedError(f"Not implemented mesh type: {mesh_prop.mesh_type}")
+    raise NotImplementedError(f"Mesh type not implemented: {mesh_prop.mesh_type}")

@@ -7,11 +7,12 @@ from torch import nn
 from conmech.helpers.config import Config
 
 TEST = True
+DIMENSION = 3
 
 
 @dataclass
 class TrainingData:
-    dimension: int = 3
+    dimension: int = DIMENSION
 
     train_scale: int = 1
     validation_scale: int = 1
@@ -39,8 +40,8 @@ class TrainingData:
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
-    validate_at_epochs: int = 1  # 10
-    validate_scenarios_at_epochs: int = 30  # 3  # 30
+    validate_at_epochs: Optional[int] = 1  # 10
+    validate_scenarios_at_epochs: Optional[int] = None  # 3  # 30
 
     use_energy_as_loss: bool = True
     batch_size: int = 16  # 128

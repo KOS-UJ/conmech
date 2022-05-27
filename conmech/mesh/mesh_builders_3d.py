@@ -34,7 +34,7 @@ def get_pygmsh_polygon(mesh_prop: MeshProperties):
         )
         geom.extrude(poly, [0.0, 0.3, 1.0], num_layers=5)
 
-        mesh_builders_helpers.set_mesh_size(geom, mesh_prop)
+        geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 3)
     return mesh_builders_helpers.normalize_nodes(nodes), elements
 
@@ -61,6 +61,6 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
             point_on_axis=[0, 0, 0],
             angle=np.pi / 3,
         )
-        mesh_builders_helpers.set_mesh_size(geom, mesh_prop)
+        geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 3)
     return mesh_builders_helpers.normalize_nodes(nodes), elements
