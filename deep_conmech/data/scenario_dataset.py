@@ -46,7 +46,7 @@ class ScenariosDataset(BaseDataset):
             data_count=self.get_data_count(self.all_scenarios),
             layers_count=layers_count,
             randomize_at_load=randomize_at_load,
-            num_workers=1,  # TODO: #65 Check
+            num_workers=config.scenario_generation_workers,
             load_features_to_ram=load_features_to_ram,
             load_targets_to_ram=load_targets_to_ram,
             with_scenes_file=True,
@@ -76,11 +76,11 @@ class ScenariosDataset(BaseDataset):
 
     def generate_data_process(self, num_workers, process_id):
         assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
-        tqdm_description = f"P{process_id}: Generating {self.description}"
+        tqdm_description = f"Process {process_id}/{num_workers} - generating data"
         self.generate_data_internal(
             assigned_scenarios=assigned_scenarios,
             tqdm_description=tqdm_description,
-            position=process_id,
+            process_id=process_id,
         )
 
     def generate_data_simple(self):
@@ -88,24 +88,22 @@ class ScenariosDataset(BaseDataset):
         self.generate_data_internal(
             assigned_scenarios=self.all_scenarios,
             tqdm_description=tqdm_description,
-            position=None,
+            process_id=0,
         )
 
-    def generate_data_internal(
-        self, assigned_scenarios, tqdm_description: str, position: Optional[int]
-    ):
-        simulation_data_count = np.sum([s.schedule.episode_steps for s in self.all_scenarios])
-        start_index = 0 if position is None else position * simulation_data_count
+    def generate_data_internal(self, assigned_scenarios, tqdm_description: str, process_id: int):
+        simulation_data_count = np.sum([s.schedule.episode_steps for s in assigned_scenarios])
+        start_index = process_id * simulation_data_count
         current_index = start_index
         step_tqdm = cmh.get_tqdm(
             range(simulation_data_count),
             config=self.config,
             desc=tqdm_description,
-            position=position,
+            position=process_id,
         )
         scenario = assigned_scenarios[0]
 
-        scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
+        scenes_file, indices_file = pkh.open_files_append(self.get_scenes_data_path(process_id))
         with scenes_file, indices_file:
             for index in step_tqdm:
                 episode_steps = scenario.schedule.episode_steps
@@ -137,7 +135,7 @@ class ScenariosDataset(BaseDataset):
                     )  # exact_normalized_a_torch
 
                 self.check_and_print(
-                    simulation_data_count,
+                    self.data_count,
                     current_index,
                     scene,
                     step_tqdm,

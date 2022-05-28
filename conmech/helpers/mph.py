@@ -3,16 +3,18 @@ multiprocessing helpers
 """
 import sys
 from multiprocessing import Process, Queue
+from typing import Callable, Tuple
 
 
 def is_supported():
     return "linux" in sys.platform
 
+
 if not is_supported():
     print("Warning: Multiprocessing implemented only for Linux")
 
 
-def run_processes(function, function_args, num_workers):
+def run_processes(function: Callable, num_workers: int, function_args: Tuple = ()):
     if not is_supported() or num_workers == 1:
         args = function_args + (1, 0)
         return function(*args)

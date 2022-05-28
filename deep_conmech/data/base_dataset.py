@@ -141,9 +141,8 @@ class BaseDataset:
     def data_path(self):
         return f"{self.main_directory}/DATA"
 
-    @property
-    def scenes_data_path(self):
-        return f"{self.main_directory}/DATA.scenes"
+    def get_scenes_data_path(self, file_id: int = 0):
+        return f"{self.main_directory}/DATA_{file_id}-{self.num_workers}.scenes"
 
     @property
     def features_data_path(self):
@@ -176,10 +175,18 @@ class BaseDataset:
         cmh.create_folders(self.images_directory)
         cmh.create_folders(self.tmp_directory)
 
+    def get_all_scene_indices(self):
+        all_scene_indices = []
+        for file_id in range(self.num_workers):
+            file_indices = pkh.get_all_indices(self.get_scenes_data_path(file_id))
+            for index in file_indices:
+                all_scene_indices.append((file_id, index))
+        return all_scene_indices
+
     def initialize_scenes(self):
-        self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+        self.scene_indices = self.get_all_scene_indices()
         if self.data_count == len(self.scene_indices):
-            file_size_gb = os.path.getsize(self.scenes_data_path) / 1024**3
+            file_size_gb = os.path.getsize(self.get_scenes_data_path()) / 1024**3
             print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
 
         else:
@@ -187,22 +194,27 @@ class BaseDataset:
             cmh.clear_folder(self.main_directory)
             self.create_folders()
 
+            mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
             # mph.run_process(self.generate_data_simple)
-            cmh.profile(self.generate_data_simple)
+            # cmh.profile(self.generate_data_simple)
             # self.generate_data_simple()
 
-            self.scene_indices = pkh.get_all_indices(self.scenes_data_path)
+            self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
 
+    def get_scene_from_file(self, scene_index):
+        file_id, byte_index = self.scene_indices[scene_index]
+        scenes_file = pkh.open_file_read(self.get_scenes_data_path(file_id))
+        scene = pkh.load_byte_index(
+            byte_index=byte_index,
+            data_file=scenes_file,
+        )
+        return scene
+
     def get_scenes_iterator(self, data_tqdm: Iterable[int]):
-        scenes_file = pkh.open_file_read(self.scenes_data_path)
         for scene_index in data_tqdm:
             if self.with_scenes_file:
-                scene = pkh.load_index(
-                    index=scene_index,
-                    all_indices=self.scene_indices,
-                    data_file=scenes_file,
-                )
+                scene = self.get_scene_from_file(scene_index)
             else:
                 scene, _ = self.generate_scene(scene_index)
 
@@ -326,11 +338,11 @@ class BaseDataset:
             )
         return target_data
 
-    def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
+    def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
         if images_count is None:
             return
-        plot_index_skip = 1 if data_count < images_count else int(data_count / images_count)
+        plot_index_skip = 1 if all_data_count < images_count else int(all_data_count / images_count)
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")

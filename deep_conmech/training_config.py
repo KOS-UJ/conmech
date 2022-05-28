@@ -7,7 +7,7 @@ from torch import nn
 from conmech.helpers.config import Config
 
 TEST = False
-DIMENSION = 2
+DIMENSION = 3
 
 
 @dataclass
@@ -20,7 +20,7 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 64  # 64 if dimension == 2 else 16
+    mesh_density: int = 8  # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.8
 
     forces_random_scale: float = 4.0
@@ -44,9 +44,9 @@ class TrainingData:
     validate_scenarios_at_epochs: Optional[int] = None  # 3  # 30
 
     use_energy_as_loss: bool = True
-    batch_size: int = 16  # 128  # 16  # 128
+    batch_size: int = 128  # 16  # 128
     valid_batch_size: int = batch_size  # 128
-    synthetic_batches_in_epoch: int = 4  # 32  # 1 if TEST else 256  # 512
+    synthetic_batches_in_epoch: int = 1  # 4096 # 32  # 1 if TEST else 256  # 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -78,7 +78,8 @@ class TrainingConfig(Config):
     device: str = "_"
 
     dataloader_workers = 4
-    synthetic_generation_workers = 1  # 2
+    synthetic_generation_workers = 4
+    scenario_generation_workers = 1
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
     total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)
@@ -86,7 +87,7 @@ class TrainingConfig(Config):
         (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
     )
 
-    dataset_images_count: Optional[float] = None  # 100
+    dataset_images_count: Optional[float] = 128
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False

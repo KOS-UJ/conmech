@@ -88,9 +88,6 @@ def get_mesh_callback(corner_vectors):
             interpolated_values_1 = interpolate_node_numba(corner_values, x)
             reinterpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
             return reinterpolated_values_2
-            # values_y_0 = corner_vectors[0] * x + corner_vectors[1] * (1 - x)
-            # values_y_1 = corner_vectors[2] * x + corner_vectors[3] * (1 - x)
-            # return values_y_0 * y + values_y_1 * (1 - y)
 
         return interpolate
 
@@ -102,13 +99,6 @@ def get_mesh_callback(corner_vectors):
             interpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
             interpolated_values_3 = interpolate_node_numba(interpolated_values_2, z)
             return interpolated_values_3
-            # values_y_0 = corner_vectors[0] * x + corner_vectors[1] * (1 - x)
-            # values_y_1 = corner_vectors[2] * x + corner_vectors[3] * (1 - x)
-            # values_y_2 = corner_vectors[4] * x + corner_vectors[5] * (1 - x)
-            # values_y_3 = corner_vectors[6] * x + corner_vectors[7] * (1 - x)
-            # values_z_0 = values_y_0 * y + values_y_1 * (1 - y)
-            # values_z_1 = values_y_2 * y + values_y_3 * (1 - y)
-            # return values_z_0 * z + values_z_1 * (1 - z)
 
         return interpolate
     else:

@@ -231,7 +231,11 @@ class SceneInput(SceneLayers):
         self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
     ):
         closest_nodes = torch.tensor(link.closest_nodes)
-        closest_weights = thh.to_torch_set_precision(link.closest_weights)
+        closest_weights = (
+            None
+            if link.closest_weights is None
+            else thh.to_torch_set_precision(link.closest_weights)
+        )
         edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
             self.get_edges_data(

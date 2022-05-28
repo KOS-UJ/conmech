@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
@@ -165,11 +163,11 @@ class SyntheticDataset(BaseDataset):
         assigned_data_range = base_dataset.get_process_data_range(
             process_id, self.scenes_part_count
         )
-        tqdm_description = f"Process {process_id} - generating data"
+        tqdm_description = f"Process {process_id}/{num_workers} - generating data"
         self.generate_data_internal(
             assigned_data_range=assigned_data_range,
             tqdm_description=tqdm_description,
-            position=process_id,
+            process_id=process_id,
         )
 
     def generate_data_simple(self):
@@ -178,20 +176,18 @@ class SyntheticDataset(BaseDataset):
         self.generate_data_internal(
             assigned_data_range=assigned_data_range,
             tqdm_description=tqdm_description,
-            position=None,
+            process_id=0,
         )
 
-    def generate_data_internal(
-        self, assigned_data_range, tqdm_description: str, position: Optional[int]
-    ):
+    def generate_data_internal(self, assigned_data_range, tqdm_description: str, process_id: int):
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,
             desc=tqdm_description,
             config=self.config,
-            position=position,
+            position=process_id,
         )
 
-        scenes_file, indices_file = pkh.open_files_append(self.scenes_data_path)
+        scenes_file, indices_file = pkh.open_files_append(self.get_scenes_data_path(process_id))
         with scenes_file, indices_file:
             for index in step_tqdm:
                 if base_dataset.is_memory_overflow(
@@ -207,7 +203,7 @@ class SyntheticDataset(BaseDataset):
                 self.save_scene(scene=scene, scenes_file=scenes_file, indices_file=indices_file)
 
                 self.check_and_print(
-                    len(assigned_data_range),
+                    self.data_count,
                     index,
                     scene,
                     step_tqdm,
