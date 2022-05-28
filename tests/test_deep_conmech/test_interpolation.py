@@ -1,6 +1,6 @@
 import numpy as np
 
-from deep_conmech.data.interpolation_helpers import interpolate_scaled_nodes
+from deep_conmech.data.interpolation_helpers import interpolate_scaled_nodes_numba
 
 
 def test_interpolate_scaled_nodes_2d():
@@ -8,7 +8,7 @@ def test_interpolate_scaled_nodes_2d():
 
     # vector = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=np.float64)
     vector = np.array([[1, 1], [1, 0], [0, 1], [0, 0]], dtype=np.float64)
-    interpolated_scaled_nodes = interpolate_scaled_nodes(
+    interpolated_scaled_nodes = interpolate_scaled_nodes_numba(
         scaled_nodes=scaled_nodes, corner_vectors=vector
     )
     assert np.allclose(scaled_nodes, interpolated_scaled_nodes)
@@ -25,7 +25,7 @@ def test_interpolate_scaled_nodes_3d():
         [[1, 1, 1], [1, 1, 0], [1, 0, 1], [1, 0, 0], [0, 1, 1], [0, 1, 0], [0, 0, 1], [0, 0, 0]],
         dtype=np.float64,
     )
-    interpolated_scaled_nodes = interpolate_scaled_nodes(
+    interpolated_scaled_nodes = interpolate_scaled_nodes_numba(
         scaled_nodes=scaled_nodes, corner_vectors=vector
     )
     assert np.allclose(scaled_nodes, interpolated_scaled_nodes)

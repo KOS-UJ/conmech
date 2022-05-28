@@ -4,7 +4,7 @@ from ctypes import ArgumentError
 import numba
 import numpy as np
 
-from conmech.helpers import nph, lnh
+from conmech.helpers import lnh, nph
 
 
 def decide(scale):
@@ -32,7 +32,8 @@ def generate_corner_vectors(dimension: int, scale: float):
     return normalized_corner_vectors
 
 
-def interpolate_scaled_nodes(scaled_nodes: np.ndarray, corner_vectors: np.ndarray):
+@numba.njit
+def interpolate_scaled_nodes_numba(scaled_nodes: np.ndarray, corner_vectors: np.ndarray):
     if np.min(scaled_nodes) < 0 or np.max(scaled_nodes) > 1:
         raise ArgumentError
 
@@ -55,9 +56,9 @@ def __interpolate_scaled_nodes_2d_numba(
 ):
     corner_values = corner_vectors.reshape(2, 2, -1)
     for i, node in enumerate(scaled_nodes):
-        interpolated_values_2 = __interpolate_numba(corner_values, node, 0)
-        interpolated_values_1 = __interpolate_numba(interpolated_values_2, node, 1)
-        result[i] = interpolated_values_1
+        interpolated_values_1 = interpolate_node_numba(corner_values, node[0])
+        interpolated_values_2 = interpolate_node_numba(interpolated_values_1, node[1])
+        result[i] = interpolated_values_2
     return result
 
 
@@ -67,17 +68,51 @@ def __interpolate_scaled_nodes_3d_numba(
 ):
     corner_values = corner_vectors.reshape(2, 2, 2, -1)
     for i, node in enumerate(scaled_nodes):
-        interpolated_values_3 = __interpolate_numba(corner_values, node, 0)
-        interpolated_values_2 = __interpolate_numba(interpolated_values_3, node, 1)
-        interpolated_values_1 = __interpolate_numba(interpolated_values_2, node, 2)
-        result[i] = interpolated_values_1
+        interpolated_values_1 = interpolate_node_numba(corner_values, node[0])
+        interpolated_values_2 = interpolate_node_numba(interpolated_values_1, node[1])
+        interpolated_values_3 = interpolate_node_numba(interpolated_values_2, node[2])
+        result[i] = interpolated_values_3
     return result
 
 
 @numba.njit(inline="always")
-def __interpolate_numba(values, node, index):
-    scale = node[index]
+def interpolate_node_numba(values, scale):
     return values[0] * scale + values[1] * (1 - scale)
+
+
+def get_mesh_callback(corner_vectors):
+    if len(corner_vectors) == 4:
+        corner_values = corner_vectors.reshape(2, 2, -1)
+
+        def interpolate(dim, tag, x, y, z, lc):
+            interpolated_values_1 = interpolate_node_numba(corner_values, x)
+            reinterpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
+            return reinterpolated_values_2
+            # values_y_0 = corner_vectors[0] * x + corner_vectors[1] * (1 - x)
+            # values_y_1 = corner_vectors[2] * x + corner_vectors[3] * (1 - x)
+            # return values_y_0 * y + values_y_1 * (1 - y)
+
+        return interpolate
+
+    if len(corner_vectors) == 8:
+        corner_values = corner_vectors.reshape(2, 2, 2, -1)
+
+        def interpolate(dim, tag, x, y, z, lc):
+            interpolated_values_1 = interpolate_node_numba(corner_values, x)
+            interpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
+            interpolated_values_3 = interpolate_node_numba(interpolated_values_2, z)
+            return interpolated_values_3
+            # values_y_0 = corner_vectors[0] * x + corner_vectors[1] * (1 - x)
+            # values_y_1 = corner_vectors[2] * x + corner_vectors[3] * (1 - x)
+            # values_y_2 = corner_vectors[4] * x + corner_vectors[5] * (1 - x)
+            # values_y_3 = corner_vectors[6] * x + corner_vectors[7] * (1 - x)
+            # values_z_0 = values_y_0 * y + values_y_1 * (1 - y)
+            # values_z_1 = values_y_2 * y + values_y_3 * (1 - y)
+            # return values_z_0 * z + values_z_1 * (1 - z)
+
+        return interpolate
+    else:
+        raise ArgumentError
 
 
 def scale_nodes_to_cube(nodes):
@@ -91,7 +126,7 @@ def interpolate_corner_vectors(nodes: np.ndarray, base: np.ndarray, corner_vecto
     # orthonormal matrix; inverse equals transposition
     upward_nodes = lnh.get_in_base(nodes, base.T)
     scaled_nodes = scale_nodes_to_cube(upward_nodes)
-    upward_vectors_interpolation = interpolate_scaled_nodes(
+    upward_vectors_interpolation = interpolate_scaled_nodes_numba(
         scaled_nodes=scaled_nodes,
         corner_vectors=corner_vectors,
     )

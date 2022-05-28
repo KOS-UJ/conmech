@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 import numba
 import numpy as np
@@ -71,8 +71,8 @@ class Dynamics(BodyPosition):
         body_prop: StaticBodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable,
-        is_contact: Callable,
+        is_dirichlet: Optional[Callable],
+        is_contact: Optional[Callable],
     ):
         super().__init__(
             mesh_prop=mesh_prop,

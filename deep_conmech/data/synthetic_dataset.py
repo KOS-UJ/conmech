@@ -3,7 +3,7 @@ from typing import Optional
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
-from conmech.helpers import cmh, nph, pkh, lnh
+from conmech.helpers import cmh, lnh, nph, pkh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -29,8 +29,12 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
     initial_nodes_corner_vectors = interpolation_helpers.generate_corner_vectors(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
-    mesh_corner_scalars = interpolation_helpers.generate_mesh_corner_scalars(
-        dimension=config.td.dimension, scale=config.td.adaptive_training_mesh_scale
+    mesh_corner_scalars = (
+        None
+        if config.td.adaptive_training_mesh_scale is None
+        else interpolation_helpers.generate_mesh_corner_scalars(
+            dimension=config.td.dimension, scale=config.td.adaptive_training_mesh_scale
+        )
     )
     scene = SceneInput(
         mesh_prop=MeshProperties(

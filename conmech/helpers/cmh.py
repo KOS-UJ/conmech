@@ -66,4 +66,4 @@ def profile(function: Callable):
 
     pr.disable()
     stats = Stats(pr)
-    stats.sort_stats("tottime").print_stats(10)
+    stats.sort_stats("tottime").print_stats(20)  # "cumtime"

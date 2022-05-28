@@ -1,6 +1,6 @@
 import copy
 from ctypes import ArgumentError
-from typing import Callable
+from typing import Callable, Optional
 
 import numba
 import numpy as np
@@ -103,8 +103,8 @@ class BodyPosition(Mesh):
         mesh_prop: MeshProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
+        is_dirichlet: Optional[Callable] = None,
+        is_contact: Optional[Callable] = None,
         create_in_subprocess: bool = False,
     ):
         super().__init__(

@@ -7,27 +7,27 @@ from conmech.solvers import SchurComplement
 
 
 def obstacle_heat(
-    penetration_norm,
+    penetration,
     tangential_velocity,
     heat_coeff,
 ):
-    return (
-        (penetration_norm > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity, keepdims=True)
-    )
+    return (penetration > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity, keepdims=True)
 
 
 def integrate(
     nodes_normals,
+    obstacle_normals,
     velocity,
     initial_penetration,
     nodes_volume,
     heat_coeff,
 ):
-    penetration_norm = initial_penetration
+    penetration = initial_penetration
     # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
-    v_tangential = nph.get_tangential(velocity, nodes_normals)
+    # v_tangential = nph.get_tangential(velocity, nodes_normals)
 
-    heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
+    v_tangential = nph.get_tangential(velocity, obstacle_normals)
+    heat = obstacle_heat(penetration, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
 
@@ -116,12 +116,14 @@ class SceneTemperature(Scene):
         A += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
         return A
 
+    # TODO: #65 Check why without new data !!!
     def get_obstacle_heat_integral(self):
         surface_per_boundary_node = self.get_surface_per_boundary_node()
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         return integrate(
             nodes_normals=self.get_boundary_normals(),
+            obstacle_normals=self.get_boundary_obstacle_normals(),
             velocity=self.boundary_velocity_old,
             initial_penetration=self.get_penetration_scalar(),
             nodes_volume=surface_per_boundary_node,

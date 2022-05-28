@@ -2,9 +2,14 @@
 Created at 12.02.2022
 """
 
+import numba
 import numpy as np
 import pytest
-from conmech.mesh.boundaries_factory import BoundariesFactory, extract_boundary_paths_from_elements
+
+from conmech.mesh.boundaries_factory import (
+    BoundariesFactory,
+    extract_boundary_paths_from_elements,
+)
 
 
 def test_identify_surfaces():
@@ -211,7 +216,7 @@ def test_condition_boundaries(_test_name_, params):
         elements,
         boundaries_data,
     ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        unordered_nodes, unordered_elements, numba.njit(is_dirichlet), numba.njit(is_contact)
     )
 
     # Assert

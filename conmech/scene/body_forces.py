@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numba
 import numpy as np
@@ -19,10 +19,6 @@ def energy(value, lhs, rhs):
     return value
 
 
-default_is_dirichlet = lambda _: False
-default_is_contact = lambda _: True
-
-
 class BodyForces(Dynamics):
     def __init__(
         self,
@@ -30,8 +26,8 @@ class BodyForces(Dynamics):
         body_prop: DynamicBodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable = default_is_dirichlet,
-        is_contact: Callable = default_is_contact,
+        is_dirichlet: Optional[Callable] = None,
+        is_contact: Optional[Callable] = None,
     ):
         super().__init__(
             mesh_prop=mesh_prop,

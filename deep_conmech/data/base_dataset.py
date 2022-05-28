@@ -328,6 +328,8 @@ class BaseDataset:
 
     def check_and_print(self, data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
+        if images_count is None:
+            return
         plot_index_skip = 1 if data_count < images_count else int(data_count / images_count)
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
