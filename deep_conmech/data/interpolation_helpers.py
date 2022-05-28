@@ -159,26 +159,29 @@ def interpolate_corners(
 
 
 @numba.njit
-def get_interlayer_data(base_nodes: np.ndarray, interpolated_nodes: np.ndarray, closest_count: int):
+def get_interlayer_data(
+    base_nodes: np.ndarray, interpolated_nodes: np.ndarray, closest_count: int, with_weights: bool
+):
     closest_distances = np.zeros((len(interpolated_nodes), closest_count))
     closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
-    closest_weights = np.zeros_like(closest_distances)
+    closest_weights = np.zeros_like(closest_distances) if with_weights else None
 
     for index, node in enumerate(interpolated_nodes):
         distances = nph.euclidean_norm_numba(base_nodes - node)
         closest_node_list = distances.argsort()[:closest_count]
         closest_distance_list = distances[closest_node_list]
         selected_base_nodes = base_nodes[closest_node_list]
-        # Moore-Penrose pseudo-inverse
-        closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
-        # assert np.min(closest_weight_list) >= 0
-        # assert np.sum(closest_weight_list) == 1
+        if with_weights:
+            # Moore-Penrose pseudo-inverse
+            closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
+            # assert np.min(closest_weight_list) >= 0
+            # assert np.sum(closest_weight_list) == 1
+            closest_weights[index, :] = closest_weight_list
 
         closest_nodes[index, :] = closest_node_list
-        closest_weights[index, :] = closest_weight_list
         closest_distances[index, :] = closest_distance_list
 
-    return closest_nodes, closest_weights, closest_distances
+    return closest_nodes, closest_distances, closest_weights
 
 
 def approximate_internal(base_values, closest_nodes, closest_weights):

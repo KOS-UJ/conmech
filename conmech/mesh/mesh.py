@@ -84,10 +84,6 @@ def get_base_seed_indices(nodes):
     return base_seed_indices, int(np.argmin(errors))
 
 
-default_is_dirichlet = numba.njit(lambda _: False)
-default_is_contact = numba.njit(lambda _: True)
-
-
 class Mesh:
     def __init__(
         self,
@@ -122,10 +118,6 @@ class Mesh:
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
-        is_dirichlet_numba = (
-            default_is_dirichlet if is_dirichlet is None else numba.njit(is_dirichlet)
-        )
-        is_contact_numba = default_is_contact if is_contact is None else numba.njit(is_contact)
         (
             self.initial_nodes,
             self.elements,
@@ -133,8 +125,8 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes=unordered_nodes,
             unordered_elements=unordered_elements,
-            is_dirichlet_numba=is_dirichlet_numba,
-            is_contact_numba=is_contact_numba,
+            is_dirichlet_numba=None if is_dirichlet is None else numba.njit(is_dirichlet),
+            is_contact_numba=None if is_contact is None else numba.njit(is_contact),
         )
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)

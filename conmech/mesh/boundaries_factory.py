@@ -2,7 +2,7 @@
 Created at 16.02.2022
 """
 from dataclasses import dataclass
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import numba
 import numpy as np
@@ -65,12 +65,19 @@ def reorder_boundary_nodes(
 ):
     # move boundary nodes to the top
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, is_all_numba, to_top=True)
-    # then move contact nodes to the top
-    nodes, elements, contact_nodes_count = reorder(nodes, elements, is_contact_numba, to_top=True)
-    # finally move dirichlet nodes to the bottom
-    nodes, elements, dirichlet_nodes_count = reorder(
-        nodes, elements, is_dirichlet_numba, to_top=False
-    )
+    if is_contact_numba is None:
+        # is_contact_numba is None - assuming all contact
+        contact_nodes_count = boundary_nodes_count
+        dirichlet_nodes_count = 0
+    else:
+        # then move contact nodes to the top
+        nodes, elements, contact_nodes_count = reorder(
+            nodes, elements, is_contact_numba, to_top=True
+        )
+        # finally move dirichlet nodes to the bottom
+        nodes, elements, dirichlet_nodes_count = reorder(
+            nodes, elements, is_dirichlet_numba, to_top=False
+        )
     return (
         nodes,
         elements,
@@ -100,6 +107,9 @@ def reorder_numba(
     selected_indices: np.ndarray,
     to_top: bool,
 ):
+    if len(selected_indices) == 0:
+        return unordered_nodes, unordered_elements, 0
+
     nodes_count = len(unordered_nodes)
     last_index = nodes_count - 1
 
@@ -167,8 +177,8 @@ class BoundariesFactory:
     def identify_boundaries_and_reorder_nodes(
         unordered_nodes: np.ndarray,
         unordered_elements: np.ndarray,
-        is_dirichlet_numba: Callable,
-        is_contact_numba: Callable,
+        is_dirichlet_numba: Optional[Callable],
+        is_contact_numba: Optional[Callable],
     ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
         (
             initial_nodes,
@@ -185,22 +195,30 @@ class BoundariesFactory:
 
         neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
         boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
-        boundary_surface_centers = get_surface_centers(
-            surfaces=boundary_surfaces, nodes=initial_nodes
-        )
-        dirichlet_mask = get_nodes_mask_numba(
-            nodes=boundary_surface_centers,
-            predicate_numba=is_dirichlet_numba,
-        )
-        contact_mask = get_nodes_mask_numba(
-            nodes=boundary_surface_centers,
-            predicate_numba=is_contact_numba,
-        )
-        neumann_mask = np.logical_and(np.logical_not(dirichlet_mask), np.logical_not(contact_mask))
+        if is_contact_numba is None:
+            # is_contact_numba is None - assuming all contact
+            contact_boundary = boundary_surfaces
+            dirichlet_boundary = np.empty(shape=(0, boundary_surfaces.shape[-1]), dtype=np.int64)
+            neumann_boundary = dirichlet_boundary.copy()
+        else:
+            boundary_surface_centers = get_surface_centers(
+                surfaces=boundary_surfaces, nodes=initial_nodes
+            )
+            dirichlet_mask = get_nodes_mask_numba(
+                nodes=boundary_surface_centers,
+                predicate_numba=is_dirichlet_numba,
+            )
+            contact_mask = get_nodes_mask_numba(
+                nodes=boundary_surface_centers,
+                predicate_numba=is_contact_numba,
+            )
+            neumann_mask = np.logical_and(
+                np.logical_not(dirichlet_mask), np.logical_not(contact_mask)
+            )
 
-        dirichlet_boundary = boundary_surfaces[dirichlet_mask]
-        contact_boundary = boundary_surfaces[contact_mask]
-        neumann_boundary = boundary_surfaces[neumann_mask]
+            dirichlet_boundary = boundary_surfaces[dirichlet_mask]
+            contact_boundary = boundary_surfaces[contact_mask]
+            neumann_boundary = boundary_surfaces[neumann_mask]
 
         boundaries_data = Boundaries(
             contact_boundary=contact_boundary,
