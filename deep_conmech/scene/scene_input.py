@@ -100,6 +100,7 @@ class EnergyObstacleArgumentsTorch:
     rhs: torch.Tensor
     boundary_velocity_old: torch.Tensor
     boundary_normals: torch.Tensor
+    boundary_obstacle_normals: torch.Tensor
     penetration: torch.Tensor
     surface_per_boundary_node: torch.Tensor
     obstacle_prop: ObstacleProperties
@@ -324,7 +325,8 @@ class SceneInput(SceneLayers):
                 rhs=thh.to_double(self.get_normalized_rhs_np()),
                 boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
                 boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
-                penetration=thh.to_double(self.get_penetration()),
+                boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
+                penetration=thh.to_double(self.get_penetration_scalar()),
                 surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
                 obstacle_prop=self.obstacle_prop,
                 time_step=self.schedule.time_step,

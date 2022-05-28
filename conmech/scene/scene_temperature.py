@@ -123,7 +123,7 @@ class SceneTemperature(Scene):
         return integrate(
             nodes_normals=self.get_boundary_normals(),
             velocity=self.boundary_velocity_old,
-            initial_penetration=self.get_penetration(),
+            initial_penetration=self.get_penetration_scalar(),
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
         )
