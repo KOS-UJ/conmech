@@ -231,11 +231,6 @@ class SceneInput(SceneLayers):
         self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
     ):
         closest_nodes = torch.tensor(link.closest_nodes)
-        closest_weights = (
-            None
-            if link.closest_weights is None
-            else thh.to_torch_set_precision(link.closest_weights)
-        )
         edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
             self.get_edges_data(
@@ -256,9 +251,9 @@ class SceneInput(SceneLayers):
             edges_index_np,
             edges_index.T.numpy(),
         )
-        return edges_index, edges_data, closest_nodes, closest_weights
+        return edges_index, edges_data, closest_nodes
 
-    def get_features_data(self, layer_number: int, scene_index: int):
+    def get_features_data(self, layer_number: int):
         # exact_normalized_a_torch=None
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
@@ -271,7 +266,6 @@ class SceneInput(SceneLayers):
         layer_directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
 
         data = MeshLayerData(
-            scene_id=torch.tensor([scene_index]),
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
             forces=thh.to_torch_set_precision(
@@ -301,7 +295,6 @@ class SceneInput(SceneLayers):
                 data.edge_index_to_down,
                 data.edge_attr_to_down,
                 data.closest_nodes_to_down,
-                data.closest_weights_to_down,
             ) = self.get_multilayer_edges_with_data(
                 link=layer_data.to_down,
                 layer_number_from=layer_number,
@@ -311,7 +304,6 @@ class SceneInput(SceneLayers):
                 data.edge_index_from_down,
                 data.edge_attr_from_down,
                 data.closest_nodes_from_down,
-                data.closest_weights_from_down,
             ) = self.get_multilayer_edges_with_data(
                 link=layer_data.from_down,
                 layer_number_from=layer_number - 1,

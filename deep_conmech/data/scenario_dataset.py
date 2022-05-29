@@ -6,11 +6,7 @@ import numpy as np
 from conmech.helpers import cmh, pkh
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
-from deep_conmech.data.base_dataset import (
-    BaseDataset,
-    get_assigned_scenarios,
-    is_memory_overflow,
-)
+from deep_conmech.data.base_dataset import BaseDataset, is_memory_overflow
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
@@ -61,6 +57,16 @@ class ScenariosDataset(BaseDataset):
     def data_size_id(self):
         return f"f:{self.config.td.final_time}_i:{self.skip_index}"
 
+    def get_assigned_scenarios(self, num_workers, process_id):
+        scenarios_count = len(self.all_scenarios)
+        if scenarios_count % num_workers != 0:
+            raise Exception("Cannot divide data generation work")
+        assigned_scenarios_count = int(scenarios_count / num_workers)
+        assigned_scenarios = self.all_scenarios[
+            process_id * assigned_scenarios_count : (process_id + 1) * assigned_scenarios_count
+        ]
+        return assigned_scenarios
+
     def get_scene(self, scenario: Scenario, layers_count: int, config: TrainingConfig) -> Scene:
         scene = SceneInput(
             mesh_prop=scenario.mesh_prop,
@@ -74,24 +80,9 @@ class ScenariosDataset(BaseDataset):
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
 
-    def generate_data_process(self, num_workers, process_id):
-        assigned_scenarios = get_assigned_scenarios(self.all_scenarios, num_workers, process_id)
-        tqdm_description = f"Process {process_id}/{num_workers} - generating data"
-        self.generate_data_internal(
-            assigned_scenarios=assigned_scenarios,
-            tqdm_description=tqdm_description,
-            process_id=process_id,
-        )
-
-    def generate_data_simple(self):
-        tqdm_description = "Generating data"
-        self.generate_data_internal(
-            assigned_scenarios=self.all_scenarios,
-            tqdm_description=tqdm_description,
-            process_id=0,
-        )
-
-    def generate_data_internal(self, assigned_scenarios, tqdm_description: str, process_id: int):
+    def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
+        assigned_scenarios = self.get_assigned_scenarios(num_workers, process_id)
+        tqdm_description = f"Generating data - process {process_id}/{num_workers}"
         simulation_data_count = np.sum([s.schedule.episode_steps for s in assigned_scenarios])
         start_index = process_id * simulation_data_count
         current_index = start_index
@@ -103,36 +94,34 @@ class ScenariosDataset(BaseDataset):
         )
         scenario = assigned_scenarios[0]
 
-        scenes_file, indices_file = pkh.open_files_append(self.get_scenes_data_path(process_id))
-        with scenes_file, indices_file:
-            for index in step_tqdm:
-                episode_steps = scenario.schedule.episode_steps
-                ts = (index % episode_steps) + 1
-                if ts == 1:
-                    scenario = assigned_scenarios[int(index / episode_steps)]
-                    scene = self.get_scene(
-                        scenario=scenario, layers_count=self.layers_count, config=self.config
-                    )
+        for index in step_tqdm:
+            episode_steps = scenario.schedule.episode_steps
+            ts = (index % episode_steps) + 1
+            if ts == 1:
+                scenario = assigned_scenarios[int(index / episode_steps)]
+                scene = self.get_scene(
+                    scenario=scenario, layers_count=self.layers_count, config=self.config
+                )
 
-                if is_memory_overflow(
-                    config=self.config,
-                    step_tqdm=step_tqdm,
-                    tqdm_description=tqdm_description,
-                ):
-                    return False
+            if is_memory_overflow(
+                config=self.config,
+                step_tqdm=step_tqdm,
+                tqdm_description=tqdm_description,
+            ):
+                return False
 
-                current_time = ts * scene.time_step
-                forces = scenario.get_forces_by_function(scene, current_time)
-                scene.prepare(forces)
+            current_time = ts * scene.time_step
+            forces = scenario.get_forces_by_function(scene, current_time)
+            scene.prepare(forces)
 
-                a, normalized_a = self.solve_function(scene)
-                exact_normalized_a_torch = thh.to_double(normalized_a)
-                _ = exact_normalized_a_torch
+            a, normalized_a = self.solve_function(scene)
+            exact_normalized_a_torch = thh.to_double(normalized_a)
+            _ = exact_normalized_a_torch
 
-                if index % self.skip_index == 0:
-                    self.save_scene(
-                        scene=scene, scenes_file=scenes_file, indices_file=indices_file
-                    )  # exact_normalized_a_torch
+            if index % self.skip_index == 0:
+                self.safe_save_scene(
+                    scene=scene, data_path=self.scenes_data_path
+                )  # exact_normalized_a_torch
 
                 self.check_and_print(
                     self.data_count,
@@ -141,10 +130,10 @@ class ScenariosDataset(BaseDataset):
                     step_tqdm,
                     tqdm_description,
                 )
-
-                # setting = setting.get_copy()
-                scene.iterate_self(a)
                 current_index += 1
+
+            # setting = setting.get_copy()
+            scene.iterate_self(a)
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

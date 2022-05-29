@@ -1,5 +1,6 @@
 import copy
 import os
+from multiprocessing import Lock
 from typing import Iterable
 
 import numpy as np
@@ -71,21 +72,6 @@ def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
     return memory_usage > config.synthetic_generation_memory_limit_gb
 
 
-def get_process_data_range(process_id, data_part_count):
-    return range(process_id * data_part_count, (process_id + 1) * data_part_count)
-
-
-def get_assigned_scenarios(all_scenarios, num_workers, process_id):
-    scenarios_count = len(all_scenarios)
-    if scenarios_count % num_workers != 0:
-        raise Exception("Cannot divide data generation work")
-    assigned_scenarios_count = int(scenarios_count / num_workers)
-    assigned_scenarios = all_scenarios[
-        process_id * assigned_scenarios_count : (process_id + 1) * assigned_scenarios_count
-    ]
-    return assigned_scenarios
-
-
 class BaseDataset:
     def __init__(
         self,
@@ -115,6 +101,7 @@ class BaseDataset:
         self.loaded_targets_data = None
         self.features_indices = None
         self.targets_indices = None
+        self.files_lock = mph.get_lock()
 
     @property
     def data_size_id(self):
@@ -141,8 +128,9 @@ class BaseDataset:
     def data_path(self):
         return f"{self.main_directory}/DATA"
 
-    def get_scenes_data_path(self, file_id: int = 0):
-        return f"{self.main_directory}/DATA_{file_id}-{self.num_workers}.scenes"
+    @property
+    def scenes_data_path(self):
+        return f"{self.main_directory}/DATA.scenes"
 
     @property
     def features_data_path(self):
@@ -151,6 +139,12 @@ class BaseDataset:
     @property
     def targets_data_path(self):
         return f"{self.tmp_directory}/DATASET.targ"
+
+    def get_process_data_range(self, process_id, num_workers):
+        if self.data_count % num_workers != 0:
+            raise Exception("Cannot divide data generation work")
+        scenes_part_count = int(self.data_count / num_workers)
+        return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
 
     def initialize_data(self):
         print(f"----INITIALIZING DATASET ({self.data_id})----")
@@ -176,47 +170,40 @@ class BaseDataset:
         cmh.create_folders(self.tmp_directory)
 
     def get_all_scene_indices(self):
-        all_scene_indices = []
-        for file_id in range(self.num_workers):
-            file_indices = pkh.get_all_indices(self.get_scenes_data_path(file_id))
-            for index in file_indices:
-                all_scene_indices.append((file_id, index))
-        return all_scene_indices
+        return pkh.get_all_indices(self.scenes_data_path)
 
     def initialize_scenes(self):
+        # cmh.profile(self.generate_data_simple)
+
         self.scene_indices = self.get_all_scene_indices()
         if self.data_count == len(self.scene_indices):
-            file_size_gb = os.path.getsize(self.get_scenes_data_path()) / 1024**3
-            print(f"Taking prepared scenes ({file_size_gb:.2f} GB)")
+            print(f"Taking prepared scenes ({self.get_size(self.scenes_data_path):.2f} GB)")
+            return
 
-        else:
-            print("Clearing old data")
-            cmh.clear_folder(self.main_directory)
-            self.create_folders()
+        print("Clearing old data")
+        cmh.clear_folder(self.main_directory)
+        self.create_folders()
 
-            mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
-            # mph.run_process(self.generate_data_simple)
-            # cmh.profile(self.generate_data_simple)
-            # self.generate_data_simple()
+        mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+        # mph.run_process(self.generate_data_simple)
+        # self.generate_data_simple()
 
-            self.scene_indices = self.get_all_scene_indices()
+        self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
 
-    def get_scene_from_file(self, scene_index):
-        file_id, byte_index = self.scene_indices[scene_index]
-        scenes_file = pkh.open_file_read(self.get_scenes_data_path(file_id))
-        scene = pkh.load_byte_index(
-            byte_index=byte_index,
-            data_file=scenes_file,
+    def get_scene_from_file(self, scene_index: int):
+        return pkh.load_index(
+            index=scene_index,
+            all_indices=self.scene_indices,
+            data_file=pkh.open_file_read(self.scenes_data_path),
         )
-        return scene
 
     def get_scenes_iterator(self, data_tqdm: Iterable[int]):
         for scene_index in data_tqdm:
             if self.with_scenes_file:
                 scene = self.get_scene_from_file(scene_index)
             else:
-                scene, _ = self.generate_scene(scene_index)
+                scene, _ = self.generate_scene()
 
             if self.randomize_at_load:
                 scene.set_randomization(self.config)
@@ -226,7 +213,7 @@ class BaseDataset:
             # else:
             #   exact_normalized_a_torch = scene_input.exact_normalized_a_torch
 
-            yield scene, scene_index
+            yield scene
 
     def check_indices(self):
         return self.data_count == len(self.features_indices) and self.data_count == len(
@@ -248,32 +235,35 @@ class BaseDataset:
             )
             return
 
-        data_tqdm = cmh.get_tqdm(
-            iterable=range(self.data_count),
-            config=self.config,
-            desc="Preprocessing dataset",
+        mph.run_processes(
+            self.initialize_features_and_targets_process, num_workers=self.num_workers
         )
-
-        features_file, features_indices_file = pkh.open_files_write(self.features_data_path)
-        targets_file, targets_indices_file = pkh.open_files_write(self.targets_data_path)
-
-        with features_file, features_indices_file, targets_file, targets_indices_file:
-            for scene, scene_index in self.get_scenes_iterator(data_tqdm=data_tqdm):
-
-                pkh.append_data(scene.get_target_data(), targets_file, targets_indices_file)
-
-                features_layers_list = [
-                    scene.get_features_data(
-                        scene_index=scene_index,
-                        layer_number=layer_number,
-                    )
-                    for layer_number in range(self.layers_count)
-                ]
-
-                pkh.append_data(features_layers_list, features_file, features_indices_file)
-
         self.load_indices()
         assert self.check_indices()
+
+    def initialize_features_and_targets_process(self, num_workers: int, process_id: int):
+        assigned_data_range = self.get_process_data_range(
+            process_id=process_id, num_workers=num_workers
+        )
+        data_tqdm = cmh.get_tqdm(
+            iterable=assigned_data_range,
+            config=self.config,
+            desc=f"Preprocessing dataset - process {process_id+1}/{num_workers}",
+            position=process_id,
+        )
+        for scene in self.get_scenes_iterator(data_tqdm=data_tqdm):
+            target_data = scene.get_target_data()
+            features_layers_list = [
+                scene.get_features_data(
+                    layer_number=layer_number,
+                )
+                for layer_number in range(self.layers_count)
+            ]
+            pkh.append_multiple_data(
+                all_data=[target_data, features_layers_list],
+                all_data_paths=[self.targets_data_path, self.features_data_path],
+                lock=self.files_lock,
+            )
 
     def load_features(self):
         self.loaded_features_data = self.get_data_loaded_to_ram(
@@ -369,13 +359,19 @@ class BaseDataset:
     def generate_data_simple(self):
         pass
 
-    def save_scene(self, scene, scenes_file, indices_file):
+    def safe_save_scene(self, scene, data_path: str):
         scene_copy = copy.deepcopy(scene)
         scene_copy.prepare_to_save()
-        pkh.append_data(data=scene_copy, data_file=scenes_file, indices_file=indices_file)
+        pkh.append_data(
+            data=scene_copy,
+            data_path=data_path,
+            lock=self.files_lock,
+        )
 
     def __getitem__(self, index):
-        return self.get_features_data(index)[: self.layers_count]
+        layers_list = self.get_features_data(index)[: self.layers_count]
+        layers_list[0].scene_id = index
+        return layers_list
 
     def __len__(self):
         return self.data_count

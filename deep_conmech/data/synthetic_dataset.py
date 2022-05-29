@@ -1,3 +1,6 @@
+import logging
+import traceback
+
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
@@ -126,20 +129,13 @@ class SyntheticDataset(BaseDataset):
             with_scenes_file=with_scenes_file,
             config=config,
         )
-
-        if self.data_count % num_workers != 0:
-            raise Exception("Cannot divide data generation work")
-        self.scenes_part_count = int(self.data_count / num_workers)
-
         self.initialize_data()
 
     @property
     def data_size_id(self):
         return f"s:{self.data_count}"
 
-    def generate_scene(self, index: int):
-        _ = index
-
+    def generate_scene(self):
         base = lnh.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
 
@@ -159,56 +155,44 @@ class SyntheticDataset(BaseDataset):
         exact_normalized_a_torch = None
         return scene, exact_normalized_a_torch
 
-    def generate_data_process(self, num_workers, process_id):
-        assigned_data_range = base_dataset.get_process_data_range(
-            process_id, self.scenes_part_count
-        )
-        tqdm_description = f"Process {process_id}/{num_workers} - generating data"
-        self.generate_data_internal(
-            assigned_data_range=assigned_data_range,
-            tqdm_description=tqdm_description,
-            process_id=process_id,
-        )
+    def force_generate_scene(self):
+        while True:
+            try:
+                scene, exact_normalized_a_torch = self.generate_scene()
+                _ = exact_normalized_a_torch
+                return scene
+            except Exception as e:
+                _ = e
+                logging.error(traceback.format_exc())
+                print("Exception during scene generation, retrying...")
 
-    def generate_data_simple(self):
-        assigned_data_range = range(self.scenes_part_count)
-        tqdm_description = "Generating data"
-        self.generate_data_internal(
-            assigned_data_range=assigned_data_range,
-            tqdm_description=tqdm_description,
-            process_id=0,
-        )
-
-    def generate_data_internal(self, assigned_data_range, tqdm_description: str, process_id: int):
+    def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
+        assigned_data_range = self.get_process_data_range(process_id=process_id, num_workers=num_workers)
+        tqdm_description = f"Process {process_id+1}/{num_workers} - generating data"
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,
             desc=tqdm_description,
             config=self.config,
             position=process_id,
         )
+        for index in step_tqdm:
+            if base_dataset.is_memory_overflow(
+                config=self.config,
+                step_tqdm=step_tqdm,
+                tqdm_description=tqdm_description,
+            ):
+                return False
 
-        scenes_file, indices_file = pkh.open_files_append(self.get_scenes_data_path(process_id))
-        with scenes_file, indices_file:
-            for index in step_tqdm:
-                if base_dataset.is_memory_overflow(
-                    config=self.config,
-                    step_tqdm=step_tqdm,
-                    tqdm_description=tqdm_description,
-                ):
-                    return False
+            scene = self.force_generate_scene()
+            self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 
-                scene, exact_normalized_a_torch = self.generate_scene(index)
-                _ = exact_normalized_a_torch
-
-                self.save_scene(scene=scene, scenes_file=scenes_file, indices_file=indices_file)
-
-                self.check_and_print(
-                    self.data_count,
-                    index,
-                    scene,
-                    step_tqdm,
-                    tqdm_description,
-                )
+            self.check_and_print(
+                all_data_count=self.data_count,
+                current_index=index,
+                scene=scene,
+                step_tqdm=step_tqdm,
+                tqdm_description=tqdm_description,
+            )
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

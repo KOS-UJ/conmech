@@ -6,7 +6,7 @@ import os
 import shutil
 import time
 from pstats import Stats
-from typing import Callable
+from typing import Callable, Iterable
 
 from tqdm import tqdm
 
@@ -17,7 +17,7 @@ def get_timestamp(config: Config):
     return int(time.time() * config.timestamp_skip)
 
 
-def get_tqdm(iterable, config: Config, desc=None, position=None) -> tqdm:
+def get_tqdm(iterable: Iterable, config: Config, desc=None, position=None) -> tqdm:
     return tqdm(iterable, desc=desc, position=position, ascii=config.shell)
 
 
@@ -59,6 +59,7 @@ def find_files_by_extension(directory, extension):
 
 
 def profile(function: Callable):
+    print(f"Profiling {function.__name__}...")
     pr = cProfile.Profile()
     pr.enable()
 

@@ -6,8 +6,8 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
-DIMENSION = 3
+TEST = True
+DIMENSION = 2
 
 
 @dataclass
@@ -20,7 +20,7 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 8  # 64 if dimension == 2 else 16
+    mesh_density: int = 16  # 8  # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.8
 
     forces_random_scale: float = 4.0
@@ -46,7 +46,7 @@ class TrainingData:
     use_energy_as_loss: bool = True
     batch_size: int = 128  # 16  # 128
     valid_batch_size: int = batch_size  # 128
-    synthetic_batches_in_epoch: int = 1  # 4096 # 32  # 1 if TEST else 256  # 512
+    synthetic_batches_in_epoch: int = 2  # 96  # 16384 // 2  # 32  # 1 if TEST else 256  # 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -78,8 +78,8 @@ class TrainingConfig(Config):
     device: str = "_"
 
     dataloader_workers = 4
-    synthetic_generation_workers = 4
-    scenario_generation_workers = 1
+    synthetic_generation_workers = 4  # 2
+    scenario_generation_workers = 2
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
     total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)
