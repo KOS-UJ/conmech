@@ -155,6 +155,8 @@ class BaseDataset:
             print("Skipping scenes file generation")
         self.initialize_features_and_targets()
 
+    def load_data(self):
+        print(f"----LOADING DATASET ({self.data_id})----")
         if self.load_features_to_ram:
             self.load_features()
         else:

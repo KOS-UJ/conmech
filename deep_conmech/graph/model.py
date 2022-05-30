@@ -263,7 +263,7 @@ class GraphModelDynamic:
                     examples_seen,
                 )
         validation_time = time.time() - start_time
-        print(f"--Validation time: {(validation_time / 60):.4f} min")
+        # print(f"--Validation time: {(validation_time / 60):.4f} min")
 
     def validate_all_scenarios_raport(self, examples_seen):
         print("----VALIDATING SCENARIOS----")

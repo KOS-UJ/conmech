@@ -17,10 +17,15 @@ def train(config: TrainingConfig):
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
-    net = get_net(statistics, config, load_newest=config.load_newest_train)
 
     all_val_datasets = get_all_val_datasets(config=config)
     all_print_datasets = scenarios.all_print(config.td)
+
+    train_dataset.load_data()
+    for dataset in all_val_datasets:
+        dataset.load_data()
+
+    net = get_net(statistics, config, load_newest=config.load_newest_train)
     model = GraphModelDynamic(
         train_dataset=train_dataset,
         all_val_datasets=all_val_datasets,
@@ -60,7 +65,6 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             description="train",
             all_scenarios=scenarios.all_train(config.td),
             layers_count=config.td.mesh_layers_count,
-            skip_index=1,
             load_features_to_ram=config.load_train_features_to_ram,
             load_targets_to_ram=config.load_train_targets_to_ram,
             randomize_at_load=True,
@@ -75,12 +79,10 @@ def get_all_val_datasets(config: TrainingConfig):
     all_val_datasets = []
     # if config.td.DATASET != "live":
     #    all_val_datasets.append(train_dataset)
-    skip_index = 5
     # all_val_datasets.append(
     #     CalculatorDataset(
     #         description="val",
-    #         all_scenarios=scenarios.all_validation(config.td),
-    #         skip_index=skip_index,
+    #         all_scenarios=scenarios.all_validation(config.td),,
     #         load_to_ram=False,
     #         config=config,
     #     )
@@ -90,7 +92,6 @@ def get_all_val_datasets(config: TrainingConfig):
             description="all",
             all_scenarios=scenarios.all_train_and_validation(config.td),
             layers_count=config.td.mesh_layers_count,
-            skip_index=skip_index,
             load_features_to_ram=False,
             load_targets_to_ram=False,
             randomize_at_load=False,

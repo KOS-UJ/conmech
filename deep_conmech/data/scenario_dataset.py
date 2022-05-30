@@ -3,7 +3,7 @@ from typing import Callable, List, Optional
 
 import numpy as np
 
-from conmech.helpers import cmh, pkh
+from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
 from deep_conmech.data.base_dataset import BaseDataset, is_memory_overflow
@@ -25,7 +25,6 @@ class ScenariosDataset(BaseDataset):
         description: str,
         all_scenarios: List[Scenario],
         layers_count: int,
-        skip_index: int,
         solve_function: Callable,
         load_features_to_ram: bool,
         load_targets_to_ram: bool,
@@ -33,7 +32,6 @@ class ScenariosDataset(BaseDataset):
         config: TrainingConfig,
     ):
         self.all_scenarios = all_scenarios
-        self.skip_index = skip_index
         self.solve_function = solve_function
 
         super().__init__(
@@ -51,11 +49,11 @@ class ScenariosDataset(BaseDataset):
         self.initialize_data()
 
     def get_data_count(self, scenarios):
-        return np.sum([int(s.schedule.episode_steps / self.skip_index) for s in scenarios])
+        return np.sum([int(s.schedule.episode_steps) for s in scenarios])
 
     @property
     def data_size_id(self):
-        return f"f:{self.config.td.final_time}_i:{self.skip_index}"
+        return f"f:{self.config.td.final_time}"
 
     def get_assigned_scenarios(self, num_workers, process_id):
         scenarios_count = len(self.all_scenarios)
@@ -118,19 +116,18 @@ class ScenariosDataset(BaseDataset):
             exact_normalized_a_torch = thh.to_double(normalized_a)
             _ = exact_normalized_a_torch
 
-            if index % self.skip_index == 0:
-                self.safe_save_scene(
-                    scene=scene, data_path=self.scenes_data_path
-                )  # exact_normalized_a_torch
+            self.safe_save_scene(
+                scene=scene, data_path=self.scenes_data_path
+            )  # exact_normalized_a_torch
 
-                self.check_and_print(
-                    self.data_count,
-                    current_index,
-                    scene,
-                    step_tqdm,
-                    tqdm_description,
-                )
-                current_index += 1
+            self.check_and_print(
+                self.data_count,
+                current_index,
+                scene,
+                step_tqdm,
+                tqdm_description,
+            )
+            current_index += 1
 
             # setting = setting.get_copy()
             scene.iterate_self(a)

@@ -79,7 +79,7 @@ def run_scenario(
     def save_scene(scene: Scene, scenes_path: str):
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
         with scenes_file, indices_file:
-            pkh.append_data(data=scene, data_path=scenes_path)
+            pkh.append_data(data=scene, data_path=scenes_path, lock=None)
 
     step = [0]  # TODO: #65 Clean
 

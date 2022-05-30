@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True
+TEST = False
 DIMENSION = 2
 
 
@@ -20,7 +20,7 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 16  # 8  # 64 if dimension == 2 else 16
+    mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.8
 
     forces_random_scale: float = 4.0
@@ -41,12 +41,12 @@ class TrainingData:
 
     save_at_minutes: int = 10
     validate_at_epochs: Optional[int] = 1  # 10
-    validate_scenarios_at_epochs: Optional[int] = None  # 3  # 30
+    validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     use_energy_as_loss: bool = True
     batch_size: int = 128  # 16  # 128
-    valid_batch_size: int = batch_size  # 128
-    synthetic_batches_in_epoch: int = 2  # 96  # 16384 // 2  # 32  # 1 if TEST else 256  # 512
+    valid_batch_size: int = batch_size
+    synthetic_batches_in_epoch: int = 1 if TEST else 256  ##* 8  # * 16  # 256 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -68,8 +68,8 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 3
-    message_passes: int = 3
+    mesh_layers_count: int = 1  # 3
+    message_passes: int = 6  # 3
 
 
 @dataclass
@@ -78,7 +78,7 @@ class TrainingConfig(Config):
     device: str = "_"
 
     dataloader_workers = 4
-    synthetic_generation_workers = 4  # 2
+    synthetic_generation_workers = 4
     scenario_generation_workers = 2
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
@@ -91,7 +91,7 @@ class TrainingConfig(Config):
 
     load_train_features_to_ram: bool = True
     load_train_targets_to_ram: bool = False
-    log_dataset_stats: bool = True
+    log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

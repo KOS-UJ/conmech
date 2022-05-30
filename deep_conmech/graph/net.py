@@ -298,6 +298,13 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
+        test_layers = []
+        test_layers.append(nn.BatchNorm1d(10))
+        test_layers.append(nn.Linear(10, 128))
+        test_layers.append(nn.ReLU())
+        test_layers.append(nn.Linear(128, 2))
+        self.test_linear = nn.Sequential(*test_layers)
+
     @property
     def device(self):
         return next(self.parameters()).device
@@ -392,6 +399,11 @@ class CustomGraphNet(nn.Module):
         # assert torch.allclose(nodes, nodes_new)
 
         node_latents = self.node_encoder(main_layer.x)
+        net_output = self.decoder(node_latents)
+        # net_output = self.test_linear(main_layer.x)
+        return net_output
+
+        node_latents = self.node_encoder(main_layer.x)
         # position "pos" will not generalize
         processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
@@ -415,7 +427,7 @@ class CustomGraphNet(nn.Module):
         self.eval()
         layers_count = len(scene.all_layers)
         layers_list = [
-            scene.get_features_data(scene_index=0, layer_number=layer_number).to(self.device)
+            scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number in range(layers_count)
         ]
         normalized_a_cuda = self(layer_list=layers_list, main_layer_number=0)
