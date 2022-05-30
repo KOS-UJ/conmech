@@ -43,10 +43,9 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    use_energy_as_loss: bool = True
     batch_size: int = 128  # 16  # 128
     valid_batch_size: int = batch_size
-    synthetic_batches_in_epoch: int = 1 if TEST else 256  ##* 8  # * 16  # 256 512
+    synthetic_batches_in_epoch: int = 1 if TEST else 256  # * 8  # * 16  # 256 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True

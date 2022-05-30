@@ -398,10 +398,10 @@ class CustomGraphNet(nn.Module):
         # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
         # assert torch.allclose(nodes, nodes_new)
 
-        node_latents = self.node_encoder(main_layer.x)
-        net_output = self.decoder(node_latents)
+        # node_latents = self.node_encoder(main_layer.x)
+        # net_output = self.decoder(node_latents)
         # net_output = self.test_linear(main_layer.x)
-        return net_output
+        # return net_output
 
         node_latents = self.node_encoder(main_layer.x)
         # position "pos" will not generalize

@@ -167,7 +167,10 @@ class SyntheticDataset(BaseDataset):
                 print("Exception during scene generation, retrying...")
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = self.get_process_data_range(process_id=process_id, num_workers=num_workers)
+        # TODO:data_count as argument
+        assigned_data_range = self.get_process_data_range(
+            data_count=self.data_count, process_id=process_id, num_workers=num_workers
+        )
         tqdm_description = f"Process {process_id+1}/{num_workers} - generating data"
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,
@@ -176,6 +179,7 @@ class SyntheticDataset(BaseDataset):
             position=process_id,
         )
         for index in step_tqdm:
+            # TODO: MOVE TO mph
             if base_dataset.is_memory_overflow(
                 config=self.config,
                 step_tqdm=step_tqdm,

@@ -140,10 +140,11 @@ class BaseDataset:
     def targets_data_path(self):
         return f"{self.tmp_directory}/DATASET.targ"
 
-    def get_process_data_range(self, process_id, num_workers):
-        if self.data_count % num_workers != 0:
+    def get_process_data_range(self, data_count:int, process_id:int, num_workers:int):
+        #TODO: LAST ONE GETS SMALLER
+        if data_count % num_workers != 0:
             raise Exception("Cannot divide data generation work")
-        scenes_part_count = int(self.data_count / num_workers)
+        scenes_part_count = int(data_count / num_workers)
         return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
 
     def initialize_data(self):
@@ -175,7 +176,7 @@ class BaseDataset:
         return pkh.get_all_indices(self.scenes_data_path)
 
     def initialize_scenes(self):
-        # cmh.profile(self.generate_data_simple)
+        # cmh.profile(self.generate_data_process)
 
         self.scene_indices = self.get_all_scene_indices()
         if self.data_count == len(self.scene_indices):
@@ -186,9 +187,11 @@ class BaseDataset:
         cmh.clear_folder(self.main_directory)
         self.create_folders()
 
-        mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
-        # mph.run_process(self.generate_data_simple)
-        # self.generate_data_simple()
+        done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+        if not done:
+            print("NOT DONE")
+
+        # mph.run_process(self.generate_data_process)
 
         self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
@@ -245,7 +248,7 @@ class BaseDataset:
 
     def initialize_features_and_targets_process(self, num_workers: int, process_id: int):
         assigned_data_range = self.get_process_data_range(
-            process_id=process_id, num_workers=num_workers
+            data_count=self.data_count, process_id=process_id, num_workers=num_workers
         )
         data_tqdm = cmh.get_tqdm(
             iterable=assigned_data_range,
@@ -355,10 +358,7 @@ class BaseDataset:
             extension=extension,
         )
 
-    def generate_data_process(self, num_workers: int, process_id: int):
-        pass
-
-    def generate_data_simple(self):
+    def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         pass
 
     def safe_save_scene(self, scene, data_path: str):

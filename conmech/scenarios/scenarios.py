@@ -566,7 +566,7 @@ def all_validation(td):
     return get_valid_data(**args)
 
 
-def all_train_and_validation(td):
+def all_train_2(td):
     return [*all_train(td), *all_validation(td)]
 
 

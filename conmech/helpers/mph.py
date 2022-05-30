@@ -3,6 +3,7 @@ multiprocessing helpers
 """
 import sys
 from multiprocessing import Lock, Process, Queue
+from queue import Empty
 from typing import Callable, Tuple
 
 
@@ -36,13 +37,22 @@ def run_processes(function: Callable, num_workers: int, function_args: Tuple = (
     for p in processes:
         p.start()
 
-    for p in processes:
-        p.join()
+    def check_and_wait(process, queue):
+        while True:
+            try:
+                done = queue.get(timeout=20.0)
+                return done
+            except Empty:
+                if not process.is_alive():
+                    return False
 
-    for _ in processes:
-        done = queue.get()
+    for p in processes:
+        done = check_and_wait(p, queue)
         if not done:
             return False
+
+    for p in processes:
+        p.join()
 
     return True
 

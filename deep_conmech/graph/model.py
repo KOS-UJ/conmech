@@ -1,6 +1,5 @@
 import time
 from ctypes import ArgumentError
-from typing import Callable, List
 
 import numpy as np
 import torch
@@ -11,6 +10,7 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
+from deep_conmech.graph.loss import Loss
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
 from deep_conmech.scene import scene_input
@@ -48,7 +48,6 @@ class GraphModelDynamic:
             # "RMSE_acc",
         ]  # "energy_diff", "energy_no_acc"]  # . "energy_main", "v_step_diff"]
         self.labels_count = len(self.loss_labels)
-        self.tqdm_loss_index = 0
 
         self.net = net
         self.optimizer = torch.optim.Adam(
@@ -79,14 +78,16 @@ class GraphModelDynamic:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            loss_array, es = self.iterate_dataset(
+            loss_array, mean_loss, es = self.iterate_dataset(
                 dataset=self.train_dataset,
                 dataloader_function=base_dataset.get_train_dataloader,
                 step_function=self.train_step,
                 description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
             )
             examples_seen += es
-            self.training_raport(loss_array=loss_array, examples_seen=examples_seen)
+            self.training_raport(
+                loss_array=loss_array, mean_loss=mean_loss, examples_seen=examples_seen
+            )
 
             self.scheduler.step()
 
@@ -182,25 +183,25 @@ class GraphModelDynamic:
         self.net.train()
         self.net.zero_grad()
 
-        loss, loss_array = self.calculate_loss(
+        main_loss, loss, loss_array = self.calculate_loss(
             layer_list=layer_list, layer_number=0, dataset=dataset
         )
-        loss.backward()
+        main_loss.backward()
         if self.config.td.gradient_clip is not None:
             self.clip_gradients(self.config.td.gradient_clip)
         self.optimizer.step()
 
-        return loss_array
+        return loss, loss_array
 
     def test_step(self, layer_list: List[Data], dataset):
         self.net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_array = self.calculate_loss(
+            main_loss, loss, loss_array = self.calculate_loss(
                 layer_list=layer_list, layer_number=0, dataset=dataset
             )
 
-        return loss_array
+        return loss, loss_array
 
     def clip_gradients(self, max_norm: float):
         parameters = self.net.parameters()
@@ -215,10 +216,12 @@ class GraphModelDynamic:
 
         examples_seen = 0
         mean_loss_array = np.zeros(self.labels_count)
+        mean_loss = Loss()
         for _, layer_list in enumerate(batch_tqdm):
             # len(batch) ?
 
-            loss_array = step_function(layer_list, dataset)
+            loss, loss_array = step_function(layer_list, dataset)
+            mean_loss.add(loss)
 
             old_examples_seen = examples_seen
             examples_seen += layer_list[0].num_graphs
@@ -227,30 +230,35 @@ class GraphModelDynamic:
                 layer_list[0].num_graphs / examples_seen
             )
 
-            batch_tqdm.set_description(
-                f"{description} loss: {(mean_loss_array[self.tqdm_loss_index]):.4f}"
-            )
-        return mean_loss_array, examples_seen
+            batch_tqdm.set_description(f"{description} loss: {(mean_loss.main):.4f}")
+        return mean_loss_array, mean_loss, examples_seen
 
-    def training_raport(self, loss_array, examples_seen):
+    def training_raport(self, loss_array, mean_loss, examples_seen):
         self.logger.writer.add_scalar(
             "Loss/Training/LearningRate",
             self.lr,
             examples_seen,
         )
-        for i, loss in enumerate(loss_array):
-            self.logger.writer.add_scalar(
-                f"Loss/Training/{self.loss_labels[i]}",
-                loss,
-                examples_seen,
-            )
+        # for i, loss in enumerate(loss_array):
+        #     self.logger.writer.add_scalar(
+        #         f"Loss/Training/{self.loss_labels[i]}",
+        #         loss,
+        #         examples_seen,
+        #     )
+        for key, value in vars(mean_loss).items():
+            if value is not None:
+                self.logger.writer.add_scalar(
+                    f"Loss/Training/{key}",
+                    value,
+                    examples_seen,
+                )
 
     def validation_raport(self, examples_seen):
         print("----VALIDATING----")
         start_time = time.time()
 
         for dataset in self.all_val_datasets:
-            loss_array, _ = self.iterate_dataset(
+            loss_array, mean_loss, _ = self.iterate_dataset(
                 dataset=dataset,
                 dataloader_function=base_dataset.get_valid_dataloader,
                 step_function=self.test_step,
@@ -311,46 +319,32 @@ class GraphModelDynamic:
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
         forces_split = batch_main_layer.forces.to("cpu").split(graph_sizes_base)
 
-        loss = 0.0
         loss_array = np.zeros(self.labels_count)
-
+        loss = Loss()
+        main_loss = 0.0
         for batch_graph_index, scene_index in enumerate(batch_main_layer.scene_id):
             energy_args = dataset.get_targets_data(scene_index)
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
             forces = forces_split[batch_graph_index]
 
-            (
-                predicted_normalized_energy,
-                mean_loss,
-            ) = scene_input.loss_normalized_obstacle_correction(
-                cleaned_a=predicted_normalized_a, forces=forces, **energy_args
-            )
             # if hasattr(energy_args, "exact_normalized_a"):
             #    exact_normalized_a = exact_normalized_a_split[i]
             exact_normalized_a = None
 
-            loss += (
-                predicted_normalized_energy
-                if self.config.td.use_energy_as_loss
-                else thh.rmse_torch(predicted_normalized_a, exact_normalized_a)
+            main_example_loss, example_loss = scene_input.loss_normalized_obstacle_correction(
+                cleaned_a=predicted_normalized_a,
+                forces=forces,
+                **energy_args,
+                exact_a=exact_normalized_a,
             )
+            main_loss += main_example_loss
+            loss.add(example_loss, normalize=False)
 
-            loss_array[0] += predicted_normalized_energy
-            loss_array[1] += mean_loss
-            if hasattr(energy_args, "exact_normalized_a"):
-                (
-                    exact_normalized_energy,
-                    exact_mean_energy,
-                ) = scene_input.loss_normalized_obstacle_correction(
-                    cleaned_a=exact_normalized_a, **energy_args
-                )
-                loss_array[1] += float(
-                    (predicted_normalized_energy - exact_normalized_energy)
-                    / torch.abs(exact_normalized_energy)
-                )
-                loss_array[2] += float(thh.rmse_torch(predicted_normalized_a, exact_normalized_a))
+            loss_array[0] += example_loss.energy
+            loss_array[1] += example_loss.mean
 
-        loss /= batch_main_layer.num_graphs
+        main_loss /= batch_main_layer.num_graphs
         loss_array /= batch_main_layer.num_graphs
-        return loss, loss_array
+        loss.normalize()
+        return main_loss, loss, loss_array  # main_loss

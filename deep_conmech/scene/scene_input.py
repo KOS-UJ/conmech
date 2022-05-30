@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import numba
 import numpy as np
@@ -12,6 +13,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import EnergyObstacleArguments, get_boundary_integral
+from deep_conmech.graph.loss import Loss
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
@@ -23,7 +25,27 @@ def clean_acceleration(cleaned_a, a_correction):
 def get_mean_loss(acceleration, forces, boundary_integral):
     return (boundary_integral == 0) * (
         torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+    ).item()
+
+
+def loss_normalized_obstacle_correction1(
+    cleaned_a: torch.Tensor,
+    a_correction: torch.Tensor,
+    forces: torch.Tensor,
+    args: EnergyObstacleArguments,
+):
+    acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
+
+    main_energy_loss = energy(acceleration, args.lhs, args.rhs)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    total_energy_loss = main_energy_loss + boundary_integral
+
+    # include mass_density
+    mean_loss = get_mean_loss(
+        acceleration=acceleration, forces=forces, boundary_integral=boundary_integral
     )
+    loss = mean_loss + 0.01 * total_energy_loss
+    return loss, total_energy_loss, mean_loss
 
 
 def loss_normalized_obstacle_correction(
@@ -31,17 +53,40 @@ def loss_normalized_obstacle_correction(
     a_correction: torch.Tensor,
     forces: torch.Tensor,
     args: EnergyObstacleArguments,
+    exact_a: Optional[torch.Tensor],
 ):
+
     acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
-    energy_loss = energy(acceleration, args.lhs, args.rhs)
+
+    inner_energy = energy(acceleration, args.lhs, args.rhs)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
-    loss = energy_loss + boundary_integral
+    loss_energy = inner_energy + boundary_integral
 
     # include mass_density
-    mean_loss = get_mean_loss(
+    loss_mean = get_mean_loss(
         acceleration=acceleration, forces=forces, boundary_integral=boundary_integral
     )
-    return loss, mean_loss
+    main_loss = loss_mean + 0.01 * loss_energy
+
+    loss = Loss(
+        main=thh.to_np_double(main_loss),
+        inner_energy=thh.to_np_double(inner_energy),
+        energy=thh.to_np_double(loss_energy),
+        boundary_integral=thh.to_np_double(boundary_integral),
+        mean=thh.to_np_double(loss_mean),
+    )
+    loss.count = 1
+
+    if exact_a is not None:
+        loss.rmse = thh.to_np_double(thh.rmse_torch(cleaned_a, exact_a))
+        exact_energy = energy(exact_a, args.lhs, args.rhs) + get_boundary_integral(
+            acceleration=exact_a, args=args
+        )
+        loss.relative_energy = thh.to_np_double(
+            (loss.energy - exact_energy) / torch.abs(exact_energy)
+        )
+
+    return main_loss, loss
 
 
 @numba.njit
