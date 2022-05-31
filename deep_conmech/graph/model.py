@@ -11,7 +11,7 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
-from deep_conmech.graph.loss import Loss
+from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
 from deep_conmech.scene import scene_input
@@ -79,16 +79,14 @@ class GraphModelDynamic:
             epoch_number += 1
             # with profile(with_stack=True, profile_memory=True) as prof:
 
-            loss_array, mean_loss, es = self.iterate_dataset(
+            mean_loss_raport, es = self.iterate_dataset(
                 dataset=self.train_dataset,
                 dataloader_function=base_dataset.get_train_dataloader,
                 step_function=self.train_step,
                 description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
             )
             examples_seen += es
-            self.training_raport(
-                loss_array=loss_array, mean_loss=mean_loss, examples_seen=examples_seen
-            )
+            self.training_raport(mean_loss_raport=mean_loss_raport, examples_seen=examples_seen)
 
             self.scheduler.step()
 
@@ -184,7 +182,7 @@ class GraphModelDynamic:
         self.net.train()
         self.net.zero_grad()
 
-        main_loss, loss, loss_array = self.calculate_loss(
+        main_loss, loss_raport = self.calculate_loss(
             layer_list=layer_list, layer_number=0, dataset=dataset
         )
         main_loss.backward()
@@ -192,17 +190,17 @@ class GraphModelDynamic:
             self.clip_gradients(self.config.td.gradient_clip)
         self.optimizer.step()
 
-        return loss, loss_array
+        return loss_raport
 
     def test_step(self, layer_list: List[Data], dataset):
         self.net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            main_loss, loss, loss_array = self.calculate_loss(
+            _, loss_raport = self.calculate_loss(
                 layer_list=layer_list, layer_number=0, dataset=dataset
             )
 
-        return loss, loss_array
+        return loss_raport
 
     def clip_gradients(self, max_norm: float):
         parameters = self.net.parameters()
@@ -216,62 +214,49 @@ class GraphModelDynamic:
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
 
         examples_seen = 0
-        mean_loss_array = np.zeros(self.labels_count)
-        mean_loss = Loss()
+        mean_loss_raport = LossRaport()
         for _, layer_list in enumerate(batch_tqdm):
             # len(batch) ?
 
-            loss, loss_array = step_function(layer_list, dataset)
-            mean_loss.add(loss)
+            loss_raport = step_function(layer_list, dataset)
+            mean_loss_raport.add(loss_raport)
 
-            old_examples_seen = examples_seen
             examples_seen += layer_list[0].num_graphs
 
-            mean_loss_array = mean_loss_array * (old_examples_seen / examples_seen) + loss_array * (
-                layer_list[0].num_graphs / examples_seen
-            )
+            batch_tqdm.set_description(f"{description} loss: {(mean_loss_raport.main):.4f}")
+        return mean_loss_raport, examples_seen
 
-            batch_tqdm.set_description(f"{description} loss: {(mean_loss.main):.4f}")
-        return mean_loss_array, mean_loss, examples_seen
-
-    def training_raport(self, loss_array, mean_loss, examples_seen):
+    def training_raport(self, mean_loss_raport, examples_seen):
         self.logger.writer.add_scalar(
             "Loss/Training/LearningRate",
             self.lr,
             examples_seen,
         )
-        # for i, loss in enumerate(loss_array):
-        #     self.logger.writer.add_scalar(
-        #         f"Loss/Training/{self.loss_labels[i]}",
-        #         loss,
-        #         examples_seen,
-        #     )
-        for key, value in vars(mean_loss).items():
-            if value is not None:
-                self.logger.writer.add_scalar(
-                    f"Loss/Training/{key}",
-                    value,
-                    examples_seen,
-                )
+        for key, value in mean_loss_raport.get_iterator():
+            self.logger.writer.add_scalar(
+                f"Loss/Training/{key}",
+                value,
+                examples_seen,
+            )
 
     def validation_raport(self, examples_seen):
         print("----VALIDATING----")
         start_time = time.time()
 
         for dataset in self.all_val_datasets:
-            loss_array, mean_loss, _ = self.iterate_dataset(
+            mean_loss_raport, _ = self.iterate_dataset(
                 dataset=dataset,
                 dataloader_function=base_dataset.get_valid_dataloader,
                 step_function=self.test_step,
                 description=dataset.data_id,
             )
-            for i in range(self.labels_count):
+            for key, value in mean_loss_raport.get_iterator():
                 self.logger.writer.add_scalar(
-                    f"Loss/Validation/{dataset.data_id}/{self.loss_labels[i]}",
-                    loss_array[i],
+                    f"Loss/Validating/{key}",
+                    value,
                     examples_seen,
                 )
-        validation_time = time.time() - start_time
+        # validation_time = time.time() - start_time
         # print(f"--Validation time: {(validation_time / 60):.4f} min")
 
     def validate_all_scenarios_raport(self, examples_seen):
@@ -320,8 +305,7 @@ class GraphModelDynamic:
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
         forces_split = batch_main_layer.forces.to("cpu").split(graph_sizes_base)
 
-        loss_array = np.zeros(self.labels_count)
-        loss = Loss()
+        loss_raport = LossRaport()
         main_loss = 0.0
         for batch_graph_index, scene_index in enumerate(batch_main_layer.scene_id):
             energy_args = dataset.get_targets_data(scene_index)
@@ -340,12 +324,8 @@ class GraphModelDynamic:
                 exact_a=exact_normalized_a,
             )
             main_loss += main_example_loss
-            loss.add(example_loss, normalize=False)
-
-            loss_array[0] += example_loss.energy
-            loss_array[1] += example_loss.mean
+            loss_raport.add(example_loss, normalize=False)
 
         main_loss /= batch_main_layer.num_graphs
-        loss_array /= batch_main_layer.num_graphs
-        loss.normalize()
-        return main_loss, loss, loss_array
+        loss_raport.normalize()
+        return main_loss, loss_raport

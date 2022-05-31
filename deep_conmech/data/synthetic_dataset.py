@@ -134,6 +134,10 @@ class SyntheticDataset(BaseDataset):
     def data_size_id(self):
         return f"s:{self.data_count}"
 
+    def is_memory_overflow(self):
+        memory_usage = cmh.get_used_memory_gb()
+        return memory_usage > self.config.synthetic_generation_memory_limit_gb
+
     def generate_scene(self):
         base = lnh.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
@@ -152,10 +156,6 @@ class SyntheticDataset(BaseDataset):
 
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         return scene  # , exact_normalized_a_torch
-
-    def is_memory_overflow(self):
-        memory_usage = cmh.get_used_memory_gb()
-        return memory_usage > self.config.synthetic_generation_memory_limit_gb
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         assigned_data_range = self.get_process_data_range(

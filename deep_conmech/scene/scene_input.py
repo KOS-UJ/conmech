@@ -13,7 +13,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import EnergyObstacleArguments, get_boundary_integral
-from deep_conmech.graph.loss import Loss
+from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
@@ -48,25 +48,25 @@ def loss_normalized_obstacle_correction(
     )
     main_loss = loss_mean + 0.01 * loss_energy
 
-    loss = Loss(
+    loss_raport = LossRaport(
         main=main_loss.item(),
         inner_energy=inner_energy.item(),
         energy=loss_energy.item(),
         boundary_integral=boundary_integral.item(),
         mean=loss_mean.item(),
+        _count=1,
     )
-    loss.count = 1
 
     if exact_a is not None:
-        loss.rmse = thh.to_np_double(thh.rmse_torch(cleaned_a, exact_a))
+        loss_raport.rmse = thh.to_np_double(thh.rmse_torch(cleaned_a, exact_a))
         exact_energy = energy(exact_a, args.lhs, args.rhs) + get_boundary_integral(
             acceleration=exact_a, args=args
         )
-        loss.relative_energy = thh.to_np_double(
-            (loss.energy - exact_energy) / torch.abs(exact_energy)
+        loss_raport.relative_energy = thh.to_np_double(
+            (loss_raport.energy - exact_energy) / torch.abs(exact_energy)
         )
 
-    return main_loss, loss
+    return main_loss, loss_raport
 
 
 @numba.njit
