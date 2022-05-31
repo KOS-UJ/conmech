@@ -1,15 +1,14 @@
-import logging
-import traceback
+from multiprocessing import Process, Queue
+from queue import Empty
 
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
-from conmech.helpers import cmh, lnh, nph, pkh
+from conmech.helpers import cmh, lnh, nph
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.scene import Scene
-from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
@@ -152,22 +151,13 @@ class SyntheticDataset(BaseDataset):
         scene.prepare(forces)
 
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
-        exact_normalized_a_torch = None
-        return scene, exact_normalized_a_torch
+        return scene  # , exact_normalized_a_torch
 
-    def force_generate_scene(self):
-        while True:
-            try:
-                scene, exact_normalized_a_torch = self.generate_scene()
-                _ = exact_normalized_a_torch
-                return scene
-            except Exception as e:
-                _ = e
-                logging.error(traceback.format_exc())
-                print("Exception during scene generation, retrying...")
+    def is_memory_overflow(self):
+        memory_usage = cmh.get_used_memory_gb()
+        return memory_usage > self.config.synthetic_generation_memory_limit_gb
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
-        # TODO:data_count as argument
         assigned_data_range = self.get_process_data_range(
             data_count=self.data_count, process_id=process_id, num_workers=num_workers
         )
@@ -178,18 +168,33 @@ class SyntheticDataset(BaseDataset):
             config=self.config,
             position=process_id,
         )
+
+        def generate_data_inner(queue: Queue):
+            while not self.is_memory_overflow():
+                queue.put(self.generate_scene())
+
+        def get_process(queue: Queue):
+            process = Process(
+                target=generate_data_inner,
+                args=(queue,),
+            )
+            process.start()
+            return process
+
+        up_queue = Queue()
+        inner_process = get_process(up_queue)
         for index in step_tqdm:
-            # TODO: MOVE TO mph
-            if base_dataset.is_memory_overflow(
-                config=self.config,
-                step_tqdm=step_tqdm,
-                tqdm_description=tqdm_description,
-            ):
-                return False
+            # scene = self.generate_scene()
+            while True:
+                try:
+                    scene = up_queue.get(timeout=30.0)
+                    break
+                except Empty:
+                    if not inner_process.is_alive():
+                        print("Process terminated, restarting...")
+                        inner_process = get_process(up_queue)
 
-            scene = self.force_generate_scene()
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
-
             self.check_and_print(
                 all_data_count=self.data_count,
                 current_index=index,
@@ -197,6 +202,7 @@ class SyntheticDataset(BaseDataset):
                 step_tqdm=step_tqdm,
                 tqdm_description=tqdm_description,
             )
+        inner_process.kill()
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

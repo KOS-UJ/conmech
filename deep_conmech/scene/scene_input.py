@@ -25,27 +25,7 @@ def clean_acceleration(cleaned_a, a_correction):
 def get_mean_loss(acceleration, forces, boundary_integral):
     return (boundary_integral == 0) * (
         torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
-    ).item()
-
-
-def loss_normalized_obstacle_correction1(
-    cleaned_a: torch.Tensor,
-    a_correction: torch.Tensor,
-    forces: torch.Tensor,
-    args: EnergyObstacleArguments,
-):
-    acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
-
-    main_energy_loss = energy(acceleration, args.lhs, args.rhs)
-    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
-    total_energy_loss = main_energy_loss + boundary_integral
-
-    # include mass_density
-    mean_loss = get_mean_loss(
-        acceleration=acceleration, forces=forces, boundary_integral=boundary_integral
     )
-    loss = mean_loss + 0.01 * total_energy_loss
-    return loss, total_energy_loss, mean_loss
 
 
 def loss_normalized_obstacle_correction(
@@ -69,11 +49,11 @@ def loss_normalized_obstacle_correction(
     main_loss = loss_mean + 0.01 * loss_energy
 
     loss = Loss(
-        main=thh.to_np_double(main_loss),
-        inner_energy=thh.to_np_double(inner_energy),
-        energy=thh.to_np_double(loss_energy),
-        boundary_integral=thh.to_np_double(boundary_integral),
-        mean=thh.to_np_double(loss_mean),
+        main=main_loss.item(),
+        inner_energy=inner_energy.item(),
+        energy=loss_energy.item(),
+        boundary_integral=boundary_integral.item(),
+        mean=loss_mean.item(),
     )
     loss.count = 1
 

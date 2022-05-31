@@ -1,5 +1,6 @@
 import time
 from ctypes import ArgumentError
+from typing import List
 
 import numpy as np
 import torch
@@ -347,4 +348,4 @@ class GraphModelDynamic:
         main_loss /= batch_main_layer.num_graphs
         loss_array /= batch_main_layer.num_graphs
         loss.normalize()
-        return main_loss, loss, loss_array  # main_loss
+        return main_loss, loss, loss_array

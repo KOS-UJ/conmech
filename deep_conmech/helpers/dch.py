@@ -5,7 +5,6 @@ import os
 
 import resource
 import pandas
-import psutil
 
 
 from deep_conmech.training_config import TrainingConfig
@@ -15,10 +14,6 @@ def print_pandas(data):
     name = f"{data}=".split("=")[0]
     print(f">>> {name} <<<")
     print(pandas.DataFrame(data).round(4))
-
-
-def get_used_memory_gb():
-    return psutil.Process(os.getpid()).memory_info().rss / 1024**3  # (b -> kb -> mb -> gb)
 
 
 def cuda_launch_blocking():

@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True
 DIMENSION = 2
 
 
@@ -43,7 +43,7 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 128  # 16  # 128
+    batch_size: int = 63  # 128  # 8  # 16  # 128
     valid_batch_size: int = batch_size
     synthetic_batches_in_epoch: int = 1 if TEST else 256  # * 8  # * 16  # 256 512
 
@@ -67,8 +67,8 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 1  # 3
-    message_passes: int = 6  # 3
+    mesh_layers_count: int = 3
+    message_passes: int = 3
 
 
 @dataclass

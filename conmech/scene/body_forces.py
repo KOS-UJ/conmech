@@ -16,7 +16,7 @@ def energy(value, lhs, rhs):
     value_vector = nph.stack_column(value)
     first = 0.5 * (lhs @ value_vector) - rhs
     value = first.reshape(-1) @ value_vector
-    return value[0]
+    return value
 
 
 class BodyForces(Dynamics):

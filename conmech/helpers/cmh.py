@@ -8,9 +8,14 @@ import time
 from pstats import Stats
 from typing import Callable, Iterable
 
+import psutil
 from tqdm import tqdm
 
 from conmech.helpers.config import Config
+
+
+def get_used_memory_gb():
+    return psutil.Process(os.getpid()).memory_info().rss / 1024**3  # (b -> kb -> mb -> gb)
 
 
 def get_timestamp(config: Config):

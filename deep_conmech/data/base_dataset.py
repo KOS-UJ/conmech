@@ -1,6 +1,5 @@
 import copy
 import os
-from multiprocessing import Lock
 from typing import Iterable
 
 import numpy as np
@@ -59,17 +58,6 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         num_workers=num_workers,
         pin_memory=False,  # True,  # TODO: #65
     )
-
-
-def is_memory_overflow(config: TrainingConfig, step_tqdm, tqdm_description):
-    memory_usage = dch.get_used_memory_gb()
-    step_tqdm.set_description(
-        f"{tqdm_description} - memory usage {memory_usage:.2f}/{config.synthetic_generation_memory_limit_gb}"
-    )
-    memory_overflow = memory_usage > config.synthetic_generation_memory_limit_gb
-    if memory_overflow:
-        step_tqdm.set_description(f"{step_tqdm.desc} - memory overflow")
-    return memory_usage > config.synthetic_generation_memory_limit_gb
 
 
 class BaseDataset:
@@ -140,11 +128,10 @@ class BaseDataset:
     def targets_data_path(self):
         return f"{self.tmp_directory}/DATASET.targ"
 
-    def get_process_data_range(self, data_count:int, process_id:int, num_workers:int):
-        #TODO: LAST ONE GETS SMALLER
-        if data_count % num_workers != 0:
-            raise Exception("Cannot divide data generation work")
+    def get_process_data_range(self, data_count: int, process_id: int, num_workers: int):
         scenes_part_count = int(data_count / num_workers)
+        if process_id == num_workers - 1:
+            return range(process_id * scenes_part_count, data_count)
         return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
 
     def initialize_data(self):
@@ -208,7 +195,7 @@ class BaseDataset:
             if self.with_scenes_file:
                 scene = self.get_scene_from_file(scene_index)
             else:
-                scene, _ = self.generate_scene()
+                scene = self.generate_scene()
 
             if self.randomize_at_load:
                 scene.set_randomization(self.config)
@@ -269,6 +256,7 @@ class BaseDataset:
                 all_data_paths=[self.targets_data_path, self.features_data_path],
                 lock=self.files_lock,
             )
+        return True
 
     def load_features(self):
         self.loaded_features_data = self.get_data_loaded_to_ram(

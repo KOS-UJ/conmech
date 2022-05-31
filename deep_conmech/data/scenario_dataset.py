@@ -6,7 +6,7 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
-from deep_conmech.data.base_dataset import BaseDataset, is_memory_overflow
+from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
