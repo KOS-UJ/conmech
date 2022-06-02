@@ -83,8 +83,12 @@ class SceneLayers(SceneRandomized):
             )
             mesh_layer_data = MeshLayerData(
                 mesh=sparse_mesh,
-                to_down=self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh, with_weights=False),
-                from_down=self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh, with_weights=False),
+                to_down=self.get_link(
+                    from_mesh=sparse_mesh, to_mesh=dense_mesh, with_weights=False
+                ),
+                from_down=self.get_link(
+                    from_mesh=dense_mesh, to_mesh=sparse_mesh, with_weights=False
+                ),
                 from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True),
             )
             self.all_layers.append(mesh_layer_data)

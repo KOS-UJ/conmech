@@ -11,6 +11,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scenarios import scenarios
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import EnergyObstacleArguments, get_boundary_integral
 from deep_conmech.graph.loss_raport import LossRaport
@@ -22,9 +23,11 @@ def clean_acceleration(cleaned_a, a_correction):
     return cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
 
 
-def get_mean_loss(acceleration, forces, boundary_integral):
+def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
+    # F = m * a
     return (boundary_integral == 0) * (
-        torch.norm(torch.mean(forces, axis=0) - torch.mean(acceleration, axis=0)) ** 2
+        torch.norm(torch.mean(forces, axis=0) - torch.mean(mass_density * acceleration, axis=0))
+        ** 2
     )
 
 
@@ -42,11 +45,13 @@ def loss_normalized_obstacle_correction(
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
     loss_energy = inner_energy + boundary_integral
 
-    # include mass_density
     loss_mean = get_mean_loss(
-        acceleration=acceleration, forces=forces, boundary_integral=boundary_integral
+        acceleration=acceleration,
+        forces=forces,
+        mass_density=scenarios.default_body_prop.mass_density,
+        boundary_integral=boundary_integral,
     )
-    main_loss = loss_mean + 0.01 * loss_energy
+    main_loss = loss_mean + 0.1 * inner_energy  # loss_mean + 0.1 * loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -65,7 +70,7 @@ def loss_normalized_obstacle_correction(
         loss_raport.relative_energy = thh.to_np_double(
             (loss_raport.energy - exact_energy) / torch.abs(exact_energy)
         )
-
+    # en = point_energy(acceleration=acceleration, node_features=node_features, dimension=dimension)
     return main_loss, loss_raport
 
 

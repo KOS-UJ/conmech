@@ -3,10 +3,7 @@ multiprocessing helpers
 """
 import sys
 from multiprocessing import Lock, Process, Queue
-from queue import Empty
 from typing import Callable, Tuple
-
-from conmech.helpers import cmh
 
 
 def get_lock():
@@ -19,6 +16,19 @@ def is_supported():
 
 if not is_supported():
     print("Warning: Multiprocessing implemented only for Linux")
+
+
+def get_queue():
+    return Queue()
+
+
+def start_process(function: Callable, queue: Queue):
+    process = Process(
+        target=function,
+        args=(queue,),
+    )
+    process.start()
+    return process
 
 
 def run_processes(function: Callable, num_workers: int, function_args: Tuple = ()):

@@ -101,13 +101,6 @@ class ScenariosDataset(BaseDataset):
                     scenario=scenario, layers_count=self.layers_count, config=self.config
                 )
 
-            if is_memory_overflow(
-                config=self.config,
-                step_tqdm=step_tqdm,
-                tqdm_description=tqdm_description,
-            ):
-                return False
-
             current_time = ts * scene.time_step
             forces = scenario.get_forces_by_function(scene, current_time)
             scene.prepare(forces)

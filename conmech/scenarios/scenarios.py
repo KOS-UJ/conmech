@@ -146,10 +146,10 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
+SCALE = 1.0
 default_body_prop = DynamicBodyProperties(
-    mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
+    mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=SCALE
 )
-# body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
 
 default_thermal_expansion_coefficients = np.array(
     [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
@@ -219,7 +219,7 @@ def f_fall(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([2.0, -1.0])
-    return force
+    return force * SCALE
 
 
 def f_slide(
@@ -232,7 +232,7 @@ def f_slide(
     force = np.array([0.0, 0.0])
     if time <= 0.5:
         force = np.array([4.0, 0.0])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_fast(
@@ -243,7 +243,7 @@ def f_accelerate_fast(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([2.0, 0.0])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_slow_right(
@@ -254,7 +254,7 @@ def f_accelerate_slow_right(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([0.5, 0.0])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_slow_left(
@@ -265,7 +265,7 @@ def f_accelerate_slow_left(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([-0.5, 0.0])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_slow_up(
@@ -276,7 +276,7 @@ def f_accelerate_slow_up(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([0.0, 0.5])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_slow_down(
@@ -287,7 +287,7 @@ def f_accelerate_slow_down(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([0.0, -0.5])
-    return force
+    return force * SCALE
 
 
 def f_accelerate_slow_up_left(
@@ -298,7 +298,7 @@ def f_accelerate_slow_up_left(
 ):
     _ = initial_node, moved_node, mesh_prop, time
     force = np.array([-0.5, 0.5])
-    return force
+    return force * SCALE
 
 
 def f_stay(
@@ -308,7 +308,8 @@ def f_stay(
     time: float,
 ):
     _ = initial_node, moved_node, mesh_prop, time
-    return np.array([0.0, 0.0])
+    force = np.array([0.0, 0.0])
+    return force * SCALE
 
 
 def f_rotate(
@@ -320,8 +321,8 @@ def f_rotate(
     _ = moved_node
     if time <= 0.5:
         y_scaled = initial_node[1] / mesh_prop.scale_y
-        return y_scaled * np.array([1.5, 0.0])
-    return np.array([0.0, 0.0])
+        return y_scaled * np.array([1.5, 0.0]) * SCALE
+    return np.array([0.0, 0.0]) * SCALE
 
 
 def f_rotate_fast(
@@ -333,8 +334,8 @@ def f_rotate_fast(
     _ = moved_node
     if time <= 0.5:
         y_scaled = initial_node[1] / mesh_prop.scale_y
-        return y_scaled * np.array([3.0, 0.0])
-    return np.array([0.0, 0.0])
+        return y_scaled * np.array([3.0, 0.0]) * SCALE
+    return np.array([0.0, 0.0]) * SCALE
 
 
 def f_push_3d(
@@ -344,7 +345,7 @@ def f_push_3d(
     time: float,
 ):
     _ = initial_node, moved_node, mesh_prop, time
-    return np.array([1.0, 1.0, 1.0])
+    return np.array([1.0, 1.0, 1.0]) * SCALE
 
 
 def f_rotate_3d(
@@ -356,8 +357,8 @@ def f_rotate_3d(
     _ = moved_node, mesh_prop
     if time <= 0.5:
         scale = initial_node[1] * initial_node[2]
-        return scale * np.array([4.0, 0.0, 0.0])
-    return np.array([0.0, 0.0, 0.0])
+        return scale * np.array([4.0, 0.0, 0.0]) * SCALE
+    return np.array([0.0, 0.0, 0.0]) * SCALE
 
 
 def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):

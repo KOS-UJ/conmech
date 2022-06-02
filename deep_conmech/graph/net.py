@@ -174,7 +174,7 @@ class Attention(nn.Module):
             return
 
         attention_heads = BasicBlock(
-            in_channels=td.latent_dimension * 3,
+            in_channels=td.latent_dimension,  # * 3,
             out_channels=td.attention_heads_count,
             bias=True,
             activation=td.activation,

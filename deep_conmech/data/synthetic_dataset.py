@@ -1,10 +1,9 @@
-from multiprocessing import Process, Queue
 from queue import Empty
 
 import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
-from conmech.helpers import cmh, lnh, nph
+from conmech.helpers import cmh, lnh, mph, nph
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -134,10 +133,6 @@ class SyntheticDataset(BaseDataset):
     def data_size_id(self):
         return f"s:{self.data_count}"
 
-    def is_memory_overflow(self):
-        memory_usage = cmh.get_used_memory_gb()
-        return memory_usage > self.config.synthetic_generation_memory_limit_gb
-
     def generate_scene(self):
         base = lnh.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
@@ -169,20 +164,12 @@ class SyntheticDataset(BaseDataset):
             position=process_id,
         )
 
-        def generate_data_inner(queue: Queue):
-            while not self.is_memory_overflow():
+        def generate_data_inner(queue):
+            while not self.is_synthetic_generation_memory_overflow:
                 queue.put(self.generate_scene())
 
-        def get_process(queue: Queue):
-            process = Process(
-                target=generate_data_inner,
-                args=(queue,),
-            )
-            process.start()
-            return process
-
-        up_queue = Queue()
-        inner_process = get_process(up_queue)
+        up_queue = mph.get_queue()
+        inner_process = mph.start_process(generate_data_inner, up_queue)
         for index in step_tqdm:
             # scene = self.generate_scene()
             while True:
@@ -192,7 +179,7 @@ class SyntheticDataset(BaseDataset):
                 except Empty:
                     if not inner_process.is_alive():
                         print("Process terminated, restarting...")
-                        inner_process = get_process(up_queue)
+                        inner_process = mph.start_process(generate_data_inner, up_queue)
 
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
             self.check_and_print(

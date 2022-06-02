@@ -1,5 +1,6 @@
 import copy
 import os
+from ctypes import ArgumentError
 from typing import Iterable
 
 import numpy as np
@@ -10,7 +11,6 @@ from conmech.helpers import cmh, mph, pkh
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.helpers import dch
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -96,6 +96,16 @@ class BaseDataset:
         pass
 
     @property
+    def is_synthetic_generation_memory_overflow(self):
+        memory_usage = cmh.get_used_memory_gb()
+        return memory_usage > self.config.synthetic_generation_memory_limit_gb
+
+    @property
+    def is_loaded_data_memory_overflow(self):
+        memory_usage = cmh.get_used_memory_gb()
+        return memory_usage > self.config.loaded_data_memory_limit_gb
+
+    @property
     def data_id(self):
         td = self.config.td
         return f"{self.description}_d:{td.dimension}_m:{td.mesh_density}_{self.data_size_id}"
@@ -137,11 +147,23 @@ class BaseDataset:
     def initialize_data(self):
         print(f"----INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
+        self.load_indices()
+        if self.check_indices():
+            print(
+                f"Taking prepared features ({self.get_size(self.features_data_path):.2f} GB) and targets ({self.get_size(self.targets_data_path):.2f} GB) dataset"
+            )
+            return
+
         if self.with_scenes_file:
             self.initialize_scenes()
         else:
             print("Skipping scenes file generation")
-        self.initialize_features_and_targets()
+
+        mph.run_processes(
+            self.initialize_features_and_targets_process, num_workers=self.num_workers
+        )
+        self.load_indices()
+        assert self.check_indices()
 
     def load_data(self):
         print(f"----LOADING DATASET ({self.data_id})----")
@@ -160,7 +182,7 @@ class BaseDataset:
         cmh.create_folders(self.tmp_directory)
 
     def get_all_scene_indices(self):
-        return pkh.get_all_indices(self.scenes_data_path)
+        return pkh.get_all_indices(self.scenes_data_path)[: self.data_count]
 
     def initialize_scenes(self):
         # cmh.profile(self.generate_data_process)
@@ -213,25 +235,11 @@ class BaseDataset:
         )
 
     def load_indices(self):
-        self.features_indices = pkh.get_all_indices(self.features_data_path)
-        self.targets_indices = pkh.get_all_indices(self.targets_data_path)
+        self.features_indices = pkh.get_all_indices(self.features_data_path)[: self.data_count]
+        self.targets_indices = pkh.get_all_indices(self.targets_data_path)[: self.data_count]
 
     def get_size(self, data_path):
         return os.path.getsize(data_path) / 1024**3
-
-    def initialize_features_and_targets(self):
-        self.load_indices()
-        if self.check_indices():
-            print(
-                f"Taking prepared features ({self.get_size(self.features_data_path):.2f} GB) and targets ({self.get_size(self.targets_data_path):.2f} GB) dataset"
-            )
-            return
-
-        mph.run_processes(
-            self.initialize_features_and_targets_process, num_workers=self.num_workers
-        )
-        self.load_indices()
-        assert self.check_indices()
 
     def initialize_features_and_targets_process(self, num_workers: int, process_id: int):
         assigned_data_range = self.get_process_data_range(
@@ -275,8 +283,13 @@ class BaseDataset:
             desc=f"Loading {desc} to RAM",
         )
         file = pkh.open_file_read(data_path)
+        data = []
         with file:
-            data = [pkh.load_index(index, indices, file) for index in data_tqdm]
+            for index in data_tqdm:
+                if self.is_loaded_data_memory_overflow:
+                    raise ArgumentError
+                data.append(pkh.load_index(index, indices, file))
+
         return data
 
     def get_statistics(self, layer_number):

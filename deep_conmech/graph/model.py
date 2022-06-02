@@ -297,12 +297,18 @@ class GraphModelDynamic:
     def calculate_loss(
         self, layer_list: List[Data], layer_number: int, dataset: base_dataset.BaseDataset
     ):
+        dimension = self.config.td.dimension
         layer_list_cuda = [layer.to(self.net.device) for layer in layer_list]
         batch_main_layer = layer_list[layer_number]
         graph_sizes_base = get_graph_sizes(layer_list[0])
 
         all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
+        # all_predicted_normalized_a = self.get_derivatives(
+        #    layer_list_cuda=layer_list_cuda, layer_number=layer_number, dimension=dimension
+        # )
+
         predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
+        node_features_split = batch_main_layer.x.to("cpu").split(graph_sizes_base)
         forces_split = batch_main_layer.forces.to("cpu").split(graph_sizes_base)
 
         loss_raport = LossRaport()
@@ -311,7 +317,9 @@ class GraphModelDynamic:
             energy_args = dataset.get_targets_data(scene_index)
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
-            forces = forces_split[batch_graph_index]
+            node_features = node_features_split[batch_graph_index]
+            forces = node_features[:, :dimension]
+            # assert np.allclose(forces, forces_split[batch_graph_index])
 
             # if hasattr(energy_args, "exact_normalized_a"):
             #    exact_normalized_a = exact_normalized_a_split[i]
@@ -329,3 +337,25 @@ class GraphModelDynamic:
         main_loss /= batch_main_layer.num_graphs
         loss_raport.normalize()
         return main_loss, loss_raport
+
+    def get_derivatives(self, layer_list_cuda, layer_number, dimension):
+        main_layer_cuda = layer_list_cuda[0]
+        main_layer_cuda.x.requires_grad_(True)
+        acceleration = self.net(layer_list_cuda, layer_number)
+
+        for d in range(dimension):
+            out_i = torch.zeros_like(acceleration)
+            out_i[:, d] = 1.0
+
+            acceleration_grad_i = torch.autograd.grad(
+                outputs=acceleration,
+                inputs=main_layer_cuda.x,
+                grad_outputs=out_i,
+                retain_graph=True,
+                create_graph=True,
+            )
+
+            da_di = acceleration_grad_i[0][:, 0:dimension]
+
+        # dr_dx_T = torch.stack((dr_dx_x, dr_dx_y), axis=1)
+        return acceleration
