@@ -15,11 +15,8 @@ from conmech.scene.body_forces import BodyForces, energy
 from conmech.state.body_position import BodyPosition
 
 
-def get_penetration_norm(displacement_step, obstacle_normals, penetration):
-    # projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
-    projection = (-1) * nph.elementwise_dot(
-        displacement_step, obstacle_normals, keepdims=True
-    ) + penetration
+def get_penetration_positive(displacement_step, normals, penetration):
+    projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
     return (projection > 0) * projection
 
 
@@ -55,16 +52,12 @@ class IntegrateArguments:
 
 
 def integrate(args: IntegrateArguments):
-    # penetration_norm = get_new_penetration_norm(
-    #     args.displacement_step, args.normals, args.penetration
-    # )
-    penetration_norm = get_penetration_norm(
+    penetration_norm = get_penetration_positive(
         displacement_step=args.displacement_step,
-        obstacle_normals=args.obstacle_normals,
+        normals=args.normals,
         penetration=args.penetration,
     )
-    # velocity_tangential = nph.get_tangential(args.velocity, args.normals)
-    velocity_tangential = nph.get_tangential(vector=args.velocity, normal=args.obstacle_normals)
+    velocity_tangential = nph.get_tangential(args.velocity, args.normals)
 
     resistance_normal = obstacle_resistance_potential_normal(
         penetration_norm=penetration_norm, hardness=args.hardness, time_step=args.time_step
@@ -272,19 +265,15 @@ class Scene(BodyForces):
             self.get_norm_boundary_obstacle_normals(),
         ).reshape(-1, 1)
 
-    def get_penetration_norm(self):
+    def get_penetration_positive(self):
         penetration = self.get_penetration_scalar()
         return penetration * (penetration > 0)
 
-    def get_boundary_penetration(self):
-        return self.get_penetration_norm() * self.get_boundary_obstacle_normals()
-        # return (-1) * self.get_penetration_norm() * self.get_boundary_normals()
+    def __get_boundary_penetration(self):
+        return self.get_penetration_positive() * self.get_boundary_obstacle_normals()
 
     def get_normalized_boundary_penetration(self):
-        return self.normalize_rotate(self.get_boundary_penetration())
-
-    def get_damping_input(self):
-        return self.obstacle_prop.hardness * self.get_normalized_boundary_penetration()
+        return self.normalize_rotate(self.__get_boundary_penetration())
 
     def __get_boundary_v_tangential(self):
         return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
@@ -294,22 +283,27 @@ class Scene(BodyForces):
             self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
         )
 
-    def get_friction_vector(self):
+    def __get_friction_vector(self):
         return (self.get_penetration_scalar() > 0) * np.nan_to_num(
             nph.normalize_euclidean_numba(self.__get_normalized_boundary_v_tangential())
         )
 
+    def get_normal_response_input(self):
+        return (
+            self.obstacle_prop.hardness * self.get_penetration_positive()
+        )  # self.get_normalized_boundary_penetration()
+
     def get_friction_input(self):
-        return self.obstacle_prop.friction * self.get_friction_vector()
+        return self.obstacle_prop.friction * self.__get_friction_vector()
 
     def get_resistance_normal(self):
         return obstacle_resistance_potential_normal(
-            self.get_penetration_norm(), self.obstacle_prop.hardness, self.time_step
+            self.get_penetration_positive(), self.obstacle_prop.hardness, self.time_step
         )
 
     def get_resistance_tangential(self):
         return obstacle_resistance_potential_tangential(
-            self.get_penetration_norm(),
+            self.get_penetration_positive(),
             self.__get_boundary_v_tangential(),
             self.obstacle_prop.friction,
             self.time_step,

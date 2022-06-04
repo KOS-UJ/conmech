@@ -16,7 +16,10 @@ from deep_conmech.training_config import TrainingConfig
 def generate_mesh_type(config: TrainingConfig):
     if config.td.dimension == 2:
         return interpolation_helpers.choose(
-            [scenarios.M_RECTANGLE, scenarios.M_CIRCLE]  # , scenarios.M_POLYGON]
+            [
+                scenarios.M_RECTANGLE,
+                scenarios.M_CIRCLE,
+            ]  # , scenarios.M_POLYGON, scenarios.M_SPLINE]
         )
     else:
         return interpolation_helpers.choose(
@@ -35,6 +38,7 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
             dimension=config.td.dimension, scale=config.td.adaptive_training_mesh_scale
         )
     )
+    switch_orientation = interpolation_helpers.decide(0.5)
     scene = SceneInput(
         mesh_prop=MeshProperties(
             dimension=config.td.dimension,
@@ -43,6 +47,7 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
             scale=[config.td.train_scale],
             initial_base=base,
             mean_at_origin=True,
+            switch_orientation=switch_orientation,
             initial_nodes_corner_vectors=initial_nodes_corner_vectors,
             mesh_corner_scalars=mesh_corner_scalars,
         ),

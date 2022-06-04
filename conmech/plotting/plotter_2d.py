@@ -247,7 +247,7 @@ def draw_boundary_v_tangential(scene: Scene, position, axes):
 
 def draw_boundary_resistance_normal(scene: Scene, position, axes):
     draw_moved_body("RES_N", scene, position, axes)
-    data = scene.get_damping_input() * scene.get_resistance_normal() / 100
+    data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
         data,

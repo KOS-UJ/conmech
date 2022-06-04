@@ -240,7 +240,7 @@ class GraphModelDynamic:
             )
 
     def validation_raport(self, examples_seen):
-        print("----VALIDATING----")
+        # print("----VALIDATING----")
         start_time = time.time()
 
         for dataset in self.all_val_datasets:
@@ -298,28 +298,28 @@ class GraphModelDynamic:
         self, layer_list: List[Data], layer_number: int, dataset: base_dataset.BaseDataset
     ):
         dimension = self.config.td.dimension
-        layer_list_cuda = [layer.to(self.net.device) for layer in layer_list]
+        # non_blocking=True
+        layer_list_cuda = [layer.to(self.net.device, non_blocking=True) for layer in layer_list]
         batch_main_layer = layer_list[layer_number]
         graph_sizes_base = get_graph_sizes(layer_list[0])
 
         all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
-        # all_predicted_normalized_a = self.get_derivatives(
-        #    layer_list_cuda=layer_list_cuda, layer_number=layer_number, dimension=dimension
-        # )
 
-        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(graph_sizes_base)
-        node_features_split = batch_main_layer.x.to("cpu").split(graph_sizes_base)
-        forces_split = batch_main_layer.forces.to("cpu").split(graph_sizes_base)
+        predicted_normalized_a_split = all_predicted_normalized_a.split(
+            graph_sizes_base
+        )  # .to("cpu")
+        node_features_split = batch_main_layer.x.split(graph_sizes_base)  # .to("cpu")
 
         loss_raport = LossRaport()
         main_loss = 0.0
         for batch_graph_index, scene_index in enumerate(batch_main_layer.scene_id):
-            energy_args = dataset.get_targets_data(scene_index)
+            targets_data = dataset.get_targets_data(scene_index).to(
+                self.net.device, non_blocking=True
+            )
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
             node_features = node_features_split[batch_graph_index]
             forces = node_features[:, :dimension]
-            # assert np.allclose(forces, forces_split[batch_graph_index])
 
             # if hasattr(energy_args, "exact_normalized_a"):
             #    exact_normalized_a = exact_normalized_a_split[i]
@@ -327,8 +327,9 @@ class GraphModelDynamic:
 
             main_example_loss, example_loss = scene_input.loss_normalized_obstacle_correction(
                 cleaned_a=predicted_normalized_a,
+                a_correction=targets_data.a_correction,
                 forces=forces,
-                **energy_args,
+                energy_args=targets_data.energy_args,
                 exact_a=exact_normalized_a,
             )
             main_loss += main_example_loss

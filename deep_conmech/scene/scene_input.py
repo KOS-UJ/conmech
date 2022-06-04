@@ -13,10 +13,55 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.body_forces import energy
-from conmech.scene.scene import EnergyObstacleArguments, get_boundary_integral
+from conmech.scene.scene import get_boundary_integral
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
+
+
+class MeshLayerData(Data):
+    def __inc__(self, key, value, *args, **kwargs):
+        if key == "closest_nodes_to_down":
+            return torch.tensor([self.layer_nodes_count])
+        if key == "closest_nodes_from_down":
+            return torch.tensor([self.down_layer_nodes_count])
+        if key == "edge_index_to_down":
+            return torch.tensor([[self.layer_nodes_count], [self.down_layer_nodes_count]])
+        if key == "edge_index_from_down":
+            return torch.tensor([[self.down_layer_nodes_count], [self.layer_nodes_count]])
+        else:
+            return super().__inc__(key, value, *args, **kwargs)
+
+
+@dataclass
+class EnergyObstacleArgumentsTorch:
+    lhs: torch.Tensor
+    rhs: torch.Tensor
+    boundary_velocity_old: torch.Tensor
+    boundary_normals: torch.Tensor
+    boundary_obstacle_normals: torch.Tensor
+    penetration: torch.Tensor
+    surface_per_boundary_node: torch.Tensor
+    obstacle_prop: ObstacleProperties
+    time_step: float
+
+    def to(self, device: torch.device, non_blocking: bool = False):
+        self_vars = vars(self)
+        for (key, value) in self_vars.items():
+            if hasattr(value, "to"):
+                self_vars[key] = value.to(device, non_blocking=non_blocking)
+        return self
+
+
+@dataclass
+class TargetData:
+    a_correction: torch.Tensor
+    energy_args: EnergyObstacleArgumentsTorch
+
+    def to(self, device, non_blocking: bool = False):
+        self.a_correction = self.a_correction.to(device, non_blocking=non_blocking)
+        self.energy_args = self.energy_args.to(device, non_blocking=non_blocking)
+        return self
 
 
 def clean_acceleration(cleaned_a, a_correction):
@@ -35,14 +80,14 @@ def loss_normalized_obstacle_correction(
     cleaned_a: torch.Tensor,
     a_correction: torch.Tensor,
     forces: torch.Tensor,
-    args: EnergyObstacleArguments,
+    energy_args: EnergyObstacleArgumentsTorch,
     exact_a: Optional[torch.Tensor],
 ):
 
     acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
 
-    inner_energy = energy(acceleration, args.lhs, args.rhs)
-    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    inner_energy = energy(acceleration, energy_args.lhs, energy_args.rhs)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
     loss_energy = inner_energy + boundary_integral
 
     loss_mean = get_mean_loss(
@@ -51,7 +96,7 @@ def loss_normalized_obstacle_correction(
         mass_density=scenarios.default_body_prop.mass_density,
         boundary_integral=boundary_integral,
     )
-    main_loss = loss_mean + 0.1 * inner_energy  # loss_mean + 0.1 * loss_energy
+    main_loss = loss_energy  # loss_mean + 0.01 * loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -64,8 +109,8 @@ def loss_normalized_obstacle_correction(
 
     if exact_a is not None:
         loss_raport.rmse = thh.to_np_double(thh.rmse_torch(cleaned_a, exact_a))
-        exact_energy = energy(exact_a, args.lhs, args.rhs) + get_boundary_integral(
-            acceleration=exact_a, args=args
+        exact_energy = energy(exact_a, energy_args.lhs, energy_args.rhs) + get_boundary_integral(
+            acceleration=exact_a, args=energy_args
         )
         loss_raport.relative_energy = thh.to_np_double(
             (loss_raport.energy - exact_energy) / torch.abs(exact_energy)
@@ -122,36 +167,6 @@ def get_multilayer_edges_numba(closest_nodes):
             edges[index] = [j, i]
             index += 1
     return edges
-
-
-@dataclass
-class EnergyObstacleArgumentsTorch:
-    lhs: torch.Tensor
-    rhs: torch.Tensor
-    boundary_velocity_old: torch.Tensor
-    boundary_normals: torch.Tensor
-    boundary_obstacle_normals: torch.Tensor
-    penetration: torch.Tensor
-    surface_per_boundary_node: torch.Tensor
-    obstacle_prop: ObstacleProperties
-    time_step: float
-
-
-class MeshLayerData(Data):
-    # def __init__(self):
-    #    super().__init__()
-
-    def __inc__(self, key, value, *args, **kwargs):
-        if key == "closest_nodes_to_down":
-            return torch.tensor([self.layer_nodes_count])
-        if key == "closest_nodes_from_down":
-            return torch.tensor([self.down_layer_nodes_count])
-        if key == "edge_index_to_down":
-            return torch.tensor([[self.layer_nodes_count], [self.down_layer_nodes_count]])
-        if key == "edge_index_from_down":
-            return torch.tensor([[self.down_layer_nodes_count], [self.layer_nodes_count]])
-        else:
-            return super().__inc__(key, value, *args, **kwargs)
 
 
 class SceneInput(SceneLayers):
@@ -216,42 +231,27 @@ class SceneInput(SceneLayers):
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
-        # boundary_normals = self.prepare_node_data(
-        #     data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
-        # )
-        # friction_vector = self.prepare_node_data(
-        #     data=self.get_friction_vector(),
-        #     layer_number=layer_number,
-        # )
-        # # boundary_penetration = self.prepare_node_data(
-        # #     data=self.get_normalized_boundary_penetration(),
-        # #     layer_number=layer_number,
-        # #     add_norm=True,
-        # # )
-        # boundary_penetration_norm = self.prepare_node_data(
-        #     data=self.get_penetration_norm(),
-        #     layer_number=layer_number,
-        # )
-
-        boundary_damping = self.prepare_node_data(
-            data=self.get_damping_input(),
-            layer_number=layer_number,
-            add_norm=True,
+        boundary_normals = self.prepare_node_data(
+            data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
         boundary_friction = self.prepare_node_data(
             data=self.get_friction_input(),
             layer_number=layer_number,
             add_norm=True,
         )
-
+        boundary_normal_response = self.prepare_node_data(
+            data=self.get_normal_response_input(),
+            layer_number=layer_number,
+        )
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
         nodes_data = np.hstack(
             (
                 input_forces,
-                boundary_damping,
+                boundary_normals,
                 boundary_friction,
+                boundary_normal_response,
                 boundary_volume,
             )
         )
@@ -298,9 +298,6 @@ class SceneInput(SceneLayers):
         data = MeshLayerData(
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
-            forces=thh.to_torch_set_precision(
-                self.prepare_node_data(layer_number=0, data=self.input_forces)
-            ),
             pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
             x=thh.to_torch_set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(layer_directional_edges),
@@ -344,7 +341,7 @@ class SceneInput(SceneLayers):
 
     def get_target_data(self):
         lhs_torch = thh.to_double(self.solver_cache.lhs).to_sparse()
-        target_data = dict(
+        target_data = dict(  # TargetData
             a_correction=thh.to_double(self.normalized_a_correction),
             args=EnergyObstacleArgumentsTorch(
                 lhs=lhs_torch,
@@ -374,15 +371,15 @@ class SceneInput(SceneLayers):
     def get_nodes_data_description(dimension: int):
         desc = []
         for attr in [
-            "forces",
-            "boundary_damping",
+            "input_forces",
+            "boundary_normals",
             "boundary_friction",
         ]:
             for i in range(dimension):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]:
+        for attr in ["boundary_damping", "boundary_volume"]:
             desc.append(attr)
         return desc
 

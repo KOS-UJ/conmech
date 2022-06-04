@@ -12,6 +12,7 @@ class MeshProperties:
     dimension: int
     initial_base: Optional[np.ndarray] = None
     initial_position: Optional[np.ndarray] = None
+    switch_orientation: bool = False
     mean_at_origin: bool = False
     initial_nodes_corner_vectors: Optional[np.ndarray] = None
     mesh_corner_scalars: Optional[np.ndarray] = None

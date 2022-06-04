@@ -11,7 +11,8 @@ from conmech.helpers import cmh, mph, pkh
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput, TargetData
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -56,7 +57,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=False,  # True,  # TODO: #65
+        pin_memory=True,  # True,  # TODO: #65
     )
 
 
@@ -89,6 +90,7 @@ class BaseDataset:
         self.loaded_targets_data = None
         self.features_indices = None
         self.targets_indices = None
+        self.device = thh.device(self.config)
         self.files_lock = mph.get_lock()
 
     @property
@@ -270,11 +272,21 @@ class BaseDataset:
         self.loaded_features_data = self.get_data_loaded_to_ram(
             "features", self.features_data_path, self.features_indices
         )
+        # self.loaded_features_data = []
+        # for layer_list in data:
+        #     self.loaded_features_data.append([layer.to(self.device) for layer in layer_list])
+        # a = 0
 
     def load_targets(self):
         self.loaded_targets_data = self.get_data_loaded_to_ram(
             "targets", self.targets_data_path, self.targets_indices
         )
+        # self.loaded_targets_data = [
+        #     TargetData(a_correction=example["a_correction"], energy_args=example["args"]).to(
+        #         self.device
+        #     )
+        #     for example in data
+        # ]
 
     def get_data_loaded_to_ram(self, desc, data_path, indices):
         data_tqdm = cmh.get_tqdm(
@@ -288,8 +300,8 @@ class BaseDataset:
             for index in data_tqdm:
                 if self.is_loaded_data_memory_overflow:
                     raise ArgumentError
-                data.append(pkh.load_index(index, indices, file))
-
+                example = pkh.load_index(index, indices, file)
+                data.append(example)
         return data
 
     def get_statistics(self, layer_number):
@@ -325,14 +337,15 @@ class BaseDataset:
             )
         return features_data
 
-    def get_targets_data(self, index):
+    def get_targets_data(self, index: int):
         if self.loaded_targets_data is not None:
-            return self.loaded_targets_data[index]
-        with pkh.open_file_read(self.targets_data_path) as file:
-            target_data = pkh.load_index(
-                index=index, all_indices=self.targets_indices, data_file=file
-            )
-        return target_data
+            target_data = self.loaded_targets_data[index]
+        else:
+            with pkh.open_file_read(self.targets_data_path) as file:
+                target_data = pkh.load_index(
+                    index=index, all_indices=self.targets_indices, data_file=file
+                )
+        return TargetData(a_correction=target_data["a_correction"], energy_args=target_data["args"])
 
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count

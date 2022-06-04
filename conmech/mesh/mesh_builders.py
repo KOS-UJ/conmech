@@ -20,11 +20,13 @@ def build_mesh(
 
 
 def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
+    # TODO #65: Check if all combinations of options work
+    if mesh_prop.switch_orientation:
+        nodes[:, 0] *= -1
     if mesh_prop.mean_at_origin:
         nodes -= np.mean(nodes, axis=0)
     if mesh_prop.initial_base is not None:
         nodes = lnh.get_in_base(nodes, mesh_prop.initial_base)
-    # TODO #65: Check if works with all combinations of options
     if mesh_prop.initial_nodes_corner_vectors is not None:
         nodes_interpolation = interpolation_helpers.interpolate_corner_vectors(
             nodes=nodes,
