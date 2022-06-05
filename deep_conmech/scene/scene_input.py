@@ -341,9 +341,9 @@ class SceneInput(SceneLayers):
 
     def get_target_data(self):
         lhs_torch = thh.to_double(self.solver_cache.lhs).to_sparse()
-        target_data = dict(  # TargetData
+        target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
-            args=EnergyObstacleArgumentsTorch(
+            energy_args=EnergyObstacleArgumentsTorch(
                 lhs=lhs_torch,
                 rhs=thh.to_double(self.get_normalized_rhs_np()),
                 boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),

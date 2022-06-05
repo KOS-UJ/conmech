@@ -161,6 +161,7 @@ class BaseDataset:
         else:
             print("Skipping scenes file generation")
 
+        cmh.profile(self.initialize_features_and_targets_process)
         mph.run_processes(
             self.initialize_features_and_targets_process, num_workers=self.num_workers
         )
@@ -243,7 +244,7 @@ class BaseDataset:
     def get_size(self, data_path):
         return os.path.getsize(data_path) / 1024**3
 
-    def initialize_features_and_targets_process(self, num_workers: int, process_id: int):
+    def initialize_features_and_targets_process(self, num_workers: int = 1, process_id: int = 0):
         assigned_data_range = self.get_process_data_range(
             data_count=self.data_count, process_id=process_id, num_workers=num_workers
         )
@@ -339,13 +340,13 @@ class BaseDataset:
 
     def get_targets_data(self, index: int):
         if self.loaded_targets_data is not None:
-            target_data = self.loaded_targets_data[index]
+            return self.loaded_targets_data[index]
         else:
             with pkh.open_file_read(self.targets_data_path) as file:
                 target_data = pkh.load_index(
                     index=index, all_indices=self.targets_indices, data_file=file
                 )
-        return TargetData(a_correction=target_data["a_correction"], energy_args=target_data["args"])
+        return target_data
 
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count

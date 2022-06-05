@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True
 DIMENSION = 2
 
 
@@ -20,14 +20,14 @@ class TrainingData:
 
     dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 16  # 16  # 8 # 64 if dimension == 2 else 16
+    mesh_density: int = 32  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0
     obstacle_origin_max_scale: float = 3.0 * train_scale
     obstacle_origin_min_scale: float = 0.4 * train_scale
     initial_corners_scale: float = 0.1
-    displacement_random_scale: float = 0.2  # 0.2
+    displacement_random_scale: float = 0.2
     velocity_random_scale: float = 2.5
 
     zero_forces_proportion: float = 0.2
@@ -43,7 +43,7 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 128  # 128  # 8  # 16  # 128
+    batch_size: int = 64  # 128  # 128  # 8  # 16
     valid_batch_size: int = batch_size
     synthetic_batches_in_epoch: int = 1 if TEST else 256 * 2  # * 8 # 256
 

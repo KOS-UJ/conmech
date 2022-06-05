@@ -305,17 +305,18 @@ class GraphModelDynamic:
 
         all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
 
-        predicted_normalized_a_split = all_predicted_normalized_a.split(
+        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(
             graph_sizes_base
         )  # .to("cpu")
-        node_features_split = batch_main_layer.x.split(graph_sizes_base)  # .to("cpu")
+        node_features_split = batch_main_layer.x.to("cpu").split(graph_sizes_base)  # .to("cpu")
 
         loss_raport = LossRaport()
         main_loss = 0.0
         for batch_graph_index, scene_index in enumerate(batch_main_layer.scene_id):
-            targets_data = dataset.get_targets_data(scene_index).to(
-                self.net.device, non_blocking=True
-            )
+            targets_data = dataset.get_targets_data(scene_index)
+            # .to(
+            #    self.net.device, non_blocking=True
+            # )
 
             predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
             node_features = node_features_split[batch_graph_index]
