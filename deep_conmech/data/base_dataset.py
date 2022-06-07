@@ -12,7 +12,7 @@ from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
-from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.scene.scene_input import GraphData, SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -239,16 +239,16 @@ class BaseDataset:
             position=process_id,
         )
         for scene in self.get_scenes_iterator(data_tqdm=data_tqdm):
-            target_data = scene.get_target_data()
-            features_layers_list = [
+            layers_list = [
                 scene.get_features_data(
                     layer_number=layer_number,
                 )
                 for layer_number in range(self.layers_count)
             ]
-            features_layers_list.append(target_data)
+            target_data = scene.get_target_data()
+            graph_data = GraphData(layer_list=layers_list, target_data=target_data)
             pkh.append_data(
-                data=features_layers_list,
+                data=graph_data,
                 data_path=self.features_data_path,
                 lock=self.files_lock,
             )
@@ -298,7 +298,7 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def get_features_data(self, scene_index):
+    def get_features_and_targets_data(self, scene_index) -> GraphData:
         if self.loaded_features_data is not None:
             return self.loaded_features_data[scene_index]
         with pkh.open_file_read(self.features_data_path) as file:
@@ -345,9 +345,8 @@ class BaseDataset:
         )
 
     def __getitem__(self, index: int):
-        example = self.get_features_data(index)
-        layers_list = example[: self.layers_count]
-        return layers_list, example[-1]
+        graph_data = self.get_features_and_targets_data(index)
+        return graph_data.layer_list, graph_data.target_data
 
     def __len__(self):
         return self.data_count

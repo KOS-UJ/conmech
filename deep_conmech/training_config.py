@@ -19,7 +19,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 0.01 if TEST else 8
+    final_time: float = 0.5 if TEST else 8
     mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
@@ -45,7 +45,7 @@ class TrainingData:
 
     batch_size: int = 128  # 8  # 16
     valid_batch_size: int = batch_size
-    synthetic_batches_in_epoch: int = 1 if TEST else 64  # 512
+    synthetic_batches_in_epoch: int = 1 if TEST else 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True

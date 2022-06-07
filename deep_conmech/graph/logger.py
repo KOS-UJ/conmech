@@ -1,7 +1,9 @@
 import json
 
+import torch
 from matplotlib import pyplot as plt
 from pandas import DataFrame
+from torch.profiler import ProfilerActivity, profile
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from deep_conmech.data import base_dataset
@@ -81,3 +83,20 @@ class Logger:
     @property
     def current_log_catalog(self):
         return f"{self.config.log_catalog}/{self.config.current_time}"
+
+    def get_profiler(self):
+        def trace_handler(prof):
+            output = prof.key_averages().table(row_limit=10, sort_by="cpu_time_total")
+            print(output)
+            # prof.export_chrome_trace(f"./log/profiler_trace.json")
+            # prof.export_stacks("profiler_stacks_{prof.step_num}.txt", "self_cuda_time_total")
+            torch.profiler.tensorboard_trace_handler(self.current_log_catalog)(prof)
+
+        return profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            profile_memory=True,
+            # record_shapes=True,
+            # with_stack=True,
+            schedule=torch.profiler.schedule(skip_first=4, wait=1, warmup=1, active=2, repeat=1),
+            on_trace_ready=trace_handler,
+        )

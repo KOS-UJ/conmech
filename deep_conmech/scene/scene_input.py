@@ -12,7 +12,6 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios import scenarios
 from conmech.scene.body_forces import energy, energy_vector
 from conmech.scene.scene import get_boundary_integral
 from deep_conmech.graph.loss_raport import LossRaport
@@ -85,6 +84,17 @@ class TargetData(Data):
     #     self.a_correction = self.a_correction.to(device, non_blocking=non_blocking)
     #     self.energy_args = self.energy_args.to(device, non_blocking=non_blocking)
     #     return self
+
+
+@dataclass
+class GraphData:  # (Data):
+    layer_list: List[MeshLayerData]
+    target_data: TargetData
+
+    # def __init__(self, layer_list: List[MeshLayerData], target_data: TargetData):
+    #     super().__init__()
+    #     self.layer_list = layer_list
+    #     self.target_data = target_data
 
 
 def clean_acceleration(cleaned_a, a_correction):

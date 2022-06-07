@@ -113,6 +113,8 @@ def scale_nodes_to_cube(nodes):
 
 
 def interpolate_corner_vectors(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):
+    if np.min(nodes) < -0 or np.max(nodes) > 1:
+        raise ArgumentError
     # orthonormal matrix; inverse equals transposition
     upward_nodes = lnh.get_in_base(nodes, base.T)
     scaled_nodes = scale_nodes_to_cube(upward_nodes)

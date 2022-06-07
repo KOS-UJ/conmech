@@ -22,17 +22,16 @@ def get_mesh_size_callback(mesh_prop: MeshProperties):
     return interpolation_helpers.get_mesh_callback(corner_vectors)
 
 
-def normalize_nodes(nodes):
-    nodes = nodes - np.min(nodes, axis=0)
-    nodes = nodes / np.max(nodes, axis=0)
-    return nodes
+def normalize(nodes: np.ndarray):
+    v_min = np.min(nodes)
+    v_max = np.max(nodes)
+    return (nodes - v_min) / (v_max - v_min)
 
 
-def get_nodes_and_elements(geom, dim):
+def get_normalized_nodes_and_elements(geom, dimension: int):
     geom_mesh = geom.generate_mesh()
     points = geom_mesh.points.copy()
-    nodes = points[:, :dim]
+    initial_nodes = points[:, :dimension]
     elements = geom_mesh.cells[-2].data.astype("long").copy()
-    if np.min(nodes) < -0.1 or np.max(nodes) > 1.1:
-        raise ArgumentError
+    nodes = normalize(initial_nodes)
     return nodes, elements
