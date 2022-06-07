@@ -114,7 +114,6 @@ class SyntheticDataset(BaseDataset):
         description: str,
         layers_count: int,
         load_features_to_ram: bool,
-        load_targets_to_ram: bool,
         randomize_at_load: bool,
         with_scenes_file: bool,
         config: TrainingConfig,
@@ -128,7 +127,6 @@ class SyntheticDataset(BaseDataset):
             randomize_at_load=randomize_at_load,
             num_workers=num_workers,
             load_features_to_ram=load_features_to_ram,
-            load_targets_to_ram=load_targets_to_ram,
             with_scenes_file=with_scenes_file,
             config=config,
         )

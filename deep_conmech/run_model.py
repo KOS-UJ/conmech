@@ -55,7 +55,6 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             description="train",
             layers_count=config.td.mesh_layers_count,
             load_features_to_ram=config.load_train_features_to_ram,
-            load_targets_to_ram=config.load_train_targets_to_ram,
             with_scenes_file=config.with_train_scenes_file,
             randomize_at_load=True,
             config=config,
@@ -66,7 +65,6 @@ def get_train_dataset(dataset_type, config: TrainingConfig):
             all_scenarios=scenarios.all_train_2(config.td),
             layers_count=config.td.mesh_layers_count,
             load_features_to_ram=config.load_train_features_to_ram,
-            load_targets_to_ram=config.load_train_targets_to_ram,
             randomize_at_load=True,
             config=config,
         )
@@ -93,7 +91,6 @@ def get_all_val_datasets(config: TrainingConfig):
             all_scenarios=scenarios.all_train_2(config.td),
             layers_count=config.td.mesh_layers_count,
             load_features_to_ram=False,
-            load_targets_to_ram=False,
             randomize_at_load=False,
             config=config,
         )
@@ -121,6 +118,7 @@ def main(args: Namespace):
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
     config = TrainingConfig(shell=args.shell, device=device)
+    # dch.set_torch_sharing_strategy()
     dch.set_memory_limit(config=config)
     print(f"Running using {config.device}")
 

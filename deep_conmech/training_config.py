@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True
+TEST = False
 DIMENSION = 2
 
 
@@ -19,8 +19,8 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 0.5 if TEST else 8
-    mesh_density: int = 32  # 8 # 64 if dimension == 2 else 16
+    final_time: float = 0.01 if TEST else 8
+    mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0
@@ -43,9 +43,9 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 64  # 128  # 128  # 8  # 16
+    batch_size: int = 128  # 8  # 16
     valid_batch_size: int = batch_size
-    synthetic_batches_in_epoch: int = 1 if TEST else 256 * 2  # * 8 # 256
+    synthetic_batches_in_epoch: int = 1 if TEST else 64  # 512
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -87,10 +87,9 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 128
+    dataset_images_count: Optional[float] = None  # 128
 
-    load_train_features_to_ram: bool = True  # False  # True
-    load_train_targets_to_ram: bool = True
+    load_train_features_to_ram: bool = True
     log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 

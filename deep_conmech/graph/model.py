@@ -1,12 +1,13 @@
 import time
 from ctypes import ArgumentError
-from typing import List
+from typing import Callable, List
 
 import numpy as np
 import torch
+from torch.profiler import ProfilerActivity, profile, record_function
 from torch_geometric.data.batch import Data
 
-from conmech.helpers import cmh
+from conmech.helpers import cmh, nph
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
@@ -77,7 +78,6 @@ class GraphModelDynamic:
         print("----TRAINING----")
         while self.config.max_epoch_number is None or epoch_number < self.config.max_epoch_number:
             epoch_number += 1
-            # with profile(with_stack=True, profile_memory=True) as prof:
 
             mean_loss_raport, es = self.iterate_dataset(
                 dataset=self.train_dataset,
@@ -104,8 +104,6 @@ class GraphModelDynamic:
                 self.validation_raport(examples_seen=examples_seen)
             if is_at_skip(self.config.td.validate_scenarios_at_epochs):
                 self.validate_all_scenarios_raport(examples_seen=examples_seen)
-
-            # print(prof.key_averages().table(row_limit=10))
 
     def save_net(self):
         print("----SAVING----")
@@ -178,13 +176,12 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, layer_list: List[Data], dataset):
+    def train_step(self, batch_data: List[Data]):
         self.net.train()
         self.net.zero_grad()
 
-        main_loss, loss_raport = self.calculate_loss(
-            layer_list=layer_list, layer_number=0, dataset=dataset
-        )
+        # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
+        main_loss, loss_raport = self.calculate_loss(batch_data=batch_data, layer_number=0)
         main_loss.backward()
         if self.config.td.gradient_clip is not None:
             self.clip_gradients(self.config.td.gradient_clip)
@@ -192,13 +189,11 @@ class GraphModelDynamic:
 
         return loss_raport
 
-    def test_step(self, layer_list: List[Data], dataset):
+    def test_step(self, batch_data: List[Data]):
         self.net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_raport = self.calculate_loss(
-                layer_list=layer_list, layer_number=0, dataset=dataset
-            )
+            _, loss_raport = self.calculate_loss(batch_data=batch_data, layer_number=0)
 
         return loss_raport
 
@@ -209,21 +204,25 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
-    def iterate_dataset(self, dataset, dataloader_function, step_function, description):
+    def iterate_dataset(
+        self, dataset, dataloader_function, step_function: Callable, description: str
+    ):
         dataloader = dataloader_function(dataset)
         batch_tqdm = cmh.get_tqdm(dataloader, desc=description, config=self.config)
 
         examples_seen = 0
         mean_loss_raport = LossRaport()
-        for _, layer_list in enumerate(batch_tqdm):
-            # len(batch) ?
+        with profile(with_stack=True, profile_memory=True) as prof:
+            for _, batch_data in enumerate(batch_tqdm):
 
-            loss_raport = step_function(layer_list, dataset)
-            mean_loss_raport.add(loss_raport)
+                loss_raport = step_function(batch_data)
+                mean_loss_raport.add(loss_raport)
 
-            examples_seen += layer_list[0].num_graphs
+                examples_seen += batch_data[0][0].num_graphs
 
-            batch_tqdm.set_description(f"{description} loss: {(mean_loss_raport.main):.4f}")
+                batch_tqdm.set_description(f"{description} loss: {(mean_loss_raport.main):.4f}")
+        print(prof.key_averages().table(row_limit=10))
+
         return mean_loss_raport, examples_seen
 
     def training_raport(self, mean_loss_raport, examples_seen):
@@ -294,51 +293,95 @@ class GraphModelDynamic:
 
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def calculate_loss(
-        self, layer_list: List[Data], layer_number: int, dataset: base_dataset.BaseDataset
+    def calculate_loss_all(
+        self, dimension, node_features, target_data, all_acceleration, graph_sizes_base
     ):
-        dimension = self.config.td.dimension
-        # non_blocking=True
-        layer_list_cuda = [layer.to(self.net.device, non_blocking=True) for layer in layer_list]
-        batch_main_layer = layer_list[layer_number]
-        graph_sizes_base = get_graph_sizes(layer_list[0])
+        big_forces = node_features[:, :dimension]
+        big_lhs_size = target_data.a_correction.numel()
+        big_lhs_sparse = torch.sparse_coo_tensor(
+            indices=target_data.lhs_index,
+            values=target_data.lhs_values,
+            size=(big_lhs_size, big_lhs_size),
+        )
+        big_main_loss, big_loss_raport = scene_input.loss_normalized_obstacle_scatter(
+            acceleration=all_acceleration,
+            forces=big_forces,
+            lhs=big_lhs_sparse,
+            rhs=target_data.rhs,
+            energy_args=None,
+            graph_sizes_base=graph_sizes_base,
+        )
 
-        all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)
+        return big_main_loss, big_loss_raport
 
-        predicted_normalized_a_split = all_predicted_normalized_a.to("cpu").split(
-            graph_sizes_base
-        )  # .to("cpu")
-        node_features_split = batch_main_layer.x.to("cpu").split(graph_sizes_base)  # .to("cpu")
+    def calculate_loss_single(
+        self, dimension, node_features, target_data, all_acceleration, graph_sizes_base
+    ):
+        num_graphs = len(graph_sizes_base)
+        node_features_split = node_features.split(graph_sizes_base)
+        predicted_acceleration_split = all_acceleration.split(graph_sizes_base)
 
         loss_raport = LossRaport()
         main_loss = 0.0
-        for batch_graph_index, scene_index in enumerate(batch_main_layer.scene_id):
-            targets_data = dataset.get_targets_data(scene_index)
-            # .to(
-            #    self.net.device, non_blocking=True
-            # )
-
-            predicted_normalized_a = predicted_normalized_a_split[batch_graph_index]
+        for batch_graph_index in range(num_graphs):
+            predicted_acceleration = predicted_acceleration_split[batch_graph_index]
             node_features = node_features_split[batch_graph_index]
             forces = node_features[:, :dimension]
+
+            energy_args = target_data.energy_args[batch_graph_index]
+
+            energy_args.lhs_sparse = torch.sparse_coo_tensor(
+                indices=energy_args.lhs_indices,
+                values=energy_args.lhs_values,
+                size=energy_args.lhs_size,
+            )
 
             # if hasattr(energy_args, "exact_normalized_a"):
             #    exact_normalized_a = exact_normalized_a_split[i]
             exact_normalized_a = None
 
-            main_example_loss, example_loss = scene_input.loss_normalized_obstacle_correction(
-                cleaned_a=predicted_normalized_a,
-                a_correction=targets_data.a_correction,
+            main_example_loss, example_loss_raport = scene_input.loss_normalized_obstacle(
+                acceleration=predicted_acceleration,
                 forces=forces,
-                energy_args=targets_data.energy_args,
+                lhs=energy_args.lhs_sparse,
+                rhs=energy_args.rhs,
+                energy_args=energy_args,
                 exact_a=exact_normalized_a,
             )
             main_loss += main_example_loss
-            loss_raport.add(example_loss, normalize=False)
+            loss_raport.add(example_loss_raport, normalize=False)
 
-        main_loss /= batch_main_layer.num_graphs
+        main_loss /= num_graphs
         loss_raport.normalize()
+
         return main_loss, loss_raport
+
+    def calculate_loss(
+        self,
+        batch_data: List[Data],
+        layer_number: int,
+    ):
+        dimension = self.config.td.dimension
+        layer_list = batch_data[0]
+        target_data = batch_data[1].to(self.net.device, non_blocking=True)
+        layer_list_cuda = [layer.to(self.net.device, non_blocking=True) for layer in layer_list]
+        batch_main_layer = layer_list[layer_number]
+        graph_sizes_base = get_graph_sizes(layer_list[0])
+        node_features = batch_main_layer.x  # .to("cpu")
+
+        all_predicted_normalized_a = self.net(layer_list_cuda, layer_number)  # .to("cpu")
+        all_acceleration = scene_input.clean_acceleration(
+            cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
+        )
+
+        loss_all_tuple = self.calculate_loss_all(
+            dimension, node_features, target_data, all_acceleration, graph_sizes_base
+        )
+
+        # loss_single_tuple = self.calculate_loss_single(
+        #     dimension, node_features, target_data, all_acceleration, graph_sizes_base
+        # )
+        return loss_all_tuple
 
     def get_derivatives(self, layer_list_cuda, layer_number, dimension):
         main_layer_cuda = layer_list_cuda[0]

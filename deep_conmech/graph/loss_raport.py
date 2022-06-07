@@ -36,7 +36,7 @@ class LossRaport:
     def normalize(self):
         self_vars = vars(self)
         for (key, value) in self_vars.items():
-            if value is not None:
+            if key is not "_count" and value is not None:
                 self_vars[key] /= self._count
 
     def get_iterator(self):

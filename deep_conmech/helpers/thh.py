@@ -13,7 +13,7 @@ def device(training_config: TrainingConfig):
 
 
 def get_device_id():
-    return "cuda"  # if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
+    return "cuda" if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
 
 
 def to_torch_set_precision(data: np.ndarray):

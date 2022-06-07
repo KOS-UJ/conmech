@@ -1,6 +1,5 @@
 from typing import Callable, Optional
 
-import numba
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
@@ -14,6 +13,10 @@ from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 def energy(value, lhs, rhs):
     value_vector = nph.stack_column(value)
+    return energy_vector(value_vector, lhs, rhs)
+
+
+def energy_vector(value_vector, lhs, rhs):
     first = 0.5 * (lhs @ value_vector) - rhs
     value = first.reshape(-1) @ value_vector
     return value

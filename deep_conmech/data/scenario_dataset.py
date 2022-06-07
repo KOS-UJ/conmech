@@ -27,7 +27,6 @@ class ScenariosDataset(BaseDataset):
         layers_count: int,
         solve_function: Callable,
         load_features_to_ram: bool,
-        load_targets_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
     ):
@@ -42,7 +41,6 @@ class ScenariosDataset(BaseDataset):
             randomize_at_load=randomize_at_load,
             num_workers=config.scenario_generation_workers,
             load_features_to_ram=load_features_to_ram,
-            load_targets_to_ram=load_targets_to_ram,
             with_scenes_file=True,
             config=config,
         )

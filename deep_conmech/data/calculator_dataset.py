@@ -13,7 +13,6 @@ class CalculatorDataset(ScenariosDataset):
         all_scenarios: List[Scenario],
         layers_count: int,
         load_features_to_ram: bool,
-        load_targets_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
     ):
@@ -23,7 +22,6 @@ class CalculatorDataset(ScenariosDataset):
             layers_count=layers_count,
             solve_function=Calculator.solve_all,
             load_features_to_ram=load_features_to_ram,
-            load_targets_to_ram=load_targets_to_ram,
             randomize_at_load=randomize_at_load,
             config=config,
         )

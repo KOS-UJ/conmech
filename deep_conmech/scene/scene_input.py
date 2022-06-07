@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import numba
 import numpy as np
 import torch
+import torch_scatter
 from torch_geometric.data import Data
 
 from conmech.helpers import nph
@@ -12,7 +13,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
-from conmech.scene.body_forces import energy
+from conmech.scene.body_forces import energy, energy_vector
 from conmech.scene.scene import get_boundary_integral
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
@@ -35,33 +36,55 @@ class MeshLayerData(Data):
 
 @dataclass
 class EnergyObstacleArgumentsTorch:
-    lhs: torch.Tensor
-    rhs: torch.Tensor
-    boundary_velocity_old: torch.Tensor
-    boundary_normals: torch.Tensor
-    boundary_obstacle_normals: torch.Tensor
-    penetration: torch.Tensor
-    surface_per_boundary_node: torch.Tensor
-    obstacle_prop: ObstacleProperties
-    time_step: float
+    lhs_values: torch.Tensor = None
+    lhs_indices: torch.Tensor = None
+    lhs_size: torch.Tensor = None
+    rhs: torch.Tensor = None
+    lhs_sparse: Optional[torch.Tensor] = None
+    # boundary_velocity_old: torch.Tensor
+    # boundary_normals: torch.Tensor
+    # boundary_obstacle_normals: torch.Tensor
+    # penetration: torch.Tensor
+    # surface_per_boundary_node: torch.Tensor
+    # obstacle_prop: ObstacleProperties
+    # time_step: float
 
-    def to(self, device: torch.device, non_blocking: bool = False):
-        self_vars = vars(self)
-        for (key, value) in self_vars.items():
-            if hasattr(value, "to"):
-                self_vars[key] = value.to(device, non_blocking=non_blocking)
-        return self
+    # def to(self, device: torch.device, non_blocking: bool = False):
+    #     self_vars = vars(self)
+    #     for (key, value) in self_vars.items():
+    #         if hasattr(value, "to"):
+    #             self_vars[key] = value.to(device, non_blocking=non_blocking)
+    #     return self
 
 
-@dataclass
-class TargetData:
-    a_correction: torch.Tensor
-    energy_args: EnergyObstacleArgumentsTorch
+class TargetData(Data):
+    def __init__(
+        self,
+        a_correction: torch.Tensor,
+        energy_args: EnergyObstacleArgumentsTorch,
+        lhs_values: torch.Tensor,
+        lhs_index: torch.Tensor,
+        rhs: torch.Tensor,
+    ):
+        super().__init__()
+        self.a_correction = a_correction
+        self.energy_args = energy_args
 
-    def to(self, device, non_blocking: bool = False):
-        self.a_correction = self.a_correction.to(device, non_blocking=non_blocking)
-        self.energy_args = self.energy_args.to(device, non_blocking=non_blocking)
-        return self
+        self.lhs_values = lhs_values
+        self.lhs_index = lhs_index
+        self.rhs = rhs
+
+    def __inc__(self, key, value, *args, **kwargs):
+        if key == "lhs_index":
+            size = self.a_correction.shape[0] * self.a_correction.shape[1]
+            return torch.tensor([[size], [size]])
+        else:
+            return super().__inc__(key, value, *args, **kwargs)
+
+    # def to(self, device, non_blocking: bool = False):
+    #     self.a_correction = self.a_correction.to(device, non_blocking=non_blocking)
+    #     self.energy_args = self.energy_args.to(device, non_blocking=non_blocking)
+    #     return self
 
 
 def clean_acceleration(cleaned_a, a_correction):
@@ -76,26 +99,87 @@ def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
     )
 
 
-def loss_normalized_obstacle_correction(
-    cleaned_a: torch.Tensor,
-    a_correction: torch.Tensor,
+@numba.njit
+def get_indices_from_graph_sizes_numba(graph_sizes: List[int]):
+    index = np.zeros(sum(graph_sizes), dtype=np.int64)
+    last = 0
+    for size in graph_sizes:
+        last += size
+        index[last:] += 1
+    index = index.reshape(-1, 1)
+    return index
+
+
+def loss_normalized_obstacle_scatter(
+    acceleration: torch.Tensor,
     forces: torch.Tensor,
+    lhs: torch.Tensor,
+    rhs: torch.Tensor,
+    energy_args: EnergyObstacleArgumentsTorch,
+    graph_sizes_base: List[int],
+):
+    num_graphs = len(graph_sizes_base)
+
+    predicted_acceleration_split = acceleration.split(graph_sizes_base)
+    acceleration_vector = torch.vstack(tuple(map(nph.stack_column, predicted_acceleration_split)))
+
+    # index = thh.to_long(get_indices_from_graph_sizes_numba(graph_sizes_base))
+
+    #     forces_mean = torch_scatter.scatter_mean(forces, index=index, dim=0)
+    #     acceleration_mean = scenarios.default_body_prop.mass_density * torch_scatter.scatter_mean(
+    #         acceleration, index=index, dim=0
+    #     )
+    #     all_loss_mean = torch.norm(forces_mean - acceleration_mean, dim=1) ** 2
+
+    # all_loss_mean = (
+    #     torch.norm(
+    #         torch_scatter.scatter_mean(
+    #             forces - scenarios.default_body_prop.mass_density * acceleration, index=index, dim=0
+    #         ),
+    #         dim=1,
+    #     )
+    #     ** 2
+    # )
+    loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
+
+    inner_energy = energy_vector(value_vector=acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+    boundary_integral = torch.tensor([0]) / num_graphs
+    loss_energy = inner_energy  # + boundary_integral
+
+    main_loss = loss_energy
+
+    loss_raport = LossRaport(
+        main=main_loss.item(),
+        inner_energy=inner_energy.item(),
+        energy=loss_energy.item(),
+        boundary_integral=boundary_integral.item(),
+        mean=loss_mean.item(),
+        _count=num_graphs,
+    )
+
+    return main_loss, loss_raport
+
+
+def loss_normalized_obstacle(
+    acceleration: torch.Tensor,
+    forces: torch.Tensor,
+    lhs: torch.Tensor,
+    rhs: torch.Tensor,
     energy_args: EnergyObstacleArgumentsTorch,
     exact_a: Optional[torch.Tensor],
 ):
-
-    acceleration = clean_acceleration(cleaned_a=cleaned_a, a_correction=a_correction)
-
-    inner_energy = energy(acceleration, energy_args.lhs, energy_args.rhs)
-    boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
+    inner_energy = energy(value=acceleration, lhs=lhs, rhs=rhs)
+    # boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
+    boundary_integral = torch.tensor([0])
     loss_energy = inner_energy + boundary_integral
 
-    loss_mean = get_mean_loss(
-        acceleration=acceleration,
-        forces=forces,
-        mass_density=scenarios.default_body_prop.mass_density,
-        boundary_integral=boundary_integral,
-    )
+    # loss_mean = get_mean_loss(
+    #     acceleration=acceleration,
+    #     forces=forces,
+    #     mass_density=scenarios.default_body_prop.mass_density,
+    #     boundary_integral=boundary_integral,
+    # )
+    loss_mean = torch.tensor([0])
     main_loss = loss_energy  # loss_mean + 0.01 * loss_energy
 
     loss_raport = LossRaport(
@@ -115,7 +199,7 @@ def loss_normalized_obstacle_correction(
         loss_raport.relative_energy = thh.to_np_double(
             (loss_raport.energy - exact_energy) / torch.abs(exact_energy)
         )
-    # en = point_energy(acceleration=acceleration, node_features=node_features, dimension=dimension)
+
     return main_loss, loss_raport
 
 
@@ -337,24 +421,6 @@ class SceneInput(SceneLayers):
                 layer_number_to=layer_number,
             )
 
-        return data
-
-    def get_target_data(self):
-        lhs_torch = thh.to_double(self.solver_cache.lhs).to_sparse()
-        target_data = TargetData(
-            a_correction=thh.to_double(self.normalized_a_correction),
-            energy_args=EnergyObstacleArgumentsTorch(
-                lhs=lhs_torch,
-                rhs=thh.to_double(self.get_normalized_rhs_np()),
-                boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
-                boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
-                boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
-                penetration=thh.to_double(self.get_penetration_scalar()),
-                surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
-                obstacle_prop=self.obstacle_prop,
-                time_step=self.schedule.time_step,
-            ),
-        )
         _ = """
         transform = T.Compose(
             [
@@ -365,6 +431,31 @@ class SceneInput(SceneLayers):
         )  # T.OneHotDegree(),
         transform(data)
         """
+        return data
+
+    def get_target_data(self):
+        lhs_sparse = thh.to_double(self.solver_cache.lhs).to_sparse()
+        rhs = thh.to_double(self.get_normalized_rhs_np())
+        target_data = TargetData(
+            a_correction=thh.to_double(self.normalized_a_correction),
+            energy_args=EnergyObstacleArgumentsTorch(
+                # lhs_values=lhs_sparse.values(),
+                # lhs_indices=lhs_sparse.indices(),
+                # lhs_size=lhs_sparse.size(),
+                # rhs=rhs,
+                #
+                # boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
+                # boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
+                # boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
+                # penetration=thh.to_double(self.get_penetration_scalar()),
+                # surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
+                # obstacle_prop=self.obstacle_prop,
+                # time_step=self.schedule.time_step,
+            ),
+            lhs_values=lhs_sparse.values(),
+            lhs_index=lhs_sparse.indices(),
+            rhs=rhs,
+        )
         return target_data
 
     @staticmethod

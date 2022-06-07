@@ -5,7 +5,7 @@ import os
 
 import resource
 import pandas
-
+import torch.multiprocessing
 
 from deep_conmech.training_config import TrainingConfig
 
@@ -28,3 +28,7 @@ def set_memory_limit(config: TrainingConfig):
     new_soft = int(new_limit_gb * 1024**3)
     resource.setrlimit(rsrc, (new_soft, hard))
     print(f"Memory limit set to {new_limit_gb:.2f} GB")
+
+
+def set_torch_sharing_strategy():
+    torch.multiprocessing.set_sharing_strategy("file_system")

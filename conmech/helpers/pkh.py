@@ -34,17 +34,12 @@ def get_all_indices(data_path):
 
 
 def append_data(data, data_path: str, lock: Optional[Lock]) -> None:
-    return append_multiple_data(all_data=[data], all_data_paths=[data_path], lock=lock)
-
-
-def append_multiple_data(all_data: List, all_data_paths: List[str], lock: Optional[Lock]) -> None:
     def append_data_internal():
-        for i, data in enumerate(all_data):
-            data_file, indices_file = open_files_append(all_data_paths[i])
-            with data_file, indices_file:
-                index = data_file.tell()
-                pickle.dump(data, data_file)
-                pickle.dump(index, indices_file)
+        data_file, indices_file = open_files_append(data_path)
+        with data_file, indices_file:
+            index = data_file.tell()
+            pickle.dump(data, data_file)
+            pickle.dump(index, indices_file)
 
     if lock is None:
         append_data_internal()
@@ -54,8 +49,7 @@ def append_multiple_data(all_data: List, all_data_paths: List[str], lock: Option
 
 
 def load_index(index: int, all_indices: List[int], data_file: BufferedReader):
-    byte_index = all_indices[index]
-    return load_byte_index(byte_index=byte_index, data_file=data_file)
+    return load_byte_index(byte_index=all_indices[index], data_file=data_file)
 
 
 def load_byte_index(byte_index: int, data_file: BufferedReader):

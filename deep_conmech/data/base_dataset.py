@@ -12,7 +12,7 @@ from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
-from deep_conmech.scene.scene_input import SceneInput, TargetData
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -57,7 +57,7 @@ def get_dataloader(dataset, batch_size, num_workers, shuffle):
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,  # True,  # TODO: #65
+        pin_memory=True,  # TODO: #65
     )
 
 
@@ -71,7 +71,6 @@ class BaseDataset:
         randomize_at_load: bool,
         num_workers: int,
         load_features_to_ram: bool,
-        load_targets_to_ram: bool,
         with_scenes_file: bool,
         config: TrainingConfig,
     ):
@@ -82,16 +81,14 @@ class BaseDataset:
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.load_features_to_ram = load_features_to_ram
-        self.load_targets_to_ram = load_targets_to_ram
         self.with_scenes_file = with_scenes_file
         self.config = config
         self.scene_indices = None
         self.loaded_features_data = None
-        self.loaded_targets_data = None
         self.features_indices = None
-        self.targets_indices = None
         self.device = thh.device(self.config)
         self.files_lock = mph.get_lock()
+        self.count = 1
 
     @property
     def data_size_id(self):
@@ -136,10 +133,6 @@ class BaseDataset:
     def features_data_path(self):
         return f"{self.tmp_directory}/DATASET.feat"
 
-    @property
-    def targets_data_path(self):
-        return f"{self.tmp_directory}/DATASET.targ"
-
     def get_process_data_range(self, data_count: int, process_id: int, num_workers: int):
         scenes_part_count = int(data_count / num_workers)
         if process_id == num_workers - 1:
@@ -151,9 +144,7 @@ class BaseDataset:
         self.create_folders()
         self.load_indices()
         if self.check_indices():
-            print(
-                f"Taking prepared features ({self.get_size(self.features_data_path):.2f} GB) and targets ({self.get_size(self.targets_data_path):.2f} GB) dataset"
-            )
+            print(f"Taking prepared dataset ({self.get_size(self.features_data_path):.2f} GB)")
             return
 
         if self.with_scenes_file:
@@ -161,7 +152,7 @@ class BaseDataset:
         else:
             print("Skipping scenes file generation")
 
-        cmh.profile(self.initialize_features_and_targets_process)
+        # cmh.profile(self.initialize_features_and_targets_process)
         mph.run_processes(
             self.initialize_features_and_targets_process, num_workers=self.num_workers
         )
@@ -174,11 +165,6 @@ class BaseDataset:
             self.load_features()
         else:
             print("Reading features from disc")
-
-        if self.load_targets_to_ram:
-            self.load_targets()
-        else:
-            print("Reading targets from disc")
 
     def create_folders(self):
         cmh.create_folders(self.images_directory)
@@ -199,21 +185,22 @@ class BaseDataset:
         cmh.clear_folder(self.main_directory)
         self.create_folders()
 
+        # mph.run_process(self.generate_data_process)
         done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
         if not done:
             print("NOT DONE")
-
-        # mph.run_process(self.generate_data_process)
 
         self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
 
     def get_scene_from_file(self, scene_index: int):
-        return pkh.load_index(
-            index=scene_index,
-            all_indices=self.scene_indices,
-            data_file=pkh.open_file_read(self.scenes_data_path),
-        )
+        with pkh.open_file_read(self.scenes_data_path) as data_file:
+            scene = pkh.load_index(
+                index=scene_index,
+                all_indices=self.scene_indices,
+                data_file=data_file,
+            )
+        return scene
 
     def get_scenes_iterator(self, data_tqdm: Iterable[int]):
         for scene_index in data_tqdm:
@@ -233,13 +220,10 @@ class BaseDataset:
             yield scene
 
     def check_indices(self):
-        return self.data_count == len(self.features_indices) and self.data_count == len(
-            self.targets_indices
-        )
+        return self.data_count == len(self.features_indices)
 
     def load_indices(self):
         self.features_indices = pkh.get_all_indices(self.features_data_path)[: self.data_count]
-        self.targets_indices = pkh.get_all_indices(self.targets_data_path)[: self.data_count]
 
     def get_size(self, data_path):
         return os.path.getsize(data_path) / 1024**3
@@ -262,9 +246,10 @@ class BaseDataset:
                 )
                 for layer_number in range(self.layers_count)
             ]
-            pkh.append_multiple_data(
-                all_data=[target_data, features_layers_list],
-                all_data_paths=[self.targets_data_path, self.features_data_path],
+            features_layers_list.append(target_data)
+            pkh.append_data(
+                data=features_layers_list,
+                data_path=self.features_data_path,
                 lock=self.files_lock,
             )
         return True
@@ -273,21 +258,6 @@ class BaseDataset:
         self.loaded_features_data = self.get_data_loaded_to_ram(
             "features", self.features_data_path, self.features_indices
         )
-        # self.loaded_features_data = []
-        # for layer_list in data:
-        #     self.loaded_features_data.append([layer.to(self.device) for layer in layer_list])
-        # a = 0
-
-    def load_targets(self):
-        self.loaded_targets_data = self.get_data_loaded_to_ram(
-            "targets", self.targets_data_path, self.targets_indices
-        )
-        # self.loaded_targets_data = [
-        #     TargetData(a_correction=example["a_correction"], energy_args=example["args"]).to(
-        #         self.device
-        #     )
-        #     for example in data
-        # ]
 
     def get_data_loaded_to_ram(self, desc, data_path, indices):
         data_tqdm = cmh.get_tqdm(
@@ -295,9 +265,8 @@ class BaseDataset:
             config=self.config,
             desc=f"Loading {desc} to RAM",
         )
-        file = pkh.open_file_read(data_path)
         data = []
-        with file:
+        with pkh.open_file_read(data_path) as file:
             for index in data_tqdm:
                 if self.is_loaded_data_memory_overflow:
                     raise ArgumentError
@@ -338,16 +307,6 @@ class BaseDataset:
             )
         return features_data
 
-    def get_targets_data(self, index: int):
-        if self.loaded_targets_data is not None:
-            return self.loaded_targets_data[index]
-        else:
-            with pkh.open_file_read(self.targets_data_path) as file:
-                target_data = pkh.load_index(
-                    index=index, all_indices=self.targets_indices, data_file=file
-                )
-        return target_data
-
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
         if images_count is None:
@@ -385,10 +344,10 @@ class BaseDataset:
             lock=self.files_lock,
         )
 
-    def __getitem__(self, index):
-        layers_list = self.get_features_data(index)[: self.layers_count]
-        layers_list[0].scene_id = index
-        return layers_list
+    def __getitem__(self, index: int):
+        example = self.get_features_data(index)
+        layers_list = example[: self.layers_count]
+        return layers_list, example[-1]
 
     def __len__(self):
         return self.data_count

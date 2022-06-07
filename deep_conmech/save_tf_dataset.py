@@ -103,8 +103,7 @@ def simulate(config: Config, scenario) -> str:
 def prepare_data(config: TrainingConfig, scenes_path: str):
     all_indices = pkh.get_all_indices(scenes_path)
     data_count = len(all_indices)
-    scenes_file = pkh.open_file_read(scenes_path)
-    with scenes_file:
+    with pkh.open_file_read(scenes_path) as scenes_file:
         load_function = lambda index: pkh.load_index(
             index=index, all_indices=all_indices, data_file=scenes_file
         )
