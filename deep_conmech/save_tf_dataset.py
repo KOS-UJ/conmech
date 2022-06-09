@@ -104,8 +104,8 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
     all_indices = pkh.get_all_indices(scenes_path)
     data_count = len(all_indices)
     with pkh.open_file_read(scenes_path) as scenes_file:
-        load_function = lambda index: pkh.load_index(
-            index=index, all_indices=all_indices, data_file=scenes_file
+        load_function = lambda index: pkh.load_byte_index(
+            byte_index=all_indices[index], data_file=scenes_file
         )
         base_scene = load_function(index=0)
         elements = base_scene.elements[np.newaxis, ...].astype("int32")
@@ -152,7 +152,7 @@ def prepare_data(config: TrainingConfig, scenes_path: str):
 
 def main():
     config = TrainingConfig()
-    dch.set_memory_limit(config=config)
+    # dch.set_memory_limit(config=config)
     directory = "/home/michal/Desktop/DATA/conmech"
     cmh.recreate_folder(directory)
 

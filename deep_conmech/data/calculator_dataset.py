@@ -15,6 +15,8 @@ class CalculatorDataset(ScenariosDataset):
         load_features_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
+        rank: int,
+        world_size: int,
     ):
         super().__init__(
             description=f"{description}_calculator",
@@ -24,4 +26,6 @@ class CalculatorDataset(ScenariosDataset):
             load_features_to_ram=load_features_to_ram,
             randomize_at_load=randomize_at_load,
             config=config,
+            rank=rank,
+            world_size=world_size,
         )

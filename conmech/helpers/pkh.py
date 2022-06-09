@@ -48,10 +48,6 @@ def append_data(data, data_path: str, lock: Optional[Lock]) -> None:
             append_data_internal()
 
 
-def load_index(index: int, all_indices: List[int], data_file: BufferedReader):
-    return load_byte_index(byte_index=all_indices[index], data_file=data_file)
-
-
 def load_byte_index(byte_index: int, data_file: BufferedReader):
     data_file.seek(byte_index)
     data = pickle.load(data_file)

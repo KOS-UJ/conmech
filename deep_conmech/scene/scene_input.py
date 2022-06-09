@@ -75,7 +75,7 @@ class TargetData(Data):
 
     def __inc__(self, key, value, *args, **kwargs):
         if key == "lhs_index":
-            size = self.a_correction.shape[0] * self.a_correction.shape[1]
+            size = self.a_correction.numel()
             return torch.tensor([[size], [size]])
         else:
             return super().__inc__(key, value, *args, **kwargs)

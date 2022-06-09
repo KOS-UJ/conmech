@@ -3,17 +3,16 @@ torch helpers
 """
 import numpy as np
 import torch
+from torch.nn.parallel import DistributedDataParallel
 
-from deep_conmech import training_config
 from deep_conmech.training_config import TrainingConfig
 
 
-def device(training_config: TrainingConfig):
-    return torch.device(training_config.device)
-
-
-def get_device_id():
-    return "cuda" if torch.cuda.is_available() and (training_config.TEST is False) else "cpu"
+def prepare_model(model, rank: int, config: TrainingConfig):
+    model = model.to(rank)
+    if config.distributed_training:
+        model = DistributedDataParallel(model, device_ids=[rank], find_unused_parameters=True)
+    return model
 
 
 def to_torch_set_precision(data: np.ndarray):

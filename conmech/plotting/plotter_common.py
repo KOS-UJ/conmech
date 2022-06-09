@@ -45,9 +45,8 @@ def get_t_scale(
     all_indices = pkh.get_all_indices(all_scenes_path)
     with pkh.open_file_read(all_scenes_path) as scenes_file:
         for step in range(plot_scenes_count):
-            setting = pkh.load_index(
-                index=step * index_skip,
-                all_indices=all_indices,
+            setting = pkh.load_byte_index(
+                byte_index=all_indices[step * index_skip],
                 data_file=scenes_file,
             )
             temperatures_list.append(setting.t_old)
@@ -125,16 +124,15 @@ def make_animation(get_axs, plot_frame, t_scale):
         args.animation_tqdm.update(1)
         args.fig.clf()
         axs = get_axs(args.fig)
-        scene = pkh.load_index(
-            index=step * args.index_skip,
-            all_indices=args.all_indices,
+        byte_index = args.all_indices[step * args.index_skip]
+        scene = pkh.load_byte_index(
+            byte_index=byte_index,
             data_file=args.scenes_file,
         )
 
         if args.base_scenes_file is not None:
-            base_scene = pkh.load_index(
-                index=step * args.index_skip,
-                all_indices=args.base_all_indices,
+            base_scene = pkh.load_byte_index(
+                byte_index=byte_index,
                 data_file=args.base_scenes_file,
             )
         else:

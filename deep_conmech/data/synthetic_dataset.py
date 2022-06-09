@@ -117,6 +117,8 @@ class SyntheticDataset(BaseDataset):
         randomize_at_load: bool,
         with_scenes_file: bool,
         config: TrainingConfig,
+        rank: int,
+        world_size: int,
     ):
         num_workers = config.synthetic_generation_workers
         super().__init__(
@@ -129,6 +131,8 @@ class SyntheticDataset(BaseDataset):
             load_features_to_ram=load_features_to_ram,
             with_scenes_file=with_scenes_file,
             config=config,
+            rank=rank,
+            world_size=world_size,
         )
         self.initialize_data()
 

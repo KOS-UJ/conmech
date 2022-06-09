@@ -389,8 +389,8 @@ class CustomGraphNet(nn.Module):
         )
         return node_latents
 
-    def forward(self, layer_list: List[Data], main_layer_number: int):
-        main_layer = layer_list[main_layer_number]
+    def forward(self, layer_list: List[Data]):
+        main_layer = layer_list[0]
         self.processor_number = 0
 
         # nodes = main_layer.pos
@@ -407,7 +407,7 @@ class CustomGraphNet(nn.Module):
         # position "pos" will not generalize
         processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
-            layer_number=main_layer_number,
+            layer_number=0,
             node_latents=node_latents,
         )
         net_output = self.decoder(node_latents + processed_node_latents)  # processed_node_latents
@@ -430,7 +430,7 @@ class CustomGraphNet(nn.Module):
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number in range(layers_count)
         ]
-        normalized_a_cuda = self(layer_list=layers_list, main_layer_number=0)
+        normalized_a_cuda = self(layer_list=layers_list)
 
         normalized_a = thh.to_np_double(normalized_a_cuda)
         a = scene.denormalize_rotate(normalized_a)

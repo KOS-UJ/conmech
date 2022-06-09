@@ -40,7 +40,7 @@ class TrainingData:
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
-    validate_at_epochs: Optional[int] = 1  # 10
+    validate_at_epochs: Optional[int] = 100000  # 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 128  # 8  # 16
@@ -74,9 +74,11 @@ class TrainingData:
 @dataclass
 class TrainingConfig(Config):
     td: TrainingData = TrainingData()
-    device: str = "_"
+    device: str = "cuda"  # "cpu" if TEST else "cuda"
+    #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    dataloader_workers = 4
+    distributed_training: bool = True  # True
+    dataloader_workers = 0
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
 
@@ -89,7 +91,7 @@ class TrainingConfig(Config):
 
     dataset_images_count: Optional[float] = None  # 128
 
-    load_train_features_to_ram: bool = True
+    load_train_features_to_ram: bool = False
     log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 

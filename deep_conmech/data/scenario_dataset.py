@@ -29,6 +29,8 @@ class ScenariosDataset(BaseDataset):
         load_features_to_ram: bool,
         randomize_at_load: bool,
         config: TrainingConfig,
+        rank: int,
+        world_size: int,
     ):
         self.all_scenarios = all_scenarios
         self.solve_function = solve_function
@@ -43,6 +45,8 @@ class ScenariosDataset(BaseDataset):
             load_features_to_ram=load_features_to_ram,
             with_scenes_file=True,
             config=config,
+            rank=rank,
+            world_size=world_size,
         )
         self.initialize_data()
 
