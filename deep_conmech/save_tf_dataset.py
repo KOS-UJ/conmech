@@ -19,7 +19,6 @@ from conmech.scenarios.scenarios import (
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
 
 tf.enable_eager_execution()

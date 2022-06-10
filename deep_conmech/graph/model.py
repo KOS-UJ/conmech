@@ -41,13 +41,13 @@ class GraphModelDynamic:
         rank: int,
         world_size: int,
     ):
-        print("----CREATING MODEL----")
+        self.rank = rank
+        print(f"----{self.rank}: CREATING MODEL----")
         self.config = config
         self.all_val_datasets = all_val_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
-        self.rank = rank
         self.world_size = world_size
 
         self.ddp_net = (
@@ -66,9 +66,16 @@ class GraphModelDynamic:
         )
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         self.logger = Logger(dataset=self.train_dataset, config=config)
-        self.logger.save_parameters_and_statistics()
         self.epoch = 0
         self.examples_seen = 0
+        if self.is_main:
+            self.logger.save_parameters_and_statistics()
+        if self.config.distributed_training:
+            dist.barrier()
+
+    @property
+    def is_main(self):
+        return self.rank == 0
 
     @property
     def lr(self):
@@ -100,7 +107,7 @@ class GraphModelDynamic:
             if self.config.distributed_training:
                 dist.barrier()
 
-            if self.rank == 0:
+            if self.is_main:
                 current_time = time.time()
                 elapsed_time = current_time - last_save_time
                 if elapsed_time > self.config.td.save_at_minutes * 60:
@@ -240,16 +247,20 @@ class GraphModelDynamic:
         mean_loss_raport = LossRaport()
 
         gc.disable()
-        # prof = self.logger.get_profiler()
-        # prof.start()
+        profile = True
+        if profile:
+            prof = self.logger.get_profiler()
+            prof.start()
         for _, batch_data in enumerate(batch_tqdm):
 
             loss_raport = step_function(batch_data)
             mean_loss_raport.add(loss_raport)
 
             batch_tqdm.set_description(f"{description} loss: {(mean_loss_raport.main):.4f}")
-            # prof.step()
-        # prof.stop()
+            if profile:
+                prof.step()
+        if profile:
+            prof.stop()
         gc.enable()
 
         return mean_loss_raport

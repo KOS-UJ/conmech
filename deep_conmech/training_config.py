@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True
+TEST = False
 DIMENSION = 2
 
 
@@ -39,7 +39,7 @@ class TrainingData:
     displacement_in_random_factor: float = 0.005 * displacement_random_scale
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
-    save_at_minutes: int = 1  # 10
+    save_at_minutes: int = 10
     validate_at_epochs: Optional[int] = 100000  # 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
@@ -91,12 +91,11 @@ class TrainingConfig(Config):
 
     dataset_images_count: Optional[float] = 128
 
-    load_train_features_to_ram: bool = False
     log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
 
-    compare_with_base_scene = False  # False
+    compare_with_base_scene = False
     max_epoch_number: Optional[int] = None
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"
-    load_newest_train: bool = True
+    load_newest_train: bool = False

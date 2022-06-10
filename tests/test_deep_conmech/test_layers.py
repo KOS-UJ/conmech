@@ -67,10 +67,11 @@ def test_graph_layers():
     dataset = SyntheticDataset(
         description="train",
         layers_count=config.td.mesh_layers_count,
-        load_features_to_ram=config.load_train_features_to_ram,
         with_scenes_file=config.with_train_scenes_file,
         randomize_at_load=True,
         config=config,
+        rank=0,
+        world_size=1,
     )
 
     dataloader = base_dataset.get_train_dataloader(dataset)

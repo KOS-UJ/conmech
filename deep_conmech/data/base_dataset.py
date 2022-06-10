@@ -88,7 +88,6 @@ class BaseDataset:
         layers_count: int,
         randomize_at_load: bool,
         num_workers: int,
-        load_features_to_ram: bool,
         with_scenes_file: bool,
         config: TrainingConfig,
         rank: int,
@@ -100,11 +99,9 @@ class BaseDataset:
         self.layers_count = layers_count
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
-        self.load_features_to_ram = load_features_to_ram
         self.with_scenes_file = with_scenes_file
         self.config = config
         self.scene_indices = None
-        self.loaded_features_data = None
         self.features_indices = None
         self.files_lock = mph.get_lock()
         self.rank = rank
@@ -161,7 +158,7 @@ class BaseDataset:
         return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
 
     def initialize_data(self):
-        print(f"----INITIALIZING DATASET ({self.data_id})----")
+        print(f"----{self.rank}: INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
         self.load_indices()
         if self.check_indices():
@@ -179,13 +176,6 @@ class BaseDataset:
         )
         self.load_indices()
         assert self.check_indices()
-
-    def load_data(self):
-        print(f"----LOADING DATASET ({self.data_id})----")
-        if self.load_features_to_ram:
-            self.load_features()
-        else:
-            print("Reading features from disc")
 
     def create_folders(self):
         cmh.create_folders(self.images_directory)
@@ -274,43 +264,16 @@ class BaseDataset:
             )
         return True
 
-    def load_features(self):
-
-        # shared_array_base = multiprocessing.Array(type(GraphData), 10)
-        # shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-        # self.shared_array = torch.from_numpy(shared_array)
-        manager = multiprocessing.Manager()
-        self.loaded_features_data = []  # manager.dict()
-
-        iterable = self.get_process_data_range(
-            len(self.features_indices), process_id=self.rank, num_workers=self.world_size
-        )
-        data_tqdm = cmh.get_tqdm(
-            iterable=iterable,
-            config=self.config,
-            desc=f"Loading data to RAM",
-            position=self.rank,
-        )
-        i = 0
-        with pkh.open_file_read(self.features_data_path) as file:
-            for index in data_tqdm:
-                if self.is_loaded_data_memory_overflow:
-                    raise ArgumentError
-                example = pkh.load_byte_index(self.features_indices[index], file)
-                self.loaded_features_data.append(example)
-                # self.loaded_features_data[i] = example
-                # i += 1
-
     def get_statistics(self, layer_number):
-        dataloader = get_train_dataloader(self)
+        dataloader = get_train_dataloader(self, rank=self.rank, world_size=self.world_size)
 
         dimension = self.config.td.dimension
         nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(dimension)))
         edges_data = torch.empty((0, SceneInput.get_edges_data_dim(dimension)))
-        for layers_list in cmh.get_tqdm(
+        for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            layer = layers_list[layer_number]
+            layer = graph_data[0][layer_number]
             nodes_data = torch.cat((nodes_data, layer.x))
             edges_data = torch.cat((edges_data, layer.edge_attr))
 
@@ -325,14 +288,10 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    def get_features_and_targets_data(self, index) -> GraphData:
-        if self.loaded_features_data is not None:
-            return self.loaded_features_data[index]
-        # shifted_index = index + self.rank * self.data_count // self.world_size
-        shifted_index = index
+    def get_features_and_targets_data(self, index: int) -> GraphData:
         with pkh.open_file_read(self.features_data_path) as file:
             features_data = pkh.load_byte_index(
-                byte_index=self.features_indices[shifted_index], data_file=file  # self.file
+                byte_index=self.features_indices[index], data_file=file  # self.file
             )
         return features_data
 
@@ -379,6 +338,8 @@ class BaseDataset:
 
     def __getitem__(self, index: int):
         # self.open_file()
+        f = lambda: self.get_features_and_targets_data(index)
+        cmh.profile(f)
         graph_data = self.get_features_and_targets_data(index)
         return graph_data.layer_list, graph_data.target_data
 
