@@ -1,3 +1,4 @@
+import gc
 import time
 from ctypes import ArgumentError
 from typing import Callable, List
@@ -5,6 +6,7 @@ from typing import Callable, List
 import numpy as np
 import torch
 import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel
 from torch_geometric.data.batch import Data
 
 from conmech.helpers import cmh
@@ -48,9 +50,14 @@ class GraphModelDynamic:
         self.rank = rank
         self.world_size = world_size
 
-        self.net = net
+        self.ddp_net = (
+            DistributedDataParallel(net, device_ids=[rank], find_unused_parameters=True)
+            if config.distributed_training
+            else net
+        )
+
         self.optimizer = torch.optim.Adam(
-            self.net.parameters(),
+            self.ddp_net.parameters(),
             lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
         )
         lr_lambda = lambda epoch: max(
@@ -60,6 +67,8 @@ class GraphModelDynamic:
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         self.logger = Logger(dataset=self.train_dataset, config=config)
         self.logger.save_parameters_and_statistics()
+        self.epoch = 0
+        self.examples_seen = 0
 
     @property
     def lr(self):
@@ -70,23 +79,21 @@ class GraphModelDynamic:
         # for epoch in epoch_tqdm:
         start_time = time.time()
         last_save_time = start_time
-        examples_seen = 0
-        epoch_number = 0
         print("----TRAINING----")
 
         dataloader = base_dataset.get_train_dataloader(
             self.train_dataset, world_size=self.world_size, rank=self.rank
         )
-        while self.config.max_epoch_number is None or epoch_number < self.config.max_epoch_number:
-            epoch_number += 1
+        while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
+            self.epoch += 1
 
-            mean_loss_raport, es = self.iterate_dataset(
+            mean_loss_raport = self.iterate_dataset(
                 dataloader=dataloader,
                 step_function=self.train_step,
-                description=f"EPOCH: {epoch_number}",  # , lr: {self.lr:.6f}",
+                description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
             )
-            examples_seen += es
-            self.training_raport(mean_loss_raport=mean_loss_raport, examples_seen=examples_seen)
+            self.examples_seen += len(self.train_dataset)
+            self.training_raport(mean_loss_raport=mean_loss_raport)
 
             self.scheduler.step()
 
@@ -98,43 +105,56 @@ class GraphModelDynamic:
                 elapsed_time = current_time - last_save_time
                 if elapsed_time > self.config.td.save_at_minutes * 60:
                     # print(f"--Training time: {(elapsed_time / 60):.4f} min")
-                    self.save_net()
+                    self.save_checkpoint()
                     last_save_time = time.time()
 
                 def is_at_skip(skip):
-                    return skip is not None and epoch_number % skip == 0
+                    return skip is not None and self.epoch % skip == 0
 
                 if is_at_skip(self.config.td.validate_at_epochs):
-                    self.validation_raport(examples_seen=examples_seen)
+                    self.validation_raport()
                 if is_at_skip(self.config.td.validate_scenarios_at_epochs):
-                    self.validate_all_scenarios_raport(examples_seen=examples_seen)
+                    self.validate_all_scenarios_raport()
 
             if self.config.distributed_training:
                 dist.barrier()
 
-    def save_net(self):
-        print("----SAVING----")
+    def save_checkpoint(self):
+        print("----SAVING CHECKPOINT----")
         timestamp = cmh.get_timestamp(self.config)
         catalog = f"{self.config.output_catalog}/{self.config.current_time} - GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
-        #self.net.save(path)
-        torch.save(self.net.state_dict(), path)
+
+        checkpoint = {
+            "epoch": self.epoch,
+            "examples_seen": self.examples_seen,
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "net": self.ddp_net.state_dict(),
+        }
+        torch.save(checkpoint, path)
 
     @staticmethod
-    def get_newest_saved_model_path(config: TrainingConfig):
-        def get_index(path):
-            return int(path.split("/")[-1].split(" ")[0])
+    def load_checkpointed_net(net, path: str):
+        print("----LOADING NET----")
+        checkpoint = torch.load(path)
+        net.load_state_dict(checkpoint["net"])
+        net.eval()
+        return net
 
-        saved_model_paths = cmh.find_files_by_extension(config.output_catalog, "pt")
-        if not saved_model_paths:
-            raise ArgumentError("No saved models")
+    def load_checkpoint(self, path: str):
+        print("----LOADING CHECKPOINT----")
+        map_location = {"cuda:%d" % 0: "cuda:%d" % self.rank}
+        checkpoint = torch.load(path, map_location=map_location)
 
-        newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
-        path = saved_model_paths[newest_index]
+        self.epoch = checkpoint["epoch"]
+        self.examples_seen = checkpoint["examples_seen"]
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.scheduler.load_state_dict(checkpoint["scheduler"])
+        self.ddp_net.load_state_dict(checkpoint["net"])
 
-        print(f"Taking saved model {path.split('/')[-1]}")
-        return path
+        self.ddp_net.eval()
 
     @staticmethod
     def get_scene_function(
@@ -185,8 +205,8 @@ class GraphModelDynamic:
         # return catalog
 
     def train_step(self, batch_data: List[Data]):
-        self.net.train()
-        self.net.zero_grad()
+        self.ddp_net.train()
+        self.ddp_net.zero_grad()
 
         # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
         main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)
@@ -198,7 +218,7 @@ class GraphModelDynamic:
         return loss_raport
 
     def test_step(self, batch_data: List[Data]):
-        self.net.eval()
+        self.ddp_net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
             _, loss_raport = self.calculate_loss(batch_data=batch_data)
@@ -206,7 +226,7 @@ class GraphModelDynamic:
         return loss_raport
 
     def clip_gradients(self, max_norm: float):
-        parameters = self.net.parameters()
+        parameters = self.ddp_net.parameters()
         # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
         # total_norm = np.max(norms)_
         # print("total_norm", total_norm)
@@ -217,9 +237,9 @@ class GraphModelDynamic:
             dataloader, desc=description, config=self.config, position=self.rank
         )
 
-        examples_seen = 0
         mean_loss_raport = LossRaport()
 
+        gc.disable()
         # prof = self.logger.get_profiler()
         # prof.start()
         for _, batch_data in enumerate(batch_tqdm):
@@ -227,28 +247,27 @@ class GraphModelDynamic:
             loss_raport = step_function(batch_data)
             mean_loss_raport.add(loss_raport)
 
-            examples_seen += batch_data[0][0].num_graphs
-
             batch_tqdm.set_description(f"{description} loss: {(mean_loss_raport.main):.4f}")
             # prof.step()
         # prof.stop()
+        gc.enable()
 
-        return mean_loss_raport, examples_seen
+        return mean_loss_raport
 
-    def training_raport(self, mean_loss_raport, examples_seen):
+    def training_raport(self, mean_loss_raport):
         self.logger.writer.add_scalar(
             "Loss/Training/LearningRate",
             self.lr,
-            examples_seen,
+            self.examples_seen,
         )
         for key, value in mean_loss_raport.get_iterator():
             self.logger.writer.add_scalar(
                 f"Loss/Training/{key}",
                 value,
-                examples_seen,
+                self.examples_seen,
             )
 
-    def validation_raport(self, examples_seen):
+    def validation_raport(self):
         # print("----VALIDATING----")
         start_time = time.time()
 
@@ -256,7 +275,7 @@ class GraphModelDynamic:
             self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
         )
         # for dataset in self.all_val_datasets:
-        mean_loss_raport, _ = self.iterate_dataset(
+        mean_loss_raport = self.iterate_dataset(
             dataloader=dataloader,
             step_function=self.test_step,
             description=dataset.data_id,
@@ -265,12 +284,12 @@ class GraphModelDynamic:
             self.logger.writer.add_scalar(
                 f"Loss/Validating/{key}",
                 value,
-                examples_seen,
+                self.examples_seen,
             )
         # validation_time = time.time() - start_time
         # print(f"--Validation time: {(validation_time / 60):.4f} min")
 
-    def validate_all_scenarios_raport(self, examples_seen):
+    def validate_all_scenarios_raport(self):
         print("----VALIDATING SCENARIOS----")
         start_time = time.time()
         episode_steps = self.print_scenarios[0].schedule.episode_steps
@@ -278,7 +297,7 @@ class GraphModelDynamic:
         for scenario in self.print_scenarios:
             assert episode_steps == scenario.schedule.episode_steps
             _, _, energy_values = simulation_runner.run_scenario(
-                solve_function=self.net.solve,
+                solve_function=self.ddp_net.solve,
                 scenario=scenario,
                 config=self.config,
                 run_config=simulation_runner.RunScenarioConfig(),
@@ -300,7 +319,7 @@ class GraphModelDynamic:
             self.logger.writer.add_scalar(
                 f"Loss/Validation/energy_mean_{i}_steps",
                 np.mean(all_energy_values[:i]),
-                examples_seen,
+                self.examples_seen,
             )
 
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
@@ -376,7 +395,7 @@ class GraphModelDynamic:
         graph_sizes_base = get_graph_sizes(batch_main_layer)
         node_features = batch_main_layer.x  # .to("cpu")
 
-        all_predicted_normalized_a = self.net(layer_list)  # .to("cpu")
+        all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
         all_acceleration = scene_input.clean_acceleration(
             cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
         )
@@ -393,7 +412,7 @@ class GraphModelDynamic:
     def get_derivatives(self, layer_list, layer_number, dimension):
         main_layer_cuda = layer_list[0]
         main_layer_cuda.x.requires_grad_(True)
-        acceleration = self.net(layer_list, layer_number)
+        acceleration = self.ddp_net(layer_list, layer_number)
 
         for d in range(dimension):
             out_i = torch.zeros_like(acceleration)

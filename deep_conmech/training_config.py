@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True
 DIMENSION = 2
 
 
@@ -39,13 +39,13 @@ class TrainingData:
     displacement_in_random_factor: float = 0.005 * displacement_random_scale
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
-    save_at_minutes: int = 10
+    save_at_minutes: int = 1  # 10
     validate_at_epochs: Optional[int] = 100000  # 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 128  # 8  # 16
     valid_batch_size: int = batch_size
-    synthetic_batches_in_epoch: int = 1 if TEST else 512
+    synthetic_batches_in_epoch: int = 1 if TEST else 512 * 8
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -77,8 +77,8 @@ class TrainingConfig(Config):
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    distributed_training: bool = True  # True
-    dataloader_workers = 0
+    distributed_training: bool = True
+    dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
 
@@ -89,7 +89,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = None  # 128
+    dataset_images_count: Optional[float] = 128
 
     load_train_features_to_ram: bool = False
     log_dataset_stats: bool = False  # True
@@ -99,4 +99,4 @@ class TrainingConfig(Config):
     max_epoch_number: Optional[int] = None
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"
-    load_newest_train: bool = False  # True
+    load_newest_train: bool = True

@@ -1,28 +1,29 @@
 import argparse
 import os
 from argparse import ArgumentParser, Namespace
+from ctypes import ArgumentError
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing
 
+from conmech.helpers import cmh
 from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.dataset_statistics import DatasetStatistics
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.helpers import dch, thh
+from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
 def setup_distributed(rank: int, world_size: int):
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "12355"
-
-    # os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"  # set to DETAIL for runtime logging.
-
+    # os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
@@ -72,9 +73,7 @@ def train_single(config, rank=0, world_size=1):
     # for dataset in all_val_datasets:
     #    dataset.load_data()
 
-    net = get_net(
-        statistics=statistics, rank=rank, config=config, load_newest=config.load_newest_train
-    )
+    net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
     model = GraphModelDynamic(
         train_dataset=train_dataset,
         all_val_datasets=all_val_datasets,
@@ -84,6 +83,9 @@ def train_single(config, rank=0, world_size=1):
         rank=rank,
         world_size=world_size,
     )
+    if config.load_newest_train:
+        path = get_newest_checkpoint_path(config)
+        model.load_checkpoint(path=path)
     model.train()
 
 
@@ -94,7 +96,9 @@ def plot(config: TrainingConfig):
     else:
         statistics = None
 
-    net = get_net(statistics=statistics, config=config, load_newest=True)
+    net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
+    path = get_newest_checkpoint_path(config)
+    net = GraphModelDynamic.load_checkpointed_net(net=net, path=path)
 
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
@@ -158,16 +162,19 @@ def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
     return all_val_datasets
 
 
-def get_net(
-    statistics: Optional[DatasetStatistics], rank: int, config: TrainingConfig, load_newest: bool
-):
-    net = CustomGraphNet(statistics=statistics, td=config.td)
-    net = thh.prepare_model(model=net, rank=rank, config=config)
-    if load_newest:
-        print("Loading saved net parameters")
-        path = GraphModelDynamic.get_newest_saved_model_path(config)
-        net.load(path)
-    return net
+def get_newest_checkpoint_path(config: TrainingConfig):
+    def get_index(path):
+        return int(path.split("/")[-1].split(" ")[0])
+
+    saved_model_paths = cmh.find_files_by_extension(config.output_catalog, "pt")
+    if not saved_model_paths:
+        raise ArgumentError("No saved models")
+
+    newest_index = np.argmax(np.array([get_index(path) for path in saved_model_paths]))
+    path = saved_model_paths[newest_index]
+
+    print(f"Taking saved model {path.split('/')[-1]}")
+    return path
 
 
 def main(args: Namespace):

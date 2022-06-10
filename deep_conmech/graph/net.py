@@ -416,13 +416,6 @@ class CustomGraphNet(nn.Module):
         # main_layer.x[:,:2]
         return net_output  # main_layer.forces + net_output
 
-    def save(self, path):
-        torch.save(self.state_dict(), path)
-
-    def load(self, path):
-        self.load_state_dict(torch.load(path))
-        self.eval()
-
     def solve_all(self, scene: SceneInput):
         self.eval()
         layers_count = len(scene.all_layers)

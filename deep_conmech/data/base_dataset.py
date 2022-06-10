@@ -109,6 +109,7 @@ class BaseDataset:
         self.files_lock = mph.get_lock()
         self.rank = rank
         self.world_size = world_size
+        self.file = None
 
     @property
     def data_size_id(self):
@@ -179,7 +180,7 @@ class BaseDataset:
         self.load_indices()
         assert self.check_indices()
 
-    def load_data(self):  # , rank: int
+    def load_data(self):
         print(f"----LOADING DATASET ({self.data_id})----")
         if self.load_features_to_ram:
             self.load_features()
@@ -254,7 +255,7 @@ class BaseDataset:
         data_tqdm = cmh.get_tqdm(
             iterable=assigned_data_range,
             config=self.config,
-            desc=f"Preprocessing dataset - process {process_id+1}/{num_workers}",
+            desc=f"Preprocessing data - process {process_id+1}/{num_workers}",
             position=process_id,
         )
         for scene in self.get_scenes_iterator(data_tqdm=data_tqdm):
@@ -331,7 +332,7 @@ class BaseDataset:
         shifted_index = index
         with pkh.open_file_read(self.features_data_path) as file:
             features_data = pkh.load_byte_index(
-                byte_index=self.features_indices[shifted_index], data_file=file
+                byte_index=self.features_indices[shifted_index], data_file=file  # self.file
             )
         return features_data
 
@@ -372,7 +373,12 @@ class BaseDataset:
             lock=self.files_lock,
         )
 
+    def open_file(self):
+        if self.file is None:
+            self.file = pkh.open_file_read(self.features_data_path)
+
     def __getitem__(self, index: int):
+        # self.open_file()
         graph_data = self.get_features_and_targets_data(index)
         return graph_data.layer_list, graph_data.target_data
 

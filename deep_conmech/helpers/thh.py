@@ -3,16 +3,8 @@ torch helpers
 """
 import numpy as np
 import torch
-from torch.nn.parallel import DistributedDataParallel
 
 from deep_conmech.training_config import TrainingConfig
-
-
-def prepare_model(model, rank: int, config: TrainingConfig):
-    model = model.to(rank)
-    if config.distributed_training:
-        model = DistributedDataParallel(model, device_ids=[rank], find_unused_parameters=True)
-    return model
 
 
 def to_torch_set_precision(data: np.ndarray):

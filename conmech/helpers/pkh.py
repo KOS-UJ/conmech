@@ -38,8 +38,8 @@ def append_data(data, data_path: str, lock: Optional[Lock]) -> None:
         data_file, indices_file = open_files_append(data_path)
         with data_file, indices_file:
             index = data_file.tell()
-            pickle.dump(data, data_file)
-            pickle.dump(index, indices_file)
+            pickle.dump(data, data_file, protocol=-1)
+            pickle.dump(index, indices_file, protocol=-1)
 
     if lock is None:
         append_data_internal()
