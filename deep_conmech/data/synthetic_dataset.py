@@ -123,7 +123,7 @@ class SyntheticDataset(BaseDataset):
         super().__init__(
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
-            data_count=config.td.batch_size * config.td.synthetic_batches_in_epoch,
+            data_count=config.td.dataset_size,
             layers_count=layers_count,
             randomize_at_load=randomize_at_load,
             num_workers=num_workers,
@@ -132,7 +132,6 @@ class SyntheticDataset(BaseDataset):
             rank=rank,
             world_size=world_size,
         )
-        self.initialize_data()
 
     @property
     def data_size_id(self):

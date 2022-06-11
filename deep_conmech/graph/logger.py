@@ -84,19 +84,22 @@ class Logger:
     def current_log_catalog(self):
         return f"{self.config.log_catalog}/{self.config.current_time}"
 
-    def get_profiler(self):
+    def get_and_start_profiler(self):
         def trace_handler(prof):
-            output = prof.key_averages().table(row_limit=10, sort_by="cpu_time_total")
-            print(output)
+            print("Saving profiler raport...")
+            # output = prof.key_averages().table(row_limit=10, sort_by="cpu_time_total")
+            # print(output)
             # prof.export_chrome_trace(f"./log/profiler_trace.json")
             # prof.export_stacks("profiler_stacks_{prof.step_num}.txt", "self_cuda_time_total")
             torch.profiler.tensorboard_trace_handler(self.current_log_catalog)(prof)
 
-        return profile(
+        profiler = profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             profile_memory=True,
             # record_shapes=True,
             # with_stack=True,
-            schedule=torch.profiler.schedule(skip_first=4, wait=1, warmup=1, active=4, repeat=2),
+            schedule=torch.profiler.schedule(skip_first=2, wait=0, warmup=2, active=4, repeat=1),
             on_trace_ready=trace_handler,
         )
+        profiler.start()
+        return profiler

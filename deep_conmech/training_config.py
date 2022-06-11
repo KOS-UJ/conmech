@@ -40,12 +40,12 @@ class TrainingData:
     velocity_in_random_factor: float = 0.005 * velocity_random_scale
 
     save_at_minutes: int = 10
-    validate_at_epochs: Optional[int] = 100000  # 1  # 10
+    raport_at_examples: int = 256 * 64
+    validate_at_epochs: Optional[int] = None  # 1  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 128  # 8  # 16
-    valid_batch_size: int = batch_size
-    synthetic_batches_in_epoch: int = 1 if TEST else 512 * 8
+    batch_size: int = 256
+    dataset_size: int = 256 * (32 if TEST else 2048)
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -58,7 +58,7 @@ class TrainingData:
 
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
-    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-5  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = 1e-6
 
@@ -77,7 +77,7 @@ class TrainingConfig(Config):
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    distributed_training: bool = True
+    distributed_training = True
     dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
@@ -89,9 +89,9 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 128
+    dataset_images_count: Optional[float] = None  # 128
 
-    log_dataset_stats: bool = False  # True
+    log_dataset_stats: bool = False
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False
@@ -99,3 +99,4 @@ class TrainingConfig(Config):
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"
     load_newest_train: bool = False
+    profile_training: bool = False

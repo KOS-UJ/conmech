@@ -1,8 +1,6 @@
 import copy
-import multiprocessing
 import os
-from ctypes import ArgumentError
-from typing import Iterable, List
+from typing import Iterable
 
 import numpy as np
 import torch
@@ -42,7 +40,7 @@ def get_valid_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         dataset=dataset,
         rank=rank,
         world_size=world_size,
-        batch_size=dataset.config.td.valid_batch_size,
+        batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=False,
     )
@@ -73,9 +71,9 @@ def get_dataloader(
         num_workers=num_workers,
         # shuffle=shuffle,
         sampler=sampler,
-        pin_memory=True,  # TODO: #65
-        persistent_workers=False,  # True,
-        # prefetch_factor=10,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=10,
     )
 
 
@@ -158,7 +156,7 @@ class BaseDataset:
         return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
 
     def initialize_data(self):
-        print(f"----{self.rank}: INITIALIZING DATASET ({self.data_id})----")
+        print(f"----NODE {self.rank}: INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
         self.load_indices()
         if self.check_indices():
@@ -290,10 +288,9 @@ class BaseDataset:
 
     def get_features_and_targets_data(self, index: int) -> GraphData:
         with pkh.open_file_read(self.features_data_path) as file:
-            features_data = pkh.load_byte_index(
-                byte_index=self.features_indices[index], data_file=file  # self.file
-            )
-        return features_data
+            return pkh.load_byte_index(
+                byte_index=self.features_indices[index], data_file=file
+            )  # self.file
 
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
@@ -334,14 +331,15 @@ class BaseDataset:
 
     def open_file(self):
         if self.file is None:
-            self.file = pkh.open_file_read(self.features_data_path)
+            self.file = pkh.open_file_read(self.features_data_path)  # base_file
+            # with base_file:
+            #     self.file = mmap.mmap(base_file.fileno(), length=0, access=mmap.ACCESS_READ)
 
     def __getitem__(self, index: int):
         # self.open_file()
-        f = lambda: self.get_features_and_targets_data(index)
-        cmh.profile(f)
         graph_data = self.get_features_and_targets_data(index)
         return graph_data.layer_list, graph_data.target_data
+        # return [*graph_data.layer_list, graph_data.target_data]
 
     def __len__(self):
         return self.data_count  # // self.world_size

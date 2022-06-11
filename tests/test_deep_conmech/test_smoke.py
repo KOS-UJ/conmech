@@ -12,7 +12,7 @@ def test_smoke_train_and_plot():
         dataset="synthetic",
         mesh_density=4,
         batch_size=2,
-        synthetic_batches_in_epoch=2,
+        dataset_size=4,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,

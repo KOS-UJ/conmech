@@ -101,7 +101,7 @@ def get_dataset(output_catalog):
         mesh_density=8,
         adaptive_training_mesh_scale=0,
         batch_size=3,
-        synthetic_batches_in_epoch=2,
+        dataset_size=2,
         mesh_layers_count=3,
         final_time=0.1,
         save_at_minutes=0,

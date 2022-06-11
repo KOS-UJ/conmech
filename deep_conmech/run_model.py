@@ -2,7 +2,6 @@ import argparse
 import os
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
-from typing import Optional
 
 import numpy as np
 import torch
@@ -12,11 +11,9 @@ import torch.multiprocessing
 from conmech.helpers import cmh
 from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
-from deep_conmech.data.dataset_statistics import DatasetStatistics
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.helpers import thh
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -32,11 +29,11 @@ def cleanup_distributed():
 
 
 def train(config: TrainingConfig):
-    # Prepare dataset
-    get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
+    train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
+    train_dataset.initialize_data()
 
     if not config.distributed_training:
-        train_single(config)
+        train_single(config, train_dataset=train_dataset)
     else:
         world_size = torch.cuda.device_count()
         torch.multiprocessing.spawn(
@@ -57,10 +54,12 @@ def dist_run(
     cleanup_distributed()
 
 
-def train_single(config, rank=0, world_size=1):
-    train_dataset = get_train_dataset(
-        config.td.dataset, config=config, rank=rank, world_size=world_size
-    )
+def train_single(config, rank=0, world_size=1, train_dataset=None):
+    if train_dataset is None:
+        train_dataset = get_train_dataset(
+            config.td.dataset, config=config, rank=rank, world_size=world_size
+        )
+        train_dataset.load_indices()
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
@@ -70,6 +69,9 @@ def train_single(config, rank=0, world_size=1):
     all_print_datasets = scenarios.all_print(config.td)
 
     net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
+    if config.load_newest_train:
+        checkpoint_path = get_newest_checkpoint_path(config)
+        net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
     model = GraphModelDynamic(
         train_dataset=train_dataset,
         all_val_datasets=all_val_datasets,
@@ -80,8 +82,7 @@ def train_single(config, rank=0, world_size=1):
         world_size=world_size,
     )
     if config.load_newest_train:
-        path = get_newest_checkpoint_path(config)
-        model.load_checkpoint(path=path)
+        model.load_checkpoint(path=checkpoint_path)
     model.train()
 
 
@@ -92,9 +93,9 @@ def plot(config: TrainingConfig):
     else:
         statistics = None
 
-    net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
-    path = get_newest_checkpoint_path(config)
-    net = GraphModelDynamic.load_checkpointed_net(net=net, path=path)
+    net = CustomGraphNet(statistics=statistics, td=config.td).to(0)
+    checkpoint_path = get_newest_checkpoint_path(config)
+    net = GraphModelDynamic.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
 
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
@@ -187,7 +188,7 @@ def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    # torch.multiprocessing.set_start_method("spawn")
+    # torch.multiprocessing.set_start_method("forkserver")
     parser = ArgumentParser()
     parser.add_argument(
         "--mode",

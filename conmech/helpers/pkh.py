@@ -4,7 +4,7 @@ pickle helpers
 import pickle
 from io import BufferedReader
 from threading import Lock
-from typing import List, Optional
+from typing import Optional
 
 
 def open_files_write(path: str):

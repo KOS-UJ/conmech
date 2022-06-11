@@ -46,7 +46,6 @@ class ScenariosDataset(BaseDataset):
             rank=rank,
             world_size=world_size,
         )
-        self.initialize_data()
 
     def get_data_count(self, scenarios):
         return np.sum([int(s.schedule.episode_steps) for s in scenarios])
