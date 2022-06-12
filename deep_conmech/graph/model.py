@@ -14,6 +14,7 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
+from deep_conmech.graph.loss_calculation import clean_acceleration, loss_normalized_obstacle
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
@@ -55,7 +56,6 @@ class GraphModelDynamic:
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net,
                 device_ids=[rank],
-                find_unused_parameters=True,
             )
         else:
             self.ddp_net = net
@@ -360,7 +360,7 @@ class GraphModelDynamic:
             values=target_data.lhs_values,
             size=(big_lhs_size, big_lhs_size),
         )
-        big_main_loss, big_loss_raport = scene_input.loss_normalized_obstacle_scatter(
+        big_main_loss, big_loss_raport = loss_normalized_obstacle_scatter(
             acceleration=all_acceleration,
             forces=big_forces,
             lhs=big_lhs_sparse,
@@ -372,16 +372,25 @@ class GraphModelDynamic:
         return big_main_loss, big_loss_raport
 
     def calculate_loss_single(
-        self, dimension, node_features, target_data, all_acceleration, graph_sizes_base
+        self,
+        dimension,
+        node_features,
+        target_data,
+        all_acceleration,
+        graph_sizes_base,
+        batch_main_layer,
     ):
         num_graphs = len(graph_sizes_base)
         node_features_split = node_features.split(graph_sizes_base)
         predicted_acceleration_split = all_acceleration.split(graph_sizes_base)
+        exact_acceleration_split = batch_main_layer.exact_acceleration.split(graph_sizes_base)
 
         loss_raport = LossRaport()
         main_loss = 0.0
         for batch_graph_index in range(num_graphs):
             predicted_acceleration = predicted_acceleration_split[batch_graph_index]
+            exact_acceleration = exact_acceleration_split[batch_graph_index]
+
             node_features = node_features_split[batch_graph_index]
             forces = node_features[:, :dimension]
 
@@ -394,16 +403,14 @@ class GraphModelDynamic:
             )
 
             # if hasattr(energy_args, "exact_normalized_a"):
-            #    exact_normalized_a = exact_normalized_a_split[i]
-            exact_normalized_a = None
 
-            main_example_loss, example_loss_raport = scene_input.loss_normalized_obstacle(
+            main_example_loss, example_loss_raport = loss_normalized_obstacle(
                 acceleration=predicted_acceleration,
                 forces=forces,
-                lhs=energy_args.lhs_sparse,
-                rhs=energy_args.rhs,
+                lhs=energy_args.lhs_sparse.to(self.rank),
+                rhs=energy_args.rhs.to(self.rank),
                 energy_args=energy_args,
-                exact_a=exact_normalized_a,
+                exact_acceleration=exact_acceleration.to(self.rank),
             )
             main_loss += main_example_loss
             loss_raport.add(example_loss_raport, normalize=False)
@@ -415,25 +422,31 @@ class GraphModelDynamic:
 
     def calculate_loss(self, batch_data: List[Data]):
         dimension = self.config.td.dimension
-        layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_data[0]]
+        batch_layers = batch_data[0][: self.config.td.mesh_layers_count]
+        layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
         target_data = batch_data[1].to(self.rank, non_blocking=True)
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
         node_features = batch_main_layer.x  # .to("cpu")
 
         all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
-        all_acceleration = scene_input.clean_acceleration(
+        all_acceleration = clean_acceleration(
             cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
         )
 
-        loss_all_tuple = self.calculate_loss_all(
-            dimension, node_features, target_data, all_acceleration, graph_sizes_base
-        )
-
-        # loss_single_tuple = self.calculate_loss_single(
+        # loss_tuple = self.calculate_loss_all(
         #     dimension, node_features, target_data, all_acceleration, graph_sizes_base
         # )
-        return loss_all_tuple
+
+        loss_tuple = self.calculate_loss_single(
+            dimension,
+            node_features,
+            target_data,
+            all_acceleration,
+            graph_sizes_base,
+            batch_main_layer,
+        )
+        return loss_tuple
 
     def get_derivatives(self, layer_list, layer_number, dimension):
         main_layer_cuda = layer_list[0]

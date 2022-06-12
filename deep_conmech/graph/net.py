@@ -222,7 +222,7 @@ class ProcessorLayer(MessagePassing):
         )
         self.attention = Attention(td=td)
 
-        self.epsilon = Parameter(torch.Tensor(1))
+        # self.epsilon = Parameter(torch.Tensor(1))
         self.new_edge_latents = None
 
     def forward(self, edge_index, node_latents, edge_latents):
@@ -297,13 +297,6 @@ class CustomGraphNet(nn.Module):
             layer_norm=False,  # TODO #65
             td=td,
         )
-
-        test_layers = []
-        test_layers.append(nn.BatchNorm1d(10))
-        test_layers.append(nn.Linear(10, 128))
-        test_layers.append(nn.ReLU())
-        test_layers.append(nn.Linear(128, 2))
-        self.test_linear = nn.Sequential(*test_layers)
 
     @property
     def device(self):
@@ -393,24 +386,13 @@ class CustomGraphNet(nn.Module):
         main_layer = layer_list[0]
         self.processor_number = 0
 
-        # nodes = main_layer.pos
-        # nodes_up = self.move_from_down(node_latents=nodes, layer=layer_list[1])
-        # nodes_new = self.move_to_down(node_latents=nodes_up, layer=layer_list[1])
-        # assert torch.allclose(nodes, nodes_new)
-
-        # node_latents = self.node_encoder(main_layer.x)
-        # net_output = self.decoder(node_latents)
-        # net_output = self.test_linear(main_layer.x)
-        # return net_output
-
         node_latents = self.node_encoder(main_layer.x)
-        # position "pos" will not generalize
         processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
             layer_number=0,
             node_latents=node_latents,
         )
-        net_output = self.decoder(node_latents + processed_node_latents)  # processed_node_latents
+        net_output = self.decoder(node_latents + processed_node_latents)
 
         # TODO: #65 Include mass_density
         # main_layer.x[:,:2]

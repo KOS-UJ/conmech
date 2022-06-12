@@ -25,7 +25,7 @@ class MeshLayerLinkData:
 
 
 @dataclass
-class MeshLayerData:
+class AllMeshLayerLinkData:
     mesh: Mesh
     to_down: Optional[MeshLayerLinkData]
     from_down: Optional[MeshLayerLinkData]
@@ -54,14 +54,14 @@ class SceneLayers(SceneRandomized):
             with_schur=with_schur,
         )
         self.create_in_subprocess = create_in_subprocess
-        self.all_layers: List[MeshLayerData] = []
+        self.all_layers: List[AllMeshLayerLinkData] = []
         self.set_layers(layers_count=layers_count)
 
     def set_layers(self, layers_count):
         self.all_layers = []
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
 
-        base_mesh_layer_data = MeshLayerData(
+        base_mesh_layer_data = AllMeshLayerLinkData(
             mesh=self,
             to_down=None,
             from_down=None,
@@ -81,7 +81,7 @@ class SceneLayers(SceneRandomized):
                 is_contact=None,
                 create_in_subprocess=self.create_in_subprocess,
             )
-            mesh_layer_data = MeshLayerData(
+            mesh_layer_data = AllMeshLayerLinkData(
                 mesh=sparse_mesh,
                 to_down=self.get_link(
                     from_mesh=sparse_mesh, to_mesh=dense_mesh, with_weights=False

@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True
 DIMENSION = 2
 
 
@@ -19,7 +19,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "synthetic"  # synthetic # calculator
-    final_time: float = 0.5 if TEST else 8
+    final_time: float = 8  # 0.5 if TEST else 8
     mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
@@ -58,7 +58,7 @@ class TrainingData:
 
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
-    initial_learning_rate: float = 1e-5  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = 1e-6
 
@@ -89,7 +89,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = None  # 128
+    dataset_images_count: Optional[float] = 128
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = True

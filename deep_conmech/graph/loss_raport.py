@@ -10,8 +10,10 @@ class LossRaport:
     energy: float = 0.0
     boundary_integral: float = 0.0
     mean: float = 0.0
-    rmse: Optional[float] = None
-    relative_energy: Optional[float] = None
+    exact_energy: float = 0.0
+    rmse: float = 0.0
+    acc_error: float = 0.0
+    relative_energy: float = 0.0
 
     _count: int = 0
 
@@ -36,7 +38,7 @@ class LossRaport:
     def normalize(self):
         self_vars = vars(self)
         for (key, value) in self_vars.items():
-            if key is not "_count" and value is not None:
+            if key != "_count" and value is not None:
                 self_vars[key] /= self._count
 
     def get_iterator(self):

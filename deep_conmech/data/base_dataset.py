@@ -10,8 +10,11 @@ from torch_geometric.loader import DataLoader
 from conmech.helpers import cmh, mph, pkh
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
+from deep_conmech.data.data_classes import GraphData
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.scene.scene_input import GraphData, SceneInput
+from deep_conmech.helpers import thh
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -254,6 +257,9 @@ class BaseDataset:
                 for layer_number in range(self.layers_count)
             ]
             target_data = scene.get_target_data()
+            layers_list[0].exact_acceleration = thh.to_double(
+                Calculator.solve_acceleration_normalized_function(scene)
+            )
             graph_data = GraphData(layer_list=layers_list, target_data=target_data)
             pkh.append_data(
                 data=graph_data,
