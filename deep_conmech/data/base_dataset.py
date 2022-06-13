@@ -1,4 +1,5 @@
 import copy
+import mmap
 import os
 from typing import Iterable
 
@@ -75,8 +76,8 @@ def get_dataloader(
         # shuffle=shuffle,
         sampler=sampler,
         pin_memory=True,
-        persistent_workers=True,
-        prefetch_factor=10,
+        persistent_workers=num_workers > 0,
+        # prefetch_factor=10,
     )
 
 
@@ -93,6 +94,7 @@ class BaseDataset:
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        load_data_to_ram=True,
     ):
         self.dimension = dimension
         self.description = description
@@ -101,6 +103,7 @@ class BaseDataset:
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.with_scenes_file = with_scenes_file
+        self.load_data_to_ram = load_data_to_ram
         self.config = config
         self.scene_indices = None
         self.features_indices = None
@@ -108,6 +111,8 @@ class BaseDataset:
         self.rank = rank
         self.world_size = world_size
         self.file = None
+        self.loaded_data = None
+        self.data_file = None
 
     @property
     def data_size_id(self):
@@ -292,11 +297,39 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
+    @property
+    def process_data_range(self):
+        return self.get_process_data_range(
+            data_count=self.data_count, process_id=self.rank, num_workers=self.world_size
+        )
+
+    def load_data(self):
+        print(f"----NODE {self.rank}: LOADING DATASET----")
+        if not self.load_data_to_ram:
+            print("Reading data from disc")
+        file = pkh.open_file_read(self.features_data_path)
+        self.data_file = mmap.mmap(file.fileno(), length=0, access=mmap.MAP_SHARED)
+
+        # self.loaded_data = []
+        # data_tqdm = cmh.get_tqdm(
+        #     iterable=self.process_data_range,
+        #     config=self.config,
+        #     desc=f"Loading data to RAM",
+        #     position=self.rank,
+        # )
+        # with pkh.open_file_read(self.features_data_path) as file:
+        #     for index in data_tqdm:
+        #         example = pkh.load_byte_index(self.features_indices[index], file)
+        #         self.loaded_data.append(example)
+
     def get_features_and_targets_data(self, index: int) -> GraphData:
-        with pkh.open_file_read(self.features_data_path) as file:
-            return pkh.load_byte_index(
-                byte_index=self.features_indices[index], data_file=file
-            )  # self.file
+        # if self.loaded_data is not None:
+        #     shifted_index = index % len(self.loaded_data)
+        #     return self.loaded_data[shifted_index]
+        # with pkh.open_file_read(self.features_data_path) as file:
+        return pkh.load_byte_index(
+            byte_index=self.features_indices[index], data_file=self.data_file
+        )  # self.file
 
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
@@ -336,13 +369,18 @@ class BaseDataset:
         )
 
     def open_file(self):
-        if self.file is None:
-            self.file = pkh.open_file_read(self.features_data_path)  # base_file
-            # with base_file:
-            #     self.file = mmap.mmap(base_file.fileno(), length=0, access=mmap.ACCESS_READ)
+        if self.data_file is not None:
+            return
+        file = pkh.open_file_read(self.features_data_path)
+        if not self.load_data_to_ram:
+            self.data_file = file
+            return
+        # self.data_file = mmap.mmap(
+        #     file.fileno(), length=0, access=mmap.MAP_ANONYMOUS | mmap.MAP_SHARED
+        # )
 
     def __getitem__(self, index: int):
-        # self.open_file()
+        self.open_file()
         graph_data = self.get_features_and_targets_data(index)
         return graph_data.layer_list, graph_data.target_data
         # return [*graph_data.layer_list, graph_data.target_data]

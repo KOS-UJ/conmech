@@ -60,6 +60,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
             config.td.dataset, config=config, rank=rank, world_size=world_size
         )
         train_dataset.load_indices()
+        train_dataset.load_data()
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
@@ -188,7 +189,7 @@ def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    # torch.multiprocessing.set_start_method("forkserver")
+    torch.multiprocessing.set_start_method("spawn")  # forkserver")
     parser = ArgumentParser()
     parser.add_argument(
         "--mode",

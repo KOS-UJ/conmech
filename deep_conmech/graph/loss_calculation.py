@@ -80,7 +80,6 @@ def loss_normalized_obstacle(
     exact_acceleration: Optional[torch.Tensor],
 ):
     inner_energy = energy(value=acceleration, lhs=lhs, rhs=rhs)
-
     exact_inner_energy = energy(value=exact_acceleration, lhs=lhs, rhs=rhs)
 
     # boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
@@ -97,7 +96,7 @@ def loss_normalized_obstacle(
     rmse = thh.rmse_torch(acceleration, exact_acceleration)
     acc_error = thh.acc_error_torch(acceleration, exact_acceleration)
 
-    main_loss = rmse  # loss_energy  # loss_mean + 0.01 * loss_energy
+    main_loss = rmse  # rmse  # loss_mean + 0.01 * loss_energy # loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -112,6 +111,7 @@ def loss_normalized_obstacle(
     )
 
     loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
+
     # / np.abs(    loss_raport.exact_energy  )
 
     return main_loss, loss_raport
