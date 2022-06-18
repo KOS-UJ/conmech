@@ -105,12 +105,9 @@ class ScenariosDataset(BaseDataset):
             scene.prepare(forces)
 
             a, normalized_a = self.solve_function(scene)
-            exact_normalized_a_torch = thh.to_double(normalized_a)
-            _ = exact_normalized_a_torch
+            scene.exact_acceleration = normalized_a
 
-            self.safe_save_scene(
-                scene=scene, data_path=self.scenes_data_path
-            )  # exact_normalized_a_torch
+            self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 
             self.check_and_print(
                 self.data_count,

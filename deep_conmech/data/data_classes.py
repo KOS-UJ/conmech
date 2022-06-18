@@ -24,7 +24,7 @@ class MeshLayerData(Data):
 class EnergyObstacleArgumentsTorch:
     lhs_values: torch.Tensor = None
     lhs_indices: torch.Tensor = None
-    lhs_size: torch.Tensor = None
+    lhs_size: torch.Size = None
     rhs: torch.Tensor = None
     lhs_sparse: Optional[torch.Tensor] = None
     # boundary_velocity_old: torch.Tensor

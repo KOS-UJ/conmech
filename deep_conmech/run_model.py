@@ -1,5 +1,6 @@
 import argparse
 import os
+import socketserver
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
 
@@ -15,11 +16,15 @@ from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.training_config import TrainingConfig
+from deep_conmech.helpers import dch
 
 
 def setup_distributed(rank: int, world_size: int):
     os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12355"
+    # with socketserver.TCPServer(("localhost", 0), None) as s:
+    #     free_port = str(s.server_address[1])
+    free_port = "12345"
+    os.environ["MASTER_PORT"] = free_port
     # os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
@@ -60,7 +65,6 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
             config.td.dataset, config=config, rank=rank, world_size=world_size
         )
         train_dataset.load_indices()
-        train_dataset.load_data()
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
@@ -173,28 +177,31 @@ def get_newest_checkpoint_path(config: TrainingConfig):
 
 
 def main(args: Namespace):
-    print(f"MODE: {args.mode}")
+    print(f"MODE: {args.mode}, PID: {os.getpid()}")
     # dch.cuda_launch_blocking()
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
     config = TrainingConfig(shell=args.shell)
     # dch.set_torch_sharing_strategy()
-    # dch.set_memory_limit(config=config)
+    dch.set_memory_limit(config=config)
     print(f"Running using {config.device}")
 
-    if "train" in args.mode:
+    if args.mode == "train":
+        train(config)
+    if args.mode == "profile":
+        config.max_epoch_number = 2
         train(config)
     if args.mode == "plot":
         plot(config)
 
 
 if __name__ == "__main__":
-    torch.multiprocessing.set_start_method("spawn")  # forkserver")
+    # torch.multiprocessing.set_start_method("spawn")  # forkserver")
     parser = ArgumentParser()
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["train", "plot"],
+        choices=["train", "plot", "profile"],
         default="train",
         help="Running mode of aplication",
     )

@@ -96,7 +96,7 @@ def loss_normalized_obstacle(
     rmse = thh.rmse_torch(acceleration, exact_acceleration)
     acc_error = thh.acc_error_torch(acceleration, exact_acceleration)
 
-    main_loss = rmse  # rmse  # loss_mean + 0.01 * loss_energy # loss_energy
+    main_loss = loss_energy  # rmse  # loss_mean + 0.01 * loss_energy # loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -111,7 +111,8 @@ def loss_normalized_obstacle(
     )
 
     loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
-
-    # / np.abs(    loss_raport.exact_energy  )
+    loss_raport.normalized_relative_energy = loss_raport.relative_energy / np.abs(
+        loss_raport.exact_energy
+    )
 
     return main_loss, loss_raport

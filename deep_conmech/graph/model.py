@@ -14,7 +14,11 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
-from deep_conmech.graph.loss_calculation import clean_acceleration, loss_normalized_obstacle
+from deep_conmech.graph.loss_calculation import (
+    clean_acceleration,
+    loss_normalized_obstacle,
+    loss_normalized_obstacle_scatter,
+)
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
@@ -360,6 +364,7 @@ class GraphModelDynamic:
             values=target_data.lhs_values,
             size=(big_lhs_size, big_lhs_size),
         )
+        # big_lhs_sparse = big_lhs_sparse_coo.to_sparse_csr()
         big_main_loss, big_loss_raport = loss_normalized_obstacle_scatter(
             acceleration=all_acceleration,
             forces=big_forces,
@@ -434,18 +439,19 @@ class GraphModelDynamic:
             cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
         )
 
-        # loss_tuple = self.calculate_loss_all(
-        #     dimension, node_features, target_data, all_acceleration, graph_sizes_base
-        # )
-
-        loss_tuple = self.calculate_loss_single(
-            dimension,
-            node_features,
-            target_data,
-            all_acceleration,
-            graph_sizes_base,
-            batch_main_layer,
-        )
+        if self.config.multi_loss:
+            loss_tuple = self.calculate_loss_all(
+                dimension, node_features, target_data, all_acceleration, graph_sizes_base
+            )
+        else:
+            loss_tuple = self.calculate_loss_single(
+                dimension,
+                node_features,
+                target_data,
+                all_acceleration,
+                graph_sizes_base,
+                batch_main_layer,
+            )
         return loss_tuple
 
     def get_derivatives(self, layer_list, layer_number, dimension):

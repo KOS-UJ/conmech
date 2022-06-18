@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 import numba
@@ -259,14 +260,16 @@ class SceneInput(SceneLayers):
         return data
 
     def get_target_data(self):
+        # to_float
         lhs_sparse = thh.to_double(self.solver_cache.lhs).to_sparse()
+        lhs_sparse_copy = copy.deepcopy(lhs_sparse)
         rhs = thh.to_double(self.get_normalized_rhs_np())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
             energy_args=EnergyObstacleArgumentsTorch(
-                lhs_values=lhs_sparse.values(),
-                lhs_indices=lhs_sparse.indices(),
-                lhs_size=lhs_sparse.size(),
+                lhs_values=lhs_sparse_copy.values(),
+                lhs_indices=lhs_sparse_copy.indices(),
+                lhs_size=lhs_sparse_copy.size(),
                 rhs=rhs,
                 #
                 # boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),

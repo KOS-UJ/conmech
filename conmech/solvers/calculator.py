@@ -134,6 +134,15 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
+    def solve_all_acceleration_normalized_function(setting, temperature=None, initial_a=None):
+        normalized_a = Calculator.solve_acceleration_normalized_function(
+            setting, temperature, initial_a
+        )
+        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
+        cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
+        return cleaned_a, normalized_cleaned_a
+
+    @staticmethod
     def get_acceleration_energy(setting, acceleration):
         initial_a_boundary_vector = nph.stack_column(acceleration[setting.boundary_indices])
 

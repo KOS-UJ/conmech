@@ -4,8 +4,6 @@ torch helpers
 import numpy as np
 import torch
 
-from deep_conmech.training_config import TrainingConfig
-
 
 def to_torch_set_precision(data: np.ndarray):
     return set_precision(to_double(data))

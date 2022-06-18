@@ -14,6 +14,7 @@ class LossRaport:
     rmse: float = 0.0
     acc_error: float = 0.0
     relative_energy: float = 0.0
+    normalized_relative_energy: float = 0.0
 
     _count: int = 0
 

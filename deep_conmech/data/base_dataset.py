@@ -1,10 +1,10 @@
 import copy
-import mmap
 import os
 from typing import Iterable
 
 import numpy as np
 import torch
+from torch.utils.data import get_worker_info
 from torch.utils.data.distributed import DistributedSampler
 from torch_geometric.loader import DataLoader
 
@@ -68,6 +68,7 @@ def get_all_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
 def get_dataloader(
     dataset, rank: int, world_size: int, batch_size: int, num_workers: int, shuffle: bool
 ):
+
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
     return DataLoader(
         dataset=dataset,
@@ -77,8 +78,14 @@ def get_dataloader(
         sampler=sampler,
         pin_memory=True,
         persistent_workers=num_workers > 0,
+        worker_init_fn=worker_init_fn
         # prefetch_factor=10,
     )
+
+
+def worker_init_fn(worker_id: int):
+    _ = worker_id
+    get_worker_info().dataset.load_data()
 
 
 class BaseDataset:
@@ -94,7 +101,6 @@ class BaseDataset:
         config: TrainingConfig,
         rank: int,
         world_size: int,
-        load_data_to_ram=True,
     ):
         self.dimension = dimension
         self.description = description
@@ -103,7 +109,6 @@ class BaseDataset:
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.with_scenes_file = with_scenes_file
-        self.load_data_to_ram = load_data_to_ram
         self.config = config
         self.scene_indices = None
         self.features_indices = None
@@ -157,11 +162,16 @@ class BaseDataset:
     def features_data_path(self):
         return f"{self.tmp_directory}/DATASET.feat"
 
-    def get_process_data_range(self, data_count: int, process_id: int, num_workers: int):
-        scenes_part_count = int(data_count / num_workers)
+    def divide_data_range(self, data_range: range, process_id: int, num_workers: int):
+        data_start = data_range[0]
+        data_count = len(data_range)
+        scenes_part_count = data_count // num_workers
         if process_id == num_workers - 1:
-            return range(process_id * scenes_part_count, data_count)
-        return range(process_id * scenes_part_count, (process_id + 1) * scenes_part_count)
+            return range(data_start + process_id * scenes_part_count, data_start + data_count)
+        return range(
+            data_start + process_id * scenes_part_count,
+            data_start + (process_id + 1) * scenes_part_count,
+        )
 
     def initialize_data(self):
         print(f"----NODE {self.rank}: INITIALIZING DATASET ({self.data_id})----")
@@ -245,8 +255,8 @@ class BaseDataset:
         return os.path.getsize(data_path) / 1024**3
 
     def initialize_features_and_targets_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = self.get_process_data_range(
-            data_count=self.data_count, process_id=process_id, num_workers=num_workers
+        assigned_data_range = self.divide_data_range(
+            data_range=range(self.data_count), process_id=process_id, num_workers=num_workers
         )
         data_tqdm = cmh.get_tqdm(
             iterable=assigned_data_range,
@@ -263,8 +273,12 @@ class BaseDataset:
             ]
             target_data = scene.get_target_data()
             layers_list[0].exact_acceleration = thh.to_double(
-                Calculator.solve_acceleration_normalized_function(scene)
+                np.zeros_like(
+                    scene.initial_nodes
+                )  # Calculator.solve_acceleration_normalized_function(scene)
             )
+            if hasattr(scene, "exact_acceleration"):
+                layers_list[0].exact_acceleration = thh.to_double(scene.exact_acceleration)
             graph_data = GraphData(layer_list=layers_list, target_data=target_data)
             pkh.append_data(
                 data=graph_data,
@@ -297,39 +311,40 @@ class BaseDataset:
             nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
         )
 
-    @property
-    def process_data_range(self):
-        return self.get_process_data_range(
-            data_count=self.data_count, process_id=self.rank, num_workers=self.world_size
+    def load_data(self):
+        if self.loaded_data is not None:
+            return
+        worker_info = get_worker_info()
+        if not self.config.load_data_to_ram:
+            return
+
+        process_data_range = self.divide_data_range(
+            data_range=range(self.data_count), process_id=self.rank, num_workers=self.world_size
         )
 
-    def load_data(self):
-        print(f"----NODE {self.rank}: LOADING DATASET----")
-        if not self.load_data_to_ram:
-            print("Reading data from disc")
-        file = pkh.open_file_read(self.features_data_path)
-        self.data_file = mmap.mmap(file.fileno(), length=0, access=mmap.MAP_SHARED)
-
-        # self.loaded_data = []
-        # data_tqdm = cmh.get_tqdm(
-        #     iterable=self.process_data_range,
-        #     config=self.config,
-        #     desc=f"Loading data to RAM",
-        #     position=self.rank,
-        # )
-        # with pkh.open_file_read(self.features_data_path) as file:
-        #     for index in data_tqdm:
-        #         example = pkh.load_byte_index(self.features_indices[index], file)
-        #         self.loaded_data.append(example)
+        worker_data_range = self.divide_data_range(
+            data_range=process_data_range,
+            process_id=worker_info.id,
+            num_workers=worker_info.num_workers,
+        )
+        self.loaded_data = []
+        data_tqdm = cmh.get_tqdm(
+            iterable=worker_data_range,
+            config=self.config,
+            desc=f"Loading data to RAM (node {self.rank}, worker {worker_info.id})",
+            position=self.rank * worker_info.num_workers + worker_info.id,
+        )
+        with pkh.open_file_read(self.features_data_path) as file:
+            for index in data_tqdm:
+                example = pkh.load_byte_index(self.features_indices[index], file)
+                self.loaded_data.append(example)
 
     def get_features_and_targets_data(self, index: int) -> GraphData:
-        # if self.loaded_data is not None:
-        #     shifted_index = index % len(self.loaded_data)
-        #     return self.loaded_data[shifted_index]
-        # with pkh.open_file_read(self.features_data_path) as file:
-        return pkh.load_byte_index(
-            byte_index=self.features_indices[index], data_file=self.data_file
-        )  # self.file
+        if self.loaded_data is not None:
+            shifted_index = index % len(self.loaded_data)
+            return self.loaded_data[shifted_index]
+        with pkh.open_file_read(self.features_data_path) as file:
+            return pkh.load_byte_index(byte_index=self.features_indices[index], data_file=file)
 
     def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
         images_count = self.config.dataset_images_count
@@ -368,19 +383,8 @@ class BaseDataset:
             lock=self.files_lock,
         )
 
-    def open_file(self):
-        if self.data_file is not None:
-            return
-        file = pkh.open_file_read(self.features_data_path)
-        if not self.load_data_to_ram:
-            self.data_file = file
-            return
-        # self.data_file = mmap.mmap(
-        #     file.fileno(), length=0, access=mmap.MAP_ANONYMOUS | mmap.MAP_SHARED
-        # )
-
     def __getitem__(self, index: int):
-        self.open_file()
+        # self.load_data()
         graph_data = self.get_features_and_targets_data(index)
         return graph_data.layer_list, graph_data.target_data
         # return [*graph_data.layer_list, graph_data.target_data]

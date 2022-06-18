@@ -98,7 +98,7 @@ class Logger:
             profile_memory=True,
             # record_shapes=True,
             # with_stack=True,
-            schedule=torch.profiler.schedule(skip_first=2, wait=0, warmup=2, active=4, repeat=1),
+            schedule=torch.profiler.schedule(skip_first=2, wait=0, warmup=2, active=6, repeat=1),
             on_trace_ready=trace_handler,
         )
         profiler.start()

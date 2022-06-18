@@ -1,6 +1,7 @@
 from queue import Empty
 
 import numpy as np
+from conmech.solvers.calculator import Calculator
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, lnh, mph, nph
@@ -153,12 +154,13 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity_old(velocity_old)
         scene.prepare(forces)
 
+        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function(scene)
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
-        return scene  # , exact_normalized_a_torch
+        return scene
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = self.get_process_data_range(
-            data_count=self.data_count, process_id=process_id, num_workers=num_workers
+        assigned_data_range = self.divide_data_range(
+            data_range=range(self.data_count), process_id=process_id, num_workers=num_workers
         )
         tqdm_description = f"Process {process_id+1}/{num_workers} - generating data"
         step_tqdm = cmh.get_tqdm(
