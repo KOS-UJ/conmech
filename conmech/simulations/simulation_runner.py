@@ -210,10 +210,10 @@ def simulate(
             )
         else:
             acceleration = solve_function(scene, initial_a=acceleration)
-            energy_value = Calculator.get_acceleration_energy(
-                setting=scene, acceleration=acceleration
-            ).item()
-            energy_values[time_step] = energy_value
+            # energy_value = Calculator.get_acceleration_energy(
+            #     setting=scene, acceleration=acceleration
+            # ).item()
+            # energy_values[time_step] = energy_value
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:

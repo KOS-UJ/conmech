@@ -280,12 +280,9 @@ class SceneInput(SceneLayers):
                 # obstacle_prop=self.obstacle_prop,
                 # time_step=self.schedule.time_step,
             ),
-            # lhs_values=lhs_sparse.values(),
-            # lhs_index=lhs_sparse.indices(),
-            # rhs=rhs,
-            lhs_values=None,
-            lhs_index=None,
-            rhs=None,
+            lhs_values=lhs_sparse.values(),
+            lhs_index=lhs_sparse.indices(),
+            rhs=rhs,
         )
         return target_data
 

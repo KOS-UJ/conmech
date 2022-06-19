@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import numpy as np
 import torch
 
 from conmech.helpers import nph
@@ -21,6 +22,12 @@ def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
     )
 
 
+def get_acceleration_vector(acceleration, graph_sizes_base):
+    predicted_acceleration_split = acceleration.split(graph_sizes_base)
+    acceleration_vector = torch.vstack(tuple(map(nph.stack_column, predicted_acceleration_split)))
+    return acceleration_vector
+
+
 def loss_normalized_obstacle_scatter(
     acceleration: torch.Tensor,
     forces: torch.Tensor,
@@ -28,35 +35,20 @@ def loss_normalized_obstacle_scatter(
     rhs: torch.Tensor,
     energy_args: EnergyObstacleArgumentsTorch,
     graph_sizes_base: List[int],
+    exact_acceleration: Optional[torch.Tensor],
 ):
     num_graphs = len(graph_sizes_base)
-
-    predicted_acceleration_split = acceleration.split(graph_sizes_base)
-    acceleration_vector = torch.vstack(tuple(map(nph.stack_column, predicted_acceleration_split)))
-
-    # index = thh.to_long(get_indices_from_graph_sizes_numba(graph_sizes_base))
-
-    #     forces_mean = torch_scatter.scatter_mean(forces, index=index, dim=0)
-    #     acceleration_mean = scenarios.default_body_prop.mass_density * torch_scatter.scatter_mean(
-    #         acceleration, index=index, dim=0
-    #     )
-    #     all_loss_mean = torch.norm(forces_mean - acceleration_mean, dim=1) ** 2
-
-    # all_loss_mean = (
-    #     torch.norm(
-    #         torch_scatter.scatter_mean(
-    #             forces - scenarios.default_body_prop.mass_density * acceleration, index=index, dim=0
-    #         ),
-    #         dim=1,
-    #     )
-    #     ** 2
-    # )
-    loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
+    acceleration_vector = get_acceleration_vector(acceleration, graph_sizes_base)
+    exact_acceleration_vector = get_acceleration_vector(exact_acceleration, graph_sizes_base)
 
     inner_energy = energy_vector(value_vector=acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+    exact_inner_energy = (
+        energy_vector(value_vector=exact_acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+    )
     boundary_integral = torch.tensor([0]) / num_graphs
     loss_energy = inner_energy  # + boundary_integral
 
+    loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
     main_loss = loss_energy
 
     loss_raport = LossRaport(
@@ -65,8 +57,12 @@ def loss_normalized_obstacle_scatter(
         energy=loss_energy.item(),
         boundary_integral=boundary_integral.item(),
         mean=loss_mean.item(),
+        exact_energy=exact_inner_energy.item(),
+        mse=thh.mse_torch(acceleration, exact_acceleration).item(),
+        me=thh.me_torch(acceleration, exact_acceleration).item(),
         _count=num_graphs,
     )
+    loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
 
     return main_loss, loss_raport
 
@@ -86,27 +82,17 @@ def loss_normalized_obstacle(
     boundary_integral = torch.tensor([0])
     loss_energy = inner_energy  # + boundary_integral
 
-    # loss_mean = get_mean_loss(
-    #     acceleration=acceleration,
-    #     forces=forces,
-    #     mass_density=scenarios.default_body_prop.mass_density,
-    #     boundary_integral=boundary_integral,
-    # )
-    loss_mean = torch.tensor([0])
-    rmse = thh.rmse_torch(acceleration, exact_acceleration)
-    acc_error = thh.acc_error_torch(acceleration, exact_acceleration)
-
-    main_loss = loss_energy  # rmse  # loss_mean + 0.01 * loss_energy # loss_energy
+    main_loss = loss_energy  # mse  # loss_mean + 0.01 * loss_energy # loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
         inner_energy=inner_energy.item(),
         energy=loss_energy.item(),
         boundary_integral=boundary_integral.item(),
-        mean=loss_mean.item(),
+        mean=torch.tensor([0]).item(),
         exact_energy=exact_inner_energy.item(),
-        rmse=rmse.item(),
-        acc_error=acc_error.item(),
+        mse=thh.mse_torch(acceleration, exact_acceleration).item(),
+        me=thh.me_torch(acceleration, exact_acceleration).item(),
         _count=1,
     )
 

@@ -58,7 +58,7 @@ class TrainingData:
 
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
-    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-2  # 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = 1e-6
 
@@ -101,5 +101,5 @@ class TrainingConfig(Config):
     load_newest_train: bool = False
 
     load_data_to_ram: bool = True
-    multi_loss: bool = False
+    multi_loss: bool = True
     profile_training: bool = False

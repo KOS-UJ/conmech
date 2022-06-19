@@ -45,13 +45,13 @@ def max_norm(data):
     return torch.max(torch.linalg.norm(data, axis=1))  # -1 ?
 
 
-def rmse_torch(predicted, exact):
-    return torch.sqrt(torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2))
+def mse_torch(predicted, exact):
+    return torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2)  # torch.sqrt(
 
 
-def acc_error_torch(predicted, exact):
+def me_torch(predicted, exact):
     return torch.mean(
-        torch.linalg.norm(predicted - exact, axis=-1) / torch.linalg.norm(exact, axis=-1)
+        torch.linalg.norm(predicted - exact, axis=-1)  # / torch.linalg.norm(exact, axis=-1)
     )
 
 

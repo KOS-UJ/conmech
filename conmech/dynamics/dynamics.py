@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
 
+import jax.experimental.sparse
 import numba
 import numpy as np
 from scipy import sparse
@@ -34,6 +35,7 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 class SolverMatrices:
     def __init__(self):
         self.lhs_sparse: sparse.base.spmatrix
+        self.jax_lhs_sparse: jax.experimental.sparse.BCOO
         # TODO: #75 move to schur (careful - some properties are used by net)
         self.lhs_boundary: np.ndarray
         self.free_x_contact: np.ndarray
@@ -124,6 +126,13 @@ class Dynamics(BodyPosition):
             self.acceleration_operator_sparse
             + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
         )
+        # TODO: #65 create from sparse, single sparse data
+        self.solver_cache.jax_lhs_sparse = jax.experimental.sparse.BCOO.fromdense(
+            self.solver_cache.lhs
+        )
+        self.viscosity_sparse_jax = jax.experimental.sparse.BCOO.fromdense(self.viscosity)
+        self.elasticity_sparse_jax = jax.experimental.sparse.BCOO.fromdense(self.elasticity)
+
         if self.with_schur:
             (
                 self.solver_cache.lhs_boundary,

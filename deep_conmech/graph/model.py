@@ -355,7 +355,13 @@ class GraphModelDynamic:
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
     def calculate_loss_all(
-        self, dimension, node_features, target_data, all_acceleration, graph_sizes_base
+        self,
+        dimension,
+        node_features,
+        target_data,
+        all_acceleration,
+        graph_sizes_base,
+        all_exact_acceleration,
     ):
         big_forces = node_features[:, :dimension]
         big_lhs_size = target_data.a_correction.numel()
@@ -372,6 +378,7 @@ class GraphModelDynamic:
             rhs=target_data.rhs,
             energy_args=None,
             graph_sizes_base=graph_sizes_base,
+            exact_acceleration=all_exact_acceleration,
         )
 
         return big_main_loss, big_loss_raport
@@ -383,12 +390,12 @@ class GraphModelDynamic:
         target_data,
         all_acceleration,
         graph_sizes_base,
-        batch_main_layer,
+        exact_acceleration,
     ):
         num_graphs = len(graph_sizes_base)
         node_features_split = node_features.split(graph_sizes_base)
         predicted_acceleration_split = all_acceleration.split(graph_sizes_base)
-        exact_acceleration_split = batch_main_layer.exact_acceleration.split(graph_sizes_base)
+        exact_acceleration_split = exact_acceleration.split(graph_sizes_base)
 
         loss_raport = LossRaport()
         main_loss = 0.0
@@ -406,8 +413,6 @@ class GraphModelDynamic:
                 values=energy_args.lhs_values,
                 size=energy_args.lhs_size,
             )
-
-            # if hasattr(energy_args, "exact_normalized_a"):
 
             main_example_loss, example_loss_raport = loss_normalized_obstacle(
                 acceleration=predicted_acceleration,
@@ -441,16 +446,21 @@ class GraphModelDynamic:
 
         if self.config.multi_loss:
             loss_tuple = self.calculate_loss_all(
-                dimension, node_features, target_data, all_acceleration, graph_sizes_base
+                dimension=dimension,
+                node_features=node_features,
+                target_data=target_data,
+                all_acceleration=all_acceleration,
+                graph_sizes_base=graph_sizes_base,
+                all_exact_acceleration=batch_main_layer.exact_acceleration,
             )
         else:
             loss_tuple = self.calculate_loss_single(
-                dimension,
-                node_features,
-                target_data,
-                all_acceleration,
-                graph_sizes_base,
-                batch_main_layer,
+                dimension=dimension,
+                node_features=node_features,
+                target_data=target_data,
+                all_acceleration=all_acceleration,
+                graph_sizes_base=graph_sizes_base,
+                exact_acceleration=batch_main_layer.exact_acceleration,
             )
         return loss_tuple
 

@@ -1,6 +1,5 @@
 from ctypes import ArgumentError
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -11,8 +10,8 @@ class LossRaport:
     boundary_integral: float = 0.0
     mean: float = 0.0
     exact_energy: float = 0.0
-    rmse: float = 0.0
-    acc_error: float = 0.0
+    mse: float = 0.0
+    me: float = 0.0
     relative_energy: float = 0.0
     normalized_relative_energy: float = 0.0
 

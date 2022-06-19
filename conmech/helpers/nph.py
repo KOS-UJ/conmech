@@ -3,6 +3,7 @@ numpy helpers
 """
 from ctypes import ArgumentError
 
+import jax.numpy as jnp
 import numba
 import numpy as np
 from scipy import sparse
@@ -49,6 +50,8 @@ def euclidean_norm(vector, keepdims=False):
     data = (vector**2).sum(axis=-1, keepdims=keepdims)
     if isinstance(vector, np.ndarray):
         return np.sqrt(data)
+    if isinstance(vector, jnp.ndarray):
+        return jnp.sqrt(data)
     return data.sqrt()
     # return np.linalg.norm(vector, axis=-1)
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]

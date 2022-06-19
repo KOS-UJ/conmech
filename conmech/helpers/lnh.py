@@ -31,7 +31,7 @@ def __orthonormalize_gram_schmidt(base_seed):
 
 
 def __orthogonalize_gram_schmidt(vectors):
-    # Gramm-schmidt orthog.
+    # Gramm-Schmidt orthogonalization
     b0 = vectors[0]
     if len(vectors) == 1:
         return np.array((b0))

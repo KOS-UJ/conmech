@@ -1,5 +1,6 @@
 from typing import Callable, Optional
 
+import jax.numpy as jnp
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
@@ -99,6 +100,21 @@ class BodyForces(Dynamics):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
+    def get_all_normalized_rhs_jax(self, temperature=None):
+        normalized_rhs = self.get_normalized_rhs_jax(temperature)
+        (
+            normalized_rhs_boundary,
+            normalized_rhs_free,
+        ) = SchurComplement.calculate_schur_complement_vector(
+            vector=normalized_rhs,
+            dimension=self.dimension,
+            contact_indices=self.contact_indices,
+            free_indices=self.free_indices,
+            free_x_free_inverted=self.solver_cache.free_x_free_inverted,
+            contact_x_free=self.solver_cache.contact_x_free,
+        )
+        return normalized_rhs_boundary, normalized_rhs_free
+
     def get_normalized_rhs_np(self, temperature=None):
         _ = temperature
 
@@ -110,4 +126,19 @@ class BodyForces(Dynamics):
             - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
             - self.elasticity @ displacement_old_vector
         )
+        return rhs
+
+    def get_normalized_rhs_jax(self, temperature=None):
+        _ = temperature
+
+        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
+        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
+        f_vector = self.get_integrated_forces_column()
+        rhs = (
+            jnp.asarray(f_vector)
+            - (self.viscosity_sparse_jax + self.elasticity_sparse_jax * self.time_step)
+            @ jnp.asarray(velocity_old_vector)
+            - self.elasticity_sparse_jax @ jnp.asarray(displacement_old_vector)
+        )
+
         return rhs
