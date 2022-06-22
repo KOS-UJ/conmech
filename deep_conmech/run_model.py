@@ -15,8 +15,8 @@ from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.graph.net import CustomGraphNet
-from deep_conmech.training_config import TrainingConfig
 from deep_conmech.helpers import dch
+from deep_conmech.training_config import TrainingConfig
 
 
 def setup_distributed(rank: int, world_size: int):
@@ -69,8 +69,9 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
 
-    # all_val_datasets = get_all_val_datasets(config=config, rank=rank, world_size=world_size)
-    all_val_datasets = None
+    all_val_datasets = get_all_val_datasets(config=config, rank=rank, world_size=world_size)
+    for dataset in all_val_datasets:
+        dataset.load_indices()
     all_print_datasets = scenarios.all_print(config.td)
 
     net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
@@ -146,10 +147,10 @@ def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
     # )
     all_val_datasets.append(
         CalculatorDataset(
-            description="all",
+            description="train",
             all_scenarios=scenarios.all_train_2(config.td),
             layers_count=config.td.mesh_layers_count,
-            randomize_at_load=False,
+            randomize_at_load=True,  # False
             config=config,
             rank=rank,
             world_size=world_size,

@@ -18,7 +18,7 @@ class TrainingData:
     validation_scale: int = 1
     print_scale: int = 1
 
-    dataset: str = "calculator"  # synthetic # calculator
+    dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 8  # 0.5 if TEST else 8
     mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
@@ -41,7 +41,7 @@ class TrainingData:
 
     save_at_minutes: int = 10
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = None  # 1  # 10
+    validate_at_epochs: Optional[int] = 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 256
@@ -58,7 +58,7 @@ class TrainingData:
 
     attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
 
-    initial_learning_rate: float = 1e-2  # 1e-3  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-3  # 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = 1e-6
 

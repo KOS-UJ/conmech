@@ -22,7 +22,6 @@ from deep_conmech.graph.loss_calculation import (
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
-from deep_conmech.scene import scene_input
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -90,6 +89,9 @@ class GraphModelDynamic:
     def lr(self):
         return float(self.scheduler.get_last_lr()[0])
 
+    def is_at_skip(self, skip):
+        return skip is not None and self.epoch % skip == 0
+
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
@@ -98,22 +100,24 @@ class GraphModelDynamic:
         if self.is_main:
             print("----TRAINING----")
 
-        dataloader = base_dataset.get_train_dataloader(
+        train_dataloader = base_dataset.get_train_dataloader(
             self.train_dataset, world_size=self.world_size, rank=self.rank
+        )
+        valid_dataloader = base_dataset.get_valid_dataloader(
+            self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
         )
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             self.epoch += 1
 
             _ = self.iterate_dataset(
-                dataloader=dataloader,
+                dataloader=train_dataloader,
                 step_function=self.train_step,
-                description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
+                tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
+                raport_description="Training",
             )
 
             self.scheduler.step()
-
-            if self.config.distributed_training:
-                dist.barrier()
+            self.optional_barrier()
 
             if self.is_main:
                 current_time = time.time()
@@ -123,16 +127,22 @@ class GraphModelDynamic:
                     self.save_checkpoint()
                     last_save_time = time.time()
 
-                def is_at_skip(skip):
-                    return skip is not None and self.epoch % skip == 0
+            self.optional_barrier()
+            if self.is_at_skip(self.config.td.validate_at_epochs):
+                _ = self.iterate_dataset(
+                    dataloader=valid_dataloader,
+                    step_function=self.test_step,
+                    tqdm_description=f"Validation",
+                    raport_description="Validation",
+                )
+            if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
+                self.validate_all_scenarios_raport()
 
-                if is_at_skip(self.config.td.validate_at_epochs):
-                    self.validation_raport()
-                if is_at_skip(self.config.td.validate_scenarios_at_epochs):
-                    self.validate_all_scenarios_raport()
+            self.optional_barrier()
 
-            if self.config.distributed_training:
-                dist.barrier()
+    def optional_barrier(self):
+        if self.config.distributed_training:
+            dist.barrier()
 
     def save_checkpoint(self):
         print("----SAVING CHECKPOINT----")
@@ -252,9 +262,11 @@ class GraphModelDynamic:
         # print("total_norm", total_norm)
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
-    def iterate_dataset(self, dataloader, step_function: Callable, description: str):
+    def iterate_dataset(
+        self, dataloader, step_function: Callable, tqdm_description: str, raport_description: str
+    ):
         batch_tqdm = cmh.get_tqdm(
-            dataloader, desc=description, config=self.config, position=self.rank
+            dataloader, desc=tqdm_description, config=self.config, position=self.rank
         )
         dataloader.sampler.set_epoch(self.epoch)
 
@@ -272,10 +284,12 @@ class GraphModelDynamic:
             mean_loss_raport.add(loss_raport)
             self.examples_seen += loss_raport._count * self.world_size
 
-            loss_description = f"{description} loss: {(mean_loss_raport.main):.4f}"
+            loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main):.4f}"
             if batch_id == len(batch_tqdm) - 1 or self.examples_seen % rae == 0:
                 if self.is_main:
-                    self.training_raport(mean_loss_raport=mean_loss_raport)
+                    self.save_raport(
+                        mean_loss_raport=mean_loss_raport, description=raport_description
+                    )
                 mean_loss_raport = LossRaport()
                 loss_description += " - raport saved"
             batch_tqdm.set_description(loss_description)
@@ -294,40 +308,18 @@ class GraphModelDynamic:
             or self.examples_seen % self.config.td.raport_at_examples == 0
         )
 
-    def training_raport(self, mean_loss_raport):
+    def save_raport(self, mean_loss_raport, description: str):
         self.logger.writer.add_scalar(
-            "Loss/Training/LearningRate",
+            f"Loss/{description}/LearningRate",
             self.lr,
             self.examples_seen,
         )
         for key, value in mean_loss_raport.get_iterator():
             self.logger.writer.add_scalar(
-                f"Loss/Training/{key}",
+                f"Loss/{description}/{key}",
                 value,
                 self.examples_seen,
             )
-
-    def validation_raport(self):
-        # print("----VALIDATING----")
-        start_time = time.time()
-
-        dataloader = base_dataset.get_valid_dataloader(
-            self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
-        )
-        # for dataset in self.all_val_datasets:
-        mean_loss_raport = self.iterate_dataset(
-            dataloader=dataloader,
-            step_function=self.test_step,
-            description=dataset.data_id,
-        )
-        for key, value in mean_loss_raport.get_iterator():
-            self.logger.writer.add_scalar(
-                f"Loss/Validating/{key}",
-                value,
-                self.examples_seen,
-            )
-        # validation_time = time.time() - start_time
-        # print(f"--Validation time: {(validation_time / 60):.4f} min")
 
     def validate_all_scenarios_raport(self):
         print("----VALIDATING SCENARIOS----")

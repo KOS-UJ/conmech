@@ -47,9 +47,9 @@ class Calculator:
     def minimize_jax(
         function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
-        jax_function = jax.jit(lambda x: function(x)[0])
-        # jacobian = jax.jacfwd(jax_function)
+        jax_function = lambda x: function(x)[0]  # jax.jit()
         x0 = jnp.asarray(initial_vector)
+        # jacobian = jax.jacfwd(jax_function)
         result = jax.scipy.optimize.minimize(
             jax_function, x0, method="l-bfgs-experimental-do-not-rely-on-this"
         )  # BFGS")
@@ -179,7 +179,7 @@ class Calculator:
     def get_acceleration_energy(setting, acceleration):
         initial_a_boundary_vector = nph.stack_column(acceleration[setting.boundary_indices])
 
-        cost_function, _ = setting.get_normalized_energy_obstacle_np()
+        cost_function, _ = setting.get_normalized_energy_obstacle_jax()
         energy = cost_function(initial_a_boundary_vector)
         return energy
 

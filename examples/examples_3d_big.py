@@ -18,7 +18,7 @@ from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=10, final_time=4, plot_animation=True):
+def main(mesh_density=20, final_time=2, plot_animation=True):
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -26,29 +26,29 @@ def main(mesh_density=10, final_time=4, plot_animation=True):
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
     all_scenarios = [
-        Scenario(
-            name="twist_roll",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_TWIST_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            ),
-            body_prop=default_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -0.5]),
-            obstacle=obstacles[0],
-        ),
-        Scenario(
-            name="ball_roll",
-            mesh_prop=MeshProperties(
-                dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
-            ),
-            body_prop=default_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -0.5]),
-            obstacle=obstacles[1],
-        ),
+        # Scenario(
+        #     name="twist_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_TWIST_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=default_body_prop,
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=np.array([0.0, 0.0, -0.5]),
+        #     obstacle=obstacles[0],
+        # ),
+        # Scenario(
+        #     name="ball_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
+        #     ),
+        #     body_prop=default_body_prop,
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=np.array([0.0, 0.0, -0.5]),
+        #     obstacle=obstacles[1],
+        # ),
         Scenario(
             name="ball_throw",
             mesh_prop=MeshProperties(
@@ -81,4 +81,5 @@ def main(mesh_density=10, final_time=4, plot_animation=True):
 
 if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

@@ -49,7 +49,7 @@ def loss_normalized_obstacle_scatter(
     loss_energy = inner_energy  # + boundary_integral
 
     loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
-    main_loss = loss_energy
+    main_loss = thh.me_torch(acceleration, exact_acceleration)  # loss_energy
 
     loss_raport = LossRaport(
         main=main_loss.item(),
