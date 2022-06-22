@@ -47,12 +47,12 @@ class Calculator:
     def minimize_jax(
         function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
-        jax_function = lambda x: function(x)[0]  # jax.jit()
         x0 = jnp.asarray(initial_vector)
         # jacobian = jax.jacfwd(jax_function)
-        result = jax.scipy.optimize.minimize(
-            jax_function, x0, method="l-bfgs-experimental-do-not-rely-on-this"
-        )  # BFGS")
+        result = jax.scipy.optimize.minimize(function, x0, method="BFGS")
+        # jax.jit()
+        # "l-bfgs-experimental-do-not-rely-on-this"
+        # )  # BFGS")
         return np.asarray(result.x)
 
     @staticmethod
@@ -115,9 +115,7 @@ class Calculator:
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature, initial_a
             )
-        return Calculator.solve_acceleration_normalized_function_jax(
-            setting, temperature, initial_a
-        )
+        return Calculator.solve_acceleration_normalized_function(setting, temperature, initial_a)
 
     @staticmethod
     def solve_temperature_normalized(
@@ -144,25 +142,11 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def solve_acceleration_normalized_function_np(setting, temperature=None, initial_a=None):
-        _ = initial_a
-        normalized_rhs = setting.get_normalized_rhs_np(temperature)
-        normalized_a_vector = np.linalg.solve(setting.solver_cache.lhs, normalized_rhs)
-        # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
-        return nph.unstack(normalized_a_vector, setting.dimension)
-
-    @staticmethod
-    def solve_acceleration_normalized_function_jax(setting, temperature=None, initial_a=None):
+    def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         _ = initial_a
         normalized_rhs = setting.get_normalized_rhs_jax(temperature)
-        rhs_jax = jnp.asarray(normalized_rhs)
-        lhs_jax = setting.solver_cache.jax_lhs_sparse
-
-        # jax_lhs = jnp.asarray(setting.solver_cache.lhs)
-        # normalized_a_vector_jax = jax.scipy.linalg.solve(jax_lhs, rhs_jax)  # 0.09 s
-        normalized_a_vector_jax = jax.scipy.sparse.linalg.cg(lhs_jax, rhs_jax)[0]  # 0.11
+        normalized_a_vector_jax = setting.solver_cache.lhs_inv @ normalized_rhs
         normalized_a_vector = np.array(normalized_a_vector_jax)
-
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
@@ -188,7 +172,7 @@ class Calculator:
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)
         else:
-            initial_a_boundary_vector = nph.stack_column(initial_a[setting.boundary_indices])
+            initial_a_boundary_vector = nph.stack(initial_a[setting.boundary_indices])
 
         cost_function, normalized_rhs_free = setting.get_normalized_energy_obstacle_jax(temperature)
         normalized_boundary_a_vector_np = Calculator.minimize_jax(

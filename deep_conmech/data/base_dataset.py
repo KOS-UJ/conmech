@@ -11,7 +11,6 @@ from torch_geometric.loader import DataLoader
 from conmech.helpers import cmh, mph, pkh
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data.data_classes import GraphData
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -375,7 +374,7 @@ class BaseDataset:
         pass
 
     def safe_save_scene(self, scene, data_path: str):
-        scene_copy = copy.deepcopy(scene)
+        scene_copy = copy.copy(scene)  ###
         scene_copy.prepare_to_save()
         pkh.append_data(
             data=scene_copy,

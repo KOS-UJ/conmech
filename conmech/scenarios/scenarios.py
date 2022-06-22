@@ -518,6 +518,7 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
 
 
 def scenario_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+    _ = tag
     return Scenario(
         name="ball_roll",
         mesh_prop=MeshProperties(

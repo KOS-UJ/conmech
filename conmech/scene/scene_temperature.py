@@ -22,6 +22,7 @@ def integrate(
     nodes_volume,
     heat_coeff,
 ):
+    _ = nodes_normals
     penetration = initial_penetration
     # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
     # v_tangential = nph.get_tangential(velocity, nodes_normals)
@@ -81,8 +82,8 @@ class SceneTemperature(Scene):
         self.set_temperature_old(temperature)
         return super().iterate_self(acceleration=acceleration)
 
-    def get_normalized_rhs_np(self, temperature=None):
-        value = super().get_normalized_rhs_np()
+    def get_normalized_rhs_jax(self, temperature=None):
+        value = super().get_normalized_rhs_jax()
         if temperature is not None:
             value += self.thermal_expansion.T @ temperature
         return value

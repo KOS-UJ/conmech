@@ -20,7 +20,7 @@ def energy(value, lhs, rhs):
 def energy_vector(value_vector, lhs, rhs):
     first = 0.5 * (lhs @ value_vector) - rhs
     value = first.reshape(-1) @ value_vector
-    return value
+    return value[0]
 
 
 class BodyForces(Dynamics):
@@ -68,7 +68,7 @@ class BodyForces(Dynamics):
         return self.normalize_rotate(self.outer_forces)
 
     def get_integrated_inner_forces(self):
-        return self.volume_at_nodes @ self.normalized_inner_forces
+        return self.volume_at_nodes_sparse @ self.normalized_inner_forces
 
     def get_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
@@ -82,23 +82,8 @@ class BodyForces(Dynamics):
         integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
-    def get_integrated_forces_vector(self):
-        return self.get_integrated_forces_column().reshape(-1)
-
-    def get_all_normalized_rhs_np(self, temperature=None):
-        normalized_rhs = self.get_normalized_rhs_np(temperature)
-        (
-            normalized_rhs_boundary,
-            normalized_rhs_free,
-        ) = SchurComplement.calculate_schur_complement_vector(
-            vector=normalized_rhs,
-            dimension=self.dimension,
-            contact_indices=self.contact_indices,
-            free_indices=self.free_indices,
-            free_x_free_inverted=self.solver_cache.free_x_free_inverted,
-            contact_x_free=self.solver_cache.contact_x_free,
-        )
-        return normalized_rhs_boundary, normalized_rhs_free
+    def get_integrated_forces_vector_np(self):
+        return np.array(self.get_integrated_forces_column().reshape(-1), dtype=np.float64)
 
     def get_all_normalized_rhs_jax(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_jax(temperature)
@@ -115,19 +100,6 @@ class BodyForces(Dynamics):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_rhs_np(self, temperature=None):
-        _ = temperature
-
-        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
-        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column()
-        rhs = (
-            f_vector
-            - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
-            - self.elasticity @ displacement_old_vector
-        )
-        return rhs
-
     def get_normalized_rhs_jax(self, temperature=None):
         _ = temperature
 
@@ -136,9 +108,9 @@ class BodyForces(Dynamics):
         f_vector = self.get_integrated_forces_column()
         rhs = (
             jnp.asarray(f_vector)
-            - (self.viscosity_sparse_jax + self.elasticity_sparse_jax * self.time_step)
+            - (self.viscosity_sparse + self.elasticity_sparse * self.time_step)
             @ jnp.asarray(velocity_old_vector)
-            - self.elasticity_sparse_jax @ jnp.asarray(displacement_old_vector)
+            - self.elasticity_sparse @ jnp.asarray(displacement_old_vector)
         )
 
         return rhs

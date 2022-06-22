@@ -154,7 +154,7 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity_old(velocity_old)
         scene.prepare(forces)
 
-        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function_jax(scene)
+        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function(scene)
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         return scene
 

@@ -58,7 +58,7 @@ def plot_graph_layers():
     cmh.clear_folder(output_catalog)
     dataset = get_dataset(output_catalog)
 
-    dataloader = base_dataset.get_train_dataloader(dataset)
+    dataloader = base_dataset.get_train_dataloader(dataset, rank=0, world_size=1)
     for batch_number, layer_list in enumerate(dataloader):
         for layer_number in range(1, len(layer_list)):
             up_layer = layer_list[layer_number]

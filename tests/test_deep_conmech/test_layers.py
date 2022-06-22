@@ -74,7 +74,7 @@ def test_graph_layers():
         world_size=1,
     )
 
-    dataloader = base_dataset.get_train_dataloader(dataset)
+    dataloader = base_dataset.get_train_dataloader(dataset, rank=0, world_size=1)
     for _, layer_list in enumerate(dataloader):
         check_layer_data_approximation(layer_list)
 

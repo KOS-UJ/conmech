@@ -3,6 +3,9 @@ Created at 22.02.2021
 """
 import math
 
+import jax.interpreters.xla
+import jax.numpy as jnp
+import jax.scipy
 import numpy as np
 
 from conmech.dynamics.statement import (
@@ -50,27 +53,55 @@ class SchurComplement(Optimization):
 
     @staticmethod
     def calculate_schur_complement_matrices(
-        matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
+        matrix: jax.interpreters.xla.DeviceArray,
+        dimension: int,
+        contact_indices: slice,
+        free_indices: slice,
     ):
         def get_sliced(matrix_split, indices_height, indices_width):
-            matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
+            matrix = jnp.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
             dim, height, _, width = matrix.shape
             return matrix.reshape(dim * height, dim * width)
 
-        matrix_split = np.array(
-            np.split(np.array(np.split(matrix, dimension, axis=-1)), dimension, axis=1)
+        matrix_split = jnp.array(
+            jnp.split(jnp.array(jnp.split(matrix, dimension, axis=-1)), dimension, axis=1)
         )
         free_x_free = get_sliced(matrix_split, free_indices, free_indices)
         free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
         contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
         contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
 
-        free_x_free_inverted = np.linalg.inv(free_x_free)
+        free_x_free_inverted = jax.scipy.linalg.inv(free_x_free)
         matrix_boundary = contact_x_contact - contact_x_free @ (
             free_x_free_inverted @ free_x_contact
         )
 
         return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
+
+    @staticmethod
+    def calculate_schur_complement_matrices_np(
+        matrix: jax.interpreters.xla.DeviceArray,
+        dimension: int,
+        contact_indices: slice,
+        free_indices: slice,
+    ):
+        (
+            matrix_boundary,
+            free_x_contact,
+            contact_x_free,
+            free_x_free_inverted,
+        ) = SchurComplement.calculate_schur_complement_matrices(
+            matrix=matrix,
+            dimension=dimension,
+            contact_indices=contact_indices,
+            free_indices=free_indices,
+        )
+        return (
+            np.array(matrix_boundary, dtype=np.float64),
+            np.array(free_x_contact, dtype=np.float64),
+            np.array(contact_x_free, dtype=np.float64),
+            np.array(free_x_free_inverted, dtype=np.float64),
+        )
 
     @staticmethod
     def calculate_schur_complement_vector(
@@ -88,7 +119,7 @@ class SchurComplement(Optimization):
         return vector_boundary, vector_free
 
     def recalculate_displacement(self):
-        return SchurComplement.calculate_schur_complement_matrices(
+        return SchurComplement.calculate_schur_complement_matrices_np(
             matrix=self.statement.left_hand_side,
             dimension=self.mesh.dimension,
             contact_indices=self.contact_ids,
@@ -104,7 +135,7 @@ class SchurComplement(Optimization):
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        return node_forces.T, forces_free
+        return np.array(node_forces.T, dtype=np.float64), np.array(forces_free, dtype=np.float64)
 
     def __str__(self):
         return "schur"
@@ -225,7 +256,7 @@ class Dynamic(SchurComplement):
             self.temper_free_x_contact,
             self.temper_contact_x_free,
             self.temper_free_x_free_inverted,
-        ) = SchurComplement.calculate_schur_complement_matrices(
+        ) = SchurComplement.calculate_schur_complement_matrices_np(
             matrix=self.temperature_statement.left_hand_side,
             dimension=1,
             contact_indices=self.contact_ids,

@@ -2,11 +2,14 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 import jax.experimental.sparse
+import jax.interpreters.xla
+import jax.scipy
 import numba
 import numpy as np
 from scipy import sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.helpers import nph
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -34,16 +37,16 @@ def get_edges_features_list_numba(edges_number, edges_features_matrix):
 @dataclass
 class SolverMatrices:
     def __init__(self):
-        self.lhs_sparse: sparse.base.spmatrix
-        self.jax_lhs_sparse: jax.experimental.sparse.BCOO
+        self.lhs_sparse: jax.experimental.sparse.BCOO
         # TODO: #75 move to schur (careful - some properties are used by net)
-        self.lhs_boundary: np.ndarray
         self.free_x_contact: np.ndarray
         self.contact_x_free: np.ndarray
         self.free_x_free_inverted: np.ndarray
 
-        self.lhs_temperature_sparse: sparse.base.spmatrix
-        # TODO: #75 move to schur (careful - some properties are used by net)
+        self.lhs_inv: jax.interpreters.xla.DeviceArray
+        self.lhs_boundary: jax.interpreters.xla.DeviceArray
+
+        self.lhs_temperature_sparse: jax.experimental.sparse.BCOO  # sparse.base.spmatrix
         self.temperature_boundary: np.ndarray
         self.temperature_free_x_contact: np.ndarray
         self.temperature_contact_x_free: np.ndarray
@@ -51,11 +54,11 @@ class SolverMatrices:
 
     @property
     def lhs(self):
-        return self.lhs_sparse.toarray()
+        return nph.to_dense_np(self.lhs_sparse)
 
     @property
     def lhs_temperature(self):
-        return self.lhs_temperature_sparse.toarray()
+        return nph.to_dense_np(self.lhs_temperature_sparse)
 
 
 @dataclass
@@ -104,6 +107,7 @@ class Dynamics(BodyPosition):
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
+        print("Initializing matrices...")
         (
             self.element_initial_volume,
             self.volume_at_nodes_sparse,
@@ -126,21 +130,19 @@ class Dynamics(BodyPosition):
             self.acceleration_operator_sparse
             + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
         )
-        # TODO: #65 create from sparse, single sparse data
-        self.solver_cache.jax_lhs_sparse = jax.experimental.sparse.BCOO.fromdense(
-            self.solver_cache.lhs
-        )
-        self.viscosity_sparse_jax = jax.experimental.sparse.BCOO.fromdense(self.viscosity)
-        self.elasticity_sparse_jax = jax.experimental.sparse.BCOO.fromdense(self.elasticity)
+        print("Inverting lhs...")
+        lhs_dense = self.solver_cache.lhs_sparse.todense()
+        self.solver_cache.lhs_inv = jax.scipy.linalg.inv(lhs_dense)
 
         if self.with_schur:
+            print("Creating Schur matrices...")
             (
                 self.solver_cache.lhs_boundary,
                 self.solver_cache.free_x_contact,
                 self.solver_cache.contact_x_free,
                 self.solver_cache.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=self.solver_cache.lhs,
+                matrix=lhs_dense,
                 dimension=self.dimension,
                 contact_indices=self.contact_indices,
                 free_indices=self.free_indices,
@@ -148,9 +150,11 @@ class Dynamics(BodyPosition):
 
             if self.with_temperature:
                 i = self.independent_indices
-                self.solver_cache.lhs_temperature_sparse = (
-                    1 / self.time_step
-                ) * self.acceleration_operator_sparse[i, i] + self.thermal_conductivity_sparse[i, i]
+                # TODO: #65 Make faster
+                self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
+                    (1 / self.time_step) * self.acceleration_operator_sparse.todense()[i, i]
+                    + self.thermal_conductivity_sparse.todense()[i, i]
+                )
                 (
                     self.solver_cache.temperature_boundary,
                     self.solver_cache.temperature_free_x_contact,
@@ -165,27 +169,27 @@ class Dynamics(BodyPosition):
 
     @property
     def volume_at_nodes(self):
-        return self.volume_at_nodes_sparse.toarray()
+        return nph.to_dense_np(self.volume_at_nodes_sparse)
 
     @property
     def acceleration_operator(self):
-        return self.acceleration_operator_sparse.toarray()
+        return nph.to_dense_np(self.acceleration_operator_sparse)
 
     @property
     def elasticity(self):
-        return self.elasticity_sparse.toarray()
+        return nph.to_dense_np(self.elasticity_sparse)
 
     @property
     def viscosity(self):
-        return self.viscosity_sparse.toarray()
+        return nph.to_dense_np(self.viscosity_sparse)
 
     @property
     def thermal_expansion(self):
-        return self.thermal_expansion_sparse.toarray()
+        return nph.to_dense_np(self.thermal_expansion_sparse)
 
     @property
     def thermal_conductivity(self):
-        return self.thermal_conductivity_sparse.toarray()
+        return nph.to_dense_np(self.thermal_conductivity_sparse)
 
     @property
     def with_temperature(self):

@@ -16,7 +16,7 @@ def get_mesh_size_callback(mesh_prop: MeshProperties):
         return lambda dim, tag, x, y, z, *_: mesh_size
 
     if mesh_prop.scale_x != 1 or mesh_prop.scale_y != 1 or mesh_prop.scale_z != 1:
-        raise NotImplemented
+        raise ArgumentError
 
     corner_vectors = get_mesh_corner_vectors(mesh_prop=mesh_prop)
     return interpolation_helpers.get_mesh_callback(corner_vectors)

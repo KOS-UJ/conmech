@@ -263,7 +263,7 @@ class SceneInput(SceneLayers):
         # to_float
         lhs_sparse = thh.to_double(self.solver_cache.lhs).to_sparse()
         # lhs_sparse_copy = copy.deepcopy(lhs_sparse)
-        rhs = thh.to_double(self.get_normalized_rhs_np())
+        rhs = thh.to_double(self.get_normalized_rhs_jax())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
             energy_args=EnergyObstacleArgumentsTorch(

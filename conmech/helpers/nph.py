@@ -57,6 +57,10 @@ def euclidean_norm(vector, keepdims=False):
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
 
 
+def to_dense_np(array):
+    return np.array(array.todense(), dtype=np.float64)
+
+
 @numba.njit
 def euclidean_norm_numba(vector):
     data = (vector**2).sum(axis=-1)

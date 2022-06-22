@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 from dataclasses import dataclass
@@ -77,9 +78,11 @@ def run_scenario(
         calculator_scenes_path = ""
 
     def save_scene(scene: Scene, scenes_path: str):
+        scene_copy = copy.copy(scene)
+        scene_copy.prepare_to_save()
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
         with scenes_file, indices_file:
-            pkh.append_data(data=scene, data_path=scenes_path, lock=None)
+            pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
 
     step = [0]  # TODO: #65 Clean
 
@@ -93,15 +96,39 @@ def run_scenario(
         if plot_index:
             plot_scenes_count[0] += 1
 
-    setting, energy_values = simulate(
+    print("Creating scene...")
+    create_in_subprocess = False
+
+    if get_scene_function is None:
+        _get_scene_function = lambda randomize: scenario.get_scene(
+            randomize=randomize, create_in_subprocess=create_in_subprocess
+        )
+    else:
+        _get_scene_function = lambda randomize: get_scene_function(
+            config=config,
+            scenario=scenario,
+            randomize=randomize,
+            create_in_subprocess=create_in_subprocess,
+        )
+
+    scene = _get_scene_function(randomize=run_config.simulate_dirty_data)
+    if run_config.compare_with_base_scene:
+        base_scene = _get_scene_function(randomize=False)
+    else:
+        base_scene = None
+
+    fun_sim = lambda: simulate(
+        scene=scene,
+        base_scene=base_scene,
         solve_function=solve_function,
         scenario=scenario,
         simulate_dirty_data=run_config.simulate_dirty_data,
         compare_with_base_scene=run_config.compare_with_base_scene,
         config=config,
         operation=operation_save if save_files else None,
-        get_scene_function=get_scene_function,
     )
+    # cmh.profile(fun_sim)
+    setting, energy_values = fun_sim()
 
     if run_config.plot_animation:
         animation_path = f"{final_catalog}/{scenario.name}.gif"
@@ -161,35 +188,16 @@ def prepare(scenario, scene: Scene, base_scene: Scene, current_time, with_temper
 
 
 def simulate(
+    scene,
+    base_scene,
     solve_function,
     scenario: Scenario,
     simulate_dirty_data: bool,
     compare_with_base_scene: bool,
     config: Config,
     operation: Optional[Callable] = None,
-    get_scene_function: Optional[Callable] = None,
 ) -> Tuple[Scene, float]:
-    _get_scene_function = (
-        scenario.get_scene
-        if get_scene_function is None
-        else lambda randomize, create_in_subprocess: get_scene_function(
-            config=config,
-            scenario=scenario,
-            randomize=randomize,
-            create_in_subprocess=create_in_subprocess,
-        )
-    )
-    create_in_subprocess = False
-    print("Creating scene...")
-    scene = _get_scene_function(
-        randomize=simulate_dirty_data, create_in_subprocess=create_in_subprocess
-    )
     with_temperature = isinstance(scene, SceneTemperature)
-    if compare_with_base_scene:
-        base_scene = _get_scene_function(randomize=False, create_in_subprocess=create_in_subprocess)
-    else:
-        base_scene = None
-        base_a = None
 
     solver_time = 0.0
     calculator_time = 0.0
@@ -197,6 +205,7 @@ def simulate(
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
     temperature = None
+    base_a = None
     energy_values = np.zeros(len(time_tqdm))
     for time_step in time_tqdm:
         current_time = (time_step + 1) * scene.time_step

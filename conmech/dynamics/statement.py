@@ -34,7 +34,7 @@ class StaticStatement(Statement):
         self.left_hand_side = self.body.elasticity
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.get_integrated_forces_vector()
+        self.right_hand_side = self.body.get_integrated_forces_vector_np()
 
 
 class QuasistaticStatement(Statement):
@@ -45,7 +45,7 @@ class QuasistaticStatement(Statement):
         assert var.displacement is not None
 
         self.right_hand_side = (
-            self.body.get_integrated_forces_vector() - self.body.elasticity @ var.displacement.T
+            self.body.get_integrated_forces_vector_np() - self.body.elasticity @ var.displacement.T
         )
 
 
@@ -69,7 +69,7 @@ class DynamicStatement(Statement):
 
         A += self.body.thermal_expansion.T @ var.temperature
 
-        self.right_hand_side = self.body.get_integrated_forces_vector() + A
+        self.right_hand_side = self.body.get_integrated_forces_vector_np() + A
 
 
 class TemperatureStatement(Statement):
