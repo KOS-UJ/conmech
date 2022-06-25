@@ -6,10 +6,11 @@ import jax.interpreters.xla
 import jax.scipy
 import numba
 import numpy as np
+import scipy.sparse.linalg
 from scipy import sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
-from conmech.helpers import nph
+from conmech.helpers import cmh, jxh, nph
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -54,11 +55,11 @@ class SolverMatrices:
 
     @property
     def lhs(self):
-        return nph.to_dense_np(self.lhs_sparse)
+        return jxh.to_dense_np(self.lhs_sparse)
 
     @property
     def lhs_temperature(self):
-        return nph.to_dense_np(self.lhs_temperature_sparse)
+        return jxh.to_dense_np(self.lhs_temperature_sparse)
 
 
 @dataclass
@@ -108,6 +109,13 @@ class Dynamics(BodyPosition):
 
     def reinitialize_matrices(self):
         print("Initializing matrices...")
+        # Assuming independent nodes from 0 to independent_nodes_count
+        fun_dyn = lambda: get_dynamics(
+            elements=self.elements,
+            nodes=self.moved_nodes,
+            body_prop=self.body_prop,
+            independent_indices=self.independent_indices,
+        )
         (
             self.element_initial_volume,
             self.volume_at_nodes_sparse,
@@ -116,12 +124,7 @@ class Dynamics(BodyPosition):
             self.viscosity_sparse,
             self.thermal_expansion_sparse,
             self.thermal_conductivity_sparse,
-        ) = get_dynamics(
-            elements=self.elements,
-            nodes=self.moved_nodes,
-            body_prop=self.body_prop,
-            independent_indices=self.independent_indices,
-        )
+        ) = fun_dyn()  # cmh.profile(fun_dyn)
 
         if not self.with_lhs:
             return
@@ -130,66 +133,76 @@ class Dynamics(BodyPosition):
             self.acceleration_operator_sparse
             + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
         )
-        print("Inverting lhs...")
-        lhs_dense = self.solver_cache.lhs_sparse.todense()
-        self.solver_cache.lhs_inv = jax.scipy.linalg.inv(lhs_dense)
+        # print("Inverting lhs...")
+        # lhs_dense = self.solver_cache.lhs_sparse.todense()
+        # self.solver_cache.lhs_inv = jax.scipy.linalg.inv(lhs_dense)
 
-        if self.with_schur:
-            print("Creating Schur matrices...")
-            (
-                self.solver_cache.lhs_boundary,
-                self.solver_cache.free_x_contact,
-                self.solver_cache.contact_x_free,
-                self.solver_cache.free_x_free_inverted,
-            ) = SchurComplement.calculate_schur_complement_matrices(
-                matrix=lhs_dense,
-                dimension=self.dimension,
-                contact_indices=self.contact_indices,
-                free_indices=self.free_indices,
-            )
+        # A = jxh.to_scipy_sparse(self.solver_cache.lhs_sparse)
+        # self.solver_cache.ilu = scipy.sparse.linalg.spilu(A.tocsc())
 
-            if self.with_temperature:
-                i = self.independent_indices
-                # TODO: #65 Make faster
-                self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
-                    (1 / self.time_step) * self.acceleration_operator_sparse.todense()[i, i]
-                    + self.thermal_conductivity_sparse.todense()[i, i]
-                )
-                (
-                    self.solver_cache.temperature_boundary,
-                    self.solver_cache.temperature_free_x_contact,
-                    self.solver_cache.temperature_contact_x_free,
-                    self.solver_cache.temperature_free_x_free_inv,
-                ) = SchurComplement.calculate_schur_complement_matrices(
-                    matrix=self.solver_cache.lhs_temperature,
-                    dimension=1,
-                    contact_indices=self.contact_indices,
-                    free_indices=self.free_indices,
-                )
+        if not self.with_schur:
+            return
+
+        print("Creating Schur matrices...")
+        # lhs_dense = self.solver_cache.lhs_sparse.todense()
+        (
+            self.solver_cache.contact_x_contact,
+            self.solver_cache.free_x_contact,
+            self.solver_cache.contact_x_free,
+            self.solver_cache.free_x_free,
+            self.solver_cache.lhs_boundary,
+            self.solver_cache.free_x_free_inverted,
+        ) = SchurComplement.calculate_schur_complement_matrices(
+            matrix=self.solver_cache.lhs_sparse,
+            dimension=self.dimension,
+            contact_indices=self.contact_indices,
+            free_indices=self.free_indices,
+        )
+        return
+        if not self.with_temperature:
+            return
+
+        i = self.independent_indices
+        # TODO: #65 Make faster
+        self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
+            (1 / self.time_step) * self.acceleration_operator_sparse.todense()[i, i]
+            + self.thermal_conductivity_sparse.todense()[i, i]
+        )
+        (
+            self.solver_cache.temperature_boundary,
+            self.solver_cache.temperature_free_x_contact,
+            self.solver_cache.temperature_contact_x_free,
+            self.solver_cache.temperature_free_x_free_inv,
+        ) = SchurComplement.calculate_schur_complement_matrices(
+            matrix=self.solver_cache.lhs_temperature,
+            dimension=1,
+            contact_indices=self.contact_indices,
+            free_indices=self.free_indices,
+        )
 
     @property
     def volume_at_nodes(self):
-        return nph.to_dense_np(self.volume_at_nodes_sparse)
+        return jxh.to_dense_np(self.volume_at_nodes_sparse)
 
     @property
     def acceleration_operator(self):
-        return nph.to_dense_np(self.acceleration_operator_sparse)
+        return jxh.to_dense_np(self.acceleration_operator_sparse)
 
     @property
     def elasticity(self):
-        return nph.to_dense_np(self.elasticity_sparse)
+        return jxh.to_dense_np(self.elasticity_sparse)
 
     @property
     def viscosity(self):
-        return nph.to_dense_np(self.viscosity_sparse)
+        return jxh.to_dense_np(self.viscosity_sparse)
 
     @property
     def thermal_expansion(self):
-        return nph.to_dense_np(self.thermal_expansion_sparse)
+        return jxh.to_dense_np(self.thermal_expansion_sparse)
 
     @property
     def thermal_conductivity(self):
-        return nph.to_dense_np(self.thermal_conductivity_sparse)
+        return jxh.to_dense_np(self.thermal_conductivity_sparse)
 
     @property
     def with_temperature(self):

@@ -3,13 +3,13 @@ from typing import Callable, Optional
 import numba
 import numpy as np
 
-from conmech.helpers import nph
+from conmech.helpers import cmh, nph
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 
 
-@numba.njit
+# }@numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
@@ -52,15 +52,19 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
+MAX_INDEX = 10000
+
+
 @numba.njit
 def get_closest_to_axis_numba(nodes, variable):
     min_error = 1.0
     final_i, final_j = 0, 0
     nodes_projection = nodes.copy()
     nodes_projection[:, variable] = 0
-    for i, node in enumerate(nodes_projection[:-1]):
+    final_index = min(MAX_INDEX, len(nodes))
+    for i, node in enumerate(nodes_projection[: final_index - 1]):
         start_index = i + 1
-        error_i = nph.euclidean_norm_numba(nodes_projection[start_index:, :] - node)
+        error_i = nph.euclidean_norm_numba(nodes_projection[start_index:final_index, :] - node)
         internal_j = np.argmin(error_i)
         error = error_i[internal_j]
         j = internal_j + start_index
@@ -81,7 +85,9 @@ def get_base_seed_indices(nodes):
         result = get_closest_to_axis_numba(nodes, i)
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
-    return base_seed_indices, int(np.argmin(errors))
+    closest_seed_index = int(np.argmin(errors))
+    assert errors[closest_seed_index] < 0.01
+    return base_seed_indices, closest_seed_index
 
 
 class Mesh:
@@ -103,7 +109,11 @@ class Mesh:
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
 
-        self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
+        fun_data = lambda: self.reinitialize_data(
+            mesh_prop, is_dirichlet, is_contact, create_in_subprocess
+        )
+        # cmh.profile(fun_data)
+        fun_data()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
@@ -129,6 +139,7 @@ class Mesh:
             is_contact_numba=None if is_contact is None else numba.njit(is_contact),
         )
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
+        return
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 

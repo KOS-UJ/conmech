@@ -6,7 +6,6 @@ from ctypes import ArgumentError
 import jax.numpy as jnp
 import numba
 import numpy as np
-from scipy import sparse
 
 
 def stack(data):
@@ -26,10 +25,6 @@ def unstack(vector, dim):
 
 def unstack_and_sum_columns(data, dim, keepdims=False):
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
-
-
-def to_sparse(data):
-    return None if data is None else sparse.csr_matrix(data)
 
 
 def elementwise_dot(matrix_1, matrix_2, keepdims=False):
@@ -55,10 +50,6 @@ def euclidean_norm(vector, keepdims=False):
     return data.sqrt()
     # return np.linalg.norm(vector, axis=-1)
     # return np.sqrt(np.sum(vector ** 2, axis=-1))[..., np.newaxis]
-
-
-def to_dense_np(array):
-    return np.array(array.todense(), dtype=np.float64)
 
 
 @numba.njit

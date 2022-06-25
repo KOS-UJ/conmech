@@ -4,9 +4,10 @@ Created at 22.02.2021
 import math
 
 import jax.interpreters.xla
-import jax.numpy as jnp
 import jax.scipy
 import numpy as np
+import scipy.sparse
+import scipy.sparse.linalg
 
 from conmech.dynamics.statement import (
     DynamicStatement,
@@ -15,7 +16,7 @@ from conmech.dynamics.statement import (
     TemperatureStatement,
     Variables,
 )
-from conmech.helpers import nph
+from conmech.helpers import jxh, nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -58,25 +59,42 @@ class SchurComplement(Optimization):
         contact_indices: slice,
         free_indices: slice,
     ):
-        def get_sliced(matrix_split, indices_height, indices_width):
-            matrix = jnp.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
-            dim, height, _, width = matrix.shape
-            return matrix.reshape(dim * height, dim * width)
 
-        matrix_split = jnp.array(
-            jnp.split(jnp.array(jnp.split(matrix, dimension, axis=-1)), dimension, axis=1)
+        matrix_csr = jxh.to_scipy_sparse(matrix).tocsr()
+        size = matrix_csr.shape[0] // dimension
+
+        def get_slice(indices, dim):
+            return slice(dim * size + (indices.start or 0), dim * size + indices.stop)
+
+        def get_sliced(matrix_csr, indices_height, indices_width):
+            result_csr = scipy.sparse.bmat(
+                [
+                    [
+                        matrix_csr[get_slice(indices_height, row), get_slice(indices_width, col)]
+                        for col in range(dimension)
+                    ]
+                    for row in range(dimension)
+                ],
+                format="coo",
+            )
+            return jxh.to_jax_sparse(result_csr.tocoo())
+
+        contact_x_contact = get_sliced(matrix_csr, contact_indices, contact_indices)
+        free_x_contact = get_sliced(matrix_csr, free_indices, contact_indices)
+        contact_x_free = get_sliced(matrix_csr, contact_indices, free_indices)
+        free_x_free = get_sliced(matrix_csr, free_indices, free_indices)
+
+        free_x_free_inverted = None
+        lhs_boundary = None
+
+        return (
+            contact_x_contact,
+            free_x_contact,
+            contact_x_free,
+            free_x_free,
+            lhs_boundary,
+            free_x_free_inverted,
         )
-        free_x_free = get_sliced(matrix_split, free_indices, free_indices)
-        free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
-        contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
-        contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
-
-        free_x_free_inverted = jax.scipy.linalg.inv(free_x_free)
-        matrix_boundary = contact_x_contact - contact_x_free @ (
-            free_x_free_inverted @ free_x_contact
-        )
-
-        return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
 
     @staticmethod
     def calculate_schur_complement_matrices_np(
@@ -86,9 +104,11 @@ class SchurComplement(Optimization):
         free_indices: slice,
     ):
         (
-            matrix_boundary,
+            contact_x_contact,
             free_x_contact,
             contact_x_free,
+            free_x_free,
+            lhs_boundary,
             free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
             matrix=matrix,
@@ -96,8 +116,13 @@ class SchurComplement(Optimization):
             contact_indices=contact_indices,
             free_indices=free_indices,
         )
+        print("Inverting free_x_free...")
+        free_x_free_inverted = jax.scipy.linalg.inv(free_x_free.todense())
+        lhs_boundary = (
+            contact_x_contact.todense() - contact_x_free @ free_x_free_inverted @ free_x_contact
+        )
         return (
-            np.array(matrix_boundary, dtype=np.float64),
+            np.array(lhs_boundary, dtype=np.float64),
             np.array(free_x_contact, dtype=np.float64),
             np.array(contact_x_free, dtype=np.float64),
             np.array(free_x_free_inverted, dtype=np.float64),
@@ -109,13 +134,15 @@ class SchurComplement(Optimization):
         dimension: int,
         contact_indices: slice,
         free_indices: slice,
-        free_x_free_inverted: np.ndarray,
+        free_x_free: np.ndarray,
         contact_x_free: np.ndarray,
     ):
         vector_split = nph.unstack(vector, dimension)
         vector_contact = nph.stack_column(vector_split[contact_indices, :])
         vector_free = nph.stack_column(vector_split[free_indices, :])
-        vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
+        # vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
+        s1 = jxh.solve_linear(A=free_x_free, b=vector_free)
+        vector_boundary = vector_contact - contact_x_free @ s1
         return vector_boundary, vector_free
 
     def recalculate_displacement(self):
@@ -133,7 +160,7 @@ class SchurComplement(Optimization):
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.contact_x_free,
-            free_x_free_inverted=self.free_x_free_inverted,
+            free_x_free=self.free_x_free,
         )
         return np.array(node_forces.T, dtype=np.float64), np.array(forces_free, dtype=np.float64)
 

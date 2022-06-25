@@ -2,16 +2,21 @@ from ctypes import ArgumentError
 from typing import Callable, Optional
 
 import jax
+import jax.experimental
 import jax.numpy as jnp
 import jax.scipy
 import jax.scipy.optimize
 import numpy as np
 import scipy.optimize
+import scipy.sparse.linalg
+from scipy.sparse.linalg import LinearOperator, spilu
 
 from conmech.helpers import nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from deep_conmech.scene.scene_randomized import SceneRandomized
+
+# from jax.scipy.sparse.linalg import spilu
 
 
 class Calculator:
@@ -49,10 +54,12 @@ class Calculator:
     ) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
         # jacobian = jax.jacfwd(jax_function)
-        result = jax.scipy.optimize.minimize(function, x0, method="BFGS")
+        result = jax.scipy.optimize.minimize(
+            function, x0, method="l-bfgs-experimental-do-not-rely-on-this"
+        )
         # jax.jit()
         # "l-bfgs-experimental-do-not-rely-on-this"
-        # )  # BFGS")
+        # BFGS")
         return np.asarray(result.x)
 
     @staticmethod
@@ -145,8 +152,32 @@ class Calculator:
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         _ = initial_a
         normalized_rhs = setting.get_normalized_rhs_jax(temperature)
-        normalized_a_vector_jax = setting.solver_cache.lhs_inv @ normalized_rhs
+
+        # L = jxh.to_jax_sparse(setting.solver_cache.ilu.L.tocoo())
+        # U = jxh.to_jax_sparse(setting.solver_cache.ilu.U.tocoo())
+
+        # M = jax.jit(
+        #     lambda b: jax.scipy.sparse.linalg.cg(A=U, b=jax.scipy.sparse.linalg.cg(A=L, b=b)[0])[0]
+        # )
+
+        # Ld = L.todense()
+        # Ud = U.todense()
+        # M = lambda b: jax.numpy.linalg.solve(Ld, jax.numpy.linalg.solve(Ud, b))
+
+        # jax.experimental.sparse.sparsify(jax.scipy.linalg.lu_factor)
+        # jax.experimental.sparse.sparsify(jax.scipy.linalg.lu_solve)
+
+        # M = lambda rhs: jnp.array(setting.solver_cache.ilu.solve(np.array(normalized_rhs)))
+
+        normalized_a_vector_jax, _ = jax.scipy.sparse.linalg.cg(
+            A=setting.solver_cache.lhs_sparse, b=normalized_rhs  # , M=M
+        )
         normalized_a_vector = np.array(normalized_a_vector_jax)
+
+        # A = jxh.to_scipy_sparse(setting.solver_cache.lhs_sparse)
+        # M = LinearOperator(A.shape, setting.solver_cache.ilu.solve)
+        # normalized_a_vector = scipy.sparse.linalg.cg(A=A, b=np.array(normalized_rhs), M=M)
+
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
         return nph.unstack(normalized_a_vector, setting.dimension)
 
@@ -224,8 +255,12 @@ class Calculator:
 
     @staticmethod
     def complete_a_vector(setting, normalized_rhs_free, a_contact_vector):
-        a_independent_vector = setting.solver_cache.free_x_free_inverted @ (
-            normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
+        # a_independent_vector = setting.solver_cache.free_x_free_inverted @ (
+        #     normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
+        # )
+        s1 = normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
+        a_independent_vector, _ = jax.scipy.sparse.linalg.cg(
+            A=setting.solver_cache.free_x_free, b=s1
         )
 
         normalized_a = np.vstack(

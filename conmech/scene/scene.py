@@ -41,7 +41,7 @@ def obstacle_resistance_potential_tangential(
 
 @dataclass
 class EnergyObstacleArguments:
-    lhs: np.ndarray
+    solver_cache: np.ndarray
     rhs: np.ndarray
     boundary_velocity_old: np.ndarray
     boundary_normals: np.ndarray
@@ -88,7 +88,7 @@ def energy_obstacle(
     acceleration,
     args: EnergyObstacleArguments,
 ):
-    main_energy = energy(acceleration, args.lhs, args.rhs)
+    main_energy = energy(acceleration, args.solver_cache, args.rhs)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
     return main_energy + boundary_integral
 
@@ -161,7 +161,7 @@ class Scene(BodyForces):
     def get_normalized_energy_obstacle_jax(self, temperature=None):
         normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
         args = EnergyObstacleArguments(
-            lhs=self.solver_cache.lhs_boundary,
+            solver_cache=self.solver_cache,
             rhs=normalized_rhs_boundary,
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),

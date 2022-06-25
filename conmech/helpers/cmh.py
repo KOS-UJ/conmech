@@ -68,8 +68,9 @@ def profile(function: Callable):
     pr = cProfile.Profile()
     pr.enable()
 
-    function()
+    result = function()
 
     pr.disable()
     stats = Stats(pr)
     stats.sort_stats("tottime").print_stats(20)  # "cumtime"
+    return result

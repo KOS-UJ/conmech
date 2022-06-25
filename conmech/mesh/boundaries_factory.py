@@ -115,12 +115,13 @@ def reorder_numba(
 
     nodes = np.zeros_like(unordered_nodes)
     # initially encode all indices to negative values minus one
-    elements = -unordered_elements.copy() - 1
+    # elements_old = -unordered_elements.copy() - 1
 
     selected_index = 0 if to_top else last_index
     other_index = last_index if to_top else 0
     index_change = 1 if to_top else -1
 
+    index_pairing = np.zeros(nodes_count, dtype=np.int64)
     # fill array with selected nodes from top and other from bottom (or vice versa)
     for old_index in range(nodes_count):
         if old_index in selected_indices:
@@ -132,8 +133,16 @@ def reorder_numba(
 
         nodes[new_index] = unordered_nodes[old_index]
         # change encoded old index to new one
-        elements = np.where((elements == -old_index - 1), new_index, elements)
+        # elements_old = np.where((elements_old == -old_index - 1), new_index, elements_old)
 
+        index_pairing[old_index] = new_index
+
+    elements = unordered_elements.copy()
+    for i, element in enumerate(elements):
+        for j, value in enumerate(element):
+            elements[i][j] = index_pairing[value]
+
+    # assert np.allclose(elements_old, elements)
     return nodes, elements, len(selected_indices)
 
 

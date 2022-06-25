@@ -1,10 +1,12 @@
 from typing import Callable, Optional
 
 import jax.numpy as jnp
+import jax.scipy
+import jax.scipy.optimize
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
-from conmech.helpers import nph
+from conmech.helpers import nph, jxh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -12,13 +14,22 @@ from conmech.solvers.optimization.schur_complement import SchurComplement
 from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
-def energy(value, lhs, rhs):
-    value_vector = nph.stack_column(value)
-    return energy_vector(value_vector, lhs, rhs)
+def energy(value, solver_cache, rhs):
+    return energy_vector(nph.stack_column(value), solver_cache, rhs)
 
 
-def energy_vector(value_vector, lhs, rhs):
-    first = 0.5 * (lhs @ value_vector) - rhs
+def get_lhs_times_value(value_vector, solver_cache):
+    # return solver_cache.lhs_boundary @ value_vector
+    # contact_x_contact - contact_x_free @ free_x_free_inverted @ free_x_contact
+    s1 = solver_cache.free_x_contact @ value_vector
+    s2 = jxh.solve_linear(A=solver_cache.free_x_free, b=s1)
+    s3 = solver_cache.contact_x_contact @ value_vector - solver_cache.contact_x_free @ s2
+    return s3
+
+
+def energy_vector(value_vector, solver_cache, rhs):
+    lhs_times_value = get_lhs_times_value(value_vector, solver_cache)
+    first = 0.5 * lhs_times_value - rhs
     value = first.reshape(-1) @ value_vector
     return value[0]
 
@@ -95,7 +106,7 @@ class BodyForces(Dynamics):
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.solver_cache.free_x_free_inverted,
+            free_x_free=self.solver_cache.free_x_free,
             contact_x_free=self.solver_cache.contact_x_free,
         )
         return normalized_rhs_boundary, normalized_rhs_free
