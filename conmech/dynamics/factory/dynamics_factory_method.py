@@ -7,7 +7,7 @@ import scipy.sparse
 
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
-from conmech.helpers import jxh, nph
+from conmech.helpers import jxh
 from conmech.properties.body_properties import (
     DynamicBodyProperties,
     StaticBodyProperties,
@@ -54,10 +54,6 @@ def get_dynamics(
     else:
         raise NotImplementedError()
 
-    # edges_features_matrix_OLD, element_initial_volume_OLD = factory.get_edges_features_matrix_OLD(
-    #     elements, nodes
-    # )
-
     edges_features_dict, element_initial_volume = factory.get_edges_features_dictionary(
         elements, nodes
     )
@@ -65,9 +61,9 @@ def get_dynamics(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
     for i in range(1, len(edges_features_matrix)):
-        edges_features_matrix[i] = jxh.slice(edges_features_matrix[i], independent_indices)
+        edges_features_matrix[i] = jxh.slice_matrix(edges_features_matrix[i], independent_indices)
     # [np.allclose(edges_features_matrix[k].toarray()[i, i], edges_features_matrix_OLD[k]) for k in range(len(edges_features_matrix))]
-    volume_at_nodes_sparse = jxh.to_jax_sparse(edges_features_matrix[0])
+    volume_at_nodes_sparse = jxh.to_cupy_sparse(edges_features_matrix[0])
     U = edges_features_matrix[1]
 
     V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
@@ -81,27 +77,27 @@ def get_dynamics(
         ]
     )  # [i, i]
 
-    elasticity_sparse = jxh.to_jax_sparse(
+    elasticity_sparse = jxh.to_cupy_sparse(
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
         else None
     )
 
-    viscosity_sparse = jxh.to_jax_sparse(
+    viscosity_sparse = jxh.to_cupy_sparse(
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, DynamicBodyProperties)
         else None
     )
 
-    acceleration_operator_sparse = jxh.to_jax_sparse(
+    acceleration_operator_sparse = jxh.to_cupy_sparse(
         factory.calculate_acceleration(U, body_prop.mass_density)
     )
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion_sparse = jxh.to_jax_sparse(
+        thermal_expansion_sparse = jxh.to_cupy_sparse(
             factory.calculate_thermal_expansion(V, body_prop.thermal_expansion)
         )
-        thermal_conductivity_sparse = jxh.to_jax_sparse(
+        thermal_conductivity_sparse = jxh.to_cupy_sparse(
             factory.calculate_thermal_conductivity(W, body_prop.thermal_conductivity)
         )
     else:

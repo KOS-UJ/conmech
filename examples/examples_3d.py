@@ -18,7 +18,7 @@ from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=20, final_time=2, plot_animation=True):  # 70
+def main(mesh_density=100, final_time=2, plot_animation=True):  # 100
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -81,5 +81,5 @@ def main(mesh_density=20, final_time=2, plot_animation=True):  # 70
 
 if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

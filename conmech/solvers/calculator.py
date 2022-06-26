@@ -1,6 +1,9 @@
 from ctypes import ArgumentError
 from typing import Callable, Optional
 
+import cupy as cp
+import cupyx.scipy.sparse
+import cupyx.scipy.sparse.linalg
 import jax
 import jax.experimental
 import jax.numpy as jnp
@@ -9,35 +12,14 @@ import jax.scipy.optimize
 import numpy as np
 import scipy.optimize
 import scipy.sparse.linalg
-from scipy.sparse.linalg import LinearOperator, spilu
 
-from conmech.helpers import nph
+from conmech.helpers import jxh, nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
-# from jax.scipy.sparse.linalg import spilu
-
 
 class Calculator:
-    """
-    time used
-    base (BFGS) - 178 / 1854
-    Nelder-Mead - 883
-    CG - 96 / 1458.23
-    POWELL - 313
-    Newton-CG - n/a
-    L-BFGS-B - 23 / 191
-    TNC - 672
-    COBYLA - 298
-    SLSQP - 32 / 210 - bad transfer
-    trust-constr - 109
-    dogleg - n/a
-    trust-ncg - n/a
-    trust-exact - n/a
-    trust-krylov - n/a
-    """
-
     @staticmethod
     def minimize_np(
         function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
@@ -118,7 +100,7 @@ class Calculator:
         setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if setting.is_colliding():
+        if False:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature, initial_a
             )
@@ -151,34 +133,17 @@ class Calculator:
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         _ = initial_a
-        normalized_rhs = setting.get_normalized_rhs_jax(temperature)
+        normalized_rhs = setting.get_normalized_rhs(temperature)
 
-        # L = jxh.to_jax_sparse(setting.solver_cache.ilu.L.tocoo())
-        # U = jxh.to_jax_sparse(setting.solver_cache.ilu.U.tocoo())
+        A = setting.solver_cache.lhs_sparse
+        b = normalized_rhs
+        # ilu = cupyx.scipy.sparse.linalg.spilu(A)
+        # M = cupyx.scipy.sparse.linalg.LinearOperator(A.shape, ilu.solve)
 
-        # M = jax.jit(
-        #     lambda b: jax.scipy.sparse.linalg.cg(A=U, b=jax.scipy.sparse.linalg.cg(A=L, b=b)[0])[0]
-        # )
-
-        # Ld = L.todense()
-        # Ud = U.todense()
-        # M = lambda b: jax.numpy.linalg.solve(Ld, jax.numpy.linalg.solve(Ud, b))
-
-        # jax.experimental.sparse.sparsify(jax.scipy.linalg.lu_factor)
-        # jax.experimental.sparse.sparsify(jax.scipy.linalg.lu_solve)
-
-        # M = lambda rhs: jnp.array(setting.solver_cache.ilu.solve(np.array(normalized_rhs)))
-
-        normalized_a_vector_jax, _ = jax.scipy.sparse.linalg.cg(
-            A=setting.solver_cache.lhs_sparse, b=normalized_rhs  # , M=M
-        )
-        normalized_a_vector = np.array(normalized_a_vector_jax)
-
-        # A = jxh.to_scipy_sparse(setting.solver_cache.lhs_sparse)
-        # M = LinearOperator(A.shape, setting.solver_cache.ilu.solve)
-        # normalized_a_vector = scipy.sparse.linalg.cg(A=A, b=np.array(normalized_rhs), M=M)
-
-        # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
+        normalized_a_vector_cp, info = cupyx.scipy.sparse.linalg.cg(A=A, b=b)
+        assert info == 0
+        assert np.allclose(A @ normalized_a_vector_cp - b.reshape(-1), 0)
+        normalized_a_vector = normalized_a_vector_cp.get()
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
@@ -259,8 +224,8 @@ class Calculator:
         #     normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
         # )
         s1 = normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
-        a_independent_vector, _ = jax.scipy.sparse.linalg.cg(
-            A=setting.solver_cache.free_x_free, b=s1
+        a_independent_vector = jxh.solve_linear_jax(
+            matrix=setting.solver_cache.free_x_free, vector=s1
         )
 
         normalized_a = np.vstack(

@@ -86,7 +86,7 @@ def get_base_seed_indices(nodes):
         errors[i] = result[0]
         base_seed_indices[i] = result[1:].astype(np.int64)
     closest_seed_index = int(np.argmin(errors))
-    assert errors[closest_seed_index] < 0.01
+    # assert errors[closest_seed_index] < 0.01
     return base_seed_indices, closest_seed_index
 
 
@@ -112,8 +112,8 @@ class Mesh:
         fun_data = lambda: self.reinitialize_data(
             mesh_prop, is_dirichlet, is_contact, create_in_subprocess
         )
-        # cmh.profile(fun_data)
-        fun_data()
+        cmh.profile(fun_data, baypass=True)
+        # fun_data()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
@@ -125,9 +125,11 @@ class Mesh:
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
-        unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
-            input_nodes, input_elements
-        )
+        unordered_nodes, unordered_elements = input_nodes, input_elements
+        # TODO: #65 Add
+        # unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
+        #     input_nodes, input_elements
+        # )
         (
             self.initial_nodes,
             self.elements,

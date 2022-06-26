@@ -6,11 +6,10 @@ import jax.interpreters.xla
 import jax.scipy
 import numba
 import numpy as np
-import scipy.sparse.linalg
 from scipy import sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
-from conmech.helpers import cmh, jxh, nph
+from conmech.helpers import cmh, jxh
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -109,7 +108,6 @@ class Dynamics(BodyPosition):
 
     def reinitialize_matrices(self):
         print("Initializing matrices...")
-        # Assuming independent nodes from 0 to independent_nodes_count
         fun_dyn = lambda: get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
@@ -124,7 +122,7 @@ class Dynamics(BodyPosition):
             self.viscosity_sparse,
             self.thermal_expansion_sparse,
             self.thermal_conductivity_sparse,
-        ) = fun_dyn()  # cmh.profile(fun_dyn)
+        ) = cmh.profile(fun_dyn, baypass=True)
 
         if not self.with_lhs:
             return

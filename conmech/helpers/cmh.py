@@ -63,7 +63,10 @@ def find_files_by_extension(directory, extension):
     return files
 
 
-def profile(function: Callable):
+def profile(function: Callable, baypass: bool = False):
+    if baypass:
+        return function()
+
     print(f"Profiling {function.__name__}...")
     pr = cProfile.Profile()
     pr.enable()

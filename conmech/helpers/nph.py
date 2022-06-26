@@ -3,6 +3,7 @@ numpy helpers
 """
 from ctypes import ArgumentError
 
+import cupy as cp
 import jax.numpy as jnp
 import numba
 import numpy as np
@@ -45,6 +46,8 @@ def euclidean_norm(vector, keepdims=False):
     data = (vector**2).sum(axis=-1, keepdims=keepdims)
     if isinstance(vector, np.ndarray):
         return np.sqrt(data)
+    if isinstance(vector, cp.ndarray):
+        return cp.sqrt(data)
     if isinstance(vector, jnp.ndarray):
         return jnp.sqrt(data)
     return data.sqrt()

@@ -77,7 +77,7 @@ class SchurComplement(Optimization):
                 ],
                 format="coo",
             )
-            return jxh.to_jax_sparse(result_csr.tocoo())
+            return jxh.to_jax_sparse(result_csr.tocoo())  # jxh.to_cupy_sparse(result_csr.tocoo())
 
         contact_x_contact = get_sliced(matrix_csr, contact_indices, contact_indices)
         free_x_contact = get_sliced(matrix_csr, free_indices, contact_indices)
@@ -141,8 +141,8 @@ class SchurComplement(Optimization):
         vector_contact = nph.stack_column(vector_split[contact_indices, :])
         vector_free = nph.stack_column(vector_split[free_indices, :])
         # vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
-        s1 = jxh.solve_linear(A=free_x_free, b=vector_free)
-        vector_boundary = vector_contact - contact_x_free @ s1
+        s1 = jxh.solve_linear_jax(matrix=free_x_free, vector=vector_free)
+        vector_boundary = vector_contact - nph.stack_column(contact_x_free @ s1)
         return vector_boundary, vector_free
 
     def recalculate_displacement(self):

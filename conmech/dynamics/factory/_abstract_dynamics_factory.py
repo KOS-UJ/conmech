@@ -6,10 +6,7 @@ class AbstractDynamicsFactory:
     def dimension(self) -> int:
         raise NotImplementedError()
 
-    def get_edges_features_dictionary(self, elements, nodes, indices_range) -> Tuple:
-        raise NotImplementedError()
-
-    def get_edges_features_matrix_OLD(self, elements, nodes) -> Tuple:
+    def get_edges_features_dictionary(self, elements, nodes) -> Tuple:
         raise NotImplementedError()
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):

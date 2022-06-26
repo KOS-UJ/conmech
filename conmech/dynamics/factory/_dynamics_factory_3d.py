@@ -18,7 +18,7 @@ def get_edges_features_dictionary_numba(elements, nodes):
     # integral of phi over the element (in 2D: 1/3, in 3D: 1/4)
     elements_count, element_size = elements.shape
 
-    edges_features_dict = dict()
+    edges_features_dict = {}
     element_initial_volume = np.zeros(elements_count)
 
     for element_index in range(elements_count):  # TODO: #65 prange?
@@ -205,9 +205,6 @@ def denominator_numba(x_i, x_j1, x_j2, x_j3):
 
 
 class DynamicsFactory3D(AbstractDynamicsFactory):
-    def get_edges_features_matrix_OLD(self, elements, nodes):
-        return get_edges_features_matrix_numba(elements, nodes)
-
     def get_edges_features_dictionary(self, elements, nodes):
         return get_edges_features_dictionary_numba(elements, nodes)
 
