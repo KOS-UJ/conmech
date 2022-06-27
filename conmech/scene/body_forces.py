@@ -34,6 +34,16 @@ def energy_vector(value_vector, solver_cache, rhs):
     return value[0]
 
 
+def energy_lhs(value, lhs, rhs):
+    return energy_vector(nph.stack_column(value), lhs, rhs)
+
+
+def energy_vector_lhs(value_vector, lhs, rhs):
+    first = 0.5 * (lhs @ value_vector) - rhs
+    value = first.reshape(-1) @ value_vector
+    return value[0]
+
+
 class BodyForces(Dynamics):
     def __init__(
         self,
@@ -78,26 +88,33 @@ class BodyForces(Dynamics):
     def normalized_outer_forces(self):
         return self.normalize_rotate(self.outer_forces)
 
-    def get_integrated_inner_forces(self):
-        return self.volume_at_nodes_sparse @ cp.array(self.normalized_inner_forces)
-
     def get_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.neumann_boundary,
             considered_nodes_count=self.nodes_count,
             moved_nodes=self.moved_nodes,
         )
-        return cp.array(neumann_surfaces * self.outer_forces)
+        return neumann_surfaces * self.outer_forces
 
-    def get_integrated_forces_column(self):
-        integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
+    def get_integrated_forces_column_np(self):
+        integrated_inner_forces = self.volume_at_nodes_sparse @ self.normalized_inner_forces
+        integrated_outer_forces = self.get_integrated_outer_forces()
+        integrated_forces = integrated_inner_forces + integrated_outer_forces
+        return nph.stack_column(integrated_forces[self.independent_indices, :])
+
+    def get_integrated_forces_column_cp(self):
+        integrated_inner_forces = self.volume_at_nodes_sparse_cp @ cp.array(
+            self.normalized_inner_forces
+        )
+        integrated_outer_forces = cp.array(self.get_integrated_outer_forces())
+        integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
     def get_integrated_forces_vector_np(self):
-        return np.array(self.get_integrated_forces_column().reshape(-1), dtype=np.float64)
+        return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 
-    def get_all_normalized_rhs(self, temperature=None):
-        normalized_rhs = jnp.asarray(self.get_normalized_rhs(temperature).get())
+    def get_all_normalized_rhs_jax(self, temperature=None):
+        normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
         (
             normalized_rhs_boundary,
             normalized_rhs_free,
@@ -111,18 +128,32 @@ class BodyForces(Dynamics):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_rhs(self, temperature=None):
+    def get_normalized_rhs_np(self, temperature=None):
         _ = temperature
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column()
-        # jnp.asarray
+        f_vector = self.get_integrated_forces_column_np()
         rhs = (
-            cp.array(f_vector)
+            f_vector
             - (self.viscosity_sparse + self.elasticity_sparse * self.time_step)
+            @ velocity_old_vector
+            - self.elasticity_sparse @ displacement_old_vector
+        )
+
+        return rhs
+
+    def get_normalized_rhs_cp(self, temperature=None):
+        _ = temperature
+
+        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
+        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
+        f_vector_cp = self.get_integrated_forces_column_cp()
+        rhs = (
+            f_vector_cp
+            - (self.viscosity_sparse_cp + self.elasticity_sparse_cp * self.time_step)
             @ cp.array(velocity_old_vector)
-            - self.elasticity_sparse @ cp.array(displacement_old_vector)
+            - self.elasticity_sparse_cp @ cp.array(displacement_old_vector)
         )
 
         return rhs
@@ -132,7 +163,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column()
+        f_vector = self.get_integrated_forces_column_cp()
         # jnp.asarray / cp.array
         rhs = (
             jnp.asarray(f_vector.get())

@@ -1,7 +1,6 @@
 from queue import Empty
 
 import numpy as np
-from conmech.solvers.calculator import Calculator
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, lnh, mph, nph
@@ -9,6 +8,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scene.scene import Scene
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
@@ -154,7 +154,7 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity_old(velocity_old)
         scene.prepare(forces)
 
-        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function(scene)
+        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function_np(scene)
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         return scene
 

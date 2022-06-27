@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True
+TEST = False
 DIMENSION = 2
 
 

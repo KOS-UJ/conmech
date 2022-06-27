@@ -60,10 +60,13 @@ def get_dynamics(
     edges_features_matrix = to_edges_features_matrix(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
+    edges_features_matrix[0] = edges_features_matrix[0].tocsr()
     for i in range(1, len(edges_features_matrix)):
-        edges_features_matrix[i] = jxh.slice_matrix(edges_features_matrix[i], independent_indices)
-    # [np.allclose(edges_features_matrix[k].toarray()[i, i], edges_features_matrix_OLD[k]) for k in range(len(edges_features_matrix))]
-    volume_at_nodes_sparse = jxh.to_cupy_sparse(edges_features_matrix[0])
+        edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
+            independent_indices, independent_indices
+        ]
+
+    volume_at_nodes_sparse = edges_features_matrix[0]
     U = edges_features_matrix[1]
 
     V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
@@ -77,29 +80,29 @@ def get_dynamics(
         ]
     )  # [i, i]
 
-    elasticity_sparse = jxh.to_cupy_sparse(
+    elasticity_sparse = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
         else None
     )
 
-    viscosity_sparse = jxh.to_cupy_sparse(
+    viscosity_sparse = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, DynamicBodyProperties)
         else None
     )
 
-    acceleration_operator_sparse = jxh.to_cupy_sparse(
-        factory.calculate_acceleration(U, body_prop.mass_density)
-    )
+    acceleration_operator_sparse = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion_sparse = jxh.to_cupy_sparse(
-            factory.calculate_thermal_expansion(V, body_prop.thermal_expansion)
+        thermal_expansion_sparse = factory.calculate_thermal_expansion(
+            V, body_prop.thermal_expansion
         )
-        thermal_conductivity_sparse = jxh.to_cupy_sparse(
-            factory.calculate_thermal_conductivity(W, body_prop.thermal_conductivity)
+
+        thermal_conductivity_sparse = factory.calculate_thermal_conductivity(
+            W, body_prop.thermal_conductivity
         )
+
     else:
         thermal_expansion_sparse = None
         thermal_conductivity_sparse = None

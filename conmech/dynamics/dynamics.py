@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
 
+import cupyx.scipy.sparse
 import jax.experimental.sparse
 import jax.interpreters.xla
 import jax.scipy
@@ -107,7 +108,7 @@ class Dynamics(BodyPosition):
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
-        print("Initializing matrices...")
+        # print("Initializing matrices...")
         fun_dyn = lambda: get_dynamics(
             elements=self.elements,
             nodes=self.moved_nodes,
@@ -124,6 +125,11 @@ class Dynamics(BodyPosition):
             self.thermal_conductivity_sparse,
         ) = cmh.profile(fun_dyn, baypass=True)
 
+        self.volume_at_nodes_sparse_cp = jxh.to_cupy_csr(self.volume_at_nodes_sparse)
+        self.acceleration_operator_sparse_cp = jxh.to_cupy_csr(self.acceleration_operator_sparse)
+        self.elasticity_sparse_cp = jxh.to_cupy_csr(self.elasticity_sparse)
+        self.viscosity_sparse_cp = jxh.to_cupy_csr(self.viscosity_sparse)
+
         if not self.with_lhs:
             return
 
@@ -131,17 +137,25 @@ class Dynamics(BodyPosition):
             self.acceleration_operator_sparse
             + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
         )
+
+        lhs_sparse_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse)
+        self.solver_cache.lhs_sparse_cp = lhs_sparse_cp
+        # Calculating Jacobi preconditioner
+        # TODO: Check SSOR / Incomplete Cholesky
+        self.solver_cache.lhs_preconditioner_cp = jxh.to_inverse_diagonal(lhs_sparse_cp)
+        # ilu = cupyx.scipy.sparse.linalg.spilu(A=A, fill_factor=1)
+        # M = cupyx.scipy.sparse.linalg.LinearOperator(A.shape, ilu.solve)
+        # M = cupy.linalg.inv(A.todense())
+
         # print("Inverting lhs...")
         # lhs_dense = self.solver_cache.lhs_sparse.todense()
         # self.solver_cache.lhs_inv = jax.scipy.linalg.inv(lhs_dense)
 
-        # A = jxh.to_scipy_sparse(self.solver_cache.lhs_sparse)
-        # self.solver_cache.ilu = scipy.sparse.linalg.spilu(A.tocsc())
-
+        return
         if not self.with_schur:
             return
 
-        print("Creating Schur matrices...")
+        # print("Creating Schur matrices...")
         # lhs_dense = self.solver_cache.lhs_sparse.todense()
         (
             self.solver_cache.contact_x_contact,
@@ -151,7 +165,7 @@ class Dynamics(BodyPosition):
             self.solver_cache.lhs_boundary,
             self.solver_cache.free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=self.solver_cache.lhs_sparse,
+            matrix=self.solver_cache.lhs_sparse_cp,
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,

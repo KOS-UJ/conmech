@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from conmech.helpers import nph
-from conmech.scene.body_forces import energy, energy_vector
+from conmech.scene.body_forces import energy_lhs, energy_vector_lhs
 from deep_conmech.data.data_classes import EnergyObstacleArgumentsTorch
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
@@ -41,9 +41,11 @@ def loss_normalized_obstacle_scatter(
     acceleration_vector = get_acceleration_vector(acceleration, graph_sizes_base)
     exact_acceleration_vector = get_acceleration_vector(exact_acceleration, graph_sizes_base)
 
-    inner_energy = energy_vector(value_vector=acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+    inner_energy = (
+        energy_vector_lhs(value_vector=acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+    )
     exact_inner_energy = (
-        energy_vector(value_vector=exact_acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
+        energy_vector_lhs(value_vector=exact_acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
     )
     boundary_integral = torch.tensor([0]) / num_graphs
     loss_energy = inner_energy  # + boundary_integral
@@ -75,8 +77,8 @@ def loss_normalized_obstacle(
     energy_args: EnergyObstacleArgumentsTorch,
     exact_acceleration: Optional[torch.Tensor],
 ):
-    inner_energy = energy(value=acceleration, lhs=lhs, rhs=rhs)
-    exact_inner_energy = energy(value=exact_acceleration, lhs=lhs, rhs=rhs)
+    inner_energy = energy_lhs(value=acceleration, lhs=lhs, rhs=rhs)
+    exact_inner_energy = energy_lhs(value=exact_acceleration, lhs=lhs, rhs=rhs)
 
     # boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
     boundary_integral = torch.tensor([0])

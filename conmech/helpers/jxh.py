@@ -8,13 +8,13 @@ import numpy as np
 import scipy.sparse
 
 
-def slice_matrix(matrix, indices):
-    return matrix.tocsr()[indices, indices].tocoo()
-
-
 def to_diagonal(martix):
-    return to_cupy_sparse(
-        scipy.sparse.diags(to_scipy_sparse(martix).diagonal(), shape=martix.shape).tocoo()
+    return to_cupy_csr(scipy.sparse.diags(to_scipy_sparse(martix).diagonal(), shape=martix.shape))
+
+
+def to_inverse_diagonal(martix):
+    return to_cupy_csr(
+        scipy.sparse.diags(1.0 / to_scipy_sparse(martix).diagonal(), shape=martix.shape)
     )
 
 
@@ -24,14 +24,15 @@ def solve_linear_jax(matrix, vector):
     return result
 
 
-def to_cupy_sparse(coo_matrix):
-    if coo_matrix is None:
+def to_cupy_csr(matrix):
+    if matrix is None:
         return None
-    result = cupyx.scipy.sparse.coo_matrix(coo_matrix)
+    result = cupyx.scipy.sparse.csr_matrix(matrix)
     return result
 
 
-def to_jax_sparse(coo_matrix):
+def to_jax_sparse(matrix):
+    coo_matrix = matrix.tocoo()
     if coo_matrix is None:
         return None
     indices = np.block([[coo_matrix.row], [coo_matrix.col]]).T
@@ -39,10 +40,10 @@ def to_jax_sparse(coo_matrix):
     return result
 
 
-def to_scipy_sparse(coo_matrix):
-    if coo_matrix is None:
+def to_scipy_sparse(matrix):
+    if matrix is None:
         return None
-    return coo_matrix.get()
+    return matrix.get()
     data = np.array(coo_matrix.data)
     indices = np.array(coo_matrix.indices).T
     row = indices[0]

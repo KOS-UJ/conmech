@@ -160,7 +160,7 @@ class Scene(BodyForces):
             )
 
     def get_normalized_energy_obstacle_jax(self, temperature=None):
-        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs(temperature)
+        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
         args = EnergyObstacleArguments(
             solver_cache=self.solver_cache,
             rhs=normalized_rhs_boundary,

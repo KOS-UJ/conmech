@@ -2,6 +2,7 @@ from ctypes import ArgumentError
 from typing import Callable, Optional
 
 import cupy as cp
+import cupy.linalg
 import cupyx.scipy.sparse
 import cupyx.scipy.sparse.linalg
 import jax
@@ -12,6 +13,7 @@ import jax.scipy.optimize
 import numpy as np
 import scipy.optimize
 import scipy.sparse.linalg
+from psutil import MACOS
 
 from conmech.helpers import jxh, nph
 from conmech.scene.scene import Scene
@@ -51,7 +53,7 @@ class Calculator:
 
     @staticmethod
     def solve_all(setting: Scene, initial_a: Optional[np.ndarray] = None):
-        normalized_a = Calculator.solve_acceleration_normalized(setting, initial_a)
+        normalized_a = Calculator.solve_acceleration_normalized(setting, initial_a=initial_a)
         normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
@@ -104,7 +106,9 @@ class Calculator:
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature, initial_a
             )
-        return Calculator.solve_acceleration_normalized_function(setting, temperature, initial_a)
+        return Calculator.solve_acceleration_normalized_function(
+            setting=setting, temperature=temperature, initial_a=initial_a
+        )
 
     @staticmethod
     def solve_temperature_normalized(
@@ -131,18 +135,37 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
+    def solve_acceleration_normalized_function_np(setting, temperature=None, initial_a=None):
         _ = initial_a
-        normalized_rhs = setting.get_normalized_rhs(temperature)
+        normalized_rhs = setting.get_normalized_rhs_np(temperature)
 
         A = setting.solver_cache.lhs_sparse
         b = normalized_rhs
-        # ilu = cupyx.scipy.sparse.linalg.spilu(A)
-        # M = cupyx.scipy.sparse.linalg.LinearOperator(A.shape, ilu.solve)
 
-        normalized_a_vector_cp, info = cupyx.scipy.sparse.linalg.cg(A=A, b=b)
-        assert info == 0
-        assert np.allclose(A @ normalized_a_vector_cp - b.reshape(-1), 0)
+        normalized_a_vector, _ = scipy.sparse.linalg.cg(A=A, b=b)
+        return nph.unstack(normalized_a_vector, setting.dimension)
+
+    @staticmethod
+    def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
+        normalized_rhs = setting.get_normalized_rhs_cp(temperature)
+
+        A = setting.solver_cache.lhs_sparse_cp
+        b = normalized_rhs
+        x0 = cp.array(nph.stack_column(initial_a)) if initial_a is not None else None
+
+        M = setting.solver_cache.lhs_preconditioner_cp
+
+        # A is symetric and positive definite
+        # A_ = A.get().todense()
+        # np.allclose(A_, A_.T)
+        # np.all(np.linalg.eigvals(A_) > 0)
+        # M_ = M.get().todense()
+        # np.linalg.cond(A_) ~ 646
+        # np.linalg.cond(M_ @ A_) ~ 421
+
+        normalized_a_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
+        # assert info == 0
+        # assert np.allclose(A @ normalized_a_vector_cp - b.reshape(-1), 0)
         normalized_a_vector = normalized_a_vector_cp.get()
         return nph.unstack(normalized_a_vector, setting.dimension)
 

@@ -62,7 +62,7 @@ def run_scenario(
     index_skip = ts if run_config.save_all else 1
     plot_scenes_count = [0]
 
-    save_files = run_config.plot_animation or run_config.save_all
+    save_files = False  # run_config.plot_animation or run_config.save_all
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")

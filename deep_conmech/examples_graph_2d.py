@@ -4,7 +4,7 @@ from deep_conmech.graph.model import GraphModelDynamic
 from deep_conmech.training_config import TrainingConfig
 
 
-def main(mesh_density=4, final_time=5, plot_animation=True):
+def main(mesh_density=40, final_time=5, plot_animation=True):
     config = TrainingConfig()
     simulation_runner.run_examples(
         all_scenarios=scenarios.get_train_data(

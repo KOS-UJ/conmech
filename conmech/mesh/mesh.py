@@ -9,7 +9,7 @@ from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 
 
-# }@numba.njit
+@numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
     element_vertices_number = len(elements[0])
@@ -38,16 +38,24 @@ def get_edges_list_numba(edges_matrix):
 @numba.njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
+    present_nodes = np.zeros(nodes_count, dtype=numba.boolean)
+    for element in elements:
+        for node in element:
+            present_nodes[node] = True
+
     index = 0
+    removed = 0
     while index < nodes_count:
-        if index in elements:
+        if present_nodes[index + removed]:
             index += 1
         else:
+            print("Removing node...")
             nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
                     if elements[i, j] > index:
                         elements[i, j] -= 1
+            removed += 1
             nodes_count -= 1
     return nodes, elements
 
@@ -113,7 +121,6 @@ class Mesh:
             mesh_prop, is_dirichlet, is_contact, create_in_subprocess
         )
         cmh.profile(fun_data, baypass=True)
-        # fun_data()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
@@ -125,11 +132,9 @@ class Mesh:
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
-        unordered_nodes, unordered_elements = input_nodes, input_elements
-        # TODO: #65 Add
-        # unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
-        #     input_nodes, input_elements
-        # )
+        unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
+            input_nodes, input_elements
+        )
         (
             self.initial_nodes,
             self.elements,
@@ -141,7 +146,7 @@ class Mesh:
             is_contact_numba=None if is_contact is None else numba.njit(is_contact),
         )
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
-        return
+        return  ###
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
@@ -240,6 +245,10 @@ class Mesh:
     @property
     def nodes_count(self):
         return len(self.initial_nodes)
+
+    @property
+    def elements_count(self):
+        return len(self.elements)
 
     @property
     def boundary_surfaces_count(self):

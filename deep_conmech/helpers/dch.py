@@ -22,6 +22,9 @@ def cuda_launch_blocking():
 
 
 def set_memory_limit(config: TrainingConfig):
+    print("No prealocation")
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+
     rsrc = resource.RLIMIT_DATA
     _, hard = resource.getrlimit(rsrc)
     new_limit_gb = config.total_memory_limit_gb

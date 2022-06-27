@@ -10,7 +10,7 @@ from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=4, final_time=5, plot_animation=True):
+def main(mesh_density=40, final_time=5, plot_animation=True):
     config = Config(shell=False)
     obstacles = [
         Obstacle(

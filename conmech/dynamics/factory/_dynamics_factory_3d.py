@@ -226,21 +226,21 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         A_23 = lambda_ * W[2, 1] + mu * W[1, 2]
 
         return scipy.sparse.bmat(
-            [[A_11, A_12, A_13], [A_21, A_22, A_23], [A_31, A_32, A_33]], format="coo"
+            [[A_11, A_12, A_13], [A_21, A_22, A_23], [A_31, A_32, A_33]], format="csr"
         )
 
     def calculate_acceleration(self, U, density):
-        Z = scipy.sparse.coo_matrix(U.shape)
-        return density * scipy.sparse.bmat([[U, Z, Z], [Z, U, Z], [Z, Z, U]], format="coo")
+        Z = scipy.sparse.csr_matrix(U.shape)
+        return density * scipy.sparse.bmat([[U, Z, Z], [Z, U, Z], [Z, Z, U]], format="csr")
 
     def calculate_thermal_expansion(self, V, coeff):
         A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1] + coeff[0][2] * V[2]
         A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1] + coeff[1][2] * V[2]
         A_33 = coeff[2][0] * V[0] + coeff[2][1] * V[1] + coeff[2][2] * V[2]
-        return scipy.sparse.bmat([[A_11, A_22, A_33]], format="coo")
+        return scipy.sparse.bmat([[A_11, A_22, A_33]], format="csr")
 
     def calculate_thermal_conductivity(self, W, coeff):
-        return scipy.sparse.coo_matrix(
+        return scipy.sparse.csr_matrix(
             coeff[0][0] * W[0, 0]
             + coeff[0][1] * W[0, 1]
             + coeff[0][2] * W[0, 2]

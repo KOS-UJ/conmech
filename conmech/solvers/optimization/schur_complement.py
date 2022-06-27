@@ -60,7 +60,7 @@ class SchurComplement(Optimization):
         free_indices: slice,
     ):
 
-        matrix_csr = jxh.to_scipy_sparse(matrix).tocsr()
+        matrix_csr = jxh.to_scipy_sparse(matrix)
         size = matrix_csr.shape[0] // dimension
 
         def get_slice(indices, dim):
@@ -77,7 +77,7 @@ class SchurComplement(Optimization):
                 ],
                 format="coo",
             )
-            return jxh.to_jax_sparse(result_csr.tocoo())  # jxh.to_cupy_sparse(result_csr.tocoo())
+            return jxh.to_jax_sparse(result_csr)  # jxh.to_cupy_csr_sparse(result_csr.tocoo())
 
         contact_x_contact = get_sliced(matrix_csr, contact_indices, contact_indices)
         free_x_contact = get_sliced(matrix_csr, free_indices, contact_indices)
