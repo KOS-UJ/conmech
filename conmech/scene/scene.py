@@ -7,13 +7,14 @@ import numba
 import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
+from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.body_forces import BodyForces, energy
+from conmech.scene.body_forces import BodyForces, energy, energy_lhs
 from conmech.state.body_position import BodyPosition
 
 
@@ -89,7 +90,8 @@ def energy_obstacle(
     acceleration,
     args: EnergyObstacleArguments,
 ):
-    main_energy = energy(acceleration, args.solver_cache, args.rhs)
+    # main_energy = energy(acceleration, args.solver_cache, args.rhs)
+    main_energy = energy_lhs(acceleration, args.solver_cache.lhs_sparse_jax, args.rhs)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
     return main_energy + boundary_integral
 
@@ -160,10 +162,12 @@ class Scene(BodyForces):
             )
 
     def get_normalized_energy_obstacle_jax(self, temperature=None):
-        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
+        # normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
+        normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
+
         args = EnergyObstacleArguments(
             solver_cache=self.solver_cache,
-            rhs=normalized_rhs_boundary,
+            rhs=normalized_rhs,  # normalized_rhs_boundary,
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
@@ -176,7 +180,7 @@ class Scene(BodyForces):
             lambda normalized_boundary_a_vector: energy_obstacle(
                 acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
             ),
-            normalized_rhs_free,
+            None,  # normalized_rhs_free,
         )
 
     @property
@@ -312,11 +316,7 @@ class Scene(BodyForces):
         return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
     def prepare_to_save(self):
-        self.element_initial_volume = None
-        self.acceleration_operator_sparse = None
-        self.thermal_expansion_sparse = None
-        self.thermal_conductivity_sparse = None
-
-        lhs_sparse = self.solver_cache.lhs_sparse
+        self.matrices = ConstMatrices()
+        # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()
-        self.solver_cache.lhs_sparse = lhs_sparse
+        # self.solver_cache.lhs_sparse = lhs_sparse

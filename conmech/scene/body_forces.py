@@ -35,7 +35,7 @@ def energy_vector(value_vector, solver_cache, rhs):
 
 
 def energy_lhs(value, lhs, rhs):
-    return energy_vector(nph.stack_column(value), lhs, rhs)
+    return energy_vector_lhs(nph.stack_column(value), lhs, rhs)
 
 
 def energy_vector_lhs(value_vector, lhs, rhs):
@@ -97,13 +97,13 @@ class BodyForces(Dynamics):
         return neumann_surfaces * self.outer_forces
 
     def get_integrated_forces_column_np(self):
-        integrated_inner_forces = self.volume_at_nodes_sparse @ self.normalized_inner_forces
+        integrated_inner_forces = self.matrices.volume_at_nodes @ self.normalized_inner_forces
         integrated_outer_forces = self.get_integrated_outer_forces()
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
     def get_integrated_forces_column_cp(self):
-        integrated_inner_forces = self.volume_at_nodes_sparse_cp @ cp.array(
+        integrated_inner_forces = self.matrices.volume_at_nodes_cp @ cp.array(
             self.normalized_inner_forces
         )
         integrated_outer_forces = cp.array(self.get_integrated_outer_forces())
@@ -136,9 +136,8 @@ class BodyForces(Dynamics):
         f_vector = self.get_integrated_forces_column_np()
         rhs = (
             f_vector
-            - (self.viscosity_sparse + self.elasticity_sparse * self.time_step)
-            @ velocity_old_vector
-            - self.elasticity_sparse @ displacement_old_vector
+            - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
+            - self.elasticity @ displacement_old_vector
         )
 
         return rhs
@@ -151,9 +150,9 @@ class BodyForces(Dynamics):
         f_vector_cp = self.get_integrated_forces_column_cp()
         rhs = (
             f_vector_cp
-            - (self.viscosity_sparse_cp + self.elasticity_sparse_cp * self.time_step)
+            - (self.matrices.viscosity_cp + self.matrices.elasticity_cp * self.time_step)
             @ cp.array(velocity_old_vector)
-            - self.elasticity_sparse_cp @ cp.array(displacement_old_vector)
+            - self.matrices.elasticity_cp @ cp.array(displacement_old_vector)
         )
 
         return rhs
@@ -167,9 +166,13 @@ class BodyForces(Dynamics):
         # jnp.asarray / cp.array
         rhs = (
             jnp.asarray(f_vector.get())
-            - (jxh.to_jax_sparse(self.viscosity_sparse + self.elasticity_sparse * self.time_step))
+            - (
+                jxh.to_jax_sparse(
+                    self.matrices.viscosity + self.matrices.elasticity * self.time_step
+                )
+            )
             @ jnp.asarray(velocity_old_vector)
-            - jxh.to_jax_sparse(self.elasticity_sparse) @ jnp.asarray(displacement_old_vector)
+            - jxh.to_jax_sparse(self.matrices.elasticity) @ jnp.asarray(displacement_old_vector)
         )
 
         return rhs

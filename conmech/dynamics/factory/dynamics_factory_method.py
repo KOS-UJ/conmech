@@ -1,5 +1,7 @@
 from ctypes import ArgumentError
+from dataclasses import dataclass
 
+import cupyx.scipy.sparse
 import numba
 import numba.typed
 import numpy as np
@@ -13,6 +15,28 @@ from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
 )
+
+
+@dataclass
+class ConstMatrices:
+    def __init__(self):
+        self.element_initial_volume: np.ndarray
+        self.volume_at_nodes: scipy.sparse.csr_matrix
+        self.acceleration_operator: scipy.sparse.csr_matrix
+        self.elasticity: scipy.sparse.csr_matrix
+        self.viscosity: scipy.sparse.csr_matrix
+        self.thermal_expansion: scipy.sparse.csr_matrix
+        self.thermal_conductivity: scipy.sparse.csr_matrix
+        self.volume_at_nodes_cp: cupyx.scipy.sparse.csr_matrix
+        self.acceleration_operator_cp: cupyx.scipy.sparse.csr_matrix
+        self.elasticity_cp: cupyx.scipy.sparse.csr_matrix
+        self.viscosity_cp: cupyx.scipy.sparse.csr_matrix
+
+    def initialize_sparse(self):
+        self.volume_at_nodes_cp = jxh.to_cupy_csr(self.volume_at_nodes)
+        self.acceleration_operator_cp = jxh.to_cupy_csr(self.acceleration_operator)
+        self.elasticity_cp = jxh.to_cupy_csr(self.elasticity)
+        self.viscosity_cp = jxh.to_cupy_csr(self.viscosity)
 
 
 @numba.njit
@@ -53,8 +77,9 @@ def get_dynamics(
         factory = DynamicsFactory3D()
     else:
         raise NotImplementedError()
+    result = ConstMatrices()
 
-    edges_features_dict, element_initial_volume = factory.get_edges_features_dictionary(
+    edges_features_dict, result.element_initial_volume = factory.get_edges_features_dictionary(
         elements, nodes
     )
     edges_features_matrix = to_edges_features_matrix(
@@ -66,7 +91,7 @@ def get_dynamics(
             independent_indices, independent_indices
         ]
 
-    volume_at_nodes_sparse = edges_features_matrix[0]
+    result.volume_at_nodes = edges_features_matrix[0]
     U = edges_features_matrix[1]
 
     V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
@@ -80,39 +105,32 @@ def get_dynamics(
         ]
     )  # [i, i]
 
-    elasticity_sparse = (
+    result.elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
         else None
     )
 
-    viscosity_sparse = (
+    result.viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, DynamicBodyProperties)
         else None
     )
 
-    acceleration_operator_sparse = factory.calculate_acceleration(U, body_prop.mass_density)
+    result.acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion_sparse = factory.calculate_thermal_expansion(
+        result.thermal_expansion = factory.calculate_thermal_expansion(
             V, body_prop.thermal_expansion
         )
 
-        thermal_conductivity_sparse = factory.calculate_thermal_conductivity(
+        result.thermal_conductivity = factory.calculate_thermal_conductivity(
             W, body_prop.thermal_conductivity
         )
 
     else:
-        thermal_expansion_sparse = None
-        thermal_conductivity_sparse = None
+        result.thermal_expansion = None
+        result.thermal_conductivity = None
 
-    return (
-        element_initial_volume,
-        volume_at_nodes_sparse,
-        acceleration_operator_sparse,
-        elasticity_sparse,
-        viscosity_sparse,
-        thermal_expansion_sparse,
-        thermal_conductivity_sparse,
-    )
+    result.initialize_sparse()
+    return result

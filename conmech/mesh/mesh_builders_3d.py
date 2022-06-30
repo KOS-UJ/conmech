@@ -1,3 +1,4 @@
+import meshio
 import meshzoo
 import numpy as np
 import pygmsh
@@ -62,4 +63,16 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
         )
         geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
         nodes, elements = mesh_builders_helpers.get_normalized_nodes_and_elements(geom, 3)
+    return nodes, elements
+
+
+def get_pygmsh_bunny(mesh_prop: MeshProperties):
+    mesh = meshio.read("models/bunny/bun_zipper_res3.msh")
+    scale = 3.0
+    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
+    nodes[:, [1, 2]] = nodes[:, [2, 1]]
+    # nodes[:, 1] *= -1
+    # nodes[:, 1] += 1.0
+    # nodes = mesh_builders_helpers.normalize(nodes)
+    nodes = nodes * scale  # - (scale / 2.0)
     return nodes, elements

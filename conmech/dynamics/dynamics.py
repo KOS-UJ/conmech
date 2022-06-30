@@ -1,15 +1,13 @@
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-import cupyx.scipy.sparse
 import jax.experimental.sparse
 import jax.interpreters.xla
 import jax.scipy
 import numba
 import numpy as np
-from scipy import sparse
 
-from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
 from conmech.properties.body_properties import (
     StaticBodyProperties,
@@ -92,15 +90,8 @@ class Dynamics(BodyPosition):
         self.with_lhs = dynamics_config.with_lhs
         self.with_schur = dynamics_config.with_schur
 
-        self.element_initial_volume: np.ndarray
-        self.volume_at_nodes_sparse: sparse.base.spmatrix
-        self.acceleration_operator_sparse: sparse.base.spmatrix
-        self.elasticity_sparse: sparse.base.spmatrix
-        self.viscosity_sparse: sparse.base.spmatrix
-        self.thermal_expansion_sparse: sparse.base.spmatrix
-        self.thermal_conductivity_sparse: sparse.base.spmatrix
-
         self.solver_cache = SolverMatrices()
+        self.matrices = ConstMatrices()
         self.reinitialize_matrices()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
@@ -115,31 +106,19 @@ class Dynamics(BodyPosition):
             body_prop=self.body_prop,
             independent_indices=self.independent_indices,
         )
-        (
-            self.element_initial_volume,
-            self.volume_at_nodes_sparse,
-            self.acceleration_operator_sparse,
-            self.elasticity_sparse,
-            self.viscosity_sparse,
-            self.thermal_expansion_sparse,
-            self.thermal_conductivity_sparse,
-        ) = cmh.profile(fun_dyn, baypass=True)
-
-        self.volume_at_nodes_sparse_cp = jxh.to_cupy_csr(self.volume_at_nodes_sparse)
-        self.acceleration_operator_sparse_cp = jxh.to_cupy_csr(self.acceleration_operator_sparse)
-        self.elasticity_sparse_cp = jxh.to_cupy_csr(self.elasticity_sparse)
-        self.viscosity_sparse_cp = jxh.to_cupy_csr(self.viscosity_sparse)
+        self.matrices = cmh.profile(fun_dyn, baypass=True)
 
         if not self.with_lhs:
             return
 
         self.solver_cache.lhs_sparse = (
-            self.acceleration_operator_sparse
-            + (self.viscosity_sparse + self.elasticity_sparse * self.time_step) * self.time_step
+            self.matrices.acceleration_operator
+            + (self.matrices.viscosity + self.matrices.elasticity * self.time_step) * self.time_step
         )
 
         lhs_sparse_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse)
         self.solver_cache.lhs_sparse_cp = lhs_sparse_cp
+        self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
         # Calculating Jacobi preconditioner
         # TODO: Check SSOR / Incomplete Cholesky
         self.solver_cache.lhs_preconditioner_cp = jxh.to_inverse_diagonal(lhs_sparse_cp)
@@ -150,7 +129,6 @@ class Dynamics(BodyPosition):
         # print("Inverting lhs...")
         # lhs_dense = self.solver_cache.lhs_sparse.todense()
         # self.solver_cache.lhs_inv = jax.scipy.linalg.inv(lhs_dense)
-
         return
         if not self.with_schur:
             return
@@ -170,6 +148,15 @@ class Dynamics(BodyPosition):
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
         )
+
+        free_x_free_inverted = jax.scipy.linalg.inv(self.solver_cache.free_x_free.todense())
+        self.solver_cache.lhs_boundary = (
+            self.solver_cache.contact_x_contact.todense()
+            - self.solver_cache.contact_x_free.todense()
+            @ free_x_free_inverted
+            @ self.solver_cache.free_x_contact.todense()
+        )
+
         return
         if not self.with_temperature:
             return
@@ -177,8 +164,8 @@ class Dynamics(BodyPosition):
         i = self.independent_indices
         # TODO: #65 Make faster
         self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
-            (1 / self.time_step) * self.acceleration_operator_sparse.todense()[i, i]
-            + self.thermal_conductivity_sparse.todense()[i, i]
+            (1 / self.time_step) * self.acceleration_operator.todense()[i, i]
+            + self.thermal_conductivity.todense()[i, i]
         )
         (
             self.solver_cache.temperature_boundary,
@@ -194,27 +181,27 @@ class Dynamics(BodyPosition):
 
     @property
     def volume_at_nodes(self):
-        return jxh.to_dense_np(self.volume_at_nodes_sparse)
+        return jxh.to_dense_np(self.volume_at_nodes)
 
     @property
     def acceleration_operator(self):
-        return jxh.to_dense_np(self.acceleration_operator_sparse)
+        return jxh.to_dense_np(self.acceleration_operator)
 
     @property
     def elasticity(self):
-        return jxh.to_dense_np(self.elasticity_sparse)
+        return jxh.to_dense_np(self.elasticity)
 
     @property
     def viscosity(self):
-        return jxh.to_dense_np(self.viscosity_sparse)
+        return jxh.to_dense_np(self.viscosity)
 
     @property
     def thermal_expansion(self):
-        return jxh.to_dense_np(self.thermal_expansion_sparse)
+        return jxh.to_dense_np(self.thermal_expansion)
 
     @property
     def thermal_conductivity(self):
-        return jxh.to_dense_np(self.thermal_conductivity_sparse)
+        return jxh.to_dense_np(self.thermal_conductivity)
 
     @property
     def with_temperature(self):
