@@ -94,6 +94,10 @@ class Dynamics(BodyPosition):
         self.matrices = ConstMatrices()
         self.reinitialize_matrices()
 
+    def iterate_self(self, acceleration, temperature=None):
+        super().iterate_self(acceleration, temperature)
+        # self.reinitialize_matrices()  ###!!!
+
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         super().remesh(is_dirichlet, is_contact, create_in_subprocess)
         self.reinitialize_matrices()
@@ -133,7 +137,7 @@ class Dynamics(BodyPosition):
         if not self.with_schur:
             return
 
-        # print("Creating Schur matrices...")
+        print("Creating Schur matrices...")
         # lhs_dense = self.solver_cache.lhs_sparse.todense()
         (
             self.solver_cache.contact_x_contact,

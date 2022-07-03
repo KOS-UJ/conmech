@@ -42,8 +42,10 @@ class LBFGSResults(NamedTuple):
     """
 
     converged: Union[bool, Array]
-    failed: Union[bool, Array]
-    k: Union[int, Array]
+    overrun: Union[bool, Array]
+    xdiff_max: float
+    xdiff_mean: float
+    iter_count: Union[int, Array]
     nfev: Union[int, Array]
     ngev: Union[int, Array]
     x_k: Array
@@ -53,91 +55,20 @@ class LBFGSResults(NamedTuple):
     y_history: Array
     rho_history: Array
     gamma: Union[float, Array]
-    status: Union[int, Array]
     ls_status: Union[int, Array]
-
-
-class OptimizeResults(NamedTuple):
-    """Object holding optimization results.
-
-    Parameters:
-      x: final solution.
-      success: ``True`` if optimization succeeded.
-      status: integer solver specific return code. 0 means converged (nominal),
-        1=max BFGS iters reached, 3=zoom failed, 4=saddle point reached,
-        5=max line search iters reached, -1=undefined
-      fun: final function value.
-      jac: final jacobian array.
-      hess_inv: final inverse Hessian estimate.
-      nfev: integer number of funcation calls used.
-      njev: integer number of gradient evaluations.
-      nit: integer number of iterations of the optimization algorithm.
-    """
-
-    x: jnp.ndarray
-    success: Union[bool, jnp.ndarray]
-    status: Union[int, jnp.ndarray]
-    fun: jnp.ndarray
-    jac: jnp.ndarray
-    hess_inv: Optional[jnp.ndarray]
-    nfev: Union[int, jnp.ndarray]
-    njev: Union[int, jnp.ndarray]
-    nit: Union[int, jnp.ndarray]
-    state: LBFGSResults
-
-
-def minimize(
-    fun: Callable,
-    x0: jnp.ndarray,
-    hes,
-    args: Tuple = (),
-    *,
-    method: str,
-    tol: Optional[float] = None,
-    options: Optional[Mapping[str, Any]] = None,
-) -> OptimizeResults:
-
-    if options is None:
-        options = {}
-
-    if not isinstance(args, tuple):
-        msg = "args argument to jax.scipy.optimize.minimize must be a tuple, got {}"
-        raise TypeError(msg.format(args))
-
-    fun_with_args = lambda x: fun(x, *args)
-
-    results = _minimize_lbfgs(fun_with_args, x0, hes, **options)
-    success = results.converged & (~results.failed)
-    return OptimizeResults(
-        x=results.x_k,
-        success=success,
-        status=results.status,
-        fun=results.f_k,
-        jac=results.g_k,
-        hess_inv=None,
-        nfev=results.nfev,
-        njev=results.ngev,
-        nit=results.k,
-        state=results,
-    )
 
 
 ##############################
 
 
-def _minimize_lbfgs(
+def minimize_lbfgs(
     fun: Callable,
     x0: Array,
-    hes: Optional[Array] = None,
-    maxiter: Optional[float] = None,
-    norm=jnp.inf,
+    xtol_max: float,
+    xtol_mean: float,
+    max_iter: Optional[int],
+    init_hes: Optional[Array] = None,
     maxcor: int = 10,
-    ftol: float = 2.220446049250313e-09,
-    gtol: float = 1e-05,
-    # ftol=1e-04,
-    # gtol=1e-03,
-    maxfun: Optional[float] = None,
-    maxgrad: Optional[float] = None,
     maxls: int = 20,
 ):
     """
@@ -169,25 +100,14 @@ def _minimize_lbfgs(
     d = len(x0)
     dtype = jnp.dtype(x0)
 
-    # ensure there is at least one termination condition
-    if (maxiter is None) and (maxfun is None) and (maxgrad is None):
-        maxiter = d * 200
-
-    # set others to inf, such that >= is supported
-    if maxiter is None:
-        maxiter = jnp.inf
-    if maxfun is None:
-        maxfun = jnp.inf
-    if maxgrad is None:
-        maxgrad = jnp.inf
-
     # initial evaluation
     f_0, g_0 = jax.value_and_grad(fun)(x0)
-    # if previous_state is None:
     state_initial = LBFGSResults(
         converged=False,
-        failed=False,
-        k=0,
+        overrun=False,
+        xdiff_max=jnp.inf,
+        xdiff_mean=jnp.inf,
+        iter_count=0,
         nfev=1,
         ngev=1,
         x_k=x0,
@@ -197,34 +117,15 @@ def _minimize_lbfgs(
         y_history=jnp.zeros((maxcor, d), dtype=dtype),
         rho_history=jnp.zeros((maxcor,), dtype=dtype),
         gamma=1.0,
-        status=0,
         ls_status=0,
     )
-    # else:
-    #     state_initial = LBFGSResults(
-    #         converged=False,
-    #         failed=False,
-    #         k=0,
-    #         nfev=1,
-    #         ngev=1,
-    #         x_k=x0,
-    #         f_k=f_0,
-    #         g_k=g_0,
-    #         s_history=previous_state.s_history,
-    #         y_history=previous_state.y_history,
-    #         rho_history=previous_state.rho_history,
-    #         gamma=previous_state.gamma,
-    #         status=0,
-    #         ls_status=0,
-    #     )
 
     def cond_fun(state: LBFGSResults):
-        return (~state.converged) & (~state.failed)
+        return (~state.converged) & (~state.overrun)
 
     def body_fun(state: LBFGSResults):
         # find search direction
-        q = -jnp.conj(state.g_k)
-        p_k = _two_loop_recursion(state, hes)
+        p_k = _two_loop_recursion(state, init_hes)
 
         # line search
         ls_results = line_search(
@@ -246,21 +147,20 @@ def _minimize_lbfgs(
         rho_k = jnp.reciprocal(rho_k_inv)
         gamma = rho_k_inv / jnp.real(_dot(jnp.conj(y_k), y_k))
 
-        # replacements for next iteration
-        status = 0
-        status = jnp.where(state.f_k - f_kp1 < ftol, 4, status)
-        status = jnp.where(state.ngev >= maxgrad, 3, status)  # type: ignore
-        status = jnp.where(state.nfev >= maxfun, 2, status)  # type: ignore
-        status = jnp.where(state.k >= maxiter, 1, status)  # type: ignore
-        status = jnp.where(ls_results.failed, 5, status)
-
-        converged = jnp.linalg.norm(g_kp1, ord=norm) < gtol
+        # Added custom stop criterion
+        normalized_step = jnp.abs(s_k)
+        xdiff_max = jnp.max(normalized_step)
+        xdiff_mean = jnp.mean(normalized_step)
+        converged = (xdiff_max < xtol_max) & (xdiff_mean < xtol_mean)
+        overrun = max_iter is not None and state.iter_count >= max_iter
 
         # TODO(jakevdp): use a fixed-point procedure rather than type-casting?
         state = state._replace(
             converged=converged,
-            failed=(status > 0) & (~converged),
-            k=state.k + 1,
+            overrun=overrun,
+            xdiff_max=xdiff_max,
+            xdiff_mean=xdiff_mean,
+            iter_count=state.iter_count + 1,
             nfev=state.nfev + ls_results.nfev,
             ngev=state.ngev + ls_results.ngev,
             x_k=x_kp1.astype(state.x_k.dtype),
@@ -270,18 +170,18 @@ def _minimize_lbfgs(
             y_history=_update_history_vectors(history=state.y_history, new=y_k),
             rho_history=_update_history_scalars(history=state.rho_history, new=rho_k),
             gamma=gamma,
-            status=jnp.where(converged, 0, status),
             ls_status=ls_results.status,
         )
 
         return state
 
-    return lax.while_loop(cond_fun, body_fun, state_initial)
+    state = lax.while_loop(cond_fun, body_fun, state_initial)
+    return state
 
 
 def _two_loop_recursion(state: LBFGSResults, hes: Optional[Array] = None):
     his_size = len(state.rho_history)
-    curr_size = jnp.where(state.k < his_size, state.k, his_size)
+    curr_size = jnp.where(state.iter_count < his_size, state.iter_count, his_size)
     q = -jnp.conj(state.g_k)
     a_his = jnp.zeros_like(state.rho_history)
 
@@ -294,12 +194,12 @@ def _two_loop_recursion(state: LBFGSResults, hes: Optional[Array] = None):
         return _q, _a_his
 
     q, a_his = lax.fori_loop(0, curr_size, body_fun1, (q, a_his))
-    # # ADDED HESSIAN PRECONDITIONER
+
+    # Added Hessian preconditioning
     if hes is None:
         q = state.gamma * q
     else:
-        r, _ = jax.scipy.sparse.linalg.cg(A=hes, b=q)  # , M=M)
-        q = r
+        q, _ = jax.scipy.sparse.linalg.cg(A=hes, b=q)  # , M=M)
 
     def body_fun2(j, _q):
         i = his_size - curr_size + j

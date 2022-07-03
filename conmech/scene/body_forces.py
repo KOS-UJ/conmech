@@ -18,7 +18,7 @@ def energy(value, solver_cache, rhs):
 
 
 def get_lhs_times_value(value_vector, solver_cache):
-    # return solver_cache.lhs_boundary @ value_vector
+    return solver_cache.lhs_boundary @ value_vector
     # contact_x_contact - contact_x_free @ free_x_free_inverted @ free_x_contact
     s1 = solver_cache.free_x_contact @ value_vector
     s2 = jxh.solve_linear_jax(matrix=solver_cache.free_x_free, vector=s1)

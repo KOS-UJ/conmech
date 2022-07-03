@@ -49,7 +49,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
         if present_nodes[index + removed]:
             index += 1
         else:
-            print("Removing node...")
+            # print("Removing node...")
             nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
             for i in range(elements.shape[0]):
                 for j in range(elements.shape[1]):
@@ -61,6 +61,7 @@ def remove_unconnected_nodes_numba(nodes, elements):
 
 
 MAX_INDEX = 10000
+MIN_DIST = 0.2
 
 
 @numba.njit
@@ -70,19 +71,24 @@ def get_closest_to_axis_numba(nodes, variable):
     nodes_projection = nodes.copy()
     nodes_projection[:, variable] = 0
     final_index = min(MAX_INDEX, len(nodes))
-    for i, node in enumerate(nodes_projection[: final_index - 1]):
+    for i in range(final_index - 1):
         start_index = i + 1
-        error_i = nph.euclidean_norm_numba(nodes_projection[start_index:final_index, :] - node)
-        internal_j = np.argmin(error_i)
+        indices = slice(start_index, final_index)
+        error_i = nph.euclidean_norm_numba(nodes_projection[indices, :] - nodes_projection[i])
+        distances = nph.euclidean_norm_numba(nodes[indices, :] - nodes[i])
+        valid_idx = np.where(distances >= MIN_DIST)[0]
+        if len(valid_idx) == 0:
+            break
+
+        internal_j = valid_idx[np.argmin(error_i[valid_idx])]
         error = error_i[internal_j]
-        j = internal_j + start_index
 
         if error < min_error:
-            min_error, final_i, final_j = error, i, j
+            min_error, final_i, final_j = error, i, internal_j + start_index
 
     correct_order = nodes[final_i, variable] < nodes[final_j, variable]
     indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([min_error, indices[0], indices[1]])
+    return np.array([min_error, *indices])
 
 
 def get_base_seed_indices(nodes):

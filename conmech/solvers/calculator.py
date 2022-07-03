@@ -16,7 +16,7 @@ import scipy.sparse.linalg
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.solvers.lbfgs import minimize
+from conmech.solvers.lbfgs import minimize_lbfgs
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
@@ -32,33 +32,33 @@ class Calculator:
         )
         return result
 
+    MAX_K = 0
+
     @staticmethod
     def minimize_jax(
-        setting, function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
+        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
-        # # TODO: initial_vector refined by net / from linear solver
 
-        # hes_jax = jax.hessian(function)
-        # hes1 = hes_jax(x0)  # jnp.zeros_like(x0)
-
-        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x), v))(x)
-        # hes = jax.jit(lambda x: hvp(function, x, x))
-
-        # hvp = lambda f, primals, tangents: jax.jvp(jax.grad(f), primals, tangents)[1]
-        # hes = jax.jit(lambda x: hvp(function, (x,), (x,)))
-
-        result = cmh.profile(
-            lambda: minimize(  # jax.scipy.optimize.minimize(
-                function,
-                x0,
-                hes=None,
-                method="l-bfgs-experimental-do-not-rely-on-this",
+        state = cmh.profile(
+            lambda: minimize_lbfgs(
+                function, x0, init_hes=None, xtol_max=0.1, xtol_mean=0.001, max_iter=500
             ),
             baypass=True,
         )
-        # assert result.success
-        return np.asarray(result.x)
+        if Calculator.MAX_K < state.iter_count:
+            Calculator.MAX_K = state.iter_count
+        if state.overrun:
+            print(
+                f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
+            )
+        return np.asarray(state.x_k)
+
+        # hes_jax = jax.hessian(function)
+        # hes = hes_jax(x0)  # jnp.zeros_like(x0)
+
+        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x), v))(x)
+        # hes = jax.jit(lambda x: hvp(function, x, x))
 
         # jac_jax = jax.jit(jax.jacfwd(function)).lower(x0).compile()
         # jacobian_fast = lambda x: np.array(jac_jax(jnp.asarray(x)), dtype=np.float64)
@@ -66,7 +66,9 @@ class Calculator:
         # hes_jax = jax.jit(jax.hessian(function)).lower(x0).compile()
         # hessian_fast = lambda x: np.array(hes_jax(jnp.asarray(x)), dtype=np.float64)
 
-        # result1 = cmh.profile(
+        # jax.scipy.optimize.minimize(
+
+        # result = cmh.profile(
         #     lambda: scipy.optimize.minimize(
         #         function_fast,
         #         initial_vector,
@@ -226,10 +228,12 @@ class Calculator:
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        cost_function, _ = setting.get_normalized_energy_obstacle_jax(temperature)
+        cost_function, _, equation_function = setting.get_normalized_energy_obstacle_jax_new(
+            temperature
+        )
 
         normalized_a_vector_np = Calculator.minimize_jax(
-            setting=setting, function=cost_function, initial_vector=initial_a_vector
+            function=cost_function, initial_vector=initial_a_vector
         )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)
@@ -244,7 +248,11 @@ class Calculator:
         else:
             initial_a_boundary_vector = nph.stack(initial_a[setting.boundary_indices])
 
-        cost_function, normalized_rhs_free = setting.get_normalized_energy_obstacle_jax(temperature)
+        (
+            cost_function,
+            normalized_rhs_free,
+            equation_function,
+        ) = setting.get_normalized_energy_obstacle_jax(temperature)
         normalized_boundary_a_vector_np = Calculator.minimize_jax(
             function=cost_function, initial_vector=initial_a_boundary_vector
         )

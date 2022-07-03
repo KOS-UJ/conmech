@@ -1,5 +1,6 @@
+from ast import arg
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import cupy as cp
 import jax.numpy as jnp
@@ -14,7 +15,12 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.body_forces import BodyForces, energy, energy_lhs
+from conmech.scene.body_forces import (
+    BodyForces,
+    energy,
+    energy_lhs,
+    get_lhs_times_value,
+)
 from conmech.state.body_position import BodyPosition
 
 
@@ -25,6 +31,11 @@ def get_penetration_positive(displacement_step, normals, penetration):
 
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
+
+
+def obstacle_resistance_normal(penetration_norm, hardness, time_step):
+    _ = time_step
+    return hardness * (penetration_norm)
 
 
 def obstacle_resistance_potential_tangential(
@@ -41,6 +52,17 @@ def obstacle_resistance_potential_tangential(
     )
 
 
+def obstacle_resistance_tangential(
+    penetration_norm,
+    tangential_velocity,
+    friction,
+    time_step,
+):
+    _ = time_step
+    vector = nph.normalize_euclidean_numba(tangential_velocity)
+    return (penetration_norm > 0) * friction * vector
+
+
 @dataclass
 class EnergyObstacleArguments:
     solver_cache: np.ndarray
@@ -54,7 +76,12 @@ class EnergyObstacleArguments:
     time_step: float
 
 
-def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
+def get_boundary_integral_internal(
+    acceleration,
+    args: EnergyObstacleArguments,
+    get_resistance_normal: Callable,
+    get_resistance_tangental: Callable,
+):
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
@@ -73,10 +100,10 @@ def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, normals)
 
-    resistance_normal = obstacle_resistance_potential_normal(
+    resistance_normal = get_resistance_normal(
         penetration_norm=penetration_norm, hardness=hardness, time_step=args.time_step
     )
-    resistance_tangential = obstacle_resistance_potential_tangential(
+    resistance_tangential = get_resistance_tangental(
         penetration_norm=args.penetration,
         tangential_velocity=velocity_tangential,
         friction=friction,
@@ -86,14 +113,58 @@ def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
     return boundary_integral
 
 
+def get_boundary_integral(acceleration, args: EnergyObstacleArguments):
+    return get_boundary_integral_internal(
+        acceleration=acceleration,
+        args=args,
+        get_resistance_normal=obstacle_resistance_potential_normal,
+        get_resistance_tangental=obstacle_resistance_potential_tangential,
+    )
+
+
+def get_boundary_function_integral(acceleration, args: EnergyObstacleArguments):
+    return get_boundary_integral_internal(
+        acceleration=acceleration,
+        args=args,
+        get_resistance_normal=obstacle_resistance_normal,
+        get_resistance_tangental=obstacle_resistance_tangential,
+    )
+
+
 def energy_obstacle(
     acceleration,
     args: EnergyObstacleArguments,
 ):
-    # main_energy = energy(acceleration, args.solver_cache, args.rhs)
+    main_energy = energy(acceleration, args.solver_cache, args.rhs)
+    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
+    return main_energy + boundary_integral
+
+
+def function_obstacle(
+    acceleration,
+    args: EnergyObstacleArguments,
+):
+    main_value = get_lhs_times_value(nph.stack_column(acceleration), args.solver_cache) - args.rhs
+    boundary_integral = get_boundary_function_integral(acceleration=acceleration, args=args)
+    return main_value + boundary_integral
+
+
+def energy_obstacle_new(
+    acceleration,
+    args: EnergyObstacleArguments,
+):
     main_energy = energy_lhs(acceleration, args.solver_cache.lhs_sparse_jax, args.rhs)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
     return main_energy + boundary_integral
+
+
+def function_obstacle_new(
+    acceleration,
+    args: EnergyObstacleArguments,
+):
+    main_value = args.solver_cache.lhs_sparse @ nph.stack_column(acceleration) - args.rhs
+    boundary_integral = get_boundary_function_integral(acceleration=acceleration, args=args)
+    return main_value + boundary_integral
 
 
 @numba.njit
@@ -161,13 +232,37 @@ class Scene(BodyForces):
                 ]
             )
 
-    def get_normalized_energy_obstacle_jax(self, temperature=None):
-        # normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
+    def get_normalized_energy_obstacle_jax_new(self, temperature=None):
         normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
 
         args = EnergyObstacleArguments(
             solver_cache=self.solver_cache,
-            rhs=normalized_rhs,  # normalized_rhs_boundary,
+            rhs=normalized_rhs,
+            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
+            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            penetration=jnp.asarray(self.get_penetration_scalar()),
+            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
+            obstacle_prop=self.obstacle_prop,
+            time_step=self.time_step,
+        )
+        return (
+            lambda normalized_a_vector: energy_obstacle_new(
+                acceleration=nph.unstack(normalized_a_vector, self.dimension), args=args
+            ),
+            None,
+            lambda normalized_a_vector: function_obstacle_new(
+                acceleration=nph.unstack(normalized_a_vector, self.dimension), args=args
+            ),
+        )
+
+    def get_normalized_energy_obstacle_jax(self, temperature=None):
+        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
+        # normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
+
+        args = EnergyObstacleArguments(
+            solver_cache=self.solver_cache,
+            rhs=normalized_rhs_boundary,  # normalized_rhs,  # normalized_rhs_boundary,
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
@@ -180,7 +275,10 @@ class Scene(BodyForces):
             lambda normalized_boundary_a_vector: energy_obstacle(
                 acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
             ),
-            None,  # normalized_rhs_free,
+            normalized_rhs_free,  # None,  # normalized_rhs_free,
+            lambda normalized_boundary_a_vector: function_obstacle(
+                acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
+            ),
         )
 
     @property

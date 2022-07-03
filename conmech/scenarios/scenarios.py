@@ -217,6 +217,7 @@ M_BALL_3D = "meshzoo_ball_3d"
 M_POLYGON_3D = "pygmsh_polygon_3d"
 M_TWIST_3D = "pygmsh_twist_3d"
 M_BUNNY_3D = "pygmsh_bunny_3d"
+M_ARMADILLO_3D = "pygmsh_armadillo_3d"
 
 
 def f_fall(

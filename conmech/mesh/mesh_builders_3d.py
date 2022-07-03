@@ -66,8 +66,8 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
     return nodes, elements
 
 
-def get_pygmsh_bunny(mesh_prop: MeshProperties):
-    mesh = meshio.read("models/bunny/bun_zipper_res3.msh")
+def get_pygmsh_bunny():
+    mesh = meshio.read("models/bunny/bun_zipper_res1.msh")
     scale = 3.0
     nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
@@ -75,4 +75,13 @@ def get_pygmsh_bunny(mesh_prop: MeshProperties):
     # nodes[:, 1] += 1.0
     # nodes = mesh_builders_helpers.normalize(nodes)
     nodes = nodes * scale  # - (scale / 2.0)
+    return nodes, elements
+
+
+def get_pygmsh_armadillo():
+    mesh = meshio.read("models/armadillo/armadillo.msh")
+    scale = 3.0
+    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
+    nodes[:, [1, 2]] = nodes[:, [2, 1]]
+    nodes = nodes * scale
     return nodes, elements

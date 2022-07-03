@@ -1,6 +1,7 @@
 import copy
 import os
 import time
+from curses import noecho
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 
@@ -62,7 +63,7 @@ def run_scenario(
     index_skip = ts if run_config.save_all else 1
     plot_scenes_count = [0]
 
-    save_files = run_config.plot_animation or run_config.save_all
+    save_files = True  # run_config.plot_animation or run_config.save_all
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
@@ -77,12 +78,22 @@ def run_scenario(
         scenes_path = ""
         calculator_scenes_path = ""
 
-    def save_scene(scene: Scene, scenes_path: str):
+    def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
         scene_copy = copy.copy(scene)
         scene_copy.prepare_to_save()
-        scenes_file, indices_file = pkh.open_files_append(scenes_path)
+
+        arrays_path = scenes_path + "_data"
+        nodes = scene.boundary_nodes
+        elements = scene.boundaries.boundary_surfaces
+        arrays = (nodes, elements)
+        scenes_file, indices_file = pkh.open_files_append(arrays_path)
         with scenes_file, indices_file:
-            pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
+            pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
+
+        if save_animation:
+            scenes_file, indices_file = pkh.open_files_append(scenes_path)
+            with scenes_file, indices_file:
+                pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
 
     step = [0]  # TODO: #65 Clean
 
@@ -90,18 +101,26 @@ def run_scenario(
         step[0] += 1
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_scene(scene=scene, scenes_path=scenes_path)
+            save_scene(
+                scene=scene, scenes_path=scenes_path, save_animation=run_config.plot_animation
+            )
             if base_scene is not None:
-                save_scene(scene=base_scene, scenes_path=calculator_scenes_path)
+                save_scene(
+                    scene=base_scene,
+                    scenes_path=calculator_scenes_path,
+                    save_animation=run_config.plot_animation,
+                )
         if plot_index:
             plot_scenes_count[0] += 1
 
-    print("Creating scene...")
+    print("Creating scene...")  # (no normalization)")
     create_in_subprocess = False
 
     if get_scene_function is None:
         _get_scene_function = lambda randomize: scenario.get_scene(
-            randomize=randomize, create_in_subprocess=create_in_subprocess
+            randomize=randomize,
+            create_in_subprocess=create_in_subprocess,
+            normalize_by_rotation=True,  #########################
         )
     else:
         _get_scene_function = lambda randomize: get_scene_function(
@@ -246,6 +265,7 @@ def simulate(
 
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_scene else ""
     print(f"    Solver time : {solver_time}{comparison_str}")
+    print(f"MAX_K: {Calculator.MAX_K}")
     return scene, energy_values
 
 
