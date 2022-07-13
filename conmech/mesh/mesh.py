@@ -158,7 +158,7 @@ class Mesh:
 
     def normalize_shift(self, vectors):
         _ = self
-        return vectors - np.mean(vectors, axis=0)
+        return vectors  # - np.mean(vectors, axis=0) ##########
 
     @property
     def normalized_initial_nodes(self):

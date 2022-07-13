@@ -1,3 +1,4 @@
+from binascii import a2b_base64
 from ctypes import ArgumentError
 from typing import Callable, Optional
 
@@ -36,13 +37,30 @@ class Calculator:
 
     @staticmethod
     def minimize_jax(
-        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
+        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray, scale: float = 1
     ) -> np.ndarray:
+        # vector = 30 * np.ones_like(initial_vector)
+        # vector[::2] *= 2
+        # vector[::4] *= -2
+        # function(vector)
+
+        # result = scipy.optimize.minimize(
+        #     function,
+        #     initial_vector,
+        #     method="L-BFGS-B",
+        # )
+        # return result.x
+
         x0 = jnp.asarray(initial_vector)
 
         state = cmh.profile(
             lambda: minimize_lbfgs(
-                function, x0, init_hes=None, xtol_max=0.1, xtol_mean=0.001, max_iter=500
+                function,
+                x0,
+                init_hes=None,
+                xtol_max=2.0,  # 0.1 * scale,
+                xtol_mean=0.1,  # 0.001 * scale,
+                max_iter=500,
             ),
             baypass=True,
         )
@@ -52,6 +70,8 @@ class Calculator:
             print(
                 f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
             )
+        if jnp.any(jnp.isnan(state.x_k)):
+            return x0
         return np.asarray(state.x_k)
 
         # hes_jax = jax.hessian(function)
@@ -137,11 +157,19 @@ class Calculator:
         setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if setting.is_colliding():
+        if True:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature=temperature, initial_a=initial_a
             )
         return Calculator.solve_acceleration_normalized_function(
+            setting=setting, temperature=temperature, initial_a=initial_a
+        )
+        # TODO: #62 repeat with optimization if collision in this round
+        if True:  # setting.is_colliding():
+            return Calculator.solve_acceleration_normalized_optimization_jax_U(
+                setting, temperature=temperature, initial_a=initial_a
+            )
+        return Calculator.solve_acceleration_normalized_function_U(
             setting=setting, temperature=temperature, initial_a=initial_a
         )
 
@@ -179,6 +207,41 @@ class Calculator:
 
         normalized_a_vector, _ = scipy.sparse.linalg.cg(A=A, b=b)
         return nph.unstack(normalized_a_vector, setting.dimension)
+
+    @staticmethod
+    def solve_acceleration_normalized_function_U(setting, temperature=None, initial_a=None):
+        w_vector = nph.stack_column(
+            setting.velocity_old * setting.time_step + setting.displacement_old
+        )
+        x0 = (
+            cp.array(nph.stack_column(initial_a) * (setting.time_step**2) + w_vector)
+            if initial_a is not None
+            else None
+        )
+
+        A = setting.solver_cache.lhs_sparse_U_cp
+        b = setting.get_normalized_rhs_cp_U(temperature)
+
+        M = setting.solver_cache.lhs_preconditioner_U_cp
+
+        normalized_u_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
+        normalized_a_vector_cp = (nph.stack_column(normalized_u_vector_cp) - cp.array(w_vector)) / (
+            setting.time_step**2
+        )
+
+        normalized_a_vector = normalized_a_vector_cp.get()
+        acceleration = nph.unstack(normalized_a_vector, setting.dimension)
+
+        # A2 = setting.solver_cache.lhs_sparse_cp
+        # b2 = setting.get_normalized_rhs_cp(temperature)
+        # x02 = None  # cp.array(nph.stack_column(initial_a)) if initial_a is not None else None
+
+        # M2 = setting.solver_cache.lhs_preconditioner_cp
+
+        # normalized_a_vector_cp2, _ = cupyx.scipy.sparse.linalg.cg(A=A2, b=b2, x0=x02, M=M2)
+        # normalized_a_vector2 = normalized_a_vector_cp2.get()
+        # a_2 = nph.unstack(normalized_a_vector2, setting.dimension)
+        return acceleration
 
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
@@ -222,15 +285,35 @@ class Calculator:
         return energy
 
     @staticmethod
+    def solve_acceleration_normalized_optimization_jax_U(setting, temperature=None, initial_a=None):
+        w = setting.velocity_old * setting.time_step + setting.displacement_old
+        if initial_a is None:
+            initial_u_vector = np.zeros(setting.nodes_count * setting.dimension)
+        else:
+            initial_u_vector = nph.stack_column(initial_a * (setting.time_step**2) + w).reshape(
+                -1
+            )
+
+        cost_function, _ = setting.get_normalized_energy_obstacle_jax_U(temperature)
+
+        normalized_u_vector_np = Calculator.minimize_jax(
+            function=cost_function,
+            initial_vector=initial_u_vector,
+            scale=0.1,  # (setting.time_step)
+        )
+        normalized_a = (nph.unstack(normalized_u_vector_np, setting.dimension) - w) / (
+            setting.time_step**2
+        )
+        return normalized_a
+
+    @staticmethod
     def solve_acceleration_normalized_optimization_jax(setting, temperature=None, initial_a=None):
         if initial_a is None:
             initial_a_vector = np.zeros(setting.nodes_count * setting.dimension)
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        cost_function, _, equation_function = setting.get_normalized_energy_obstacle_jax_new(
-            temperature
-        )
+        cost_function, _ = setting.get_normalized_energy_obstacle_jax_new(temperature)
 
         normalized_a_vector_np = Calculator.minimize_jax(
             function=cost_function, initial_vector=initial_a_vector
@@ -248,11 +331,9 @@ class Calculator:
         else:
             initial_a_boundary_vector = nph.stack(initial_a[setting.boundary_indices])
 
-        (
-            cost_function,
-            normalized_rhs_free,
-            equation_function,
-        ) = setting.get_normalized_energy_obstacle_jax(temperature)
+        (cost_function, normalized_rhs_free) = setting.get_normalized_energy_obstacle_jax(
+            temperature
+        )
         normalized_boundary_a_vector_np = Calculator.minimize_jax(
             function=cost_function, initial_vector=initial_a_boundary_vector
         )

@@ -15,13 +15,14 @@ from conmech.scenarios.scenarios import (
     Scenario,
     default_body_prop,
     default_obstacle_prop,
+    f_push_3d,
     f_rotate_3d,
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=10, final_time=6.0, plot_animation=False):  # 100
+def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -29,27 +30,27 @@ def main(mesh_density=10, final_time=6.0, plot_animation=False):  # 100
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
     all_scenarios = [
-        Scenario(
-            name="bunny_roll",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=8,
-                lambda_=8,
-                theta=16,
-                zeta=16,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -1.0]),
-            obstacle=Obstacle(
-                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-            ),
-        ),
+        # Scenario(
+        #     name="bunny_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_BUNNY_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=DynamicBodyProperties(
+        #         mu=8,
+        #         lambda_=8,
+        #         theta=16,
+        #         zeta=16,
+        #         mass_density=1.0,
+        #     ),
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -1.0]),
+        #     obstacle=Obstacle(
+        #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
+        #     ),
+        # ),
         # Scenario(
         #     name="armadillo_roll",
         #     mesh_prop=MeshProperties(
@@ -81,16 +82,22 @@ def main(mesh_density=10, final_time=6.0, plot_animation=False):  # 100
         #     forces_function=np.array([0.0, 0.0, -0.5]),
         #     obstacle=obstacles[1],
         # ),
-        # Scenario(
-        #     name="ball_throw",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
-        #     ),
-        #     body_prop=default_body_prop,
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=f_rotate_3d,
-        #     obstacle=obstacles[2],
-        # ),
+        Scenario(
+            name="ball_throw",
+            mesh_prop=MeshProperties(
+                dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=12,  # 8,
+                lambda_=12,  # 8,
+                theta=4,
+                zeta=4,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=obstacles[2],
+        ),
         # Scenario(
         #     name="cube_throw",
         #     mesh_prop=MeshProperties(
@@ -101,27 +108,27 @@ def main(mesh_density=10, final_time=6.0, plot_animation=False):  # 100
         #     forces_function=f_rotate_3d,
         #     obstacle=obstacles[3],
         # ),
-        # Scenario(
-        #     name="twist_roll",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_TWIST_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=DynamicBodyProperties(
-        #         mu=4,
-        #         lambda_=4,
-        #         theta=4,
-        #         zeta=4,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=np.array([0.0, 0.0, -1.5]),
-        #     obstacle=Obstacle(
-        #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-        #     ),
-        # ),
+        Scenario(
+            name="twist_roll",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_TWIST_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=12,  # 8,
+                lambda_=12,  # 8,
+                theta=4,
+                zeta=4,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0.0, 0.0, -1.0]),  # f_rotate_3d,  #
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1]]]), default_obstacle_prop
+            ),
+        ),
     ]
 
     simulation_runner.run_examples(
@@ -134,5 +141,6 @@ def main(mesh_density=10, final_time=6.0, plot_animation=False):  # 100
 
 if __name__ == "__main__":
     # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

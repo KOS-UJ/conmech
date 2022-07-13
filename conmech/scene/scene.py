@@ -1,5 +1,6 @@
 from ast import arg
 from dataclasses import dataclass
+from tkinter import W
 from typing import Callable, List, Optional
 
 import cupy as cp
@@ -15,12 +16,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.body_forces import (
-    BodyForces,
-    energy,
-    energy_lhs,
-    get_lhs_times_value,
-)
+from conmech.scene.body_forces import BodyForces, energy, energy_lhs
 from conmech.state.body_position import BodyPosition
 
 
@@ -31,11 +27,6 @@ def get_penetration_positive(displacement_step, normals, penetration):
 
 def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
-
-
-def obstacle_resistance_normal(penetration_norm, hardness, time_step):
-    _ = time_step
-    return hardness * (penetration_norm)
 
 
 def obstacle_resistance_potential_tangential(
@@ -50,17 +41,6 @@ def obstacle_resistance_potential_tangential(
         * nph.euclidean_norm(tangential_velocity, keepdims=True)
         * (1.0 / time_step)
     )
-
-
-def obstacle_resistance_tangential(
-    penetration_norm,
-    tangential_velocity,
-    friction,
-    time_step,
-):
-    _ = time_step
-    vector = nph.normalize_euclidean_numba(tangential_velocity)
-    return (penetration_norm > 0) * friction * vector
 
 
 @dataclass
@@ -140,31 +120,25 @@ def energy_obstacle(
     return main_energy + boundary_integral
 
 
-def function_obstacle(
-    acceleration,
-    args: EnergyObstacleArguments,
-):
-    main_value = get_lhs_times_value(nph.stack_column(acceleration), args.solver_cache) - args.rhs
-    boundary_integral = get_boundary_function_integral(acceleration=acceleration, args=args)
-    return main_value + boundary_integral
+def energy_obstacle_U(displacement, setting, args: EnergyObstacleArguments, colliding: bool):
+    # TODO: Repeat if collision
+    main_energy0 = energy_lhs(displacement, args.solver_cache.lhs_sparse_U_jax, args.rhs)
+    # main_energy0a = setting.compute_kinetic_energy(acceleration)
+
+    main_energy1 = setting.compute_energy_U(displacement)
+    return main_energy0 + main_energy1
 
 
-def energy_obstacle_new(
-    acceleration,
-    args: EnergyObstacleArguments,
-):
-    main_energy = energy_lhs(acceleration, args.solver_cache.lhs_sparse_jax, args.rhs)
-    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
-    return main_energy + boundary_integral
+def energy_obstacle_new(acceleration, setting, args: EnergyObstacleArguments, colliding: bool):
+    # TODO: Repeat if collision
+    main_energy0 = energy_lhs(acceleration, args.solver_cache.lhs_sparse_jax, args.rhs)
+    # main_energy0a = setting.compute_kinetic_energy(acceleration)
 
-
-def function_obstacle_new(
-    acceleration,
-    args: EnergyObstacleArguments,
-):
-    main_value = args.solver_cache.lhs_sparse @ nph.stack_column(acceleration) - args.rhs
-    boundary_integral = get_boundary_function_integral(acceleration=acceleration, args=args)
-    return main_value + boundary_integral
+    main_energy1 = setting.compute_energy(acceleration, args)
+    boundary_integral = (
+        get_boundary_integral(acceleration=acceleration, args=args) if colliding else 0
+    )
+    return main_energy0 + main_energy1 + boundary_integral
 
 
 @numba.njit
@@ -207,6 +181,96 @@ class Scene(BodyForces):
 
         self.clear()
 
+    def get_jac(self, value):
+        # return jnp.einsum("ij,kil->kjl", value, self.matrices.dx)
+        return jnp.multiply(value[..., jnp.newaxis], self.matrices.dx[..., jnp.newaxis, :]).sum(
+            axis=1
+        )
+
+    def get_F(self, value, I):
+        return self.get_jac(value) + I
+
+    def get_eps_lin(self, F, I):
+        F_T = F.transpose((0, 2, 1))
+        return 0.5 * (F + F_T) - I
+
+    def get_eps_rot(self, F, I):
+        F_T = F.transpose((0, 2, 1))
+        return 0.5 * (F_T @ F - I)
+
+    def compute_energy_U(self, displacement):
+        dimension = displacement.shape[-1]
+
+        I = jnp.eye(dimension)
+        F_u = self.get_F(displacement, I)
+        eps_u = self.get_eps_rot(F=F_u, I=I)  # get_eps_lin get_eps_rot
+
+        phi = self.body_prop.mu * (eps_u * eps_u).sum(axis=(1, 2)) + (
+            self.body_prop.lambda_ / 2.0
+        ) * (((eps_u).trace(axis1=1, axis2=2) ** 2))
+        energy1 = self.matrices.element_initial_volume @ phi
+        return energy1
+
+    def compute_energy(self, acceleration, args):
+        new_displacement = args.w + acceleration * self.time_step**2
+
+        energy_new = (self.compute_energy_U(new_displacement) - args.energy_w) / (
+            self.time_step**2
+        )
+        return energy_new
+
+        dimension = acceleration.shape[-1]
+
+        new_velocity_half = self.velocity_old + self.time_step * acceleration * 0.5
+        new_displacement_half = self.displacement_old + self.time_step * new_velocity_half
+
+        # new_nodes = self.initial_nodes + new_displacement
+        # element_nodes = new_nodes[self.elements].transpose(1, 2, 0)
+        # D_s = jnp.dstack(
+        #     (
+        #         element_nodes[0] - element_nodes[3],
+        #         element_nodes[1] - element_nodes[3],
+        #         element_nodes[2] - element_nodes[3],
+        #     )
+        # ).transpose(1, 0, 2)
+        # F_u = D_s @ self.B_m
+
+        I = jnp.eye(dimension)
+        F_u_half = self.get_F(new_displacement_half, I)
+        eps_u_half = self.get_eps_lin(F=F_u_half, I=I)  # get_eps_lin get_eps_rot
+
+        jac_a = self.get_jac(acceleration)
+
+        # phi = self.body_prop.mu * (eps_u * eps_u).sum(axis=(1, 2)) + (
+        #     self.body_prop.lambda_ / 2.0
+        # ) * (((eps_u).trace(axis1=1, axis2=2) ** 2))
+        # energy1a = self.matrices.element_initial_volume @ phi
+        # energy1 = energy1a * 1 / (self.time_step**2)
+
+        ########
+        P1 = 2 * self.body_prop.mu * eps_u_half + self.body_prop.lambda_ * (
+            (eps_u_half).trace(axis1=1, axis2=2).repeat(dimension).reshape(-1, dimension, 1) * I
+        )
+        phi = (P1 * jac_a).sum(axis=(1, 2))
+        # phi = ((F_u @ P1) * jac_a).sum(axis=(1, 2)
+        # instead of eps_a (for symetric sigma - the same)
+        energy2 = self.matrices.element_initial_volume @ phi
+
+        #######
+        energy3 = nph.stack_column(acceleration).reshape(-1) @ (
+            self.solver_cache.elasticity_jax @ nph.stack_column(new_displacement_half).reshape(-1)
+        )
+
+        return energy_new
+
+    def compute_kinetic_energy(self, acceleration):
+        # r = self.matrices.element_initial_volume * self.matrices.dx @ new_displacement
+        # self.mass_matrix_inv @
+        vector = nph.stack_column(acceleration) - nph.stack_column(self.inner_forces)
+
+        kinetic_energy = 0.5 * vector.reshape(-1) @ (self.mass_matrix @ vector.reshape(-1))
+        return kinetic_energy * 1 / (self.time_step**2)
+
     def prepare(self, inner_forces):
         super().prepare(inner_forces)
         if not self.has_no_obstacles:
@@ -232,6 +296,31 @@ class Scene(BodyForces):
                 ]
             )
 
+    def get_normalized_energy_obstacle_jax_U(self, temperature=None):
+        normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp_U(temperature).get())
+
+        args = EnergyObstacleArguments(
+            solver_cache=self.solver_cache,
+            rhs=normalized_rhs,
+            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
+            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            penetration=jnp.asarray(self.get_penetration_scalar()),
+            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
+            obstacle_prop=self.obstacle_prop,
+            time_step=self.time_step,
+        )
+        colliding = self.is_colliding()
+        return (
+            lambda normalized_u_vector: energy_obstacle_U(
+                displacement=nph.unstack(normalized_u_vector, self.dimension),
+                setting=self,
+                args=args,
+                colliding=colliding,
+            ),
+            None,
+        )
+
     def get_normalized_energy_obstacle_jax_new(self, temperature=None):
         normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
 
@@ -246,18 +335,25 @@ class Scene(BodyForces):
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
         )
+        colliding = self.is_colliding()
+
+        args.w = self.displacement_old + self.time_step * self.velocity_old
+        args.energy_w = self.compute_energy_U(args.w)
+
         return (
             lambda normalized_a_vector: energy_obstacle_new(
-                acceleration=nph.unstack(normalized_a_vector, self.dimension), args=args
+                acceleration=nph.unstack(normalized_a_vector, self.dimension),
+                setting=self,
+                args=args,
+                colliding=colliding,
             ),
             None,
-            lambda normalized_a_vector: function_obstacle_new(
-                acceleration=nph.unstack(normalized_a_vector, self.dimension), args=args
-            ),
         )
 
     def get_normalized_energy_obstacle_jax(self, temperature=None):
-        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_jax(temperature)
+        normalized_rhs_boundary, normalized_rhs_free = jnp.array(
+            self.get_all_normalized_rhs_jax(temperature)
+        )
         # normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
 
         args = EnergyObstacleArguments(
@@ -276,9 +372,6 @@ class Scene(BodyForces):
                 acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
             ),
             normalized_rhs_free,  # None,  # normalized_rhs_free,
-            lambda normalized_boundary_a_vector: function_obstacle(
-                acceleration=nph.unstack(normalized_boundary_a_vector, self.dimension), args=args
-            ),
         )
 
     @property

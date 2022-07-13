@@ -113,14 +113,15 @@ def run_scenario(
         if plot_index:
             plot_scenes_count[0] += 1
 
-    print("Creating scene...")  # (no normalization)")
+    normalize_by_rotation = False  #########################
+    print(f"Creating scene... normalize: {normalize_by_rotation}")
     create_in_subprocess = False
 
     if get_scene_function is None:
         _get_scene_function = lambda randomize: scenario.get_scene(
             randomize=randomize,
             create_in_subprocess=create_in_subprocess,
-            normalize_by_rotation=True,  #########################
+            normalize_by_rotation=normalize_by_rotation,
         )
     else:
         _get_scene_function = lambda randomize: get_scene_function(

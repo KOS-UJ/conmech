@@ -28,6 +28,7 @@ class ConstMatrices:
         self.thermal_expansion: scipy.sparse.csr_matrix
         self.thermal_conductivity: scipy.sparse.csr_matrix
         self.volume_at_nodes_cp: cupyx.scipy.sparse.csr_matrix
+        self.volume_at_nodes_jax: cupyx.scipy.sparse.csr_matrix
         self.acceleration_operator_cp: cupyx.scipy.sparse.csr_matrix
         self.elasticity_cp: cupyx.scipy.sparse.csr_matrix
         self.viscosity_cp: cupyx.scipy.sparse.csr_matrix
@@ -64,6 +65,15 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     return edges_features_matrix
 
 
+def to_dx_matrix(dx_dict: dict, elements_count: int, nodes_count: int):
+    keys = np.array(list(dx_dict.keys()))
+    values = np.array(list(dx_dict.values()))
+    row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
+    shape = (elements_count, nodes_count)
+    dx = scipy.sparse.coo_matrix((data, (row, col)), shape=shape)
+    return dx
+
+
 def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
@@ -79,12 +89,16 @@ def get_dynamics(
         raise NotImplementedError()
     result = ConstMatrices()
 
-    edges_features_dict, result.element_initial_volume = factory.get_edges_features_dictionary(
-        elements, nodes
-    )
+    (
+        edges_features_dict,
+        result.element_initial_volume,
+        dx_dict,
+    ) = factory.get_edges_features_dictionary(elements, nodes)
     edges_features_matrix = to_edges_features_matrix(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
+    dx = dx_dict  # to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements)).tocsr()
+
     edges_features_matrix[0] = edges_features_matrix[0].tocsr()
     for i in range(1, len(edges_features_matrix)):
         edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
@@ -105,13 +119,15 @@ def get_dynamics(
         ]
     )  # [i, i]
 
-    result.elasticity = (
+    result.elasticity_on = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
         else None
     )
 
-    result.viscosity = (
+    result.elasticity = 0 * result.elasticity_on
+
+    result.viscosity = 0 * (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, DynamicBodyProperties)
         else None
@@ -132,5 +148,6 @@ def get_dynamics(
         result.thermal_expansion = None
         result.thermal_conductivity = None
 
+    result.dx = dx
     result.initialize_sparse()
     return result

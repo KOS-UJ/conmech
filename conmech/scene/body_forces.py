@@ -157,22 +157,19 @@ class BodyForces(Dynamics):
 
         return rhs
 
-    def get_normalized_rhs_jax(self, temperature=None):
+    def get_normalized_rhs_cp_U(self, temperature=None):
         _ = temperature
 
-        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
-        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column_cp()
-        # jnp.asarray / cp.array
-        rhs = (
-            jnp.asarray(f_vector.get())
-            - (
-                jxh.to_jax_sparse(
-                    self.matrices.viscosity + self.matrices.elasticity * self.time_step
-                )
+        displacement_old_vector = nph.stack_column(self.displacement_old)
+        velocity_old_vector = nph.stack_column(self.velocity_old)
+        f_vector_cp = self.get_integrated_forces_column_cp()
+
+        rhs = f_vector_cp + (
+            self.matrices.acceleration_operator_cp
+            @ (
+                cp.array(displacement_old_vector) / (self.time_step**2)
+                + cp.array(velocity_old_vector) / (self.time_step)
             )
-            @ jnp.asarray(velocity_old_vector)
-            - jxh.to_jax_sparse(self.matrices.elasticity) @ jnp.asarray(displacement_old_vector)
         )
 
         return rhs
