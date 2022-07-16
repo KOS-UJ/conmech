@@ -140,28 +140,15 @@ def energy_obstacle_new(acceleration_vector, args: EnergyObstacleArguments):
     return main_energy0 + main_energy1
 
 
+energy_obstacle_new_jax = jax.jit(energy_obstacle_new)
+
+
 def energy_obstacle_colliding_new(acceleration_vector, args: EnergyObstacleArguments):
     # TODO: Repeat if collision
     main_energy = energy_obstacle_new(acceleration_vector, args)
     acceleration = nph.unstack(acceleration_vector, dim=3)
     boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
     return main_energy + boundary_integral
-
-
-hes_energy_obstacle_new = jax.jit(
-    lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
-        energy_obstacle_new, x, x
-    )
-)
-
-hes_energy_obstacle_colliding_new = jax.jit(
-    lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
-        energy_obstacle_colliding_new, x, x
-    )
-)
-
-
-# energy_obstacle_new_jax = jax.jit(energy_obstacle_new)
 
 
 @numba.njit
@@ -367,7 +354,10 @@ class Scene(BodyForces):
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
             energy_w=compute_energy_U(
-                w, self.matrices.dx_big_jax, self.matrices.element_initial_volume, body_prop
+                w,
+                self.matrices.dx_big_jax,
+                self.matrices.element_initial_volume,
+                body_prop,
             ),
         )
         return args

@@ -1,5 +1,8 @@
 import os
 
+os.environ["JAX_ENABLE_X64"] = "1"
+# os.environ["JAX_PLATFORM_NAME"] = "cpu"
+
 import numpy as np
 
 from conmech.helpers.config import Config
@@ -30,27 +33,27 @@ def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
     all_scenarios = [
-        # Scenario(
-        #     name="bunny_roll",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_BUNNY_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=DynamicBodyProperties(
-        #         mu=8,
-        #         lambda_=8,
-        #         theta=16,
-        #         zeta=16,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(
-        #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-        #     ),
-        # ),
+        Scenario(
+            name="bunny_roll",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=12,
+                lambda_=12,
+                theta=16,
+                zeta=16,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -1.0]),  # f_rotate_3d,  #
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
+            ),
+        ),
         # Scenario(
         #     name="armadillo_roll",
         #     mesh_prop=MeshProperties(

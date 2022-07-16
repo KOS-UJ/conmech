@@ -1,4 +1,6 @@
+from collections import namedtuple
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import numpy as np
 
@@ -14,10 +16,27 @@ class StaticBodyProperties(BodyProperties):
     lambda_: float
 
 
+class DynamicBodyPropertiesTuple(NamedTuple):
+    mass_density: float
+    mu: float
+    lambda_: float
+    theta: float
+    zeta: float
+
+
 @dataclass
 class DynamicBodyProperties(StaticBodyProperties):
     theta: float
     zeta: float
+
+    def get_tuple(self):
+        return DynamicBodyPropertiesTuple(
+            mass_density=self.mass_density,
+            mu=self.mu,
+            lambda_=self.lambda_,
+            theta=self.theta,
+            zeta=self.zeta,
+        )
 
 
 @dataclass

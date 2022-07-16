@@ -10,7 +10,6 @@ import numpy as np
 import scipy.sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
-from conmech.dynamics.factory.new_3d import precomputation_numba
 from conmech.helpers import cmh, jxh
 from conmech.properties.body_properties import (
     StaticBodyProperties,
@@ -106,10 +105,6 @@ class Dynamics(BodyPosition):
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
-        self.B_m, self.W, self.D_m = precomputation_numba(
-            nodes=self.initial_nodes, elements=self.elements
-        )
-
         # print("Initializing matrices...")
         fun_dyn = lambda: get_dynamics(
             elements=self.elements,
@@ -118,14 +113,6 @@ class Dynamics(BodyPosition):
             independent_indices=self.independent_indices,
         )
         self.matrices = cmh.profile(fun_dyn, baypass=True)
-
-        def calculate_acceleration(U, density):
-            Z = scipy.sparse.csr_matrix(U.shape)
-            return density * scipy.sparse.bmat([[U, Z, Z], [Z, U, Z], [Z, Z, U]], format="csr")
-
-        mm = calculate_acceleration(self.matrices.volume_at_nodes, 1.0)
-        self.mass_matrix = jxh.to_jax_sparse(mm)
-        # self.mass_matrix_inv = jnp.asarray(np.linalg.inv(mm.todense()))
 
         if not self.with_lhs:
             return
@@ -145,8 +132,6 @@ class Dynamics(BodyPosition):
         self.solver_cache.lhs_preconditioner_U_cp = jxh.to_inverse_diagonal(
             self.solver_cache.lhs_sparse_U_cp
         )
-
-        self.solver_cache.elasticity_jax = jxh.to_jax_sparse(self.matrices.elasticity_on)
 
         lhs_sparse_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse)
         self.solver_cache.lhs_sparse_cp = lhs_sparse_cp

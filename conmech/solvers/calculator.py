@@ -1,4 +1,3 @@
-from binascii import a2b_base64
 from ctypes import ArgumentError
 from typing import Callable, Optional
 
@@ -13,11 +12,20 @@ import jax.scipy.optimize
 import numpy as np
 import scipy.optimize
 import scipy.sparse.linalg
+from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_flatten, tree_unflatten
 
 from conmech.helpers import cmh, jxh, nph
-from conmech.scene.scene import Scene
+from conmech.scene.scene import (
+    Scene,
+    energy_obstacle_colliding_new,
+    energy_obstacle_new,
+    hes_energy_obstacle_colliding_new,
+    hes_energy_obstacle_new,
+)
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.lbfgs import minimize_lbfgs
+from conmech.solvers.lbfgs2 import minimize2
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
@@ -36,29 +44,51 @@ class Calculator:
     MAX_K = 0
 
     @staticmethod
-    def minimize_jax(
-        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray, scale: float = 1
-    ) -> np.ndarray:
-        # vector = 30 * np.ones_like(initial_vector)
-        # vector[::2] *= 2
-        # vector[::4] *= -2
-        # function(vector)
-
-        # result = scipy.optimize.minimize(
-        #     function,
-        #     initial_vector,
-        #     method="L-BFGS-B",
-        # )
-        # return result.x
+    def minimize_jax(function, hes, initial_vector: np.ndarray, args) -> np.ndarray:
 
         x0 = jnp.asarray(initial_vector)
+        x0_flat, unravel = ravel_pytree(x0)
+        jac = jax.jit(jax.grad(function))
+
+        def jac_wrapper(x_flat, *args):
+            x = unravel(x_flat)
+            g_flat, _ = ravel_pytree(jac(x, *args))
+            return np.array(g_flat)
+
+        result = scipy.optimize.minimize(
+            function,
+            x0_flat,
+            jac=jac_wrapper,
+            args=(args,),
+            method="L-BFGS-B",
+        )
+        return result.x
+
+        result = minimize2(
+            fun=lambda x: x**2,  # lambda x, a: function(x, a).item(),
+            x0=x0,
+            method="L-BFGS-B",
+            args=(),
+            bounds=None,
+            constraints=(),
+            tol=None,
+            callback=None,
+            options=None,
+        )
+        return result.x
+
+        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x)
+        # hes_jax = jax.jit(lambda x: hvp(function, x, x))
+        # hes_at_x0 = hes_jax(x0)  # jnp.zeros_like(x0)
+        # q, _ = jax.scipy.sparse.linalg.cg(A=hes_jax, b=x0)
 
         state = cmh.profile(
             lambda: minimize_lbfgs(
-                function,
-                x0,
-                init_hes=None,
-                xtol_max=2.0,  # 0.1 * scale,
+                fun=function,
+                args=args,
+                x0=x0,
+                hes=None,  # hes,  # None,
+                xtol_max=0.1,  # 0.1 * scale,
                 xtol_mean=0.1,  # 0.001 * scale,
                 max_iter=500,
             ),
@@ -295,9 +325,8 @@ class Calculator:
             )
 
         cost_function, _ = setting.get_normalized_energy_obstacle_jax_U(temperature)
-
         normalized_u_vector_np = Calculator.minimize_jax(
-            function=cost_function,
+            function=cost_function_jax,
             initial_vector=initial_u_vector,
             scale=0.1,  # (setting.time_step)
         )
@@ -313,11 +342,22 @@ class Calculator:
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        cost_function, _ = setting.get_normalized_energy_obstacle_jax_new(temperature)
+        args = setting.get_normalized_energy_obstacle_jax_new(temperature)
 
-        normalized_a_vector_np = Calculator.minimize_jax(
-            function=cost_function, initial_vector=initial_a_vector
-        )
+        if not setting.is_colliding():
+            normalized_a_vector_np = Calculator.minimize_jax(
+                function=energy_obstacle_new,
+                hes=hes_energy_obstacle_new,
+                initial_vector=initial_a_vector,
+                args=args,
+            )
+        else:
+            normalized_a_vector_np = Calculator.minimize_jax(
+                function=energy_obstacle_colliding_new,
+                hes=hes_energy_obstacle_colliding_new,
+                initial_vector=initial_a_vector,
+                args=args,
+            )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)
         return nph.unstack(normalized_a_vector, setting.dimension)

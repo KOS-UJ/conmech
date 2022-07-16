@@ -17,8 +17,8 @@ def energy(value, solver_cache, rhs):
     return energy_vector(nph.stack_column(value), solver_cache, rhs)
 
 
-def get_lhs_times_value(value_vector, solver_cache):
-    return solver_cache.lhs_boundary @ value_vector
+def get_lhs_times_value(value_vector, lhs):
+    return lhs @ value_vector
     # contact_x_contact - contact_x_free @ free_x_free_inverted @ free_x_contact
     s1 = solver_cache.free_x_contact @ value_vector
     s2 = jxh.solve_linear_jax(matrix=solver_cache.free_x_free, vector=s1)
@@ -27,8 +27,8 @@ def get_lhs_times_value(value_vector, solver_cache):
     return s4
 
 
-def energy_vector(value_vector, solver_cache, rhs):
-    lhs_times_value = get_lhs_times_value(value_vector, solver_cache)
+def energy_vector(value_vector, lhs, rhs):
+    lhs_times_value = lhs @ value_vector
     first = 0.5 * lhs_times_value - rhs
     value = first.reshape(-1) @ value_vector
     return value[0]

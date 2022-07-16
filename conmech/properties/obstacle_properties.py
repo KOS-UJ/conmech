@@ -1,12 +1,12 @@
-from dataclasses import dataclass
+from typing import NamedTuple
 
 
-@dataclass
-class ObstacleProperties:
+class ObstacleProperties(NamedTuple):
     hardness: float
     friction: float
 
 
-@dataclass
-class TemperatureObstacleProperties(ObstacleProperties):
+class TemperatureObstacleProperties(NamedTuple):
+    hardness: float
+    friction: float
     heat: float
