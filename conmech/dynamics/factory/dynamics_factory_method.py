@@ -127,13 +127,13 @@ def get_dynamics(
         ]
     )  # [i, i]
 
-    result.elasticity = 0 * (
+    result.elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
         else None
     )
 
-    result.viscosity = 0 * (
+    result.viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, DynamicBodyProperties)
         else None

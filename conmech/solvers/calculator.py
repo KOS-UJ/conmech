@@ -18,8 +18,8 @@ from jax.tree_util import tree_flatten, tree_unflatten
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.scene import (
     Scene,
-    energy_obstacle_colliding_new,
-    energy_obstacle_new,
+    energy_obstacle_colliding_jax,
+    energy_obstacle_jax,
     hes_energy_obstacle_colliding_new,
     hes_energy_obstacle_new,
 )
@@ -47,35 +47,35 @@ class Calculator:
     def minimize_jax(function, hes, initial_vector: np.ndarray, args) -> np.ndarray:
 
         x0 = jnp.asarray(initial_vector)
-        x0_flat, unravel = ravel_pytree(x0)
-        jac = jax.jit(jax.grad(function))
+        # jac = jax.jit(jax.grad(function))
+        # result = cmh.profile(
+        #     lambda: scipy.optimize.minimize(
+        #         function,
+        #         x0,
+        #         jac=jac,
+        #         args=(args,),
+        #         method="L-BFGS-B",
+        #     ),
+        #     baypass=True,
+        # )
+        # return result.x
 
-        def jac_wrapper(x_flat, *args):
-            x = unravel(x_flat)
-            g_flat, _ = ravel_pytree(jac(x, *args))
-            return np.array(g_flat)
+        # result = cmh.profile(
+        #     lambda: jax.scipy.optimize.minimize(
+        #         function,
+        #         x0,
+        #         args=(args,),
+        #         method="l-bfgs-experimental-do-not-rely-on-this",
+        #     ),
+        #     baypass=False,
+        # )
+        # return np.array(result.x)
 
-        result = scipy.optimize.minimize(
-            function,
-            x0_flat,
-            jac=jac_wrapper,
-            args=(args,),
-            method="L-BFGS-B",
+        result = cmh.profile(
+            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
+            baypass=True,
         )
-        return result.x
-
-        result = minimize2(
-            fun=lambda x: x**2,  # lambda x, a: function(x, a).item(),
-            x0=x0,
-            method="L-BFGS-B",
-            args=(),
-            bounds=None,
-            constraints=(),
-            tol=None,
-            callback=None,
-            options=None,
-        )
-        return result.x
+        return np.array(result.x_k)
 
         # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x)
         # hes_jax = jax.jit(lambda x: hvp(function, x, x))
@@ -239,41 +239,6 @@ class Calculator:
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
-    def solve_acceleration_normalized_function_U(setting, temperature=None, initial_a=None):
-        w_vector = nph.stack_column(
-            setting.velocity_old * setting.time_step + setting.displacement_old
-        )
-        x0 = (
-            cp.array(nph.stack_column(initial_a) * (setting.time_step**2) + w_vector)
-            if initial_a is not None
-            else None
-        )
-
-        A = setting.solver_cache.lhs_sparse_U_cp
-        b = setting.get_normalized_rhs_cp_U(temperature)
-
-        M = setting.solver_cache.lhs_preconditioner_U_cp
-
-        normalized_u_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
-        normalized_a_vector_cp = (nph.stack_column(normalized_u_vector_cp) - cp.array(w_vector)) / (
-            setting.time_step**2
-        )
-
-        normalized_a_vector = normalized_a_vector_cp.get()
-        acceleration = nph.unstack(normalized_a_vector, setting.dimension)
-
-        # A2 = setting.solver_cache.lhs_sparse_cp
-        # b2 = setting.get_normalized_rhs_cp(temperature)
-        # x02 = None  # cp.array(nph.stack_column(initial_a)) if initial_a is not None else None
-
-        # M2 = setting.solver_cache.lhs_preconditioner_cp
-
-        # normalized_a_vector_cp2, _ = cupyx.scipy.sparse.linalg.cg(A=A2, b=b2, x0=x02, M=M2)
-        # normalized_a_vector2 = normalized_a_vector_cp2.get()
-        # a_2 = nph.unstack(normalized_a_vector2, setting.dimension)
-        return acceleration
-
-    @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         normalized_rhs = setting.get_normalized_rhs_cp(temperature)
 
@@ -307,82 +272,36 @@ class Calculator:
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
-    def get_acceleration_energy(setting, acceleration):
-        initial_a_boundary_vector = nph.stack_column(acceleration[setting.boundary_indices])
-
-        cost_function, _ = setting.get_normalized_energy_obstacle_jax()
-        energy = cost_function(initial_a_boundary_vector)
-        return energy
-
-    @staticmethod
-    def solve_acceleration_normalized_optimization_jax_U(setting, temperature=None, initial_a=None):
-        w = setting.velocity_old * setting.time_step + setting.displacement_old
-        if initial_a is None:
-            initial_u_vector = np.zeros(setting.nodes_count * setting.dimension)
-        else:
-            initial_u_vector = nph.stack_column(initial_a * (setting.time_step**2) + w).reshape(
-                -1
-            )
-
-        cost_function, _ = setting.get_normalized_energy_obstacle_jax_U(temperature)
-        normalized_u_vector_np = Calculator.minimize_jax(
-            function=cost_function_jax,
-            initial_vector=initial_u_vector,
-            scale=0.1,  # (setting.time_step)
-        )
-        normalized_a = (nph.unstack(normalized_u_vector_np, setting.dimension) - w) / (
-            setting.time_step**2
-        )
-        return normalized_a
-
-    @staticmethod
     def solve_acceleration_normalized_optimization_jax(setting, temperature=None, initial_a=None):
         if initial_a is None:
             initial_a_vector = np.zeros(setting.nodes_count * setting.dimension)
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        args = setting.get_normalized_energy_obstacle_jax_new(temperature)
+        args = setting.get_energy_obstacle_jax(temperature)
 
-        if not setting.is_colliding():
-            normalized_a_vector_np = Calculator.minimize_jax(
-                function=energy_obstacle_new,
-                hes=hes_energy_obstacle_new,
-                initial_vector=initial_a_vector,
-                args=args,
-            )
-        else:
-            normalized_a_vector_np = Calculator.minimize_jax(
-                function=energy_obstacle_colliding_new,
-                hes=hes_energy_obstacle_colliding_new,
-                initial_vector=initial_a_vector,
-                args=args,
-            )
+        def get_vector():
+            if not setting.is_colliding():
+                return Calculator.minimize_jax(
+                    function=energy_obstacle_jax,
+                    hes=hes_energy_obstacle_new,
+                    initial_vector=initial_a_vector,
+                    args=args,
+                )
+            else:
+                return Calculator.minimize_jax(
+                    function=energy_obstacle_colliding_jax,
+                    hes=hes_energy_obstacle_colliding_new,
+                    initial_vector=initial_a_vector,
+                    args=args,
+                )
+
+        normalized_a_vector_np = cmh.profile(
+            get_vector,
+            baypass=True,  # False,
+        )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)
-        return nph.unstack(normalized_a_vector, setting.dimension)
-
-    @staticmethod
-    def solve_acceleration_normalized_optimization_jax_old(
-        setting, temperature=None, initial_a=None
-    ):
-        if initial_a is None:
-            initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)
-        else:
-            initial_a_boundary_vector = nph.stack(initial_a[setting.boundary_indices])
-
-        (cost_function, normalized_rhs_free) = setting.get_normalized_energy_obstacle_jax(
-            temperature
-        )
-        normalized_boundary_a_vector_np = Calculator.minimize_jax(
-            function=cost_function, initial_vector=initial_a_boundary_vector
-        )
-
-        normalized_boundary_a_vector = normalized_boundary_a_vector_np.reshape(-1, 1)
-        normalized_a_vector = Calculator.complete_a_vector(
-            setting, normalized_rhs_free, normalized_boundary_a_vector
-        )
-
         return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod

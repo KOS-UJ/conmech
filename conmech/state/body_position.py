@@ -48,7 +48,7 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
 
     internal_nodes = moved_nodes[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
-        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
+        nph.elementwise_dot_jax(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
     )
     return unoriented_normals * external_orientation
 

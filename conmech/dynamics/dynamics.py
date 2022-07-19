@@ -114,6 +114,8 @@ class Dynamics(BodyPosition):
         )
         self.matrices = cmh.profile(fun_dyn, baypass=True)
 
+        self.solver_cache.lhs_acceleration_jax = jxh.to_jax_sparse(self.matrices.acceleration_operator)
+
         if not self.with_lhs:
             return
 
@@ -122,20 +124,8 @@ class Dynamics(BodyPosition):
             + (self.matrices.viscosity + self.matrices.elasticity * self.time_step) * self.time_step
         )
 
-        self.solver_cache.lhs_sparse_U = (
-            self.matrices.acceleration_operator * ((1 / self.time_step) ** 2)
-            + self.matrices.elasticity
-        )
-
-        self.solver_cache.lhs_sparse_U_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse_U)
-        self.solver_cache.lhs_sparse_U_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse_U)
-        self.solver_cache.lhs_preconditioner_U_cp = jxh.to_inverse_diagonal(
-            self.solver_cache.lhs_sparse_U_cp
-        )
-
         lhs_sparse_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse)
         self.solver_cache.lhs_sparse_cp = lhs_sparse_cp
-        self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
         # Calculating Jacobi preconditioner
         # TODO: Check SSOR / Incomplete Cholesky
         self.solver_cache.lhs_preconditioner_cp = jxh.to_inverse_diagonal(lhs_sparse_cp)

@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy.sparse.linalg
 from jax import lax
+from jax._src.scipy.optimize.line_search import line_search
 
 _dot = partial(jnp.dot, precision=lax.Precision.HIGHEST)
 
@@ -256,8 +257,18 @@ class _LineSearchResults(NamedTuple):
     status: Union[bool, jnp.ndarray]
 
 
-def line_search(
-    f, args, xk, pk, old_fval=None, old_old_fval=None, gfk=None, c1=1e-4, c2=0.9, maxiter=20
+@jax.jit
+def custom_line_search_jax(
+    fun,
+    args,
+    xk,
+    pk,
+    old_fval=None,
+    old_old_fval=None,
+    gfk=None,
+    c1=1e-4,
+    c2=0.9,
+    maxiter=20,
 ):
     """Inexact line search that satisfies strong Wolfe conditions.
 
@@ -277,7 +288,8 @@ def line_search(
     """
 
     def restricted_func_and_grad(t):
-        phi, g = jax.value_and_grad(f)(xk + t * pk, args)
+        phi, g = jax.value_and_grad(fun)(xk + t * pk, args)  ###
+
         dphi = jnp.real(_dot(g, pk))
         return phi, dphi, g
 
@@ -462,10 +474,8 @@ class LBFGSResults(NamedTuple):
     """
 
     converged: Union[bool, Array]
-    overrun: Union[bool, Array]
-    xdiff_max: float
-    xdiff_mean: float
-    iter_count: Union[int, Array]
+    failed: Union[bool, Array]
+    k: Union[int, Array]
     nfev: Union[int, Array]
     ngev: Union[int, Array]
     x_k: Array
@@ -475,90 +485,40 @@ class LBFGSResults(NamedTuple):
     y_history: Array
     rho_history: Array
     gamma: Union[float, Array]
+    status: Union[int, Array]
     ls_status: Union[int, Array]
-    args: dict
-    hes: float
-    xtol_max: float
-    xtol_mean: float
-    max_iter: float
-    maxls: float
+    ###
     fun: Callable
-
-
-##############################
-
-
-# @jax.jit
-def cond_fun(state: LBFGSResults):
-    return (~state.converged) & (~state.overrun)
-
-
-# @jax.jit
-def body_fun(state: LBFGSResults):
-    # find search direction
-    p_k = _two_loop_recursion(state, state.hes)
-
-    # line search
-    ls_results = line_search(
-        f=state.fun,
-        args=state.args,
-        xk=state.x_k,
-        pk=p_k,
-        old_fval=state.f_k,
-        gfk=state.g_k,
-        maxiter=state.maxls,
-    )
-
-    # evaluate at next iterate
-    s_k = ls_results.a_k * p_k
-    x_kp1 = state.x_k + s_k
-    f_kp1 = ls_results.f_k
-    g_kp1 = ls_results.g_k
-    y_k = g_kp1 - state.g_k
-    rho_k_inv = jnp.real(_dot(y_k, s_k))
-    rho_k = jnp.reciprocal(rho_k_inv)
-    gamma = rho_k_inv / jnp.real(_dot(jnp.conj(y_k), y_k))
-
-    # Added custom stop criterion
-    normalized_step = jnp.abs(s_k)
-    xdiff_max = jnp.max(normalized_step)
-    xdiff_mean = jnp.mean(normalized_step)
-    converged = (xdiff_max < state.xtol_max) & (xdiff_mean < state.xtol_mean)
-    overrun = state.max_iter is not None and state.iter_count >= state.max_iter
-
-    # TODO(jakevdp): use a fixed-point procedure rather than type-casting?
-    state = state._replace(
-        converged=converged,
-        overrun=overrun,
-        xdiff_max=xdiff_max,
-        xdiff_mean=xdiff_mean,
-        iter_count=state.iter_count + 1,
-        nfev=state.nfev + ls_results.nfev,
-        ngev=state.ngev + ls_results.ngev,
-        x_k=x_kp1.astype(state.x_k.dtype),
-        f_k=f_kp1.astype(state.f_k.dtype),
-        g_k=g_kp1.astype(state.g_k.dtype),
-        s_history=_update_history_vectors(history=state.s_history, new=s_k),
-        y_history=_update_history_vectors(history=state.y_history, new=y_k),
-        rho_history=_update_history_scalars(history=state.rho_history, new=rho_k),
-        gamma=gamma,
-        ls_status=ls_results.status,
-    )
-
-    return state
+    args: dict
+    # hes: float
+    # xtol_max: float
+    # xtol_mean: float
+    # max_iter: float
+    maxiter: float
+    norm: float
+    ftol: float
+    gtol: float
+    maxfun: float
+    maxgrad: float
+    maxls: float
+    xtol: float
 
 
 def minimize_lbfgs(
-    fun,
+    fun: Callable,
     args,
     x0: Array,
-    xtol_max: float,
-    xtol_mean: float,
-    max_iter: Optional[int],
-    hes: Optional[Array] = None,
+    maxiter: Optional[float] = None,
+    norm=jnp.inf,
     maxcor: int = 10,
+    ftol: float = 2.220446049250313e-09,
+    gtol: float = 1e-05,
+    maxfun: Optional[float] = None,
+    maxgrad: Optional[float] = None,
     maxls: int = 20,
+    xtol: float = 1e-03,
 ):
+    # print("Minimize")
     """
     Minimize a function using L-BFGS
 
@@ -588,14 +548,26 @@ def minimize_lbfgs(
     d = len(x0)
     dtype = jnp.dtype(x0)
 
+    # ensure there is at least one termination condition
+    if (maxiter is None) and (maxfun is None) and (maxgrad is None):
+        maxiter = d * 200
+
+    # set others to inf, such that >= is supported
+    if maxiter is None:
+        maxiter = jnp.inf
+    if maxfun is None:
+        maxfun = jnp.inf
+    if maxgrad is None:
+        maxgrad = jnp.inf
+
     # initial evaluation
+    # f_0, g_0 = jax.value_and_grad(fun)(x0)
     f_0, g_0 = jax.value_and_grad(fun)(x0, args)
+
     state_initial = LBFGSResults(
         converged=False,
-        overrun=False,
-        xdiff_max=jnp.inf,
-        xdiff_mean=jnp.inf,
-        iter_count=0,
+        failed=False,
+        k=0,
         nfev=1,
         ngev=1,
         x_k=x0,
@@ -605,23 +577,31 @@ def minimize_lbfgs(
         y_history=jnp.zeros((maxcor, d), dtype=dtype),
         rho_history=jnp.zeros((maxcor,), dtype=dtype),
         gamma=1.0,
+        status=0,
         ls_status=0,
-        args=args,
-        hes=None if hes is None else jax.tree_util.Partial(hes),
-        xtol_max=xtol_max,
-        xtol_mean=xtol_mean,
-        max_iter=max_iter,
-        maxls=maxls,
+        ###
         fun=jax.tree_util.Partial(fun),
+        args=args,
+        # hes=None if hes is None else jax.tree_util.Partial(hes),
+        # xtol_max=xtol_max,
+        # xtol_mean=xtol_mean,
+        # max_iter=max_iter,
+        maxiter=maxiter,
+        norm=norm,
+        ftol=ftol,
+        gtol=gtol,
+        maxfun=maxfun,
+        maxgrad=maxgrad,
+        maxls=maxls,
+        xtol=xtol,
     )
 
-    state = lax.while_loop(cond_fun, body_fun, state_initial)
-    return state
+    return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
 
 
-def _two_loop_recursion(state: LBFGSResults, hes: Optional[Array] = None):
+def _two_loop_recursion(state: LBFGSResults):
     his_size = len(state.rho_history)
-    curr_size = jnp.where(state.iter_count < his_size, state.iter_count, his_size)
+    curr_size = jnp.where(state.k < his_size, state.k, his_size)
     q = -jnp.conj(state.g_k)
     a_his = jnp.zeros_like(state.rho_history)
 
@@ -634,13 +614,14 @@ def _two_loop_recursion(state: LBFGSResults, hes: Optional[Array] = None):
         return _q, _a_his
 
     q, a_his = lax.fori_loop(0, curr_size, body_fun1, (q, a_his))
+    q = state.gamma * q
 
     # Added Hessian preconditioning
-    if hes is None:
-        q = state.gamma * q
-    else:
-        A = lambda x: hes(x, state.args)
-        q, _ = jax.scipy.sparse.linalg.cg(A=A, b=q)  # , M=M)
+    # if hes is None:
+    #     q = state.gamma * q
+    # else:
+    #     A = lambda x: hes(x, state.args)
+    #     q, _ = jax.scipy.sparse.linalg.cg(A=A, b=q)  # , M=M)
 
     def body_fun2(j, _q):
         i = his_size - curr_size + j
@@ -660,3 +641,69 @@ def _update_history_vectors(history, new):
 def _update_history_scalars(history, new):
     # TODO(Jakob-Unfried) use rolling buffer instead? See #6053
     return jnp.roll(history, -1, axis=0).at[-1].set(new)
+
+
+@jax.jit
+def cond_fun_jax(state: LBFGSResults):
+    return (~state.converged) & (~state.failed)
+
+
+@jax.jit
+def body_fun_jax(state: LBFGSResults):
+    # find search direction
+    p_k = _two_loop_recursion(state)
+
+    # line search
+    ls_results = custom_line_search_jax(
+        fun=state.fun,
+        args=state.args,  ###
+        xk=state.x_k,
+        pk=p_k,
+        old_fval=state.f_k,
+        gfk=state.g_k,
+        maxiter=state.maxls,
+    )
+
+    # evaluate at next iterate
+    s_k = ls_results.a_k * p_k
+    x_kp1 = state.x_k + s_k
+    f_kp1 = ls_results.f_k
+    g_kp1 = ls_results.g_k
+    y_k = g_kp1 - state.g_k
+    rho_k_inv = jnp.real(_dot(y_k, s_k))
+    rho_k = jnp.reciprocal(rho_k_inv)
+    gamma = rho_k_inv / jnp.real(_dot(jnp.conj(y_k), y_k))
+
+    # replacements for next iteration
+    status = 0
+    status = jnp.where(state.f_k - f_kp1 < state.ftol, 4, status)
+    status = jnp.where(state.ngev >= state.maxgrad, 3, status)  # type: ignore
+    status = jnp.where(state.nfev >= state.maxfun, 2, status)  # type: ignore
+    status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
+    status = jnp.where(ls_results.failed, 5, status)
+
+    norm = jnp.inf  # state.norm ###
+    # converged = jnp.linalg.norm(g_kp1, ord=norm) < state.gtol
+
+    # Added custom stop criterion
+    converged = jnp.linalg.norm(s_k, ord=norm) < state.xtol
+
+    # TODO(jakevdp): use a fixed-point procedure rather than type-casting?
+    state = state._replace(
+        converged=converged,
+        failed=(status > 0) & (~converged),
+        k=state.k + 1,
+        nfev=state.nfev + ls_results.nfev,
+        ngev=state.ngev + ls_results.ngev,
+        x_k=x_kp1.astype(state.x_k.dtype),
+        f_k=f_kp1.astype(state.f_k.dtype),
+        g_k=g_kp1.astype(state.g_k.dtype),
+        s_history=_update_history_vectors(history=state.s_history, new=s_k),
+        y_history=_update_history_vectors(history=state.y_history, new=y_k),
+        rho_history=_update_history_scalars(history=state.rho_history, new=rho_k),
+        gamma=gamma,
+        status=jnp.where(converged, 0, status),
+        ls_status=ls_results.status,
+    )
+
+    return state

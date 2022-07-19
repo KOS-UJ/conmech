@@ -27,7 +27,7 @@ def integrate(
     # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
     # v_tangential = nph.get_tangential(velocity, nodes_normals)
 
-    v_tangential = nph.get_tangential(velocity, obstacle_normals)
+    v_tangential = nph.get_tangential_jax(velocity, obstacle_normals)
     heat = obstacle_heat(penetration, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
