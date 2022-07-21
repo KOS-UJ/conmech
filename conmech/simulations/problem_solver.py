@@ -9,7 +9,6 @@ from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.dynamics.statement import (
     StaticDisplacementStatement,
     QuasistaticVelocityStatement,
-    DynamicVelocityStatement,
     DynamicVelocityWithTemperatureStatement,
     TemperatureStatement,
 )
@@ -40,6 +39,7 @@ class ProblemSolver:
         self.thermal_expansion = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         self.thermal_conductivity = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
+        # TODO DynamicVelocityStatement
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         body_prop = (
             DynamicTemperatureBodyProperties(
