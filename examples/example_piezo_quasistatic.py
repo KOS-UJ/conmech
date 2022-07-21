@@ -37,7 +37,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * u_tau ** 2
+        return 0.1 * 0.5 * u_tau**2
 
 
 @dataclass()
@@ -53,7 +53,7 @@ class PQuasistaticSetup(Quasistatic):
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
-        return np.asarray([0.])
+        return np.asarray([0.0])
 
     @staticmethod
     def inner_forces(x, y):
@@ -62,9 +62,9 @@ class PQuasistaticSetup(Quasistatic):
     @staticmethod
     def outer_forces(x, y):
         if x == 0:
-            return np.array([48. * (0.25 - (y - .5) ** 2), 0])
+            return np.array([48.0 * (0.25 - (y - 0.5) ** 2), 0])
         if x == 2.5:
-            return np.array([-48. * (0.25 - (y - .5) ** 2), 0])
+            return np.array([-48.0 * (0.25 - (y - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod
@@ -84,10 +84,14 @@ def main(show: bool):
     setup = PQuasistaticSetup()
     runner = PQuasistatic(setup, solving_method="piezo")
 
-    states = runner.solve(n_steps=32, output_step=range(0, 32, 4), verbose=True,
-                          initial_displacement=setup.initial_displacement,
-                          initial_velocity=setup.initial_velocity,
-                          initial_electric_potential=setup.initial_electric_potential)
+    states = runner.solve(
+        n_steps=32,
+        output_step=range(0, 32, 4),
+        verbose=True,
+        initial_displacement=setup.initial_displacement,
+        initial_velocity=setup.initial_velocity,
+        initial_electric_potential=setup.initial_electric_potential,
+    )
     e_max = -np.inf
     e_min = np.inf
     for state in states:

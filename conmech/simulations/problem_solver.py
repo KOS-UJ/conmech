@@ -6,8 +6,13 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
-from conmech.dynamics.statement import StaticDisplacementStatement, QuasistaticVelocityStatement, \
-    DynamicVelocityStatement, DynamicVelocityWithTemperatureStatement, TemperatureStatement
+from conmech.dynamics.statement import (
+    StaticDisplacementStatement,
+    QuasistaticVelocityStatement,
+    DynamicVelocityStatement,
+    DynamicVelocityWithTemperatureStatement,
+    TemperatureStatement,
+)
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -208,7 +213,7 @@ class ProblemSolver:
                 self.validator,
                 temperature=solution_t,
                 verbose=verbose,
-                velocity=solution
+                velocity=solution,
             )
             solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
             self.step_solver.t_vector = solution_t
