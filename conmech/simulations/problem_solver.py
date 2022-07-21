@@ -10,11 +10,14 @@ from conmech.dynamics.statement import (
     StaticDisplacementStatement,
     QuasistaticVelocityStatement,
     DynamicVelocityWithTemperatureStatement,
-    TemperatureStatement, DynamicVelocityStatement,
+    TemperatureStatement,
+    DynamicVelocityStatement,
 )
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
-    StaticTemperatureBodyProperties, BodyProperties, DynamicBodyProperties, StaticBodyProperties,
+    BodyProperties,
+    DynamicBodyProperties,
+    StaticBodyProperties,
     DynamicPiezoelectricBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
@@ -40,7 +43,7 @@ class ProblemSolver:
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        # TODO DynamicVelocityStatement
+        # FIXME DynamicVelocityStatement
         with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
         time_step = setup.time_step if with_time else 0
 
@@ -100,7 +103,7 @@ class ProblemSolver:
         self.step_solver = solver_class(
             statement,
             self.body,
-            self.body.body_prop,  # TODO: remove
+            self.body.body_prop,  # FIXME: remove
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,
@@ -109,7 +112,7 @@ class ProblemSolver:
             self.second_step_solver = solver_class(
                 TemperatureStatement(self.body),
                 self.body,
-                self.body.body_prop,  # TODO: remove
+                self.body.body_prop,  # FIXME: remove
                 time_step,
                 self.setup.contact_law,
                 self.setup.friction_bound,
@@ -154,7 +157,7 @@ class ProblemSolver:
 
     def find_solution(
         self, state, solution, validator, *, verbose=False, **kwargs
-    ) -> np.ndarray:  # TODO
+    ) -> np.ndarray:  # FIXME
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
@@ -209,11 +212,11 @@ class Static(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = StaticBodyProperties(  # TODO handle temperature
-                mass_density=1.0,
-                mu=setup.mu_coef,
-                lambda_=setup.la_coef,
-            )
+        body_prop = StaticBodyProperties(  # FIXME handle temperature
+            mass_density=1.0,
+            mu=setup.mu_coef,
+            lambda_=setup.la_coef,
+        )
         super().__init__(setup, body_prop)
 
         self.coordinates = "displacement"
@@ -249,13 +252,13 @@ class Quasistatic(ProblemSolver):
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         # Quasistatic and dynamic problems require the same body properties (time dependent).
-        body_prop = DynamicBodyProperties(  # TODO handle temperature
-                mass_density=1.0,
-                mu=setup.mu_coef,
-                lambda_=setup.la_coef,
-                theta=setup.th_coef,
-                zeta=setup.ze_coef,
-            )
+        body_prop = DynamicBodyProperties(  # FIXME handle temperature
+            mass_density=1.0,
+            mu=setup.mu_coef,
+            lambda_=setup.la_coef,
+            theta=setup.th_coef,
+            zeta=setup.ze_coef,
+        )
         super().__init__(setup, body_prop)
 
         self.coordinates = "velocity"
@@ -381,7 +384,9 @@ class TemperatureDynamic(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.thermal_expansion = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])  # TODO
+        self.thermal_expansion = np.array(
+            [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
+        )  # FIXME
         self.thermal_conductivity = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         body_prop = DynamicTemperatureBodyProperties(
@@ -489,8 +494,8 @@ class PiezoelectricQuasistatic(ProblemSolver):
             lambda_=setup.la_coef,
             theta=setup.th_coef,
             zeta=setup.ze_coef,
-            piezoelectricity=setup.piezoelectricity,  # TODO
-            permittivity=setup.permittivity,  # TODO
+            piezoelectricity=setup.piezoelectricity,  # FIXME
+            permittivity=setup.permittivity,  # FIXME
         )
         super().__init__(setup, body_prop)
 
