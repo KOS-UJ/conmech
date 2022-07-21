@@ -226,4 +226,4 @@ class Dynamic(SchurComplement):
                 time_step=self.time_step,
             )
         )
-        self._point_forces, self.forces_free = self.recalculate_forces()
+        self._node_forces, self.forces_free = self.recalculate_forces()
