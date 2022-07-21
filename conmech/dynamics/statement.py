@@ -13,8 +13,8 @@ class Variables:
 
 
 class Statement:
-    def __init__(self, dynamics, dimension):
-        self.dynamics = dynamics
+    def __init__(self, body, dimension):
+        self.body = body
         self.dimension = dimension
         self.left_hand_side = None
         self.right_hand_side = None
@@ -76,7 +76,7 @@ class DynamicVelocityStatement(Statement):
 
         A += (1 / var.time_step) * self.body.acceleration_operator @ var.velocity
 
-        self.right_hand_side = self.body.forces.get_integrated_forces_vector() + A
+        self.right_hand_side = self.body.get_integrated_forces_vector() + A
 
 
 class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):

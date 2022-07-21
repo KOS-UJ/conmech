@@ -130,7 +130,7 @@ class SchurComplement(Optimization):
         solution = self.merge(solution_contact, solution_free)
         return solution
 
-    def truncate_free_node(self, initial_guess: np.ndarray) -> np.ndarray:
+    def truncate_free_nodes(self, initial_guess: np.ndarray) -> np.ndarray:
         if self.statement.dimension == 2:
             _result = initial_guess.reshape(2, -1)
             _result = _result[:, self.contact_ids]
@@ -139,7 +139,7 @@ class SchurComplement(Optimization):
             return result
         return initial_guess[self.contact_ids]
 
-    def complement_free_node(self, truncated_solution: np.ndarray) -> np.ndarray:
+    def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
         if self.statement.dimension == 2:
             _result = truncated_solution.reshape(-1, 1)
             _result = self.free_x_contact @ _result

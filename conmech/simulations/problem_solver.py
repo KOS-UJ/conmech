@@ -98,7 +98,7 @@ class ProblemSolver:
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
-            statement = StaticDisplacementStatement(self.mesh)
+            statement = StaticDisplacementStatement(self.body)
             time_step = 0
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
@@ -109,9 +109,9 @@ class ProblemSolver:
             )
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             if isinstance(self.setup, QuasistaticProblem):
-                statement = QuasistaticVelocityStatement(self.mesh)
+                statement = QuasistaticVelocityStatement(self.body)
             else:
-                statement = DynamicVelocityWithTemperatureStatement(self.mesh)
+                statement = DynamicVelocityWithTemperatureStatement(self.body)
             body_prop = DynamicTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
@@ -135,8 +135,8 @@ class ProblemSolver:
         )
         if isinstance(self.setup, DynamicProblem) and hasattr(self.setup.contact_law, "h_temp"):
             self.second_step_solver = solver_class(
-                TemperatureStatement(self.mesh),
-                self.mesh,
+                TemperatureStatement(self.body),
+                self.body,
                 body_prop,
                 time_step,
                 self.setup.contact_law,
