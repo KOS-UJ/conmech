@@ -8,8 +8,8 @@ import numpy as np
 
 from conmech.helpers.config import Config
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import Dynamic
-from conmech.simulations.problem_solver import TDynamic as TDynamicProblemSolver
+from conmech.scenarios.problems import TemperatureDynamic
+from conmech.simulations.problem_solver import TemperatureDynamic as TDynamicProblemSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -43,7 +43,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class TDynamicSetup(Dynamic):
+class TDynamicSetup(TemperatureDynamic):
     grid_height: ... = 1.0
     elements_number: ... = (4, 10)
     mu_coef: ... = 4

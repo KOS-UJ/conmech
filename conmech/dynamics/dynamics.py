@@ -6,8 +6,8 @@ import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
 from conmech.properties.body_properties import (
-    StaticBodyProperties,
     TemperatureBodyProperties,
+    BodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -59,7 +59,7 @@ class Dynamics(BodyPosition):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: StaticBodyProperties,
+        body_prop: BodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
         is_dirichlet: Callable,

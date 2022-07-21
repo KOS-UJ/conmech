@@ -21,7 +21,7 @@ class DynamicBodyProperties(StaticBodyProperties):
 
 
 @dataclass
-class PiezoelectricityBodyProperties:
+class PiezoelectricBodyProperties:
     piezoelectricity: np.ndarray
     permittivity: np.ndarray
 
@@ -39,4 +39,9 @@ class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyPrope
 
 @dataclass
 class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
+    pass
+
+
+@dataclass
+class DynamicPiezoelectricBodyProperties(DynamicBodyProperties, PiezoelectricBodyProperties):
     pass

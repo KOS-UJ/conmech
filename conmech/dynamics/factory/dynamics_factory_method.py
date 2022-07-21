@@ -5,7 +5,8 @@ from conmech.properties.body_properties import (
     DynamicBodyProperties,
     StaticBodyProperties,
     TemperatureBodyProperties,
-    PiezoelectricityBodyProperties,
+    PiezoelectricBodyProperties,
+    BodyProperties,
 )
 
 
@@ -13,7 +14,7 @@ def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
     independent_indices: slice,
-    body_prop: StaticBodyProperties,
+    body_prop: BodyProperties,
 ):
     dimension = len(elements[0]) - 1
     if dimension == 2:
@@ -65,7 +66,7 @@ def get_dynamics(
         thermal_expansion = None
         thermal_conductivity = None
 
-    if isinstance(body_prop, PiezoelectricityBodyProperties):
+    if isinstance(body_prop, PiezoelectricBodyProperties):
         piezoelectricity = factory.get_piezoelectric_tensor(W, body_prop.piezoelectricity)
         permittivity = factory.get_permittivity_tensor(W, body_prop.permittivity)
     else:
