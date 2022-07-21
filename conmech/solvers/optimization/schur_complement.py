@@ -17,23 +17,21 @@ class SchurComplement(Optimization):
     def __init__(
         self,
         statement,
-        mesh,
-        body_prop,
+        body,
         time_step,
         contact_law,
         friction_bound,
     ):
         super().__init__(
             statement,
-            mesh,
-            body_prop,
+            body,
             time_step,
             contact_law,
             friction_bound,
         )
 
-        self.contact_ids = slice(0, mesh.contact_nodes_count)
-        self.free_ids = slice(mesh.contact_nodes_count, mesh.independent_nodes_count)
+        self.contact_ids = slice(0, body.contact_nodes_count)
+        self.free_ids = slice(body.contact_nodes_count, body.independent_nodes_count)
 
         (
             self._node_relations,

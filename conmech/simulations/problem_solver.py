@@ -41,11 +41,13 @@ class ProblemSolver:
         """Solves general Contact Mechanics problem.
 
         :param setup:
-        :param solving_method: 'schur', 'optimization', 'direct'
+        :param body_properties:
         """
         # FIXME DynamicVelocityStatement
-        with_time = isinstance(setup, (QuasistaticProblem, DynamicProblem))
-        time_step = setup.time_step if with_time else 0
+        if isinstance(setup, (QuasistaticProblem, DynamicProblem)):
+            time_step = setup.time_step
+        else:
+            time_step = 0
 
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
@@ -103,7 +105,6 @@ class ProblemSolver:
         self.step_solver = solver_class(
             statement,
             self.body,
-            self.body.body_prop,  # FIXME: remove
             time_step,
             self.setup.contact_law,
             self.setup.friction_bound,
@@ -112,7 +113,6 @@ class ProblemSolver:
             self.second_step_solver = solver_class(
                 TemperatureStatement(self.body),
                 self.body,
-                self.body.body_prop,  # FIXME: remove
                 time_step,
                 self.setup.contact_law,
                 self.setup.friction_bound,

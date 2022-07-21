@@ -10,26 +10,24 @@ class Solver:
     def __init__(
         self,
         statement,
-        mesh,
-        body_prop,
+        body,
         time_step,
         contact_law,
         friction_bound,
     ):
-        self.body_prop = body_prop
         self.contact_law = contact_law
         self.friction_bound = friction_bound
 
-        self.mesh = mesh
+        self.body = body
         self.statement: Statement = statement
 
         self.time_step = time_step
         self.current_time = 0
-        self.u_vector = np.zeros(self.mesh.independent_nodes_count * 2)
-        self.v_vector = np.zeros(self.mesh.independent_nodes_count * 2)
-        self.t_vector = np.zeros(self.mesh.independent_nodes_count)
+        self.u_vector = np.zeros(self.body.independent_nodes_count * 2)
+        self.v_vector = np.zeros(self.body.independent_nodes_count * 2)
+        self.t_vector = np.zeros(self.body.independent_nodes_count)
 
-        self.elasticity = mesh.elasticity
+        self.elasticity = body.elasticity
 
         self.statement.update(
             Variables(

@@ -15,16 +15,14 @@ class Optimization(Solver):
     def __init__(
         self,
         statement,
-        mesh,
-        body_prop,
+        body,
         time_step,
         contact_law,
         friction_bound,
     ):
         super().__init__(
             statement,
-            mesh,
-            body_prop,
+            body,
             time_step,
             contact_law,
             friction_bound,
@@ -73,8 +71,8 @@ class Optimization(Solver):
                 self.loss,
                 solution,
                 args=(
-                    self.mesh.initial_nodes,
-                    self.mesh.contact_boundary,
+                    self.body.initial_nodes,
+                    self.body.contact_boundary,
                     self.node_relations,
                     self.node_forces,
                     old_solution
