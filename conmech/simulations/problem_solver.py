@@ -384,10 +384,6 @@ class TemperatureDynamic(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        self.thermal_expansion = np.array(
-            [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-        )  # FIXME
-        self.thermal_conductivity = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         body_prop = DynamicTemperatureBodyProperties(
             mass_density=1.0,
@@ -395,8 +391,8 @@ class TemperatureDynamic(ProblemSolver):
             lambda_=setup.la_coef,
             theta=setup.th_coef,
             zeta=setup.ze_coef,
-            thermal_expansion=self.thermal_expansion,
-            thermal_conductivity=self.thermal_conductivity,
+            thermal_expansion=setup.thermal_expansion,
+            thermal_conductivity=setup.thermal_conductivity,
         )
         super().__init__(setup, body_prop)
 
@@ -494,8 +490,8 @@ class PiezoelectricQuasistatic(ProblemSolver):
             lambda_=setup.la_coef,
             theta=setup.th_coef,
             zeta=setup.ze_coef,
-            piezoelectricity=setup.piezoelectricity,  # FIXME
-            permittivity=setup.permittivity,  # FIXME
+            piezoelectricity=setup.piezoelectricity,
+            permittivity=setup.permittivity,
         )
         super().__init__(setup, body_prop)
 

@@ -56,6 +56,8 @@ def generate_test_suits():
         ze_coef: ... = 4
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(1e1)
+        thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         @staticmethod
         def inner_forces(x):
@@ -210,6 +212,8 @@ def generate_test_suits():
         ze_coef: ... = 4.99
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(2.71)
+        thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         @staticmethod
         def inner_forces(x):

@@ -52,6 +52,8 @@ class TDynamicSetup(TemperatureDynamic):
     ze_coef: ... = 4
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
+    thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+    thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:

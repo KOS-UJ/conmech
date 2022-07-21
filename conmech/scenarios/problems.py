@@ -125,14 +125,20 @@ class Dynamic(TimeDependent, ABC):
 
 
 class TemperatureTimeDependent(TimeDependent, ABC):
+    thermal_expansion: np.ndarray
+    thermal_conductivity: np.ndarray
+
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
 
 
 class PiezoelectricTimeDependent(TimeDependent, ABC):
+    piezoelectricity: np.ndarray
+    permittivity: np.ndarray
+
     @staticmethod
-    def initial_temperature(x: np.ndarray) -> np.ndarray:
+    def initial_electric_potential(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
 
 
