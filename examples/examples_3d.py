@@ -1,15 +1,11 @@
 import os
 
-from conmech.properties.obstacle_properties import ObstacleProperties
-
-os.environ["JAX_ENABLE_X64"] = "1"
-# os.environ["JAX_PLATFORM_NAME"] = "cpu"
-
 import numpy as np
 
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
     M_ARMADILLO_3D,
@@ -26,8 +22,11 @@ from conmech.scenarios.scenarios import (
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
+#os.environ["JAX_ENABLE_X64"] = "1"
+# os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
-def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
+
+def main(mesh_density=16, final_time=16.0, plot_animation=True):  # 100
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -35,28 +34,28 @@ def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
     all_scenarios = [
-        # Scenario(
-        #     name="bunny_fall",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_BUNNY_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=DynamicBodyProperties(
-        #         mu=12,
-        #         lambda_=12,
-        #         theta=8,
-        #         zeta=8,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(  # 0.3
-        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-        #         ObstacleProperties(hardness=100.0, friction=5.0),
-        #     ),
-        # ),
+        Scenario(
+            name="bunny_fall",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=12,
+                lambda_=12,
+                theta=8,
+                zeta=8,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0.0, 0.0, -1.0]),
+            obstacle=Obstacle(  # 0.3
+                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                ObstacleProperties(hardness=100.0, friction=5.0),
+            ),
+        ),
         # Scenario(
         #     name="bunny_roll",
         #     mesh_prop=MeshProperties(
@@ -78,28 +77,28 @@ def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
         #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
         #     ),
         # ),
-        Scenario(
-            name="armadillo_roll",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_ARMADILLO_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=12,
-                lambda_=12,
-                theta=8,
-                zeta=8,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -1.0]),
-            obstacle=Obstacle(  # 0.3
-                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-                ObstacleProperties(hardness=100.0, friction=5.0),
-            ),
-        ),
+        # Scenario(
+        #     name="armadillo_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_ARMADILLO_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=DynamicBodyProperties(
+        #         mu=12,
+        #         lambda_=12,
+        #         theta=8,
+        #         zeta=8,
+        #         mass_density=1.0,
+        #     ),
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=np.array([0.0, 0.0, -1.0]),
+        #     obstacle=Obstacle(  # 0.3
+        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+        #         ObstacleProperties(hardness=100.0, friction=5.0),
+        #     ),
+        # ),
         # Scenario(
         #     name="ball_roll",
         #     mesh_prop=MeshProperties(
@@ -136,27 +135,27 @@ def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
         #     forces_function=f_rotate_3d,
         #     obstacle=obstacles[3],
         # ),
-        Scenario(
-            name="twist_roll",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_TWIST_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=12,  # 8,
-                lambda_=12,  # 8,
-                theta=4,
-                zeta=4,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -1.0]),  # f_rotate_3d,  #
-            obstacle=Obstacle(
-                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1]]]), default_obstacle_prop
-            ),
-        ),
+        # Scenario(
+        #     name="twist_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_TWIST_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=DynamicBodyProperties(
+        #         mu=12,  # 8,
+        #         lambda_=12,  # 8,
+        #         theta=4,
+        #         zeta=4,
+        #         mass_density=1.0,
+        #     ),
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=np.array([0.0, 0.0, -1.0]),  # f_rotate_3d,  #
+        #     obstacle=Obstacle(
+        #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1]]]), default_obstacle_prop
+        #     ),
+        # ),
     ]
 
     simulation_runner.run_examples(
@@ -168,7 +167,7 @@ def main(mesh_density=16, final_time=8.0, plot_animation=True):  # 100
 
 
 if __name__ == "__main__":
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+    # jax.disable_jit()
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
     # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

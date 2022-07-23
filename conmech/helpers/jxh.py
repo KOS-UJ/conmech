@@ -37,7 +37,7 @@ def to_jax_sparse(matrix):
         return None
     indices = np.block([[coo_matrix.row], [coo_matrix.col]]).T
     result = jax.experimental.sparse.BCOO((coo_matrix.data, indices), shape=coo_matrix.shape)
-    return result
+    return result.sort_indices()
 
 
 def to_scipy_sparse(matrix):

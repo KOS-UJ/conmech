@@ -7,7 +7,7 @@ from torch import nn
 from conmech.helpers.config import Config
 
 TEST = False
-DIMENSION = 2
+DIMENSION = 3
 
 
 @dataclass
@@ -18,7 +18,7 @@ class TrainingData:
     validation_scale: int = 1
     print_scale: int = 1
 
-    dataset: str = "synthetic"  # synthetic # calculator
+    dataset: str = "calculator"  # synthetic # calculator
     final_time: float = 8  # 0.5 if TEST else 8
     mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1

@@ -1,5 +1,8 @@
 import argparse
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
+
 import socketserver
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError

@@ -114,8 +114,11 @@ class Dynamics(BodyPosition):
         )
         self.matrices = cmh.profile(fun_dyn, baypass=True)
 
-        self.solver_cache.lhs_acceleration_jax = jxh.to_jax_sparse(self.matrices.acceleration_operator)
+        self.solver_cache.lhs_acceleration_jax = jxh.to_jax_sparse(
+            self.matrices.acceleration_operator
+        )
 
+        return
         if not self.with_lhs:
             return
 

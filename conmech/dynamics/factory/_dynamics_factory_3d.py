@@ -21,7 +21,6 @@ def get_edges_features_dictionary_numba(elements, nodes):
     edges_features_dict = {}
     element_initial_volume = np.zeros(elements_count)
     dx_dict = {}
-    dx = np.zeros((elements_count, len(nodes), DIMENSION))
 
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
@@ -35,7 +34,6 @@ def get_edges_features_dictionary_numba(elements, nodes):
             # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
             key = element_index, element[i]
-            dx[key] = i_d_phi_vec
             dx_dict[key] = i_d_phi_vec
 
             for j in range(element_size):
@@ -77,7 +75,7 @@ def get_edges_features_dictionary_numba(elements, nodes):
                 else:
                     edges_features_dict[key] = result
 
-    return edges_features_dict, element_initial_volume, dx, dx_dict
+    return edges_features_dict, element_initial_volume, dx_dict
 
 
 @numba.njit

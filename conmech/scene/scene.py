@@ -109,7 +109,7 @@ def energy_vector_jax(value_vector, lhs, rhs):
 # @partial(jax.jit, static_argnums=(2,))
 @jax.jit
 def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
-    print("Obstacle")
+    # print("Obstacle")
     # TODO: Repeat if collision
     main_energy0 = energy_vector_jax(
         value_vector=nph.stack_column_jax(acceleration_vector),
@@ -128,7 +128,7 @@ def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
 
 @jax.jit
 def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
-    print("Obstacle colliding")
+    # print("Obstacle colliding")
     # TODO: Repeat if collision
     main_energy = energy_obstacle_jax(acceleration_vector, args)
     acceleration = nph.unstack_jax(acceleration_vector, dim=3)

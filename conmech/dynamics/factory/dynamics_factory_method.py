@@ -33,10 +33,12 @@ class ConstMatrices:
         self.elasticity_cp: cupyx.scipy.sparse.csr_matrix
         self.viscosity_cp: cupyx.scipy.sparse.csr_matrix
 
-    def initialize_sparse(self):
-        self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
+    def initialize_sparse(self, only_dx=True):
         self.volume_at_nodes_cp = jxh.to_cupy_csr(self.volume_at_nodes)
         self.acceleration_operator_cp = jxh.to_cupy_csr(self.acceleration_operator)
+        self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
+        if only_dx:
+            return
         self.elasticity_cp = jxh.to_cupy_csr(self.elasticity)
         self.viscosity_cp = jxh.to_cupy_csr(self.viscosity)
 
@@ -58,8 +60,8 @@ def get_coo_sparse_data_numba(keys, values):
 
 
 def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
-    keys = np.array(list(edges_features_dict.keys()))
-    values = np.array(list(edges_features_dict.values()))
+    keys = np.array(list(edges_features_dict.keys()), dtype=np.int64)
+    values = np.array(list(edges_features_dict.values()), dtype=np.float64)
     row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
     shape = (nodes_count, nodes_count)
     edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape) for i in data]
@@ -67,8 +69,8 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
 
 
 def to_dx_matrix(dx_dict: dict, elements_count: int, nodes_count: int):
-    keys = np.array(list(dx_dict.keys()))
-    values = np.array(list(dx_dict.values()))
+    keys = np.array(list(dx_dict.keys()), dtype=np.int64)
+    values = np.array(list(dx_dict.values()), dtype=np.float64)
     row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
     shape = (nodes_count, elements_count)
 
@@ -99,13 +101,12 @@ def get_dynamics(
     (
         edges_features_dict,
         result.element_initial_volume,
-        dx,
         dx_dict,
     ) = factory.get_edges_features_dictionary(elements, nodes)
     edges_features_matrix = to_edges_features_matrix(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
-    dx_big = to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements))
+    result.dx_big = to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements))
 
     edges_features_matrix[0] = edges_features_matrix[0].tocsr()
     for i in range(1, len(edges_features_matrix)):
@@ -115,6 +116,11 @@ def get_dynamics(
 
     result.volume_at_nodes = edges_features_matrix[0]
     U = edges_features_matrix[1]
+
+    result.acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
+
+    result.initialize_sparse()
+    return result
 
     V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
     W = np.asarray(
@@ -139,8 +145,6 @@ def get_dynamics(
         else None
     )
 
-    result.acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
-
     if isinstance(body_prop, TemperatureBodyProperties):
         result.thermal_expansion = factory.calculate_thermal_expansion(
             V, body_prop.thermal_expansion
@@ -154,7 +158,5 @@ def get_dynamics(
         result.thermal_expansion = None
         result.thermal_conductivity = None
 
-    result.dx = dx
-    result.dx_big = dx_big
     result.initialize_sparse()
     return result
