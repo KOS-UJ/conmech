@@ -109,22 +109,22 @@ def main(mesh_density=16, final_time=8, plot_animation=True):  # 100
         #     forces_function=np.array([0.0, 0.0, -0.5]),
         #     obstacle=obstacles[1],
         # ),
-        Scenario(
-            name="ball_throw",
-            mesh_prop=MeshProperties(
-                dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=12,  # 8,
-                lambda_=12,  # 8,
-                theta=4,
-                zeta=4,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=f_rotate_3d,
-            obstacle=obstacles[2],
-        ),
+        # Scenario(
+        #     name="ball_throw",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
+        #     ),
+        #     body_prop=DynamicBodyProperties(
+        #         mu=12,  # 8,
+        #         lambda_=12,  # 8,
+        #         theta=4,
+        #         zeta=4,
+        #         mass_density=1.0,
+        #     ),
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=f_rotate_3d,
+        #     obstacle=obstacles[2],
+        # ),
         # Scenario(
         #     name="cube_throw",
         #     mesh_prop=MeshProperties(

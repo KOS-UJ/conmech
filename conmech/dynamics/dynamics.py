@@ -126,15 +126,11 @@ class Dynamics(BodyPosition):
             + (self.matrices.viscosity + self.matrices.elasticity * self.time_step) * self.time_step
         )
 
-        self.solver_cache.lhs_sparse_cp = jxh.to_cupy_csr(self.solver_cache.lhs_sparse)
         self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
         # Calculating Jacobi preconditioner
         # TODO: Check SSOR / Incomplete Cholesky
         self.solver_cache.lhs_preconditioner_jax =  jxh.to_jax_sparse(jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse))
-        self.solver_cache.lhs_preconditioner_cp = jxh.to_cupy_csr(jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse))
         # ilu = cupyx.scipy.sparse.linalg.spilu(A=A, fill_factor=1)
-        # M = cupyx.scipy.sparse.linalg.LinearOperator(A.shape, ilu.solve)
-        # M = cupy.linalg.inv(A.todense())
 
         return
         if not self.with_schur:

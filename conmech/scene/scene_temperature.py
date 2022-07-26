@@ -82,10 +82,10 @@ class SceneTemperature(Scene):
         self.set_temperature_old(temperature)
         return super().iterate_self(acceleration=acceleration)
 
-    def get_normalized_rhs_cp(self, temperature=None):
-        value = super().get_normalized_rhs_cp()
+    def get_normalized_rhs_jax(self, temperature=None):
+        value = super().get_normalized_rhs_jax()
         if temperature is not None:
-            value += self.thermal_expansion.T @ temperature
+            value += jnp.array(self.thermal_expansion.T @ temperature)
         return value
 
     def get_all_normalized_t_rhs_np(self, normalized_acceleration):

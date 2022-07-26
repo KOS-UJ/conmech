@@ -1,9 +1,6 @@
 from ctypes import ArgumentError
 from typing import Callable, Optional
 
-import cupy as cp
-import cupyx.scipy.sparse
-import cupyx.scipy.sparse.linalg
 import jax
 import jax.experimental
 import jax.numpy as jnp
@@ -252,11 +249,8 @@ class Calculator:
             baypass=True,
         )
         return np.array(nph.unstack_jax(normalized_a_vector, setting.dimension))
-
-        #normalized_a_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
-        #return nph.unstack(normalized_a_vector_cp.get(), setting.dimension)
         # assert info == 0
-        # assert np.allclose(A @ normalized_a_vector_cp - b.reshape(-1), 0)
+        # assert np.allclose(A @ normalized_a_vector_jax - b.reshape(-1), 0)
 
     @staticmethod
     def solve_all_acceleration_normalized_function(setting, temperature=None, initial_a=None):

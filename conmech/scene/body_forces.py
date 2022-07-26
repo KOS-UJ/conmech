@@ -1,6 +1,5 @@
 from typing import Callable, Optional
 
-import cupy as cp
 import jax.numpy as jnp
 import numpy as np
 
@@ -114,7 +113,7 @@ class BodyForces(Dynamics):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 
     def get_all_normalized_rhs_jax(self, temperature=None):
-        normalized_rhs = jnp.asarray(self.get_normalized_rhs_cp(temperature).get())
+        normalized_rhs = self.get_normalized_rhs_jax(temperature)
         (
             normalized_rhs_boundary,
             normalized_rhs_free,
@@ -157,17 +156,3 @@ class BodyForces(Dynamics):
 
         return rhs
 
-    def get_normalized_rhs_cp(self, temperature=None):
-        _ = temperature
-
-        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
-        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector_cp = self.get_integrated_forces_column_cp()
-        rhs = (
-            f_vector_cp
-            - (self.matrices.viscosity_cp + self.matrices.elasticity_cp * self.time_step)
-            @ cp.array(velocity_old_vector)
-            - self.matrices.elasticity_cp @ cp.array(displacement_old_vector)
-        )
-
-        return rhs

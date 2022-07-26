@@ -77,8 +77,8 @@ class SchurComplement(Optimization):
                 ],
                 format="coo",
             )
-            return jxh.to_jax_sparse(result_csr)  # jxh.to_cupy_csr_sparse(result_csr.tocoo())
-
+            return jxh.to_jax_sparse(result_csr)
+            
         contact_x_contact = get_sliced(matrix_csr, contact_indices, contact_indices)
         free_x_contact = get_sliced(matrix_csr, free_indices, contact_indices)
         contact_x_free = get_sliced(matrix_csr, contact_indices, free_indices)

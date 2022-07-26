@@ -26,22 +26,11 @@ class ConstMatrices:
         self.viscosity: scipy.sparse.csr_matrix
         self.thermal_expansion: scipy.sparse.csr_matrix
         self.thermal_conductivity: scipy.sparse.csr_matrix
-        # self.volume_at_nodes_cp: cupyx.scipy.sparse.csr_matrix
-        # self.volume_at_nodes_jax: cupyx.scipy.sparse.csr_matrix
-        # self.acceleration_operator_cp: cupyx.scipy.sparse.csr_matrix
-        # self.elasticity_cp: cupyx.scipy.sparse.csr_matrix
-        # self.viscosity_cp: cupyx.scipy.sparse.csr_matrix
 
     def initialize_sparse_jax(self):
         self.volume_at_nodes_jax = jxh.to_jax_sparse(self.volume_at_nodes)
         self.acceleration_operator_jax = jxh.to_jax_sparse(self.acceleration_operator)
         self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
-
-    def initialize_sparse_cp(self):
-        self.volume_at_nodes_cp = jxh.to_cupy_csr(self.volume_at_nodes)
-        self.acceleration_operator_cp = jxh.to_cupy_csr(self.acceleration_operator)
-        self.elasticity_cp = jxh.to_cupy_csr(self.elasticity)
-        self.viscosity_cp = jxh.to_cupy_csr(self.viscosity)
 
 
 @numba.njit
