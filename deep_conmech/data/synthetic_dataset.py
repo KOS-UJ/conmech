@@ -154,7 +154,7 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity_old(velocity_old)
         scene.prepare(forces)
 
-        scene.exact_acceleration = Calculator.solve_acceleration_normalized_function_np(scene)
+        # scene.exact_acceleration = Calculator.solve_acceleration_normalized_function_np(scene)
         # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
         return scene
 
@@ -175,10 +175,10 @@ class SyntheticDataset(BaseDataset):
                 queue.put(self.generate_scene())
 
         up_queue = mph.get_queue()
-        inner_process = mph.start_process(generate_data_inner, up_queue)
+        # inner_process = mph.start_process(generate_data_inner, up_queue)
         for index in step_tqdm:
-            # scene = self.generate_scene()
-            while True:
+            scene = self.generate_scene()
+            while False: # True:
                 try:
                     scene = up_queue.get(timeout=30.0)
                     break
@@ -195,7 +195,7 @@ class SyntheticDataset(BaseDataset):
                 step_tqdm=step_tqdm,
                 tqdm_description=tqdm_description,
             )
-        inner_process.kill()
+        # inner_process.kill()
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

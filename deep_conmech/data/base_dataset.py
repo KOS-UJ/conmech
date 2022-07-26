@@ -185,10 +185,10 @@ class BaseDataset:
         else:
             print("Skipping scenes file generation")
 
-        # cmh.profile(self.initialize_features_and_targets_process)
-        mph.run_processes(
-            self.initialize_features_and_targets_process, num_workers=self.num_workers
-        )
+        cmh.profile(self.initialize_features_and_targets_process)
+        # mph.run_processes(
+        #     self.initialize_features_and_targets_process, num_workers=self.num_workers
+        # )
         self.load_indices()
         assert self.check_indices()
 
@@ -211,10 +211,11 @@ class BaseDataset:
         cmh.clear_folder(self.main_directory)
         self.create_folders()
 
+        self.generate_data_process()
         # mph.run_process(self.generate_data_process)
-        done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
-        if not done:
-            print("NOT DONE")
+        # done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+        # if not done:
+        #     print("NOT DONE")
 
         self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
@@ -330,7 +331,7 @@ class BaseDataset:
         data_tqdm = cmh.get_tqdm(
             iterable=worker_data_range,
             config=self.config,
-            desc=f"Loading data to RAM (node {self.rank}, worker {worker_info.id})",
+            desc=f"Loading data to RAM (node {self.rank}, worker {worker_info.id + 1})",
             position=self.rank * worker_info.num_workers + worker_info.id,
         )
         with pkh.open_file_read(self.features_data_path) as file:

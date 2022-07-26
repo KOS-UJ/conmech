@@ -100,7 +100,7 @@ def get_tangential_jax(vector, normal):
 
 @numba.njit
 def get_tangential_numba(vector, normal):
-    normal_vector = vector @ normal
+    normal_vector = (vector * normal).sum(axis=1).reshape(-1,1)
     tangential_vector = vector - (normal_vector * normal)
     return tangential_vector
 

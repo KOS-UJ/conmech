@@ -356,7 +356,7 @@ class Scene(BodyForces):
 
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
-            rhs_acceleration=jnp.asarray(self.get_integrated_forces_column_cp().get()),
+            rhs_acceleration=self.get_integrated_forces_column_jax(),
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
@@ -462,7 +462,7 @@ class Scene(BodyForces):
         return nph.get_tangential_jax(self.boundary_velocity_old, self.get_boundary_normals())
 
     def __get_normalized_boundary_v_tangential(self):
-        return nph.get_tangential_jax(
+        return nph.get_tangential_numba(
             self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
         )
 

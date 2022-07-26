@@ -59,6 +59,7 @@ class GraphModelDynamic:
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net,
                 device_ids=[rank],
+                #find_unused_parameters=True
             )
         else:
             self.ddp_net = net
@@ -355,20 +356,20 @@ class GraphModelDynamic:
         graph_sizes_base,
         all_exact_acceleration,
     ):
-        big_forces = node_features[:, :dimension]
-        big_lhs_size = target_data.a_correction.numel()
-        big_lhs_sparse = torch.sparse_coo_tensor(
-            indices=target_data.lhs_index,
-            values=target_data.lhs_values,
-            size=(big_lhs_size, big_lhs_size),
-        )
+        # big_forces = node_features[:, :dimension]
+        # big_lhs_size = target_data.a_correction.numel()
+        # big_lhs_sparse = torch.sparse_coo_tensor(
+        #     indices=target_data.lhs_index,
+        #     values=target_data.lhs_values,
+        #     size=(big_lhs_size, big_lhs_size),
+        # )
         # big_lhs_sparse = big_lhs_sparse_coo.to_sparse_csr()
         big_main_loss, big_loss_raport = loss_normalized_obstacle_scatter(
             acceleration=all_acceleration,
-            forces=big_forces,
-            lhs=big_lhs_sparse,
-            rhs=target_data.rhs,
-            energy_args=None,
+            # forces=big_forces,
+            # lhs=big_lhs_sparse,
+            # rhs=target_data.rhs,
+            # energy_args=None,
             graph_sizes_base=graph_sizes_base,
             exact_acceleration=all_exact_acceleration,
         )

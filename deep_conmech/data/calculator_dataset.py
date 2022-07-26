@@ -21,7 +21,7 @@ class CalculatorDataset(ScenariosDataset):
             description=f"{description}_calculator",
             all_scenarios=all_scenarios,
             layers_count=layers_count,
-            solve_function=Calculator.solve_all_acceleration_normalized_function,  # Calculator.solve_all,
+            solve_function=Calculator.solve_all, # solve_all_acceleration_normalized_function,  # Calculator.solve_all,
             randomize_at_load=randomize_at_load,
             config=config,
             rank=rank,

@@ -79,7 +79,7 @@ class ScenariosDataset(BaseDataset):
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         assigned_scenarios = self.get_assigned_scenarios(num_workers, process_id)
-        tqdm_description = f"Generating data - process {process_id}/{num_workers}"
+        tqdm_description = f"Generating data - process {process_id+1}/{num_workers}"
         simulation_data_count = np.sum([s.schedule.episode_steps for s in assigned_scenarios])
         start_index = process_id * simulation_data_count
         current_index = start_index

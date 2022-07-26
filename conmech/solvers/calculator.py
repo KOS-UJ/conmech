@@ -45,7 +45,6 @@ class Calculator:
 
     @staticmethod
     def minimize_jax(function, hes, initial_vector: np.ndarray, args) -> np.ndarray:
-
         x0 = jnp.asarray(initial_vector)
         # jac = jax.jit(jax.grad(function))
         # result = cmh.profile(
@@ -187,19 +186,11 @@ class Calculator:
         setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if True:  # setting.is_colliding():
+        if False:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature=temperature, initial_a=initial_a
             )
         return Calculator.solve_acceleration_normalized_function(
-            setting=setting, temperature=temperature, initial_a=initial_a
-        )
-        # TODO: #62 repeat with optimization if collision in this round
-        if True:  # setting.is_colliding():
-            return Calculator.solve_acceleration_normalized_optimization_jax_U(
-                setting, temperature=temperature, initial_a=initial_a
-            )
-        return Calculator.solve_acceleration_normalized_function_U(
             setting=setting, temperature=temperature, initial_a=initial_a
         )
 
@@ -240,13 +231,12 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
-        normalized_rhs = setting.get_normalized_rhs_cp(temperature)
 
-        A = setting.solver_cache.lhs_sparse_cp
-        b = normalized_rhs
-        x0 = cp.array(nph.stack_column(initial_a)) if initial_a is not None else None
+        A = setting.solver_cache.lhs_sparse_jax #cp
+        b = setting.get_normalized_rhs_jax(temperature) #cp
+        x0 = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None #cp
 
-        M = setting.solver_cache.lhs_preconditioner_cp
+        M = setting.solver_cache.lhs_preconditioner_jax #cp
 
         # A is symetric and positive definite
         # A_ = A.get().todense()
@@ -256,11 +246,17 @@ class Calculator:
         # np.linalg.cond(A_) ~ 646
         # np.linalg.cond(M_ @ A_) ~ 421
 
-        normalized_a_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
+        solver = jax.jit(jax.scipy.sparse.linalg.cg)
+        normalized_a_vector, _ = cmh.profile(
+            lambda: solver(A=A, b=b, x0=x0, M=M),
+            baypass=True,
+        )
+        return np.array(nph.unstack_jax(normalized_a_vector, setting.dimension))
+
+        #normalized_a_vector_cp, _ = cupyx.scipy.sparse.linalg.cg(A=A, b=b, x0=x0, M=M)
+        #return nph.unstack(normalized_a_vector_cp.get(), setting.dimension)
         # assert info == 0
         # assert np.allclose(A @ normalized_a_vector_cp - b.reshape(-1), 0)
-        normalized_a_vector = normalized_a_vector_cp.get()
-        return nph.unstack(normalized_a_vector, setting.dimension)
 
     @staticmethod
     def solve_all_acceleration_normalized_function(setting, temperature=None, initial_a=None):

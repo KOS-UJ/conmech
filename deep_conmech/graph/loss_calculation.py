@@ -30,10 +30,10 @@ def get_acceleration_vector(acceleration, graph_sizes_base):
 
 def loss_normalized_obstacle_scatter(
     acceleration: torch.Tensor,
-    forces: torch.Tensor,
-    lhs: torch.Tensor,
-    rhs: torch.Tensor,
-    energy_args: EnergyObstacleArgumentsTorch,
+    # forces: torch.Tensor,
+    # lhs: torch.Tensor,
+    # rhs: torch.Tensor,
+    # energy_args: EnergyObstacleArgumentsTorch,
     graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
 ):

@@ -47,18 +47,18 @@ class TargetData(Data):
     def __init__(
         self,
         a_correction: torch.Tensor,
-        energy_args: EnergyObstacleArgumentsTorch,
-        lhs_values: torch.Tensor,
-        lhs_index: torch.Tensor,
-        rhs: torch.Tensor,
+        # energy_args: EnergyObstacleArgumentsTorch,
+        # lhs_values: torch.Tensor,
+        # lhs_index: torch.Tensor,
+        # rhs: torch.Tensor,
     ):
         super().__init__()
         self.a_correction = a_correction
-        self.energy_args = energy_args
+        # self.energy_args = energy_args
 
-        self.lhs_values = lhs_values
-        self.lhs_index = lhs_index
-        self.rhs = rhs
+        # self.lhs_values = lhs_values
+        # self.lhs_index = lhs_index
+        # self.rhs = rhs
 
     def __inc__(self, key, value, *args, **kwargs):
         if key == "lhs_index":

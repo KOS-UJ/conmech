@@ -6,7 +6,7 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = False
+TEST = True #False
 DIMENSION = 3
 
 
@@ -41,10 +41,10 @@ class TrainingData:
 
     save_at_minutes: int = 10
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = 10
+    validate_at_epochs: Optional[int] = 100000
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 256
+    batch_size: int = 16 # 256
     dataset_size: int = 256 * (32 if TEST else 2048)
 
     use_dataset_statistics: bool = False
@@ -67,7 +67,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 3
+    mesh_layers_count: int = 3 #3
     message_passes: int = 3
 
 
@@ -77,7 +77,7 @@ class TrainingConfig(Config):
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    distributed_training = True
+    distributed_training = True #True
     dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
@@ -89,7 +89,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 128
+    dataset_images_count: Optional[float] = 16
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = True

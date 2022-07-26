@@ -102,11 +102,11 @@ class BodyForces(Dynamics):
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
-    def get_integrated_forces_column_cp(self):
-        integrated_inner_forces = self.matrices.volume_at_nodes_cp @ cp.array(
+    def get_integrated_forces_column_jax(self):
+        integrated_inner_forces = self.matrices.volume_at_nodes_jax @ jnp.array(
             self.normalized_inner_forces
         )
-        integrated_outer_forces = cp.array(self.get_integrated_outer_forces())
+        integrated_outer_forces = jnp.array(self.get_integrated_outer_forces())
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
@@ -142,6 +142,21 @@ class BodyForces(Dynamics):
 
         return rhs
 
+    def get_normalized_rhs_jax(self, temperature=None):
+        _ = temperature
+
+        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
+        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
+        f_vector = self.get_integrated_forces_column_jax()
+        rhs = (
+            f_vector
+            - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)
+            @ jnp.array(velocity_old_vector)
+            - self.matrices.elasticity @ jnp.array(displacement_old_vector)
+        )
+
+        return rhs
+
     def get_normalized_rhs_cp(self, temperature=None):
         _ = temperature
 
@@ -153,23 +168,6 @@ class BodyForces(Dynamics):
             - (self.matrices.viscosity_cp + self.matrices.elasticity_cp * self.time_step)
             @ cp.array(velocity_old_vector)
             - self.matrices.elasticity_cp @ cp.array(displacement_old_vector)
-        )
-
-        return rhs
-
-    def get_normalized_rhs_cp_U(self, temperature=None):
-        _ = temperature
-
-        displacement_old_vector = nph.stack_column(self.displacement_old)
-        velocity_old_vector = nph.stack_column(self.velocity_old)
-        f_vector_cp = self.get_integrated_forces_column_cp()
-
-        rhs = f_vector_cp + (
-            self.matrices.acceleration_operator_cp
-            @ (
-                cp.array(displacement_old_vector) / (self.time_step**2)
-                + cp.array(velocity_old_vector) / (self.time_step)
-            )
         )
 
         return rhs

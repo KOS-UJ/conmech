@@ -2,6 +2,8 @@ import argparse
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+#os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".50"
 
 import socketserver
 from argparse import ArgumentParser, Namespace
@@ -124,7 +126,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
     elif dataset_type == "calculator":
         train_dataset = CalculatorDataset(
             description="train",
-            all_scenarios=scenarios.all_train_2(config.td),
+            all_scenarios=scenarios.all_train(config.td),
             layers_count=config.td.mesh_layers_count,
             randomize_at_load=True,
             config=config,

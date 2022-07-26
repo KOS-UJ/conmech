@@ -13,9 +13,8 @@ def to_diagonal(martix):
 
 
 def to_inverse_diagonal(martix):
-    return to_cupy_csr(
-        scipy.sparse.diags(1.0 / to_scipy_sparse(martix).diagonal(), shape=martix.shape)
-    )
+    return scipy.sparse.diags(1.0 / martix.diagonal(), shape=martix.shape)
+
 
 
 def solve_linear_jax(matrix, vector):

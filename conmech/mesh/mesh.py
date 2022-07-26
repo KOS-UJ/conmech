@@ -152,7 +152,6 @@ class Mesh:
             is_contact_numba=None if is_contact is None else numba.njit(is_contact),
         )
         self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
-        return  ###
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
