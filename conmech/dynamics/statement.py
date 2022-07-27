@@ -9,6 +9,7 @@ class Variables:
     displacement: Optional[np.ndarray] = None
     velocity: Optional[np.ndarray] = None
     temperature: Optional[np.ndarray] = None
+    electric_potential: Optional[np.ndarray] = None
     time_step: Optional[float] = None
 
 
@@ -131,12 +132,12 @@ class PiezoelectricStatement(Statement):
     def update_right_hand_side(self, var):
         assert var.velocity is not None
         assert var.time_step is not None
-        assert var.temperature is not None
+        assert var.electric_potential is not None
 
         rhs = (-1) * self.body.thermal_expansion @ var.velocity
 
         ind = self.body.independent_nodes_count
 
-        rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
+        rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.electric_potential
         self.right_hand_side = rhs
         # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50

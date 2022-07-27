@@ -33,7 +33,7 @@ from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
-from conmech.state.state import State, TemperatureState
+from conmech.state.state import State, TemperatureState, PiezoelectricState
 
 
 class ProblemSolver:
@@ -506,11 +506,11 @@ class PiezoelectricQuasistatic(ProblemSolver):
         n_steps: int,
         initial_displacement: Callable,
         initial_velocity: Callable,
-        initial_temperature: Callable,
+        initial_electric_potential: Callable,
         output_step: Optional[iter] = None,
         verbose: bool = False,
         **kwargs,
-    ) -> List[TemperatureState]:
+    ) -> List[PiezoelectricState]:
         """
         :param n_steps: number of time-step in simulation
         :param output_step: from which time-step we want to get copy of State,
@@ -519,33 +519,33 @@ class PiezoelectricQuasistatic(ProblemSolver):
                                      we get 3 shared copy of State for time-steps 4, 12 and 18
         :param initial_displacement: for the solver
         :param initial_velocity: for the solver
-        :param initial_temperature: for the solver
+        :param initial_electric_potential: for the solver
         :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = TemperatureState(self.body)
+        state = PiezoelectricState(self.body)
         state.displacement[:] = initial_displacement(
             self.body.initial_nodes[: self.body.independent_nodes_count]
         )
         state.velocity[:] = initial_velocity(
             self.body.initial_nodes[: self.body.independent_nodes_count]
         )
-        state.temperature[:] = initial_temperature(
+        state.electric_potential[:] = initial_electric_potential(
             self.body.initial_nodes[: self.body.independent_nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
-        solution_t = state.temperature
+        solution_t = state.electric_potential
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.step_solver.p_vector[:] = state.electric_potential.ravel().copy()
 
         self.second_step_solver.u_vector[:] = state.displacement.ravel().copy()
         self.second_step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.second_step_solver.p_vector[:] = state.electric_potential.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []

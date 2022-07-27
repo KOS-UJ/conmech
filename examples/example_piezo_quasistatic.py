@@ -4,8 +4,8 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
-from conmech.simulations.problem_solver import PQuasistatic
-from conmech.scenarios.problems import Quasistatic
+from conmech.simulations.problem_solver import PiezoelectricQuasistatic
+from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
 
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -41,7 +41,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class PQuasistaticSetup(Quasistatic):
+class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     grid_height: ... = 1.0
     elements_number: ... = (4, 10)
     mu_coef: ... = 4
@@ -53,18 +53,18 @@ class PQuasistaticSetup(Quasistatic):
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
-        return np.asarray([0.0])
+        return np.asarray([0.25])
 
     @staticmethod
-    def inner_forces(x, y):
+    def inner_forces(x):
         return np.array([0.0, -1.0])
 
     @staticmethod
-    def outer_forces(x, y):
-        if x == 0:
-            return np.array([48.0 * (0.25 - (y - 0.5) ** 2), 0])
-        if x == 2.5:
-            return np.array([-48.0 * (0.25 - (y - 0.5) ** 2), 0])
+    def outer_forces(x):
+        if x[0] == 0:
+            return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
+        if x[0] == 2.5:
+            return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod
@@ -82,7 +82,7 @@ class PQuasistaticSetup(Quasistatic):
 
 def main(show: bool):
     setup = PQuasistaticSetup()
-    runner = PQuasistatic(setup, solving_method="piezo")
+    runner = PiezoelectricQuasistatic(setup, solving_method="optimization")
 
     states = runner.solve(
         n_steps=32,

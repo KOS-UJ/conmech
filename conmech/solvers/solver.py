@@ -26,6 +26,7 @@ class Solver:
         self.u_vector = np.zeros(self.body.independent_nodes_count * 2)
         self.v_vector = np.zeros(self.body.independent_nodes_count * 2)
         self.t_vector = np.zeros(self.body.independent_nodes_count)
+        self.p_vector = np.zeros(self.body.independent_nodes_count)  # FIXME redundant
 
         self.elasticity = body.elasticity
 
