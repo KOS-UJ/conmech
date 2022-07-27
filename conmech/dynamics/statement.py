@@ -123,8 +123,6 @@ class PiezoelectricStatement(Statement):
         super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var):
-        assert var.time_step is not None
-
         ind = self.body.independent_nodes_count
 
         self.left_hand_side = self.body.permittivity[:ind, :ind]
@@ -134,7 +132,7 @@ class PiezoelectricStatement(Statement):
         assert var.time_step is not None
         assert var.electric_potential is not None
 
-        rhs = (-1) * self.body.thermal_expansion @ var.velocity
+        rhs = (-1) * self.body.piezoelectricity @ var.velocity  # FIXME check
 
         ind = self.body.independent_nodes_count
 

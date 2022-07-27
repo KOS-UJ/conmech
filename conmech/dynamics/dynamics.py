@@ -84,6 +84,8 @@ class Dynamics(BodyPosition):
         self.viscosity: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
+        self.piezoelectricity: np.ndarray
+        self.permittivity: np.ndarray
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()

@@ -11,6 +11,7 @@ from conmech.dynamics.statement import (
     QuasistaticVelocityStatement,
     DynamicVelocityWithTemperatureStatement,
     TemperatureStatement,
+    PiezoelectricStatement,
     DynamicVelocityStatement,
 )
 from conmech.properties.body_properties import (
@@ -112,6 +113,14 @@ class ProblemSolver:
         if isinstance(self.setup, TemperatureTimeDependentProblem):
             self.second_step_solver = solver_class(
                 TemperatureStatement(self.body),
+                self.body,
+                time_step,
+                self.setup.contact_law,
+                self.setup.friction_bound,
+            )
+        elif isinstance(self.setup, PiezoelectricQuasistaticProblem):
+            self.second_step_solver = solver_class(
+                PiezoelectricStatement(self.body),
                 self.body,
                 time_step,
                 self.setup.contact_law,

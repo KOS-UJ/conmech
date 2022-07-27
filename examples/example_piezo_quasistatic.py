@@ -4,6 +4,8 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
+
+from conmech.helpers.config import Config
 from conmech.simulations.problem_solver import PiezoelectricQuasistatic
 from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
@@ -50,6 +52,8 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     ze_coef: ... = 4
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
+    piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+    permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
@@ -82,7 +86,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 
 def main(show: bool):
     setup = PQuasistaticSetup()
-    runner = PiezoelectricQuasistatic(setup, solving_method="optimization")
+    runner = PiezoelectricQuasistatic(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=32,
@@ -97,8 +101,11 @@ def main(show: bool):
     for state in states:
         e_max = max(e_max, np.max(state.electric_potential))
         e_min = min(e_min, np.min(state.electric_potential))
+    config = Config()
     for state in states:
-        Drawer(state).draw(temp_max=e_max, temp_min=e_min, show=show)
+        Drawer(state=state, config=config).draw(
+            temp_max=e_max, temp_min=e_min, show=show, save=False
+        )
 
 
 if __name__ == "__main__":
