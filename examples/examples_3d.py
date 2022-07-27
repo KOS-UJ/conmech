@@ -167,7 +167,7 @@ def main(mesh_density=16, final_time=8, plot_animation=True):  # 100
 
 
 if __name__ == "__main__":
-    # jax.disable_jit()
+    # with jax.disable_jit()
     # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
     # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

@@ -44,8 +44,8 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 100000
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 16 # 256
-    dataset_size: int = 256 * (32 if TEST else 2048)
+    batch_size: int = 8 # 256
+    dataset_size: int = 256 * (1 if TEST else 2048)
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -67,7 +67,7 @@ class TrainingData:
     encoder_layers_count: int = 0
     processor_layers_count: int = 0
     decoder_layers_count: int = 0
-    mesh_layers_count: int = 3 #3
+    mesh_layers_count: int = 1 #3
     message_passes: int = 3
 
 
@@ -101,5 +101,4 @@ class TrainingConfig(Config):
     load_newest_train: bool = False
 
     load_data_to_ram: bool = True
-    multi_loss: bool = True
     profile_training: bool = False

@@ -261,16 +261,17 @@ class SceneInput(SceneLayers):
 
     def get_target_data(self):
         # to_float
-        # lhs_sparse = thh.to_double(self.solver_cache.lhs).to_sparse()
+        # lhs_sparse = thh.to_double(self.solver_cache.lhs_acceleration_jax).to_sparse()
         # lhs_sparse_copy = copy.deepcopy(lhs_sparse)
-        # rhs = thh.to_double(self.get_normalized_rhs_np())
+        # rhs = thh.to_double(self.get_integrated_forces_column_jax())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
-            # energy_args=EnergyObstacleArgumentsTorch(
-            #     # lhs_values=lhs_sparse_copy.values(),
-            #     # lhs_indices=lhs_sparse_copy.indices(),
-            #     # lhs_size=lhs_sparse_copy.size(),
-            #     # rhs=rhs,
+            #energy_args=self.get_energy_obstacle_jax(None)
+            # EnergyObstacleArgumentsTorch(
+            #     lhs_values=lhs_sparse_copy.values(),
+            #     lhs_indices=lhs_sparse_copy.indices(),
+            #     lhs_size=lhs_sparse_copy.size(),
+            #     rhs=rhs,
             #     #
             #     # boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
             #     # boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),

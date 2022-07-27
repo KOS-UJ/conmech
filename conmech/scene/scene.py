@@ -120,12 +120,6 @@ def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
     return main_energy0 + main_energy1
 
 
-# @jax.jit
-# def energy_obstacle_new_grad_jax(acceleration_vector, args: EnergyObstacleArguments):
-#     print("Obstacle grad")
-#     return jax.grad(energy_obstacle_new_jax)(acceleration_vector, args)
-
-
 @jax.jit
 def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
     # print("Obstacle colliding")

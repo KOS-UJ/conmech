@@ -1,10 +1,12 @@
 from typing import List, Optional
 
+import jax.numpy as jnp
 import numpy as np
 import torch
 
 from conmech.helpers import nph
 from conmech.scene.body_forces import energy_lhs, energy_vector_lhs
+from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle_jax
 from deep_conmech.data.data_classes import EnergyObstacleArgumentsTorch
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
@@ -30,77 +32,81 @@ def get_acceleration_vector(acceleration, graph_sizes_base):
 
 def loss_normalized_obstacle_scatter(
     acceleration: torch.Tensor,
-    # forces: torch.Tensor,
-    # lhs: torch.Tensor,
-    # rhs: torch.Tensor,
-    # energy_args: EnergyObstacleArgumentsTorch,
+    # energy_args: EnergyObstacleArguments,
     graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
 ):
     num_graphs = len(graph_sizes_base)
-    acceleration_vector = get_acceleration_vector(acceleration, graph_sizes_base)
-    exact_acceleration_vector = get_acceleration_vector(exact_acceleration, graph_sizes_base)
-
-    inner_energy = (
-        energy_vector_lhs(value_vector=acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
-    )
-    exact_inner_energy = (
-        energy_vector_lhs(value_vector=exact_acceleration_vector, lhs=lhs, rhs=rhs) / num_graphs
-    )
-    boundary_integral = torch.tensor([0]) / num_graphs
-    loss_energy = inner_energy  # + boundary_integral
-
-    loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
-    main_loss = thh.me_torch(acceleration, exact_acceleration)  # loss_energy
+    main_loss = thh.mean_error_torch(acceleration, exact_acceleration)
 
     loss_raport = LossRaport(
         main=main_loss.item(),
-        inner_energy=inner_energy.item(),
-        energy=loss_energy.item(),
-        boundary_integral=boundary_integral.item(),
-        mean=loss_mean.item(),
-        exact_energy=exact_inner_energy.item(),
-        mse=thh.mse_torch(acceleration, exact_acceleration).item(),
-        me=thh.me_torch(acceleration, exact_acceleration).item(),
+        inner_energy=0,
+        energy=0,
+        boundary_integral=0,
+        mean=0,
+        exact_energy=0,
+        mse=0,
+        me=0,
         _count=num_graphs,
     )
-    loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
-
+        
     return main_loss, loss_raport
 
 
-def loss_normalized_obstacle(
+
+def loss_normalized_obstacle_scatter2(
     acceleration: torch.Tensor,
-    forces: torch.Tensor,
-    lhs: torch.Tensor,
-    rhs: torch.Tensor,
-    energy_args: EnergyObstacleArgumentsTorch,
+    # forces: torch.Tensor,
+    # lhs: torch.Tensor,
+    # rhs: torch.Tensor,
+    energy_args: EnergyObstacleArguments,
+    graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
 ):
-    inner_energy = energy_lhs(value=acceleration, lhs=lhs, rhs=rhs)
-    exact_inner_energy = energy_lhs(value=exact_acceleration, lhs=lhs, rhs=rhs)
+    num_graphs = len(graph_sizes_base)
+    #acceleration_vector_all = get_acceleration_vector(acceleration, graph_sizes_base)
+    #exact_acceleration_vector_all = get_acceleration_vector(exact_acceleration, graph_sizes_base)
 
-    # boundary_integral = get_boundary_integral(acceleration=acceleration, args=energy_args)
-    boundary_integral = torch.tensor([0])
-    loss_energy = inner_energy  # + boundary_integral
+    acceleration_split = acceleration.split(graph_sizes_base)
+    exact_acceleration_split = exact_acceleration.split(graph_sizes_base)
 
-    main_loss = loss_energy  # mse  # loss_mean + 0.01 * loss_energy # loss_energy
+    all_loss_raport = LossRaport()
+    all_main_loss = 0.0
+    for batch_graph_index in range(num_graphs):
+        acceleration_vector = nph.stack_column(acceleration_split[batch_graph_index])
+        exact_acceleration_vector = nph.stack_column(exact_acceleration_split[batch_graph_index])
+        args = energy_args[0]
 
-    loss_raport = LossRaport(
-        main=main_loss.item(),
-        inner_energy=inner_energy.item(),
-        energy=loss_energy.item(),
-        boundary_integral=boundary_integral.item(),
-        mean=torch.tensor([0]).item(),
-        exact_energy=exact_inner_energy.item(),
-        mse=thh.mse_torch(acceleration, exact_acceleration).item(),
-        me=thh.me_torch(acceleration, exact_acceleration).item(),
-        _count=1,
-    )
+        inner_energy = (
+            energy_obstacle_jax(acceleration_vector=jnp.asarray(acceleration_vector.cpu().detach()), args=args) / num_graphs
+        )
+        exact_inner_energy = (
+            energy_obstacle_jax(acceleration_vector=jnp.asarray(exact_acceleration_vector.cpu().detach()), args=args) / num_graphs
+        )
+        boundary_integral = torch.tensor([0]) / num_graphs
+        loss_energy = inner_energy  # + boundary_integral
 
-    loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
-    loss_raport.normalized_relative_energy = loss_raport.relative_energy / np.abs(
-        loss_raport.exact_energy
-    )
+        loss_mean = torch.tensor([0]) / num_graphs  # torch.mean(all_loss_mean)
+        main_loss = thh.mean_error_torch(acceleration, exact_acceleration)  # loss_energy
 
-    return main_loss, loss_raport
+        loss_raport = LossRaport(
+            main=main_loss.item(),
+            inner_energy=inner_energy.item(),
+            energy=loss_energy.item(),
+            boundary_integral=boundary_integral.item(),
+            mean=loss_mean.item(),
+            exact_energy=exact_inner_energy.item(),
+            mse=thh.mean_square_error_torch(acceleration, exact_acceleration).item(),
+            me=thh.mean_error_torch(acceleration, exact_acceleration).item(),
+            _count=num_graphs,
+        )
+        loss_raport.relative_energy = loss_raport.energy - loss_raport.exact_energy
+
+        all_loss_raport.add(loss_raport, normalize=False)
+        all_main_loss += main_loss
+
+    all_loss_raport.normalize()
+    all_main_loss /= num_graphs
+    return all_main_loss, all_loss_raport
+

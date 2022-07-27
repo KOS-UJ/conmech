@@ -16,7 +16,6 @@ from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_calculation import (
     clean_acceleration,
-    loss_normalized_obstacle,
     loss_normalized_obstacle_scatter,
 )
 from deep_conmech.graph.loss_raport import LossRaport
@@ -369,59 +368,12 @@ class GraphModelDynamic:
             # forces=big_forces,
             # lhs=big_lhs_sparse,
             # rhs=target_data.rhs,
-            # energy_args=None,
+            # energy_args=target_data.energy_args,
             graph_sizes_base=graph_sizes_base,
             exact_acceleration=all_exact_acceleration,
         )
 
         return big_main_loss, big_loss_raport
-
-    def calculate_loss_single(
-        self,
-        dimension,
-        node_features,
-        target_data,
-        all_acceleration,
-        graph_sizes_base,
-        exact_acceleration,
-    ):
-        num_graphs = len(graph_sizes_base)
-        node_features_split = node_features.split(graph_sizes_base)
-        predicted_acceleration_split = all_acceleration.split(graph_sizes_base)
-        exact_acceleration_split = exact_acceleration.split(graph_sizes_base)
-
-        loss_raport = LossRaport()
-        main_loss = 0.0
-        for batch_graph_index in range(num_graphs):
-            predicted_acceleration = predicted_acceleration_split[batch_graph_index]
-            exact_acceleration = exact_acceleration_split[batch_graph_index]
-
-            node_features = node_features_split[batch_graph_index]
-            forces = node_features[:, :dimension]
-
-            energy_args = target_data.energy_args[batch_graph_index]
-
-            energy_args.lhs_sparse = torch.sparse_coo_tensor(
-                indices=energy_args.lhs_indices,
-                values=energy_args.lhs_values,
-                size=energy_args.lhs_size,
-            )
-
-            main_example_loss, example_loss_raport = loss_normalized_obstacle(
-                acceleration=predicted_acceleration,
-                forces=forces,
-                lhs=energy_args.lhs_sparse.to(self.rank),
-                rhs=energy_args.rhs.to(self.rank),
-                energy_args=energy_args,
-                exact_acceleration=exact_acceleration.to(self.rank),
-            )
-            main_loss += main_example_loss
-            loss_raport.add(example_loss_raport, normalize=False)
-
-        main_loss /= num_graphs
-        loss_raport.normalize()
-
-        return main_loss, loss_raport
 
     def calculate_loss(self, batch_data: List[Data]):
         dimension = self.config.td.dimension
@@ -437,44 +389,12 @@ class GraphModelDynamic:
             cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
         )
 
-        if self.config.multi_loss:
-            loss_tuple = self.calculate_loss_all(
-                dimension=dimension,
-                node_features=node_features,
-                target_data=target_data,
-                all_acceleration=all_acceleration,
-                graph_sizes_base=graph_sizes_base,
-                all_exact_acceleration=batch_main_layer.exact_acceleration,
-            )
-        else:
-            loss_tuple = self.calculate_loss_single(
-                dimension=dimension,
-                node_features=node_features,
-                target_data=target_data,
-                all_acceleration=all_acceleration,
-                graph_sizes_base=graph_sizes_base,
-                exact_acceleration=batch_main_layer.exact_acceleration,
-            )
+        loss_tuple = self.calculate_loss_all(
+            dimension=dimension,
+            node_features=node_features,
+            target_data=target_data,
+            all_acceleration=all_acceleration,
+            graph_sizes_base=graph_sizes_base,
+            all_exact_acceleration=batch_main_layer.exact_acceleration,
+        )
         return loss_tuple
-
-    def get_derivatives(self, layer_list, layer_number, dimension):
-        main_layer_cuda = layer_list[0]
-        main_layer_cuda.x.requires_grad_(True)
-        acceleration = self.ddp_net(layer_list, layer_number)
-
-        for d in range(dimension):
-            out_i = torch.zeros_like(acceleration)
-            out_i[:, d] = 1.0
-
-            acceleration_grad_i = torch.autograd.grad(
-                outputs=acceleration,
-                inputs=main_layer_cuda.x,
-                grad_outputs=out_i,
-                retain_graph=True,
-                create_graph=True,
-            )
-
-            da_di = acceleration_grad_i[0][:, 0:dimension]
-
-        # dr_dx_T = torch.stack((dr_dx_x, dr_dx_y), axis=1)
-        return acceleration

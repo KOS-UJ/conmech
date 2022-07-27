@@ -9,8 +9,6 @@ import jax.scipy.optimize
 import numpy as np
 import scipy.optimize
 import scipy.sparse.linalg
-from jax.flatten_util import ravel_pytree
-from jax.tree_util import tree_flatten, tree_unflatten
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.scene import (
@@ -22,7 +20,6 @@ from conmech.scene.scene import (
 )
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.lbfgs import minimize_lbfgs
-from conmech.solvers.lbfgs2 import minimize2
 from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
@@ -183,13 +180,14 @@ class Calculator:
         setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if False:  # setting.is_colliding():
+        if True:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
                 setting, temperature=temperature, initial_a=initial_a
             )
-        return Calculator.solve_acceleration_normalized_function(
-            setting=setting, temperature=temperature, initial_a=initial_a
-        )
+        else:
+            return Calculator.solve_acceleration_normalized_function(
+                setting=setting, temperature=temperature, initial_a=initial_a
+            )
 
     @staticmethod
     def solve_temperature_normalized(
