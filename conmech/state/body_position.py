@@ -115,7 +115,7 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self.normalize_by_rotation = normalize_by_rotation
+        self.normalize_by_rotation = False ##### normalize_by_rotation
         self.displacement_old = np.zeros_like(self.initial_nodes)
         self.velocity_old = np.zeros_like(self.initial_nodes)
         self.acceleration_old = np.zeros_like(self.initial_nodes)
@@ -152,11 +152,13 @@ class BodyPosition(Mesh):
         return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
+        return vectors
         if not self.normalize_by_rotation:
             return vectors
         return lnh.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
+        return vectors
         if not self.normalize_by_rotation:
             return vectors
         return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
@@ -240,8 +242,8 @@ class BodyPosition(Mesh):
 
     @property
     def input_velocity_old(self):
-        return self.normalized_velocity_old
+        return self.velocity_old - np.mean(self.velocity_old, axis=0)
 
     @property
     def input_displacement_old(self):
-        return self.normalized_displacement_old
+        return self.displacement_old - np.mean(self.displacement_old, axis=0)

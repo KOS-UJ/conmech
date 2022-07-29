@@ -238,6 +238,7 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
+            #for fun in solve_function:
             acceleration = solve_function(scene, initial_a=acceleration)
             # energy_value = Calculator.get_acceleration_energy(
             #     setting=scene, acceleration=acceleration

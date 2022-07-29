@@ -30,7 +30,7 @@ def setup_distributed(rank: int, world_size: int):
     os.environ["MASTER_ADDR"] = "localhost"
     # with socketserver.TCPServer(("localhost", 0), None) as s:
     #     free_port = str(s.server_address[1])
-    free_port = "12347"
+    free_port = "12348"
     os.environ["MASTER_PORT"] = free_port
     #os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
     dist.init_process_group("nccl", rank=rank, world_size=world_size)

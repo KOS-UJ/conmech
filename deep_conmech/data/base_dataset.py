@@ -11,6 +11,7 @@ from torch_geometric.loader import DataLoader
 from conmech.helpers import cmh, mph, pkh
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.data_classes import GraphData
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -161,16 +162,6 @@ class BaseDataset:
     def features_data_path(self):
         return f"{self.tmp_directory}/DATASET.feat"
 
-    def divide_data_range(self, data_range: range, process_id: int, num_workers: int):
-        data_start = data_range[0]
-        data_count = len(data_range)
-        scenes_part_count = data_count // num_workers
-        if process_id == num_workers - 1:
-            return range(data_start + process_id * scenes_part_count, data_start + data_count)
-        return range(
-            data_start + process_id * scenes_part_count,
-            data_start + (process_id + 1) * scenes_part_count,
-        )
 
     def initialize_data(self):
         print(f"----NODE {self.rank}: INITIALIZING DATASET ({self.data_id})----")
@@ -255,9 +246,7 @@ class BaseDataset:
         return os.path.getsize(data_path) / 1024**3
 
     def initialize_features_and_targets_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = self.divide_data_range(
-            data_range=range(self.data_count), process_id=process_id, num_workers=num_workers
-        )
+        assigned_data_range = range(process_id, self.data_count, num_workers)        
         data_tqdm = cmh.get_tqdm(
             iterable=assigned_data_range,
             config=self.config,
@@ -272,13 +261,11 @@ class BaseDataset:
                 for layer_number in range(self.layers_count)
             ]
             target_data = scene.get_target_data()
-            layers_list[0].exact_acceleration = thh.to_double(
-                np.zeros_like(
-                    scene.initial_nodes
-                )  # Calculator.solve_acceleration_normalized_function(scene)
-            )
             if hasattr(scene, "exact_acceleration"):
                 layers_list[0].exact_acceleration = thh.to_double(scene.exact_acceleration)
+            if hasattr(scene, "linear_acceleration"):
+                layers_list[0].linear_acceleration = thh.to_double(scene.linear_acceleration)
+
             graph_data = GraphData(layer_list=layers_list, target_data=target_data)
             pkh.append_data(
                 data=graph_data,
@@ -290,15 +277,16 @@ class BaseDataset:
     def get_statistics(self, layer_number):
         dataloader = get_train_dataloader(self, rank=self.rank, world_size=self.world_size)
 
-        dimension = self.config.td.dimension
-        nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(dimension)))
-        edges_data = torch.empty((0, SceneInput.get_edges_data_dim(dimension)))
+        nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(self.dimension)))
+        edges_data = torch.empty((0, SceneInput.get_edges_data_dim(self.dimension)))
+        target_data = torch.empty((0, self.dimension))
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
             layer = graph_data[0][layer_number]
             nodes_data = torch.cat((nodes_data, layer.x))
             edges_data = torch.cat((edges_data, layer.edge_attr))
+            target_data = torch.cat((target_data, graph_data[0][layer_number].exact_acceleration))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)
@@ -306,9 +294,12 @@ class BaseDataset:
         edges_statistics = FeaturesStatistics(
             edges_data, SceneInput.get_edges_data_description(self.dimension)
         )
+        target_statistics = FeaturesStatistics(
+            target_data, [f'exact_acceleration_{i}' for i in range(self.dimension)]
+        )
 
         return DatasetStatistics(
-            nodes_statistics=nodes_statistics, edges_statistics=edges_statistics
+            nodes_statistics=nodes_statistics, edges_statistics=edges_statistics, target_statistics=target_statistics
         )
 
     def load_data(self):
@@ -318,15 +309,10 @@ class BaseDataset:
         if not self.config.load_data_to_ram:
             return
 
-        process_data_range = self.divide_data_range(
-            data_range=range(self.data_count), process_id=self.rank, num_workers=self.world_size
-        )
+        total_id = self.rank * worker_info.num_workers + worker_info.id
+        all_ids = self.world_size * worker_info.num_workers
+        worker_data_range =  range(total_id, self.data_count, all_ids)
 
-        worker_data_range = self.divide_data_range(
-            data_range=process_data_range,
-            process_id=worker_info.id,
-            num_workers=worker_info.num_workers,
-        )
         self.loaded_data = []
         data_tqdm = cmh.get_tqdm(
             iterable=worker_data_range,

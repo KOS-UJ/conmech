@@ -1,5 +1,5 @@
 from ctypes import ArgumentError
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
@@ -9,6 +9,8 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
+from conmech.helpers.cmh import dotdict
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
@@ -383,10 +385,12 @@ class CustomGraphNet(nn.Module):
         return node_latents
 
     def forward(self, layer_list: List[Data]):
+        if isinstance(layer_list[0].x, Tuple):
+            layer_list = [dotdict(l.x) for l in layer_list]
         main_layer = layer_list[0]
         self.processor_number = 0
 
-        node_latents = self.node_encoder(main_layer.x)
+        node_latents = self.node_encoder(main_layer['x'])
         processed_node_latents = self.process_by_layer(
             layer_list=layer_list,
             layer_number=0,
@@ -398,20 +402,25 @@ class CustomGraphNet(nn.Module):
         # main_layer.x[:,:2]
         return net_output  # main_layer.forces + net_output
 
-    def solve_all(self, scene: SceneInput):
+    def solve_all(self, scene: SceneInput, initial_a):
         self.eval()
         layers_count = len(scene.all_layers)
+        #linear_acceleration = Calculator.solve_acceleration_normalized_function(setting=scene, temperature=None, initial_a=initial_a)
+        #scene.linear_acceleration = linear_acceleration
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number in range(layers_count)
         ]
         normalized_a_cuda = self(layer_list=layers_list)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda)
+        normalized_a = thh.to_np_double(normalized_a_cuda) #+ linear_acceleration 
+        
+        #normalized_a = Calculator.solve(setting=scene, initial_a=initial_a)
+
         a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a
 
     def solve(self, scene: SceneInput, initial_a):
         _ = initial_a
-        a, _ = self.solve_all(scene)
+        a, _ = self.solve_all(scene, initial_a)
         return a

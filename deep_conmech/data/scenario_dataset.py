@@ -6,6 +6,7 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.scene import Scene
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
@@ -99,13 +100,16 @@ class ScenariosDataset(BaseDataset):
                 scene = self.get_scene(
                     scenario=scenario, layers_count=self.layers_count, config=self.config
                 )
+                normalized_a = np.zeros_like(scene.initial_nodes)
 
             current_time = ts * scene.time_step
             forces = scenario.get_forces_by_function(scene, current_time)
             scene.prepare(forces)
-
-            a, normalized_a = self.solve_function(scene)
+            
+            scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(setting=scene, temperature=None, initial_a=normalized_a)
+            a, normalized_a = self.solve_function(setting=scene, initial_a=normalized_a)
             scene.exact_acceleration = normalized_a
+            #assert np.allclose(np.mean(scene.linear_acceleration, axis=0), np.mean(scene.exact_acceleration, axis=0))
 
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 

@@ -12,6 +12,7 @@ from torch_geometric.data.batch import Data
 from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_calculation import (
@@ -53,12 +54,13 @@ class GraphModelDynamic:
         self.print_scenarios = print_scenarios
         self.world_size = world_size
 
+        print("SETTING find_unused_parameters=True")
         if config.distributed_training:
             self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net,
                 device_ids=[rank],
-                #find_unused_parameters=True
+                find_unused_parameters=True
             )
         else:
             self.ddp_net = net
@@ -216,7 +218,7 @@ class GraphModelDynamic:
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
-                solve_function=net.solve,
+                solve_function=net.solve, #(net.solve, Calculator.solve),
                 scenario=scenario,
                 config=config,
                 run_config=simulation_runner.RunScenarioConfig(
@@ -354,6 +356,7 @@ class GraphModelDynamic:
         all_acceleration,
         graph_sizes_base,
         all_exact_acceleration,
+        all_linear_acceleration
     ):
         # big_forces = node_features[:, :dimension]
         # big_lhs_size = target_data.a_correction.numel()
@@ -371,6 +374,7 @@ class GraphModelDynamic:
             # energy_args=target_data.energy_args,
             graph_sizes_base=graph_sizes_base,
             exact_acceleration=all_exact_acceleration,
+            linear_acceleration=all_linear_acceleration,
         )
 
         return big_main_loss, big_loss_raport
@@ -396,5 +400,6 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=batch_main_layer.exact_acceleration,
+            all_linear_acceleration=batch_main_layer.linear_acceleration
         )
         return loss_tuple

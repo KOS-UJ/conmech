@@ -20,3 +20,4 @@ class FeaturesStatistics:
 class DatasetStatistics:
     nodes_statistics: FeaturesStatistics
     edges_statistics: FeaturesStatistics
+    target_statistics: FeaturesStatistics

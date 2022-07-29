@@ -139,6 +139,12 @@ class SceneInput(SceneLayers):
         return edges_data
 
     def get_nodes_data(self, layer_number):
+        exact_acceleration = self.prepare_node_data(
+            layer_number=layer_number, data=self.exact_acceleration, add_norm=True
+        )
+        # linear_acceleration = self.prepare_node_data(
+        #     layer_number=layer_number, data=self.linear_acceleration, add_norm=True
+        # )
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
@@ -159,6 +165,7 @@ class SceneInput(SceneLayers):
         )
         nodes_data = np.hstack(
             (
+                #linear_acceleration,
                 input_forces,
                 boundary_normals,
                 boundary_friction,
@@ -291,6 +298,7 @@ class SceneInput(SceneLayers):
     def get_nodes_data_description(dimension: int):
         desc = []
         for attr in [
+            "exact_acceleration",
             "input_forces",
             "boundary_normals",
             "boundary_friction",
@@ -299,7 +307,7 @@ class SceneInput(SceneLayers):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_damping", "boundary_volume"]:
+        for attr in ["boundary_normal_response", "boundary_volume"]:
             desc.append(attr)
         return desc
 

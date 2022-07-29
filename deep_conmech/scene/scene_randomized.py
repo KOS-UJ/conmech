@@ -63,7 +63,7 @@ class SceneRandomized(Scene):
         get_random = lambda scale: nph.generate_normal(
             rows=self.nodes_count,
             columns=self.dimension,
-            sigma=scale / 3,
+            sigma=scale, # / 3,
         )
 
         self.velocity_randomization = get_random(
@@ -122,11 +122,11 @@ class SceneRandomized(Scene):
 
     @property
     def input_velocity_old(self):  # normalized_randomized_velocity_old
-        return self.normalized_velocity_old + self.normalized_velocity_randomization
+        return super().input_velocity_old + self.normalized_velocity_randomization
 
     @property
     def input_displacement_old(self):  # normalized_randomized_displacement_old
-        return self.normalized_displacement_old + self.normalized_displacement_randomization
+        return super().input_displacement_old + self.normalized_displacement_randomization
 
     @property
     def input_forces(self):

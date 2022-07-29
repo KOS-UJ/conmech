@@ -38,6 +38,11 @@ class Logger:
                     columns=self.config.td.dimension + 1,
                     name=f"edges_statistics_layer{layer_number}",
                 )
+                self.save_hist_and_json(
+                    st=statistics.target_statistics,
+                    columns=self.config.td.dimension + 1,
+                    name=f"target_statistics_layer{layer_number}",
+                )
 
     def save_parameters(self):
         def pretty_json(value):

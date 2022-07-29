@@ -345,7 +345,7 @@ class Scene(BodyForces):
             )
 
     def get_energy_obstacle_jax(self, temperature=None):
-        base_displacement = self.displacement_old + self.time_step * self.velocity_old
+        base_displacement = self.input_displacement_old + self.time_step * self.input_velocity_old
         body_prop = self.body_prop.get_tuple()
 
         args = EnergyObstacleArguments(
@@ -359,7 +359,7 @@ class Scene(BodyForces):
             body_prop=body_prop,
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
-            base_displacement=self.displacement_old + self.time_step * self.velocity_old,
+            base_displacement=base_displacement,
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
             base_energy_displacement=compute_displacement_energy_jax(

@@ -35,9 +35,10 @@ def loss_normalized_obstacle_scatter(
     # energy_args: EnergyObstacleArguments,
     graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
+    linear_acceleration
 ):
     num_graphs = len(graph_sizes_base)
-    main_loss = thh.mean_error_torch(acceleration, exact_acceleration)
+    main_loss = thh.root_mean_square_error_torch(acceleration, exact_acceleration)# - linear_acceleration) # mean_error_torch  
 
     loss_raport = LossRaport(
         main=main_loss.item(),
