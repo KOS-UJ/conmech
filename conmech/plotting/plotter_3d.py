@@ -131,7 +131,8 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
     else:
         plot_mesh(nodes=scene.moved_nodes, mesh=scene, color="tab:orange", axes=axes)
     plot_obstacles(axes, scene, "tab:orange")
-
+    return
+    
     shift = np.array([0, 2.0, 0])
     for key, data in normalized_data.items():
         shifted_normalized_nodes = scene.normalized_nodes + shift

@@ -92,3 +92,4 @@ class TargetData(Data):
 class GraphData:
     layer_list: List[MeshLayerData]
     target_data: TargetData
+    scene: float

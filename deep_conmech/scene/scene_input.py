@@ -10,11 +10,7 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.data.data_classes import (
-    EnergyObstacleArgumentsTorch,
-    MeshLayerData,
-    TargetData,
-)
+from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
 
@@ -139,37 +135,38 @@ class SceneInput(SceneLayers):
         return edges_data
 
     def get_nodes_data(self, layer_number):
-        exact_acceleration = self.prepare_node_data(
-            layer_number=layer_number, data=self.exact_acceleration, add_norm=True
+        #exact_acceleration = self.prepare_node_data(
+        #    layer_number=layer_number, data=self.exact_acceleration, add_norm=True
+        #)
+        linear_acceleration = self.prepare_node_data(
+            layer_number=layer_number, data=self.linear_acceleration, add_norm=True
         )
-        # linear_acceleration = self.prepare_node_data(
-        #     layer_number=layer_number, data=self.linear_acceleration, add_norm=True
-        # )
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
         boundary_normals = self.prepare_node_data(
             data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
-        boundary_friction = self.prepare_node_data(
-            data=self.get_friction_input(),
-            layer_number=layer_number,
-            add_norm=True,
-        )
-        boundary_normal_response = self.prepare_node_data(
-            data=self.get_normal_response_input(),
-            layer_number=layer_number,
-        )
+        # boundary_friction = self.prepare_node_data(
+        #     data=self.get_friction_input(),
+        #     layer_number=layer_number,
+        #     add_norm=True,
+        # )
+        # boundary_normal_response = self.prepare_node_data(
+        #     data=self.get_normal_response_input(),
+        #     layer_number=layer_number,
+        # )
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
         nodes_data = np.hstack(
             (
-                #linear_acceleration,
+                #exact_acceleration,
+                linear_acceleration,
                 input_forces,
                 boundary_normals,
-                boundary_friction,
-                boundary_normal_response,
+                # boundary_friction,
+                # boundary_normal_response,
                 boundary_volume,
             )
         )
@@ -201,7 +198,7 @@ class SceneInput(SceneLayers):
         )
         return edges_index, edges_data, closest_nodes
 
-    def get_features_data(self, layer_number: int):
+    def get_features_data(self, layer_number: int = 0):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
@@ -292,23 +289,28 @@ class SceneInput(SceneLayers):
             # lhs_index=lhs_sparse.indices(),
             # rhs=rhs,
         )
+        if hasattr(self, "exact_acceleration"):
+            target_data.exact_acceleration = thh.to_double(self.exact_acceleration)
+        if hasattr(self, "linear_acceleration"):
+            target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
         return target_data
 
     @staticmethod
     def get_nodes_data_description(dimension: int):
         desc = []
         for attr in [
-            "exact_acceleration",
+            #"exact_acceleration",
+            "linear_acceleration",
             "input_forces",
             "boundary_normals",
-            "boundary_friction",
+            #"boundary_friction",
         ]:
             for i in range(dimension):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_normal_response", "boundary_volume"]:
-            desc.append(attr)
+        for attr in ["boundary_volume"]: #"boundary_normal_response", "boundary_volume"]:
+             desc.append(attr)
         return desc
 
     @staticmethod

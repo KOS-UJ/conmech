@@ -1,5 +1,6 @@
 from typing import Callable, Optional
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -42,6 +43,15 @@ def energy_vector_lhs(value_vector, lhs, rhs):
     value = first.reshape(-1) @ value_vector
     return value[0]
 
+
+@jax.jit
+def get_integrated_forces_jax_int(volume_at_nodes_jax, normalized_inner_forces, integrated_outer_forces):
+    integrated_inner_forces = volume_at_nodes_jax @ jnp.array(
+        normalized_inner_forces
+    )
+    integrated_outer_forces = jnp.array(integrated_outer_forces)
+    integrated_forces = integrated_inner_forces + integrated_outer_forces
+    return integrated_forces
 
 class BodyForces(Dynamics):
     def __init__(
@@ -102,6 +112,9 @@ class BodyForces(Dynamics):
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
     def get_integrated_forces_column_jax(self):
+        integrated_forces = get_integrated_forces_jax_int(volume_at_nodes_jax=self.matrices.volume_at_nodes_jax, normalized_inner_forces=self.normalized_inner_forces, integrated_outer_forces=self.get_integrated_outer_forces())
+        return nph.stack_column_jax(integrated_forces[self.independent_indices, :])
+
         integrated_inner_forces = self.matrices.volume_at_nodes_jax @ jnp.array(
             self.normalized_inner_forces
         )

@@ -57,7 +57,7 @@ def get_train_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         world_size=world_size,
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
-        shuffle=True,
+        shuffle=True, # False
     )
 
 
@@ -78,7 +78,7 @@ def get_dataloader(
         sampler=sampler,
         pin_memory=True,
         persistent_workers=num_workers > 0,
-        worker_init_fn=worker_init_fn
+        worker_init_fn=worker_init_fn,
         # prefetch_factor=10,
     )
 
@@ -176,7 +176,7 @@ class BaseDataset:
         else:
             print("Skipping scenes file generation")
 
-        cmh.profile(self.initialize_features_and_targets_process)
+        cmh.profile(self.initialize_features_and_targets_process, baypass=True)
         # mph.run_processes(
         #     self.initialize_features_and_targets_process, num_workers=self.num_workers
         # )
@@ -261,12 +261,8 @@ class BaseDataset:
                 for layer_number in range(self.layers_count)
             ]
             target_data = scene.get_target_data()
-            if hasattr(scene, "exact_acceleration"):
-                layers_list[0].exact_acceleration = thh.to_double(scene.exact_acceleration)
-            if hasattr(scene, "linear_acceleration"):
-                layers_list[0].linear_acceleration = thh.to_double(scene.linear_acceleration)
 
-            graph_data = GraphData(layer_list=layers_list, target_data=target_data)
+            graph_data = GraphData(layer_list=layers_list, target_data=target_data, scene=scene)
             pkh.append_data(
                 data=graph_data,
                 data_path=self.features_data_path,
@@ -286,7 +282,7 @@ class BaseDataset:
             layer = graph_data[0][layer_number]
             nodes_data = torch.cat((nodes_data, layer.x))
             edges_data = torch.cat((edges_data, layer.edge_attr))
-            target_data = torch.cat((target_data, graph_data[0][layer_number].exact_acceleration))
+            target_data = torch.cat((target_data, graph_data[1].exact_acceleration))
 
         nodes_statistics = FeaturesStatistics(
             nodes_data, SceneInput.get_nodes_data_description(self.dimension)
@@ -372,7 +368,7 @@ class BaseDataset:
     def __getitem__(self, index: int):
         # self.load_data()
         graph_data = self.get_features_and_targets_data(index)
-        return graph_data.layer_list, graph_data.target_data
+        return graph_data.layer_list, graph_data.target_data #, graph_data.scene
         # return [*graph_data.layer_list, graph_data.target_data]
 
     def __len__(self):

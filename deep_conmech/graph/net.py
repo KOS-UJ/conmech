@@ -287,8 +287,9 @@ class CustomGraphNet(nn.Module):
                 for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
             ]
         )
-        self.upward_processor_layer = ProcessorLayer(td=td)
-        self.downward_processor_layer = ProcessorLayer(td=td)
+        if(self.td.mesh_layers_count > 1):
+            self.upward_processor_layer = ProcessorLayer(td=td)
+            self.downward_processor_layer = ProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
             input_dim=td.latent_dimension,
@@ -403,19 +404,19 @@ class CustomGraphNet(nn.Module):
         return net_output  # main_layer.forces + net_output
 
     def solve_all(self, scene: SceneInput, initial_a):
-        self.eval()
-        layers_count = len(scene.all_layers)
-        #linear_acceleration = Calculator.solve_acceleration_normalized_function(setting=scene, temperature=None, initial_a=initial_a)
-        #scene.linear_acceleration = linear_acceleration
-        layers_list = [
-            scene.get_features_data(layer_number=layer_number).to(self.device)
-            for layer_number in range(layers_count)
-        ]
-        normalized_a_cuda = self(layer_list=layers_list)
+        # self.eval()
+        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(setting=scene, temperature=None, initial_a=initial_a)
+        # #scene.exact_acceleration = Calculator.solve(setting=scene, initial_a=initial_a)
+        # layers_list = [
+        #     scene.get_features_data(layer_number=layer_number).to(self.device)
+        #     for layer_number, _ in enumerate(scene.all_layers)
+        # ]
+        # normalized_a_cuda = self(layer_list=layers_list)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda) #+ linear_acceleration 
+        # normalized_a = thh.to_np_double(normalized_a_cuda) + scene.linear_acceleration 
         
-        #normalized_a = Calculator.solve(setting=scene, initial_a=initial_a)
+        normalized_a = Calculator.solve(setting=scene, initial_a=initial_a)
+        # normalized_a = linear_acceleration
 
         a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a

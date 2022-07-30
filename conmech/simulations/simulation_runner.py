@@ -239,7 +239,7 @@ def simulate(
             )
         else:
             #for fun in solve_function:
-            acceleration = solve_function(scene, initial_a=acceleration)
+            acceleration = cmh.profile(lambda: solve_function(scene, initial_a=acceleration), baypass=True)
             # energy_value = Calculator.get_acceleration_energy(
             #     setting=scene, acceleration=acceleration
             # ).item()

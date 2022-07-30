@@ -54,13 +54,12 @@ class GraphModelDynamic:
         self.print_scenarios = print_scenarios
         self.world_size = world_size
 
-        print("SETTING find_unused_parameters=True")
         if config.distributed_training:
             self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net,
                 device_ids=[rank],
-                find_unused_parameters=True
+                # find_unused_parameters=True
             )
         else:
             self.ddp_net = net
@@ -109,14 +108,16 @@ class GraphModelDynamic:
             self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
         )
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
+            #self.train_dataset.reset()
+            #for _ in range(2):
             self.epoch += 1
-
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
                 step_function=self.train_step,
                 tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
                 raport_description="Training",
-            )
+            ) #, all_acceleration
+            #self.train_dataset.update(all_acceleration)
 
             self.scheduler.step()
             self.optional_barrier()
@@ -239,7 +240,7 @@ class GraphModelDynamic:
 
         # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
         with torch.cuda.amp.autocast():
-            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)
+            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data) # acceleration_list
         self.fp16_scaler.scale(main_loss).backward()
 
         if self.config.td.gradient_clip is not None:
@@ -247,7 +248,7 @@ class GraphModelDynamic:
         self.fp16_scaler.step(self.optimizer)
         self.fp16_scaler.update()
 
-        return loss_raport
+        return loss_raport #, acceleration_list
 
     def test_step(self, batch_data: List[Data]):
         self.ddp_net.eval()
@@ -279,9 +280,11 @@ class GraphModelDynamic:
             profiler = self.logger.get_and_start_profiler()
 
         rae = self.config.td.raport_at_examples
+        #all_acceleration = []
         for batch_id, batch_data in enumerate(batch_tqdm):
 
-            loss_raport = step_function(batch_data)
+            loss_raport = step_function(batch_data) #, acceleration_list
+            #all_acceleration.extend(acceleration_list)
 
             mean_loss_raport.add(loss_raport)
             self.examples_seen += loss_raport._count * self.world_size
@@ -302,7 +305,7 @@ class GraphModelDynamic:
             profiler.stop()
         gc.enable()
 
-        return mean_loss_raport
+        return mean_loss_raport #, all_acceleration
 
     def should_raport_training(self, batch_id: int, batches_count: int):
         return (
@@ -399,7 +402,9 @@ class GraphModelDynamic:
             target_data=target_data,
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
-            all_exact_acceleration=batch_main_layer.exact_acceleration,
-            all_linear_acceleration=batch_main_layer.linear_acceleration
+            all_exact_acceleration=target_data.exact_acceleration,
+            all_linear_acceleration=target_data.linear_acceleration
         )
-        return loss_tuple
+        #acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
+
+        return loss_tuple# *, acceleration_list

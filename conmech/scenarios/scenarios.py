@@ -157,6 +157,14 @@ default_body_prop = DynamicBodyProperties(
     zeta=4.0 * SCALE_COEFF,
     mass_density=SCALE_MASS,
 )
+default_body_prop_3d =DynamicBodyProperties(
+    mu=12,  # 8,
+    lambda_=12,  # 8,
+    theta=4,
+    zeta=4,
+    mass_density=1.0,
+)
+
 
 default_thermal_expansion_coefficients = np.array(
     [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
@@ -369,6 +377,16 @@ def f_rotate_3d(
         return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
+def f_rotate_3d_long(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = moved_node, mesh_prop
+    scale = initial_node[1] * initial_node[2]
+    return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
+
 
 def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle(
@@ -519,18 +537,51 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
     )
 
 
-def scenario_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
     _ = tag
     return Scenario(
         name="ball_rotate",
         mesh_prop=MeshProperties(
             dimension=3, mesh_type=M_BALL_3D, scale=[scale], mesh_density=[mesh_density]
         ),
-        body_prop=default_body_prop,
+        body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d, #np.array([0.0, 0.0, -0.5]),
+        forces_function=f_rotate_3d_long, #np.array([0.0, 0.0, -0.5]),
         obstacle=Obstacle(
             np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
+        ),
+    )
+
+def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+    _ = tag
+    return Scenario(
+        name="cube_rotate",
+        mesh_prop=MeshProperties(
+            dimension=3, mesh_type=M_CUBE_3D, scale=[scale], mesh_density=[mesh_density]
+        ),
+        body_prop=default_body_prop_3d,
+        schedule=Schedule(final_time=final_time),
+        forces_function=f_rotate_3d_long, #np.array([0.0, 0.0, -0.5]),
+        obstacle=Obstacle(
+            np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
+        ),
+    )
+
+def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+    _ = tag
+    return Scenario(
+        name="bunny_rotate",
+        mesh_prop=MeshProperties(
+            dimension=3,
+            mesh_type=M_BUNNY_3D,
+            scale=[1],
+            mesh_density=[mesh_density],
+        ),
+        body_prop=default_body_prop_3d,
+        schedule=Schedule(final_time=final_time),
+        forces_function=f_rotate_3d,
+        obstacle=Obstacle(
+            np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
         ),
     )
 
@@ -566,14 +617,14 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [scenario_3d(**args)]
+        return [ball_rotate_3d(**args)]
     return get_train_data(**args)
 
 
 def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [scenario_3d(**args)]
+        return [bunny_rotate_3d(**args), cube_rotate_3d(**args), ball_rotate_3d(**args)]
     return get_valid_data(**args)
 
 
@@ -584,7 +635,7 @@ def all_train_2(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [scenario_3d(**args)]
+        return all_validation(td)
     return [
         *get_valid_data(**args),
         *get_train_data(**args),
