@@ -66,8 +66,16 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
     return nodes, elements
 
 
-def get_pygmsh_bunny():
-    mesh = meshio.read("models/bunny/bun_zipper_res1.msh")
+def get_pygmsh_bunny(mesh_prop):
+    mesh_id = 1
+    if mesh_prop.mesh_density_x <= 16:
+        mesh_id = 2
+    if mesh_prop.mesh_density_x <= 8:
+        mesh_id = 3
+    if mesh_prop.mesh_density_x <= 4:
+        mesh_id = 4
+
+    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}.msh")
     scale = 3.0
     nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
     nodes[:, [1, 2]] = nodes[:, [2, 1]]

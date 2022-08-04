@@ -35,10 +35,13 @@ def loss_normalized_obstacle_scatter(
     # energy_args: EnergyObstacleArguments,
     graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
-    linear_acceleration
+    linear_acceleration,
 ):
     num_graphs = len(graph_sizes_base)
-    main_loss = thh.root_mean_square_error_torch(acceleration, exact_acceleration - linear_acceleration) # mean_error_torch  
+    main_loss = thh.root_mean_square_error_torch(
+        acceleration, exact_acceleration
+    )  # - linear_acceleration
+    # )  # mean_error_torch
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -51,9 +54,8 @@ def loss_normalized_obstacle_scatter(
         me=0,
         _count=num_graphs,
     )
-        
-    return main_loss, loss_raport
 
+    return main_loss, loss_raport
 
 
 def loss_normalized_obstacle_scatter2(
@@ -66,8 +68,8 @@ def loss_normalized_obstacle_scatter2(
     exact_acceleration: Optional[torch.Tensor],
 ):
     num_graphs = len(graph_sizes_base)
-    #acceleration_vector_all = get_acceleration_vector(acceleration, graph_sizes_base)
-    #exact_acceleration_vector_all = get_acceleration_vector(exact_acceleration, graph_sizes_base)
+    # acceleration_vector_all = get_acceleration_vector(acceleration, graph_sizes_base)
+    # exact_acceleration_vector_all = get_acceleration_vector(exact_acceleration, graph_sizes_base)
 
     acceleration_split = acceleration.split(graph_sizes_base)
     exact_acceleration_split = exact_acceleration.split(graph_sizes_base)
@@ -78,12 +80,18 @@ def loss_normalized_obstacle_scatter2(
         acceleration_vector = nph.stack_column(acceleration_split[batch_graph_index])
         exact_acceleration_vector = nph.stack_column(exact_acceleration_split[batch_graph_index])
         args = energy_args[0]
-
+        # vmap
         inner_energy = (
-            energy_obstacle_jax(acceleration_vector=jnp.asarray(acceleration_vector.cpu().detach()), args=args) / num_graphs
+            energy_obstacle_jax(
+                acceleration_vector=jnp.asarray(acceleration_vector.cpu().detach()), args=args
+            )
+            / num_graphs
         )
         exact_inner_energy = (
-            energy_obstacle_jax(acceleration_vector=jnp.asarray(exact_acceleration_vector.cpu().detach()), args=args) / num_graphs
+            energy_obstacle_jax(
+                acceleration_vector=jnp.asarray(exact_acceleration_vector.cpu().detach()), args=args
+            )
+            / num_graphs
         )
         boundary_integral = torch.tensor([0]) / num_graphs
         loss_energy = inner_energy  # + boundary_integral
@@ -110,4 +118,3 @@ def loss_normalized_obstacle_scatter2(
     all_loss_raport.normalize()
     all_main_loss /= num_graphs
     return all_main_loss, all_loss_raport
-

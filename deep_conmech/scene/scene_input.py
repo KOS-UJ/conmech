@@ -134,13 +134,16 @@ class SceneInput(SceneLayers):
         )
         return edges_data
 
-    def get_nodes_data(self, layer_number):
-        #exact_acceleration = self.prepare_node_data(
-        #    layer_number=layer_number, data=self.exact_acceleration, add_norm=True
-        #)
-        linear_acceleration = self.prepare_node_data(
-            layer_number=layer_number, data=self.linear_acceleration, add_norm=True
-        )
+    def get_nodes_data(self, layer_number, with_acceleration):
+        if with_acceleration:
+            exact_acceleration = self.prepare_node_data(
+                layer_number=layer_number,
+                data=self.all_layers[layer_number].mesh.exact_acceleration,
+                add_norm=True,
+            )
+        # linear_acceleration = self.prepare_node_data(
+        #     layer_number=layer_number, data=self.linear_acceleration, add_norm=True
+        # )
         input_forces = self.prepare_node_data(
             layer_number=layer_number, data=self.input_forces, add_norm=True
         )
@@ -159,10 +162,19 @@ class SceneInput(SceneLayers):
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
-        nodes_data = np.hstack(
+        if with_acceleration:
+            return np.hstack(
+                (
+                    exact_acceleration,
+                    linear_acceleration,
+                    input_forces,
+                    boundary_normals,
+                    boundary_volume,
+                )
+            )
+        return np.hstack(
             (
-                #exact_acceleration,
-                linear_acceleration,
+                # linear_acceleration,
                 input_forces,
                 boundary_normals,
                 # boundary_friction,
@@ -170,7 +182,6 @@ class SceneInput(SceneLayers):
                 boundary_volume,
             )
         )
-        return nodes_data
 
     def get_multilayer_edges_with_data(
         self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
@@ -213,7 +224,9 @@ class SceneInput(SceneLayers):
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
             pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
-            x=thh.to_torch_set_precision(self.get_nodes_data(layer_number)),
+            x=thh.to_torch_set_precision(
+                self.get_nodes_data(layer_number, with_acceleration=(layer_number > 0))
+            ),
             edge_index=thh.get_contiguous_torch(layer_directional_edges),
             edge_attr=thh.to_torch_set_precision(
                 self.get_edges_data(
@@ -270,7 +283,7 @@ class SceneInput(SceneLayers):
         # rhs = thh.to_double(self.get_integrated_forces_column_jax())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
-            #energy_args=self.get_energy_obstacle_jax(None)
+            # energy_args=self.get_energy_obstacle_jax(None)
             # EnergyObstacleArgumentsTorch(
             #     lhs_values=lhs_sparse_copy.values(),
             #     lhs_indices=lhs_sparse_copy.indices(),
@@ -299,18 +312,18 @@ class SceneInput(SceneLayers):
     def get_nodes_data_description(dimension: int):
         desc = []
         for attr in [
-            #"exact_acceleration",
-            "linear_acceleration",
+            # "exact_acceleration",
+            # "linear_acceleration",
             "input_forces",
             "boundary_normals",
-            #"boundary_friction",
+            # "boundary_friction",
         ]:
             for i in range(dimension):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]: #"boundary_normal_response", "boundary_volume"]:
-             desc.append(attr)
+        for attr in ["boundary_volume"]:  # "boundary_normal_response", "boundary_volume"]:
+            desc.append(attr)
         return desc
 
     @staticmethod

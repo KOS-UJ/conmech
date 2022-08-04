@@ -10,8 +10,14 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.scene import Scene
 from deep_conmech.data import interpolation_helpers
 from deep_conmech.scene.scene_randomized import SceneRandomized
+from deep_conmech.training_config import (
+    CLOSEST_BOUNDARY_COUNT,
+    CLOSEST_COUNT,
+    MESH_LAYERS_PROPORTION,
+)
 
 
 @dataclass
@@ -30,6 +36,7 @@ class AllMeshLayerLinkData:
     to_down: Optional[MeshLayerLinkData]
     from_down: Optional[MeshLayerLinkData]
     from_base: Optional[MeshLayerLinkData]
+    to_base: Optional[MeshLayerLinkData]
 
 
 class SceneLayers(SceneRandomized):
@@ -66,19 +73,22 @@ class SceneLayers(SceneRandomized):
             to_down=None,
             from_down=None,
             from_base=None,
+            to_base=None,
         )
         self.all_layers.append(base_mesh_layer_data)
 
         dense_mesh = self
         for _ in range(layers_count - 1):
             layer_mesh_prop.mesh_density = list(
-                np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // 2
+                np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // MESH_LAYERS_PROPORTION
             )
 
-            sparse_mesh = Mesh(
+            sparse_mesh = Scene(
                 mesh_prop=layer_mesh_prop,
-                is_dirichlet=None,
-                is_contact=None,
+                body_prop=self.body_prop,
+                obstacle_prop=self.obstacle_prop,
+                schedule=self.schedule,
+                normalize_by_rotation=self.normalize_by_rotation,
                 create_in_subprocess=self.create_in_subprocess,
             )
             mesh_layer_data = AllMeshLayerLinkData(
@@ -90,6 +100,7 @@ class SceneLayers(SceneRandomized):
                     from_mesh=dense_mesh, to_mesh=sparse_mesh, with_weights=False
                 ),
                 from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True),
+                to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=True),
             )
             self.all_layers.append(mesh_layer_data)
             dense_mesh = sparse_mesh
@@ -104,7 +115,7 @@ class SceneLayers(SceneRandomized):
         ) = interpolation_helpers.get_interlayer_data(
             base_nodes=old_nodes,
             interpolated_nodes=new_nodes,
-            closest_count=self.mesh_prop.dimension + 1,
+            closest_count=CLOSEST_COUNT,  # self.mesh_prop.dimension + 1,
             with_weights=with_weights,
         )
         # assert np.allclose(
@@ -118,7 +129,7 @@ class SceneLayers(SceneRandomized):
         ) = interpolation_helpers.get_interlayer_data(
             base_nodes=from_mesh.initial_boundary_nodes,
             interpolated_nodes=to_mesh.initial_boundary_nodes,
-            closest_count=self.mesh_prop.dimension,
+            closest_count=CLOSEST_BOUNDARY_COUNT,  # self.mesh_prop.dimension,
             with_weights=with_weights,
         )
         return MeshLayerLinkData(
@@ -151,4 +162,28 @@ class SceneLayers(SceneRandomized):
 
         return interpolation_helpers.approximate_internal(
             base_values=base_values, closest_nodes=closest_nodes, closest_weights=closest_weights
+        )
+
+    def approximate_boundary_or_all_to_base(self, layer_number: int, reduced_values: np.ndarray):
+        if layer_number == 0:
+            return reduced_values
+
+        mesh_layer_data = self.all_layers[layer_number]
+        reduced_scene = mesh_layer_data.mesh
+        link = mesh_layer_data.to_base
+        if link is None:
+            raise ArgumentError
+
+        if len(reduced_values) == reduced_scene.nodes_count:
+            closest_nodes = link.closest_nodes
+            closest_weights = link.closest_weights
+
+        elif len(reduced_values) == reduced_scene.boundary_nodes_count:
+            closest_nodes = link.closest_boundary_nodes
+            closest_weights = link.closest_weights_boundary
+        else:
+            raise ArgumentError
+
+        return interpolation_helpers.approximate_internal(
+            base_values=reduced_values, closest_nodes=closest_nodes, closest_weights=closest_weights
         )

@@ -18,6 +18,8 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
+from deep_conmech.scene.scene_layers import SceneLayers
+from deep_conmech.training_config import LAYERS_COUNT
 
 
 class Scenario:
@@ -73,13 +75,14 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        setting = Scene(
+        setting = SceneLayers(
             mesh_prop=self.mesh_prop,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
+            layers_count=LAYERS_COUNT,
         )
         setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return setting
@@ -157,7 +160,7 @@ default_body_prop = DynamicBodyProperties(
     zeta=4.0 * SCALE_COEFF,
     mass_density=SCALE_MASS,
 )
-default_body_prop_3d =DynamicBodyProperties(
+default_body_prop_3d = DynamicBodyProperties(
     mu=12,  # 8,
     lambda_=12,  # 8,
     theta=4,
@@ -373,9 +376,11 @@ def f_rotate_3d(
 ):
     _ = moved_node, mesh_prop
     if time <= 0.5:
+        # if (time % 4.0) <= 2.0:
         scale = initial_node[1] * initial_node[2]
         return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
+
 
 def f_rotate_3d_long(
     initial_node: np.ndarray,
@@ -546,11 +551,12 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d_long, #np.array([0.0, 0.0, -0.5]),
+        forces_function=f_rotate_3d_long,  # np.array([0.0, 0.0, -0.5]),
         obstacle=Obstacle(
             np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
         ),
     )
+
 
 def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
     _ = tag
@@ -561,11 +567,12 @@ def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d_long, #np.array([0.0, 0.0, -0.5]),
+        forces_function=f_rotate_3d_long,  # np.array([0.0, 0.0, -0.5]),
         obstacle=Obstacle(
             np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
         ),
     )
+
 
 def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
     _ = tag
@@ -580,9 +587,7 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,
-        obstacle=Obstacle(
-            np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-        ),
+        obstacle=Obstacle(np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop),
     )
 
 
@@ -624,7 +629,7 @@ def all_train(td):
 def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [bunny_rotate_3d(**args), cube_rotate_3d(**args), ball_rotate_3d(**args)]
+        return [ball_rotate_3d(**args), cube_rotate_3d(**args), bunny_rotate_3d(**args)]
     return get_valid_data(**args)
 
 

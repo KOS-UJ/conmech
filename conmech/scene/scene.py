@@ -515,3 +515,17 @@ class Scene(BodyForces):
         # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()
         # self.solver_cache.lhs_sparse = lhs_sparse
+
+    def interpolate_base(self, scene):
+        # self.inner_forces = scene.approximate_boundary_or_all_from_base(
+        #     layer_number=1, base_values=scene.inner_forces
+        # )
+        # self.outer_forces = scene.approximate_boundary_or_all_from_base(
+        #     layer_number=1, base_values=scene.outer_forces
+        # )
+        self.displacement_old = scene.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=scene.displacement_old
+        )
+        self.velocity_old = scene.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=scene.velocity_old
+        )

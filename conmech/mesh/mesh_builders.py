@@ -65,7 +65,7 @@ def build_initial_mesh(
             if "twist" in mesh_prop.mesh_type:
                 inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_prop)
             if "bunny" in mesh_prop.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_bunny()
+                inner_function = lambda: mesh_builders_3d.get_pygmsh_bunny(mesh_prop)
             if "armadillo" in mesh_prop.mesh_type:
                 inner_function = lambda: mesh_builders_3d.get_pygmsh_armadillo()
         else:

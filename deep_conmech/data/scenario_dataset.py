@@ -105,11 +105,16 @@ class ScenariosDataset(BaseDataset):
             current_time = ts * scene.time_step
             forces = scenario.get_forces_by_function(scene, current_time)
             scene.prepare(forces)
-            
-            scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(setting=scene, temperature=None, initial_a=normalized_a)
+
+            # scene.approximate_boundary_or_all_from_base(
+            #    layer_number=1, base_values=acceleration
+            # )
+            scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
+                setting=scene, temperature=None, initial_a=normalized_a
+            )
             a, normalized_a = self.solve_function(setting=scene, initial_a=normalized_a)
             scene.exact_acceleration = normalized_a
-            #assert np.allclose(np.mean(scene.linear_acceleration, axis=0), np.mean(scene.exact_acceleration, axis=0))
+            # assert np.allclose(np.mean(scene.linear_acceleration, axis=0), np.mean(scene.exact_acceleration, axis=0))
 
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 

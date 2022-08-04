@@ -125,8 +125,8 @@ class Calculator:
         # return np.asarray(result.x)
 
     @staticmethod
-    def solve(setting: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
-        cleaned_a, _ = Calculator.solve_all(setting, initial_a)
+    def solve(scene: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
+        cleaned_a, _ = Calculator.solve_all(scene, initial_a)
         return cleaned_a
 
     @staticmethod
@@ -177,16 +177,16 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
+        scene: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if True:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
-                setting, temperature=temperature, initial_a=initial_a
+                scene, temperature=temperature, initial_a=initial_a
             )
         else:
             return Calculator.solve_acceleration_normalized_function(
-                setting=setting, temperature=temperature, initial_a=initial_a
+                setting=scene, temperature=temperature, initial_a=initial_a
             )
 
     @staticmethod
@@ -227,11 +227,11 @@ class Calculator:
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
 
-        A = setting.solver_cache.lhs_sparse_jax #cp
-        b = setting.get_normalized_rhs_jax(temperature) #cp
-        x0 = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None #cp
+        A = setting.solver_cache.lhs_sparse_jax  # cp
+        b = setting.get_normalized_rhs_jax(temperature)  # cp
+        x0 = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None  # cp
 
-        M = setting.solver_cache.lhs_preconditioner_jax #cp
+        M = setting.solver_cache.lhs_preconditioner_jax  # cp
 
         # A is symetric and positive definite
         # A_ = A.get().todense()
@@ -260,16 +260,16 @@ class Calculator:
         return cleaned_a, normalized_cleaned_a
 
     @staticmethod
-    def solve_acceleration_normalized_optimization_jax(setting, temperature=None, initial_a=None):
+    def solve_acceleration_normalized_optimization_jax(scene, temperature=None, initial_a=None):
         if initial_a is None:
-            initial_a_vector = np.zeros(setting.nodes_count * setting.dimension)
+            initial_a_vector = np.zeros(scene.nodes_count * scene.dimension)
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        args = setting.get_energy_obstacle_jax(temperature)
+        args = scene.get_energy_obstacle_jax(temperature)
 
         def get_vector():
-            if not setting.is_colliding():
+            if not scene.is_colliding():
                 return Calculator.minimize_jax(
                     function=energy_obstacle_jax,
                     hes=hes_energy_obstacle_new,
@@ -290,7 +290,7 @@ class Calculator:
         )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)
-        return nph.unstack(normalized_a_vector, setting.dimension)
+        return nph.unstack(normalized_a_vector, scene.dimension)
 
     @staticmethod
     def solve_temperature_normalized_optimization(
