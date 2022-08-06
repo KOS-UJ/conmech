@@ -57,7 +57,7 @@ def get_train_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         world_size=world_size,
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
-        shuffle=True, # False
+        shuffle=True,  # False
     )
 
 
@@ -162,7 +162,6 @@ class BaseDataset:
     def features_data_path(self):
         return f"{self.tmp_directory}/DATASET.feat"
 
-
     def initialize_data(self):
         print(f"----NODE {self.rank}: INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
@@ -246,7 +245,7 @@ class BaseDataset:
         return os.path.getsize(data_path) / 1024**3
 
     def initialize_features_and_targets_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = range(process_id, self.data_count, num_workers)        
+        assigned_data_range = range(process_id, self.data_count, num_workers)
         data_tqdm = cmh.get_tqdm(
             iterable=assigned_data_range,
             config=self.config,
@@ -291,11 +290,13 @@ class BaseDataset:
             edges_data, SceneInput.get_edges_data_description(self.dimension)
         )
         target_statistics = FeaturesStatistics(
-            target_data, [f'exact_acceleration_{i}' for i in range(self.dimension)]
+            target_data, [f"exact_acceleration_{i}" for i in range(self.dimension)]
         )
 
         return DatasetStatistics(
-            nodes_statistics=nodes_statistics, edges_statistics=edges_statistics, target_statistics=target_statistics
+            nodes_statistics=nodes_statistics,
+            edges_statistics=edges_statistics,
+            target_statistics=target_statistics,
         )
 
     def load_data(self):
@@ -307,7 +308,7 @@ class BaseDataset:
 
         total_id = self.rank * worker_info.num_workers + worker_info.id
         all_ids = self.world_size * worker_info.num_workers
-        worker_data_range =  range(total_id, self.data_count, all_ids)
+        worker_data_range = range(total_id, self.data_count, all_ids)
 
         self.loaded_data = []
         data_tqdm = cmh.get_tqdm(
@@ -368,7 +369,7 @@ class BaseDataset:
     def __getitem__(self, index: int):
         # self.load_data()
         graph_data = self.get_features_and_targets_data(index)
-        return graph_data.layer_list, graph_data.target_data #, graph_data.scene
+        return graph_data.layer_list, graph_data.target_data  # , graph_data.scene
         # return [*graph_data.layer_list, graph_data.target_data]
 
     def __len__(self):

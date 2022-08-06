@@ -13,11 +13,13 @@ import numpy as np
 def stack(data):
     return data.T.flatten()
 
+
 stack_jax = jax.jit(stack, inline=True)
 
 
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
+
 
 stack_column_jax = jax.jit(stack_column, inline=True)
 
@@ -97,7 +99,7 @@ def get_tangential_jax(vector, normal):
 
 @numba.njit
 def get_tangential_numba(vector, normal):
-    normal_vector = (vector * normal).sum(axis=1).reshape(-1,1)
+    normal_vector = (vector * normal).sum(axis=1).reshape(-1, 1)
     tangential_vector = vector - (normal_vector * normal)
     return tangential_vector
 

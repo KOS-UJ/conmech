@@ -178,7 +178,7 @@ class SyntheticDataset(BaseDataset):
         # inner_process = mph.start_process(generate_data_inner, up_queue)
         for index in step_tqdm:
             scene = self.generate_scene()
-            while False: # True:
+            while False:  # True:
                 try:
                     scene = up_queue.get(timeout=30.0)
                     break

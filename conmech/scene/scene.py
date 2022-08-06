@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
+import torch
 
 from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
@@ -47,6 +48,8 @@ def obstacle_resistance_potential_tangential_jax(
 class EnergyObstacleArguments(NamedTuple):
     lhs_acceleration_jax: np.ndarray
     rhs_acceleration: np.ndarray
+    # lhs_acceleration_torch: np.ndarray
+    # rhs_acceleration_torch: np.ndarray
     boundary_velocity_old: np.ndarray
     boundary_normals: np.ndarray
     boundary_obstacle_normals: np.ndarray
@@ -106,6 +109,12 @@ def energy_vector_jax(value_vector, lhs, rhs):
     return value[0]
 
 
+def energy_vector_torch(value_vector, lhs, rhs):
+    first = 0.5 * (lhs @ value_vector) - rhs
+    value = first.reshape(-1) @ value_vector
+    return value[0]
+
+
 # @partial(jax.jit, static_argnums=(2,))
 @jax.jit
 def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
@@ -117,6 +126,16 @@ def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
         rhs=args.rhs_acceleration,
     )
     main_energy1 = compute_energy_jax(nph.unstack_jax(acceleration_vector, dim=3), args)
+    return main_energy0 + main_energy1
+
+
+def energy_obstacle_torch(acceleration_vector, args: EnergyObstacleArguments):
+    main_energy0 = energy_vector_torch(
+        value_vector=nph.stack_column(acceleration_vector),
+        lhs=args.lhs_acceleration_torch,
+        rhs=args.rhs_acceleration_torch,
+    )
+    main_energy1 = compute_energy_jax(nph.unstack(acceleration_vector, dim=3), args)
     return main_energy0 + main_energy1
 
 
@@ -161,7 +180,6 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 I = jnp.eye(3)
 
 
-@partial(jax.jit, inline=True)
 def get_jac(value, dx_big_jax):
     result0 = (
         (dx_big_jax @ jnp.tile(value, (3, 1))).reshape(3, -1, 3).swapaxes(0, 1).transpose((0, 2, 1))
@@ -169,24 +187,20 @@ def get_jac(value, dx_big_jax):
     return result0
 
 
-@partial(jax.jit, inline=True)
 def get_F_jax(value, dx_big_jax, I):
     return get_jac(value, dx_big_jax) + I
 
 
-@partial(jax.jit, inline=True)
 def get_eps_lin_jax(F, I):
     F_T = F.transpose((0, 2, 1))
     return 0.5 * (F + F_T) - I
 
 
-@partial(jax.jit, inline=True)
 def get_eps_rot_jax(F, I):
     F_T = F.transpose((0, 2, 1))
     return 0.5 * (F_T @ F - I)
 
 
-@partial(jax.jit, inline=True)
 def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
     # dimension = displacement.shape[-1]
 
@@ -200,7 +214,6 @@ def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, 
     return energy
 
 
-@partial(jax.jit, inline=True)
 def compute_displacement_energy_jax(displacement, dx_big_jax, element_initial_volume, body_prop):
     return compute_component_energy_jax(
         component=displacement,
@@ -211,7 +224,6 @@ def compute_displacement_energy_jax(displacement, dx_big_jax, element_initial_vo
     )
 
 
-@partial(jax.jit, inline=True)
 def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, body_prop):
     return compute_component_energy_jax(
         component=velocity,
@@ -222,7 +234,6 @@ def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, bo
     )
 
 
-@partial(jax.jit, inline=True)
 def compute_energy_jax(acceleration, args):
     new_displacement = args.base_displacement + acceleration * args.time_step**2
     new_velocity = args.base_velocity + acceleration * args.time_step
@@ -351,6 +362,12 @@ class Scene(BodyForces):
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
             rhs_acceleration=self.get_integrated_forces_column_jax(),
+            #
+            # lhs_acceleration_torch=torch.Tensor(
+            #     np.array(self.solver_cache.lhs_acceleration_jax.todense())
+            # ),
+            # rhs_acceleration_torch=torch.Tensor(np.array(self.get_integrated_forces_column_jax())),
+            # #
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
@@ -376,6 +393,7 @@ class Scene(BodyForces):
                 body_prop=body_prop,
             ),
         )
+
         return args
 
     @property
@@ -511,6 +529,7 @@ class Scene(BodyForces):
         return np.zeros((self.nodes_count, 1), dtype=np.int64)
 
     def prepare_to_save(self):
+        a = 0
         self.matrices = ConstMatrices()
         # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()

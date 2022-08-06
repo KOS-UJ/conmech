@@ -115,7 +115,7 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self.normalize_by_rotation = False ##### normalize_by_rotation
+        self.normalize_by_rotation = False  ##### normalize_by_rotation
         self.displacement_old = np.zeros_like(self.initial_nodes)
         self.velocity_old = np.zeros_like(self.initial_nodes)
         self.acceleration_old = np.zeros_like(self.initial_nodes)

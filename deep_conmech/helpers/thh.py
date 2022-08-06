@@ -48,9 +48,9 @@ def max_norm(data):
 def mean_square_error_torch(predicted, exact):
     return torch.mean(torch.linalg.norm(predicted - exact, axis=-1) ** 2)
 
+
 def root_mean_square_error_torch(predicted, exact):
     return torch.sqrt(mean_square_error_torch(predicted, exact))
-
 
 
 def mean_error_torch(predicted, exact):

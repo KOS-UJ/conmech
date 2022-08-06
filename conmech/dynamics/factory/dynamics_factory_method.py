@@ -109,7 +109,7 @@ def get_dynamics(
 
     result.acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
 
-    #return result
+    # return result
 
     V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
     W = np.asarray(

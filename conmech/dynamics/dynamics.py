@@ -129,7 +129,9 @@ class Dynamics(BodyPosition):
         self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
         # Calculating Jacobi preconditioner
         # TODO: Check SSOR / Incomplete Cholesky
-        self.solver_cache.lhs_preconditioner_jax =  jxh.to_jax_sparse(jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse))
+        self.solver_cache.lhs_preconditioner_jax = jxh.to_jax_sparse(
+            jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse)
+        )
         # ilu = cupyx.scipy.sparse.linalg.spilu(A=A, fill_factor=1)
 
         return

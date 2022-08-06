@@ -1,4 +1,5 @@
-from typing import Callable, Union
+from time import time
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -31,6 +32,7 @@ class Scenario:
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
+        forces_function_parameter: Optional[float] = None,
     ):
         self.name = name
         self.mesh_prop = mesh_prop
@@ -42,6 +44,7 @@ class Scenario:
         )
         self.mesh_obstacles = None if obstacle.all_mesh is None else obstacle.all_mesh
         self.forces_function = forces_function
+        self.forces_function_parameter = forces_function_parameter
 
     @staticmethod
     def get_by_function(function, setting, current_time):
@@ -55,7 +58,11 @@ class Scenario:
         )
 
     def get_forces_by_function(self, setting, current_time):
-        return Scenario.get_by_function(self.forces_function, setting, current_time)
+        if self.forces_function_parameter is not None:
+            function = lambda *args: self.forces_function(*args, self.forces_function_parameter)
+        else:
+            function = self.forces_function
+        return Scenario.get_by_function(function, setting, current_time)
 
     def get_tqdm(self, desc: str, config: Config):
         return cmh.get_tqdm(
@@ -373,24 +380,13 @@ def f_rotate_3d(
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
     time: float,
+    time_cutoff: float,
 ):
     _ = moved_node, mesh_prop
-    if time <= 0.5:
-        # if (time % 4.0) <= 2.0:
+    if time <= time_cutoff:  # 1.0 0.5: # if (time % 4.0) <= 2.0:
         scale = initial_node[1] * initial_node[2]
         return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
-
-
-def f_rotate_3d_long(
-    initial_node: np.ndarray,
-    moved_node: np.ndarray,
-    mesh_prop: MeshProperties,
-    time: float,
-):
-    _ = moved_node, mesh_prop
-    scale = initial_node[1] * initial_node[2]
-    return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
 
 
 def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
@@ -542,7 +538,7 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
     )
 
 
-def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
     _ = tag
     return Scenario(
         name="ball_rotate",
@@ -551,14 +547,15 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d_long,  # np.array([0.0, 0.0, -0.5]),
+        forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=Obstacle(
             np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
         ),
+        forces_function_parameter=time_cutoff,
     )
 
 
-def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
     _ = tag
     return Scenario(
         name="cube_rotate",
@@ -567,14 +564,15 @@ def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d_long,  # np.array([0.0, 0.0, -0.5]),
+        forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=Obstacle(
             np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
         ),
+        forces_function_parameter=time_cutoff,
     )
 
 
-def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
+def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
     _ = tag
     return Scenario(
         name="bunny_rotate",
@@ -588,6 +586,7 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,
         obstacle=Obstacle(np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop),
+        forces_function_parameter=time_cutoff,
     )
 
 
@@ -622,7 +621,7 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [ball_rotate_3d(**args)]
+        return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(0, td.final_time, 0.2)]
     return get_train_data(**args)
 
 

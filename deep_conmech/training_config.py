@@ -24,7 +24,7 @@ class TrainingData:
 
     dataset: str = "calculator"  # synthetic # calculator
     final_time: float = 4  # 8  # 0.5 if TEST else 8
-    mesh_density: int = 16  # 8 # 64 if dimension == 2 else 16
+    mesh_density: int = 8  # 16 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0
@@ -40,17 +40,17 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.01 * (
-        0.01**2
-    )  # same as net error, so that a_correction is similar # 0.005 * displacement_random_scale
-    velocity_in_random_factor: float = 0.01 * 0.01  # 0.005 * velocity_random_scale
+    displacement_in_random_factor: float = 0.1 * (0.01**2)  # 0.01
+    # same as net error, so that a_correction is similar # 0.005 * displacement_random_scale
+    velocity_in_random_factor: float = displacement_in_random_factor * 100.0
+    # 0.005 * velocity_random_scale
 
     save_at_minutes: int = 4
     raport_at_examples: int = 256 * 64
     validate_at_epochs: Optional[int] = 100000
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 4  # 32 # 256
+    batch_size: int = 16  # 32  # 16  # 32 # 256
     dataset_size: int = 256 * (1 if TEST else 2048)
 
     use_dataset_statistics: bool = False
@@ -68,13 +68,13 @@ class TrainingData:
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = initial_learning_rate  # 1e-6
 
-    activation = nn.PReLU()  # nn.PReLU() LeakyReLU
+    activation = nn.ReLU()  # nn.PReLU() LeakyReLU
     latent_dimension: int = 128  # 128
-    encoder_layers_count: int = 3
+    encoder_layers_count: int = 0  # 3
     processor_layers_count: int = 0
-    decoder_layers_count: int = 3
+    decoder_layers_count: int = 0  # 3
     mesh_layers_count: int = LAYERS_COUNT  # 3
-    message_passes: int = 4  # 8 #3
+    message_passes: int = 4  # 4  # 8  # 3
 
 
 @dataclass

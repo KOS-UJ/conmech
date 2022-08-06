@@ -1,7 +1,6 @@
 import copy
 import os
 import time
-from curses import noecho
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 

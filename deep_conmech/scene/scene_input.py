@@ -43,8 +43,8 @@ def get_edges_data_numba(
     displacement_old_to,
     velocity_old_from,
     velocity_old_to,
-    # forces_from,
-    # forces_to,
+    forces_from,
+    forces_to,
     edges_data_dim,
 ):
     dimension = initial_nodes_to.shape[1]
@@ -60,7 +60,7 @@ def get_edges_data_numba(
         set_diff_numba(
             velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
         )
-        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
+        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -126,27 +126,26 @@ class SceneInput(SceneLayers):
             velocity_old_to=self.prepare_node_data(
                 data=self.input_velocity_old, layer_number=layer_number_to
             ),
-            # forces_from=self.prepare_node_data(
-            #     data=self.input_forces, layer_number=layer_number_from
-            # ),
-            # forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
+            forces_from=self.prepare_node_data(
+                data=self.input_forces, layer_number=layer_number_from
+            ),
+            forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
             edges_data_dim=self.get_edges_data_dim(self.dimension),
         )
         return edges_data
 
-    def get_nodes_data(self, layer_number, with_acceleration):
-        if with_acceleration:
-            exact_acceleration = self.prepare_node_data(
-                layer_number=layer_number,
-                data=self.all_layers[layer_number].mesh.exact_acceleration,
-                add_norm=True,
-            )
-        # linear_acceleration = self.prepare_node_data(
-        #     layer_number=layer_number, data=self.linear_acceleration, add_norm=True
+    def get_nodes_data(self, layer_number):
+        # exact_acceleration = self.prepare_node_data(
+        #     layer_number=layer_number,
+        #     data=self.all_layers[layer_number].mesh.exact_acceleration,
+        #     add_norm=True,
         # )
-        input_forces = self.prepare_node_data(
-            layer_number=layer_number, data=self.input_forces, add_norm=True
+        linear_acceleration = self.prepare_node_data(
+            layer_number=layer_number, data=self.linear_acceleration, add_norm=True
         )
+        # input_forces = self.prepare_node_data(
+        #     layer_number=layer_number, data=self.input_forces, add_norm=True
+        # )
         boundary_normals = self.prepare_node_data(
             data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
@@ -162,20 +161,10 @@ class SceneInput(SceneLayers):
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
-        if with_acceleration:
-            return np.hstack(
-                (
-                    exact_acceleration,
-                    linear_acceleration,
-                    input_forces,
-                    boundary_normals,
-                    boundary_volume,
-                )
-            )
         return np.hstack(
             (
-                # linear_acceleration,
-                input_forces,
+                linear_acceleration,
+                # input_forces,
                 boundary_normals,
                 # boundary_friction,
                 # boundary_normal_response,
@@ -224,9 +213,7 @@ class SceneInput(SceneLayers):
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
             pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
-            x=thh.to_torch_set_precision(
-                self.get_nodes_data(layer_number, with_acceleration=(layer_number > 0))
-            ),
+            x=thh.to_torch_set_precision(self.get_nodes_data(layer_number)),
             edge_index=thh.get_contiguous_torch(layer_directional_edges),
             edge_attr=thh.to_torch_set_precision(
                 self.get_edges_data(
@@ -313,8 +300,8 @@ class SceneInput(SceneLayers):
         desc = []
         for attr in [
             # "exact_acceleration",
-            # "linear_acceleration",
-            "input_forces",
+            "linear_acceleration",
+            # "input_forces",
             "boundary_normals",
             # "boundary_friction",
         ]:
@@ -337,7 +324,7 @@ class SceneInput(SceneLayers):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old"]:  # , "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

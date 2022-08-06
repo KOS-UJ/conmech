@@ -6,7 +6,11 @@ import torch
 
 from conmech.helpers import nph
 from conmech.scene.body_forces import energy_lhs, energy_vector_lhs
-from conmech.scene.scene import EnergyObstacleArguments, energy_obstacle_jax
+from conmech.scene.scene import (
+    EnergyObstacleArguments,
+    energy_obstacle_jax,
+    energy_obstacle_torch,
+)
 from deep_conmech.data.data_classes import EnergyObstacleArgumentsTorch
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.helpers import thh
@@ -39,9 +43,8 @@ def loss_normalized_obstacle_scatter(
 ):
     num_graphs = len(graph_sizes_base)
     main_loss = thh.root_mean_square_error_torch(
-        acceleration, exact_acceleration
-    )  # - linear_acceleration
-    # )  # mean_error_torch
+        acceleration, exact_acceleration #- linear_acceleration
+    )  #  - linear_acceleration mean_error_torch
 
     loss_raport = LossRaport(
         main=main_loss.item(),
@@ -58,7 +61,7 @@ def loss_normalized_obstacle_scatter(
     return main_loss, loss_raport
 
 
-def loss_normalized_obstacle_scatter2(
+def loss_normalized_obstacle_scatter1(
     acceleration: torch.Tensor,
     # forces: torch.Tensor,
     # lhs: torch.Tensor,
@@ -66,6 +69,7 @@ def loss_normalized_obstacle_scatter2(
     energy_args: EnergyObstacleArguments,
     graph_sizes_base: List[int],
     exact_acceleration: Optional[torch.Tensor],
+    linear_acceleration,
 ):
     num_graphs = len(graph_sizes_base)
     # acceleration_vector_all = get_acceleration_vector(acceleration, graph_sizes_base)
@@ -81,6 +85,9 @@ def loss_normalized_obstacle_scatter2(
         exact_acceleration_vector = nph.stack_column(exact_acceleration_split[batch_graph_index])
         args = energy_args[0]
         # vmap
+        inner_energy_torch = (
+            energy_obstacle_torch(acceleration_vector=acceleration_vector, args=args) / num_graphs
+        )
         inner_energy = (
             energy_obstacle_jax(
                 acceleration_vector=jnp.asarray(acceleration_vector.cpu().detach()), args=args

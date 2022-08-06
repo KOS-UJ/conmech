@@ -3,9 +3,8 @@ import os
 
 import jax
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-#os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".50"
 
 import socketserver
 from argparse import ArgumentParser, Namespace
@@ -32,7 +31,7 @@ def setup_distributed(rank: int, world_size: int):
     #     free_port = str(s.server_address[1])
     free_port = "12348"
     os.environ["MASTER_PORT"] = free_port
-    #os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
+    # os.environ["TORCH_DISTRIBUTED_DEBUG"] = "DETAIL"
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
 
@@ -217,5 +216,5 @@ if __name__ == "__main__":
         "--shell", action=argparse.BooleanOptionalAction, default=False
     )  # Python 3.9+
     args = parser.parse_args()
-    #with jax.disable_jit():
+    # with jax.disable_jit():
     main(args)

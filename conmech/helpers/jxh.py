@@ -11,11 +11,11 @@ def to_inverse_diagonal(martix):
     return scipy.sparse.diags(1.0 / martix.diagonal(), shape=martix.shape)
 
 
-
 def solve_linear_jax(matrix, vector):
     # M = to_diagonal(martix)
     result, _ = jax.scipy.sparse.linalg.cg(A=matrix, b=vector)  # , M=M)
     return result
+
 
 def to_jax_sparse(matrix):
     coo_matrix = matrix.tocoo()

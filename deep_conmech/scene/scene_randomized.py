@@ -63,7 +63,7 @@ class SceneRandomized(Scene):
         get_random = lambda scale: nph.generate_normal(
             rows=self.nodes_count,
             columns=self.dimension,
-            sigma=scale, # / 3,
+            sigma=scale,  # / 3,
         )
 
         self.velocity_randomization = get_random(
@@ -72,9 +72,14 @@ class SceneRandomized(Scene):
         self.displacement_randomization = get_random(
             scale=self.displacement_in_random_factor,
         )
-        # Do not randomize boundaries
-        self.displacement_randomization[self.boundary_indices] = 0.0
-        self.velocity_randomization[self.boundary_indices] = 0.0
+        # Do not randomize boundaries (?) ###################
+        #self.displacement_randomization[self.boundary_indices] = 0.0
+        #self.velocity_randomization[self.boundary_indices] = 0.0
+
+        if hasattr(self, 'exact_acceleration'):
+            scaling = np.linalg.norm(self.exact_acceleration, axis=1).reshape(-1,1)
+            self.velocity_randomization *= scaling
+            self.displacement_randomization *= scaling
 
     @property
     def normalized_velocity_randomization(self):

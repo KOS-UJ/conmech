@@ -108,16 +108,16 @@ class GraphModelDynamic:
             self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
         )
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
-            #self.train_dataset.reset()
-            #for _ in range(2):
+            # self.train_dataset.reset()
+            # for _ in range(2):
             self.epoch += 1
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
                 step_function=self.train_step,
                 tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
                 raport_description="Training",
-            ) #, all_acceleration
-            #self.train_dataset.update(all_acceleration)
+            )  # , all_acceleration
+            # self.train_dataset.update(all_acceleration)
 
             self.scheduler.step()
             self.optional_barrier()
@@ -219,7 +219,7 @@ class GraphModelDynamic:
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
-                solve_function=net.solve, #(net.solve, Calculator.solve),
+                solve_function=net.solve,  # (net.solve, Calculator.solve),
                 scenario=scenario,
                 config=config,
                 run_config=simulation_runner.RunScenarioConfig(
@@ -240,7 +240,7 @@ class GraphModelDynamic:
 
         # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
         with torch.cuda.amp.autocast():
-            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data) # acceleration_list
+            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
         self.fp16_scaler.scale(main_loss).backward()
 
         if self.config.td.gradient_clip is not None:
@@ -248,7 +248,7 @@ class GraphModelDynamic:
         self.fp16_scaler.step(self.optimizer)
         self.fp16_scaler.update()
 
-        return loss_raport #, acceleration_list
+        return loss_raport  # , acceleration_list
 
     def test_step(self, batch_data: List[Data]):
         self.ddp_net.eval()
@@ -280,11 +280,11 @@ class GraphModelDynamic:
             profiler = self.logger.get_and_start_profiler()
 
         rae = self.config.td.raport_at_examples
-        #all_acceleration = []
+        # all_acceleration = []
         for batch_id, batch_data in enumerate(batch_tqdm):
 
-            loss_raport = step_function(batch_data) #, acceleration_list
-            #all_acceleration.extend(acceleration_list)
+            loss_raport = step_function(batch_data)  # , acceleration_list
+            # all_acceleration.extend(acceleration_list)
 
             mean_loss_raport.add(loss_raport)
             self.examples_seen += loss_raport._count * self.world_size
@@ -305,7 +305,7 @@ class GraphModelDynamic:
             profiler.stop()
         gc.enable()
 
-        return mean_loss_raport #, all_acceleration
+        return mean_loss_raport  # , all_acceleration
 
     def should_raport_training(self, batch_id: int, batches_count: int):
         return (
@@ -359,7 +359,7 @@ class GraphModelDynamic:
         all_acceleration,
         graph_sizes_base,
         all_exact_acceleration,
-        all_linear_acceleration
+        all_linear_acceleration,
     ):
         # big_forces = node_features[:, :dimension]
         # big_lhs_size = target_data.a_correction.numel()
@@ -403,8 +403,8 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=target_data.exact_acceleration,
-            all_linear_acceleration=target_data.linear_acceleration
+            all_linear_acceleration=target_data.linear_acceleration,
         )
-        #acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
+        # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
 
-        return loss_tuple# *, acceleration_list
+        return loss_tuple  # *, acceleration_list
