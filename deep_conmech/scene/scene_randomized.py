@@ -73,13 +73,13 @@ class SceneRandomized(Scene):
             scale=self.displacement_in_random_factor,
         )
         # Do not randomize boundaries (?) ###################
-        #self.displacement_randomization[self.boundary_indices] = 0.0
-        #self.velocity_randomization[self.boundary_indices] = 0.0
+        # self.displacement_randomization[self.boundary_indices] = 0.0
+        # self.velocity_randomization[self.boundary_indices] = 0.0
 
-        if hasattr(self, 'exact_acceleration'):
-            scaling = np.linalg.norm(self.exact_acceleration, axis=1).reshape(-1,1)
-            self.velocity_randomization *= scaling
-            self.displacement_randomization *= scaling
+        # if hasattr(self, 'exact_acceleration'):
+        #     scaling = np.linalg.norm(self.exact_acceleration)#, axis=1).reshape(-1,1)
+        #     self.velocity_randomization *= scaling
+        #     self.displacement_randomization *= scaling
 
     @property
     def normalized_velocity_randomization(self):

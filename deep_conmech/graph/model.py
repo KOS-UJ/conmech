@@ -38,7 +38,7 @@ class GraphModelDynamic:
     def __init__(
         self,
         train_dataset,
-        all_val_datasets,
+        validation_dataset,
         print_scenarios: List[Scenario],
         net: CustomGraphNet,
         config: TrainingConfig,
@@ -48,7 +48,7 @@ class GraphModelDynamic:
         self.rank = rank
         print(f"----NODE {self.rank}: CREATING MODEL----")
         self.config = config
-        self.all_val_datasets = all_val_datasets
+        self.validation_dataset = validation_dataset
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
@@ -105,7 +105,7 @@ class GraphModelDynamic:
             self.train_dataset, world_size=self.world_size, rank=self.rank
         )
         valid_dataloader = base_dataset.get_valid_dataloader(
-            self.all_val_datasets[0], world_size=self.world_size, rank=self.rank
+            self.validation_dataset, world_size=self.world_size, rank=self.rank
         )
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             # self.train_dataset.reset()
@@ -113,6 +113,7 @@ class GraphModelDynamic:
             self.epoch += 1
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
+                train=True,
                 step_function=self.train_step,
                 tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
                 raport_description="Training",
@@ -134,12 +135,13 @@ class GraphModelDynamic:
             if self.is_at_skip(self.config.td.validate_at_epochs):
                 _ = self.iterate_dataset(
                     dataloader=valid_dataloader,
+                    train=False,
                     step_function=self.test_step,
-                    tqdm_description=f"Validation",
+                    tqdm_description=f"Validation: {self.epoch}",
                     raport_description="Validation",
                 )
-            if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
-                self.validate_all_scenarios_raport()
+                # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
+                #     self.validate_all_scenarios_raport()
 
             self.optional_barrier()
 
@@ -266,12 +268,18 @@ class GraphModelDynamic:
         torch.nn.utils.clip_grad_norm_(parameters, max_norm)
 
     def iterate_dataset(
-        self, dataloader, step_function: Callable, tqdm_description: str, raport_description: str
+        self,
+        dataloader,
+        train: bool,
+        step_function: Callable,
+        tqdm_description: str,
+        raport_description: str,
     ):
         batch_tqdm = cmh.get_tqdm(
             dataloader, desc=tqdm_description, config=self.config, position=self.rank
         )
-        dataloader.sampler.set_epoch(self.epoch)
+        if train:
+            dataloader.sampler.set_epoch(self.epoch)
 
         mean_loss_raport = LossRaport()
 
@@ -279,7 +287,7 @@ class GraphModelDynamic:
         if self.config.profile_training:
             profiler = self.logger.get_and_start_profiler()
 
-        rae = self.config.td.raport_at_examples
+        # rae = self.config.td.raport_at_examples
         # all_acceleration = []
         for batch_id, batch_data in enumerate(batch_tqdm):
 
@@ -287,10 +295,11 @@ class GraphModelDynamic:
             # all_acceleration.extend(acceleration_list)
 
             mean_loss_raport.add(loss_raport)
-            self.examples_seen += loss_raport._count * self.world_size
+            if train:
+                self.examples_seen += loss_raport._count * self.world_size
 
             loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main):.4f}"
-            if batch_id == len(batch_tqdm) - 1 or self.examples_seen % rae == 0:
+            if batch_id == len(batch_tqdm) - 1:  # or self.examples_seen % rae == 0:
                 if self.is_main:
                     self.save_raport(
                         mean_loss_raport=mean_loss_raport, description=raport_description

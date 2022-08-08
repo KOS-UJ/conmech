@@ -380,12 +380,12 @@ def f_rotate_3d(
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
     time: float,
-    time_cutoff: float,
+    time_cutoff: float=0.5,
 ):
     _ = moved_node, mesh_prop
-    if time <= time_cutoff:  # 1.0 0.5: # if (time % 4.0) <= 2.0:
+    if time <= np.abs(time_cutoff):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
         scale = initial_node[1] * initial_node[2]
-        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES
+        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES * np.sign(time_cutoff)
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
 
@@ -621,25 +621,21 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(0, td.final_time, 0.2)]
+        return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)]
     return get_train_data(**args)
 
 
 def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [ball_rotate_3d(**args), cube_rotate_3d(**args), bunny_rotate_3d(**args)]
+        return [cube_rotate_3d(**args)]  # ball_rotate_3d(**args), bunny_rotate_3d(**args)]
     return get_valid_data(**args)
-
-
-def all_train_2(td):
-    return [*all_train(td), *all_validation(td)]
 
 
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        return all_validation(td)
+        return [ball_rotate_3d(**args), cube_rotate_3d(**args), bunny_rotate_3d(**args)]
     return [
         *get_valid_data(**args),
         *get_train_data(**args),

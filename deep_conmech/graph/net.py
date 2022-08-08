@@ -420,10 +420,11 @@ class CustomGraphNet(nn.Module):
         ]
         normalized_a_cuda = self(layer_list=layers_list)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda)# + scene.linear_acceleration
+        normalized_a = thh.to_np_double(normalized_a_cuda) #+ scene.linear_acceleration
+        #normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
+
         a = scene.denormalize_rotate(normalized_a)
 
-        #exact_acceleration = Calculator.solve(scene=scene, initial_a=initial_a)
         #np.linalg.norm(a - exact_acceleration)
 
         return a, normalized_a

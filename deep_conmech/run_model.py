@@ -43,6 +43,9 @@ def train(config: TrainingConfig):
     train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
     train_dataset.initialize_data()
 
+    validation_dataset = get_val_dataset(config=config, rank=0, world_size=1)
+    validation_dataset.initialize_data()
+
     if not config.distributed_training:
         train_single(config, train_dataset=train_dataset)
     else:
@@ -75,9 +78,8 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
 
-    all_val_datasets = get_all_val_datasets(config=config, rank=rank, world_size=world_size)
-    for dataset in all_val_datasets:
-        dataset.load_indices()
+    validation_dataset = get_val_dataset(config=config, rank=rank, world_size=world_size)
+    validation_dataset.load_indices()
     all_print_datasets = scenarios.all_print(config.td)
 
     net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
@@ -86,7 +88,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
     model = GraphModelDynamic(
         train_dataset=train_dataset,
-        all_val_datasets=all_val_datasets,
+        validation_dataset=validation_dataset,
         print_scenarios=all_print_datasets,
         net=net,
         config=config,
@@ -139,8 +141,8 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
     return train_dataset
 
 
-def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
-    all_val_datasets = []
+def get_val_dataset(config: TrainingConfig, rank: int, world_size: int):
+    # all_val_datasets = []
     # if config.td.DATASET != "live":
     #    all_val_datasets.append(train_dataset)
     # all_val_datasets.append(
@@ -151,21 +153,20 @@ def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
     #         config=config,
     #     )
     # )
-    all_val_datasets.append(
-        CalculatorDataset(
-            description="train",
-            all_scenarios=scenarios.all_train_2(config.td),
-            layers_count=config.td.mesh_layers_count,
-            randomize_at_load=True,  # False
-            config=config,
-            rank=rank,
-            world_size=world_size,
-        )
+    return CalculatorDataset(
+        description="validation",
+        all_scenarios=scenarios.all_validation(config.td),
+        layers_count=config.td.mesh_layers_count,
+        randomize_at_load=False,
+        config=config,
+        rank=rank,
+        world_size=world_size,
     )
+    # )
     # all_val_datasets.append(
     #    SyntheticDataset(description="train", dimension=2, load_to_ram=False, config=config)
     # )
-    return all_val_datasets
+    # return all_val_datasets
 
 
 def get_newest_checkpoint_path(config: TrainingConfig):

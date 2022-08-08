@@ -36,6 +36,7 @@ def get_print_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         batch_size=dataset.config.td.batch_size,
         num_workers=0,
         shuffle=False,
+        load_data=False,
     )
 
 
@@ -47,6 +48,7 @@ def get_valid_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=False,
+        load_data=True, #False,
     )
 
 
@@ -58,6 +60,7 @@ def get_train_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=True,  # False
+        load_data=True,
     )
 
 
@@ -66,7 +69,13 @@ def get_all_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
 
 
 def get_dataloader(
-    dataset, rank: int, world_size: int, batch_size: int, num_workers: int, shuffle: bool
+    dataset,
+    rank: int,
+    world_size: int,
+    batch_size: int,
+    num_workers: int,
+    shuffle: bool,
+    load_data: bool,
 ):
 
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
@@ -78,7 +87,7 @@ def get_dataloader(
         sampler=sampler,
         pin_memory=True,
         persistent_workers=num_workers > 0,
-        worker_init_fn=worker_init_fn,
+        worker_init_fn=worker_init_fn if load_data else None,
         # prefetch_factor=10,
     )
 

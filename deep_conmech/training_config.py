@@ -8,8 +8,8 @@ from conmech.helpers.config import Config
 
 TEST = True  # False
 DIMENSION = 3
-LAYERS_COUNT = 1  # 2
-MESH_LAYERS_PROPORTION = 4
+LAYERS_COUNT = 2  # 2
+MESH_LAYERS_PROPORTION = 2 #4
 CLOSEST_COUNT = 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
@@ -47,7 +47,7 @@ class TrainingData:
 
     save_at_minutes: int = 4
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = 100000
+    validate_at_epochs: Optional[int] = 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 16  # 32  # 16  # 32 # 256
@@ -74,7 +74,7 @@ class TrainingData:
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
     mesh_layers_count: int = LAYERS_COUNT  # 3
-    message_passes: int = 4  # 4  # 8  # 3
+    message_passes: int = 8  # 4  # 8  # 3
 
 
 @dataclass
