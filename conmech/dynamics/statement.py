@@ -118,6 +118,17 @@ class TemperatureStatement(Statement):
         # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
 
+class QuasistaticVelocityWithPiezoelectricStatement(QuasistaticVelocityStatement):
+    def update_right_hand_side(self, var):
+        super().update_right_hand_side(var)
+
+        assert var.electric_potential is not None
+
+        A = self.body.piezoelectricity.T @ var.electric_potential
+
+        self.right_hand_side += A
+
+
 class PiezoelectricStatement(Statement):
     def __init__(self, dynamics):
         super().__init__(dynamics, 1)

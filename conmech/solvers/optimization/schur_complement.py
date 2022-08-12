@@ -221,6 +221,7 @@ class Dynamic(SchurComplement):
                 displacement=self.u_vector,
                 velocity=self.v_vector,
                 temperature=self.t_vector,
+                electric_potential=self.p_vector,
                 time_step=self.time_step,
             )
         )

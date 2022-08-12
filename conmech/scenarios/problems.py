@@ -148,3 +148,7 @@ class TemperatureDynamic(Dynamic, TemperatureTimeDependent, ABC):
 
 class PiezoelectricQuasistatic(Quasistatic, PiezoelectricTimeDependent, ABC):
     pass
+
+
+class PiezoelectricDynamic(Dynamic, PiezoelectricTimeDependent, ABC):
+    pass

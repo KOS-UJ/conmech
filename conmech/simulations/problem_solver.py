@@ -12,7 +12,7 @@ from conmech.dynamics.statement import (
     DynamicVelocityWithTemperatureStatement,
     TemperatureStatement,
     PiezoelectricStatement,
-    DynamicVelocityStatement,
+    DynamicVelocityStatement, QuasistaticVelocityWithPiezoelectricStatement,
 )
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
@@ -23,13 +23,15 @@ from conmech.properties.body_properties import (
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.problems import Dynamic as DynamicProblem
+from conmech.scenarios.problems import Dynamic as DynamicProblem, TimeDependent
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
 from conmech.scenarios.problems import TemperatureDynamic as TemperatureDynamicProblem
 from conmech.scenarios.problems import TemperatureTimeDependent as TemperatureTimeDependentProblem
 from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
+from conmech.scenarios.problems import (
+    PiezoelectricTimeDependent as PiezoelectricTimeDependentProblem)
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
@@ -44,8 +46,7 @@ class ProblemSolver:
         :param setup:
         :param body_properties:
         """
-        # FIXME DynamicVelocityStatement
-        if isinstance(setup, (QuasistaticProblem, DynamicProblem)):
+        if isinstance(setup, TimeDependent):
             time_step = setup.time_step
         else:
             time_step = 0
@@ -93,7 +94,9 @@ class ProblemSolver:
             statement = StaticDisplacementStatement(self.body)
             time_step = 0
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            if isinstance(self.setup, QuasistaticProblem):
+            if isinstance(self.setup, PiezoelectricQuasistatic):
+                statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
+            elif isinstance(self.setup, QuasistaticProblem):
                 statement = QuasistaticVelocityStatement(self.body)
             elif isinstance(self.setup, TemperatureDynamicProblem):
                 statement = DynamicVelocityWithTemperatureStatement(self.body)
@@ -118,7 +121,7 @@ class ProblemSolver:
                 self.setup.contact_law,
                 self.setup.friction_bound,
             )
-        elif isinstance(self.setup, PiezoelectricQuasistaticProblem):
+        elif isinstance(self.setup, PiezoelectricTimeDependentProblem):
             self.second_step_solver = solver_class(
                 PiezoelectricStatement(self.body),
                 self.body,
