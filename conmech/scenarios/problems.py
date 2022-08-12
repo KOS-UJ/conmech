@@ -30,6 +30,7 @@ class ContactLaw:
 @dataclass()
 class Problem:
     dimension = 2  # TODO #74 : Not used?
+    mesh_type: str
     grid_height: float
 
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside

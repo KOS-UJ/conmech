@@ -54,7 +54,7 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_m02_m02 = QuasistaticSetup()
+    setup_m02_m02 = QuasistaticSetup(mesh_type="cross")
 
     expected_displacement_vector_m02_m02 = [
         [0.0, 0.0],
@@ -77,7 +77,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = QuasistaticSetup()
+    setup_0_02_p_0 = QuasistaticSetup(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -106,7 +106,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = QuasistaticSetup()
+    setup_0_m02_p_0 = QuasistaticSetup(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -153,7 +153,7 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_var = QuasistaticSetup()
+    setup_var = QuasistaticSetup(mesh_type="cross")
     expected_displacement_vector_var = [
         [0.0, 0.0],
         [0.0200761, 0.05161694],

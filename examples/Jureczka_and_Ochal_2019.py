@@ -74,7 +74,7 @@ class StaticSetup(Static):
 
 
 def main(show: bool = True, save: bool = False):
-    setup = StaticSetup()
+    setup = StaticSetup(mesh_type="cross")
     runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(

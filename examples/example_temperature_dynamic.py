@@ -85,7 +85,7 @@ class TDynamicSetup(TemperatureDynamic):
 
 
 def main(show: bool = True, save: bool = False):
-    setup = TDynamicSetup()
+    setup = TDynamicSetup(mesh_type="cross")
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(

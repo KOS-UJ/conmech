@@ -45,7 +45,7 @@ class DynamicSetup(Dynamic):
 
 
 def main(show: bool = True, save: bool = False):
-    setup = DynamicSetup()
+    setup = DynamicSetup(mesh_type="cross")
     runner = DynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(

@@ -45,7 +45,7 @@ class QuasistaticSetup(Quasistatic):
 
 
 def main(show: bool = True, save: bool = False):
-    setup = QuasistaticSetup()
+    setup = QuasistaticSetup(mesh_type="cross")
     runner = QuasistaticProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(

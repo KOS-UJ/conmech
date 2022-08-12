@@ -79,7 +79,7 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_m02_m02 = DynamicSetup()
+    setup_m02_m02 = DynamicSetup(mesh_type="cross")
 
     expected_displacement_vector_m02_m02 = np.asarray(
         [
@@ -128,7 +128,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = DynamicSetup()
+    setup_0_02_p_0 = DynamicSetup(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law_temp(0)
 
     def inner_forces(x):
@@ -183,7 +183,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = DynamicSetup()
+    setup_0_m02_p_0 = DynamicSetup(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law_temp(0)
 
     def inner_forces(x):
@@ -235,7 +235,7 @@ def generate_test_suits():
         def is_dirichlet(x):
             return x[0] == 0
 
-    setup_var = DynamicSetup()
+    setup_var = DynamicSetup(mesh_type="cross")
     expected_displacement_vector_var = np.asarray(
         [
             [0.0, 0.0],

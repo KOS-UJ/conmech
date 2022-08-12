@@ -56,7 +56,7 @@ class ProblemSolver:
         self.body = BodyForces(
             mesh_prop=MeshProperties(
                 dimension=2,
-                mesh_type="cross",
+                mesh_type=setup.mesh_type,
                 mesh_density=[setup.elements_number[1], setup.elements_number[0]],
                 scale=[float(grid_width), float(setup.grid_height)],
             ),

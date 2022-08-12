@@ -46,7 +46,7 @@ def build_initial_mesh(
     if "cross" in mesh_prop.mesh_type:
         return mesh_builders_legacy.get_cross_rectangle(mesh_prop)
 
-    if "special" in mesh_prop.mesh_type:
+    if "Barboteu2008" in mesh_prop.mesh_type:  # TODO # 85
         return special_mesh(mesh_prop)
 
     if "meshzoo" in mesh_prop.mesh_type:

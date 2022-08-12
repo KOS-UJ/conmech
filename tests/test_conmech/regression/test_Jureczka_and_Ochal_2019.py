@@ -37,7 +37,7 @@ def test_global_optimization_solver(solving_method):
         [0.0, 0.0],
         [0.0, 0.0],
     ]
-    setup = StaticSetup()
+    setup = StaticSetup(mesh_type="cross")
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(
         fixed_point_abs_tol=0.001, initial_displacement=setup.initial_displacement
