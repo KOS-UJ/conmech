@@ -185,16 +185,6 @@ class BoundariesFactory:
             lambda n: not is_contact(n) and not is_dirichlet(n),
         )
 
-        contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
-        dirichlet_boundary = apply_predicate_to_surfaces(
-            boundary_surfaces, initial_nodes, is_dirichlet
-        )
-        neumann_boundary = apply_predicate_to_surfaces(
-            boundary_surfaces,
-            initial_nodes,
-            lambda n: not is_contact(n) and not is_dirichlet(n),
-        )
-
         boundaries_data = Boundaries(
             contact_boundary=contact_boundary,
             neumann_boundary=neumann_boundary,
