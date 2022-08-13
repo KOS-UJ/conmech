@@ -50,12 +50,6 @@ def apply_predicate_to_surfaces(surfaces, nodes, predicate: Callable):
     return surfaces[mask]
 
 
-def apply_predicate_to_boundary_nodes(elements, nodes, predicate: Callable):
-    *_, boundary_indices = get_boundary_surfaces(elements)
-    mask = [predicate(n) for n in nodes[boundary_indices]]  # TODO: #65 Use numba (?)
-    return boundary_indices[mask]
-
-
 def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     # move boundary nodes to the top
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
@@ -82,6 +76,12 @@ def reorder(
         unordered_elements, unordered_nodes, predicate
     )
     return reorder_numba(unordered_nodes, unordered_elements, selected_indices, to_top)
+
+
+def apply_predicate_to_boundary_nodes(elements, nodes, predicate: Callable):
+    *_, boundary_indices = get_boundary_surfaces(elements)
+    mask = [predicate(n) for n in nodes[boundary_indices]]  # TODO: #65 Use numba (?)
+    return boundary_indices[mask]
 
 
 @numba.njit
@@ -196,41 +196,3 @@ class BoundariesFactory:
         )
 
         return initial_nodes, elements, boundaries_data
-
-
-# For tests
-
-
-def extract_boundary_paths_from_elements(elements):
-    boundary_surfaces, *_ = get_boundary_surfaces(elements)
-    boundary_indices_to_visit = extract_unique_indices(boundary_surfaces)
-
-    boundary_paths = []
-    while len(boundary_indices_to_visit) > 0:
-        start_node = boundary_indices_to_visit[0]
-        visited_path = extract_boundary_path(boundary_surfaces, start_node=start_node)
-        visited_path = np.append(visited_path, visited_path[0])
-        boundary_paths.append(visited_path)
-        boundary_indices_to_visit = list(set(boundary_indices_to_visit) - set(visited_path))
-
-    return boundary_paths
-
-
-def extract_boundary_path(boundary_edges, start_node=0):
-    visited_path = []
-
-    def get_neighbours(node):
-        node_edges = boundary_edges[np.any(boundary_edges == node, axis=1)]
-        node_edges_flatten = node_edges.flatten()
-        neighbours = node_edges_flatten[node_edges_flatten != node]
-        return neighbours
-
-    def dfs(node):
-        if node not in visited_path:
-            visited_path.append(node)
-            for neighbour in get_neighbours(node):
-                dfs(neighbour)
-
-    dfs(start_node)
-
-    return np.array(visited_path)
