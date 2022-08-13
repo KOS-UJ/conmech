@@ -131,11 +131,11 @@ class Calculator:
         normalized_rhs = setting.get_normalized_rhs_np(temperature)
         normalized_a_vector = np.linalg.solve(setting.solver_cache.lhs, normalized_rhs)
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
-        return nph.unstack(normalized_a_vector, setting.dimension)
+        return nph.unstack(normalized_a_vector, setting.mesh.dimension)
 
     @staticmethod
     def get_acceleration_energy(setting, acceleration):
-        initial_a_boundary_vector = nph.stack_column(acceleration[setting.boundary_indices])
+        initial_a_boundary_vector = nph.stack_column(acceleration[setting.mesh.boundary_indices])
 
         cost_function, _ = setting.get_normalized_energy_obstacle_np()
         energy = cost_function(initial_a_boundary_vector)
@@ -144,9 +144,9 @@ class Calculator:
     @staticmethod
     def solve_acceleration_normalized_optimization(setting, temperature=None, initial_a=None):
         if initial_a is None:
-            initial_a_boundary_vector = np.zeros(setting.boundary_nodes_count * setting.dimension)
+            initial_a_boundary_vector = np.zeros(setting.mesh.boundary_nodes_count * setting.mesh.dimension)
         else:
-            initial_a_boundary_vector = nph.stack_column(initial_a[setting.boundary_indices])
+            initial_a_boundary_vector = nph.stack_column(initial_a[setting.mesh.boundary_indices])
 
         cost_function, normalized_rhs_free = setting.get_normalized_energy_obstacle_np(temperature)
         normalized_boundary_a_vector_np = Calculator.minimize(
@@ -158,7 +158,7 @@ class Calculator:
             setting, normalized_rhs_free, normalized_boundary_a_vector
         )
 
-        return nph.unstack(normalized_a_vector, setting.dimension)
+        return nph.unstack(normalized_a_vector, setting.mesh.dimension)
 
     @staticmethod
     def solve_temperature_normalized_optimization(
@@ -167,7 +167,7 @@ class Calculator:
         initial_t_vector: Optional[np.ndarray] = None,
     ):
         _ = initial_t_vector
-        initial_t_boundary_vector = np.zeros(setting.boundary_nodes_count)
+        initial_t_boundary_vector = np.zeros(setting.mesh.boundary_nodes_count)
 
         (
             cost_function,
@@ -204,8 +204,8 @@ class Calculator:
 
         normalized_a = np.vstack(
             (
-                nph.unstack(a_contact_vector, setting.dimension),
-                nph.unstack(a_independent_vector, setting.dimension),
+                nph.unstack(a_contact_vector, setting.mesh.dimension),
+                nph.unstack(a_independent_vector, setting.mesh.dimension),
             )
         )
         return nph.stack(normalized_a)

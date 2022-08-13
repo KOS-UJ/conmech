@@ -17,7 +17,7 @@ class Drawer:
     def __init__(self, state, config: Config):
         self.state = state
         self.config = config
-        self.mesh = state.mesh
+        self.mesh = state.body.mesh
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
 
     def get_directory(self):

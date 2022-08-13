@@ -30,8 +30,8 @@ class SchurComplement(Optimization):
             friction_bound,
         )
 
-        self.contact_ids = slice(0, body.contact_nodes_count)
-        self.free_ids = slice(body.contact_nodes_count, body.independent_nodes_count)
+        self.contact_ids = slice(0, body.mesh.contact_nodes_count)
+        self.free_ids = slice(body.mesh.contact_nodes_count, body.mesh.independent_nodes_count)
 
         (
             self._node_relations,

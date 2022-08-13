@@ -44,11 +44,11 @@ class Scenario:
     @staticmethod
     def get_by_function(function, setting, current_time):
         if isinstance(function, np.ndarray):
-            return np.tile(function, (setting.nodes_count, 1))
+            return np.tile(function, (setting.mesh.nodes_count, 1))
         return np.array(
             [
-                function(*nodes_pairs, setting.mesh_prop, current_time)
-                for nodes_pairs in zip(setting.initial_nodes, setting.moved_nodes)
+                function(*nodes_pairs, setting.mesh.mesh_prop, current_time)
+                for nodes_pairs in zip(setting.mesh.initial_nodes, setting.moved_nodes)
             ]
         )
 

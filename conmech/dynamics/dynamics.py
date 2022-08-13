@@ -91,7 +91,7 @@ class Dynamics(BodyPosition):
         self.reinitialize_matrices()
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        super().remesh(is_dirichlet, is_contact, create_in_subprocess)
+        super().mesh.remesh(is_dirichlet, is_contact, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
@@ -106,10 +106,10 @@ class Dynamics(BodyPosition):
             self.piezoelectricity,
             self.permittivity,
         ) = get_dynamics(
-            elements=self.elements,
+            elements=self.mesh.elements,
             nodes=self.moved_nodes,
             body_prop=self.body_prop,
-            independent_indices=self.independent_indices,
+            independent_indices=self.mesh.independent_indices,
         )
 
         if not self.with_lhs:
@@ -127,13 +127,13 @@ class Dynamics(BodyPosition):
                 self.solver_cache.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
                 matrix=self.solver_cache.lhs,
-                dimension=self.dimension,
-                contact_indices=self.contact_indices,
-                free_indices=self.free_indices,
+                dimension=self.mesh.dimension,
+                contact_indices=self.mesh.contact_indices,
+                free_indices=self.mesh.free_indices,
             )
 
             if self.with_temperature:
-                i = self.independent_indices
+                i = self.mesh.independent_indices
                 self.solver_cache.lhs_temperature = (
                     1 / self.time_step
                 ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
@@ -145,8 +145,8 @@ class Dynamics(BodyPosition):
                 ) = SchurComplement.calculate_schur_complement_matrices(
                     matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
-                    contact_indices=self.contact_indices,
-                    free_indices=self.free_indices,
+                    contact_indices=self.mesh.contact_indices,
+                    free_indices=self.mesh.free_indices,
                 )
 
     @property

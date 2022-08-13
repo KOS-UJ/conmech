@@ -71,8 +71,8 @@ class Optimization(Solver):
                 self.loss,
                 solution,
                 args=(
-                    self.body.initial_nodes,
-                    self.body.contact_boundary,
+                    self.body.mesh.initial_nodes,
+                    self.body.mesh.contact_boundary,
                     self.node_relations,
                     self.node_forces,
                     old_solution

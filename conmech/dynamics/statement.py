@@ -98,7 +98,7 @@ class TemperatureStatement(Statement):
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
-        ind = self.body.independent_nodes_count
+        ind = self.body.mesh.independent_nodes_count
 
         self.left_hand_side = (1 / var.time_step) * self.body.acceleration_operator[
             :ind, :ind
@@ -111,7 +111,7 @@ class TemperatureStatement(Statement):
 
         rhs = (-1) * self.body.thermal_expansion @ var.velocity
 
-        ind = self.body.independent_nodes_count
+        ind = self.body.mesh.independent_nodes_count
 
         rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
         self.right_hand_side = rhs
@@ -123,7 +123,7 @@ class PiezoelectricStatement(Statement):
         super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var):
-        ind = self.body.independent_nodes_count
+        ind = self.body.mesh.independent_nodes_count
 
         self.left_hand_side = self.body.permittivity[:ind, :ind]
 

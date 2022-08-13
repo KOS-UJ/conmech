@@ -173,8 +173,8 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(initial_displacement=setup.initial_displacement)
 
-    displacement = result.mesh.initial_nodes[:] - result.displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
+    displacement = result.body.mesh.initial_nodes[:] - result.displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

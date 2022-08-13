@@ -48,7 +48,7 @@ class BodyForces(Dynamics):
 
     def prepare(self, inner_forces: np.ndarray):
         self.inner_forces = inner_forces
-        self.outer_forces = np.zeros_like(self.initial_nodes)
+        self.outer_forces = np.zeros_like(self.mesh.initial_nodes)
 
     def clear(self):
         self.inner_forces = None
@@ -67,15 +67,15 @@ class BodyForces(Dynamics):
 
     def get_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
-            boundary_surfaces=self.neumann_boundary,
-            considered_nodes_count=self.nodes_count,
+            boundary_surfaces=self.mesh.neumann_boundary,
+            considered_nodes_count=self.mesh.nodes_count,
             moved_nodes=self.moved_nodes,
         )
         return neumann_surfaces * self.outer_forces
 
     def get_integrated_forces_column(self):
         integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
-        return nph.stack_column(integrated_forces[self.independent_indices, :])
+        return nph.stack_column(integrated_forces[self.mesh.independent_indices, :])
 
     def get_integrated_forces_vector(self):
         return self.get_integrated_forces_column().reshape(-1)
@@ -87,9 +87,9 @@ class BodyForces(Dynamics):
             normalized_rhs_free,
         ) = SchurComplement.calculate_schur_complement_vector(
             vector=normalized_rhs,
-            dimension=self.dimension,
-            contact_indices=self.contact_indices,
-            free_indices=self.free_indices,
+            dimension=self.mesh.dimension,
+            contact_indices=self.mesh.contact_indices,
+            free_indices=self.mesh.free_indices,
             free_x_free_inverted=self.solver_cache.free_x_free_inverted,
             contact_x_free=self.solver_cache.contact_x_free,
         )

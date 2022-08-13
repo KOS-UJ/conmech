@@ -50,7 +50,7 @@ class SceneTemperature(Scene):
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
-        self.t_old = np.zeros((self.nodes_count, 1))
+        self.t_old = np.zeros((self.mesh.nodes_count, 1))
         self.heat = None
 
     def get_normalized_energy_temperature_np(self, normalized_acceleration):
@@ -95,15 +95,15 @@ class SceneTemperature(Scene):
         ) = SchurComplement.calculate_schur_complement_vector(
             vector=normalized_t_rhs,
             dimension=1,
-            contact_indices=self.contact_indices,
-            free_indices=self.free_indices,
+            contact_indices=self.mesh.contact_indices,
+            free_indices=self.mesh.free_indices,
             free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
             contact_x_free=self.solver_cache.temperature_contact_x_free,
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
     def get_normalized_t_rhs_np(self, normalized_acceleration):
-        U = self.acceleration_operator[self.independent_indices, self.independent_indices]
+        U = self.acceleration_operator[self.mesh.independent_indices, self.mesh.independent_indices]
 
         v = self.normalized_velocity_old + normalized_acceleration * self.time_step
         v_vector = nph.stack_column(v)
