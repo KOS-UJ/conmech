@@ -99,10 +99,15 @@ class SceneInput(SceneLayers):
             with_schur=with_schur,
         )
 
-    def prepare_node_data(self, data: np.ndarray, layer_number: int, add_norm=False):
-        approximated_data = self.approximate_boundary_or_all_from_base(
-            layer_number=layer_number, base_values=data
-        )
+    def prepare_node_data(
+        self, data: np.ndarray, layer_number: int, add_norm=False, approximate=True
+    ):
+        if approximate:
+            approximated_data = self.approximate_boundary_or_all_from_base(
+                layer_number=layer_number, base_values=data
+            )
+        else:
+            approximated_data = data
         mesh = self.all_layers[layer_number].mesh
         result = self.complete_mesh_boundary_data_with_zeros(mesh=mesh, data=approximated_data)
         if add_norm:
@@ -135,14 +140,17 @@ class SceneInput(SceneLayers):
         return edges_data
 
     def get_nodes_data(self, layer_number):
-        # exact_acceleration = self.prepare_node_data(
-        #     layer_number=layer_number,
-        #     data=self.all_layers[layer_number].mesh.exact_acceleration,
-        #     add_norm=True,
-        # )
-        linear_acceleration = self.prepare_node_data(
-            layer_number=layer_number, data=self.linear_acceleration, add_norm=True
-        )
+        if layer_number == 1:
+            exact_acceleration = self.prepare_node_data(
+                layer_number=layer_number,
+                data=self.reduced.exact_acceleration,
+                add_norm=True,
+                approximate=False,
+            )
+        else:
+            linear_acceleration = self.prepare_node_data(
+                layer_number=layer_number, data=self.linear_acceleration, add_norm=True
+            )
         # input_forces = self.prepare_node_data(
         #     layer_number=layer_number, data=self.input_forces, add_norm=True
         # )
@@ -161,16 +169,30 @@ class SceneInput(SceneLayers):
         boundary_volume = self.prepare_node_data(
             data=self.get_surface_per_boundary_node(), layer_number=layer_number
         )
-        return np.hstack(
-            (
-                linear_acceleration,
-                # input_forces,
-                boundary_normals,
-                # boundary_friction,
-                # boundary_normal_response,
-                boundary_volume,
+        if layer_number > 0:
+            return np.hstack(
+                (
+                    exact_acceleration,
+                    # linear_acceleration,
+                    # input_forces,
+                    boundary_normals,
+                    # boundary_friction,
+                    # boundary_normal_response,
+                    boundary_volume,
+                )
             )
-        )
+        else:
+            return np.hstack(
+                (
+                    # exact_acceleration,
+                    linear_acceleration,
+                    # input_forces,
+                    boundary_normals,
+                    # boundary_friction,
+                    # boundary_normal_response,
+                    boundary_volume,
+                )
+            )
 
     def get_multilayer_edges_with_data(
         self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
@@ -296,11 +318,11 @@ class SceneInput(SceneLayers):
         return target_data
 
     @staticmethod
-    def get_nodes_data_description(dimension: int):
+    def get_nodes_data_description_up(dimension: int):
         desc = []
         for attr in [
-            # "exact_acceleration",
-            "linear_acceleration",
+            "exact_acceleration",
+            # "linear_acceleration",
             # "input_forces",
             "boundary_normals",
             # "boundary_friction",
@@ -314,8 +336,28 @@ class SceneInput(SceneLayers):
         return desc
 
     @staticmethod
-    def get_nodes_data_dim(dimension: int):
-        return len(SceneInput.get_nodes_data_description(dimension))
+    def get_nodes_data_description_down(dimension: int):
+        desc = []
+        for attr in [
+            "linear_acceleration",
+            # "input_forces",
+            "boundary_normals",
+        ]:
+            for i in range(dimension):
+                desc.append(f"{attr}_{i}")
+            desc.append(f"{attr}_norm")
+
+        for attr in ["boundary_volume"]:
+            desc.append(attr)
+        return desc
+
+    @staticmethod
+    def get_nodes_data_down_dim(dimension: int):
+        return len(SceneInput.get_nodes_data_description_down(dimension))
+
+    @staticmethod
+    def get_nodes_data_up_dim(dimension: int):
+        return len(SceneInput.get_nodes_data_description_up(dimension))
 
     @staticmethod
     def get_edges_data_dim(dimension):

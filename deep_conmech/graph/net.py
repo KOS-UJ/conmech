@@ -262,8 +262,17 @@ class CustomGraphNet(nn.Module):
         super().__init__()
         self.td = td
 
-        self.node_encoder = ForwardNet(
-            input_dim=SceneInput.get_nodes_data_dim(td.dimension),
+        self.node_encoder_up = ForwardNet(
+            input_dim=SceneInput.get_nodes_data_up_dim(td.dimension),
+            layers_count=td.encoder_layers_count,
+            output_linear_dim=td.latent_dimension,
+            statistics=None if statistics is None else statistics.nodes_statistics,
+            batch_norm=td.input_batch_norm,
+            layer_norm=td.layer_norm,
+            td=td,
+        )
+        self.node_encoder_down = ForwardNet(
+            input_dim=SceneInput.get_nodes_data_down_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.nodes_statistics,
@@ -347,58 +356,34 @@ class CustomGraphNet(nn.Module):
             self.processor_number += 1
         return node_latents, edge_latents
 
-    def process_by_layer(
-        self, layer_list: List[Data], layer_number: int, node_latents: torch.Tensor
-    ):
-        layer = layer_list[layer_number]
-        edge_latents = self.edge_encoder(layer.edge_attr)
-
-        node_latents, edge_latents = self.propagate_messages(
-            layer=layer, node_latents=node_latents, edge_latents=edge_latents
-        )
-
-        if layer_number == len(layer_list) - 1:
-            return node_latents
-
-        layer_up = layer_list[layer_number + 1]
-
-        node_latents_up = self.move_from_down(
-            node_latents=node_latents,
-            edge_latents=self.edge_encoder(layer_up.edge_attr_from_down),
-            layer=layer_up,
-        )
-
-        node_latents_up = self.process_by_layer(
-            layer_list=layer_list,
-            layer_number=layer_number + 1,
-            node_latents=node_latents_up,
-        )
-
-        node_latents = self.move_to_down(
-            node_latents_up=node_latents_up,
-            edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
-            layer=layer_up,
-            node_latents=node_latents,
-        )
-
-        node_latents, edge_latents = self.propagate_messages(
-            layer=layer, node_latents=node_latents, edge_latents=edge_latents
-        )
-        return node_latents
-
     def forward(self, layer_list: List[Data]):
         if isinstance(layer_list[0].x, Tuple):
             layer_list = [dotdict(l.x) for l in layer_list]
-        main_layer = layer_list[0]
         self.processor_number = 0
 
-        node_latents = self.node_encoder(main_layer["x"])
-        processed_node_latents = self.process_by_layer(
-            layer_list=layer_list,
-            layer_number=0,
+        layer_up = layer_list[1]
+        node_latents_up = self.node_encoder_up(layer_up["x"])
+        edge_latents_up = self.edge_encoder(layer_up.edge_attr)
+
+        # node_latents_up, edge_latents_up = self.propagate_messages(
+        #     layer=layer_up, node_latents=node_latents_up, edge_latents=edge_latents_up
+        # )
+
+        layer = layer_list[0]
+        node_latents = self.node_encoder_down(layer["x"])
+        edge_latents = self.edge_encoder(layer.edge_attr)
+
+        node_latents = self.move_to_down(
+            node_latents_up=node_latents_up,
             node_latents=node_latents,
+            edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
+            layer=layer_up,
         )
-        net_output = self.decoder(node_latents + processed_node_latents)
+
+        node_latents, edge_latents = self.propagate_messages(
+            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+        )
+        net_output = self.decoder(node_latents)
 
         # TODO: #65 Include mass_density
         # main_layer.x[:,:2]
@@ -413,19 +398,20 @@ class CustomGraphNet(nn.Module):
         scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
             setting=scene, temperature=None, initial_a=initial_a
         )
-        # scene.exact_acceleration = Calculator.solve(setting=scene, initial_a=initial_a)
+        
+        scene.reduced.exact_acceleration = Calculator.solve(scene=scene.reduced, initial_a=None)
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
         normalized_a_cuda = self(layer_list=layers_list)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda) #+ scene.linear_acceleration
-        #normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
+        normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
+        # normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
 
         a = scene.denormalize_rotate(normalized_a)
 
-        #np.linalg.norm(a - exact_acceleration)
+        # np.linalg.norm(a - exact_acceleration)
 
         return a, normalized_a
 

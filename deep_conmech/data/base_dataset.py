@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Iterable
+from typing import Callable, Iterable
 
 import numpy as np
 import torch
@@ -48,7 +48,7 @@ def get_valid_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=False,
-        load_data=True, #False,
+        load_data=True,  # False,
     )
 
 
@@ -104,6 +104,7 @@ class BaseDataset:
         dimension: int,
         data_count: int,
         layers_count: int,
+        solve_function: Callable,
         randomize_at_load: bool,
         num_workers: int,
         with_scenes_file: bool,
@@ -115,6 +116,7 @@ class BaseDataset:
         self.description = description
         self.data_count = data_count
         self.layers_count = layers_count
+        self.solve_function = solve_function
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.with_scenes_file = with_scenes_file
@@ -198,6 +200,9 @@ class BaseDataset:
     def get_all_scene_indices(self):
         return pkh.get_all_indices(self.scenes_data_path)[: self.data_count]
 
+    def generate_data(self):
+        pass
+
     def initialize_scenes(self):
         # cmh.profile(self.generate_data_process)
 
@@ -210,11 +215,7 @@ class BaseDataset:
         cmh.clear_folder(self.main_directory)
         self.create_folders()
 
-        self.generate_data_process()
-        # mph.run_process(self.generate_data_process)
-        # done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
-        # if not done:
-        #     print("NOT DONE")
+        self.generate_data()
 
         self.scene_indices = self.get_all_scene_indices()
         assert self.data_count == len(self.scene_indices)
@@ -308,18 +309,19 @@ class BaseDataset:
             target_statistics=target_statistics,
         )
 
-    def load_data(self):
-        if self.loaded_data is not None:
-            return
+    def get_worker_data_range(self):
         worker_info = get_worker_info()
-        if not self.config.load_data_to_ram:
-            return
-
         total_id = self.rank * worker_info.num_workers + worker_info.id
         all_ids = self.world_size * worker_info.num_workers
-        worker_data_range = range(total_id, self.data_count, all_ids)
+        return range(total_id, self.data_count, all_ids)
+
+    def load_data(self):
+        if self.loaded_data is not None or not self.config.load_data_to_ram:
+            return
+        worker_data_range = self.get_worker_data_range()
 
         self.loaded_data = []
+        worker_info = get_worker_info()
         data_tqdm = cmh.get_tqdm(
             iterable=worker_data_range,
             config=self.config,
@@ -365,6 +367,19 @@ class BaseDataset:
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         pass
+
+    def prepare_scene(self, scene, forces):
+        scene.prepare(forces)
+        # scene.reduced.prepare(scenario.get_forces_by_function(scene.reduced, current_time))
+
+        scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
+            setting=scene, temperature=None, initial_a=None #normalized_a
+        )
+        acceleration, exact_acceleration = self.solve_function(
+            setting=scene, initial_a=scene.exact_acceleration
+        )
+        scene.set_exact_acceleration(exact_acceleration)
+        return scene, acceleration
 
     def safe_save_scene(self, scene, data_path: str):
         scene_copy = copy.copy(scene)  ###

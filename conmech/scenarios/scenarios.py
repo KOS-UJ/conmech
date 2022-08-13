@@ -380,7 +380,7 @@ def f_rotate_3d(
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
     time: float,
-    time_cutoff: float=0.5,
+    time_cutoff: float = 1.0,
 ):
     _ = moved_node, mesh_prop
     if time <= np.abs(time_cutoff):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
@@ -621,14 +621,17 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)]
+        return [cube_rotate_3d(**args), ball_rotate_3d(**args)]  # , bunny_rotate_3d(**args)]
+        return [ball_rotate_3d(**args)]  # tc) for tc in np.arange(-2.0, 2.0, 0.4)]
     return get_train_data(**args)
 
 
 def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [cube_rotate_3d(**args)]  # ball_rotate_3d(**args), bunny_rotate_3d(**args)]
+        return [
+            ball_rotate_3d(**args)
+        ]  # cube_rotate_3d ball_rotate_3d(**args), bunny_rotate_3d(**args)]
     return get_valid_data(**args)
 
 

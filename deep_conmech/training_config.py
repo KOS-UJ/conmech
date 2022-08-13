@@ -6,11 +6,11 @@ from torch import nn
 
 from conmech.helpers.config import Config
 
-TEST = True  # False
+TEST = False  # False
 DIMENSION = 3
 LAYERS_COUNT = 2  # 2
-MESH_LAYERS_PROPORTION = 2 #4
-CLOSEST_COUNT = 4
+MESH_LAYERS_PROPORTION = 2  # 4
+CLOSEST_COUNT = 3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 
@@ -22,7 +22,7 @@ class TrainingData:
     validation_scale: int = 1
     print_scale: int = 1
 
-    dataset: str = "calculator"  # synthetic # calculator
+    dataset: str = "synthetic"  # synthetic # calculator
     final_time: float = 4  # 8  # 0.5 if TEST else 8
     mesh_density: int = 8  # 16 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
@@ -40,7 +40,7 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.1 * (0.01**2)  # 0.01
+    displacement_in_random_factor: float = 0  # 0.1 * (0.01**2)  # 0.01
     # same as net error, so that a_correction is similar # 0.005 * displacement_random_scale
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
@@ -51,7 +51,7 @@ class TrainingData:
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 16  # 32  # 16  # 32 # 256
-    dataset_size: int = 256 * (1 if TEST else 2048)
+    dataset_size: int = 256 * (1 if TEST else 8)  # 2048)
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = True
@@ -60,9 +60,9 @@ class TrainingData:
 
     dropout_rate: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
     skip_connections: bool = True
-    gradient_clip = 10.0  # None
+    gradient_clip = None  # 10.0
 
-    attention_heads_count: Optional[int] = None  # 5  # None 1 3 5
+    attention_heads_count: Optional[int] = None  # None 1 3 5
 
     initial_learning_rate: float = 1e-4  # 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
@@ -74,7 +74,7 @@ class TrainingData:
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
     mesh_layers_count: int = LAYERS_COUNT  # 3
-    message_passes: int = 8  # 4  # 8  # 3
+    message_passes: int = 2  # 8  # 4  # 8  # 3
 
 
 @dataclass

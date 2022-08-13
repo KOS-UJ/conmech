@@ -162,11 +162,18 @@ def get_interlayer_data(
         closest_distance_list = distances[closest_node_list]
         selected_base_nodes = base_nodes[closest_node_list]
         if with_weights:
-            # Moore-Penrose pseudo-inverse
-            closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
+            if np.all(selected_base_nodes[0] == node):
+                closest_weight_list = np.zeros(closest_count)
+                closest_weight_list[0] = 1
+            else:
+                # Moore-Penrose pseudo-inverse
+                closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(
+                    selected_base_nodes
+                )
+            closest_weights[index, :] = closest_weight_list
+
             # assert np.min(closest_weight_list) >= 0
             # assert np.sum(closest_weight_list) == 1
-            closest_weights[index, :] = closest_weight_list
 
         closest_nodes[index, :] = closest_node_list
         closest_distances[index, :] = closest_distance_list

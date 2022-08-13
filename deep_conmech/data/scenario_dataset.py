@@ -33,13 +33,13 @@ class ScenariosDataset(BaseDataset):
         world_size: int,
     ):
         self.all_scenarios = all_scenarios
-        self.solve_function = solve_function
 
         super().__init__(
             description=description,
             dimension=check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
             layers_count=layers_count,
+            solve_function=solve_function,
             randomize_at_load=randomize_at_load,
             num_workers=config.scenario_generation_workers,
             with_scenes_file=True,
@@ -77,6 +77,13 @@ class ScenariosDataset(BaseDataset):
         )
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
+        
+    def generate_data(self):
+        self.generate_data_process()
+        # mph.run_process(self.generate_data_process)
+        # done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+        # if not done:
+        #     print("NOT DONE")
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         assigned_scenarios = self.get_assigned_scenarios(num_workers, process_id)
@@ -100,21 +107,16 @@ class ScenariosDataset(BaseDataset):
                 scene = self.get_scene(
                     scenario=scenario, layers_count=self.layers_count, config=self.config
                 )
-                normalized_a = np.zeros_like(scene.initial_nodes)
+                scene.exact_acceleration = np.zeros_like(scene.initial_nodes)
+
+                scene.reduced.normalize_and_set_obstacles(
+                    scenario.linear_obstacles, scenario.mesh_obstacles
+                )
+                # reduced_normalized_a = np.zeros_like(scene.reduced.initial_nodes)
 
             current_time = ts * scene.time_step
             forces = scenario.get_forces_by_function(scene, current_time)
-            scene.prepare(forces)
-
-            # scene.approximate_boundary_or_all_from_base(
-            #    layer_number=1, base_values=acceleration
-            # )
-            scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-                setting=scene, temperature=None, initial_a=normalized_a
-            )
-            a, normalized_a = self.solve_function(setting=scene, initial_a=normalized_a)
-            scene.exact_acceleration = normalized_a
-            # assert np.allclose(np.mean(scene.linear_acceleration, axis=0), np.mean(scene.exact_acceleration, axis=0))
+            scene, acceleration = self.prepare_scene(scene, forces)
 
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 
@@ -128,7 +130,8 @@ class ScenariosDataset(BaseDataset):
             current_index += 1
 
             # setting = setting.get_copy()
-            scene.iterate_self(a)
+            scene.iterate_self(acceleration)
+            # scene.reduced.iterate_self(scene.reduced.exact_acceleration)
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

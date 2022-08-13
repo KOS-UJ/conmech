@@ -1,4 +1,5 @@
 from queue import Empty
+from typing import Callable
 
 import numpy as np
 
@@ -24,7 +25,7 @@ def generate_mesh_type(config: TrainingConfig):
         )
     else:
         return interpolation_helpers.choose(
-            [scenarios.M_CUBE_3D, scenarios.M_BALL_3D]  # , scenarios.M_POLYGON_3D]
+            [scenarios.M_BALL_3D]  # scenarios.M_CUBE_3D, , scenarios.M_POLYGON_3D]
         )
 
 
@@ -98,12 +99,13 @@ def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray
 
 
 def generate_obstacles(config: TrainingConfig, scene: SceneInput):
-    obstacle_nodes_unnormaized = nph.generate_uniform_circle(
-        rows=1,
-        columns=scene.dimension,
-        low=config.td.obstacle_origin_min_scale,
-        high=config.td.obstacle_origin_max_scale,
-    )
+    obstacle_nodes_unnormaized = np.array([[10.0, 0.1, 0.1]])
+    #  nph.generate_uniform_circle(
+    #     rows=1,
+    #     columns=scene.dimension,
+    #     low=config.td.obstacle_origin_min_scale,
+    #     high=config.td.obstacle_origin_max_scale,
+    # )
     obstacle_nodes = obstacle_nodes_unnormaized + scene.mean_moved_nodes
     obstacle_normals_unnormaized = -obstacle_nodes_unnormaized
     return np.stack((obstacle_normals_unnormaized, obstacle_nodes))
@@ -120,14 +122,14 @@ class SyntheticDataset(BaseDataset):
         rank: int,
         world_size: int,
     ):
-        num_workers = config.synthetic_generation_workers
         super().__init__(
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
             data_count=config.td.dataset_size,
             layers_count=layers_count,
+            solve_function=Calculator.solve_all,
             randomize_at_load=randomize_at_load,
-            num_workers=num_workers,
+            num_workers=config.synthetic_generation_workers,
             with_scenes_file=with_scenes_file,
             config=config,
             rank=rank,
@@ -152,16 +154,22 @@ class SyntheticDataset(BaseDataset):
         )
         scene.set_displacement_old(displacement_old)
         scene.set_velocity_old(velocity_old)
-        scene.prepare(forces)
+        # scene.prepare(forces)
 
-        # scene.exact_acceleration = Calculator.solve_acceleration_normalized_function_np(scene)
-        # exact_normalized_a_torch = thh.to_torch_double(Calculator.solve(scene))
+        scene.exact_acceleration = None
+        scene, acceleration = self.prepare_scene(scene, forces)
         return scene
 
+    def generate_data(self):
+        self.generate_data_process()
+        # mph.run_process(self.generate_data_process)
+        # done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+        # if not done:
+        #     print("NOT DONE")
+
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
-        assigned_data_range = self.divide_data_range(
-            data_range=range(self.data_count), process_id=process_id, num_workers=num_workers
-        )
+        assigned_data_range = range(process_id, self.data_count, num_workers)
+
         tqdm_description = f"Process {process_id+1}/{num_workers} - generating data"
         step_tqdm = cmh.get_tqdm(
             assigned_data_range,

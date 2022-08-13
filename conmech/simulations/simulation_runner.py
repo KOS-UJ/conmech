@@ -218,7 +218,7 @@ def simulate(
 ) -> Tuple[Scene, float]:
     with_temperature = isinstance(scene, SceneTemperature)
     reduced_scene = scene.all_layers[1].mesh
-    # reduced_scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+    reduced_scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
 
     solver_time = 0.0
     calculator_time = 0.0
@@ -233,7 +233,7 @@ def simulate(
         current_time = (time_step + 1) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
-        prepare(scenario, reduced_scene, None, current_time, with_temperature)
+        #prepare(scenario, reduced_scene, None, current_time, with_temperature)
 
         start_time = time.time()
         if with_temperature:
@@ -241,16 +241,20 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            #acceleration = solve_function(scene, initial_a=acceleration)
+            acceleration = solve_function(scene, initial_a=acceleration)
+            # reduced_acceleration = scene.reduced.exact_acceleration
+            # reduced_acceleration = scene.approximate_boundary_or_all_from_base(
+            #     layer_number=1, base_values=acceleration
+            # )
+
             # reduced_scene.set_displacement
             # reduced_scene.interpolate_base(scene)
-            reduced_acceleration = solve_function(reduced_scene, initial_a=reduced_acceleration)
-            acceleration = scene.approximate_boundary_or_all_to_base(
-                layer_number=1, reduced_values=reduced_acceleration
-            )
-            # scene.approximate_boundary_or_all_from_base(
-            #    layer_number=1, base_values=acceleration
+
+            # reduced_acceleration = solve_function(reduced_scene, initial_a=reduced_acceleration)
+            # acceleration = scene.approximate_boundary_or_all_to_base(
+            #     layer_number=1, reduced_values=reduced_acceleration
             # )
+
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
@@ -265,7 +269,6 @@ def simulate(
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
         scene.iterate_self(acceleration, temperature=temperature)
-        # reduced_scene.iterate_self(reduced_acceleration)
 
         if compare_with_base_scene:
             base_scene.iterate_self(base_a)

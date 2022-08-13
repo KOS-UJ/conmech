@@ -123,7 +123,10 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 100
             ),
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
-            obstacle=obstacles[2],
+            # obstacle=obstacles[2],
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
+            ),
         ),
         # Scenario(
         #     name="cube_throw",

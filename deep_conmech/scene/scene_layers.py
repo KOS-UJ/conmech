@@ -141,6 +141,44 @@ class SceneLayers(SceneRandomized):
             closest_weights_boundary=closest_weights_boundary,
         )
 
+    @property
+    def reduced(self):
+        return self.all_layers[1].mesh
+
+    def set_exact_acceleration(self, exact_acceleration):
+        self.exact_acceleration = exact_acceleration
+        self.reduced.exact_acceleration = self.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=exact_acceleration
+        )
+
+    def prepare(self, inner_forces: np.ndarray):
+        super().prepare(inner_forces)
+        reduced_inner_forces = self.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=inner_forces
+        )
+        self.reduced.prepare(reduced_inner_forces)
+
+    def iterate_self(self, acceleration, temperature=None):
+        super().iterate_self(acceleration, temperature)
+        self.update_reduced()
+
+    def update_reduced(self):
+        #self.reduced.iterate_self(self.reduced.exact_acceleration)
+        #return
+        acceleration = self.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=self.acceleration_old
+        )
+        velocity = self.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=self.velocity_old
+        )
+        displacement = self.approximate_boundary_or_all_from_base(
+            layer_number=1, base_values=self.displacement_old
+        )
+
+        self.reduced.set_displacement_old(displacement)
+        self.reduced.set_velocity_old(velocity)
+        self.reduced.set_acceleration_old(acceleration)
+
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if layer_number == 0:
             return base_values

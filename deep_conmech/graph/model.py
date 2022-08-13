@@ -54,12 +54,13 @@ class GraphModelDynamic:
         self.print_scenarios = print_scenarios
         self.world_size = world_size
 
+        print("UNUSED PARAMETERS")
         if config.distributed_training:
             self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net,
                 device_ids=[rank],
-                # find_unused_parameters=True
+                find_unused_parameters=True
             )
         else:
             self.ddp_net = net
@@ -412,7 +413,7 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=target_data.exact_acceleration,
-            all_linear_acceleration=target_data.linear_acceleration,
+            all_linear_acceleration=None,  # target_data.linear_acceleration,
         )
         # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
 

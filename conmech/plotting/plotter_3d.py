@@ -131,7 +131,7 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
     else:
         plot_mesh(nodes=scene.moved_nodes, mesh=scene, color="tab:orange", axes=axes)
     plot_obstacles(axes, scene, "tab:orange")
-    return
+    # return
 
     shift = np.array([0, 2.0, 0])
     for key, data in normalized_data.items():
@@ -147,7 +147,7 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
     if hasattr(scene, "all_layers"):
         for _, layer in enumerate(scene.all_layers):
             mesh = layer.mesh
-            shifted_normalized_nodes = mesh.initial_nodes + shift
+            shifted_normalized_nodes = mesh.normalized_nodes + shift
             # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
             #     layer_number=i, base_values=scene.normalized_inner_forces
             # )
