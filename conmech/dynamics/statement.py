@@ -65,7 +65,7 @@ class DynamicVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.viscosity + (1 / var.time_step) * self.body.acceleration_operator
+            self.body.viscosity + (1 / var.time_step) * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
         )
 
     def update_right_hand_side(self, var):
@@ -118,17 +118,6 @@ class TemperatureStatement(Statement):
         # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
 
-class QuasistaticVelocityWithPiezoelectricStatement(QuasistaticVelocityStatement):
-    def update_right_hand_side(self, var):
-        super().update_right_hand_side(var)
-
-        assert var.electric_potential is not None
-
-        A = self.body.piezoelectricity.T @ var.electric_potential
-
-        self.right_hand_side += A
-
-
 class PiezoelectricStatement(Statement):
     def __init__(self, dynamics):
         super().__init__(dynamics, 1)
@@ -139,14 +128,29 @@ class PiezoelectricStatement(Statement):
         self.left_hand_side = self.body.permittivity[:ind, :ind]
 
     def update_right_hand_side(self, var):
-        assert var.velocity is not None
-        assert var.time_step is not None
+        assert var.displacement is not None
+
+        rhs = self.body.piezoelectricity @ var.displacement
+        self.right_hand_side = rhs
+
+
+class QuasistaticVelocityWithPiezoelectricStatement(QuasistaticVelocityStatement):
+    def update_right_hand_side(self, var):
+        super().update_right_hand_side(var)
+
         assert var.electric_potential is not None
 
-        rhs = (-1) * self.body.piezoelectricity @ var.velocity  # FIXME check
+        A = (-1) * self.body.piezoelectricity.T @ var.electric_potential
 
-        ind = self.body.independent_nodes_count
+        self.right_hand_side += A
 
-        rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.electric_potential
-        self.right_hand_side = rhs
-        # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
+
+class DynamicVelocityWithPiezoelectricStatement(DynamicVelocityStatement):
+    def update_right_hand_side(self, var):
+        super().update_right_hand_side(var)
+
+        assert var.electric_potential is not None
+
+        A = self.body.piezoelectricity.T @ var.electric_potential
+
+        self.right_hand_side += A

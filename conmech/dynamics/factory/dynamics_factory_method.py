@@ -2,7 +2,7 @@ import numpy as np
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.properties.body_properties import (
-    DynamicBodyProperties,
+    TimeDependentBodyProperties,
     StaticBodyProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
@@ -51,7 +51,7 @@ def get_dynamics(
 
     viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, DynamicBodyProperties)
+        if isinstance(body_prop, TimeDependentBodyProperties)
         else None
     )
 

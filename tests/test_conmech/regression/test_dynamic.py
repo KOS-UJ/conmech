@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from conmech.scenarios.problems import Dynamic
-from conmech.simulations.problem_solver import Dynamic as DynamicProblem
+from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -178,7 +178,7 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
 def test_global_optimization_solver(solving_method, setup, expected_displacement_vector):
-    runner = DynamicProblem(setup, solving_method)
+    runner = TimeDependentProblem(setup, solving_method)
     results = runner.solve(
         n_steps=32,
         initial_displacement=setup.initial_displacement,

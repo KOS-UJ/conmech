@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -12,7 +12,7 @@ class SceneRandomized(Scene):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,

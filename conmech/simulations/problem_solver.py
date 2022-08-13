@@ -15,15 +15,16 @@ from conmech.dynamics.statement import (
     DynamicVelocityStatement, QuasistaticVelocityWithPiezoelectricStatement,
 )
 from conmech.properties.body_properties import (
-    DynamicTemperatureBodyProperties,
+    TimeDependentTemperatureBodyProperties,
     BodyProperties,
-    DynamicBodyProperties,
+    TimeDependentBodyProperties,
     StaticBodyProperties,
-    DynamicPiezoelectricBodyProperties,
+    TimeDependentPiezoelectricBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.problems import Dynamic as DynamicProblem, TimeDependent
+from conmech.scenarios.problems import (Dynamic as DynamicProblem,
+                                        TimeDependent as TimeDependentProblem)
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
@@ -94,7 +95,7 @@ class ProblemSolver:
             statement = StaticDisplacementStatement(self.body)
             time_step = 0
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            if isinstance(self.setup, PiezoelectricQuasistatic):
+            if isinstance(self.setup, PiezoelectricQuasistaticProblem):
                 statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
             elif isinstance(self.setup, QuasistaticProblem):
                 statement = QuasistaticVelocityStatement(self.body)
@@ -256,15 +257,14 @@ class Static(ProblemSolver):
         return state
 
 
-class Quasistatic(ProblemSolver):
-    def __init__(self, setup: QuasistaticProblem, solving_method: str):
+class TimeDependent(ProblemSolver):
+    def __init__(self, setup: TimeDependentProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        # Quasistatic and dynamic problems require the same body properties (time dependent).
-        body_prop = DynamicBodyProperties(  # FIXME handle temperature
+        body_prop = TimeDependentBodyProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -323,81 +323,15 @@ class Quasistatic(ProblemSolver):
         return results
 
 
-class Dynamic(ProblemSolver):
-    def __init__(self, setup: DynamicProblem, solving_method: str):
-        """Solves general Contact Mechanics problem.
-
-        :param setup:
-        :param solving_method: 'schur', 'optimization', 'direct'
-        """
-        body_prop = DynamicBodyProperties(
-            mass_density=1.0,
-            mu=setup.mu_coef,
-            lambda_=setup.la_coef,
-            theta=setup.th_coef,
-            zeta=setup.ze_coef,
-        )
-        super().__init__(setup, body_prop)
-
-        self.coordinates = "velocity"
-        self.solving_method = solving_method
-
-    # super class method takes **kwargs, so signatures are consistent
-    # pylint: disable=arguments-differ
-    def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
-    ) -> List[State]:
-        """
-        :param n_steps: number of time-step in simulation
-        :param output_step: from which time-step we want to get copy of State,
-                            default (n_steps-1,)
-                            example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
-                                     we get 3 shared copy of State for time-steps 4, 12 and 18
-        :param initial_displacement: for the solver
-        :param initial_velocity: for the solver
-        :param verbose: show prints
-        :return: state
-        """
-        output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
-
-        state = State(self.body)
-        state.displacement[:] = initial_displacement(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
-        state.velocity[:] = initial_velocity(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
-
-        solution = state.velocity.reshape(2, -1)
-
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
-
-        output_step = np.diff(output_step)
-        results = []
-        for n in output_step:
-            self.run(solution, state, n_steps=n, verbose=verbose)
-            results.append(state.copy())
-
-        return results
-
-
-class TemperatureDynamic(ProblemSolver):
-    def __init__(self, setup: TemperatureDynamicProblem, solving_method: str):
+class TemperatureTimeDependent(ProblemSolver):
+    def __init__(self, setup: TemperatureTimeDependentProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
 
-        body_prop = DynamicTemperatureBodyProperties(
+        body_prop = TimeDependentTemperatureBodyProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -488,15 +422,14 @@ class TemperatureDynamic(ProblemSolver):
         return results
 
 
-class PiezoelectricQuasistatic(ProblemSolver):
-    def __init__(self, setup: PiezoelectricQuasistaticProblem, solving_method: str):
+class PiezoelectricTimeDependent(ProblemSolver):
+    def __init__(self, setup: PiezoelectricTimeDependentProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        # Quasistatic and dynamic problems require the same body properties (time dependent).
-        body_prop = DynamicPiezoelectricBodyProperties(
+        body_prop = TimeDependentPiezoelectricBodyProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,

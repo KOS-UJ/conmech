@@ -15,7 +15,7 @@ class StaticBodyProperties(BodyProperties):
 
 
 @dataclass
-class DynamicBodyProperties(StaticBodyProperties):
+class TimeDependentBodyProperties(StaticBodyProperties):
     theta: float
     zeta: float
 
@@ -38,10 +38,16 @@ class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyPrope
 
 
 @dataclass
-class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
+class TimeDependentTemperatureBodyProperties(
+    TimeDependentBodyProperties,
+    TemperatureBodyProperties,
+):
     pass
 
 
 @dataclass
-class DynamicPiezoelectricBodyProperties(DynamicBodyProperties, PiezoelectricBodyProperties):
+class TimeDependentPiezoelectricBodyProperties(
+    TimeDependentBodyProperties,
+    PiezoelectricBodyProperties,
+):
     pass

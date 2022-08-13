@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureDynamic as TDynamicProblem
+from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
