@@ -373,7 +373,7 @@ class CustomGraphNet(nn.Module):
         node_latents = self.node_encoder_down(layer["x"])
         edge_latents = self.edge_encoder(layer.edge_attr)
 
-        node_latents = self.move_to_down(
+        node_latents_original = self.move_to_down(
             node_latents_up=node_latents_up,
             node_latents=node_latents,
             edge_latents=self.edge_encoder(layer_up.edge_attr_to_down),
@@ -381,9 +381,9 @@ class CustomGraphNet(nn.Module):
         )
 
         node_latents, edge_latents = self.propagate_messages(
-            layer=layer, node_latents=node_latents, edge_latents=edge_latents
+            layer=layer, node_latents=node_latents_original, edge_latents=edge_latents
         )
-        net_output = self.decoder(node_latents)
+        net_output = self.decoder(node_latents + node_latents_original)  #########
 
         # TODO: #65 Include mass_density
         # main_layer.x[:,:2]
@@ -395,24 +395,25 @@ class CustomGraphNet(nn.Module):
         # return a, normalized_a
 
         self.eval()
-        scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-            setting=scene, temperature=None, initial_a=initial_a
+        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
+        #     setting=scene, temperature=None, initial_a=initial_a
+        # )
+
+        scene.reduced.exact_acceleration = Calculator.solve(
+            scene=scene.reduced, initial_a=scene.reduced.acceleration_old
         )
-        
-        scene.reduced.exact_acceleration = Calculator.solve(scene=scene.reduced, initial_a=None)
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
         normalized_a_cuda = self(layer_list=layers_list)
 
-        normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
-        # normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
+        normalized_a_net = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
+        # np.linalg.norm(normalized_a_net - exact_acceleration)
+
+        normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a_net)
 
         a = scene.denormalize_rotate(normalized_a)
-
-        # np.linalg.norm(a - exact_acceleration)
-
         return a, normalized_a
 
     def solve(self, scene: SceneInput, initial_a):

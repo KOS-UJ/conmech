@@ -621,7 +621,7 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [cube_rotate_3d(**args), ball_rotate_3d(**args)]  # , bunny_rotate_3d(**args)]
+        # return [cube_rotate_3d(**args), ball_rotate_3d(**args)]  # , bunny_rotate_3d(**args)]
         return [ball_rotate_3d(**args)]  # tc) for tc in np.arange(-2.0, 2.0, 0.4)]
     return get_train_data(**args)
 

@@ -105,6 +105,7 @@ class BaseDataset:
         data_count: int,
         layers_count: int,
         solve_function: Callable,
+        load_data_to_ram: bool,
         randomize_at_load: bool,
         num_workers: int,
         with_scenes_file: bool,
@@ -117,6 +118,7 @@ class BaseDataset:
         self.data_count = data_count
         self.layers_count = layers_count
         self.solve_function = solve_function
+        self.load_data_to_ram = load_data_to_ram
         self.randomize_at_load = randomize_at_load
         self.num_workers = num_workers
         self.with_scenes_file = with_scenes_file
@@ -316,7 +318,7 @@ class BaseDataset:
         return range(total_id, self.data_count, all_ids)
 
     def load_data(self):
-        if self.loaded_data is not None or not self.config.load_data_to_ram:
+        if self.loaded_data is not None or not self.load_data_to_ram:
             return
         worker_data_range = self.get_worker_data_range()
 

@@ -120,6 +120,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
         train_dataset = SyntheticDataset(
             description="train",
             layers_count=config.td.mesh_layers_count,
+            load_data_to_ram=config.load_training_data_to_ram,
             with_scenes_file=config.with_train_scenes_file,
             randomize_at_load=True,
             config=config,
@@ -131,6 +132,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
             description="train",
             all_scenarios=scenarios.all_train(config.td),
             layers_count=config.td.mesh_layers_count,
+            load_data_to_ram=config.load_training_data_to_ram,
             randomize_at_load=True,
             config=config,
             rank=rank,
@@ -157,6 +159,7 @@ def get_val_dataset(config: TrainingConfig, rank: int, world_size: int):
         description="validation",
         all_scenarios=scenarios.all_validation(config.td),
         layers_count=config.td.mesh_layers_count,
+        load_data_to_ram=config.load_validation_data_to_ram,
         randomize_at_load=False,
         config=config,
         rank=rank,
