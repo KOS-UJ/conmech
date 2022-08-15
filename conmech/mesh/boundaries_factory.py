@@ -177,11 +177,24 @@ class BoundariesFactory:
             node_count=dirichlet_nodes_count,
         )
 
-        boundaries_data = Boundaries(
+        other_boundaries = {}
+        for name, indicator in boundaries_description.boundaries.items():
+            if name not in ("contact", "dirichlet"):
+                surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, indicator)
+                node_indices = np.unique(surfaces).sort()
+                if node_indices:
+                    other_boundaries[name] = Boundary(
+                        surfaces=surfaces,
+                        node_indices=node_indices,
+                        node_count=node_indices.size
+                    )
+
+        boundaries = Boundaries(
             boundary_internal_indices=boundary_internal_indices,
             contact=contact_boundary,
             neumann=neumann_boundary,
             dirichlet=dirichlet_boundary,
+            **other_boundaries
         )
 
-        return initial_nodes, elements, boundaries_data
+        return initial_nodes, elements, boundaries
