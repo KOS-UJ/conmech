@@ -19,61 +19,8 @@ from deep_conmech.training_config import TrainingConfig
 from flax import linen as nn
 from flax.training import train_state
 
-dataset = TUDataset(root="datasets/ENZYMES", name="ENZYMES")
 
 
-class ToyDataset(Dataset):
-    def __init__(self, dataset):
-        """Initializes the data reader by loading in data."""
-        self.dataset = dataset
-
-    def __len__(self):
-        return len(self.dataset)
-
-    @property
-    def config(self):
-        return self.dataset.config
-
-    def __getitem__(self, idx):
-        sample = self.dataset[idx][0][0]
-
-        data = torch_geometric.data.Data(
-            node_attr=sample.x,
-            edge_attr=sample.edge_attr,
-            num_nodes=sample.num_nodes,
-            n_node=sample.num_nodes,
-            n_edge=sample.num_edges,
-            senders=sample.edge_index[0],
-            receivers=sample.edge_index[1],
-            y=sample.y,
-            globals=torch.ones([sample.num_nodes, 1]),
-        )
-
-        # sample = self.dataset[idx]
-        # data = torch_geometric.data.Data(
-        #     node_attr=sample.x,
-        #     edge_attr=torch.ones((sample.num_edges, 3)),
-        #     num_nodes=sample.num_nodes,
-        #     n_node=sample.num_nodes,
-        #     n_edge=sample.num_edges,
-        #     senders=sample.edge_index[0],
-        #     receivers=sample.edge_index[1],
-        #     y=sample.y,
-        #     globals=torch.ones([sample.num_nodes, 1]),
-        # )
-
-        return data
-
-
-train_dataset_ = dataset[:540]
-train_dataset = ToyDataset(train_dataset_)
-
-print(f"Number of training graphs: {len(train_dataset_)}")
-
-
-# train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-
-#######################################
 
 config = TrainingConfig(shell=False)
 config.dataloader_workers = 0
@@ -82,8 +29,6 @@ train_dataset.initialize_data()
 train_dataset.load_indices()
 # train_dataset = ToyDataset(train_dataset)
 train_dataloader = base_dataset.get_train_dataloader(train_dataset, world_size=1, rank=0)
-
-#######################################
 
 
 # Adapted from https://github.com/deepmind/jraph/blob/master/jraph/ogb_examples/train.py
@@ -102,10 +47,11 @@ def pad_graph_to_nearest_power_of_two(graphs_tuple: jraph.GraphsTuple) -> jraph.
 
 
 def prepare_graph_tuples(batch):
-    layer = batch[0][0]
-    target = batch[-1]
+    layer_list = batch[0]
+    target_data = batch[-1]
+    layer = layer_list[0] #batch_main_layer
 
-    graphs = jraph.GraphsTuple(
+    graphs = [jraph.GraphsTuple(
         nodes=np.array(layer.x),
         edges=np.array(layer.edge_attr),
         n_node=np.array(layer.num_nodes),
@@ -113,9 +59,9 @@ def prepare_graph_tuples(batch):
         senders=np.array(layer.edge_index[0]),
         receivers=np.array(layer.edge_index[1]),
         globals=None,
-    )
+    ) for layer in layer_list]
 
-    labels = np.array(target.exact_acceleration)
+    labels = np.array(target_data.exact_acceleration)
     # graphs = pad_graph_to_nearest_power_of_two(graphs)
     return graphs, labels
 
@@ -168,37 +114,12 @@ jitted_network_definition = jax.jit(network_definition)
 #########################
 
 
-def calculate_loss(self, batch_data: List[Data]):
-    dimension = self.config.td.dimension
-    batch_layers = batch_data[0][: self.config.td.mesh_layers_count]
-    layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
-    target_data = batch_data[1].to(self.rank, non_blocking=True)
-    batch_main_layer = layer_list[0]
-    graph_sizes_base = get_graph_sizes(batch_main_layer)
-    node_features = batch_main_layer.x  # .to("cpu")
-
-    all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
-    all_acceleration = clean_acceleration(
-        cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
-    )
-
-    loss_tuple = self.calculate_loss_all(
-        dimension=dimension,
-        node_features=node_features,
-        target_data=target_data,
-        all_acceleration=all_acceleration,
-        graph_sizes_base=graph_sizes_base,
-        all_exact_acceleration=target_data.exact_acceleration,
-        all_linear_acceleration=None,  # target_data.linear_acceleration,
-    )
-    # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
-
-    return loss_tuple  # *, acceleration_list
-
 for step, batch in enumerate(train_dataloader):
-    calculate_loss(batch)
     print(f"Step {step + 1}:")
     graphs, labels = prepare_graph_tuples(batch)
+    
+    # all_predicted_normalized_a = self.ddp_net(layer_list)
+
     processed_graphs = jitted_network_definition(graphs)
     result = processed_graphs.nodes
     # print('graphs: ', graphs)

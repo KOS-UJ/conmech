@@ -50,13 +50,13 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 100  # 10
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 2  # 16  # 32  # 16  # 32 # 256
+    batch_size: int = 1  # 16  # 32  # 16  # 32 # 256
     dataset_size: int = 256 * (1 if TEST else 8)  # 2048)
 
     use_dataset_statistics: bool = False
-    input_batch_norm: bool = True
+    input_batch_norm: bool = False  # False #True
     internal_batch_norm: bool = False
-    layer_norm: bool = True
+    layer_norm: bool = False  # True
 
     dropout_rate: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
     skip_connections: bool = True
@@ -64,17 +64,17 @@ class TrainingData:
 
     attention_heads_count: Optional[int] = None  # None 1 3 5
 
-    initial_learning_rate: float = 1e-4  # 1e-3  # 1e-3  # 1e-4 # 1e-5
+    initial_learning_rate: float = 1e-4  # 1e-4  # 1e-3  # 1e-3  # 1e-4 # 1e-5
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = initial_learning_rate  # 1e-6
 
     activation = nn.ReLU()  # nn.PReLU() LeakyReLU
-    latent_dimension: int = 128  # 128
+    latent_dimension: int = 64  # 128
     encoder_layers_count: int = 0  # 3
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
     mesh_layers_count: int = LAYERS_COUNT  # 3
-    message_passes: int = 2  # 8  # 4  # 8  # 3
+    message_passes: int = 10  # 8  # 4  # 8  # 3
 
 
 @dataclass

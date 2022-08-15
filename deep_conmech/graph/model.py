@@ -58,9 +58,7 @@ class GraphModelDynamic:
         if config.distributed_training:
             self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
             self.ddp_net = DistributedDataParallel(
-                self.ddp_net,
-                device_ids=[rank],
-                find_unused_parameters=True
+                self.ddp_net, device_ids=[rank], find_unused_parameters=True
             )
         else:
             self.ddp_net = net
@@ -245,11 +243,14 @@ class GraphModelDynamic:
         with torch.cuda.amp.autocast():
             main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
         self.fp16_scaler.scale(main_loss).backward()
+        # main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
+        # main_loss.backward()
 
         if self.config.td.gradient_clip is not None:
             self.clip_gradients(self.config.td.gradient_clip)
         self.fp16_scaler.step(self.optimizer)
         self.fp16_scaler.update()
+        # self.optimizer.step()
 
         return loss_raport  # , acceleration_list
 
@@ -369,6 +370,7 @@ class GraphModelDynamic:
         all_acceleration,
         graph_sizes_base,
         all_exact_acceleration,
+        all_old_acceleration,
         all_linear_acceleration,
     ):
         # big_forces = node_features[:, :dimension]
@@ -387,6 +389,7 @@ class GraphModelDynamic:
             # energy_args=target_data.energy_args,
             graph_sizes_base=graph_sizes_base,
             exact_acceleration=all_exact_acceleration,
+            old_acceleration=all_old_acceleration,
             linear_acceleration=all_linear_acceleration,
         )
 
@@ -413,7 +416,8 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=target_data.exact_acceleration,
-            all_linear_acceleration=None,  # target_data.linear_acceleration,
+            all_old_acceleration=target_data.acceleration_old,
+            all_linear_acceleration=target_data.linear_acceleration,
         )
         # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
 

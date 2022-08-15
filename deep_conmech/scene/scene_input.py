@@ -60,7 +60,7 @@ def get_edges_data_numba(
         set_diff_numba(
             velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
         )
-        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
+        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -155,9 +155,9 @@ class SceneInput(SceneLayers):
         #         layer_number=layer_number, data=self.linear_acceleration, add_norm=True
         #     )
 
-        # input_forces = self.prepare_node_data(
-        #     layer_number=layer_number, data=self.input_forces, add_norm=True
-        # )
+        input_forces = self.prepare_node_data(
+            layer_number=layer_number, data=self.input_forces, add_norm=True
+        )
         boundary_normals = self.prepare_node_data(
             data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
@@ -182,19 +182,19 @@ class SceneInput(SceneLayers):
                     boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
-                    boundary_volume,
+                    # boundary_volume,
                 )
             )
         else:
             return np.hstack(
                 (
-                    acceleration_old,
+                    # acceleration_old,
                     # linear_acceleration,
-                    # input_forces,
+                    input_forces,
                     boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
-                    boundary_volume,
+                    # boundary_volume,
                 )
             )
 
@@ -315,6 +315,8 @@ class SceneInput(SceneLayers):
             # lhs_index=lhs_sparse.indices(),
             # rhs=rhs,
         )
+
+        target_data.acceleration_old = thh.to_double(self.acceleration_old)
         if hasattr(self, "exact_acceleration"):
             target_data.exact_acceleration = thh.to_double(self.exact_acceleration)
         if hasattr(self, "linear_acceleration"):
@@ -335,25 +337,25 @@ class SceneInput(SceneLayers):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]:  # "boundary_normal_response", "boundary_volume"]:
-            desc.append(attr)
+        # for attr in ["boundary_volume"]:  # "boundary_normal_response", "boundary_volume"]:
+        #     desc.append(attr)
         return desc
 
     @staticmethod
     def get_nodes_data_description_down(dimension: int):
         desc = []
         for attr in [
-            "acceleration_old",
+            # "acceleration_old",
             # "linear_acceleration",
-            # "input_forces",
+            "input_forces",
             "boundary_normals",
         ]:
             for i in range(dimension):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
 
-        for attr in ["boundary_volume"]:
-            desc.append(attr)
+        # for attr in ["boundary_volume"]:
+        #     desc.append(attr)
         return desc
 
     @staticmethod
@@ -371,7 +373,7 @@ class SceneInput(SceneLayers):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old"]:  # , "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")
