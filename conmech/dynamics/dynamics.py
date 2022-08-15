@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Callable
 
 import numba
 import numpy as np
@@ -90,6 +89,8 @@ class Dynamics(BodyPosition):
         self.reinitialize_matrices()
 
     def remesh(self, boundaries_description, create_in_subprocess):
+        # For some reason pylint don't see that Dynamics(BodyPosition) has mesh
+        # pylint: disable=no-member
         super().mesh.remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 

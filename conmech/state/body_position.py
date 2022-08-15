@@ -1,6 +1,5 @@
 import copy
 from ctypes import ArgumentError
-from typing import Callable
 
 import numba
 import numpy as np

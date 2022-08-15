@@ -173,7 +173,7 @@ class ProblemSolver:
 
     def find_solution(
         self, state, solution, validator, *, verbose=False, **kwargs
-    ) -> np.ndarray:  # FIXME
+    ) -> np.ndarray:
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
@@ -228,7 +228,7 @@ class Static(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = StaticBodyProperties(  # FIXME handle temperature
+        body_prop = StaticBodyProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
