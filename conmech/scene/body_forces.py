@@ -4,6 +4,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
 from conmech.helpers import nph
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import BodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -25,16 +26,14 @@ class BodyForces(Dynamics):
         body_prop: BodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
+        boundaries_description: BoundariesDescription
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
             dynamics_config=dynamics_config,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description
         )
 
         self.inner_forces = None

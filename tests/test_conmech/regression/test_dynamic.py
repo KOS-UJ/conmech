@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import Dynamic
 from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblem
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -46,13 +47,10 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
-
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0,
+            dirichlet=lambda x: x[0] == 0
+        )
 
     setup_m02_m02 = DynamicSetup(mesh_type="cross")
 
@@ -145,13 +143,10 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0.0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
-
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0,
+            dirichlet=lambda x: x[0] == 0
+        )
 
     setup_var = DynamicSetup(mesh_type="cross")
     expected_displacement_vector_var = [

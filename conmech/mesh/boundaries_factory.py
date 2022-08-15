@@ -130,8 +130,10 @@ class BoundariesFactory:
 
     @staticmethod
     def identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        unordered_nodes, unordered_elements, boundaries_description
     ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
+        is_contact = boundaries_description["contact"]
+        is_dirichlet = boundaries_description["dirichlet"]
         (
             initial_nodes,
             elements,

@@ -9,12 +9,12 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
+from conmech.scenarios.problems import PiezoelectricDynamic
+from conmech.simulations.problem_solver import PiezoelectricTimeDependent as PDynamicProblemSolver  # in fact Quasi and dynamic is the same
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
-class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
+class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     # @staticmethod  # TODO # 48
     # def g(t):
     #     return 10.7 + t * 0.02
@@ -44,7 +44,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class TDynamicSetup(TemperatureDynamic):
+class PDynamicSetup(PiezoelectricDynamic):
     grid_height: ... = 1.0
     elements_number: ... = (4, 10)
     mu_coef: ... = 4
@@ -52,9 +52,9 @@ class TDynamicSetup(TemperatureDynamic):
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.02
-    contact_law: ... = TPSlopeContactLaw
-    thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-    thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+    contact_law: ... = PPSlopeContactLaw
+    piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+    permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
@@ -77,28 +77,28 @@ class TDynamicSetup(TemperatureDynamic):
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: False
+        contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
+        dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5
     )
 
 
 def main(show: bool = True, save: bool = False):
-    setup = TDynamicSetup(mesh_type="cross")
-    runner = TDynamicProblemSolver(setup, solving_method="schur")
+    setup = PDynamicSetup(mesh_type="cross")
+    runner = PDynamicProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(
-        n_steps=32,
-        output_step=range(0, 32, 4),
+        n_steps=4,  # FIXME 32
+        output_step=range(0, 4, 1),  # FIXME (0, 32, 4)
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
-        initial_temperature=setup.initial_temperature,
+        initial_electric_potential=setup.initial_electric_potential,
     )
     T_max = -np.inf
     T_min = np.inf
     for state in states:
-        T_max = max(T_max, np.max(state.temperature))
-        T_min = min(T_min, np.min(state.temperature))
+        T_max = max(T_max, np.max(state.electric_potential))
+        T_min = min(T_min, np.min(state.electric_potential))
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(

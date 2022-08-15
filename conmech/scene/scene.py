@@ -6,6 +6,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
 from conmech.helpers import nph
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -132,6 +133,10 @@ class Scene(BodyForces):
         create_in_subprocess: bool,
         with_schur: bool = True,
     ):
+        boundaries_description: ... = BoundariesDescription(
+            contact=lambda x: True,
+            dirichlet=lambda x: False
+        )
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
@@ -142,6 +147,7 @@ class Scene(BodyForces):
                 with_lhs=True,
                 with_schur=with_schur,
             ),
+            boundaries_description=boundaries_description
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None
@@ -168,9 +174,13 @@ class Scene(BodyForces):
                 self.linear_obstacles[0, ...]
             )
         if all_mesh_prop is not None:
+            boundaries_description: ... = BoundariesDescription(
+                contact=lambda x: True,
+                dirichlet=lambda x: False
+            )
             self.mesh_obstacles.extend(
                 [
-                    BodyPosition(mesh_prop=mesh_prop, schedule=None, normalize_by_rotation=False)
+                    BodyPosition(mesh_prop=mesh_prop, schedule=None, normalize_by_rotation=False, boundaries_description=boundaries_description)
                     for mesh_prop in all_mesh_prop
                 ]
             )

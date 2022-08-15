@@ -6,6 +6,7 @@ import numba
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -103,14 +104,12 @@ class BodyPosition:
         mesh_prop: MeshProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
+        boundaries_description: BoundariesDescription,
         create_in_subprocess: bool = False,
     ):
         self.mesh = Mesh(
             mesh_prop=mesh_prop,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description,
             create_in_subprocess=create_in_subprocess,
         )
 

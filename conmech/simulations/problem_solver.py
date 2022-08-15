@@ -47,7 +47,7 @@ class ProblemSolver:
         :param setup:
         :param body_properties:
         """
-        if isinstance(setup, TimeDependent):
+        if isinstance(setup, TimeDependentProblem):
             time_step = setup.time_step
         else:
             time_step = 0
@@ -63,8 +63,7 @@ class ProblemSolver:
             ),
             body_prop=body_properties,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            is_dirichlet=setup.is_dirichlet,
-            is_contact=setup.is_contact,
+            boundaries_description=setup.boundaries,
             dynamics_config=DynamicsConfiguration(
                 normalize_by_rotation=False,
                 create_in_subprocess=False,

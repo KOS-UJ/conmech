@@ -3,6 +3,7 @@ import pytest
 
 from conmech.helpers import nph
 from conmech.mesh import mesh
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.state.body_position import BodyPosition
@@ -12,6 +13,10 @@ from conmech.state.body_position import BodyPosition
 def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
+    boundaries_description: ... = BoundariesDescription(
+        contact=lambda x: True,
+        dirichlet=lambda x: False
+    )
     setting = BodyPosition(
         mesh_prop=MeshProperties(
             dimension=2,
@@ -21,6 +26,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         ),
         schedule=Schedule(1),
         normalize_by_rotation=True,
+        boundaries_description=boundaries_description
     )
 
     # Act and Assert
@@ -35,12 +41,17 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
 def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
+    boundaries_description: ... = BoundariesDescription(
+        contact=lambda x: True,
+        dirichlet=lambda x: False
+    )
     setting = BodyPosition(
         mesh_prop=MeshProperties(
             dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
         ),
         schedule=Schedule(1),
         normalize_by_rotation=True,
+        boundaries_description=boundaries_description
     )
 
     # Act and Assert

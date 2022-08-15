@@ -7,6 +7,8 @@ from typing import Tuple, Union
 
 import numpy as np
 
+from conmech.mesh.boundaries_description import BoundariesDescription
+
 
 class ContactLaw:
     @staticmethod
@@ -32,6 +34,7 @@ class Problem:
     dimension = 2  # TODO #74 : Not used?
     mesh_type: str
     grid_height: float
+    boundaries: BoundariesDescription
 
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
@@ -56,14 +59,6 @@ class Problem:
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
 
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
 
 class Static(Problem):
     @staticmethod
@@ -76,14 +71,6 @@ class Static(Problem):
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
 
@@ -106,14 +93,6 @@ class TimeDependent(Problem):
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
         raise NotImplementedError()
 
 

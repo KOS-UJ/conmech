@@ -5,6 +5,7 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
     TemperatureBodyProperties,
     BodyProperties,
@@ -62,15 +63,13 @@ class Dynamics(BodyPosition):
         body_prop: BodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable,
-        is_contact: Callable,
+        boundaries_description: BoundariesDescription,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
             normalize_by_rotation=dynamics_config.normalize_by_rotation,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
         )
         self.body_prop = body_prop
