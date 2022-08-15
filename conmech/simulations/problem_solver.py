@@ -171,9 +171,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(
-        self, state, solution, validator, *, verbose=False, **kwargs
-    ) -> np.ndarray:
+    def find_solution(self, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
