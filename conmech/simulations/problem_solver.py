@@ -511,7 +511,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
                         update_displacement=True,
                         time=self.step_solver.current_time,
                     )
-                    state.set_temperature(solution_t)
+                    state.set_electric_potential(solution_t)
                     # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
