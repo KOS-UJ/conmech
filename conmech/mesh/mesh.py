@@ -5,7 +5,8 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.mesh import mesh_builders
-from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
+from conmech.mesh.boundaries_factory import BoundariesFactory
+from conmech.mesh.boundaries import Boundaries
 from conmech.properties.mesh_properties import MeshProperties
 
 
