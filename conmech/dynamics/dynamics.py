@@ -89,8 +89,8 @@ class Dynamics(BodyPosition):
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
 
-    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        super().mesh.remesh(is_dirichlet, is_contact, create_in_subprocess)
+    def remesh(self, boundaries_description, create_in_subprocess):
+        super().mesh.remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):

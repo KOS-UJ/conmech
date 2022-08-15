@@ -104,7 +104,7 @@ class Mesh:
 
         self.reinitialize_data(mesh_prop, boundaries_description, create_in_subprocess)
 
-    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
+    def remesh(self, boundaries_description, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, boundaries_description, create_in_subprocess)
 
     def reinitialize_data(
