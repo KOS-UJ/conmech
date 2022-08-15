@@ -58,7 +58,7 @@ def build_initial_mesh(
             if "cube" in mesh_prop.mesh_type:
                 return mesh_builders_3d.get_test_cube(mesh_prop)
             if "ball" in mesh_prop.mesh_type:
-                return mesh_builders_3d.get_meshzoo_ball(mesh_prop)
+                return mesh_builders_3d.get_test_ball(mesh_prop)
         else:
             return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop)
 
