@@ -73,8 +73,7 @@ def generate_test_suits():
             return 0
 
         boundaries: ... = BoundariesDescription(
-            contact=lambda x: x[1] == 0,
-            dirichlet=lambda x: x[0] == 0
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
     setup_m02_m02 = DynamicSetup(mesh_type="cross")
@@ -226,8 +225,7 @@ def generate_test_suits():
             return 0.0
 
         boundaries: ... = BoundariesDescription(
-            contact=lambda x: x[1] == 0,
-            dirichlet=lambda x: x[0] == 0
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
     setup_var = DynamicSetup(mesh_type="cross")

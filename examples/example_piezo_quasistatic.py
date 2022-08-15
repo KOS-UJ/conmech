@@ -15,7 +15,6 @@ from examples.p_slope_contact_law import make_slope_contact_law
 
 
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-
     @staticmethod
     def h_nu(uN, t):
         return 0
@@ -60,7 +59,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
-        dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5
+        dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
     )
 
 

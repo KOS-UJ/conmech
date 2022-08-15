@@ -18,8 +18,7 @@ class DynamicSetup(Dynamic):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
     mu_coef: ... = 4
     la_coef: ... = 4

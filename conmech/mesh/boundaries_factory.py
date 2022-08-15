@@ -161,18 +161,21 @@ class BoundariesFactory:
             lambda n: not is_contact(n) and not is_dirichlet(n),
         )
 
-        contact_boundary = Boundary(surfaces=contact_boundary,
-                                    node_indices=slice(0,
-                                                       contact_nodes_count),
-                                    node_count=contact_nodes_count)
-        neumann_boundary = Boundary(surfaces=neumann_boundary,
-                                    node_indices=slice(contact_nodes_count,
-                                                       contact_nodes_count + neumann_nodes_count),
-                                    node_count=neumann_nodes_count)
-        dirichlet_boundary = Boundary(surfaces=dirichlet_boundary,
-                                      node_indices=slice(contact_nodes_count + neumann_nodes_count,
-                                                         boundary_nodes_count),
-                                      node_count=dirichlet_nodes_count)
+        contact_boundary = Boundary(
+            surfaces=contact_boundary,
+            node_indices=slice(0, contact_nodes_count),
+            node_count=contact_nodes_count,
+        )
+        neumann_boundary = Boundary(
+            surfaces=neumann_boundary,
+            node_indices=slice(contact_nodes_count, contact_nodes_count + neumann_nodes_count),
+            node_count=neumann_nodes_count,
+        )
+        dirichlet_boundary = Boundary(
+            surfaces=dirichlet_boundary,
+            node_indices=slice(contact_nodes_count + neumann_nodes_count, boundary_nodes_count),
+            node_count=dirichlet_nodes_count,
+        )
 
         boundaries_data = Boundaries(
             boundary_internal_indices=boundary_internal_indices,

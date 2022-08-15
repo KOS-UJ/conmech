@@ -10,7 +10,9 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PiezoelectricDynamic
-from conmech.simulations.problem_solver import PiezoelectricTimeDependent as PDynamicProblemSolver  # in fact Quasi and dynamic is the same
+from conmech.simulations.problem_solver import (
+    PiezoelectricTimeDependent as PDynamicProblemSolver,
+)  # in fact Quasi and dynamic is the same
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -78,7 +80,7 @@ class PDynamicSetup(PiezoelectricDynamic):
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
-        dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5
+        dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
     )
 
 

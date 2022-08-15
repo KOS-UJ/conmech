@@ -4,8 +4,12 @@ import numpy as np
 import pygmsh
 
 from conmech.helpers import mph, nph
-from conmech.mesh import mesh_builders_2d, mesh_builders_3d, mesh_builders_legacy, \
-    mesh_builders_helpers
+from conmech.mesh import (
+    mesh_builders_2d,
+    mesh_builders_3d,
+    mesh_builders_legacy,
+    mesh_builders_helpers,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.data import interpolation_helpers
 

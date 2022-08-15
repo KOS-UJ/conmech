@@ -65,7 +65,9 @@ class DynamicVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.viscosity + (1 / var.time_step) * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
+            self.body.viscosity
+            + (1 / var.time_step)
+            * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
         )
 
     def update_right_hand_side(self, var):

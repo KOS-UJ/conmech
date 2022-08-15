@@ -14,8 +14,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
     volume = 2 * (scale_x + scale_y)
     boundaries_description: ... = BoundariesDescription(
-        contact=lambda x: True,
-        dirichlet=lambda x: False
+        contact=lambda x: True, dirichlet=lambda x: False
     )
     setting = BodyPosition(
         mesh_prop=MeshProperties(
@@ -26,7 +25,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         ),
         schedule=Schedule(1),
         normalize_by_rotation=True,
-        boundaries_description=boundaries_description
+        boundaries_description=boundaries_description,
     )
 
     # Act and Assert
@@ -42,8 +41,7 @@ def test_boundary_nodes_data_3d():
     # Arrange
     volume = 6
     boundaries_description: ... = BoundariesDescription(
-        contact=lambda x: True,
-        dirichlet=lambda x: False
+        contact=lambda x: True, dirichlet=lambda x: False
     )
     setting = BodyPosition(
         mesh_prop=MeshProperties(
@@ -51,7 +49,7 @@ def test_boundary_nodes_data_3d():
         ),
         schedule=Schedule(1),
         normalize_by_rotation=True,
-        boundaries_description=boundaries_description
+        boundaries_description=boundaries_description,
     )
 
     # Act and Assert

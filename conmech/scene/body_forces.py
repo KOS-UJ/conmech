@@ -26,14 +26,14 @@ class BodyForces(Dynamics):
         body_prop: BodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        boundaries_description: BoundariesDescription
+        boundaries_description: BoundariesDescription,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
             dynamics_config=dynamics_config,
-            boundaries_description=boundaries_description
+            boundaries_description=boundaries_description,
         )
 
         self.inner_forces = None

@@ -108,7 +108,10 @@ class Mesh:
         self.reinitialize_data(self.mesh_prop, boundaries_description, create_in_subprocess)
 
     def reinitialize_data(
-        self, mesh_prop: MeshProperties, boundaries_description: BoundariesDescription, create_in_subprocess
+        self,
+        mesh_prop: MeshProperties,
+        boundaries_description: BoundariesDescription,
+        create_in_subprocess,
     ):
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_prop=mesh_prop,

@@ -134,8 +134,7 @@ class Scene(BodyForces):
         with_schur: bool = True,
     ):
         boundaries_description: ... = BoundariesDescription(
-            contact=lambda x: True,
-            dirichlet=lambda x: False
+            contact=lambda x: True, dirichlet=lambda x: False
         )
         super().__init__(
             mesh_prop=mesh_prop,
@@ -147,7 +146,7 @@ class Scene(BodyForces):
                 with_lhs=True,
                 with_schur=with_schur,
             ),
-            boundaries_description=boundaries_description
+            boundaries_description=boundaries_description,
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None
@@ -175,12 +174,16 @@ class Scene(BodyForces):
             )
         if all_mesh_prop is not None:
             boundaries_description: ... = BoundariesDescription(
-                contact=lambda x: True,
-                dirichlet=lambda x: False
+                contact=lambda x: True, dirichlet=lambda x: False
             )
             self.mesh_obstacles.extend(
                 [
-                    BodyPosition(mesh_prop=mesh_prop, schedule=None, normalize_by_rotation=False, boundaries_description=boundaries_description)
+                    BodyPosition(
+                        mesh_prop=mesh_prop,
+                        schedule=None,
+                        normalize_by_rotation=False,
+                        boundaries_description=boundaries_description,
+                    )
                     for mesh_prop in all_mesh_prop
                 ]
             )
@@ -200,7 +203,8 @@ class Scene(BodyForces):
         )
         return (
             lambda normalized_boundary_a_vector: energy_obstacle(
-                acceleration=nph.unstack(normalized_boundary_a_vector, self.mesh.dimension), args=args
+                acceleration=nph.unstack(normalized_boundary_a_vector, self.mesh.dimension),
+                args=args,
             ),
             normalized_rhs_free,
         )

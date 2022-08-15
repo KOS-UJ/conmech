@@ -37,8 +37,7 @@ class QuasistaticSetup(Quasistatic):
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
 
 

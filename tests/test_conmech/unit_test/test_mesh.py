@@ -207,10 +207,7 @@ def test_condition_boundaries(_test_name_, params):
         expected_neumann_boundary,
         expected_dirichlet_boundary,
     ) = params
-    boundaries_description = BoundariesDescription(
-        contact=is_contact,
-        dirichlet=is_dirichlet
-    )
+    boundaries_description = BoundariesDescription(contact=is_contact, dirichlet=is_dirichlet)
 
     # Act
     (

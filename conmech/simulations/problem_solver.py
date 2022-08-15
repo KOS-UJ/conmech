@@ -12,7 +12,8 @@ from conmech.dynamics.statement import (
     DynamicVelocityWithTemperatureStatement,
     TemperatureStatement,
     PiezoelectricStatement,
-    DynamicVelocityStatement, QuasistaticVelocityWithPiezoelectricStatement,
+    DynamicVelocityStatement,
+    QuasistaticVelocityWithPiezoelectricStatement,
 )
 from conmech.properties.body_properties import (
     TimeDependentTemperatureBodyProperties,
@@ -23,8 +24,10 @@ from conmech.properties.body_properties import (
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.problems import (Dynamic as DynamicProblem,
-                                        TimeDependent as TimeDependentProblem)
+from conmech.scenarios.problems import (
+    Dynamic as DynamicProblem,
+    TimeDependent as TimeDependentProblem,
+)
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
@@ -32,7 +35,8 @@ from conmech.scenarios.problems import TemperatureDynamic as TemperatureDynamicP
 from conmech.scenarios.problems import TemperatureTimeDependent as TemperatureTimeDependentProblem
 from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
 from conmech.scenarios.problems import (
-    PiezoelectricTimeDependent as PiezoelectricTimeDependentProblem)
+    PiezoelectricTimeDependent as PiezoelectricTimeDependentProblem,
+)
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver

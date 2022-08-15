@@ -144,7 +144,9 @@ class Calculator:
     @staticmethod
     def solve_acceleration_normalized_optimization(setting, temperature=None, initial_a=None):
         if initial_a is None:
-            initial_a_boundary_vector = np.zeros(setting.mesh.boundary_nodes_count * setting.mesh.dimension)
+            initial_a_boundary_vector = np.zeros(
+                setting.mesh.boundary_nodes_count * setting.mesh.dimension
+            )
         else:
             initial_a_boundary_vector = nph.stack_column(initial_a[setting.mesh.boundary_indices])
 

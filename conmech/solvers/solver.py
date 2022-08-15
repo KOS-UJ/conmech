@@ -36,7 +36,7 @@ class Solver:
                 velocity=self.v_vector,
                 temperature=self.t_vector,
                 time_step=self.time_step,
-                electric_potential=self.p_vector
+                electric_potential=self.p_vector,
             )
         )
 

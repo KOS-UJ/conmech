@@ -9,8 +9,9 @@ import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import PiezoelectricQuasistatic
-from conmech.simulations.problem_solver import PiezoelectricTimeDependent as \
-    PiezoelectricQuasistaticSolver
+from conmech.simulations.problem_solver import (
+    PiezoelectricTimeDependent as PiezoelectricQuasistaticSolver,
+)
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -38,7 +39,7 @@ def make_slope_contact_law_piezo(slope):
 
         @staticmethod
         def h_temp(u_tau):  # potential  # TODO # 48
-            return 0.1 * 0.5 * u_tau ** 2
+            return 0.1 * 0.5 * u_tau**2
 
     return PPSlopeContactLaw
 
@@ -74,8 +75,7 @@ def generate_test_suits():
             return 0
 
         boundaries: ... = BoundariesDescription(
-            contact=lambda x: x[1] == 0,
-            dirichlet=lambda x: x[0] == 0
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
     setup_m02_m02 = DynamicSetup(mesh_type="cross")
@@ -227,8 +227,7 @@ def generate_test_suits():
             return 0.0
 
         boundaries: ... = BoundariesDescription(
-            contact=lambda x: x[1] == 0,
-            dirichlet=lambda x: x[0] == 0
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
     setup_var = DynamicSetup(mesh_type="cross")

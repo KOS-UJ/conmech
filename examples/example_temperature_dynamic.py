@@ -76,10 +76,7 @@ class TDynamicSetup(TemperatureDynamic):
     def friction_bound(u_nu):
         return 0
 
-    boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: False
-    )
+    boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0, dirichlet=lambda x: False)
 
 
 def main(show: bool = True, save: bool = False):
