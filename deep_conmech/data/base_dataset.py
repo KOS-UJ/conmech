@@ -284,19 +284,19 @@ class BaseDataset:
     def get_statistics(self, layer_number):
         dataloader = get_train_dataloader(self, rank=self.rank, world_size=self.world_size)
 
-        nodes_data = torch.empty((0, SceneInput.get_nodes_data_dim(self.dimension)))
+        nodes_data = torch.empty((0, SceneInput.get_nodes_data_up_dim(self.dimension)))
         edges_data = torch.empty((0, SceneInput.get_edges_data_dim(self.dimension)))
         target_data = torch.empty((0, self.dimension))
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            layer = graph_data[0][layer_number]
-            nodes_data = torch.cat((nodes_data, layer.x))
-            edges_data = torch.cat((edges_data, layer.edge_attr))
+            sparse_layer = graph_data[0][1] # layer_number
+            nodes_data = torch.cat((nodes_data, sparse_layer.x))
+            edges_data = torch.cat((edges_data, sparse_layer.edge_attr_to_down)) #edge_attr
             target_data = torch.cat((target_data, graph_data[1].exact_acceleration))
 
         nodes_statistics = FeaturesStatistics(
-            nodes_data, SceneInput.get_nodes_data_description(self.dimension)
+            nodes_data, SceneInput.get_nodes_data_description_up(self.dimension)
         )
         edges_statistics = FeaturesStatistics(
             edges_data, SceneInput.get_edges_data_description(self.dimension)
@@ -372,10 +372,9 @@ class BaseDataset:
 
     def prepare_scene(self, scene, forces):
         scene.prepare(forces)
-        # scene.reduced.prepare(scenario.get_forces_by_function(scene.reduced, current_time))
 
         scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-            setting=scene, temperature=None, initial_a=None #normalized_a
+            setting=scene, temperature=None, initial_a=None  # normalized_a
         )
         acceleration, exact_acceleration = self.solve_function(
             setting=scene, initial_a=scene.exact_acceleration

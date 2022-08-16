@@ -133,7 +133,7 @@ class ScenariosDataset(BaseDataset):
 
             # setting = setting.get_copy()
             scene.iterate_self(acceleration)
-            # scene.reduced.iterate_self(scene.reduced.exact_acceleration)
+            scene.update_reduced_from_dense()
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

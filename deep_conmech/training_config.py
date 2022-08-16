@@ -23,7 +23,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "calculator"  # synthetic # calculator
-    final_time: float = 4  # 8  # 0.5 if TEST else 8
+    final_time: float = 0.5 if TEST else 4 #4  # 8
     mesh_density: int = 16  # 8  # 16 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
@@ -51,7 +51,7 @@ class TrainingData:
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 16  # 32  # 16  # 32 # 256
-    dataset_size: int = 256 * (1 if TEST else 8)  # 2048)
+    dataset_size: int = 32 # 256 * (1 if TEST else 1) #8)  # 2048)
 
     use_dataset_statistics: bool = False
     input_batch_norm: bool = False  # False #True
@@ -95,9 +95,9 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 16
+    dataset_images_count: Optional[float] = 1 #16
 
-    log_dataset_stats: bool = False  # True
+    log_dataset_stats: bool = True  # True
     with_train_scenes_file: bool = True
 
     compare_with_base_scene = False

@@ -152,19 +152,26 @@ class SceneLayers(SceneRandomized):
     def lift_data(self, data):
         return self.approximate_boundary_or_all_from_base(layer_number=1, base_values=data)
 
+    def lower_data(self, data):
+        return self.approximate_boundary_or_all_to_base(layer_number=1, reduced_values=data)
+
     def prepare(self, inner_forces: np.ndarray):
         super().prepare(inner_forces)
         reduced_inner_forces = self.lift_data(inner_forces)
         self.reduced.prepare(reduced_inner_forces)
+        # scene.reduced.prepare(scenario.get_forces_by_function(scene.reduced, current_time))
 
     def iterate_self(self, acceleration, temperature=None):
         super().iterate_self(acceleration, temperature)
-        self.update_reduced()
+        self.update_reduced()  ####################
 
     def update_reduced(self):
         if True:  # False:
             self.reduced.iterate_self(self.reduced.exact_acceleration)
             return
+        self.update_reduced_from_dense()
+
+    def update_reduced_from_dense(self):
         acceleration = self.lift_data(self.acceleration_old)
         velocity = self.lift_data(self.velocity_old)
         displacement = self.lift_data(self.displacement_old)

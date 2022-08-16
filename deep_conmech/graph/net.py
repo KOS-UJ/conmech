@@ -1,3 +1,4 @@
+import copy
 from ctypes import ArgumentError
 from typing import List, Optional, Tuple
 
@@ -225,16 +226,20 @@ class LinkProcessorLayer(MessagePassing):
         return processed_node_latents
 
     def message(self, node_latents_i, node_latents_j, edge_latents):  # index
-        edge_inputs = torch.hstack((node_latents_i, edge_latents))
+        edge_inputs = torch.hstack((node_latents_j, edge_latents))
         processed_edge_latents = self.edge_processor(edge_inputs)
         return processed_edge_latents
 
     def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
+        neighbours = 3 ##########################################################################################################
+        result = new_edge_latents.reshape(-1, neighbours, new_edge_latents.shape[-1]).reshape(-1,192)
+        return result
         alpha = self.attention(new_edge_latents, index)
         aggregated_edge_latents = scatter_sum(alpha * new_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
     def update(self, aggregated_edge_latents, node_latents):
+        return aggregated_edge_latents
         to_node_latents = node_latents[-1]
         return torch.hstack((to_node_latents, aggregated_edge_latents))
 
@@ -343,7 +348,7 @@ class CustomGraphNet(nn.Module):
             self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension * 2,
+            input_dim=td.latent_dimension * 3, # 2,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.dimension,
             statistics=None,
@@ -408,7 +413,7 @@ class CustomGraphNet(nn.Module):
 
         layer_sparse = layer_list[1]
         node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
-        # edge_latents_sparse = self.edge_encoder(layer_sparse.edge_attr)
+        edge_latents_sparse = self.edge_encoder(layer_sparse.edge_attr)
 
         # node_latents_sparse, edge_latents_sparse = self.propagate_messages(
         #     layer=layer_up, node_latents=node_latents_sparse, edge_latents=edge_latents_sparse
@@ -416,15 +421,15 @@ class CustomGraphNet(nn.Module):
 
         node_latents_common = self.move_to_dense(
             node_latents_sparse=node_latents_sparse,
-            node_latents_dense=node_latents_dense,
+            node_latents_dense=None,  # node_latents_dense,
             edge_latents=self.edge_encoder(layer_sparse.edge_attr_to_down),
             layer=layer_sparse,
         )
         # node_latents_common = node_latents_dense
 
-        node_latents_common, edge_latents_dense = self.propagate_messages(
-            layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
-        )
+        # node_latents_common, edge_latents_dense = self.propagate_messages(
+        #     layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
+        # )
         net_output = self.decoder(node_latents_common)
 
         # TODO: #65 Include mass_density
@@ -450,29 +455,28 @@ class CustomGraphNet(nn.Module):
             for layer_number, _ in enumerate(scene.all_layers)
         ]
         normalized_a_cuda = self(layer_list=layers_list)
-        normalized_a_net = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
-        normalized_a = normalized_a_net
+        normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
 
-        # normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
+        #normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
 
-        if False and initial_a is not None:
-            base_norm = thh.root_mean_square_error_torch(
-                thh.to_double(normalized_a), thh.to_double(np.zeros_like(normalized_a))
-            )
-            l1 = thh.root_mean_square_error_torch(
-                thh.to_double(normalized_a), thh.to_double(normalized_a_net)
-            )
-            l1n = np.linalg.norm(normalized_a - normalized_a_net)
-            l2 = thh.root_mean_square_error_torch(
-                thh.to_double(normalized_a), thh.to_double(initial_a)
-            )
-            l2n = np.linalg.norm(normalized_a - initial_a)
+        #####
+        # displacement = scene.lower_data(scene.reduced.displacement_old)
+        # return displacement, None
 
-            print(f"Rmse: base: {base_norm} net: {l1} init: {l2} prop: {l1/l2}")
-            # print(f"Norm: net: {l1n} init: {l2n} prop: {l1n/l2n}")
-            print("================================")
-        # normalized_a = normalized_a_net
+        sparse_layer = layers_list[1]
+        closest_nodes = thh.to_np_long(sparse_layer.closest_nodes_to_down)
+        sparse_displacement = scene.reduced.displacement_old[closest_nodes]
+        repeated_displacement = scene.displacement_old[..., np.newaxis].repeat(3, axis=-1)
+        relative_displacement = repeated_displacement - sparse_displacement
 
+        displacement = (relative_displacement + sparse_displacement).mean(axis=-1)
+
+        # normalized_a = Calculator.solve(scene=scene, initial_a=None)
+        # scene_copy = copy.deepcopy(scene)
+        # scene_copy.iterate_self(normalized_a)
+        # return scene_copy.displacement_old, None
+
+        #######
         a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a
 

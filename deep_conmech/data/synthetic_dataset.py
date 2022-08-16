@@ -157,6 +157,8 @@ class SyntheticDataset(BaseDataset):
         scene.set_displacement_old(displacement_old)
         scene.set_velocity_old(velocity_old)
         # scene.prepare(forces)
+        
+        scene.update_reduced_from_dense()
 
         scene.exact_acceleration = None
         scene, acceleration = self.prepare_scene(scene, forces)
