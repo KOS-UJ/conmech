@@ -173,7 +173,7 @@ class SceneInput(SceneLayers):
             #     data=self.input_forces, layer_number=layer_number_from
             # ),
             # forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
-            edges_data_dim=self.get_edges_data_dim(self.dimension),
+            edges_data_dim=self.get_edges_data_dim(self.mesh.dimension),
         )
         return edges_data
 
