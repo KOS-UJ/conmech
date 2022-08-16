@@ -96,7 +96,7 @@ class SceneLayers(SceneRandomized):
         )
         self.all_layers.append(base_mesh_layer_data)
 
-        dense_mesh = self
+        dense_mesh = self.mesh
         for _ in range(layers_count - 1):
             layer_mesh_prop.mesh_density = list(
                 np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // 2

@@ -245,7 +245,7 @@ def plot_setting(
     draw_detailed,
     extension,
 ):
-    if scene.dimension == 2:
+    if scene.mesh.dimension == 2:
         fig = plotter_2d.get_fig()
         axs = plotter_2d.get_axs(fig)
         plotter_2d.plot_frame(

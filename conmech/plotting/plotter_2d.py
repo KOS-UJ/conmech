@@ -66,7 +66,7 @@ def plot_frame(
     t_scale: Optional[np.ndarray] = None,
 ):
     axes = axs
-    scale = scene.mesh_prop.scale_x
+    scale = scene.mesh.mesh_prop.scale_x
     set_perspective(scale, axes=axes)
 
     if isinstance(scene, SceneTemperature):
@@ -150,7 +150,7 @@ def draw_main_temperature(axes, scene, cbar_settings):
     draw_main_obstacles(scene, axes)
     axes.tricontourf(
         *scene.moved_nodes.T,
-        scene.elements,
+        scene.mesh.elements,
         scene.t_old.reshape(-1),
         cmap=cbar_settings.cmap,
         vmin=cbar_settings.vmin,
@@ -347,7 +347,7 @@ def draw_moved_body(annotation, scene: Scene, position, axes):
 
 
 def draw_initial_body(annotation, scene: Scene, position, axes):
-    draw_triplot(scene.normalized_initial_nodes + position, scene, "tab:blue", axes)
+    draw_triplot(scene.mesh.normalized_initial_nodes + position, scene, "tab:blue", axes)
     add_annotation(annotation, scene, position, axes)
 
 
@@ -375,7 +375,7 @@ def draw_all_sparse(scene: Scene, position, axes):
 
 
 def add_annotation(annotation, scene: Scene, position, axes):
-    scale = scene.mesh_prop.scale_x
+    scale = scene.mesh.mesh_prop.scale_x
     description_offset = np.array([-0.5, -1.1]) * scale
     axes.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
@@ -393,7 +393,7 @@ def draw_parameters(current_time, scene: Scene, scale, axes):
 
 
 def draw_triplot(nodes, scene: Scene, color, axes):
-    boundary_nodes = nodes[scene.boundary_surfaces]
+    boundary_nodes = nodes[scene.mesh.boundary_surfaces]
     axes.add_collection(
         collections.LineCollection(
             boundary_nodes,
@@ -401,7 +401,7 @@ def draw_triplot(nodes, scene: Scene, color, axes):
             linewidths=0.3,
         )
     )
-    triplot(nodes, scene.elements, color, axes)
+    triplot(nodes, scene.mesh.elements, color, axes)
 
 
 def triplot(nodes, elements, color, axes):
@@ -409,7 +409,7 @@ def triplot(nodes, elements, color, axes):
 
 
 def draw_edges_data(position, scene: Scene, axes):
-    draw_data_at_edges(scene, scene.edges_data[:, 2:4], position, axes)
+    draw_data_at_edges(scene, scene.mesh.edges_data[:, 2:4], position, axes)
 
 
 def draw_vertices_data(position, scene: Scene, axes):
