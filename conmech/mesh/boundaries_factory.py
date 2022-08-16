@@ -184,9 +184,7 @@ class BoundariesFactory:
                 node_indices = np.unique(surfaces).sort()
                 if node_indices:
                     other_boundaries[name] = Boundary(
-                        surfaces=surfaces,
-                        node_indices=node_indices,
-                        node_count=node_indices.size
+                        surfaces=surfaces, node_indices=node_indices, node_count=node_indices.size
                     )
 
         boundaries = Boundaries(
@@ -194,7 +192,7 @@ class BoundariesFactory:
             contact=contact_boundary,
             neumann=neumann_boundary,
             dirichlet=dirichlet_boundary,
-            **other_boundaries
+            **other_boundaries,
         )
 
         return initial_nodes, elements, boundaries
