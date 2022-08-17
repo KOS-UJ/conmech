@@ -246,7 +246,7 @@ class Static(ProblemSolver):
         """
         state = State(self.body)
         state.displacement = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.displacement.reshape(2, -1)
@@ -304,10 +304,10 @@ class TimeDependent(ProblemSolver):
 
         state = State(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -375,13 +375,13 @@ class TemperatureTimeDependent(ProblemSolver):
 
         state = TemperatureState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.temperature[:] = initial_temperature(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -473,13 +473,13 @@ class PiezoelectricTimeDependent(ProblemSolver):
 
         state = PiezoelectricState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.electric_potential[:] = initial_electric_potential(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)

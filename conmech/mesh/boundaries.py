@@ -28,7 +28,7 @@ class Boundaries:
 
     @property
     def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
+        return slice(self.boundary_nodes_count)  # FIXME without dirichlet
 
     @property
     def contact_boundary(self):

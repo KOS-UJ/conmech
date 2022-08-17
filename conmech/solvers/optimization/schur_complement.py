@@ -31,7 +31,7 @@ class SchurComplement(Optimization):
         )
 
         self.contact_ids = slice(0, body.mesh.contact_nodes_count)
-        self.free_ids = slice(body.mesh.contact_nodes_count, body.mesh.independent_nodes_count)
+        self.free_ids = slice(body.mesh.contact_nodes_count, body.mesh.nodes_count)
 
         (
             self._node_relations,
@@ -113,11 +113,11 @@ class SchurComplement(Optimization):
     def node_forces(self) -> np.ndarray:
         return self._node_forces
 
-    def solve(
+    def _solve(
         self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_nodes(initial_guess)
-        solution_contact = super().solve(
+        solution_contact = super()._solve(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
         solution_free = self.complement_free_nodes(solution_contact)

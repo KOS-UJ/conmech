@@ -8,15 +8,15 @@ import numpy as np
 class State:
     def __init__(self, body):
         self.body = body
-        self.displacement: np.ndarray = np.zeros((self.body.mesh.independent_nodes_count, 2))
+        self.displacement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
-        self.velocity: np.ndarray = np.zeros((self.body.mesh.independent_nodes_count, 2))
+        self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.time = 0
 
     def set_displacement(self, displacement_vector: np.ndarray, time: float = 0):
         self.displacement = displacement_vector.reshape((2, -1)).T
-        self.displaced_nodes[: self.body.mesh.independent_nodes_count, :2] = (
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count, :2]
+        self.displaced_nodes[: self.body.mesh.nodes_count, :2] = (
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :2]
             + self.displacement[:, :2]
         )
         self.time = time
@@ -28,8 +28,8 @@ class State:
         if update_displacement:
             dt = time - self.time
             self.displacement += dt * self.velocity
-            self.displaced_nodes[: self.body.mesh.independent_nodes_count, :2] = (
-                self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count, :2]
+            self.displaced_nodes[: self.body.mesh.nodes_count, :2] = (
+                self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :2]
                 + self.displacement[:, :2]
             )
         self.time = time
@@ -56,7 +56,7 @@ class State:
 class TemperatureState(State):
     def __init__(self, body):
         super().__init__(body)
-        self.temperature = np.zeros(self.body.mesh.independent_nodes_count)
+        self.temperature = np.zeros(self.body.mesh.nodes_count)
 
     def set_temperature(self, temperature_vector: np.ndarray):
         self.temperature = temperature_vector
@@ -74,7 +74,7 @@ class TemperatureState(State):
 class PiezoelectricState(State):
     def __init__(self, grid):
         super().__init__(grid)
-        self.electric_potential = np.zeros(self.body.mesh.independent_nodes_count)
+        self.electric_potential = np.zeros(self.body.mesh.nodes_count)
 
     def set_electric_potential(self, electric_vector: np.ndarray):
         self.electric_potential = electric_vector
