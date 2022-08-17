@@ -10,7 +10,7 @@ def solving_method(request):
     return request.param
 
 
-def test_global_optimization_solver(solving_method):
+def test(solving_method):
     expected_displacement_vector = [
         [0.0, 0.0],
         [0.04262992, 0.03218287],
@@ -50,6 +50,7 @@ def test_global_optimization_solver(solving_method):
     np.set_printoptions(precision=8, suppress=True)
     print(repr(displacement[std_ids]))
 
+    precision = 2 if solving_method == "global optimization" else 3
     np.testing.assert_array_almost_equal(
-        displacement[std_ids], expected_displacement_vector, decimal=3
+        displacement[std_ids], expected_displacement_vector, decimal=precision
     )

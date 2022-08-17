@@ -173,7 +173,7 @@ class BoundariesFactory:
         )
         dirichlet_boundary = Boundary(
             surfaces=dirichlet_boundary,
-            node_indices=slice(contact_nodes_count + neumann_nodes_count, boundary_nodes_count),
+            node_indices=slice(len(initial_nodes)-dirichlet_nodes_count, len(initial_nodes)),
             node_count=dirichlet_nodes_count,
         )
 

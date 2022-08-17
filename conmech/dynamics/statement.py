@@ -29,6 +29,29 @@ class Statement:
     def update(self, var: Variables):
         self.update_left_hand_side(var)
         self.update_right_hand_side(var)
+        self.apply_dirichlet_0_condition()
+
+    def apply_dirichlet_0_condition(self):
+        i = self.body.mesh.boundaries.boundaries["dirichlet"].node_indices
+        n = self.body.mesh.boundaries.boundaries["dirichlet"].node_count
+        node_count = self.body.mesh.nodes_count
+        for d in range(self.dimension):
+            if isinstance(i, slice):
+                j = slice(i.start + d * node_count, i.stop + d * node_count)
+            else:
+                j = i + d * node_count
+            self.left_hand_side[:, j] = 0
+            self.left_hand_side[j, :] = 0
+            self.left_hand_side[j, j] = np.eye(n)
+
+        i = self.body.mesh.boundaries.boundaries["dirichlet"].node_indices
+        node_count = self.body.mesh.nodes_count
+        for d in range(self.dimension):
+            if isinstance(i, slice):
+                j = slice(i.start + d * node_count, i.stop + d * node_count)
+            else:
+                j = i + d * node_count
+            self.right_hand_side[j] = 0
 
 
 class StaticDisplacementStatement(Statement):
@@ -100,7 +123,7 @@ class TemperatureStatement(Statement):
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
-        ind = self.body.mesh.independent_nodes_count
+        ind = self.body.mesh.nodes_count  # 1 dimensional
 
         self.left_hand_side = (1 / var.time_step) * self.body.acceleration_operator[
             :ind, :ind
@@ -113,7 +136,7 @@ class TemperatureStatement(Statement):
 
         rhs = (-1) * self.body.thermal_expansion @ var.velocity
 
-        ind = self.body.mesh.independent_nodes_count
+        ind = self.body.mesh.nodes_count  # 1 dimensional
 
         rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
         self.right_hand_side = rhs
@@ -125,7 +148,7 @@ class PiezoelectricStatement(Statement):
         super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var):
-        ind = self.body.mesh.independent_nodes_count
+        ind = self.body.mesh.nodes_count  # 1 dimensional
 
         self.left_hand_side = self.body.permittivity[:ind, :ind]
 

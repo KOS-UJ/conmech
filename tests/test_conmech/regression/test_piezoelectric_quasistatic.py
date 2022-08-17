@@ -39,7 +39,7 @@ def make_slope_contact_law_piezo(slope):
 
         @staticmethod
         def h_temp(u_tau):  # potential  # TODO # 48
-            return 0.1 * 0.5 * u_tau**2
+            return 0.1 * 0.5 * u_tau ** 2
 
     return PPSlopeContactLaw
 
@@ -50,7 +50,7 @@ def generate_test_suits():
     # Simple example
 
     @dataclass()
-    class DynamicSetup(PiezoelectricQuasistatic):
+    class QuasistaticSetup(PiezoelectricQuasistatic):
         grid_height: ... = 1
         elements_number: ... = (2, 5)
         mu_coef: ... = 4
@@ -78,44 +78,28 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_m02_m02 = DynamicSetup(mesh_type="cross")
+    setup_m02_m02 = QuasistaticSetup(mesh_type="cross")
 
     expected_displacement_vector_m02_m02 = np.asarray(
-        [
-            [0.0, 0.0],
-            [0.01421449, 0.01527654],
-            [0.02183647, 0.03203525],
-            [0.02500916, 0.04856747],
-            [0.0259099, 0.06356947],
-            [0.02560049, 0.07813952],
-            [0.01063955, 0.07989915],
-            [-0.00500671, 0.08043558],
-            [-0.00548251, 0.06452265],
-            [-0.00685184, 0.047779],
-            [-0.00796572, 0.02975652],
-            [-0.00635081, 0.01246021],
-            [0.0, 0.0],
-            [0.0, 0.0],
-        ]
-    )
+        [[0., 0.],
+         [0.01203019, 0.01187898],
+         [0.01917432, 0.02590137],
+         [0.0227568, 0.0416372],
+         [0.02414499, 0.05728179],
+         [0.02421178, 0.07259322],
+         [0.00888861, 0.07357047],
+         [-0.0068321, 0.07390116],
+         [-0.00714385, 0.05781194],
+         [-0.00775304, 0.04121113],
+         [-0.00775289, 0.02454146],
+         [-0.00555927, 0.00981334],
+         [0., 0.],
+         [0., 0.]])
     expected_temperature_vector_m02_m02 = np.asarray(
-        [
-            0.0,
-            0.00453681,
-            0.00656749,
-            0.00721468,
-            0.00718777,
-            0.00710525,
-            0.0070813,
-            0.00705799,
-            0.00709502,
-            0.00686151,
-            0.00556973,
-            0.0027622,
-            0.0,
-            0.0,
-        ]
-    )
+        [0., -0.63441937, -1.17577697, -1.66472778, -2.09002934,
+         -2.46838571, -2.12202318, -1.743185, -1.33293631, -0.89572128,
+         -0.46393988, -0.12768763, 0., 0.]
+        )
 
     test_suites.append(
         (
@@ -127,7 +111,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = DynamicSetup(mesh_type="cross")
+    setup_0_02_p_0 = QuasistaticSetup(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
     def inner_forces(x):
@@ -137,39 +121,26 @@ def generate_test_suits():
 
     expected_displacement_vector_0_02_p_0 = np.asarray(
         [
-            [0.0, 0.0],
-            [-0.02095715, -0.02228123],
-            [-0.03429104, -0.05672799],
-            [-0.04103037, -0.099573],
-            [-0.04354969, -0.14488408],
-            [-0.04398988, -0.18965005],
-            [0.00000001, -0.18961762],
-            [0.0439899, -0.18965005],
-            [0.04354971, -0.14488408],
-            [0.04103039, -0.099573],
-            [0.03429105, -0.05672799],
-            [0.02095716, -0.02228123],
-            [0.0, 0.0],
-            [0.0, 0.0],
+            [0., 0.],
+            [-0.01893065, -0.02010763],
+            [-0.0310306, -0.05119585],
+            [-0.03721498, -0.08999019],
+            [-0.03956558, -0.13114238],
+            [-0.039986, -0.17184304],
+            [-0.00000001, -0.17181239],
+            [0.03998598, -0.17184304],
+            [0.03956557, -0.13114237],
+            [0.03721497, -0.08999019],
+            [0.0310306, -0.05119584],
+            [0.01893064, -0.02010763],
+            [0., 0.],
+            [0., 0.],
         ]
     )
     expected_temperature_vector_0_02_p_0 = np.asarray(
-        [
-            0.0,
-            -0.0024217,
-            -0.0017286,
-            -0.00093245,
-            -0.00035858,
-            -0.00014683,
-            -0.00000011,
-            0.00014659,
-            0.00035835,
-            0.00093224,
-            0.00172843,
-            0.00242159,
-            0.0,
-            0.0,
-        ]
+        [0., 1.2153244, 2.55984177, 3.96010252, 5.3144144,
+         6.59457999, 5.34879737, 4.10492327, 2.85093359, 1.64297766,
+         0.62777635, 0.03664133, 0., 0.]
     )
 
     test_suites.append(
@@ -182,7 +153,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = DynamicSetup(mesh_type="cross")
+    setup_0_m02_p_0 = QuasistaticSetup(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
     def inner_forces(x):
@@ -202,7 +173,7 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class DynamicSetup(PiezoelectricQuasistatic):
+    class QuasistaticSetup(PiezoelectricQuasistatic):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
@@ -211,8 +182,8 @@ def generate_test_suits():
         ze_coef: ... = 4.99
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_piezo(2.71)
-        thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-        thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
 
         @staticmethod
         def inner_forces(x):
@@ -230,43 +201,29 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_var = DynamicSetup(mesh_type="cross")
+    setup_var = QuasistaticSetup(mesh_type="cross")
     expected_displacement_vector_var = np.asarray(
-        [
-            [0.0, 0.0],
-            [0.03280209, 0.03595636],
-            [0.05390165, 0.10433753],
-            [0.0642184, 0.19502387],
-            [0.067088, 0.29652378],
-            [0.06548885, 0.40042331],
-            [-0.03693406, 0.40267814],
-            [-0.14223637, 0.40440701],
-            [-0.13602867, 0.29999152],
-            [-0.12112019, 0.19929007],
-            [-0.09523431, 0.10930828],
-            [-0.05564706, 0.04098661],
-            [0.0, 0.0],
-            [0.0, 0.0],
-        ]
+        [[0., 0.],
+        [0.03437438, 0.03619713],
+        [0.05744414, 0.10252049],
+        [0.06985391, 0.19077923],
+        [0.07445972, 0.28934762],
+        [0.07427655, 0.3896374],
+        [-0.02460142, 0.3901174],
+        [-0.12651214, 0.39110595],
+        [-0.12140669, 0.28981308],
+        [-0.10902829, 0.19179337],
+        [-0.08653477, 0.10403044],
+        [-0.05102786, 0.03755931],
+        [0., 0.],
+        [0., 0.]]
     )
 
     expected_temperature_vector_var = np.asarray(
-        [
-            0.0,
-            -0.0014602,
-            -0.00670457,
-            -0.01099723,
-            -0.01357647,
-            -0.01442459,
-            -0.01458096,
-            -0.01473978,
-            -0.01469881,
-            -0.01429765,
-            -0.01281657,
-            -0.00928493,
-            0.0,
-            0.0,
-        ]
+        [0., -1.71049187, -3.92294138, -6.41571825,
+         -8.98860905, -11.50379181, -9.0379844, -6.42830647,
+         -3.98800438, -1.87728268, -0.30094523, 0.39254945,
+         0., 0.]
     )
 
     test_suites.append(
@@ -277,12 +234,11 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize(
-    "setup, expected_displacement_vector, expected_temperature_vector",
+    "setup, expected_displacement_vector, expected_electric_potential_vector",
     generate_test_suits(),
 )
-@pytest.mark.xfail()  # FIXME
 def test_global_optimization_solver(
-    solving_method, setup, expected_displacement_vector, expected_temperature_vector
+        solving_method, setup, expected_displacement_vector, expected_electric_potential_vector
 ):
     runner = PiezoelectricQuasistaticSolver(setup, solving_method)
     results = runner.solve(
@@ -292,19 +248,20 @@ def test_global_optimization_solver(
         initial_electric_potential=setup.initial_electric_potential,
     )
 
-    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.elements)
-    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
-    temperature = np.zeros(len(results[-1].mesh.initial_nodes))
-    temperature[: len(results[-1].electric_potential)] = results[-1].electric_potential
+    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
+    displacement = results[-1].body.mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
+    electric_potential = np.zeros(len(results[-1].body.mesh.initial_nodes))
+    electric_potential[: len(results[-1].electric_potential)] = results[-1].electric_potential
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
     print(repr(displacement[std_ids]))
-    print(repr(temperature[std_ids]))
+    print(repr(electric_potential[std_ids]))
 
+    precision = 2 if solving_method == "global optimization" else 3
     np.testing.assert_array_almost_equal(
         displacement[std_ids], expected_displacement_vector, decimal=3
     )
     np.testing.assert_array_almost_equal(
-        temperature[std_ids], expected_temperature_vector, decimal=3
+        electric_potential[std_ids], expected_electric_potential_vector, decimal=precision
     )

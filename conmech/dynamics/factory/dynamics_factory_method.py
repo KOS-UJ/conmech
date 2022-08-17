@@ -28,15 +28,14 @@ def get_dynamics(
         elements, nodes
     )
 
-    i = independent_indices
-    volume_at_nodes = edges_features_matrix[0]  # [i, i]
-    U = edges_features_matrix[1][i, i]
+    volume_at_nodes = edges_features_matrix[0]
+    U = edges_features_matrix[1]
 
-    V = np.asarray([edges_features_matrix[2 + j][i, i] for j in range(factory.dimension)])
+    V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])
     W = np.asarray(
         [
             [
-                edges_features_matrix[2 + factory.dimension * (k + 1) + j][i, i]
+                edges_features_matrix[2 + factory.dimension * (k + 1) + j]
                 for j in range(factory.dimension)
             ]
             for k in range(factory.dimension)

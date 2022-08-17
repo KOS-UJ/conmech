@@ -74,7 +74,7 @@ class BodyForces(Dynamics):
 
     def get_integrated_forces_column(self):
         integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
-        return nph.stack_column(integrated_forces[self.mesh.independent_indices, :])
+        return nph.stack_column(integrated_forces[:, :])
 
     def get_integrated_forces_vector(self):
         return self.get_integrated_forces_column().reshape(-1)

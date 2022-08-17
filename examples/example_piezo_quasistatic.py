@@ -57,6 +57,12 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     def friction_bound(u_nu):
         return 0
 
+    @staticmethod
+    def dirichlet_electric_potential(x):
+        if x[1] > 1:
+            return 20
+        return 0
+
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,

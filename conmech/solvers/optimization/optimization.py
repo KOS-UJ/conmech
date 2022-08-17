@@ -53,7 +53,7 @@ class Optimization(Solver):
     def node_forces(self) -> np.ndarray:
         raise NotImplementedError()
 
-    def solve(
+    def _solve(
         self,
         initial_guess: np.ndarray,
         *,
