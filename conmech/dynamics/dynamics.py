@@ -105,12 +105,8 @@ class Dynamics(BodyPosition):
             self.thermal_conductivity,
             self.piezoelectricity,
             self.permittivity,
-        ) = get_dynamics(
-            elements=self.mesh.elements,
-            nodes=self.moved_nodes,
-            body_prop=self.body_prop,
-            independent_indices=self.mesh.independent_indices,
-        )
+        ) = get_dynamics(elements=self.mesh.elements, nodes=self.moved_nodes,
+                         body_prop=self.body_prop)
 
         if not self.with_lhs:
             return

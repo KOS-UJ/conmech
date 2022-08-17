@@ -10,12 +10,7 @@ from conmech.properties.body_properties import (
 )
 
 
-def get_dynamics(
-    elements: np.ndarray,
-    nodes: np.ndarray,
-    independent_indices: slice,
-    body_prop: BodyProperties,
-):
+def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyProperties):
     dimension = len(elements[0]) - 1
     if dimension == 2:
         factory = DynamicsFactory2D()
