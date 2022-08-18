@@ -32,25 +32,17 @@ class Statement:
         self.apply_dirichlet_0_condition()
 
     def apply_dirichlet_0_condition(self):
-        i = self.body.mesh.boundaries.boundaries["dirichlet"].node_indices
         n = self.body.mesh.boundaries.boundaries["dirichlet"].node_count
         node_count = self.body.mesh.nodes_count
-        for d in range(self.dimension):
-            if isinstance(i, slice):
-                j = slice(i.start + d * node_count, i.stop + d * node_count)
-            else:
-                j = i + d * node_count
+        boundary_value = 0
+        for j in self.body.mesh.boundaries.get_all_boundary_indices(
+                "dirichlet", node_count, self.dimension
+        ):
+            const_values = np.full(n, boundary_value)
+            self.right_hand_side[:] -= self.left_hand_side[:, j] @ const_values
             self.left_hand_side[:, j] = 0
             self.left_hand_side[j, :] = 0
             self.left_hand_side[j, j] = np.eye(n)
-
-        i = self.body.mesh.boundaries.boundaries["dirichlet"].node_indices
-        node_count = self.body.mesh.nodes_count
-        for d in range(self.dimension):
-            if isinstance(i, slice):
-                j = slice(i.start + d * node_count, i.stop + d * node_count)
-            else:
-                j = i + d * node_count
             self.right_hand_side[j] = 0
 
 

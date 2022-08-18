@@ -53,13 +53,10 @@ class Solver:
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
         solution = self._solve(initial_guess, **kwargs)
 
-        i = self.body.mesh.boundaries.boundaries["dirichlet"].node_indices
         node_count = self.body.mesh.nodes_count
-        for d in range(self.statement.dimension):
-            if isinstance(i, slice):
-                j = slice(i.start + d * node_count, i.stop + d * node_count)
-            else:
-                j = i + d * node_count
+        for j in self.body.mesh.boundaries.get_all_boundary_indices(
+                "dirichlet", node_count, self.statement.dimension
+        ):
             solution[j] = 0
 
         return solution
