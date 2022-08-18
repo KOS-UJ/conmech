@@ -120,6 +120,12 @@ class BodyPosition(Mesh):
         self.velocity_old = np.zeros_like(self.initial_nodes)
         self.acceleration_old = np.zeros_like(self.initial_nodes)
 
+    @property
+    def exact_displacement(self):
+        velocity = self.velocity_old + self.time_step * self.exact_acceleration
+        exact_displacement = self.displacement_old + self.time_step * velocity
+        return exact_displacement
+
     def set_acceleration_old(self, acceleration):
         self.acceleration_old = acceleration
 

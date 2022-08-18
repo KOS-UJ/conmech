@@ -231,8 +231,10 @@ class LinkProcessorLayer(MessagePassing):
         return processed_edge_latents
 
     def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
-        neighbours = 3 ##########################################################################################################
-        result = new_edge_latents.reshape(-1, neighbours, new_edge_latents.shape[-1]).reshape(-1,192)
+        neighbours = 3  ##########################################################################################################
+        result = new_edge_latents.reshape(-1, neighbours, new_edge_latents.shape[-1]).reshape(
+            -1, 192
+        )
         return result
         alpha = self.attention(new_edge_latents, index)
         aggregated_edge_latents = scatter_sum(alpha * new_edge_latents, index, dim=0)
@@ -337,6 +339,16 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
+        self.multilayer_edge_encoder = ForwardNet(
+            input_dim=SceneInput.get_multilayer_edges_data_dim(td.dimension),
+            layers_count=td.encoder_layers_count,
+            output_linear_dim=td.latent_dimension,
+            statistics=None if statistics is None else statistics.edges_statistics,
+            batch_norm=td.input_batch_norm,
+            layer_norm=td.layer_norm,
+            td=td,
+        )
+
         self.processor_layers = nn.ModuleList(
             [
                 ProcessorLayer(td=td)
@@ -348,7 +360,7 @@ class CustomGraphNet(nn.Module):
             self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension * 3, # 2,
+            input_dim=td.latent_dimension * 3,  # 2,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.dimension,
             statistics=None,
@@ -422,7 +434,7 @@ class CustomGraphNet(nn.Module):
         node_latents_common = self.move_to_dense(
             node_latents_sparse=node_latents_sparse,
             node_latents_dense=None,  # node_latents_dense,
-            edge_latents=self.edge_encoder(layer_sparse.edge_attr_to_down),
+            edge_latents=self.multilayer_edge_encoder(layer_sparse.edge_attr_to_down),
             layer=layer_sparse,
         )
         # node_latents_common = node_latents_dense
@@ -457,7 +469,7 @@ class CustomGraphNet(nn.Module):
         normalized_a_cuda = self(layer_list=layers_list)
         normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
 
-        #normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)
+        #normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a)
 
         #####
         # displacement = scene.lower_data(scene.reduced.displacement_old)

@@ -241,7 +241,7 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            #acceleration = solve_function(scene, initial_a=acceleration)
+            #displacement = solve_function(scene, initial_a=acceleration)
             acceleration = solve_function(scene, initial_a=acceleration)
             # reduced_acceleration = scene.reduced.exact_acceleration
             # reduced_acceleration = scene.approximate_boundary_or_all_from_base(
