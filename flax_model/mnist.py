@@ -1,4 +1,5 @@
 import functools
+from dataclasses import dataclass
 from typing import Any, Callable, Optional, Sequence
 from unicodedata import name
 
@@ -21,7 +22,7 @@ from flax.training.train_state import TrainState
 class CNN(nn.Module):
     @nn.compact
     def __call__(self, x, train):
-        x = nn.BatchNorm(use_running_average=not train, name="bn_init")(x)
+        x = nn.BatchNorm(use_running_average=not train)(x)  # , name="bn_init"
 
         x = nn.Conv(features=32, kernel_size=(3, 3))(x)
         x = nn.relu(x)
@@ -45,17 +46,18 @@ class CNN(nn.Module):
     def get_params(self, init_rng):
         params_init_rng, dropout_init_rng = random.split(init_rng, 2)
         rngs_dict = {"params": params_init_rng, "dropout": dropout_init_rng}
-        params = self.init(rngs_dict, jnp.ones([1, *mnist_img_size]), train=False)["params"]
-        return params
+        variables = self.init(rngs_dict, jnp.ones([1, *mnist_img_size]), train=True)
+        return variables["params"], variables["batch_stats"]
 
 
-def forward(state, params, data, dropout_rng, train: bool):
-    variables = {"params": params, "batch_stats": state.batch_stats}
+def forward(apply_fn, params, data, batch_stats, dropout_rng, train: bool):
+    variables = {"params": params, "batch_stats": batch_stats}
     rngs = {"dropout": dropout_rng} if train else None
-    result, non_trainable_params = state.apply_fn(
+    result, non_trainable_params = apply_fn(
         variables, data, rngs=rngs, mutable=["batch_stats"], train=train
     )
-    return result, non_trainable_params
+    new_batch_stats = non_trainable_params["batch_stats"]
+    return result, new_batch_stats
 
 
 def custom_transform(x):
@@ -101,16 +103,25 @@ test_lbls = jnp.array(test_dataset.targets)
 @jax.jit
 def train_step(state, imgs, gt_labels, dropout_rng):
     def loss_fn(params):
-        logits, new_model_state = forward(
-            state=state, params=params, data=imgs, dropout_rng=dropout_rng, train=True
+        logits, new_batch_stats = forward(
+            apply_fn=state.apply_fn,
+            params=params,
+            batch_stats=state.batch_stats,
+            data=imgs,
+            dropout_rng=dropout_rng,
+            train=True,
         )
         one_hot_gt_labels = jax.nn.one_hot(gt_labels, num_classes=10)
         loss = -jnp.mean(jnp.sum(one_hot_gt_labels * logits, axis=-1))
-        return loss, logits, new_model_state
+        return loss, (logits, new_batch_stats)
 
-    (loss, logits, new_model_state), grads = jax.value_and_grad(loss_fn, has_aux=True)(state.params)
-    state = state.apply_gradients(grads=grads, batch_stats=new_model_state['batch_stats'])  # this is the whole update now! concise!
-    
+    (loss, (logits, new_batch_stats)), grads = jax.value_and_grad(loss_fn, has_aux=True)(
+        state.params
+    )
+    state = state.apply_gradients(
+        grads=grads, batch_stats=new_batch_stats
+    )  # this is the whole update now! concise!
+
     metrics = compute_metrics(
         logits=logits, gt_labels=gt_labels
     )  # duplicating loss calculation but it's a bit cleaner
@@ -119,8 +130,11 @@ def train_step(state, imgs, gt_labels, dropout_rng):
 
 @jax.jit
 def eval_step(state, imgs, gt_labels):
-    logits, _ = state.forward(
-        state=state, params=state.params, data=imgs, dropout_rng=None, train=False
+    logits, _ = forward(
+        apply_fn=state.apply_fn,
+        params=state.params,
+        batch_stats=state.batch_stats,
+        data=imgs, dropout_rng=None, train=False
     )
     return compute_metrics(logits=logits, gt_labels=gt_labels)
 
@@ -148,11 +162,17 @@ def evaluate_model(state, test_imgs, test_lbls):
     return metrics
 
 
+
+class NetState(TrainState):
+    batch_stats: float
+
+
 def create_train_state(learning_rate, init_rng):
-    params = CNN().get_params(init_rng)
+    params, batch_stats = CNN().get_params(init_rng)
     optimizer = optax.adam(learning_rate=learning_rate)
-    ts = TrainState.create(apply_fn=CNN().apply, params=params, tx=optimizer)
-    return ts
+    training_state = NetState.create(apply_fn=CNN().apply, params=params, tx=optimizer, batch_stats=batch_stats)
+    # return NetState(training_state=training_state, batch_stats=batch_stats)
+    return training_state
 
 
 def compute_metrics(*, logits, gt_labels):

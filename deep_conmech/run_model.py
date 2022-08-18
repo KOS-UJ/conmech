@@ -115,7 +115,7 @@ def plot(config: TrainingConfig):
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
 
-def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_size: int):
+def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_size: int, item_fn=None):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
@@ -126,6 +126,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
             config=config,
             rank=rank,
             world_size=world_size,
+            item_fn=item_fn
         )
     elif dataset_type == "calculator":
         train_dataset = CalculatorDataset(
@@ -137,6 +138,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
             config=config,
             rank=rank,
             world_size=world_size,
+            item_fn=item_fn
         )
     else:
         raise ValueError("Bad dataset type")

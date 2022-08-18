@@ -355,12 +355,11 @@ class CustomGraphNet(nn.Module):
                 for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
             ]
         )
-        if self.td.mesh_layers_count > 1:
-            self.upward_processor_layer = LinkProcessorLayer(td=td)
-            self.downward_processor_layer = LinkProcessorLayer(td=td)
+        self.upward_processor_layer = LinkProcessorLayer(td=td)
+        self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension * 3,  # 2,
+            input_dim=td.latent_dimension * 3,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.dimension,
             statistics=None,
@@ -384,15 +383,6 @@ class CustomGraphNet(nn.Module):
     @property
     def edge_statistics(self):
         return self.edge_encoder.statistics
-
-    def move_from_dense(self, node_latents, edge_latents, layer):
-        node_latents_to = self.node_encoder(layer.x)
-        new_node_latents, _ = self.upward_processor_layer(
-            edge_index=layer.edge_index_from_down,
-            node_latents=(node_latents, node_latents_to),
-            edge_latents=edge_latents,
-        )
-        return new_node_latents
 
     def move_to_dense(self, node_latents_sparse, node_latents_dense, edge_latents, layer):
         new_node_latents = self.downward_processor_layer(
@@ -420,12 +410,12 @@ class CustomGraphNet(nn.Module):
         self.processor_number = 0
 
         layer_dense = layer_list[0]
-        node_latents_dense = self.node_encoder_dense(layer_dense["x"])
-        edge_latents_dense = self.edge_encoder(layer_dense.edge_attr)
+        #node_latents_dense = self.node_encoder_dense(layer_dense["x"])
+        #edge_latents_dense = self.edge_encoder(layer_dense.edge_attr)
 
         layer_sparse = layer_list[1]
         node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
-        edge_latents_sparse = self.edge_encoder(layer_sparse.edge_attr)
+        #edge_latents_sparse = self.edge_encoder(layer_sparse.edge_attr)
 
         # node_latents_sparse, edge_latents_sparse = self.propagate_messages(
         #     layer=layer_up, node_latents=node_latents_sparse, edge_latents=edge_latents_sparse
@@ -458,7 +448,6 @@ class CustomGraphNet(nn.Module):
         #     setting=scene, temperature=None, initial_a=initial_a
         # )
 
-        # scene.reduced.exact_acceleration = scene.reduced.acceleration_old
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced, initial_a=scene.reduced.acceleration_old
         )
@@ -469,26 +458,8 @@ class CustomGraphNet(nn.Module):
         normalized_a_cuda = self(layer_list=layers_list)
         normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
 
-        #normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a)
+        # normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a)
 
-        #####
-        # displacement = scene.lower_data(scene.reduced.displacement_old)
-        # return displacement, None
-
-        sparse_layer = layers_list[1]
-        closest_nodes = thh.to_np_long(sparse_layer.closest_nodes_to_down)
-        sparse_displacement = scene.reduced.displacement_old[closest_nodes]
-        repeated_displacement = scene.displacement_old[..., np.newaxis].repeat(3, axis=-1)
-        relative_displacement = repeated_displacement - sparse_displacement
-
-        displacement = (relative_displacement + sparse_displacement).mean(axis=-1)
-
-        # normalized_a = Calculator.solve(scene=scene, initial_a=None)
-        # scene_copy = copy.deepcopy(scene)
-        # scene_copy.iterate_self(normalized_a)
-        # return scene_copy.displacement_old, None
-
-        #######
         a = scene.denormalize_rotate(normalized_a)
         return a, normalized_a
 

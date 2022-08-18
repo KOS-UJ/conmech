@@ -12,7 +12,6 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
 from deep_conmech.data import interpolation_helpers
-from deep_conmech.scene.scene_randomized import SceneRandomized
 from deep_conmech.training_config import (
     CLOSEST_BOUNDARY_COUNT,
     CLOSEST_COUNT,
@@ -39,7 +38,7 @@ class AllMeshLayerLinkData:
     to_base: Optional[MeshLayerLinkData]
 
 
-class SceneLayers(SceneRandomized):
+class SceneLayers(Scene):
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -173,8 +172,8 @@ class SceneLayers(SceneRandomized):
 
     def update_reduced_from_dense(self):
         acceleration = self.lift_data(self.acceleration_old)
-        velocity = self.lift_data(self.velocity_old)
-        displacement = self.lift_data(self.displacement_old)
+        velocity = self.lift_data(self.velocity_old) # input
+        displacement = self.lift_data(self.displacement_old) # input
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)

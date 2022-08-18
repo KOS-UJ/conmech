@@ -32,6 +32,7 @@ class ScenariosDataset(BaseDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        item_fn
     ):
         self.all_scenarios = all_scenarios
 
@@ -48,6 +49,7 @@ class ScenariosDataset(BaseDataset):
             config=config,
             rank=rank,
             world_size=world_size,
+            item_fn=item_fn
         )
 
     def get_data_count(self, scenarios):

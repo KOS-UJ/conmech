@@ -10,12 +10,8 @@ class MeshLayerData(Data):
     def __inc__(self, key, value, *args, **kwargs):
         if key == "closest_nodes_to_down":
             return torch.tensor([self.layer_nodes_count])
-        if key == "closest_nodes_from_down":
-            return torch.tensor([self.down_layer_nodes_count])
         if key == "edge_index_to_down":
             return torch.tensor([[self.layer_nodes_count], [self.down_layer_nodes_count]])
-        if key == "edge_index_from_down":
-            return torch.tensor([[self.down_layer_nodes_count], [self.layer_nodes_count]])
         else:
             return super().__inc__(key, value, *args, **kwargs)
 
@@ -69,14 +65,14 @@ class TargetData(Data):
     def __init__(
         self,
         a_correction: torch.Tensor,
-        #energy_args: EnergyObstacleArgumentsTorch,
+        # energy_args: EnergyObstacleArgumentsTorch,
         # lhs_values: torch.Tensor,
         # lhs_index: torch.Tensor,
         # rhs: torch.Tensor,
     ):
         super().__init__()
         self.a_correction = a_correction
-        #self.energy_args = energy_args
+        # self.energy_args = energy_args
 
         # self.lhs_values = lhs_values
         # self.lhs_index = lhs_index

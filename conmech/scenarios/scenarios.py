@@ -620,7 +620,7 @@ def get_args(td):
 
 def all_train(td):
     args = get_args(td)
-    args['final_time'] = 0.25
+    # args['final_time'] = 1. #0.25
     if td.dimension == 3:
         # return [cube_rotate_3d(**args), ball_rotate_3d(**args)]  # , bunny_rotate_3d(**args)]
         return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)]
@@ -638,6 +638,7 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
+    # args['final_time'] = 1
     if td.dimension == 3:
         return [ball_rotate_3d(**args), cube_rotate_3d(**args), bunny_rotate_3d(**args)]
     return [

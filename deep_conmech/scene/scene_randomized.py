@@ -5,10 +5,10 @@ from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.scene import Scene
+from deep_conmech.scene.scene_layers import SceneLayers
 
 
-class SceneRandomized(Scene):
+class SceneRandomized(SceneLayers):
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -17,6 +17,7 @@ class SceneRandomized(Scene):
         schedule: Schedule,
         normalize_by_rotation: bool,
         create_in_subprocess: bool,
+        layers_count: int,
         with_schur: bool = True,
     ):
         super().__init__(
@@ -26,6 +27,7 @@ class SceneRandomized(Scene):
             schedule=schedule,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
+            layers_count=layers_count,
             with_schur=with_schur,
         )
         self.velocity_in_random_factor = 0
@@ -80,6 +82,8 @@ class SceneRandomized(Scene):
         #     scaling = np.linalg.norm(self.exact_acceleration)#, axis=1).reshape(-1,1)
         #     self.velocity_randomization *= scaling
         #     self.displacement_randomization *= scaling
+        
+        self.update_reduced_from_dense()
 
     @property
     def normalized_velocity_randomization(self):

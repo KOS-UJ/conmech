@@ -12,7 +12,8 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
-from deep_conmech.scene.scene_layers import MeshLayerLinkData, SceneLayers
+from deep_conmech.scene.scene_layers import MeshLayerLinkData
+from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 @numba.njit
@@ -100,27 +101,71 @@ def get_multilayer_edges_data_numba(
     return edges_data
 
 
+# @numba.njit  # (parallel=True)
+# def get_multilayer_edges_data_numba(
+#     edges,
+#     initial_nodes_sparse,
+#     initial_nodes_dense,
+#     displacement_old_sparse,
+#     displacement_old_dense,
+#     velocity_old_sparse,
+#     velocity_old_dense,
+#     sparse_neighbours,
+#     edges_data_dim,
+# ):
+#     dimension = initial_nodes_dense.shape[1]
+#     size = dimension + 1
+#     edges_number = edges.shape[0]
+#     edges_data = np.zeros((edges_number, edges_data_dim))
+#     for edge_index in range(edges_number):
+#         j, i = edges[edge_index]
+#         n1, n2 = sparse_neighbours[edge_index]
+
+#         set_diff_numba(initial_nodes_sparse, initial_nodes_dense, 0, edges_data[edge_index], i, j)
+#         # set_diff_numba(
+#         #     displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
+#         # )
+#         # set_diff_numba(
+#         #     velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
+#         # )
+
+#         neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
+#             data_sparse,
+#             data_sparse,
+#             number * size,
+#             edges_data[edge_index],
+#             n1,
+#             n2,
+#         )
+
+#         neighbour_data_setter(initial_nodes_sparse, 1)
+#         neighbour_data_setter(displacement_old_sparse, 2)
+#         # neighbour_data_setter(velocity_old_sparse, 5)
+
+#     return edges_data
+
+
 @numba.njit
 def get_multilayer_edges_numba(closest_nodes):
     neighbours_count = closest_nodes.shape[1]
     edges_count = closest_nodes.shape[0] * neighbours_count
     edges = np.zeros((edges_count, 2), dtype=np.int64)
     sparse_neighbours = np.zeros((edges_count, neighbours_count - 1), dtype=np.int64)
-    neighbour_ids = np.zeros((edges_count, 1), dtype=np.int64)
+    # neighbour_ids = np.zeros((edges_count, 1), dtype=np.int64)
     mask = np.ones(neighbours_count, dtype=np.bool8)
     index = 0
     for i, neighbours in enumerate(closest_nodes):
         for neighbour_id, j in enumerate(neighbours):
             edges[index] = [j, i]
-            neighbour_ids[index] = neighbour_id
+            # neighbour_ids[index] = neighbour_id
             mask[neighbour_id] = 0
             sparse_neighbours[index] = neighbours[mask]
             mask[neighbour_id] = 1
             index += 1
-    return edges, sparse_neighbours, neighbour_ids
+    return edges, sparse_neighbours  # , neighbour_ids
 
 
-class SceneInput(SceneLayers):
+class SceneInput(SceneRandomized):
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -198,6 +243,20 @@ class SceneInput(SceneLayers):
         )
         return edges_data
 
+    # def get_multilayer_edges_data(self, directional_edges, sparse_neighbours):
+    #     edges_data = get_multilayer_edges_data_numba(
+    #         edges=directional_edges,
+    #         initial_nodes_sparse=self.reduced.input_initial_nodes,
+    #         initial_nodes_dense=self.input_initial_nodes,
+    #         displacement_old_sparse=self.reduced.input_displacement_old,
+    #         displacement_old_dense=self.input_displacement_old,
+    #         velocity_old_sparse=self.reduced.input_velocity_old,
+    #         velocity_old_dense=self.input_velocity_old,
+    #         sparse_neighbours=sparse_neighbours,
+    #         edges_data_dim=self.get_multilayer_edges_data_dim(self.dimension),
+    #     )
+    #     return edges_data
+
     def get_nodes_data(self, layer_number):
         if layer_number == 1:
             exact_acceleration = self.prepare_node_data(
@@ -257,19 +316,15 @@ class SceneInput(SceneLayers):
                 )
             )
 
-    def get_multilayer_edges_with_data(
-        self, link: MeshLayerLinkData, layer_number_from: int, layer_number_to: int
-    ):
+    def get_multilayer_edges_with_data(self, link: MeshLayerLinkData):
         closest_nodes = torch.tensor(link.closest_nodes)
-        edges_index_np, sparse_neighbours, neighbour_ids = get_multilayer_edges_numba(
-            link.closest_nodes
-        )
+        edges_index_np, sparse_neighbours = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
             self.get_multilayer_edges_data(
                 directional_edges=edges_index_np,
                 sparse_neighbours=sparse_neighbours,
-                layer_number_from=layer_number_from,
-                layer_number_to=layer_number_to,
+                layer_number_from=1,
+                layer_number_to=0,
             )
         )
         edges_index = thh.get_contiguous_torch(edges_index_np)
@@ -324,20 +379,7 @@ class SceneInput(SceneLayers):
                 data.edge_index_to_down,
                 data.edge_attr_to_down,
                 data.closest_nodes_to_down,
-            ) = self.get_multilayer_edges_with_data(
-                link=layer_data.to_down,
-                layer_number_from=layer_number,
-                layer_number_to=layer_number - 1,
-            )
-            (
-                data.edge_index_from_down,
-                data.edge_attr_from_down,
-                data.closest_nodes_from_down,
-            ) = self.get_multilayer_edges_with_data(
-                link=layer_data.from_down,
-                layer_number_from=layer_number - 1,
-                layer_number_to=layer_number,
-            )
+            ) = self.get_multilayer_edges_with_data(link=layer_data.to_down)
 
         _ = """
         transform = T.Compose(
@@ -352,13 +394,6 @@ class SceneInput(SceneLayers):
         return data
 
     def get_target_data(self):
-
-        sparse_layer = self.get_features_data(layer_number=1)
-        closest_nodes = sparse_layer.closest_nodes_to_down
-        sparse_displacement = self.reduced.displacement_old[closest_nodes]
-        repeated_displacement = self.displacement_old[..., np.newaxis].repeat(3, axis=-1)
-        relative_displacement = repeated_displacement - sparse_displacement
-
         # to_float
         # lhs_sparse = thh.to_double(self.solver_cache.lhs_acceleration_jax).to_sparse()
         # lhs_sparse_copy = copy.deepcopy(lhs_sparse)
@@ -384,7 +419,6 @@ class SceneInput(SceneLayers):
             # lhs_index=lhs_sparse.indices(),
             # rhs=rhs,
         )
-        target_data.relative_displacement = thh.to_double(relative_displacement)
 
         target_data.acceleration_old = thh.to_double(self.acceleration_old)
         if hasattr(self, "exact_acceleration"):
@@ -394,7 +428,7 @@ class SceneInput(SceneLayers):
         return target_data
 
     @staticmethod
-    def get_nodes_data_description_up(dimension: int):
+    def get_nodes_data_description_sparse(dimension: int):
         desc = []
         for attr in [
             "exact_acceleration",
@@ -412,7 +446,7 @@ class SceneInput(SceneLayers):
         return desc
 
     @staticmethod
-    def get_nodes_data_description_down(dimension: int):
+    def get_nodes_data_description_dense(dimension: int):
         desc = []
         for attr in [
             # "acceleration_old",
@@ -430,11 +464,11 @@ class SceneInput(SceneLayers):
 
     @staticmethod
     def get_nodes_data_down_dim(dimension: int):
-        return len(SceneInput.get_nodes_data_description_down(dimension))
+        return len(SceneInput.get_nodes_data_description_dense(dimension))
 
     @staticmethod
     def get_nodes_data_up_dim(dimension: int):
-        return len(SceneInput.get_nodes_data_description_up(dimension))
+        return len(SceneInput.get_nodes_data_description_sparse(dimension))
 
     @staticmethod
     def get_edges_data_dim(dimension):
@@ -442,7 +476,7 @@ class SceneInput(SceneLayers):
 
     @staticmethod
     def get_multilayer_edges_data_dim(dimension):
-        return dimension * 4
+        return (dimension + 1) * 3  # 6
 
     @staticmethod
     def get_edges_data_description(dim):

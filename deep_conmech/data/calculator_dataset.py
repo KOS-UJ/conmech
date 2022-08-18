@@ -23,6 +23,7 @@ class CalculatorDataset(ScenariosDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        item_fn = None
     ):
         super().__init__(
             description=f"{description}_calculator",
@@ -34,6 +35,7 @@ class CalculatorDataset(ScenariosDataset):
             config=config,
             rank=rank,
             world_size=world_size,
+            item_fn=item_fn
         )
 
     # def reset(self):

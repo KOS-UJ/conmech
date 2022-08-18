@@ -40,14 +40,14 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0  # 0.5 * (0.01**2)  # 0.1 0.01 0
+    displacement_in_random_factor: float = 0.0  # 0.01 * (0.01**2)  # 0.5 0.1 0.01 0
     # same as net error, so that a_correction is similar # 0.005 * displacement_random_scale
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
 
     save_at_minutes: int = 4
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = 100  # 10
+    validate_at_epochs: Optional[int] = 10  # 10 100
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 16  # 32  # 16  # 32 # 256
@@ -107,5 +107,5 @@ class TrainingConfig(Config):
     load_newest_train: bool = False
 
     load_training_data_to_ram: bool = True  # True
-    load_validation_data_to_ram: bool = False  # True
+    load_validation_data_to_ram: bool = True  # True
     profile_training: bool = False

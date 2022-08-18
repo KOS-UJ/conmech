@@ -233,7 +233,7 @@ def simulate(
         current_time = (time_step + 1) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
-        #prepare(scenario, reduced_scene, None, current_time, with_temperature)
+        # prepare(scenario, reduced_scene, None, current_time, with_temperature)
 
         start_time = time.time()
         if with_temperature:
@@ -241,7 +241,7 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            #displacement = solve_function(scene, initial_a=acceleration)
+            # displacement = solve_function(scene, initial_a=acceleration)
             acceleration = solve_function(scene, initial_a=acceleration)
             # reduced_acceleration = scene.reduced.exact_acceleration
             # reduced_acceleration = scene.approximate_boundary_or_all_from_base(
@@ -269,8 +269,8 @@ def simulate(
         if operation is not None:
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
-        #scene.set_displacement_old(displacement)
-        #scene.update_reduced()
+        # scene.set_displacement_old(displacement)
+        # scene.update_reduced()
         scene.iterate_self(acceleration, temperature=temperature)
 
         if compare_with_base_scene:

@@ -76,6 +76,7 @@ def get_dataloader(
     num_workers: int,
     shuffle: bool,
     load_data: bool,
+    collate_fn=None
 ):
 
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
@@ -89,6 +90,7 @@ def get_dataloader(
         persistent_workers=num_workers > 0,
         worker_init_fn=worker_init_fn if load_data else None,
         # prefetch_factor=10,
+        collate_fn=collate_fn
     )
 
 
@@ -112,6 +114,7 @@ class BaseDataset:
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        item_fn: Callable=None
     ):
         self.dimension = dimension
         self.description = description
@@ -131,6 +134,7 @@ class BaseDataset:
         self.file = None
         self.loaded_data = None
         self.data_file = None
+        self.item_fn = item_fn
 
     @property
     def data_size_id(self):
@@ -273,7 +277,9 @@ class BaseDataset:
             ]
             target_data = scene.get_target_data()
 
-            graph_data = GraphData(layer_list=layers_list, target_data=target_data, scene=scene)
+            graph_data = GraphData(
+                layer_list=layers_list, target_data=target_data, scene=None
+            )  #####
             pkh.append_data(
                 data=graph_data,
                 data_path=self.features_data_path,
@@ -290,13 +296,13 @@ class BaseDataset:
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            sparse_layer = graph_data[0][1] # layer_number
+            sparse_layer = graph_data[0][1]  # layer_number
             nodes_data = torch.cat((nodes_data, sparse_layer.x))
-            edges_data = torch.cat((edges_data, sparse_layer.edge_attr_to_down)) #edge_attr
+            edges_data = torch.cat((edges_data, sparse_layer.edge_attr_to_down))  # edge_attr
             target_data = torch.cat((target_data, graph_data[1].exact_acceleration))
 
         nodes_statistics = FeaturesStatistics(
-            nodes_data, SceneInput.get_nodes_data_description_up(self.dimension)
+            nodes_data, SceneInput.get_nodes_data_description_sparse(self.dimension)
         )
         edges_statistics = FeaturesStatistics(
             edges_data, SceneInput.get_edges_data_description(self.dimension)
@@ -394,6 +400,8 @@ class BaseDataset:
     def __getitem__(self, index: int):
         # self.load_data()
         graph_data = self.get_features_and_targets_data(index)
+        if self.item_fn:
+            return self.item_fn([graph_data.layer_list, graph_data.target_data])
         return graph_data.layer_list, graph_data.target_data  # , graph_data.scene
         # return [*graph_data.layer_list, graph_data.target_data]
 
