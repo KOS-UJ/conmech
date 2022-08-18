@@ -53,3 +53,11 @@ class Boundaries:
     @property
     def dirichlet_nodes_count(self) -> int:
         return self.boundaries["dirichlet"].node_count
+
+    def get_all_boundary_indices(self, boundary, total_node_count, dimension):
+        i = self.boundaries[boundary].node_indices
+        for d in range(dimension):
+            if isinstance(i, slice):
+                yield slice(i.start + d * total_node_count, i.stop + d * total_node_count)
+            else:
+                yield i + d * total_node_count
