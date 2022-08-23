@@ -1,7 +1,7 @@
 """
 Created at 16.02.2022
 """
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union
 
 import numba
 import numpy as np
@@ -171,20 +171,27 @@ class BoundariesFactory:
             node_indices=slice(contact_nodes_count, contact_nodes_count + neumann_nodes_count),
             node_count=neumann_nodes_count,
         )
+        dirichlet_indices = slice(len(initial_nodes) - dirichlet_nodes_count, len(initial_nodes))
         dirichlet_boundary = Boundary(
             surfaces=dirichlet_boundary,
-            node_indices=slice(len(initial_nodes) - dirichlet_nodes_count, len(initial_nodes)),
+            node_indices=dirichlet_indices,
             node_count=dirichlet_nodes_count,
+            node_condition=boundaries_description.conditions["dirichlet"](
+                initial_nodes[dirichlet_indices])
         )
 
         other_boundaries = {}
-        for name, indicator in boundaries_description.boundaries.items():
+        for name, indicator in boundaries_description.indicators.items():
             if name not in ("contact", "dirichlet"):
                 surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, indicator)
                 node_indices = np.unique(surfaces).sort()
                 if node_indices:
                     other_boundaries[name] = Boundary(
-                        surfaces=surfaces, node_indices=node_indices, node_count=node_indices.size
+                        surfaces=surfaces,
+                        node_indices=node_indices,
+                        node_count=index_size(node_indices),
+                        node_condition=boundaries_description.conditions[name](
+                            initial_nodes[node_indices])
                     )
 
         boundaries = Boundaries(
@@ -196,3 +203,9 @@ class BoundariesFactory:
         )
 
         return initial_nodes, elements, boundaries
+
+
+def index_size(index: Union[slice, np.ndarray, list, tuple]) -> int:
+    if isinstance(index, slice):
+        return index.stop - index.start
+    return len(index)

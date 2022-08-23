@@ -51,7 +51,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 
     @staticmethod
     def outer_forces(x):
-        return np.array([0, 0])
+        return np.array([0, -1])
 
     @staticmethod
     def friction_bound(u_nu):
@@ -66,8 +66,13 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
-        dirichlet_electric=lambda x: (
-            x[0] == 1.0 and 1.0 <= x[1] <= 4.0 or 1.5 <= x[0] <= 3.0 and x[1] == 1.0
+        piezo_dirichlet_1=(
+            lambda x: (x[0] == 1.0 and 1.0 <= x[1] <= 4.0),
+            lambda x: np.full(x.shape[0], 20)
+        ),
+        piezo_dirichlet_2=(
+            lambda x: (1.5 <= x[0] <= 3.0 and x[1] == 1.0),
+            lambda x: np.zeros(x.shape[0])
         ),
     )
 

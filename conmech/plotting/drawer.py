@@ -27,20 +27,10 @@ class Drawer:
         fig, axes = plt.subplots()
 
         if hasattr(self.state, "temperature"):
-            temperature = np.concatenate(
-                (
-                    self.state.temperature[:],
-                    np.zeros(self.mesh.dirichlet_nodes_count),
-                )  # TODO #60
-            )
+            temperature = self.state.temperature[:]
             self.draw_field(temperature, temp_min, temp_max, axes, fig)
         if hasattr(self.state, "electric_potential"):
-            electric_potential = np.concatenate(
-                (
-                    self.state.electric_potential[:],
-                    np.zeros(self.mesh.dirichlet_nodes_count),
-                )  # TODO #60
-            )
+            electric_potential = self.state.electric_potential[:]
             self.draw_field(electric_potential, temp_min, temp_max, axes, fig)
 
         self.draw_mesh(
