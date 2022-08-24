@@ -38,7 +38,7 @@ class GraphModelDynamic:
     def __init__(
         self,
         train_dataset,
-        validation_dataset,
+        all_validation_datasets,
         print_scenarios: List[Scenario],
         net: CustomGraphNet,
         config: TrainingConfig,
@@ -48,7 +48,7 @@ class GraphModelDynamic:
         self.rank = rank
         print(f"----NODE {self.rank}: CREATING MODEL----")
         self.config = config
-        self.validation_dataset = validation_dataset
+        self.all_validation_datasets = all_validation_datasets
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
@@ -103,9 +103,10 @@ class GraphModelDynamic:
         train_dataloader = base_dataset.get_train_dataloader(
             self.train_dataset, world_size=self.world_size, rank=self.rank
         )
-        valid_dataloader = base_dataset.get_valid_dataloader(
-            self.validation_dataset, world_size=self.world_size, rank=self.rank
-        )
+        all_valid_dataloaders = [
+            base_dataset.get_valid_dataloader(dataset, world_size=self.world_size, rank=self.rank)
+            for dataset in self.all_validation_datasets
+        ]
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             # self.train_dataset.reset()
             # for _ in range(2):
@@ -132,13 +133,14 @@ class GraphModelDynamic:
 
             self.optional_barrier()
             if self.is_at_skip(self.config.td.validate_at_epochs):
-                _ = self.iterate_dataset(
-                    dataloader=valid_dataloader,
-                    train=False,
-                    step_function=self.test_step,
-                    tqdm_description=f"Validation: {self.epoch}",
-                    raport_description="Validation",
-                )
+                for dataloader in all_valid_dataloaders:
+                    _ = self.iterate_dataset(
+                        dataloader=dataloader,
+                        train=False,
+                        step_function=self.test_step,
+                        tqdm_description=f"Validation: {self.epoch}",
+                        raport_description=dataloader.dataset.description,
+                    )
                 # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
                 #     self.validate_all_scenarios_raport()
 

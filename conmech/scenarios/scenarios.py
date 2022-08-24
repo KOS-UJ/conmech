@@ -352,27 +352,18 @@ def f_rotate(
     return np.array([0.0, 0.0]) * SCALE_FORCES
 
 
-def f_rotate_fast(
+def f_swing_3d(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
     time: float,
 ):
-    _ = moved_node
-    if time <= 0.5:
-        y_scaled = initial_node[1] / mesh_prop.scale_y
-        return y_scaled * np.array([3.0, 0.0]) * SCALE_FORCES
-    return np.array([0.0, 0.0]) * SCALE_FORCES
-
-
-def f_push_3d(
-    initial_node: np.ndarray,
-    moved_node: np.ndarray,
-    mesh_prop: MeshProperties,
-    time: float,
-):
-    _ = initial_node, moved_node, mesh_prop, time
-    return np.array([1.0, 1.0, 1.0]) * SCALE_FORCES
+    _ = initial_node, moved_node, mesh_prop
+    force = np.array([1.0, 1.0, 1.0]) * SCALE_FORCES
+    if time <= 1.5:
+        return force
+    else:
+        return -force
 
 
 def f_rotate_3d(
@@ -555,6 +546,22 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", tim
     )
 
 
+def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+    _ = tag
+    return Scenario(
+        name="ball_swing",
+        mesh_prop=MeshProperties(
+            dimension=3, mesh_type=M_BALL_3D, scale=[scale], mesh_density=[mesh_density]
+        ),
+        body_prop=default_body_prop_3d,
+        schedule=Schedule(final_time=final_time),
+        forces_function=f_swing_3d,
+        obstacle=Obstacle(
+            np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
+        ),
+    )
+
+
 def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
     _ = tag
     return Scenario(
@@ -631,16 +638,23 @@ def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
         return [
-            ball_rotate_3d(**args)
-        ]  # cube_rotate_3d ball_rotate_3d(**args), bunny_rotate_3d(**args)]
+            [ball_rotate_3d(**args)],
+            [ball_swing_3d(**args)],
+            [cube_rotate_3d(**args)],
+        ]
     return get_valid_data(**args)
 
 
 def all_print(td):
     args = get_args(td)
-    # args['final_time'] = 1
+    #args['final_time'] = 1
     if td.dimension == 3:
-        return [ball_rotate_3d(**args), cube_rotate_3d(**args), bunny_rotate_3d(**args)]
+        return [
+            ball_rotate_3d(**args),
+            ball_swing_3d(**args),
+            cube_rotate_3d(**args),
+            bunny_rotate_3d(**args),
+        ]
     return [
         *get_valid_data(**args),
         *get_train_data(**args),

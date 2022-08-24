@@ -55,13 +55,13 @@ def get_edges_data_numba(
         j, i = edges[edge_index]
 
         set_diff_numba(initial_nodes_from, initial_nodes_to, 0, edges_data[edge_index], i, j)
-        # set_diff_numba(
-        #     displacement_old_from, displacement_old_to, dimension + 1, edges_data[edge_index], i, j
-        # )
-        # set_diff_numba(
-        #     velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
-        # )
-        # set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
+        set_diff_numba(
+            displacement_old_from, displacement_old_to, dimension + 1, edges_data[edge_index], i, j
+        )
+        set_diff_numba(
+            velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
+        )
+        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
     return edges_data
 
 
@@ -71,10 +71,14 @@ def get_multilayer_edges_data_numba(
     initial_nodes_sparse,
     initial_nodes_dense,
     displacement_old_sparse,
+    displacement_old_dense,
+    velocity_old_sparse,
+    velocity_old_dense,
     sparse_neighbours,
     edges_data_dim,
 ):
     dimension = initial_nodes_dense.shape[1]
+    size = dimension + 1
     edges_number = edges.shape[0]
     edges_data = np.zeros((edges_number, edges_data_dim))
     for edge_index in range(edges_number):
@@ -82,67 +86,27 @@ def get_multilayer_edges_data_numba(
         n1, n2 = sparse_neighbours[edge_index]
 
         set_diff_numba(initial_nodes_sparse, initial_nodes_dense, 0, edges_data[edge_index], i, j)
-        set_diff_numba(
-            initial_nodes_sparse,
-            initial_nodes_sparse,
-            dimension + 1,
+        # set_diff_numba(
+        #     displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
+        # )
+        # set_diff_numba(
+        #     velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
+        # )
+
+        neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
+            data_sparse,
+            data_sparse,
+            number * size,
             edges_data[edge_index],
-            n1,
             n2,
-        )
-        set_diff_numba(
-            displacement_old_sparse,
-            displacement_old_sparse,
-            2 * (dimension + 1),
-            edges_data[edge_index],
             n1,
-            n2,
         )
+
+        neighbour_data_setter(initial_nodes_sparse, 1)
+        neighbour_data_setter(displacement_old_sparse, 2)
+        # neighbour_data_setter(velocity_old_sparse, 5)
+
     return edges_data
-
-
-# @numba.njit  # (parallel=True)
-# def get_multilayer_edges_data_numba(
-#     edges,
-#     initial_nodes_sparse,
-#     initial_nodes_dense,
-#     displacement_old_sparse,
-#     displacement_old_dense,
-#     velocity_old_sparse,
-#     velocity_old_dense,
-#     sparse_neighbours,
-#     edges_data_dim,
-# ):
-#     dimension = initial_nodes_dense.shape[1]
-#     size = dimension + 1
-#     edges_number = edges.shape[0]
-#     edges_data = np.zeros((edges_number, edges_data_dim))
-#     for edge_index in range(edges_number):
-#         j, i = edges[edge_index]
-#         n1, n2 = sparse_neighbours[edge_index]
-
-#         set_diff_numba(initial_nodes_sparse, initial_nodes_dense, 0, edges_data[edge_index], i, j)
-#         # set_diff_numba(
-#         #     displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
-#         # )
-#         # set_diff_numba(
-#         #     velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
-#         # )
-
-#         neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
-#             data_sparse,
-#             data_sparse,
-#             number * size,
-#             edges_data[edge_index],
-#             n1,
-#             n2,
-#         )
-
-#         neighbour_data_setter(initial_nodes_sparse, 1)
-#         neighbour_data_setter(displacement_old_sparse, 2)
-#         # neighbour_data_setter(velocity_old_sparse, 5)
-
-#     return edges_data
 
 
 @numba.njit
@@ -228,34 +192,19 @@ class SceneInput(SceneRandomized):
         )
         return edges_data
 
-    def get_multilayer_edges_data(
-        self, directional_edges, sparse_neighbours, layer_number_from: int, layer_number_to: int
-    ):
+    def get_multilayer_edges_data(self, directional_edges, sparse_neighbours):
         edges_data = get_multilayer_edges_data_numba(
             edges=directional_edges,
-            initial_nodes_sparse=self.all_layers[layer_number_from].mesh.input_initial_nodes,
-            initial_nodes_dense=self.all_layers[layer_number_to].mesh.input_initial_nodes,
-            displacement_old_sparse=self.prepare_node_data(
-                data=self.input_displacement_old, layer_number=layer_number_from
-            ),
+            initial_nodes_sparse=self.reduced.input_initial_nodes,
+            initial_nodes_dense=self.input_initial_nodes,
+            displacement_old_sparse=self.reduced.input_displacement_old,
+            displacement_old_dense=self.input_displacement_old,
+            velocity_old_sparse=self.reduced.input_velocity_old,
+            velocity_old_dense=self.input_velocity_old,
             sparse_neighbours=sparse_neighbours,
             edges_data_dim=self.get_multilayer_edges_data_dim(self.dimension),
         )
         return edges_data
-
-    # def get_multilayer_edges_data(self, directional_edges, sparse_neighbours):
-    #     edges_data = get_multilayer_edges_data_numba(
-    #         edges=directional_edges,
-    #         initial_nodes_sparse=self.reduced.input_initial_nodes,
-    #         initial_nodes_dense=self.input_initial_nodes,
-    #         displacement_old_sparse=self.reduced.input_displacement_old,
-    #         displacement_old_dense=self.input_displacement_old,
-    #         velocity_old_sparse=self.reduced.input_velocity_old,
-    #         velocity_old_dense=self.input_velocity_old,
-    #         sparse_neighbours=sparse_neighbours,
-    #         edges_data_dim=self.get_multilayer_edges_data_dim(self.dimension),
-    #     )
-    #     return edges_data
 
     def get_nodes_data(self, layer_number):
         if layer_number == 1:
@@ -265,17 +214,14 @@ class SceneInput(SceneRandomized):
                 add_norm=True,
                 approximate=False,
             )
-        else:
-            acceleration_old = self.prepare_node_data(
-                layer_number=layer_number, data=self.acceleration_old, add_norm=True
-            )
+        # else:
+        #     acceleration_old = self.prepare_node_data(
+        #         layer_number=layer_number, data=self.acceleration_old, add_norm=True
+        #     )
         #     linear_acceleration = self.prepare_node_data(
         #         layer_number=layer_number, data=self.linear_acceleration, add_norm=True
         #     )
 
-        input_forces = self.prepare_node_data(
-            layer_number=layer_number, data=self.input_forces, add_norm=True
-        )
         boundary_normals = self.prepare_node_data(
             data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
@@ -304,11 +250,14 @@ class SceneInput(SceneRandomized):
                 )
             )
         else:
+            input_forces = self.prepare_node_data(
+                layer_number=layer_number, data=self.input_forces, add_norm=True
+            )
             return np.hstack(
                 (
                     # acceleration_old,
                     # linear_acceleration,
-                    input_forces,
+                    # input_forces,
                     boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
@@ -321,10 +270,7 @@ class SceneInput(SceneRandomized):
         edges_index_np, sparse_neighbours = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
             self.get_multilayer_edges_data(
-                directional_edges=edges_index_np,
-                sparse_neighbours=sparse_neighbours,
-                layer_number_from=1,
-                layer_number_to=0,
+                directional_edges=edges_index_np, sparse_neighbours=sparse_neighbours
             )
         )
         edges_index = thh.get_contiguous_torch(edges_index_np)
@@ -357,14 +303,6 @@ class SceneInput(SceneRandomized):
             layer_number=torch.tensor([layer_number]),
             pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
             x=thh.to_torch_set_precision(self.get_nodes_data(layer_number)),
-            edge_index=thh.get_contiguous_torch(layer_directional_edges),
-            edge_attr=thh.to_torch_set_precision(
-                self.get_edges_data(
-                    layer_directional_edges,
-                    layer_number_from=layer_number,
-                    layer_number_to=layer_number,
-                )
-            ),
             # pin_memory=True,
             # num_workers=1
         )
@@ -380,6 +318,16 @@ class SceneInput(SceneRandomized):
                 data.edge_attr_to_down,
                 data.closest_nodes_to_down,
             ) = self.get_multilayer_edges_with_data(link=layer_data.to_down)
+
+        else:
+            data.edge_index = thh.get_contiguous_torch(layer_directional_edges)
+            data.edge_attr = thh.to_torch_set_precision(
+                self.get_edges_data(
+                    layer_directional_edges,
+                    layer_number_from=layer_number,
+                    layer_number_to=layer_number,
+                )
+            )
 
         _ = """
         transform = T.Compose(
@@ -451,7 +399,7 @@ class SceneInput(SceneRandomized):
         for attr in [
             # "acceleration_old",
             # "linear_acceleration",
-            "input_forces",
+            # "input_forces",
             "boundary_normals",
         ]:
             for i in range(dimension):
@@ -481,7 +429,7 @@ class SceneInput(SceneRandomized):
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes"]:  # , "displacement_old", "velocity_old"]:  # , "forces"]:
+        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

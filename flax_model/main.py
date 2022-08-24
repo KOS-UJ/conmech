@@ -22,6 +22,21 @@ from flax.training.train_state import TrainState
 
 
 
+# Adapted from https://github.com/deepmind/jraph/blob/master/jraph/ogb_examples/train.py
+def _nearest_bigger_power_of_two(x: int) -> int:
+    y = 2
+    while y < x:
+        y *= 2
+    return y
+
+
+def pad_graph_to_nearest_power_of_two(graphs_tuple: jraph.GraphsTuple) -> jraph.GraphsTuple:
+    pad_nodes_to = _nearest_bigger_power_of_two(jnp.sum(graphs_tuple.n_node)) + 1
+    pad_edges_to = _nearest_bigger_power_of_two(jnp.sum(graphs_tuple.n_edge))
+    pad_graphs_to = graphs_tuple.n_node.shape[0] + 1
+    return jraph.pad_with_graphs(graphs_tuple, pad_nodes_to, pad_edges_to, pad_graphs_to)
+
+
 
 def prepare_graph_tuples(batch):
     layer_list = batch[0]
@@ -30,20 +45,6 @@ def prepare_graph_tuples(batch):
     layer_dense = layer_list[0]
 
     nodes_sparse = np.array(layer_sparse.x)
-    # edges_sparse = np.array(layer_sparse.edge_attr)
-    # senders_sparse = np.array(layer_sparse.edge_index[0])
-    # receivers_sparse = np.array(layer_sparse.edge_index[1])
-
-    # graph_sparse = jraph.GraphsTuple(
-    #     nodes=nodes_sparse,
-    #     edges=edges_sparse,
-    #     n_node=len(nodes_sparse),  # np.array(layer.num_nodes),
-    #     n_edge=len(edges_sparse),  # np.array(layer.num_edges),
-    #     senders=senders_sparse,
-    #     receivers=receivers_sparse,
-    #     globals=None,
-    # )
-
     nodes_dense = np.array(layer_dense.x)
     # edges_dense = np.array(layer_dense.edge_attr)
     # senders_dense = np.array(layer_dense.edge_index[0])
@@ -88,35 +89,6 @@ train_dataset = run_model.get_train_dataset(config.td.dataset, config=config, ra
 train_dataset.initialize_data()
 train_dataset.load_indices()
 train_dataloader = base_dataset.get_train_dataloader(train_dataset, world_size=1, rank=0)
-
-# train_dataloader = base_dataset.get_dataloader(
-#     dataset=train_dataset,
-#     rank=0,
-#     world_size=1,
-#     batch_size=train_dataset.config.td.batch_size,
-#     num_workers=train_dataset.config.dataloader_workers,
-#     shuffle=True,
-#     load_data=True,
-#     collate_fn=prepare_graph_tuples
-# )
-
-
-
-
-# Adapted from https://github.com/deepmind/jraph/blob/master/jraph/ogb_examples/train.py
-def _nearest_bigger_power_of_two(x: int) -> int:
-    y = 2
-    while y < x:
-        y *= 2
-    return y
-
-
-def pad_graph_to_nearest_power_of_two(graphs_tuple: jraph.GraphsTuple) -> jraph.GraphsTuple:
-    pad_nodes_to = _nearest_bigger_power_of_two(jnp.sum(graphs_tuple.n_node)) + 1
-    pad_edges_to = _nearest_bigger_power_of_two(jnp.sum(graphs_tuple.n_edge))
-    pad_graphs_to = graphs_tuple.n_node.shape[0] + 1
-    return jraph.pad_with_graphs(graphs_tuple, pad_nodes_to, pad_edges_to, pad_graphs_to)
-
 
 ###############################
 

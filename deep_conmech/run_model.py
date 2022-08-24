@@ -43,8 +43,9 @@ def train(config: TrainingConfig):
     train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
     train_dataset.initialize_data()
 
-    validation_dataset = get_val_dataset(config=config, rank=0, world_size=1)
-    validation_dataset.initialize_data()
+    all_validation_datasets = get_all_val_datasets(config=config, rank=0, world_size=1)
+    for datasets in all_validation_datasets:
+        datasets.initialize_data()
 
     if not config.distributed_training:
         train_single(config, train_dataset=train_dataset)
@@ -78,8 +79,9 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
 
-    validation_dataset = get_val_dataset(config=config, rank=rank, world_size=world_size)
-    validation_dataset.load_indices()
+    all_validation_datasets = get_all_val_datasets(config=config, rank=rank, world_size=world_size)
+    for d in all_validation_datasets:
+        d.initialize_data()
     all_print_datasets = scenarios.all_print(config.td)
 
     net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
@@ -88,7 +90,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
     model = GraphModelDynamic(
         train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
+        all_validation_datasets=all_validation_datasets,
         print_scenarios=all_print_datasets,
         net=net,
         config=config,
@@ -115,7 +117,9 @@ def plot(config: TrainingConfig):
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)
 
 
-def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_size: int, item_fn=None):
+def get_train_dataset(
+    dataset_type, config: TrainingConfig, rank: int, world_size: int, item_fn=None
+):
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
@@ -126,7 +130,7 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
             config=config,
             rank=rank,
             world_size=world_size,
-            item_fn=item_fn
+            item_fn=item_fn,
         )
     elif dataset_type == "calculator":
         train_dataset = CalculatorDataset(
@@ -138,40 +142,30 @@ def get_train_dataset(dataset_type, config: TrainingConfig, rank: int, world_siz
             config=config,
             rank=rank,
             world_size=world_size,
-            item_fn=item_fn
+            item_fn=item_fn,
         )
     else:
         raise ValueError("Bad dataset type")
     return train_dataset
 
 
-def get_val_dataset(config: TrainingConfig, rank: int, world_size: int):
-    # all_val_datasets = []
-    # if config.td.DATASET != "live":
-    #    all_val_datasets.append(train_dataset)
-    # all_val_datasets.append(
-    #     CalculatorDataset(
-    #         description="val",
-    #         all_scenarios=scenarios.all_validation(config.td),,
-    #         load_to_ram=False,
-    #         config=config,
-    #     )
-    # )
-    return CalculatorDataset(
-        description="validation",
-        all_scenarios=scenarios.all_validation(config.td),
-        layers_count=config.td.mesh_layers_count,
-        load_data_to_ram=config.load_validation_data_to_ram,
-        randomize_at_load=False,
-        config=config,
-        rank=rank,
-        world_size=world_size,
-    )
-    # )
-    # all_val_datasets.append(
-    #    SyntheticDataset(description="train", dimension=2, load_to_ram=False, config=config)
-    # )
-    # return all_val_datasets
+def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
+    all_val_datasets = []
+    for all_scenarios in scenarios.all_validation(config.td):
+        description = "validation_" + str.join("/", [scenario.name for scenario in all_scenarios])
+        all_val_datasets.append(
+            CalculatorDataset(
+                description=description,
+                all_scenarios=all_scenarios,
+                layers_count=config.td.mesh_layers_count,
+                load_data_to_ram=config.load_validation_data_to_ram,
+                randomize_at_load=False,
+                config=config,
+                rank=rank,
+                world_size=world_size,
+            )
+        )
+    return all_val_datasets
 
 
 def get_newest_checkpoint_path(config: TrainingConfig):

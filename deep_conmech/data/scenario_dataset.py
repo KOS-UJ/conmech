@@ -32,7 +32,7 @@ class ScenariosDataset(BaseDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
-        item_fn
+        item_fn,
     ):
         self.all_scenarios = all_scenarios
 
@@ -49,7 +49,7 @@ class ScenariosDataset(BaseDataset):
             config=config,
             rank=rank,
             world_size=world_size,
-            item_fn=item_fn
+            item_fn=item_fn,
         )
 
     def get_data_count(self, scenarios):
@@ -81,7 +81,7 @@ class ScenariosDataset(BaseDataset):
         )
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
-        
+
     def generate_data(self):
         self.generate_data_process()
         # mph.run_process(self.generate_data_process)
@@ -135,7 +135,7 @@ class ScenariosDataset(BaseDataset):
 
             # setting = setting.get_copy()
             scene.iterate_self(acceleration)
-            scene.update_reduced_from_dense()
+            scene.update_reduced_from_dense()  ###########
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

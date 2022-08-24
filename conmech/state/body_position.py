@@ -169,8 +169,17 @@ class BodyPosition(Mesh):
             return vectors
         return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
+    def normalize_rotate2(self, vectors):
+        return lnh.get_in_base(vectors, self.moved_base)
+
+    def denormalize_rotate2(self, vectors):
+        return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
+
     def normalize_shift_and_rotate(self, vectors):
         return self.normalize_rotate(self.normalize_shift(vectors))
+
+    def normalize_shift_and_rotate2(self, vectors):
+        return self.normalize_rotate2(self.normalize_shift2(vectors))
 
     @property
     def moved_nodes(self):
@@ -248,8 +257,8 @@ class BodyPosition(Mesh):
 
     @property
     def input_velocity_old(self):
-        return self.velocity_old - np.mean(self.velocity_old, axis=0)
+        return self.velocity_old #- np.mean(self.velocity_old, axis=0)
 
     @property
     def input_displacement_old(self):
-        return self.displacement_old - np.mean(self.displacement_old, axis=0)
+        return self.displacement_old #- np.mean(self.displacement_old, axis=0)

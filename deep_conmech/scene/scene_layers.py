@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 
+from conmech.helpers import lnh
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -164,16 +165,28 @@ class SceneLayers(Scene):
         super().iterate_self(acceleration, temperature)
         self.update_reduced()  ####################
 
+    def recenter_reduced(self):
+        displacement_old = self.reduced.normalize_shift_and_rotate2(self.reduced.displacement_old)
+        self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(self.displacement_old, axis=0)
+        return
+        self.reduced.displacement_old = (
+            self.reduced.displacement_old
+            - np.mean(self.reduced.displacement_old, axis=0)
+            + np.mean(self.displacement_old, axis=0)
+        )
+        a = 0
+
     def update_reduced(self):
-        if True:  # False:
-            self.reduced.iterate_self(self.reduced.exact_acceleration)
-            return
         self.update_reduced_from_dense()
+        return
+
+        self.reduced.iterate_self(self.reduced.exact_acceleration)
+        #self.recenter_reduced()
 
     def update_reduced_from_dense(self):
         acceleration = self.lift_data(self.acceleration_old)
-        velocity = self.lift_data(self.velocity_old) # input
-        displacement = self.lift_data(self.displacement_old) # input
+        velocity = self.lift_data(self.velocity_old)  # input
+        displacement = self.lift_data(self.displacement_old)  # input
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)

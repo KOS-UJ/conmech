@@ -252,7 +252,7 @@ class ProcessorLayer(MessagePassing):
         super().__init__()
 
         self.edge_processor = ForwardNet(
-            input_dim=td.latent_dimension * 5,  # 3
+            input_dim=td.latent_dimension * 2,
             layers_count=td.processor_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,
@@ -261,9 +261,9 @@ class ProcessorLayer(MessagePassing):
             td=td,
         )
         self.node_processor = ForwardNet(
-            input_dim=td.latent_dimension * 3,  # 2
+            input_dim=td.latent_dimension * 2,
             layers_count=td.processor_layers_count,
-            output_linear_dim=td.latent_dimension * 2,
+            output_linear_dim=td.latent_dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=td.layer_norm,
@@ -275,29 +275,25 @@ class ProcessorLayer(MessagePassing):
         self.new_edge_latents = None
 
     def forward(self, edge_index, node_latents, edge_latents):
+        self.new_edge_latents = None
         new_node_latents = self.propagate(
             edge_index=edge_index, node_latents=node_latents, edge_latents=edge_latents
         )
-        new_edge_latents = self.new_edge_latents
-        self.new_edge_latents = None
-        return new_node_latents, new_edge_latents
+        return new_node_latents, edge_latents  # self.new_edge_latents
 
     def message(self, node_latents_i, node_latents_j, edge_latents):  # index
-        edge_inputs = torch.hstack((node_latents_i, node_latents_j, edge_latents))
-        self.new_edge_latents = edge_latents + self.edge_processor(edge_inputs)
+        edge_inputs = torch.hstack((node_latents_j, edge_latents))
+        self.new_edge_latents = self.edge_processor(edge_inputs)
         return self.new_edge_latents
 
     def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
         alpha = self.attention(new_edge_latents, index)
-        aggregated_edge_latents = scatter_sum(alpha * self.new_edge_latents, index, dim=0)
+        aggregated_edge_latents = scatter_sum(alpha * new_edge_latents, index, dim=0)
         return aggregated_edge_latents
 
     def update(self, aggregated_edge_latents, node_latents):
-        to_node_latents = (
-            node_latents  # node_latents[-1] if isinstance(node_latents, tuple) else node_latents
-        )
-        node_inputs = torch.hstack((to_node_latents, aggregated_edge_latents))
-        new_node_latents = to_node_latents + self.node_processor(node_inputs)
+        node_inputs = torch.hstack((node_latents, aggregated_edge_latents))
+        new_node_latents = node_latents + self.node_processor(node_inputs)
         return new_node_latents
 
 
@@ -322,7 +318,7 @@ class CustomGraphNet(nn.Module):
         self.node_encoder_dense = ForwardNet(
             input_dim=SceneInput.get_nodes_data_down_dim(td.dimension),
             layers_count=td.encoder_layers_count,
-            output_linear_dim=td.latent_dimension * 1,  # 1 2
+            output_linear_dim=td.latent_dimension,  # 1 2
             statistics=None if statistics is None else statistics.nodes_statistics,
             batch_norm=td.input_batch_norm,
             layer_norm=td.layer_norm,
@@ -355,11 +351,10 @@ class CustomGraphNet(nn.Module):
                 for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
             ]
         )
-        self.upward_processor_layer = LinkProcessorLayer(td=td)
         self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension * 3,
+            input_dim=td.latent_dimension * 4,  # 4,  # 1 3 4,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.dimension,
             statistics=None,
@@ -402,7 +397,7 @@ class CustomGraphNet(nn.Module):
                 layer.edge_index, node_latents, edge_latents
             )
             self.processor_number += 1
-        return node_latents, edge_latents
+        return node_latents
 
     def forward(self, layer_list: List[Data]):
         if isinstance(layer_list[0].x, Tuple):
@@ -410,33 +405,28 @@ class CustomGraphNet(nn.Module):
         self.processor_number = 0
 
         layer_dense = layer_list[0]
-        #node_latents_dense = self.node_encoder_dense(layer_dense["x"])
-        #edge_latents_dense = self.edge_encoder(layer_dense.edge_attr)
+        node_latents_dense = self.node_encoder_dense(layer_dense["x"])
+        edge_latents_dense = self.edge_encoder(layer_dense.edge_attr)
 
         layer_sparse = layer_list[1]
         node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
-        #edge_latents_sparse = self.edge_encoder(layer_sparse.edge_attr)
 
-        # node_latents_sparse, edge_latents_sparse = self.propagate_messages(
-        #     layer=layer_up, node_latents=node_latents_sparse, edge_latents=edge_latents_sparse
-        # )
-
-        node_latents_common = self.move_to_dense(
+        node_latents_from_sparse = self.move_to_dense(
             node_latents_sparse=node_latents_sparse,
             node_latents_dense=None,  # node_latents_dense,
             edge_latents=self.multilayer_edge_encoder(layer_sparse.edge_attr_to_down),
             layer=layer_sparse,
         )
-        # node_latents_common = node_latents_dense
 
-        # node_latents_common, edge_latents_dense = self.propagate_messages(
-        #     layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
-        # )
+        node_latents_dense = self.propagate_messages(
+            layer=layer_dense, node_latents=node_latents_dense, edge_latents=edge_latents_dense
+        )
+        node_latents_common = torch.hstack((node_latents_dense, node_latents_from_sparse))
+        # node_latents_common = node_latents_from_sparse
+
         net_output = self.decoder(node_latents_common)
 
-        # TODO: #65 Include mass_density
-        # main_layer.x[:,:2]
-        return net_output  # main_layer.forces + net_output
+        return net_output
 
     def solve_all(self, scene: SceneInput, initial_a):
         # normalized_a = Calculator.solve(scene=scene, initial_a=initial_a)

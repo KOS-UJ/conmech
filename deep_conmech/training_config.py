@@ -47,10 +47,10 @@ class TrainingData:
 
     save_at_minutes: int = 4
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = 10  # 10 100
+    validate_at_epochs: Optional[int] = 100  # 10 100
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 1  # 16  # 32  # 16  # 32 # 256
+    batch_size: int = 8  # 1  # 16  # 32  # 16  # 32 # 256
     dataset_size: int = 32  # 256 * (1 if TEST else 1) #8)  # 2048)
 
     use_dataset_statistics: bool = False
@@ -74,7 +74,7 @@ class TrainingData:
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
     mesh_layers_count: int = LAYERS_COUNT  # 3
-    message_passes: int = 10  # 8  # 4  # 8  # 3
+    message_passes: int = 8  # 10  # 8  # 4  # 8  # 3
 
 
 @dataclass
@@ -95,7 +95,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 1  # 16
+    dataset_images_count: Optional[float] = 16
 
     log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = True
@@ -107,5 +107,5 @@ class TrainingConfig(Config):
     load_newest_train: bool = False
 
     load_training_data_to_ram: bool = True  # True
-    load_validation_data_to_ram: bool = True  # True
+    load_validation_data_to_ram: bool = False  # True
     profile_training: bool = False
