@@ -13,7 +13,7 @@ from conmech.dynamics.statement import (
     TemperatureStatement,
     PiezoelectricStatement,
     DynamicVelocityStatement,
-    QuasistaticVelocityWithPiezoelectricStatement,
+    QuasistaticVelocityWithPiezoelectricStatement, Variables,
 )
 from conmech.properties.body_properties import (
     TimeDependentTemperatureBodyProperties,
@@ -38,7 +38,7 @@ from conmech.scenarios.problems import (
     PiezoelectricTimeDependent as PiezoelectricTimeDependentProblem,
 )
 from conmech.scene.body_forces import BodyForces
-from conmech.solvers import Solvers
+from conmech.solvers import Solvers, SchurComplement
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state.state import State, TemperatureState, PiezoelectricState
@@ -176,8 +176,6 @@ class ProblemSolver:
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
         self.step_solver.iterate(solution)
-        if self.second_step_solver is not None:
-            self.second_step_solver.iterate(solution)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
@@ -188,26 +186,59 @@ class ProblemSolver:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
+        old_u_vector = self.step_solver.u_vector
+        old_v_vector = self.step_solver.v_vector
+        old_t_vector = self.step_solver.t_vector
+        old_p_vector = self.step_solver.p_vector
         fuse = 5
         while norm > 1e-3 and bool(fuse):
             fuse -= 1
-            solution = self.find_solution(
-                state,
-                solution,
-                self.validator,
-                temperature=solution_t,
-                verbose=verbose,
-                velocity=solution,
+            ### iterate
+            self.step_solver.statement.update(
+                Variables(
+                    displacement=old_u_vector,
+                    velocity=old_v_vector,
+                    temperature=solution_t,
+                    electric_potential=solution_t,  # TODO
+                    time_step=self.step_solver.time_step,
+                )
             )
+            # if isinstance(self.step_solver, SchurComplement):
+            #     self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+            ### end iterate
+            solution = self.step_solver.solve(solution, temperature=solution_t, velocity=solution)
+            ### iterate 2
+            u_vector = old_u_vector + self.step_solver.time_step * solution
+            self.second_step_solver.statement.update(
+                Variables(
+                    displacement=u_vector,
+                    velocity=solution,
+                    temperature=old_t_vector,
+                    electric_potential=old_p_vector,
+                    time_step=self.second_step_solver.time_step,
+                )
+            )
+            # if isinstance(self.step_solver, SchurComplement):
+            #     self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+            ### end iterate 2
             solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
-            self.step_solver.t_vector = solution_t
-            self.second_step_solver.t_vector = solution_t
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
             ) ** 0.5
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
+
+        velocity = solution
+        self.step_solver.v_vector = velocity.reshape(-1)
+        self.step_solver.u_vector = old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
+        self.second_step_solver.v_vector = velocity.reshape(-1)
+        self.second_step_solver.u_vector = old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
+        self.step_solver.p_vector = solution_t  # TODO
+        self.second_step_solver.p_vector = solution_t  # TODO
+        self.step_solver.t_vector = solution_t  # TODO
+        self.second_step_solver.t_vector = solution_t  # TODO
+
         return solution, solution_t
 
     @staticmethod
@@ -495,8 +526,11 @@ class PiezoelectricTimeDependent(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
+        done = 0
         for n in output_step:
             for _ in range(n):
+                done += 1
+                print(str(done) + "/" + str(n_steps))
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 

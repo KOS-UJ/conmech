@@ -19,6 +19,7 @@ class Statement:
         self.dimension = dimension
         self.left_hand_side = None
         self.right_hand_side = None
+        self.dirichlet_cond_name = "dirichlet"
 
     def update_left_hand_side(self, var: Variables):
         raise NotImplementedError()
@@ -29,20 +30,36 @@ class Statement:
     def update(self, var: Variables):
         self.update_left_hand_side(var)
         self.update_right_hand_side(var)
-        self.apply_dirichlet_0_condition()
+        self.apply_dirichlet_condition()
 
-    def apply_dirichlet_0_condition(self):
-        n = self.body.mesh.boundaries.boundaries["dirichlet"].node_count
-        c = self.body.mesh.boundaries.boundaries["dirichlet"].node_condition
-        node_count = self.body.mesh.nodes_count
-        for j in self.body.mesh.boundaries.get_all_boundary_indices(
-                "dirichlet", node_count, self.dimension
-        ):
-            self.right_hand_side[:] -= self.left_hand_side[:, j] @ c
-            self.left_hand_side[:, j] = 0
-            self.left_hand_side[j, :] = 0
-            self.left_hand_side[j, j] = np.eye(n)
-            self.right_hand_side[j] = 0
+    def apply_dirichlet_condition(self):
+        for dirichlet_cond in self.find_dirichlet_conditions():
+            n = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_count
+            c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
+            node_count = self.body.mesh.nodes_count
+            for j in self.body.mesh.boundaries.get_all_boundary_indices(
+                    dirichlet_cond, node_count, self.dimension
+            ):
+                self.right_hand_side[:] -= self.left_hand_side[:, j] @ c
+                self.left_hand_side[:, j] = 0
+                self.left_hand_side[j, :] = 0
+                # have to be [j][:, j] instead just [j, j] because j may be ndarray
+                self.left_hand_side[j][:, j] = np.eye(n)
+                self.right_hand_side[j] = 0
+
+    def find_dirichlet_conditions(self):
+        boundaries = self.body.mesh.boundaries.boundaries
+        if self.dirichlet_cond_name in boundaries:
+            yield self.dirichlet_cond_name
+            return
+        i = 0
+        while True:
+            next_name = self.dirichlet_cond_name + "_" + str(i)
+            if next_name in boundaries:
+                yield next_name
+            else:
+                return
+            i += 1
 
 
 class StaticDisplacementStatement(Statement):
@@ -81,7 +98,7 @@ class DynamicVelocityStatement(Statement):
         self.left_hand_side = (
             self.body.viscosity
             + (1 / var.time_step)
-            * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
+            * self.body.acceleration_operator + self.body.elasticity * var.time_step
         )
 
     def update_right_hand_side(self, var):
@@ -137,6 +154,7 @@ class TemperatureStatement(Statement):
 class PiezoelectricStatement(Statement):
     def __init__(self, dynamics):
         super().__init__(dynamics, 1)
+        self.dirichlet_cond_name = "piezo_" + self.dirichlet_cond_name
 
     def update_left_hand_side(self, var):
         ind = self.body.mesh.nodes_count  # 1 dimensional
