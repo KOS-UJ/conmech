@@ -184,8 +184,8 @@ class BoundariesFactory:
         for name, indicator in boundaries_description.indicators.items():
             if name not in ("contact", "dirichlet"):
                 surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, indicator)
-                node_indices = np.unique(surfaces).sort()
-                if node_indices:
+                node_indices = np.unique(surfaces)
+                if len(node_indices):
                     other_boundaries[name] = Boundary(
                         surfaces=surfaces,
                         node_indices=node_indices,
