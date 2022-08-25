@@ -2,7 +2,10 @@ import numba
 import numpy as np
 import scipy.sparse
 
-from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.dynamics.factory._abstract_dynamics_factory import (
+    AbstractDynamicsFactory,
+    get_coo_sparse_data_numba,
+)
 
 DIMENSION = 2
 ELEMENT_NODES_COUNT = 3
@@ -20,6 +23,7 @@ def get_edges_features_dictionary_numba(elements, nodes):
 
     edges_features_dict = {}
     element_initial_volume = np.zeros(elements_count)
+    dx_dict = {}
 
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
@@ -32,6 +36,8 @@ def get_edges_features_dictionary_numba(elements, nodes):
             element_volume = i_integrals[DIMENSION]
             # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
+            key = element_index, element[i]
+            dx_dict[key] = i_d_phi_vec
 
             for j in range(element_size):
                 j_integrals = get_integral_parts_numba(element_nodes, j)
@@ -57,7 +63,7 @@ def get_edges_features_dictionary_numba(elements, nodes):
                 else:
                     edges_features_dict[key] = result
 
-    return edges_features_dict, element_initial_volume
+    return edges_features_dict, element_initial_volume, dx_dict
 
 
 @numba.njit
@@ -148,6 +154,19 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
     @property
     def dimension(self) -> int:
         return DIMENSION
+
+    def to_dx_matrix(self, dx_dict: dict, elements_count: int, nodes_count: int):
+        keys = np.array(list(dx_dict.keys()), dtype=np.int64)
+        values = np.array(list(dx_dict.values()), dtype=np.float64)
+        row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
+        shape = (nodes_count, elements_count)
+
+        dx_x = scipy.sparse.coo_matrix((data[0], (row, col)), shape=shape)
+        dx_y = scipy.sparse.coo_matrix((data[1], (row, col)), shape=shape)
+
+        Z = scipy.sparse.csr_matrix(shape)
+        dx = scipy.sparse.bmat([[dx_x, Z], [Z, dx_y]], format="csr")
+        return dx
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]

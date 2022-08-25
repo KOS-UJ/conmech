@@ -14,9 +14,7 @@ from conmech.scenarios.scenarios import (
     M_CUBE_3D,
     M_TWIST_3D,
     Scenario,
-    default_body_prop,
     default_obstacle_prop,
-    f_push_3d,
     f_rotate_3d,
 )
 from conmech.simulations import simulation_runner

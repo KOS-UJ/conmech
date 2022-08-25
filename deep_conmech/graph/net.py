@@ -354,9 +354,19 @@ class CustomGraphNet(nn.Module):
         self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension * 4,  # 4,  # 1 3 4,
+            input_dim=td.latent_dimension,  # 4,  # 1 3 4,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.dimension,
+            statistics=None,
+            batch_norm=td.internal_batch_norm,
+            layer_norm=False,  # TODO #65
+            td=td,
+        )
+
+        self.decoder_inner = ForwardNet(
+            input_dim=td.latent_dimension * 3,
+            layers_count=td.decoder_layers_count,
+            output_linear_dim=td.latent_dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -418,11 +428,12 @@ class CustomGraphNet(nn.Module):
             layer=layer_sparse,
         )
 
-        node_latents_dense = self.propagate_messages(
-            layer=layer_dense, node_latents=node_latents_dense, edge_latents=edge_latents_dense
+        node_latents_common = self.decoder_inner(
+            node_latents_from_sparse
+        )  # torch.hstack((node_latents_dense, self.decoder_inner(node_latents_from_sparse)))
+        node_latents_common = self.propagate_messages(
+            layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
         )
-        node_latents_common = torch.hstack((node_latents_dense, node_latents_from_sparse))
-        # node_latents_common = node_latents_from_sparse
 
         net_output = self.decoder(node_latents_common)
 

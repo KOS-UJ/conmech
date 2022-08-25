@@ -134,7 +134,9 @@ def eval_step(state, imgs, gt_labels):
         apply_fn=state.apply_fn,
         params=state.params,
         batch_stats=state.batch_stats,
-        data=imgs, dropout_rng=None, train=False
+        data=imgs,
+        dropout_rng=None,
+        train=False,
     )
     return compute_metrics(logits=logits, gt_labels=gt_labels)
 
@@ -162,7 +164,6 @@ def evaluate_model(state, test_imgs, test_lbls):
     return metrics
 
 
-
 class NetState(TrainState):
     batch_stats: float
 
@@ -170,7 +171,9 @@ class NetState(TrainState):
 def create_train_state(learning_rate, init_rng):
     params, batch_stats = CNN().get_params(init_rng)
     optimizer = optax.adam(learning_rate=learning_rate)
-    training_state = NetState.create(apply_fn=CNN().apply, params=params, tx=optimizer, batch_stats=batch_stats)
+    training_state = NetState.create(
+        apply_fn=CNN().apply, params=params, tx=optimizer, batch_stats=batch_stats
+    )
     # return NetState(training_state=training_state, batch_stats=batch_stats)
     return training_state
 

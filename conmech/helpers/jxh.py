@@ -30,12 +30,12 @@ def to_scipy_sparse(matrix):
     if matrix is None:
         return None
     return matrix.get()
-    data = np.array(coo_matrix.data)
-    indices = np.array(coo_matrix.indices).T
-    row = indices[0]
-    col = indices[1]
-    result = scipy.sparse.coo_matrix((data, (row, col)), shape=coo_matrix.shape, dtype=np.float64)
-    return result
+    # data = np.array(coo_matrix.data)
+    # indices = np.array(coo_matrix.indices).T
+    # row = indices[0]
+    # col = indices[1]
+    # result = scipy.sparse.coo_matrix((data, (row, col)), shape=coo_matrix.shape, dtype=np.float64)
+    # return result
 
 
 def to_dense_np(array):

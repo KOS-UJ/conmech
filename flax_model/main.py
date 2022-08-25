@@ -20,8 +20,6 @@ from flax import linen as nn
 from flax.training.train_state import TrainState
 
 
-
-
 # Adapted from https://github.com/deepmind/jraph/blob/master/jraph/ogb_examples/train.py
 def _nearest_bigger_power_of_two(x: int) -> int:
     y = 2
@@ -35,7 +33,6 @@ def pad_graph_to_nearest_power_of_two(graphs_tuple: jraph.GraphsTuple) -> jraph.
     pad_edges_to = _nearest_bigger_power_of_two(jnp.sum(graphs_tuple.n_edge))
     pad_graphs_to = graphs_tuple.n_node.shape[0] + 1
     return jraph.pad_with_graphs(graphs_tuple, pad_nodes_to, pad_edges_to, pad_graphs_to)
-
 
 
 def prepare_graph_tuples(batch):
@@ -80,7 +77,6 @@ def prepare_graph_tuples(batch):
     return graph_multi, labels
 
 
-
 #######################
 
 config = TrainingConfig(shell=False)
@@ -96,26 +92,29 @@ train_dataloader = base_dataset.get_train_dataloader(train_dataset, world_size=1
 class EdgeEncoder(nn.Module):
     @nn.compact
     def __call__(self, x, train):
-        x = nn.BatchNorm(use_running_average=not train)(x) #, name="bn_init"
+        x = nn.BatchNorm(use_running_average=not train)(x)  # , name="bn_init"
         x = nn.Dense(features=12)(x)
         x = nn.Dropout(rate=0.1, deterministic=not train)(x)
         x = nn.relu(x)
         x = nn.Dense(features=12)(x)
         return x
 
+
 class GraphNet(nn.Module):
     @nn.compact
     def __call__(self, graph: jraph.GraphsTuple, train: bool) -> jnp.DeviceArray:
-
         def update_edge_fn(edge_features, sender_node_features, receiver_node_features, globals_):
-            x = EdgeEncoder()(edge_features, train =True)
+            x = EdgeEncoder()(edge_features, train=True)
             return x
 
         def aggregate_edges_for_nodes_fn(data, segment_ids, num_segments):
             return jraph.segment_sum(data, segment_ids, num_segments)
 
         def update_node_fn(
-            node_features, aggregated_sender_edge_features, aggregated_receiver_edge_features, globals_
+            node_features,
+            aggregated_sender_edge_features,
+            aggregated_receiver_edge_features,
+            globals_,
         ):
             return aggregated_receiver_edge_features
 
@@ -168,28 +167,28 @@ def train_step(state, graphs, labels, dropout_rng):
         return loss, new_batch_stats
 
     (loss, new_batch_stats), grads = jax.value_and_grad(loss_fn, has_aux=True)(state.params)
-    state = state.apply_gradients(
-        grads=grads, batch_stats=new_batch_stats
-    )
+    state = state.apply_gradients(grads=grads, batch_stats=new_batch_stats)
     return state, loss
 
 
 class NetState(TrainState):
     batch_stats: float
 
+
 def create_train_state(learning_rate, sample_graph, init_rng):
     params, batch_stats = GraphNet().get_params(sample_graph, init_rng)
     optimizer = optax.adam(learning_rate=learning_rate)
-    ts = NetState.create(apply_fn=GraphNet().apply, params=params, tx=optimizer, batch_stats=batch_stats)
+    ts = NetState.create(
+        apply_fn=GraphNet().apply, params=params, tx=optimizer, batch_stats=batch_stats
+    )
     return ts
-
 
 
 def train_one_epoch(state, dataloader, dropout_rng, sample_graph):
     dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
     batch_tqdm = tqdm(train_dataloader)
     for batch in batch_tqdm:
-        #graphs, labels = prepare_graph_tuples(batch)
+        # graphs, labels = prepare_graph_tuples(batch)
         graphs, labels = sample_graph, None
         state, loss = train_step(state, graphs, labels, dropout_rng)
         batch_tqdm.set_description(f"Loss: {loss}")
@@ -211,4 +210,3 @@ for epoch in range(1, num_epochs + 1):
     train_state, dropout_rng = train_one_epoch(
         train_state, train_dataloader, dropout_rng, sample_graph
     )
-

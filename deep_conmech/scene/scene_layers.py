@@ -167,7 +167,9 @@ class SceneLayers(Scene):
 
     def recenter_reduced(self):
         displacement_old = self.reduced.normalize_shift_and_rotate2(self.reduced.displacement_old)
-        self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(self.displacement_old, axis=0)
+        self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(
+            self.displacement_old, axis=0
+        )
         return
         self.reduced.displacement_old = (
             self.reduced.displacement_old
@@ -181,12 +183,12 @@ class SceneLayers(Scene):
         return
 
         self.reduced.iterate_self(self.reduced.exact_acceleration)
-        #self.recenter_reduced()
+        # self.recenter_reduced()
 
     def update_reduced_from_dense(self):
         acceleration = self.lift_data(self.acceleration_old)
-        velocity = self.lift_data(self.velocity_old)  # input
-        displacement = self.lift_data(self.displacement_old)  # input
+        velocity = self.lift_data(self.input_velocity_old)  # input
+        displacement = self.lift_data(self.input_displacement_old)  # input
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)

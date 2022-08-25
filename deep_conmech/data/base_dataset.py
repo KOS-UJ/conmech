@@ -76,7 +76,7 @@ def get_dataloader(
     num_workers: int,
     shuffle: bool,
     load_data: bool,
-    collate_fn=None
+    collate_fn=None,
 ):
 
     sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank, shuffle=shuffle)
@@ -90,7 +90,7 @@ def get_dataloader(
         persistent_workers=num_workers > 0,
         worker_init_fn=worker_init_fn if load_data else None,
         # prefetch_factor=10,
-        collate_fn=collate_fn
+        collate_fn=collate_fn,
     )
 
 
@@ -114,7 +114,7 @@ class BaseDataset:
         config: TrainingConfig,
         rank: int,
         world_size: int,
-        item_fn: Callable=None
+        item_fn: Callable = None,
     ):
         self.dimension = dimension
         self.description = description

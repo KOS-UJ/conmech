@@ -257,8 +257,8 @@ class BodyPosition(Mesh):
 
     @property
     def input_velocity_old(self):
-        return self.velocity_old #- np.mean(self.velocity_old, axis=0)
+        return self.velocity_old  # - np.mean(self.velocity_old, axis=0)
 
     @property
     def input_displacement_old(self):
-        return self.displacement_old #- np.mean(self.displacement_old, axis=0)
+        return self.displacement_old  # - np.mean(self.displacement_old, axis=0)

@@ -6,6 +6,9 @@ import numba.typed
 import numpy as np
 import scipy.sparse
 
+from conmech.dynamics.factory._abstract_dynamics_factory import (
+    get_coo_sparse_data_numba,
+)
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.helpers import jxh
@@ -33,22 +36,6 @@ class ConstMatrices:
         self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
 
 
-@numba.njit
-def get_coo_sparse_data_numba(keys, values):
-    size = len(values)
-    if size < 0:
-        raise ArgumentError
-    feature_matrix_count = len(values[0])
-    row = np.zeros(size, dtype=np.int64)
-    col = np.zeros(size, dtype=np.int64)
-    data = np.zeros((feature_matrix_count, size), dtype=np.float64)
-    for index in range(size):
-        row[index], col[index] = keys[index]
-        data[:, index] = values[index]
-        index += 1
-    return row, col, data
-
-
 def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     keys = np.array(list(edges_features_dict.keys()), dtype=np.int64)
     values = np.array(list(edges_features_dict.values()), dtype=np.float64)
@@ -56,22 +43,6 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     shape = (nodes_count, nodes_count)
     edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape) for i in data]
     return edges_features_matrix
-
-
-def to_dx_matrix(dx_dict: dict, elements_count: int, nodes_count: int):
-    keys = np.array(list(dx_dict.keys()), dtype=np.int64)
-    values = np.array(list(dx_dict.values()), dtype=np.float64)
-    row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
-    shape = (nodes_count, elements_count)
-
-    dx_x = scipy.sparse.coo_matrix((data[0], (row, col)), shape=shape)
-    dx_y = scipy.sparse.coo_matrix((data[1], (row, col)), shape=shape)
-    dx_z = scipy.sparse.coo_matrix((data[2], (row, col)), shape=shape)
-
-    Z = scipy.sparse.csr_matrix(shape)
-    dx = scipy.sparse.bmat([[dx_x, Z, Z], [Z, dx_y, Z], [Z, Z, dx_z]], format="csr")
-    return dx
-
 
 def get_dynamics(
     elements: np.ndarray,
@@ -96,7 +67,7 @@ def get_dynamics(
     edges_features_matrix = to_edges_features_matrix(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
-    result.dx_big = to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements))
+    result.dx_big = factory.to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements))
 
     edges_features_matrix[0] = edges_features_matrix[0].tocsr()
     for i in range(1, len(edges_features_matrix)):

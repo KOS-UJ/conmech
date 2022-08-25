@@ -122,7 +122,7 @@ class SyntheticDataset(BaseDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
-        item_fn: Callable=None
+        item_fn: Callable = None,
     ):
         super().__init__(
             description=f"{description}_synthetic",
@@ -137,7 +137,7 @@ class SyntheticDataset(BaseDataset):
             config=config,
             rank=rank,
             world_size=world_size,
-            item_fn=item_fn
+            item_fn=item_fn,
         )
 
     @property
@@ -159,7 +159,7 @@ class SyntheticDataset(BaseDataset):
         scene.set_displacement_old(displacement_old)
         scene.set_velocity_old(velocity_old)
         # scene.prepare(forces)
-        
+
         scene.update_reduced_from_dense()
 
         scene.exact_acceleration = None

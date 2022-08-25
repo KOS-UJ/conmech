@@ -2,7 +2,10 @@ import numba
 import numpy as np
 import scipy.sparse
 
-from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.dynamics.factory._abstract_dynamics_factory import (
+    AbstractDynamicsFactory,
+    get_coo_sparse_data_numba,
+)
 
 DIMENSION = 3
 ELEMENT_NODES_COUNT = 4
@@ -214,6 +217,20 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
     @property
     def dimension(self) -> int:
         return DIMENSION
+
+    def to_dx_matrix(self, dx_dict: dict, elements_count: int, nodes_count: int):
+        keys = np.array(list(dx_dict.keys()), dtype=np.int64)
+        values = np.array(list(dx_dict.values()), dtype=np.float64)
+        row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
+        shape = (nodes_count, elements_count)
+
+        dx_x = scipy.sparse.coo_matrix((data[0], (row, col)), shape=shape)
+        dx_y = scipy.sparse.coo_matrix((data[1], (row, col)), shape=shape)
+        dx_z = scipy.sparse.coo_matrix((data[2], (row, col)), shape=shape)
+
+        Z = scipy.sparse.csr_matrix(shape)
+        dx = scipy.sparse.bmat([[dx_x, Z, Z], [Z, dx_y, Z], [Z, Z, dx_z]], format="csr")
+        return dx
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1] + lambda_ * W[2, 2]

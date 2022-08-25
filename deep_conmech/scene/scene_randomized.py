@@ -82,7 +82,7 @@ class SceneRandomized(SceneLayers):
         #     scaling = np.linalg.norm(self.exact_acceleration)#, axis=1).reshape(-1,1)
         #     self.velocity_randomization *= scaling
         #     self.displacement_randomization *= scaling
-        
+
         self.update_reduced_from_dense()
 
     @property
