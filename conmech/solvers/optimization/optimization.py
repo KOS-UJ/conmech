@@ -80,7 +80,7 @@ class Optimization(Solver):
                     else velocity,
                 ),
                 method="BFGS",
-                options={"disp": True, "maxiter": len(initial_guess) * 1e5},
+                options={"disp": False, "maxiter": len(initial_guess) * 1e5},
                 tol=1e-12,
             )
             solution = result.x

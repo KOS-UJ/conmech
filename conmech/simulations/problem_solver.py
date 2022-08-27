@@ -190,9 +190,11 @@ class ProblemSolver:
         old_v_vector = self.step_solver.v_vector
         old_t_vector = self.step_solver.t_vector
         old_p_vector = self.step_solver.p_vector
-        fuse = 1
-        while norm > 1e-3 and bool(fuse):
+        fuse = 10
+        minimum_iter = 2
+        while minimum_iter > 0 or norm > 1e-3 and bool(fuse):
             fuse -= 1
+            minimum_iter -= 1
             ### iterate
             self.step_solver.statement.update(
                 Variables(
@@ -203,14 +205,10 @@ class ProblemSolver:
                     time_step=self.step_solver.time_step,
                 )
             )
-            # if isinstance(self.step_solver, SchurComplement):
-            #     self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+            if isinstance(self.step_solver, SchurComplement):
+                self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
             ### end iterate
-            # solution = self.step_solver.solve(solution, temperature=solution_t, velocity=solution)
-            A = self.step_solver.statement.left_hand_side
-            b = self.step_solver.statement.right_hand_side
-            solution = np.linalg.solve(A, b)
-            print(np.max(self.step_solver.statement.left_hand_side @ solution - self.step_solver.statement.right_hand_side))
+            solution = self.step_solver.solve(solution, temperature=solution_t, velocity=solution)
             ### iterate 2
             u_vector = old_u_vector + self.step_solver.time_step * solution
             self.second_step_solver.statement.update(
@@ -222,15 +220,10 @@ class ProblemSolver:
                     time_step=self.second_step_solver.time_step,
                 )
             )
-            # if isinstance(self.step_solver, SchurComplement):
-            #     self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+            if isinstance(self.step_solver, SchurComplement):
+                self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
             ### end iterate 2
-            # solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
-            A = self.second_step_solver.statement.left_hand_side
-            b = self.second_step_solver.statement.right_hand_side
-            solution_t = np.linalg.solve(A, b)
-            print(np.max(
-                self.second_step_solver.statement.left_hand_side @ solution_t - self.second_step_solver.statement.right_hand_side))
+            solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
@@ -539,7 +532,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
         for n in output_step:
             for _ in range(n):
                 done += 1
-                print(str(done) + "/" + str(n_steps))
+                print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
