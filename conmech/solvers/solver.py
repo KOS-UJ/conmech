@@ -56,9 +56,9 @@ class Solver:
         for dirichlet_cond in self.statement.find_dirichlet_conditions():
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
-            for j in self.body.mesh.boundaries.get_all_boundary_indices(
+            for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
                     dirichlet_cond, node_count, self.statement.dimension
             ):
-                solution[j] = c
+                solution[i] = c[j]
 
         return solution
