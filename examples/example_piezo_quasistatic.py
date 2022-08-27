@@ -79,7 +79,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 def main(show: bool):
     setup = PQuasistaticSetup(mesh_type="Barboteu2008")
     runner = PiezoelectricTimeDependent(setup, solving_method="global")
-    steps = 1000
+    steps = 100
     output = steps // 5
     states = runner.solve(
         n_steps=steps,
