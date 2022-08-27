@@ -149,7 +149,7 @@ def make_cost_functional(
 
     @numba.njit()
     def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old):
-        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
+        ju = 0  # contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
         result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
         result = np.asarray(result).ravel()
         return result
@@ -194,7 +194,7 @@ def make_cost_functional_temperature(
         result = (
             0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
             - np.dot(rhs, temp_vector)
-            - contact_cost_functional(u_vector, nodes, contact_boundary)
+            # - contact_cost_functional(u_vector, nodes, contact_boundary)
         )
         result = np.asarray(result).ravel()
         return result

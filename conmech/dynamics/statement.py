@@ -37,15 +37,15 @@ class Statement:
             n = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_count
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
-            for j in self.body.mesh.boundaries.get_all_boundary_indices(
+            for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
                     dirichlet_cond, node_count, self.dimension
             ):
-                self.right_hand_side[:] -= self.left_hand_side[:, j] @ c
-                self.left_hand_side[:, j] = 0
-                self.left_hand_side[j, :] = 0
-                # have to be [j][:, j] instead just [j, j] because j may be ndarray
-                self.left_hand_side[j][:, j] = np.eye(n)
-                self.right_hand_side[j] = 0
+                self.right_hand_side[:] -= self.left_hand_side[:, i] @ c[j]
+                self.left_hand_side[:, i] = 0
+                self.left_hand_side[i, :] = 0
+                # have to be "[i][:, i]" instead of just a "[i, i]" because the i may be ndarray
+                self.left_hand_side[i, i] = np.eye(j.stop - j.start)
+                self.right_hand_side[i] = c[j]
 
     def find_dirichlet_conditions(self):
         boundaries = self.body.mesh.boundaries.boundaries
@@ -67,7 +67,7 @@ class StaticDisplacementStatement(Statement):
         super().__init__(dynamics, 2)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.elasticity
+        self.left_hand_side = self.body.elasticity.copy()
 
     def update_right_hand_side(self, var: Variables):
         self.right_hand_side = self.body.get_integrated_forces_vector()
@@ -78,7 +78,7 @@ class QuasistaticVelocityStatement(Statement):
         super().__init__(dynamics, 2)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.viscosity
+        self.left_hand_side = self.body.viscosity.copy()
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
@@ -157,9 +157,7 @@ class PiezoelectricStatement(Statement):
         self.dirichlet_cond_name = "piezo_" + self.dirichlet_cond_name
 
     def update_left_hand_side(self, var):
-        ind = self.body.mesh.nodes_count  # 1 dimensional
-
-        self.left_hand_side = self.body.permittivity[:ind, :ind]
+        self.left_hand_side = self.body.permittivity.copy()
 
     def update_right_hand_side(self, var):
         assert var.displacement is not None

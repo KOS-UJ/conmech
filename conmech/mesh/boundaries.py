@@ -56,8 +56,22 @@ class Boundaries:
 
     def get_all_boundary_indices(self, boundary, total_node_count, dimension):
         i = self.boundaries[boundary].node_indices
-        for d in range(dimension):
-            if isinstance(i, slice):
-                yield slice(i.start + d * total_node_count, i.stop + d * total_node_count)
-            else:
-                yield i + d * total_node_count
+        if isinstance(i, slice):
+            for d in range(dimension):
+                condition_start = 0
+                condition_stop = condition_start + i.stop - i.start
+                yield (slice(i.start + d * total_node_count, i.stop + d * total_node_count),
+                       slice(condition_start, condition_stop))
+                condition_start = condition_stop  # TODO
+        else:
+            # assuming node_indices are sorted
+            discontinuities = np.concatenate(([0], np.nonzero(np.diff(i) - 1)[0] + 1, [len(i)]))
+            starts = i[discontinuities[:-1]]
+            stops = i[(discontinuities - 1)[1:]] + 1
+            for d in range(dimension):
+                condition_start = 0
+                for start, stop in zip(starts, stops):
+                    condition_stop = condition_start + stop - start
+                    yield (slice(start + d * total_node_count, stop + d * total_node_count),
+                           slice(condition_start, condition_stop))
+                    condition_start = condition_stop

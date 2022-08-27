@@ -31,15 +31,15 @@ class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 @dataclass()
 class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     grid_height: ... = 1.0
-    elements_number: ... = (3, 4)
-    mu_coef: ... = 4
-    la_coef: ... = 4
-    th_coef: ... = 4
-    ze_coef: ... = 4
-    time_step: ... = 0.001
+    elements_number: ... = (2, 2)
+    mu_coef: ... = 45
+    la_coef: ... = 105
+    th_coef: ... = 4.5
+    ze_coef: ... = 10.5
+    time_step: ... = 0.01
     contact_law: ... = PPSlopeContactLaw
     piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-    permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+    permittivity: ... = np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
@@ -51,39 +51,39 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 
     @staticmethod
     def outer_forces(x):
-        return np.array([0, -1])
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu):
         return 0
 
-    @staticmethod
-    def dirichlet_electric_potential(x):
-        if x[1] > 1:
-            return 20
-        return 0
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
-        piezo_dirichlet_1=(
+        # contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0,
+        # piezo_dirichlet_0=(
+        #     lambda x: (x[0] == 1.0 and 0.0 <= x[1] <= 4.0),
+        #     lambda x: np.full(x.shape[0], -20)
+        # ),
+        piezo_dirichlet_0=(
             lambda x: (x[0] == 1.0 and 1.0 <= x[1] <= 4.0),
-            lambda x: np.full(x.shape[0], 20)
+            lambda x: np.full(x.shape[0], 0)
         ),
-        piezo_dirichlet_2=(
+        piezo_dirichlet_1=(
             lambda x: (1.5 <= x[0] <= 3.0 and x[1] == 1.0),
-            lambda x: np.zeros(x.shape[0])
+            lambda x: np.full(x.shape[0], 20)
         ),
     )
 
 
 def main(show: bool):
     setup = PQuasistaticSetup(mesh_type="Barboteu2008")
-    runner = PiezoelectricTimeDependent(setup, solving_method="schur")
-
+    runner = PiezoelectricTimeDependent(setup, solving_method="global")
+    steps = 1000
+    output = steps // 5
     states = runner.solve(
-        n_steps=32,
-        output_step=range(0, 32, 4),
+        n_steps=steps,
+        output_step=range(0, steps+1, output),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
