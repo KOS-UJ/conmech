@@ -4,7 +4,6 @@ numpy helpers
 from ctypes import ArgumentError
 from functools import partial
 
-import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
@@ -14,14 +13,8 @@ def stack(data):
     return data.T.flatten()
 
 
-stack_jax = jax.jit(stack, inline=True)
-
-
 def stack_column(data):
     return data.T.flatten().reshape(-1, 1)
-
-
-stack_column_jax = jax.jit(stack_column, inline=True)
 
 
 stack_column_numba = numba.njit(stack_column)
@@ -35,13 +28,7 @@ def unstack_and_sum_columns(data, dim, keepdims=False):
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 
-@partial(jax.jit, static_argnums=(1,), inline=True)
-def unstack_jax(vector, dim):
-    return vector.reshape(-1, dim, order="F")
-
-
-@partial(jax.jit, static_argnums=(2,), inline=True)
-def elementwise_dot_jax(matrix_1, matrix_2, keepdims=False):
+def elementwise_dot(matrix_1, matrix_2, keepdims=False):
     return (matrix_1 * matrix_2).sum(axis=1, keepdims=keepdims)
 
 
@@ -79,21 +66,16 @@ def normalize_euclidean_numba(data):
     return data / reshaped_norm
 
 
-@partial(jax.jit, inline=True)
-def get_normal_jax(vector, normal):
-    return elementwise_dot_jax(vector, normal, keepdims=True)
+def get_normal(vector, normal):
+    return elementwise_dot(vector, normal, keepdims=True)
 
-
-@partial(jax.jit, inline=True)
-def get_normal_tangential_jax(vector, normal):
-    normal_vector = get_normal_jax(vector, normal)
+def get_normal_tangential(vector, normal):
+    normal_vector = get_normal(vector, normal)
     tangential_vector = vector - (normal_vector * normal)
     return normal_vector, tangential_vector
 
-
-@partial(jax.jit, inline=True)
-def get_tangential_jax(vector, normal):
-    _, tangential_vector = get_normal_tangential_jax(vector, normal)
+def get_tangential(vector, normal):
+    _, tangential_vector = get_normal_tangential(vector, normal)
     return tangential_vector
 
 

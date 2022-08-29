@@ -15,20 +15,16 @@ class SceneRandomized(SceneLayers):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
         create_in_subprocess: bool,
         layers_count: int,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
             layers_count=layers_count,
-            with_schur=with_schur,
         )
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0
@@ -53,15 +49,15 @@ class SceneRandomized(SceneLayers):
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0
         self.displacement_to_velocity_noise = 0
-        self.regenerate_randomization()
+        self._regenerate_randomization()
 
     def set_randomization(self, config):
         self.velocity_in_random_factor = config.td.velocity_in_random_factor
         self.displacement_in_random_factor = config.td.displacement_in_random_factor
         self.displacement_to_velocity_noise = config.td.displacement_to_velocity_noise
-        self.regenerate_randomization()
+        self._regenerate_randomization()
 
-    def regenerate_randomization(self):
+    def _regenerate_randomization(self):
         get_random = lambda scale: nph.generate_normal(
             rows=self.nodes_count,
             columns=self.dimension,
@@ -83,7 +79,8 @@ class SceneRandomized(SceneLayers):
         #     self.velocity_randomization *= scaling
         #     self.displacement_randomization *= scaling
 
-        self.update_reduced_from_dense()
+        self.update_reduced()  ###################333
+        # self.clear_reduced()
 
     @property
     def normalized_velocity_randomization(self):
@@ -126,7 +123,7 @@ class SceneRandomized(SceneLayers):
     def iterate_self(self, acceleration, temperature=None):
         _ = temperature
         if self.randomized_inputs:
-            self.regenerate_randomization()
+            self._regenerate_randomization()
         super().iterate_self(acceleration)
 
     @property

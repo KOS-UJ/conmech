@@ -108,7 +108,7 @@ class BaseDataset:
         layers_count: int,
         solve_function: Callable,
         load_data_to_ram: bool,
-        randomize_at_load: bool,
+        randomize: bool,
         num_workers: int,
         with_scenes_file: bool,
         config: TrainingConfig,
@@ -122,7 +122,7 @@ class BaseDataset:
         self.layers_count = layers_count
         self.solve_function = solve_function
         self.load_data_to_ram = load_data_to_ram
-        self.randomize_at_load = randomize_at_load
+        self.randomize = randomize
         self.num_workers = num_workers
         self.with_scenes_file = with_scenes_file
         self.config = config
@@ -240,9 +240,6 @@ class BaseDataset:
                 scene = self.get_scene_from_file(scene_index)
             else:
                 scene = self.generate_scene()
-
-            if self.randomize_at_load:
-                scene.set_randomization(self.config)
 
             # exact_normalized_a_torch = Calculator.clean_acceleration(
             #    scene_input, scene_input.exact_normalized_a_torch)
@@ -376,16 +373,22 @@ class BaseDataset:
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         pass
 
-    def prepare_scene(self, scene, forces):
+    def solve_and_prepare_scene(self, scene, forces):
         scene.prepare(forces)
 
-        scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-            setting=scene, temperature=None, initial_a=None  # normalized_a
-        )
+        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
+        #     setting=scene, temperature=None, initial_a=None  # normalized_a
+        # )
         acceleration, exact_acceleration = self.solve_function(
             setting=scene, initial_a=scene.exact_acceleration
         )
-        scene.set_exact_acceleration(exact_acceleration)
+        ###################################3
+        _, reduced_exact_acceleration = self.solve_function(
+            setting=scene.reduced, initial_a=scene.reduced.exact_acceleration
+        )
+        # reduced_exact_acceleration = scene.lift_data(exact_acceleration)
+
+        scene.set_exact_acceleration(exact_acceleration, reduced_exact_acceleration)
         return scene, acceleration
 
     def safe_save_scene(self, scene, data_path: str):

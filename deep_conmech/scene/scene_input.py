@@ -136,20 +136,16 @@ class SceneInput(SceneRandomized):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
         create_in_subprocess: bool,
         layers_count: int,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
             layers_count=layers_count,
-            with_schur=with_schur,
         )
 
     def prepare_node_data(
@@ -215,9 +211,6 @@ class SceneInput(SceneRandomized):
                 approximate=False,
             )
         # else:
-        #     acceleration_old = self.prepare_node_data(
-        #         layer_number=layer_number, data=self.acceleration_old, add_norm=True
-        #     )
         #     linear_acceleration = self.prepare_node_data(
         #         layer_number=layer_number, data=self.linear_acceleration, add_norm=True
         #     )
@@ -255,7 +248,6 @@ class SceneInput(SceneRandomized):
             )
             return np.hstack(
                 (
-                    # acceleration_old,
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
@@ -348,7 +340,7 @@ class SceneInput(SceneRandomized):
         # rhs = thh.to_double(self.get_integrated_forces_column_jax())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
-            # energy_args=self.get_energy_obstacle_jax(None)
+            # energy_args=self.get_energy_obstacle_for_jax(None)
             # EnergyObstacleArgumentsTorch(
             #     lhs_values=lhs_sparse_copy.values(),
             #     lhs_indices=lhs_sparse_copy.indices(),
@@ -368,7 +360,6 @@ class SceneInput(SceneRandomized):
             # rhs=rhs,
         )
 
-        target_data.acceleration_old = thh.to_double(self.acceleration_old)
         if hasattr(self, "exact_acceleration"):
             target_data.exact_acceleration = thh.to_double(self.exact_acceleration)
         if hasattr(self, "linear_acceleration"):
@@ -397,7 +388,6 @@ class SceneInput(SceneRandomized):
     def get_nodes_data_description_dense(dimension: int):
         desc = []
         for attr in [
-            # "acceleration_old",
             # "linear_acceleration",
             # "input_forces",
             "boundary_normals",

@@ -1,3 +1,4 @@
+import jax.numpy as jnp
 import numpy as np
 
 from conmech.helpers import nph
@@ -27,7 +28,7 @@ def integrate(
     # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
     # v_tangential = nph.get_tangential(velocity, nodes_normals)
 
-    v_tangential = nph.get_tangential_jax(velocity, obstacle_normals)
+    v_tangential = nph.get_tangential(velocity, obstacle_normals)
     heat = obstacle_heat(penetration, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
@@ -40,7 +41,6 @@ class SceneTemperature(Scene):
         body_prop,
         obstacle_prop,
         schedule,
-        normalize_by_rotation: bool,
         create_in_subprocess,
     ):
         super().__init__(
@@ -48,7 +48,6 @@ class SceneTemperature(Scene):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         self.t_old = np.zeros((self.nodes_count, 1))
@@ -98,7 +97,8 @@ class SceneTemperature(Scene):
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
+            # free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
+            free_x_free=self.solver_cache.temperature_free_x_free,
             contact_x_free=self.solver_cache.temperature_contact_x_free,
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free

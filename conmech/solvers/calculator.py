@@ -15,8 +15,6 @@ from conmech.scene.scene import (
     Scene,
     energy_obstacle_colliding_jax,
     energy_obstacle_jax,
-    hes_energy_obstacle_colliding_new,
-    hes_energy_obstacle_new,
 )
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.lbfgs import minimize_lbfgs
@@ -38,8 +36,15 @@ class Calculator:
     MAX_K = 0
 
     @staticmethod
-    def minimize_jax(function, hes, initial_vector: np.ndarray, args) -> np.ndarray:
+    def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
+
+        state = cmh.profile(
+            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
+            baypass=True,
+        )
+        # return np.array(state.x_k)
+
         # jac = jax.jit(jax.grad(function))
         # result = cmh.profile(
         #     lambda: scipy.optimize.minimize(
@@ -64,37 +69,32 @@ class Calculator:
         # )
         # return np.array(result.x)
 
-        result = cmh.profile(
-            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
-            baypass=True,
-        )
-        return np.array(result.x_k)
-
         # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x)
         # hes_jax = jax.jit(lambda x: hvp(function, x, x))
         # hes_at_x0 = hes_jax(x0)  # jnp.zeros_like(x0)
         # q, _ = jax.scipy.sparse.linalg.cg(A=hes_jax, b=x0)
 
-        state = cmh.profile(
-            lambda: minimize_lbfgs(
-                fun=function,
-                args=args,
-                x0=x0,
-                hes=None,  # hes,  # None,
-                xtol_max=0.1,  # 0.1 * scale,
-                xtol_mean=0.1,  # 0.001 * scale,
-                max_iter=500,
-            ),
-            baypass=True,
-        )
-        if Calculator.MAX_K < state.iter_count:
-            Calculator.MAX_K = state.iter_count
-        if state.overrun:
-            print(
-                f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
-            )
-        if jnp.any(jnp.isnan(state.x_k)):
-            return x0
+        # state = cmh.profile(
+        #     lambda: minimize_lbfgs(
+        #         fun=function,
+        #         args=args,
+        #         x0=x0,
+        #         hes=None,  # hes,  # None,
+        #         xtol_max=0.1,  # 0.1 * scale,
+        #         xtol_mean=0.1,  # 0.001 * scale,
+        #         max_iter=500,
+        #     ),
+        #     baypass=True,
+        # )
+
+        if Calculator.MAX_K < state.k:
+            Calculator.MAX_K = state.k
+        #if state.failed:
+        #    print("Optimization failed")
+        # if state.overrun:
+        #     print(
+        #         f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
+        #     )
         return np.asarray(state.x_k)
 
         # hes_jax = jax.hessian(function)
@@ -154,7 +154,10 @@ class Calculator:
             and not np.allclose(last_t, temperature)
         ):
             last_normalized_a, last_t = normalized_a, temperature
-            normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
+            ##############normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
+            normalized_a = Calculator.solve_acceleration_normalized_function(
+                setting=scene, temperature=temperature, initial_a=initial_a
+            )
             temperature = Calculator.solve_temperature_normalized(scene, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
@@ -246,7 +249,7 @@ class Calculator:
             lambda: solver(A=A, b=b, x0=x0, M=M),
             baypass=True,
         )
-        return np.array(nph.unstack_jax(normalized_a_vector, setting.dimension))
+        return np.array(nph.unstack(normalized_a_vector, setting.dimension))
         # assert info == 0
         # assert np.allclose(A @ normalized_a_vector_jax - b.reshape(-1), 0)
 
@@ -266,20 +269,21 @@ class Calculator:
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        args = scene.get_energy_obstacle_jax(temperature)
+        args = cmh.profile(
+            lambda: scene.get_energy_obstacle_args_for_jax(temperature),
+            baypass=True,
+        )
 
         def get_vector():
             if not scene.is_colliding():
                 return Calculator.minimize_jax(
                     function=energy_obstacle_jax,
-                    hes=hes_energy_obstacle_new,
                     initial_vector=initial_a_vector,
                     args=args,
                 )
             else:
                 return Calculator.minimize_jax(
                     function=energy_obstacle_colliding_jax,
-                    hes=hes_energy_obstacle_colliding_new,
                     initial_vector=initial_a_vector,
                     args=args,
                 )

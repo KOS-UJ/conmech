@@ -329,7 +329,7 @@ def draw_input_v(scene: Scene, position, axes):
 def draw_a(scene, position, axes):
     return draw_data(
         "A",
-        scene.normalized_a_old,
+        scene.exact_acceleration,
         scene,
         position,
         axes,

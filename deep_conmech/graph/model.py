@@ -201,7 +201,6 @@ class GraphModelDynamic:
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
-            normalize_by_rotation=config.normalize_by_rotation,
             layers_count=config.td.mesh_layers_count,
             create_in_subprocess=create_in_subprocess,
         )
@@ -372,7 +371,6 @@ class GraphModelDynamic:
         all_acceleration,
         graph_sizes_base,
         all_exact_acceleration,
-        all_old_acceleration,
         all_linear_acceleration,
     ):
         # big_forces = node_features[:, :dimension]
@@ -391,7 +389,6 @@ class GraphModelDynamic:
             # energy_args=target_data.energy_args,
             graph_sizes_base=graph_sizes_base,
             exact_acceleration=all_exact_acceleration,
-            old_acceleration=all_old_acceleration,
             linear_acceleration=all_linear_acceleration,
         )
 
@@ -418,8 +415,7 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=target_data.exact_acceleration,
-            all_old_acceleration=target_data.acceleration_old,
-            all_linear_acceleration=target_data.linear_acceleration,
+            all_linear_acceleration=None#target_data.linear_acceleration,
         )
         # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
 

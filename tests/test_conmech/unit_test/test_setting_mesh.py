@@ -20,7 +20,6 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
             scale=[scale_x, scale_y],
         ),
         schedule=Schedule(1),
-        normalize_by_rotation=True,
     )
 
     # Act and Assert
@@ -40,7 +39,6 @@ def test_boundary_nodes_data_3d():
             dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
         ),
         schedule=Schedule(1),
-        normalize_by_rotation=True,
     )
 
     # Act and Assert

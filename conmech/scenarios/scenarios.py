@@ -77,7 +77,6 @@ class Scenario:
 
     def get_scene(
         self,
-        normalize_by_rotation=True,
         randomize=False,
         create_in_subprocess: bool = False,
     ) -> Scene:
@@ -87,7 +86,6 @@ class Scenario:
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
             layers_count=LAYERS_COUNT,
         )
@@ -137,7 +135,6 @@ class TemperatureScenario(Scenario):
 
     def get_scene(
         self,
-        normalize_by_rotation=True,
         randomize=False,
         create_in_subprocess: bool = False,
     ) -> SceneTemperature:
@@ -147,7 +144,6 @@ class TemperatureScenario(Scenario):
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
         setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)

@@ -69,7 +69,6 @@ class ProblemSolver:
             is_dirichlet=setup.is_dirichlet,
             is_contact=setup.is_contact,
             dynamics_config=DynamicsConfiguration(
-                normalize_by_rotation=False,
                 create_in_subprocess=False,
                 with_lhs=False,
                 with_schur=False,

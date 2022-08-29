@@ -112,15 +112,13 @@ def run_scenario(
         if plot_index:
             plot_scenes_count[0] += 1
 
-    normalize_by_rotation = False  #########################
-    print(f"Creating scene... normalize: {normalize_by_rotation}")
+    print(f"Creating scene...")
     create_in_subprocess = False
 
     if get_scene_function is None:
         _get_scene_function = lambda randomize: scenario.get_scene(
             randomize=randomize,
             create_in_subprocess=create_in_subprocess,
-            normalize_by_rotation=normalize_by_rotation,
         )
     else:
         _get_scene_function = lambda randomize: get_scene_function(
@@ -217,15 +215,12 @@ def simulate(
     operation: Optional[Callable] = None,
 ) -> Tuple[Scene, float]:
     with_temperature = isinstance(scene, SceneTemperature)
-    reduced_scene = scene.all_layers[1].mesh
-    reduced_scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
 
     solver_time = 0.0
     calculator_time = 0.0
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
-    reduced_acceleration = None
     temperature = None
     base_a = None
     energy_values = np.zeros(len(time_tqdm))
@@ -233,8 +228,7 @@ def simulate(
         current_time = (time_step + 1) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
-        # prepare(scenario, reduced_scene, None, current_time, with_temperature)
-
+        
         start_time = time.time()
         if with_temperature:
             acceleration, temperature = solve_function(

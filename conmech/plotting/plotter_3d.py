@@ -84,7 +84,7 @@ def plot_frame(
                 "F": scene.normalized_inner_forces,
                 "U": scene.normalized_displacement_old,
                 "V": scene.normalized_velocity_old,
-                "A": scene.normalized_a_old,
+                "A": scene.exact_acceleration,
             },
             t_scale=t_scale,
         )

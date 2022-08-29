@@ -39,7 +39,10 @@ def get_C_temp_scenarios(mesh_density, final_time):
         ),
     ]
 
-    obstacle = Obstacle(None, default_temp_obstacle_prop)
+    #obstacle = Obstacle(None, default_temp_obstacle_prop)
+    obstacle = Obstacle(
+        np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
+    )
     return [
         TemperatureScenario(
             name=f"C_{i}",

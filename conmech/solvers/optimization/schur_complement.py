@@ -60,29 +60,31 @@ class SchurComplement(Optimization):
         free_indices: slice,
     ):
 
-        matrix_csr = jxh.to_scipy_sparse(matrix)
-        size = matrix_csr.shape[0] // dimension
+        size = matrix.shape[0] // dimension
 
         def get_slice(indices, dim):
             return slice(dim * size + (indices.start or 0), dim * size + indices.stop)
 
-        def get_sliced(matrix_csr, indices_height, indices_width):
-            result_csr = scipy.sparse.bmat(
-                [
+        def get_sliced(matrix, indices_height, indices_width):
+            if dimension == 1:
+                result_csr = scipy.sparse.csr_matrix(matrix[get_slice(indices_height, 0), get_slice(indices_width, 0)])
+            else:
+                result_csr = scipy.sparse.bmat(
                     [
-                        matrix_csr[get_slice(indices_height, row), get_slice(indices_width, col)]
-                        for col in range(dimension)
-                    ]
-                    for row in range(dimension)
-                ],
-                format="coo",
-            )
+                        [
+                            matrix[get_slice(indices_height, row), get_slice(indices_width, col)]
+                            for col in range(dimension)
+                        ]
+                        for row in range(dimension)
+                    ],
+                    format="coo",
+                )
             return jxh.to_jax_sparse(result_csr)
 
-        contact_x_contact = get_sliced(matrix_csr, contact_indices, contact_indices)
-        free_x_contact = get_sliced(matrix_csr, free_indices, contact_indices)
-        contact_x_free = get_sliced(matrix_csr, contact_indices, free_indices)
-        free_x_free = get_sliced(matrix_csr, free_indices, free_indices)
+        contact_x_contact = get_sliced(matrix, contact_indices, contact_indices)
+        free_x_contact = get_sliced(matrix, free_indices, contact_indices)
+        contact_x_free = get_sliced(matrix, contact_indices, free_indices)
+        free_x_free = get_sliced(matrix, free_indices, free_indices)
 
         free_x_free_inverted = None
         lhs_boundary = None
@@ -123,8 +125,8 @@ class SchurComplement(Optimization):
         )
         return (
             np.array(lhs_boundary, dtype=np.float64),
-            np.array(free_x_contact, dtype=np.float64),
-            np.array(contact_x_free, dtype=np.float64),
+            np.array(free_x_contact.todense(), dtype=np.float64),
+            np.array(contact_x_free.todense(), dtype=np.float64),
             np.array(free_x_free_inverted, dtype=np.float64),
         )
 

@@ -56,7 +56,6 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
         body_prop=scenarios.default_body_prop,
         obstacle_prop=scenarios.default_obstacle_prop,
         schedule=Schedule(final_time=config.td.final_time),
-        normalize_by_rotation=config.normalize_by_rotation,
         create_in_subprocess=False,
         layers_count=layers_count,
         with_schur=False,
@@ -117,7 +116,7 @@ class SyntheticDataset(BaseDataset):
         description: str,
         layers_count: int,
         load_data_to_ram: bool,
-        randomize_at_load: bool,
+        randomize: bool,
         with_scenes_file: bool,
         config: TrainingConfig,
         rank: int,
@@ -131,7 +130,7 @@ class SyntheticDataset(BaseDataset):
             layers_count=layers_count,
             solve_function=Calculator.solve_all,
             load_data_to_ram=load_data_to_ram,
-            randomize_at_load=randomize_at_load,
+            randomize=randomize,
             num_workers=config.synthetic_generation_workers,
             with_scenes_file=with_scenes_file,
             config=config,
@@ -147,6 +146,8 @@ class SyntheticDataset(BaseDataset):
     def generate_scene(self):
         base = lnh.generate_base(self.config.td.dimension)
         scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
+        if self.randomize:
+            scene.set_randomization(self.config)
 
         obstacles_unnormalized = generate_obstacles(self.config, scene)
         forces = generate_forces(self.config, scene, base)
@@ -160,10 +161,10 @@ class SyntheticDataset(BaseDataset):
         scene.set_velocity_old(velocity_old)
         # scene.prepare(forces)
 
-        scene.update_reduced_from_dense()
+        scene.update_reduced()
 
         scene.exact_acceleration = None
-        scene, acceleration = self.prepare_scene(scene, forces)
+        scene, acceleration = self.solve_and_prepare_scene(scene, forces)
         return scene
 
     def generate_data(self):

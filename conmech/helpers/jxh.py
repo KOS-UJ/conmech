@@ -25,18 +25,5 @@ def to_jax_sparse(matrix):
     result = jax.experimental.sparse.BCOO((coo_matrix.data, indices), shape=coo_matrix.shape)
     return result.sort_indices()
 
-
-def to_scipy_sparse(matrix):
-    if matrix is None:
-        return None
-    return matrix.get()
-    # data = np.array(coo_matrix.data)
-    # indices = np.array(coo_matrix.indices).T
-    # row = indices[0]
-    # col = indices[1]
-    # result = scipy.sparse.coo_matrix((data, (row, col)), shape=coo_matrix.shape, dtype=np.float64)
-    # return result
-
-
 def to_dense_np(array):
     return np.array(array.todense(), dtype=np.float64)

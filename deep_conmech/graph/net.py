@@ -450,7 +450,7 @@ class CustomGraphNet(nn.Module):
         # )
 
         scene.reduced.exact_acceleration = Calculator.solve(
-            scene=scene.reduced, initial_a=scene.reduced.acceleration_old
+            scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)

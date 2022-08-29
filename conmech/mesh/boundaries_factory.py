@@ -157,13 +157,7 @@ class Boundaries:
     dirichlet_nodes_count: int
 
     boundary_internal_indices: np.ndarray
-
-    @property
-    def boundary_surfaces(self):
-        return np.unique(
-            np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
-            axis=1,
-        )
+    boundary_surfaces: np.ndarray
 
     @property
     def boundary_nodes_count(self):
@@ -229,6 +223,11 @@ class BoundariesFactory:
             contact_boundary = boundary_surfaces[contact_mask]
             neumann_boundary = boundary_surfaces[neumann_mask]
 
+        # boundary_surfaces2 = np.unique(
+        #     np.vstack((contact_boundary, neumann_boundary, dirichlet_boundary)),
+        #     axis=1,
+        # )
+
         boundaries_data = Boundaries(
             contact_boundary=contact_boundary,
             neumann_boundary=neumann_boundary,
@@ -237,6 +236,7 @@ class BoundariesFactory:
             neumann_nodes_count=neumann_nodes_count,
             dirichlet_nodes_count=dirichlet_nodes_count,
             boundary_internal_indices=boundary_internal_indices,
+            boundary_surfaces=boundary_surfaces,
         )
 
         return initial_nodes, elements, boundaries_data

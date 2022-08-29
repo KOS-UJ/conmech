@@ -19,7 +19,7 @@ class CalculatorDataset(ScenariosDataset):
         all_scenarios: List[Scenario],
         layers_count: int,
         load_data_to_ram: bool,
-        randomize_at_load: bool,
+        randomize: bool,
         config: TrainingConfig,
         rank: int,
         world_size: int,
@@ -31,43 +31,9 @@ class CalculatorDataset(ScenariosDataset):
             layers_count=layers_count,
             solve_function=Calculator.solve_all,  # solve_all_acceleration_normalized_function,  # Calculator.solve_all,
             load_data_to_ram=load_data_to_ram,
-            randomize_at_load=randomize_at_load,
+            randomize=randomize,
             config=config,
             rank=rank,
             world_size=world_size,
             item_fn=item_fn,
         )
-
-    # def reset(self):
-    #     self.all_acceleration = None
-
-    # def update(self, all_acceleration):
-    #     self.all_acceleration = all_acceleration
-
-    # def get_state(self, acceleration, prev_scene):
-    #     time_step = prev_scene.time_step
-    #     velocity = prev_scene.velocity_old + time_step * acceleration
-    #     displacement = prev_scene.displacement_old + time_step * velocity
-    #     return velocity, displacement
-
-    # def __getitem__(self, index: int):
-    #     init_layer_list, init_target_data, init_scene = super().__getitem__(index)
-    #     if index == 0 or self.all_acceleration is None:
-    #         return init_layer_list, init_target_data
-
-    #     scene = copy.deepcopy(init_scene)
-
-    #     _, _, prev_scene = super().__getitem__(index-1)
-    #     velocity, displacement = self.get_state(acceleration=prev_scene.exact_acceleration, prev_scene=prev_scene)
-    #     assert np.all(np.equal(scene.velocity_old, velocity))
-    #     assert np.all(np.equal(scene.displacement_old, displacement))
-
-    #     acceleration = thh.to_np_double(self.all_acceleration[index-1])
-    #     velocity, displacement = self.get_state(acceleration=acceleration, prev_scene=prev_scene)
-
-    #     scene.set_displacement_old(displacement)
-    #     scene.set_velocity_old(velocity)
-    #     scene.set_acceleration_old(acceleration)
-
-    #     layer_list = [scene.get_features_data()]
-    #     return layer_list, init_target_data

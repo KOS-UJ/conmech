@@ -121,7 +121,7 @@ def get_dataset(output_catalog):
         description="train",
         layers_count=config.td.mesh_layers_count,
         with_scenes_file=config.with_train_scenes_file,
-        randomize_at_load=True,
+        randomize=True,
         config=config,
     )
 

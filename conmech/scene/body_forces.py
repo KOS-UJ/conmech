@@ -112,13 +112,13 @@ class BodyForces(Dynamics):
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
-    def get_integrated_forces_column_jax(self):
+    def get_integrated_forces_column_for_jax(self):
         integrated_forces = get_integrated_forces_jax_int(
             volume_at_nodes_jax=self.matrices.volume_at_nodes_jax,
             normalized_inner_forces=self.normalized_inner_forces,
             integrated_outer_forces=self.get_integrated_outer_forces(),
         )
-        return nph.stack_column_jax(integrated_forces[self.independent_indices, :])
+        return nph.stack_column(integrated_forces[self.independent_indices, :])
 
         integrated_inner_forces = self.matrices.volume_at_nodes_jax @ jnp.array(
             self.normalized_inner_forces
@@ -164,7 +164,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column_jax()
+        f_vector = self.get_integrated_forces_column_for_jax()
         rhs = (
             f_vector
             - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)

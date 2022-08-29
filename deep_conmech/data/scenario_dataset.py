@@ -28,7 +28,7 @@ class ScenariosDataset(BaseDataset):
         layers_count: int,
         solve_function: Callable,
         load_data_to_ram: bool,
-        randomize_at_load: bool,
+        randomize: bool,
         config: TrainingConfig,
         rank: int,
         world_size: int,
@@ -43,7 +43,7 @@ class ScenariosDataset(BaseDataset):
             layers_count=layers_count,
             solve_function=solve_function,
             load_data_to_ram=load_data_to_ram,
-            randomize_at_load=randomize_at_load,
+            randomize=randomize,
             num_workers=config.scenario_generation_workers,
             with_scenes_file=True,
             config=config,
@@ -75,10 +75,11 @@ class ScenariosDataset(BaseDataset):
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
-            normalize_by_rotation=config.normalize_by_rotation,
             create_in_subprocess=False,
             layers_count=layers_count,
         )
+        scene.set_randomization(self.config)
+
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
 
@@ -111,16 +112,11 @@ class ScenariosDataset(BaseDataset):
                 scene = self.get_scene(
                     scenario=scenario, layers_count=self.layers_count, config=self.config
                 )
-                scene.exact_acceleration = np.zeros_like(scene.initial_nodes)
-
-                scene.reduced.normalize_and_set_obstacles(
-                    scenario.linear_obstacles, scenario.mesh_obstacles
-                )
-                # reduced_normalized_a = np.zeros_like(scene.reduced.initial_nodes)
 
             current_time = ts * scene.time_step
+
             forces = scenario.get_forces_by_function(scene, current_time)
-            scene, acceleration = self.prepare_scene(scene, forces)
+            scene, acceleration = self.solve_and_prepare_scene(scene, forces)
 
             self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
 
@@ -135,7 +131,6 @@ class ScenariosDataset(BaseDataset):
 
             # setting = setting.get_copy()
             scene.iterate_self(acceleration)
-            scene.update_reduced_from_dense()  ###########
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

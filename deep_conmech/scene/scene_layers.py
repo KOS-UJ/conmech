@@ -46,19 +46,16 @@ class SceneLayers(Scene):
         body_prop: DynamicBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
         create_in_subprocess: bool,
         layers_count: int,
-        with_schur: bool = True,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
-            normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
-            with_schur=with_schur,
+            with_schur=False,
         )
         self.create_in_subprocess = create_in_subprocess
         self.all_layers: List[AllMeshLayerLinkData] = []
@@ -88,8 +85,8 @@ class SceneLayers(Scene):
                 body_prop=self.body_prop,
                 obstacle_prop=self.obstacle_prop,
                 schedule=self.schedule,
-                normalize_by_rotation=self.normalize_by_rotation,
                 create_in_subprocess=self.create_in_subprocess,
+                with_schur=False
             )
             mesh_layer_data = AllMeshLayerLinkData(
                 mesh=sparse_mesh,
@@ -145,9 +142,19 @@ class SceneLayers(Scene):
     def reduced(self):
         return self.all_layers[1].mesh
 
-    def set_exact_acceleration(self, exact_acceleration):
+    def normalize_and_set_obstacles(
+        self,
+        obstacles_unnormalized: Optional[np.ndarray],
+        all_mesh_prop: Optional[List[MeshProperties]],
+    ):
+        super().normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
+        self.reduced.normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
+
+    def set_exact_acceleration(self, exact_acceleration, reduced_exact_acceleration):
         self.exact_acceleration = exact_acceleration
-        self.reduced.exact_acceleration = self.lift_data(exact_acceleration)
+        self.reduced.exact_acceleration = (
+            reduced_exact_acceleration  ### self.lift_data(exact_acceleration)
+        )
 
     def lift_data(self, data):
         return self.approximate_boundary_or_all_from_base(layer_number=1, base_values=data)
@@ -163,36 +170,33 @@ class SceneLayers(Scene):
 
     def iterate_self(self, acceleration, temperature=None):
         super().iterate_self(acceleration, temperature)
-        self.update_reduced()  ####################
+        self.update_reduced()
 
-    def recenter_reduced(self):
-        displacement_old = self.reduced.normalize_shift_and_rotate2(self.reduced.displacement_old)
-        self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(
-            self.displacement_old, axis=0
-        )
-        return
-        self.reduced.displacement_old = (
-            self.reduced.displacement_old
-            - np.mean(self.reduced.displacement_old, axis=0)
-            + np.mean(self.displacement_old, axis=0)
-        )
-        a = 0
+    # def recenter_reduced(self):
+    #     displacement_old = self.reduced.normalize_shift_and_rotate2(self.reduced.displacement_old)
+    #     self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(
+    #         self.displacement_old, axis=0
+    #     )
+    #     return
+    #     self.reduced.displacement_old = (
+    #         self.reduced.displacement_old
+    #         - np.mean(self.reduced.displacement_old, axis=0)
+    #         + np.mean(self.displacement_old, axis=0)
+    #     )
+
+    def clear_reduced(self):
+        self.reduced.set_displacement_old(None)
+        self.reduced.set_velocity_old(None)
 
     def update_reduced(self):
-        self.update_reduced_from_dense()
-        return
-
-        self.reduced.iterate_self(self.reduced.exact_acceleration)
-        # self.recenter_reduced()
-
-    def update_reduced_from_dense(self):
-        acceleration = self.lift_data(self.acceleration_old)
-        velocity = self.lift_data(self.input_velocity_old)  # input
-        displacement = self.lift_data(self.input_displacement_old)  # input
+        velocity = self.lift_data(self.input_velocity_old)  ####
+        displacement = self.lift_data(self.input_displacement_old)  ###
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)
-        self.reduced.set_acceleration_old(acceleration)
+
+        # self.reduced.iterate_self(self.reduced.exact_acceleration)
+        # self.recenter_reduced()
 
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if base_values is None or layer_number == 0:

@@ -48,7 +48,7 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
 
     internal_nodes = moved_nodes[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
-        nph.elementwise_dot_jax(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
+        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
     )
     return unoriented_normals * external_orientation
 
@@ -102,7 +102,6 @@ class BodyPosition(Mesh):
         self,
         mesh_prop: MeshProperties,
         schedule: Schedule,
-        normalize_by_rotation: bool,
         is_dirichlet: Optional[Callable] = None,
         is_contact: Optional[Callable] = None,
         create_in_subprocess: bool = False,
@@ -115,22 +114,15 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self.normalize_by_rotation = False  ##### normalize_by_rotation
         self.displacement_old = np.zeros_like(self.initial_nodes)
         self.velocity_old = np.zeros_like(self.initial_nodes)
-        self.acceleration_old = np.zeros_like(self.initial_nodes)
-
-    @property
-    def exact_displacement(self):
-        velocity = self.velocity_old + self.time_step * self.exact_acceleration
-        exact_displacement = self.displacement_old + self.time_step * velocity
-        return exact_displacement
-
-    def set_acceleration_old(self, acceleration):
-        self.acceleration_old = acceleration
+        self.exact_acceleration = np.zeros_like(self.initial_nodes)
 
     def set_velocity_old(self, velocity):
         self.velocity_old = velocity
+
+    def set_exact_acceleration(self, acceleration):
+        self.exact_acceleration = acceleration
 
     def set_displacement_old(self, displacement):
         self.displacement_old = displacement
@@ -149,7 +141,6 @@ class BodyPosition(Mesh):
 
         self.set_displacement_old(displacement)
         self.set_velocity_old(velocity)
-        self.set_acceleration_old(acceleration)
 
         return self
 
@@ -159,14 +150,10 @@ class BodyPosition(Mesh):
 
     def normalize_rotate(self, vectors):
         return vectors
-        if not self.normalize_by_rotation:
-            return vectors
         return lnh.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
         return vectors
-        if not self.normalize_by_rotation:
-            return vectors
         return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     def normalize_rotate2(self, vectors):
@@ -199,10 +186,6 @@ class BodyPosition(Mesh):
 
     def get_normalized_boundary_normals(self):
         return self.normalize_rotate(self.get_boundary_normals())
-
-    @property
-    def normalized_a_old(self):
-        return self.normalize_rotate(self.acceleration_old)
 
     @property
     def mean_moved_nodes(self):

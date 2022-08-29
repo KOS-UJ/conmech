@@ -40,8 +40,8 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.1 * (0.01**2)  # 0.5 0.1 0.01 0
-    # same as net error, so that a_correction is similar # 0.005 * displacement_random_scale
+    displacement_in_random_factor: float = 0.05 * (0.01**2)  # 0.5 0.1 0.01 0
+    # same as net error, so that a_correction is similar
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
 

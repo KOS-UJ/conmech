@@ -68,7 +68,7 @@ def test_graph_layers():
         description="train",
         layers_count=config.td.mesh_layers_count,
         with_scenes_file=config.with_train_scenes_file,
-        randomize_at_load=True,
+        randomize=True,
         config=config,
         rank=0,
         world_size=1,

@@ -64,7 +64,6 @@ class SolverMatrices:
 
 @dataclass
 class DynamicsConfiguration:
-    normalize_by_rotation: bool = True
     create_in_subprocess: bool = False
     with_lhs: bool = True
     with_schur: bool = True
@@ -83,7 +82,6 @@ class Dynamics(BodyPosition):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
-            normalize_by_rotation=dynamics_config.normalize_by_rotation,
             is_dirichlet=is_dirichlet,
             is_contact=is_contact,
             create_in_subprocess=dynamics_config.create_in_subprocess,
@@ -134,7 +132,6 @@ class Dynamics(BodyPosition):
         )
         # ilu = cupyx.scipy.sparse.linalg.spilu(A=A, fill_factor=1)
 
-        return
         if not self.with_schur:
             return
 
@@ -148,7 +145,7 @@ class Dynamics(BodyPosition):
             self.solver_cache.lhs_boundary,
             self.solver_cache.free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=self.solver_cache.lhs_sparse_cp,
+            matrix=self.solver_cache.lhs_sparse,
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
@@ -162,22 +159,22 @@ class Dynamics(BodyPosition):
             @ self.solver_cache.free_x_contact.todense()
         )
 
-        return
+        #######################return
         if not self.with_temperature:
             return
 
         i = self.independent_indices
         # TODO: #65 Make faster
         self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
-            (1 / self.time_step) * self.acceleration_operator.todense()[i, i]
-            + self.thermal_conductivity.todense()[i, i]
+            (1 / self.time_step) * self.acceleration_operator[i, i]
+            + self.thermal_conductivity[i, i]
         )
         (
             self.solver_cache.temperature_boundary,
             self.solver_cache.temperature_free_x_contact,
             self.solver_cache.temperature_contact_x_free,
             self.solver_cache.temperature_free_x_free_inv,
-        ) = SchurComplement.calculate_schur_complement_matrices(
+        ) = SchurComplement.calculate_schur_complement_matrices_np(
             matrix=self.solver_cache.lhs_temperature,
             dimension=1,
             contact_indices=self.contact_indices,
@@ -190,23 +187,23 @@ class Dynamics(BodyPosition):
 
     @property
     def acceleration_operator(self):
-        return jxh.to_dense_np(self.acceleration_operator)
+        return jxh.to_dense_np(self.matrices.acceleration_operator)
 
     @property
     def elasticity(self):
-        return jxh.to_dense_np(self.elasticity)
+        return jxh.to_dense_np(self.matrices.elasticity)
 
     @property
     def viscosity(self):
-        return jxh.to_dense_np(self.viscosity)
+        return jxh.to_dense_np(self.matrices.viscosity)
 
     @property
     def thermal_expansion(self):
-        return jxh.to_dense_np(self.thermal_expansion)
+        return jxh.to_dense_np(self.matrices.thermal_expansion)
 
     @property
     def thermal_conductivity(self):
-        return jxh.to_dense_np(self.thermal_conductivity)
+        return jxh.to_dense_np(self.matrices.thermal_conductivity)
 
     @property
     def with_temperature(self):
