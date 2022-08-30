@@ -220,8 +220,8 @@ class ProblemSolver:
                     time_step=self.second_step_solver.time_step,
                 )
             )
-            if isinstance(self.step_solver, SchurComplement):
-                self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+            if isinstance(self.second_step_solver, SchurComplement):
+                self.second_step_solver._node_forces, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
             ### end iterate 2
             solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
             norm = (
