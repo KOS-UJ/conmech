@@ -350,7 +350,10 @@ class TimeDependent(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
+        done = 0
         for n in output_step:
+            done += 1
+            print(f"{done / n_steps * 100:.2f}%", end="\r")
             self.run(solution, state, n_steps=n, verbose=verbose)
             results.append(state.copy())
 
@@ -430,8 +433,11 @@ class TemperatureTimeDependent(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
+        done = 0
         for n in output_step:
             for _ in range(n):
+                done += 1
+                print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
@@ -464,7 +470,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = TimeDependentPiezoelectricBodyProperties(
-            mass_density=1.0,
+            mass_density=0.1,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
             theta=setup.th_coef,

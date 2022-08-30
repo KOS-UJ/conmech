@@ -107,6 +107,7 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         A_12 = mu * W[1, 0] + lambda_ * W[0, 1]
         A_21 = lambda_ * W[1, 0] + mu * W[0, 1]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
+        # TODO: generalise
         # A_11 = 21*1e0 * W[0, 0] + 21.1*1e0 * W[1, 1]
         # A_12 = 10.5*1e0 * W[1, 0] + 4.25*1e0 * W[0, 1]
         # A_21 = 4.25*1e0 * W[1, 0] + 10.5*1e0 * W[0, 1]
@@ -131,7 +132,7 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         )
 
     def get_piezoelectric_tensor(self, W, coeff):
-
+        # TODO!!!
         A_11 = 0 * W[0, 0] + 0 * W[1, 1]
         A_12 = -0.61 * W[1, 0] + -0.59 * W[0, 1]
         A_21 = 0 * W[1, 0] + 0 * W[0, 1]
