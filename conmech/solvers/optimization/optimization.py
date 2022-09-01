@@ -40,6 +40,7 @@ class Optimization(Solver):
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
+                r=contact_law.temp_exchange,
             )
 
     def __str__(self):

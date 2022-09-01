@@ -158,14 +158,15 @@ def make_cost_functional(
 
 
 def make_cost_functional_temperature(
-    hn: Callable, ht: Optional[Callable] = None, h_functional: Optional[Callable] = None
+    hn: Callable, ht: Optional[Callable] = None, h_functional: Optional[Callable] = None, r: Optional[Callable] = None
 ):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
     h_functional = numba.njit(h_functional)
+    r = njit(r)
 
     @numba.njit()
-    def contact_cost_functional(u_vector, nodes, contact_boundary):
+    def contact_cost_functional(u_vector, nodes, contact_boundary, temp_vector):
         cost = 0
         offset = len(u_vector) // DIMENSION
 
@@ -177,6 +178,7 @@ def make_cost_functional_temperature(
 
             # ASSUMING `u_vector` and `nodes` have the same order!
             um = interpolate_node_between(n_id_0, n_id_1, u_vector)
+            temp_m = interpolate_node_between(n_id_0, n_id_1, temp_vector, dimension=1)
 
             normal_vector = n_down(n_0, n_1)
 
@@ -186,7 +188,9 @@ def make_cost_functional_temperature(
             if n_id_0 < offset and n_id_1 < offset:
                 # cost += edgeLength * (hn(uNmL, tmL)
                 #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-                cost += nph.length(n_0, n_1) * h_functional(np.linalg.norm(um_tangential))
+                cost += nph.length(n_0, n_1) * (
+                        h_functional(np.linalg.norm(um_tangential)) - r(temp_m[0])
+                )
         return cost
 
     @numba.njit()
@@ -194,7 +198,7 @@ def make_cost_functional_temperature(
         result = (
             0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
             - np.dot(rhs, temp_vector)
-            - contact_cost_functional(u_vector, nodes, contact_boundary)
+            - contact_cost_functional(u_vector, nodes, contact_boundary, temp_vector)
         )
         result = np.asarray(result).ravel()
         return result
