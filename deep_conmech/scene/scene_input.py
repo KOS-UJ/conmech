@@ -83,28 +83,28 @@ def get_multilayer_edges_data_numba(
     edges_data = np.zeros((edges_number, edges_data_dim))
     for edge_index in range(edges_number):
         j, i = edges[edge_index]
-        n1, n2 = sparse_neighbours[edge_index]
+        # n1, n2 = sparse_neighbours[edge_index]
 
         set_diff_numba(initial_nodes_sparse, initial_nodes_dense, 0, edges_data[edge_index], i, j)
-        # set_diff_numba(
-        #     displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
-        # )
-        # set_diff_numba(
-        #     velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
-        # )
-
-        neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
-            data_sparse,
-            data_sparse,
-            number * size,
-            edges_data[edge_index],
-            n2,
-            n1,
+        set_diff_numba(
+            displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
+        )
+        set_diff_numba(
+            velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
         )
 
-        neighbour_data_setter(initial_nodes_sparse, 1)
-        neighbour_data_setter(displacement_old_sparse, 2)
-        # neighbour_data_setter(velocity_old_sparse, 5)
+        # neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
+        #     data_sparse,
+        #     data_sparse,
+        #     number * size,
+        #     edges_data[edge_index],
+        #     n2,
+        #     n1,
+        # )
+
+        # neighbour_data_setter(initial_nodes_sparse, 1)
+        # neighbour_data_setter(displacement_old_sparse, 2)
+        # # neighbour_data_setter(velocity_old_sparse, 5)
 
     return edges_data
 

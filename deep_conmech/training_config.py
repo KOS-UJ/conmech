@@ -10,7 +10,7 @@ TEST = False  # False
 DIMENSION = 3
 LAYERS_COUNT = 2  # 2
 MESH_LAYERS_PROPORTION = 2  # 4
-CLOSEST_COUNT = 3
+CLOSEST_COUNT = 4 #3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 
@@ -40,7 +40,7 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0.05 * (0.01**2)  # 0.5 0.1 0.01 0
+    displacement_in_random_factor: float = 0 # 0.1 * (0.01**2)  # 0.5 0.1 0.01 0
     # same as net error, so that a_correction is similar
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale

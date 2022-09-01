@@ -83,6 +83,12 @@ class ScenariosDataset(BaseDataset):
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
 
+    def print_stats(self, scene):
+        print(len(scene.initial_nodes))
+        print(len(scene.reduced.initial_nodes))
+        print(np.min(scene.initial_nodes, axis=0))
+        print(np.max(scene.initial_nodes, axis=0))
+
     def generate_data(self):
         self.generate_data_process()
         # mph.run_process(self.generate_data_process)

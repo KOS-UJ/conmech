@@ -68,16 +68,16 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
 
 def get_pygmsh_bunny(mesh_prop):
     mesh_id = 1
-    if mesh_prop.mesh_density_x <= 16:
+    if mesh_prop.mesh_density_x <= 32:
         mesh_id = 2
-    if mesh_prop.mesh_density_x <= 8:
+    if mesh_prop.mesh_density_x <= 16:
         mesh_id = 3
-    if mesh_prop.mesh_density_x <= 4:
+    if mesh_prop.mesh_density_x <= 8:
         mesh_id = 4
 
     mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}.msh")
     scale = 3.0
-    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
+    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype("long")
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
     # nodes[:, 1] *= -1
     # nodes[:, 1] += 1.0
@@ -89,7 +89,7 @@ def get_pygmsh_bunny(mesh_prop):
 def get_pygmsh_armadillo():
     mesh = meshio.read("models/armadillo/armadillo.msh")
     scale = 3.0
-    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"]
+    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype("long")
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
     nodes = nodes * scale
     return nodes, elements

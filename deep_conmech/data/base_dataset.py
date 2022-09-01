@@ -179,14 +179,22 @@ class BaseDataset:
     def features_data_path(self):
         return f"{self.tmp_directory}/DATASET.feat"
 
+    def unload_and_clear_indices(self):
+        self.features_indices = None
+        cmh.clear_folder(self.tmp_directory)
+        cmh.create_folder(self.tmp_directory)
+
+
     def initialize_data(self):
         print(f"----NODE {self.rank}: INITIALIZING DATASET ({self.data_id})----")
         self.create_folders()
         self.load_indices()
+        
         if self.check_indices():
             print(f"Taking prepared dataset ({self.get_size(self.features_data_path):.2f} GB)")
             return
 
+        self.unload_and_clear_indices()
         if self.with_scenes_file:
             self.initialize_scenes()
         else:
@@ -382,7 +390,7 @@ class BaseDataset:
         acceleration, exact_acceleration = self.solve_function(
             setting=scene, initial_a=scene.exact_acceleration
         )
-        ###################################3
+        ###################################
         _, reduced_exact_acceleration = self.solve_function(
             setting=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )

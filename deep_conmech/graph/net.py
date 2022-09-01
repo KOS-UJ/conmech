@@ -16,7 +16,7 @@ from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.training_config import TrainingData
+from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
 
 
 class BasicBlock(nn.Module):
@@ -231,10 +231,8 @@ class LinkProcessorLayer(MessagePassing):
         return processed_edge_latents
 
     def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
-        neighbours = 3  ##########################################################################################################
-        result = new_edge_latents.reshape(-1, neighbours, new_edge_latents.shape[-1]).reshape(
-            -1, 192
-        )
+        latent_dim = new_edge_latents.shape[-1]
+        result = new_edge_latents.reshape(-1, CLOSEST_COUNT * latent_dim)
         return result
         alpha = self.attention(new_edge_latents, index)
         aggregated_edge_latents = scatter_sum(alpha * new_edge_latents, index, dim=0)
@@ -364,7 +362,7 @@ class CustomGraphNet(nn.Module):
         )
 
         self.decoder_inner = ForwardNet(
-            input_dim=td.latent_dimension * 3,
+            input_dim=td.latent_dimension * CLOSEST_COUNT,
             layers_count=td.decoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None,

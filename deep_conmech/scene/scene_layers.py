@@ -86,7 +86,7 @@ class SceneLayers(Scene):
                 obstacle_prop=self.obstacle_prop,
                 schedule=self.schedule,
                 create_in_subprocess=self.create_in_subprocess,
-                with_schur=False
+                with_schur=False,
             )
             mesh_layer_data = AllMeshLayerLinkData(
                 mesh=sparse_mesh,
@@ -103,17 +103,17 @@ class SceneLayers(Scene):
             dense_mesh = sparse_mesh
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool):
-        old_nodes = from_mesh.normalized_initial_nodes
-        new_nodes = to_mesh.normalized_initial_nodes
         (
             closest_nodes,
             closest_distances,
             closest_weights,
-        ) = interpolation_helpers.get_interlayer_data(
-            base_nodes=old_nodes,
-            interpolated_nodes=new_nodes,
-            closest_count=CLOSEST_COUNT,  # self.mesh_prop.dimension + 1,
+        ) = interpolation_helpers.get_interlayer_data_numba(
+            base_nodes=from_mesh.normalized_initial_nodes,
+            base_elements=from_mesh.elements,
+            interpolated_nodes=to_mesh.normalized_initial_nodes,
+            closest_count=CLOSEST_COUNT,
             with_weights=with_weights,
+            boundary=False,
         )
         # assert np.allclose(
         #     new_nodes,
@@ -123,11 +123,13 @@ class SceneLayers(Scene):
             closest_boundary_nodes,
             closest_distances_boundary,
             closest_weights_boundary,
-        ) = interpolation_helpers.get_interlayer_data(
+        ) = interpolation_helpers.get_interlayer_data_numba(
             base_nodes=from_mesh.initial_boundary_nodes,
+            base_elements=from_mesh.elements,
             interpolated_nodes=to_mesh.initial_boundary_nodes,
-            closest_count=CLOSEST_BOUNDARY_COUNT,  # self.mesh_prop.dimension,
+            closest_count=CLOSEST_BOUNDARY_COUNT,
             with_weights=with_weights,
+            boundary=True,
         )
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,
