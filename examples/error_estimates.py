@@ -16,21 +16,21 @@ def compare(ref: TemperatureState, sol: TemperatureState):
     y = sol.body.mesh.initial_nodes[:, 1]
 
     soltri = tri.Triangulation(x, y, triangles=sol.body.mesh.elements)
-    u1hi = tri.LinearTriInterpolator(soltri, sol.velocity[:, 0])
-    u2hi = tri.LinearTriInterpolator(soltri, sol.velocity[:, 1])
+    u1hi = tri.LinearTriInterpolator(soltri, sol.displacement[:, 0])
+    u2hi = tri.LinearTriInterpolator(soltri, sol.displacement[:, 1])
     thi = tri.LinearTriInterpolator(soltri, sol.temperature)
 
     for element in ref.body.mesh.elements:
         x0 = ref.body.mesh.initial_nodes[element[0]]
         x1 = ref.body.mesh.initial_nodes[element[1]]
         x2 = ref.body.mesh.initial_nodes[element[2]]
-        u1_0 = ref.velocity[element[0], 0]
-        u1_1 = ref.velocity[element[1], 0]
-        u1_2 = ref.velocity[element[2], 0]
+        u1_0 = ref.displacement[element[0], 0]
+        u1_1 = ref.displacement[element[1], 0]
+        u1_2 = ref.displacement[element[2], 0]
         u1 = u1_0 + u1_1 + u1_2
-        u2_0 = ref.velocity[element[0], 1]
-        u2_1 = ref.velocity[element[1], 1]
-        u2_2 = ref.velocity[element[2], 1]
+        u2_0 = ref.displacement[element[0], 1]
+        u2_1 = ref.displacement[element[1], 1]
+        u2_2 = ref.displacement[element[2], 1]
         u2 = u2_0 + u2_1 + u2_2
         t0 = ref.temperature[element[0]]
         t1 = ref.temperature[element[1]]
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     T = 1
     kn = 5
     hn = 5
-    ks = range(1, kn)
+    ks = range(kn)
     hs = range(hn)
     ue = np.empty((kn, hn))
     te = np.empty((kn, hn))
@@ -69,26 +69,16 @@ if __name__ == "__main__":
                 print(k, h, u, t)
     print(repr(ue))
     print(repr(te))
-    # ue = np.asarray([[2.71252237e-316, 0.00000000e+000, 3.47852406e-308,
-    #     1.69138275e-258, 4.59714141e-287],
-    #    [1.92465185e-001, 4.75553786e-002, 2.04239809e-002,
-    #     1.39541358e-002, 1.34573983e-002],
-    #    [1.98210898e-001, 4.47388630e-002, 1.93024976e-002,
-    #     9.29889060e-003, 1.09561817e-002],
-    #    [1.94531144e-001, 4.52488889e-002, 9.94610202e-003,
-    #     7.29312294e-003, 8.06819093e-003],
-    #    [1.92930918e-001, 4.54587880e-002, 1.08310176e-002,
-    #     4.13663850e-003, 3.99287780e-003]])
-    # te = np.asarray([[2.25167296e-316, 0.00000000e+000, 7.72485098e+228,
-    #     2.71248126e-316, 5.98129656e-154],
-    #    [5.37227785e-002, 1.45118972e-002, 5.36409957e-003,
-    #     3.18761666e-003, 2.64197124e-003],
-    #    [5.50125299e-002, 1.33500827e-002, 4.06744521e-003,
-    #     1.82334603e-003, 1.28260484e-003],
-    #    [5.37500599e-002, 1.25714895e-002, 3.31705026e-003,
-    #     1.18128980e-003, 6.38392841e-004],
-    #    [5.31805489e-002, 1.23922240e-002, 3.16397024e-003,
-    #     9.05953308e-004, 2.95070851e-004]])
+    # ue = np.asarray([[0.18822859, 0.05856562, 0.03364681, 0.02754594, 0.0222198],
+    #        [0.19246518, 0.04755538, 0.02042398, 0.01395414, 0.0104574],
+    #        [0.1982109, 0.04473886, 0.0193025, 0.00929889, 0.00495618],
+    #        [0.19453114, 0.04524889, 0.0099461, 0.00729312, 0.00306819],
+    #        [0.19293092, 0.04545879, 0.01083102, 0.00413664, 0.00229288]])
+    # te = np.asarray([[0.0531951, 0.01755566, 0.00905773, 0.00693817, 0.00640698],
+    #        [0.05372278, 0.0145119, 0.0053641, 0.00318762, 0.00264197],
+    #        [0.05501253, 0.01335008, 0.00406745, 0.00182335, 0.0012826],
+    #        [0.05375006, 0.01257149, 0.00331705, 0.00118129, 0.00063839],
+    #        [0.05318055, 0.01239222, 0.00316397, 0.00090595, 0.00029507]])
 
     h_ticks = [1/2**h for h in hs]
     plt.style.use("seaborn")
@@ -99,10 +89,12 @@ if __name__ == "__main__":
     plt.title("Velocity error")
     plt.xlabel("spatial step: h")
     plt.ylabel("error: $||v-v^h||_V$")
-    plt.plot(h_ticks, (ue[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2, color="silver", linewidth=4.0)
+    plt.plot(h_ticks, (ue[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2, color="silver", linewidth=4.0, label=f"optimal")
     for k in ks:
-        plt.plot(h_ticks, ue[k, :], "s-", label="some")
+        plt.plot(h_ticks, ue[k, :], "s-", label="$2^{-" + str(k) + "}$")
     plt.xticks(h_ticks, h_ticks)
+    plt.legend(title="time step: k")
+    plt.xlim(max(h_ticks)*1.125, min(h_ticks)*0.875)
     plt.show()
 
     plt.xscale("log")
@@ -110,9 +102,11 @@ if __name__ == "__main__":
     plt.title("Temperature error")
     plt.xlabel("spatial step: h")
     plt.ylabel(r"error: $||\theta-\theta^h||_V$")
-    plt.plot(h_ticks, (te[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2, color="silver", linewidth=4.0)
+    plt.plot(h_ticks, (te[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2, color="silver", linewidth=4.0, label=f"optimal")
     for k in ks:
-        plt.plot(h_ticks, te[k, :], "s-")
+        plt.plot(h_ticks, te[k, :], "s-", label="$2^{-" + str(k) + "}$")
     plt.xticks(h_ticks, h_ticks)
+    plt.legend(title="time step: k")
+    plt.xlim(max(h_ticks)*1.125, min(h_ticks)*0.875)
     plt.show()
 

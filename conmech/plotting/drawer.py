@@ -56,6 +56,7 @@ class Drawer:
         fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
 
         if show:
+            fig.tight_layout()
             plt.show()
         if save:
             self.save_plot(save_format)
