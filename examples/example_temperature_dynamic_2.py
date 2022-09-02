@@ -1,11 +1,10 @@
 """
 Created at 21.08.2019
 """
-from argparse import ArgumentParser
 from dataclasses import dataclass
 
 import numpy as np
-import scipy.integrate as integrate
+import pickle
 
 
 from conmech.helpers.config import Config
@@ -60,7 +59,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 @dataclass()
 class TDynamicSetup(TemperatureDynamic):
     grid_height: ... = 1.0
-    elements_number: ... = (4, 16)
+    elements_number: ... = (4, 4)
     mu_coef: ... = 45
     la_coef: ... = 105
     th_coef: ... = 4.5
@@ -83,8 +82,8 @@ class TDynamicSetup(TemperatureDynamic):
     def outer_forces(x):
         if x[0] == 0:
             return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
-        if x[0] == 4:
-            return np.array([-28.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
+        if x[0] == 1.5:
+            return np.array([-44.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod
@@ -94,40 +93,39 @@ class TDynamicSetup(TemperatureDynamic):
     boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0)
 
 
-def main(show: bool = True, save: bool = False):
-    setup = TDynamicSetup(mesh_type="cross")
+def main(steps, setup, show: bool = True, save: bool = False):
+    setup = setup or TDynamicSetup(mesh_type="cross")
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
-    steps = 100
-    output = steps // 1
     states = runner.solve(
         n_steps=steps,
-        output_step=range(0, steps+1, output),
+        output_step=(steps,),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
         initial_temperature=setup.initial_temperature,
     )
-    T_max = -np.inf
-    T_min = np.inf
-    for state in states:
-        T_max = max(T_max, np.max(state.temperature))
-        T_min = min(T_min, np.min(state.temperature))
     config = Config()
-    for state in states:
-        Drawer(state=state, config=config).draw(
-            temp_max=T_max, temp_min=T_min, show=show, save=save
-        )
+    with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
+              'wb') as output:
+        pickle.dump(states[-1], output)
+
+    with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
+              'rb') as output:
+        state = pickle.load(output)
+        print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
+        # Drawer(state=state, config=config).draw(
+        #     temp_max=np.max(state.temperature), temp_min=np.min(state.temperature), show=show, save=save
+        # )
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--mode",
-        type=str,
-        choices=["show", "save"],
-        default="show",
-    )
-    args = parser.parse_args()
-    save = args.mode == "save"
-    main(show=not save, save=save)
+    T = 1
+    ks = [2**i for i in range(0, 8)]
+    hs = [2**i for i in range(0, 4)]
+    for h in hs:
+        for k in ks:
+            setup = TDynamicSetup(mesh_type="cross")
+            setup.elements_number = (h, 1.5 * h)
+            setup.time_step = T / k
+            main(setup=setup, steps=k, show=True, save=False)
