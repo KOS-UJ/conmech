@@ -20,7 +20,6 @@ from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
 from deep_conmech.scene.scene_layers import SceneLayers
-from deep_conmech.training_config import LAYERS_COUNT
 
 
 class Scenario:
@@ -87,7 +86,6 @@ class Scenario:
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
             create_in_subprocess=create_in_subprocess,
-            layers_count=LAYERS_COUNT,
         )
         setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return setting
@@ -636,9 +634,11 @@ def get_args(td):
 
 def all_train(td):
     args = get_args(td)
-    # args['final_time'] = 1. #0.25
+    args["final_time"] = 1.0  # 1.0  # 0.25
     if td.dimension == 3:
-        return [bunny_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)]
+        return [
+            bunny_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)
+        ]  # 0.4)]
         data = []
         data.append(cube_move_3d(**args))
         data.extend([ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)])
@@ -660,6 +660,7 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
+    # args['final_time'] = 0.02
     # args['final_time'] = 1
     if td.dimension == 3:
         return [

@@ -8,9 +8,8 @@ from conmech.helpers.config import Config
 
 TEST = False  # False
 DIMENSION = 3
-LAYERS_COUNT = 2  # 2
 MESH_LAYERS_PROPORTION = 2  # 4
-CLOSEST_COUNT = 4 #3
+CLOSEST_COUNT = 4  # 3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 
@@ -40,7 +39,7 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0 # 0.1 * (0.01**2)  # 0.5 0.1 0.01 0
+    displacement_in_random_factor: float = 0.1 * (0.01**2)  # 0.5 0.1 0.01 0
     # same as net error, so that a_correction is similar
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
@@ -50,7 +49,7 @@ class TrainingData:
     validate_at_epochs: Optional[int] = 20  # 00  # 10 100
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
-    batch_size: int = 8  # 1  # 16  # 32  # 16  # 32 # 256
+    batch_size: int = 6  # 8  # 1  # 16  # 32  # 16  # 32 # 256
     dataset_size: int = 32  # 256 * (1 if TEST else 1) #8)  # 2048)
 
     use_dataset_statistics: bool = False
@@ -73,7 +72,6 @@ class TrainingData:
     encoder_layers_count: int = 0  # 3
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
-    mesh_layers_count: int = LAYERS_COUNT  # 3
     message_passes: int = 8  # 10  # 8  # 4  # 8  # 3
 
 
@@ -95,10 +93,10 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 16
+    dataset_images_count: Optional[float] = 8  # 16
 
     log_dataset_stats: bool = False  # True
-    with_train_scenes_file: bool = True
+    with_train_scenes_file: bool = False
 
     compare_with_base_scene = False
     max_epoch_number: Optional[int] = None

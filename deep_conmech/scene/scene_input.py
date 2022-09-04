@@ -137,7 +137,6 @@ class SceneInput(SceneRandomized):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess: bool,
-        layers_count: int,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -145,7 +144,6 @@ class SceneInput(SceneRandomized):
             obstacle_prop=obstacle_prop,
             schedule=schedule,
             create_in_subprocess=create_in_subprocess,
-            layers_count=layers_count,
         )
 
     def prepare_node_data(
@@ -227,9 +225,9 @@ class SceneInput(SceneRandomized):
         #     data=self.get_normal_response_input(),
         #     layer_number=layer_number,
         # )
-        boundary_volume = self.prepare_node_data(
-            data=self.get_surface_per_boundary_node(), layer_number=layer_number
-        )
+        # boundary_volume = self.prepare_node_data(
+        #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
+        # )
         if layer_number > 0:
             return np.hstack(
                 (
@@ -243,14 +241,15 @@ class SceneInput(SceneRandomized):
                 )
             )
         else:
-            input_forces = self.prepare_node_data(
-                layer_number=layer_number, data=self.input_forces, add_norm=True
-            )
+            # input_forces = self.prepare_node_data(
+            #     layer_number=layer_number, data=self.input_forces, add_norm=True
+            # )
             return np.hstack(
                 (
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
+                    # boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
                     # boundary_volume,
@@ -309,7 +308,7 @@ class SceneInput(SceneRandomized):
                 data.edge_index_to_down,
                 data.edge_attr_to_down,
                 data.closest_nodes_to_down,
-            ) = self.get_multilayer_edges_with_data(link=layer_data.to_down)
+            ) = self.get_multilayer_edges_with_data(link=layer_data.to_base)
 
         else:
             data.edge_index = thh.get_contiguous_torch(layer_directional_edges)

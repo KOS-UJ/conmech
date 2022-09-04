@@ -201,7 +201,6 @@ class GraphModelDynamic:
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
-            layers_count=config.td.mesh_layers_count,
             create_in_subprocess=create_in_subprocess,
         )
         if randomize:
@@ -396,7 +395,7 @@ class GraphModelDynamic:
 
     def calculate_loss(self, batch_data: List[Data]):
         dimension = self.config.td.dimension
-        batch_layers = batch_data[0][: self.config.td.mesh_layers_count]
+        batch_layers = batch_data[0]
         layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
         target_data = batch_data[1].to(self.rank, non_blocking=True)
         batch_main_layer = layer_list[0]

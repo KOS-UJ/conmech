@@ -47,7 +47,7 @@ def test_graph_layers():
         mesh_density=16,
         batch_size=16,
         dataset_size=32,
-        mesh_layers_count=3,
+        #mesh_layers_count=3,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
@@ -66,7 +66,6 @@ def test_graph_layers():
     cmh.clear_folder(output_catalog)
     dataset = SyntheticDataset(
         description="train",
-        layers_count=config.td.mesh_layers_count,
         with_scenes_file=config.with_train_scenes_file,
         randomize=True,
         config=config,

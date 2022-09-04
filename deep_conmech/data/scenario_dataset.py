@@ -25,9 +25,9 @@ class ScenariosDataset(BaseDataset):
         self,
         description: str,
         all_scenarios: List[Scenario],
-        layers_count: int,
         solve_function: Callable,
         load_data_to_ram: bool,
+        with_scenes_file: bool,
         randomize: bool,
         config: TrainingConfig,
         rank: int,
@@ -40,12 +40,11 @@ class ScenariosDataset(BaseDataset):
             description=description,
             dimension=check_and_get_dimension(all_scenarios),
             data_count=self.get_data_count(self.all_scenarios),
-            layers_count=layers_count,
             solve_function=solve_function,
             load_data_to_ram=load_data_to_ram,
             randomize=randomize,
             num_workers=config.scenario_generation_workers,
-            with_scenes_file=True,
+            with_scenes_file=with_scenes_file,
             config=config,
             rank=rank,
             world_size=world_size,
@@ -69,14 +68,13 @@ class ScenariosDataset(BaseDataset):
         ]
         return assigned_scenarios
 
-    def get_scene(self, scenario: Scenario, layers_count: int, config: TrainingConfig) -> Scene:
+    def get_scene(self, scenario: Scenario, config: TrainingConfig) -> Scene:
         scene = SceneInput(
             mesh_prop=scenario.mesh_prop,
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
             create_in_subprocess=False,
-            layers_count=layers_count,
         )
         scene.set_randomization(self.config)
 
@@ -115,16 +113,17 @@ class ScenariosDataset(BaseDataset):
             ts = (index % episode_steps) + 1
             if ts == 1:
                 scenario = assigned_scenarios[int(index / episode_steps)]
-                scene = self.get_scene(
-                    scenario=scenario, layers_count=self.layers_count, config=self.config
-                )
+                scene = self.get_scene(scenario=scenario, config=self.config)
 
             current_time = ts * scene.time_step
 
             forces = scenario.get_forces_by_function(scene, current_time)
             scene, acceleration = self.solve_and_prepare_scene(scene, forces)
 
-            self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
+            if self.with_scenes_file:
+                self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
+            else:
+                self.save_features_and_target(scene=scene)
 
             self.check_and_print(
                 self.data_count,

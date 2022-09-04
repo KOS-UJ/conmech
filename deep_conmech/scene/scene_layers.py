@@ -33,8 +33,6 @@ class MeshLayerLinkData:
 @dataclass
 class AllMeshLayerLinkData:
     mesh: Mesh
-    to_down: Optional[MeshLayerLinkData]
-    from_down: Optional[MeshLayerLinkData]
     from_base: Optional[MeshLayerLinkData]
     to_base: Optional[MeshLayerLinkData]
 
@@ -47,7 +45,6 @@ class SceneLayers(Scene):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess: bool,
-        layers_count: int,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -59,48 +56,54 @@ class SceneLayers(Scene):
         )
         self.create_in_subprocess = create_in_subprocess
         self.all_layers: List[AllMeshLayerLinkData] = []
-        self.set_layers(layers_count=layers_count)
+        self.set_reduced()
 
-    def set_layers(self, layers_count):
+    def set_reduced(self):
+        print("Setting reduced...")
         self.all_layers = []
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
 
         base_mesh_layer_data = AllMeshLayerLinkData(
             mesh=self,
-            to_down=None,
-            from_down=None,
             from_base=None,
             to_base=None,
         )
         self.all_layers.append(base_mesh_layer_data)
 
-        dense_mesh = self
-        for _ in range(layers_count - 1):
-            layer_mesh_prop.mesh_density = list(
-                np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // MESH_LAYERS_PROPORTION
-            )
+        layer_mesh_prop.mesh_density = list(
+            np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // MESH_LAYERS_PROPORTION
+        )
 
-            sparse_mesh = Scene(
-                mesh_prop=layer_mesh_prop,
-                body_prop=self.body_prop,
-                obstacle_prop=self.obstacle_prop,
-                schedule=self.schedule,
-                create_in_subprocess=self.create_in_subprocess,
-                with_schur=False,
-            )
-            mesh_layer_data = AllMeshLayerLinkData(
-                mesh=sparse_mesh,
-                to_down=self.get_link(
-                    from_mesh=sparse_mesh, to_mesh=dense_mesh, with_weights=False
-                ),
-                from_down=self.get_link(
-                    from_mesh=dense_mesh, to_mesh=sparse_mesh, with_weights=False
-                ),
-                from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True),
-                to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=True),
-            )
-            self.all_layers.append(mesh_layer_data)
-            dense_mesh = sparse_mesh
+        sparse_mesh = Scene(
+            mesh_prop=layer_mesh_prop,
+            body_prop=self.body_prop,
+            obstacle_prop=self.obstacle_prop,
+            schedule=self.schedule,
+            create_in_subprocess=self.create_in_subprocess,
+            with_schur=False,
+        )
+        # sparse_mesh = self.reformat_reduced_mesh(sparse_mesh)
+        print("Preparing links from_base...")
+        from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
+        print("Preparing links to_base...")
+        to_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=False)
+
+        mesh_layer_data = AllMeshLayerLinkData(
+            mesh=sparse_mesh,
+            from_base=from_base,
+            to_base=to_base,
+        )
+        self.all_layers.append(mesh_layer_data)
+        print("Mesh done")
+
+    def reformat_reduced_mesh(self, sparse_mesh):
+        (sparse_mesh.initial_nodes, nodes_out,) = interpolation_helpers.reformat_sparse_numba(
+            dense_nodes=self.initial_nodes,
+            dense_elements=self.elements,
+            dense_boundary_centers=self.boundary_centers,
+            sparse_nodes=sparse_mesh.initial_nodes,
+        )
+        return sparse_mesh
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool):
         (
@@ -108,17 +111,12 @@ class SceneLayers(Scene):
             closest_distances,
             closest_weights,
         ) = interpolation_helpers.get_interlayer_data_numba(
-            base_nodes=from_mesh.normalized_initial_nodes,
+            base_nodes=from_mesh.initial_nodes,
             base_elements=from_mesh.elements,
-            interpolated_nodes=to_mesh.normalized_initial_nodes,
+            interpolated_nodes=to_mesh.initial_nodes,
             closest_count=CLOSEST_COUNT,
             with_weights=with_weights,
-            boundary=False,
         )
-        # assert np.allclose(
-        #     new_nodes,
-        #     nph.elementwise_dot(old_nodes[closest_nodes], closest_weights[..., np.newaxis]),
-        # )
         (
             closest_boundary_nodes,
             closest_distances_boundary,
@@ -129,7 +127,6 @@ class SceneLayers(Scene):
             interpolated_nodes=to_mesh.initial_boundary_nodes,
             closest_count=CLOSEST_BOUNDARY_COUNT,
             with_weights=with_weights,
-            boundary=True,
         )
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,

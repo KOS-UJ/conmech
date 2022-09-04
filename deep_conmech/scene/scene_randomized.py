@@ -16,7 +16,6 @@ class SceneRandomized(SceneLayers):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess: bool,
-        layers_count: int,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -24,7 +23,6 @@ class SceneRandomized(SceneLayers):
             obstacle_prop=obstacle_prop,
             schedule=schedule,
             create_in_subprocess=create_in_subprocess,
-            layers_count=layers_count,
         )
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0

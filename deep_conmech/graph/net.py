@@ -343,10 +343,11 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
+        mesh_layers_count = 2
         self.processor_layers = nn.ModuleList(
             [
                 ProcessorLayer(td=td)
-                for _ in range(td.message_passes * (td.mesh_layers_count * 2 - 1))
+                for _ in range(td.message_passes * (mesh_layers_count * 2 - 1))
             ]
         )
         self.downward_processor_layer = LinkProcessorLayer(td=td)

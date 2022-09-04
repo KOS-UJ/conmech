@@ -102,7 +102,6 @@ def get_dataset(output_catalog):
         adaptive_training_mesh_scale=0,
         batch_size=3,
         dataset_size=2,
-        mesh_layers_count=3,
         final_time=0.1,
         save_at_minutes=0,
         validate_at_epochs=1,
@@ -119,7 +118,6 @@ def get_dataset(output_catalog):
     )
     dataset = SyntheticDataset(
         description="train",
-        layers_count=config.td.mesh_layers_count,
         with_scenes_file=config.with_train_scenes_file,
         randomize=True,
         config=config,

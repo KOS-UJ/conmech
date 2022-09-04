@@ -123,7 +123,6 @@ def get_train_dataset(
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
-            layers_count=config.td.mesh_layers_count,
             load_data_to_ram=config.load_training_data_to_ram,
             with_scenes_file=config.with_train_scenes_file,
             randomize=True,
@@ -136,8 +135,8 @@ def get_train_dataset(
         train_dataset = CalculatorDataset(
             description="train",
             all_scenarios=scenarios.all_train(config.td),
-            layers_count=config.td.mesh_layers_count,
             load_data_to_ram=config.load_training_data_to_ram,
+            with_scenes_file=config.with_train_scenes_file,
             randomize=True,
             config=config,
             rank=rank,
@@ -151,14 +150,15 @@ def get_train_dataset(
 
 def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
     all_val_datasets = []
+    return all_val_datasets
     for all_scenarios in scenarios.all_validation(config.td):
         description = "validation_" + str.join("/", [scenario.name for scenario in all_scenarios])
         all_val_datasets.append(
             CalculatorDataset(
                 description=description,
                 all_scenarios=all_scenarios,
-                layers_count=config.td.mesh_layers_count,
                 load_data_to_ram=config.load_validation_data_to_ram,
+                with_scenes_file=False,
                 randomize=False,
                 config=config,
                 rank=rank,

@@ -29,7 +29,7 @@ def generate_mesh_type(config: TrainingConfig):
         )
 
 
-def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingConfig):
+def generate_base_scene(base: np.ndarray, config: TrainingConfig):
     initial_nodes_corner_vectors = interpolation_helpers.generate_corner_vectors(
         dimension=config.td.dimension, scale=config.td.initial_corners_scale
     )
@@ -57,7 +57,6 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
         obstacle_prop=scenarios.default_obstacle_prop,
         schedule=Schedule(final_time=config.td.final_time),
         create_in_subprocess=False,
-        layers_count=layers_count,
         with_schur=False,
     )
     scene.unset_randomization()
@@ -114,7 +113,6 @@ class SyntheticDataset(BaseDataset):
     def __init__(
         self,
         description: str,
-        layers_count: int,
         load_data_to_ram: bool,
         randomize: bool,
         with_scenes_file: bool,
@@ -127,7 +125,6 @@ class SyntheticDataset(BaseDataset):
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
             data_count=config.td.dataset_size,
-            layers_count=layers_count,
             solve_function=Calculator.solve_all,
             load_data_to_ram=load_data_to_ram,
             randomize=randomize,
@@ -145,7 +142,7 @@ class SyntheticDataset(BaseDataset):
 
     def generate_scene(self):
         base = lnh.generate_base(self.config.td.dimension)
-        scene = generate_base_scene(base=base, layers_count=self.layers_count, config=self.config)
+        scene = generate_base_scene(base=base, config=self.config)
         if self.randomize:
             scene.set_randomization(self.config)
 

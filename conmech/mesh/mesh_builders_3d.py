@@ -1,8 +1,11 @@
+from ctypes import ArgumentError
+
 import meshio
 import meshzoo
 import numpy as np
 import pygmsh
 
+from conmech.helpers import nph
 from conmech.mesh import mesh_builders_helpers
 from conmech.properties.mesh_properties import MeshProperties
 
@@ -66,30 +69,45 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
     return nodes, elements
 
 
-def get_pygmsh_bunny(mesh_prop):
-    mesh_id = 1
-    if mesh_prop.mesh_density_x <= 32:
-        mesh_id = 2
-    if mesh_prop.mesh_density_x <= 16:
-        mesh_id = 3
-    if mesh_prop.mesh_density_x <= 8:
-        mesh_id = 4
 
-    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}.msh")
-    scale = 3.0
-    nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype("long")
+def get_relative_ideal_edge_length(mesh_id):
+    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}.ply")
+    nodes = mesh.points
+    diag_of_bbox = nph.euclidean_norm_numba(np.max(nodes, axis=0) - np.min(nodes, axis=0))
+    
+    surfaces = mesh.cells_dict['triangle']
+    edges = np.array([[[s[0],s[1]], [s[1],s[2]], [s[2],s[0]]] for s in surfaces]).reshape(-1,2)
+    edge_nodes = nodes[edges]
+    edge_lengths = nph.euclidean_norm_numba(edge_nodes[:,0] - edge_nodes[:,1])
+    mean_length = np.mean(edge_lengths)
+    return mean_length / diag_of_bbox
+
+
+def get_pygmsh_bunny(mesh_prop):
+    if mesh_prop.mesh_density_x == 16:
+        mesh_id = 2#3
+    elif mesh_prop.mesh_density_x == 8:
+        mesh_id = 3#4
+    else:
+        raise ArgumentError
+
+    #relative_ideal_edge_length = get_relative_ideal_edge_length(mesh_id)
+
+    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}_.msh")
+    scale = 3.0 #1.0
+    # mesh_builders_helpers.normalize(
+    nodes, elements = mesh.points, mesh.cells_dict["tetra"].astype("long")
+    nodes += 0.1
+    nodes *= 3
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
-    # nodes[:, 1] *= -1
-    # nodes[:, 1] += 1.0
-    # nodes = mesh_builders_helpers.normalize(nodes)
-    nodes = nodes * scale  # - (scale / 2.0)
+    nodes *=  scale
     return nodes, elements
 
 
 def get_pygmsh_armadillo():
     mesh = meshio.read("models/armadillo/armadillo.msh")
-    scale = 3.0
+    scale = 3.0 #1.0
     nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype("long")
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
-    nodes = nodes * scale
+    nodes *= scale
     return nodes, elements

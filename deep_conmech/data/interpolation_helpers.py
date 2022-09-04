@@ -3,9 +3,11 @@ from ctypes import ArgumentError
 
 import numba
 import numpy as np
+import scipy
+from tqdm import tqdm
 
 from conmech.helpers import lnh, nph
-from deep_conmech.training_config import CLOSEST_COUNT
+from deep_conmech.training_config import CLOSEST_BOUNDARY_COUNT, CLOSEST_COUNT
 
 
 def decide(scale):
@@ -150,94 +152,178 @@ def interpolate_corners(
 
 
 @numba.njit
+def same_side_numba(v1, v2, v3, v4, p):
+    epsilon = 1e-10
+    normal = np.cross(v2 - v1, v3 - v1)
+    normal = normal / np.linalg.norm(normal)
+    dotV4 = np.dot(normal, v4 - v1)
+    dotP = np.dot(normal, p - v1)
+    return np.abs(dotP) < epsilon or np.sign(dotV4) == np.sign(dotP)
+
+
+@numba.njit
+def point_in_tetrahedron_numba(nodes, p):
+    for n in nodes:
+        if np.all(p == n):
+            return True
+    v1, v2, v3, v4 = nodes
+    return (
+        same_side_numba(v1, v2, v3, v4, p)
+        and same_side_numba(v2, v3, v4, v1, p)
+        and same_side_numba(v3, v4, v1, v2, p)
+        and same_side_numba(v4, v1, v2, v3, p)
+    )
+
+
+# @numba.njit
+def reformat_sparse_numba(
+    dense_nodes: np.ndarray,
+    dense_elements: np.ndarray,
+    dense_boundary_centers: np.ndarray,
+    sparse_nodes: np.ndarray,
+):
+    sparse_nodes_copy = sparse_nodes.copy()
+    nodes_out = 0
+
+    dense_nodes_min = dense_nodes[dense_elements].min(axis=1)
+    dense_nodes_max = dense_nodes[dense_elements].max(axis=1)
+
+    for index, node in enumerate(sparse_nodes):
+        if index % 100 == 0:
+            print(index)
+
+        lower_bound = np.all(dense_nodes_min <= node, axis=1)
+        upper_bound = np.all(node <= dense_nodes_max, axis=1)
+        bounding_elements_indices = np.where(np.logical_and(lower_bound, upper_bound))[0]
+
+        closest_element_index = -1
+        for i in bounding_elements_indices:
+            if point_in_tetrahedron_numba(dense_nodes[dense_elements[i]], node):
+                closest_element_index = i
+                break
+
+        if closest_element_index < 0:
+            distances = nph.euclidean_norm_numba(dense_nodes - node)
+            closest_node_list = distances.argsort()[:4]
+            selected_base_nodes = dense_nodes[closest_node_list]
+
+            closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
+
+            d1 = np.argmin(distances)
+            closest_node = dense_nodes[d1]
+            # distances2 = nph.euclidean_norm_numba(dense_boundary_centers - node)
+            # d2 = np.argmin(distances2)
+            # # if d1<d2:
+            # #     closest_node = dense_nodes[d1]
+            # # else:
+            # closest_node = dense_boundary_centers[d2]
+            sparse_nodes[index] = closest_node
+            nodes_out += 1
+
+    print("Testing repetitions")
+    for index1, node1 in enumerate(sparse_nodes):
+        for index2, node2 in enumerate(sparse_nodes):
+            if index1 != index2 and np.all(np.equal(node1, node2)):
+                raise ArgumentError
+
+    print("Done")
+    return sparse_nodes, nodes_out
+
+
+@numba.njit
+def get_closest_element_index_numba(elements_indices, node, element_nodes):
+    for i in elements_indices:
+        if point_in_tetrahedron_numba(element_nodes[i], node):
+            return i
+    return None
+
+# TODO: write in Numba
+def get_top_indices(array, indices_count):
+    unsorted_indices = np.argpartition(array, indices_count)[:indices_count]
+    result = unsorted_indices[array[unsorted_indices].argsort()]
+    #assert np.all(result == array.argsort()[:indices_count])
+    return result
+
+
+# @numba.njit
 def get_interlayer_data_numba(
     base_nodes: np.ndarray,
     base_elements: np.ndarray,
     interpolated_nodes: np.ndarray,
-    closest_count: int,
     with_weights: bool,
-    boundary: bool,
+    closest_count: int,
 ):
-    epsilon = 1e-10
-
-    def same_side(v1, v2, v3, v4, p):
-        normal = np.cross(v2 - v1, v3 - v1)
-        dotV4 = np.dot(normal, v4 - v1)
-        dotP = np.dot(normal, p - v1)
-        return np.abs(dotP) < epsilon or np.abs(dotV4) < epsilon or np.sign(dotV4) == np.sign(dotP)
-
-    def point_in_tetrahedron(nodes, p):
-        v1, v2, v3, v4 = nodes
-        return (
-            same_side(v1, v2, v3, v4, p)
-            and same_side(v2, v3, v4, v1, p)
-            and same_side(v3, v4, v1, v2, p)
-            and same_side(v4, v1, v2, v3, p)
-        )
-
+    # closest_count = CLOSEST_COUNT
+    # assert closest_count == 4
+    #nodes_out = 0
     closest_distances = np.zeros((len(interpolated_nodes), closest_count))
     closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
     closest_weights = np.zeros_like(closest_distances) if with_weights else None
 
+    # if with_weights:
+    #     base_element_nodes = base_nodes[base_elements]
+    #     base_nodes_min = base_element_nodes.min(axis=1)
+    #     base_nodes_max = base_element_nodes.max(axis=1)
+
     for index, node in enumerate(interpolated_nodes):
         distances = nph.euclidean_norm_numba(base_nodes - node)
-
-        closest_element_index = -1
-        for i, element in enumerate(base_elements):
-            if point_in_tetrahedron(base_nodes[element], node):
-                closest_element_index = i
-                break
-
-        if CLOSEST_COUNT != 4 or boundary or closest_element_index < 0:
-            # point outside of base body
-            closest_node_list = distances.argsort()[:closest_count]
-
-            closest_distance_list = distances[closest_node_list]
+        closest_node_list = get_top_indices(distances, closest_count)
+        if closest_weights is not None:
+            closest_node_list = get_top_indices(distances, closest_count)
             selected_base_nodes = base_nodes[closest_node_list]
-            if closest_weights is not None:
-                if np.all(selected_base_nodes[0] == node):
-                    closest_weight_list = np.zeros(closest_count)
-                    closest_weight_list[0] = 1
-                else:
-                    # Moore-Penrose pseudo-inverse
-                    closest_weight_list = np.ascontiguousarray(node) @ np.linalg.pinv(
-                        selected_base_nodes
-                    )
-                    # assert np.min(closest_weight_list) > -0.01
-                    # assert np.abs(np.sum(closest_weight_list) - 1.0) < 0.01
+            
+            if np.all(selected_base_nodes[0] == node):
+                closest_weights[index, 0] = 1
+            else:
+                unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
+                weights = unnormalized_weights / np.sum(unnormalized_weights)
+                closest_weights[index, :] = weights
 
-                    if np.min(closest_weight_list) < 0:
-                        closest_weight_list -= np.min(closest_weight_list)
-                    closest_weight_list /= np.sum(closest_weight_list)
+                # weights2 = np.ascontiguousarray(
+                #     np.hstack((node, np.ones((1))))
+                # ) @ np.linalg.inv(np.hstack((selected_base_nodes, np.ones((4, 1)))))
 
-                    #assert np.linalg.norm(node - closest_weight_list @ selected_base_nodes) < 0.1
+                # if np.min(weights2) >= 0. and np.sum(weights2) == 1.0:
+                #     assert np.linalg.norm(node - weights2 @ selected_base_nodes) < np.linalg.norm(node - weights @ selected_base_nodes)
 
-                closest_weights[index, :] = closest_weight_list
-        else:
-            closest_element = base_elements[closest_element_index]
-            closest_node_list = closest_element[distances[closest_element].argsort()]
 
-            closest_distance_list = distances[closest_node_list]
-            selected_base_nodes = base_nodes[closest_node_list]
-            if closest_weights is not None:
-                if np.all(selected_base_nodes[0] == node):
-                    closest_weight_list = np.zeros(closest_count)
-                    closest_weight_list[0] = 1
-                else:
-                    closest_weight_list = np.ascontiguousarray(
-                        np.hstack((node, np.ones((1))))
-                    ) @ np.linalg.inv(np.hstack((selected_base_nodes, np.ones((4, 1)))))
+            # lower_bound = np.all(base_nodes_min <= node, axis=1)
+            # upper_bound = np.all(node <= base_nodes_max, axis=1)
+            # bounding_elements_indices = np.where(np.logical_and(lower_bound, upper_bound))[0]
 
-                    assert np.min(closest_weight_list) > -0.01
-                    assert np.abs(np.sum(closest_weight_list) - 1.0) < 0.01
-                    assert (
-                        np.linalg.norm(node - closest_weight_list @ selected_base_nodes) < epsilon
-                    )
-                closest_weights[index, :] = closest_weight_list
+            # closest_element_index = get_closest_element_index_numba(
+            #     elements_indices=bounding_elements_indices,
+            #     node=node,
+            #     element_nodes=base_element_nodes
+            # )
 
+            # if closest_element_index is None:
+            #     closest_node_list = get_top_indices(distances, closest_count)
+            #     closest_weights[index, 0] = 1
+            #     # raise ArgumentError
+            #     nodes_out += 1
+            # else:
+            #     closest_element = base_elements[closest_element_index]
+            #     closest_node_list = closest_element[distances[closest_element].argsort()]
+            #     selected_base_nodes = base_nodes[closest_node_list]
+
+            #     if np.all(selected_base_nodes[0] == node):
+            #         closest_weights[index, 0] = 1
+            #     else:
+            #         closest_weights[index, :] = np.ascontiguousarray(
+            #             np.hstack((node, np.ones((1))))
+            #         ) @ np.linalg.inv(np.hstack((selected_base_nodes, np.ones((4, 1)))))
+
+            #         assert np.min(closest_weights[index, :]) > -0.001
+            #         assert np.abs(np.sum(closest_weights[index, :]) - 1.0) < 0.001
+            #         assert np.linalg.norm(node - closest_weights[index, :] @ selected_base_nodes) < 1e-10
+
+        closest_distance_list = distances[closest_node_list]
         closest_nodes[index, :] = closest_node_list
         closest_distances[index, :] = closest_distance_list
 
+    # if closest_weights is not None:
+    #     assert np.mean(closest_weights) == 0.25
     return closest_nodes, closest_distances, closest_weights
 
 
