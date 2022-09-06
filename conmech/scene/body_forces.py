@@ -98,6 +98,14 @@ class BodyForces(Dynamics):
     def normalized_outer_forces(self):
         return self.normalize_rotate(self.outer_forces)
 
+    @property
+    def boundary_forces(self):
+        return self.normalized_inner_forces[self.boundary_indices]
+
+    @property
+    def input_forces(self):
+        return self.normalized_inner_forces
+
     def get_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.neumann_boundary,

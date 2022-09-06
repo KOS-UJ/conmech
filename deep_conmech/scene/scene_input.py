@@ -4,6 +4,7 @@ from typing import List
 import numba
 import numpy as np
 import torch
+from numba import prange
 
 from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
@@ -27,46 +28,28 @@ def get_indices_from_graph_sizes_numba(graph_sizes: List[int]):
     return index
 
 
-@numba.njit
-def set_diff_numba(data_from, data_to, position, row, i, j):
-    dimension = data_to.shape[1]
-    vector = data_from[j] - data_to[i]
-    row[position : position + dimension] = vector
-    row[position + dimension] = nph.euclidean_norm_numba(vector)
-
-
-@numba.njit  # (parallel=True)
-def get_edges_data_numba(
+def get_edges_data_new(
     edges,
-    initial_nodes_from,
-    initial_nodes_to,
-    displacement_old_from,
-    displacement_old_to,
-    velocity_old_from,
-    velocity_old_to,
-    forces_from,
-    forces_to,
-    edges_data_dim,
+    initial_nodes,
+    displacement_old,
+    velocity_old,
+    forces,
 ):
-    dimension = initial_nodes_to.shape[1]
-    edges_number = edges.shape[0]
-    edges_data = np.zeros((edges_number, edges_data_dim))
-    for edge_index in range(edges_number):
-        j, i = edges[edge_index]
+    def get_column(data):
+        column = data[edges[:, 1]] - data[edges[:, 0]]
+        return np.hstack((column, nph.euclidean_norm(column, keepdims=True)))
 
-        set_diff_numba(initial_nodes_from, initial_nodes_to, 0, edges_data[edge_index], i, j)
-        set_diff_numba(
-            displacement_old_from, displacement_old_to, dimension + 1, edges_data[edge_index], i, j
+    return np.hstack(
+        (
+            get_column(initial_nodes),
+            get_column(displacement_old),
+            get_column(velocity_old),
+            get_column(forces),
         )
-        set_diff_numba(
-            velocity_old_from, velocity_old_to, 2 * (dimension + 1), edges_data[edge_index], i, j
-        )
-        set_diff_numba(forces_from, forces_to, 3 * (dimension + 1), edges_data[edge_index], i, j)
-    return edges_data
+    )
 
 
-@numba.njit  # (parallel=True)
-def get_multilayer_edges_data_numba(
+def get_multilayer_edges_data_new(
     edges,
     initial_nodes_sparse,
     initial_nodes_dense,
@@ -74,39 +57,24 @@ def get_multilayer_edges_data_numba(
     displacement_old_dense,
     velocity_old_sparse,
     velocity_old_dense,
-    sparse_neighbours,
-    edges_data_dim,
+    forces_sparse,
+    forces_dense,
 ):
-    dimension = initial_nodes_dense.shape[1]
-    size = dimension + 1
-    edges_number = edges.shape[0]
-    edges_data = np.zeros((edges_number, edges_data_dim))
-    for edge_index in range(edges_number):
-        j, i = edges[edge_index]
-        # n1, n2 = sparse_neighbours[edge_index]
+    def get_column(data_sparse, data_dense):
+        column = data_sparse[edges[:, 0]] - data_dense[edges[:, 1]]
+        return np.hstack((column, nph.euclidean_norm(column, keepdims=True)))
 
-        set_diff_numba(initial_nodes_sparse, initial_nodes_dense, 0, edges_data[edge_index], i, j)
-        set_diff_numba(
-            displacement_old_sparse, displacement_old_dense, 1 * size, edges_data[edge_index], i, j
+    return np.hstack(
+        (
+            get_column(initial_nodes_sparse, initial_nodes_dense),
+            get_column(
+                displacement_old_sparse,
+                displacement_old_dense,
+            ),
+            get_column(velocity_old_sparse, velocity_old_dense),
+            get_column(forces_sparse, forces_dense),
         )
-        set_diff_numba(
-            velocity_old_sparse, velocity_old_dense, 2 * size, edges_data[edge_index], i, j
-        )
-
-        # neighbour_data_setter = lambda data_sparse, number: set_diff_numba(
-        #     data_sparse,
-        #     data_sparse,
-        #     number * size,
-        #     edges_data[edge_index],
-        #     n2,
-        #     n1,
-        # )
-
-        # neighbour_data_setter(initial_nodes_sparse, 1)
-        # neighbour_data_setter(displacement_old_sparse, 2)
-        # # neighbour_data_setter(velocity_old_sparse, 5)
-
-    return edges_data
+    )
 
 
 @numba.njit
@@ -114,19 +82,12 @@ def get_multilayer_edges_numba(closest_nodes):
     neighbours_count = closest_nodes.shape[1]
     edges_count = closest_nodes.shape[0] * neighbours_count
     edges = np.zeros((edges_count, 2), dtype=np.int64)
-    sparse_neighbours = np.zeros((edges_count, neighbours_count - 1), dtype=np.int64)
-    # neighbour_ids = np.zeros((edges_count, 1), dtype=np.int64)
-    mask = np.ones(neighbours_count, dtype=np.bool8)
     index = 0
     for i, neighbours in enumerate(closest_nodes):
-        for neighbour_id, j in enumerate(neighbours):
+        for _, j in enumerate(neighbours):
             edges[index] = [j, i]
-            # neighbour_ids[index] = neighbour_id
-            mask[neighbour_id] = 0
-            sparse_neighbours[index] = neighbours[mask]
-            mask[neighbour_id] = 1
             index += 1
-    return edges, sparse_neighbours  # , neighbour_ids
+    return edges
 
 
 class SceneInput(SceneRandomized):
@@ -161,33 +122,22 @@ class SceneInput(SceneRandomized):
             result = nph.append_euclidean_norm(result)
         return result
 
-    def get_edges_data(self, directional_edges, layer_number_from: int, layer_number_to: int):
-        edges_data = get_edges_data_numba(
+    def get_edges_data(self, directional_edges, layer_number):
+        edges_data = get_edges_data_new(
             edges=directional_edges,
-            initial_nodes_from=self.all_layers[layer_number_from].mesh.input_initial_nodes,
-            initial_nodes_to=self.all_layers[layer_number_to].mesh.input_initial_nodes,
-            displacement_old_from=self.prepare_node_data(
-                data=self.input_displacement_old, layer_number=layer_number_from
+            initial_nodes=self.all_layers[layer_number].mesh.input_initial_nodes,
+            displacement_old=self.prepare_node_data(
+                data=self.input_displacement_old, layer_number=layer_number
             ),
-            displacement_old_to=self.prepare_node_data(
-                data=self.input_displacement_old, layer_number=layer_number_to
+            velocity_old=self.prepare_node_data(
+                data=self.input_velocity_old, layer_number=layer_number
             ),
-            velocity_old_from=self.prepare_node_data(
-                data=self.input_velocity_old, layer_number=layer_number_from
-            ),
-            velocity_old_to=self.prepare_node_data(
-                data=self.input_velocity_old, layer_number=layer_number_to
-            ),
-            forces_from=self.prepare_node_data(
-                data=self.input_forces, layer_number=layer_number_from
-            ),
-            forces_to=self.prepare_node_data(data=self.input_forces, layer_number=layer_number_to),
-            edges_data_dim=self.get_edges_data_dim(self.dimension),
+            forces=self.prepare_node_data(data=self.input_forces, layer_number=layer_number),
         )
         return edges_data
 
-    def get_multilayer_edges_data(self, directional_edges, sparse_neighbours):
-        edges_data = get_multilayer_edges_data_numba(
+    def get_multilayer_edges_data(self, directional_edges):
+        edges_data = get_multilayer_edges_data_new(
             edges=directional_edges,
             initial_nodes_sparse=self.reduced.input_initial_nodes,
             initial_nodes_dense=self.input_initial_nodes,
@@ -195,24 +145,12 @@ class SceneInput(SceneRandomized):
             displacement_old_dense=self.input_displacement_old,
             velocity_old_sparse=self.reduced.input_velocity_old,
             velocity_old_dense=self.input_velocity_old,
-            sparse_neighbours=sparse_neighbours,
-            edges_data_dim=self.get_multilayer_edges_data_dim(self.dimension),
+            forces_sparse=self.reduced.input_forces,
+            forces_dense=self.input_forces,
         )
         return edges_data
 
     def get_nodes_data(self, layer_number):
-        if layer_number == 1:
-            exact_acceleration = self.prepare_node_data(
-                layer_number=layer_number,
-                data=self.reduced.exact_acceleration,  #########################
-                add_norm=True,
-                approximate=False,
-            )
-        # else:
-        #     linear_acceleration = self.prepare_node_data(
-        #         layer_number=layer_number, data=self.linear_acceleration, add_norm=True
-        #     )
-
         boundary_normals = self.prepare_node_data(
             data=self.get_normalized_boundary_normals(), layer_number=layer_number, add_norm=True
         )
@@ -229,9 +167,15 @@ class SceneInput(SceneRandomized):
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
         if layer_number > 0:
+            exact_acceleration = self.prepare_node_data(
+                layer_number=layer_number,
+                data=self.reduced.exact_acceleration,  # self.reduced.exact_normalized_displacement,  #########################
+                add_norm=True,
+                approximate=False,
+            )
             return np.hstack(
                 (
-                    exact_acceleration,
+                    exact_acceleration,  # exact_normalized_displacement / (1 / 100) ** 2,  # - add multiple!
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
@@ -245,6 +189,7 @@ class SceneInput(SceneRandomized):
             #     layer_number=layer_number, data=self.input_forces, add_norm=True
             # )
             return np.hstack(
+                # TODO: Add previous accelerations
                 (
                     # linear_acceleration,
                     # input_forces,
@@ -258,24 +203,22 @@ class SceneInput(SceneRandomized):
 
     def get_multilayer_edges_with_data(self, link: MeshLayerLinkData):
         closest_nodes = torch.tensor(link.closest_nodes)
-        edges_index_np, sparse_neighbours = get_multilayer_edges_numba(link.closest_nodes)
+        edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
-            self.get_multilayer_edges_data(
-                directional_edges=edges_index_np, sparse_neighbours=sparse_neighbours
-            )
+            self.get_multilayer_edges_data(directional_edges=edges_index_np)
         )
         edges_index = thh.get_contiguous_torch(edges_index_np)
-        distances_link = link.closest_distances
-        closest_nodes_count = link.closest_distances.shape[1]
-        distance_norm_index = self.dimension
-        distances_edges = (
-            edges_data[:, distance_norm_index].numpy().reshape(-1, closest_nodes_count)
-        )
-        assert np.allclose(distances_link, distances_edges)
-        assert np.allclose(
-            edges_index_np,
-            edges_index.T.numpy(),
-        )
+        # distances_link = link.closest_distances
+        # closest_nodes_count = link.closest_distances.shape[1]
+        # distance_norm_index = self.dimension
+        # distances_edges = (
+        #     edges_data[:, distance_norm_index].numpy().reshape(-1, closest_nodes_count)
+        # )
+        # assert np.allclose(distances_link, distances_edges)
+        # assert np.allclose(
+        #     edges_index_np,
+        #     edges_index.T.numpy(),
+        # )
         return edges_index, edges_data, closest_nodes
 
     def get_features_data(self, layer_number: int = 0):
@@ -313,11 +256,7 @@ class SceneInput(SceneRandomized):
         else:
             data.edge_index = thh.get_contiguous_torch(layer_directional_edges)
             data.edge_attr = thh.to_torch_set_precision(
-                self.get_edges_data(
-                    layer_directional_edges,
-                    layer_number_from=layer_number,
-                    layer_number_to=layer_number,
-                )
+                self.get_edges_data(layer_directional_edges, layer_number=layer_number)
             )
 
         _ = """
@@ -358,11 +297,13 @@ class SceneInput(SceneRandomized):
             # lhs_index=lhs_sparse.indices(),
             # rhs=rhs,
         )
-
         if hasattr(self, "exact_acceleration"):
             target_data.exact_acceleration = thh.to_double(self.exact_acceleration)
-        if hasattr(self, "linear_acceleration"):
-            target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
+            # target_data.exact_acceleration = (
+            #     thh.to_double(self.exact_normalized_displacement) / (1 / 100) ** 2
+            # )
+        # if hasattr(self, "linear_acceleration"):
+        #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
         return target_data
 
     @staticmethod
@@ -413,7 +354,7 @@ class SceneInput(SceneRandomized):
 
     @staticmethod
     def get_multilayer_edges_data_dim(dimension):
-        return (dimension + 1) * 3  # 6
+        return (dimension + 1) * 4  # 3  # 6
 
     @staticmethod
     def get_edges_data_description(dim):

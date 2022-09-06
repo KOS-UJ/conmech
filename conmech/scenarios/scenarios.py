@@ -604,6 +604,23 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", ti
     )
 
 
+def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+    _ = tag
+    return Scenario(
+        name="bunny_swing",
+        mesh_prop=MeshProperties(
+            dimension=3,
+            mesh_type=M_BUNNY_3D,
+            scale=[1],
+            mesh_density=[mesh_density],
+        ),
+        body_prop=default_body_prop_3d,
+        schedule=Schedule(final_time=final_time),
+        forces_function=f_swing_3d,
+        obstacle=bottom_obstacle_3d,
+    )
+
+
 def get_train_data(**args):
     tag = "_train"
     return [
@@ -634,11 +651,12 @@ def get_args(td):
 
 def all_train(td):
     args = get_args(td)
-    args["final_time"] = 1.0  # 1.0  # 0.25
+    args["final_time"] = 1.0
     if td.dimension == 3:
-        return [
-            bunny_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)
-        ]  # 0.4)]
+        # return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        ###
+        return [bunny_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        ###
         data = []
         data.append(cube_move_3d(**args))
         data.extend([ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)])
@@ -649,8 +667,10 @@ def all_train(td):
 def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
+        return []
         return [
             [bunny_rotate_3d(**args)],
+            [bunny_swing_3d(**args)],
             # [ball_rotate_3d(**args)],
             # [ball_swing_3d(**args)],
             # [cube_rotate_3d(**args)],
@@ -661,9 +681,10 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     # args['final_time'] = 0.02
-    # args['final_time'] = 1
+    args['final_time'] = 3
     if td.dimension == 3:
         return [
+            bunny_swing_3d(**args),
             bunny_rotate_3d(**args),
             ball_rotate_3d(**args),
             ball_swing_3d(**args),

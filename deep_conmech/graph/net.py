@@ -345,10 +345,7 @@ class CustomGraphNet(nn.Module):
 
         mesh_layers_count = 2
         self.processor_layers = nn.ModuleList(
-            [
-                ProcessorLayer(td=td)
-                for _ in range(td.message_passes * (mesh_layers_count * 2 - 1))
-            ]
+            [ProcessorLayer(td=td) for _ in range(td.message_passes * (mesh_layers_count * 2 - 1))]
         )
         self.downward_processor_layer = LinkProcessorLayer(td=td)
 
@@ -455,8 +452,9 @@ class CustomGraphNet(nn.Module):
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
-        normalized_a_cuda = self(layer_list=layers_list)
-        normalized_a = thh.to_np_double(normalized_a_cuda)  # + scene.linear_acceleration
+        normalized_a = thh.to_np_double(
+            self(layer_list=layers_list)
+        )  # scene.from_normalized_displacement(/10000))  # + scene.linear_acceleration
 
         # normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a)
 

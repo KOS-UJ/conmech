@@ -150,7 +150,6 @@ def get_train_dataset(
 
 def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
     all_val_datasets = []
-    return all_val_datasets
     for all_scenarios in scenarios.all_validation(config.td):
         description = "validation_" + str.join("/", [scenario.name for scenario in all_scenarios])
         all_val_datasets.append(

@@ -59,7 +59,6 @@ class SceneLayers(Scene):
         self.set_reduced()
 
     def set_reduced(self):
-        print("Setting reduced...")
         self.all_layers = []
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
 
@@ -82,10 +81,7 @@ class SceneLayers(Scene):
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )
-        # sparse_mesh = self.reformat_reduced_mesh(sparse_mesh)
-        print("Preparing links from_base...")
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
-        print("Preparing links to_base...")
         to_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=False)
 
         mesh_layer_data = AllMeshLayerLinkData(
@@ -94,16 +90,6 @@ class SceneLayers(Scene):
             to_base=to_base,
         )
         self.all_layers.append(mesh_layer_data)
-        print("Mesh done")
-
-    def reformat_reduced_mesh(self, sparse_mesh):
-        (sparse_mesh.initial_nodes, nodes_out,) = interpolation_helpers.reformat_sparse_numba(
-            dense_nodes=self.initial_nodes,
-            dense_elements=self.elements,
-            dense_boundary_centers=self.boundary_centers,
-            sparse_nodes=sparse_mesh.initial_nodes,
-        )
-        return sparse_mesh
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool):
         (

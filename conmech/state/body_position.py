@@ -135,6 +135,13 @@ class BodyPosition(Mesh):
         return copy.deepcopy(self)
 
     def iterate_self(self, acceleration, temperature=None):
+        # Test:
+        # x = self.from_normalized_displacement(
+        #     self.to_normalized_displacement(acceleration)
+        # )
+        # assert np.allclose(x, acceleration)
+        # print(np.linalg.norm(acceleration), np.linalg.norm(x- acceleration))
+
         _ = temperature
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
@@ -245,3 +252,30 @@ class BodyPosition(Mesh):
     @property
     def input_displacement_old(self):
         return self.displacement_old  # - np.mean(self.displacement_old, axis=0)
+
+    @property
+    def exact_normalized_displacement(self):
+        return self.to_normalized_displacement(self.exact_acceleration)
+
+    def to_normalized_displacement(self, acceleration):
+        position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
+        velocity = self.velocity_old + self.time_step * acceleration
+        displacement = self.displacement_old + self.time_step * velocity
+        result = self.normalize_rotate2(
+            self.initial_nodes + displacement - position_old
+        ) - self.normalize_shift_and_rotate2(
+            self.initial_nodes
+        )  # normalize_shift2
+        return result
+
+    def from_normalized_displacement(self, normalized_displacement):
+        position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
+        normalized_nodes = normalized_displacement + self.normalize_shift_and_rotate2(
+            self.initial_nodes
+        )  # normalize_shift2
+        displacement = (
+            self.denormalize_rotate2(normalized_nodes) - self.initial_nodes + position_old
+        )
+        velocity = (displacement - self.displacement_old) / self.time_step
+        result = (velocity - self.velocity_old) / self.time_step
+        return result

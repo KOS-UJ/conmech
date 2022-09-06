@@ -202,6 +202,9 @@ def plot_animation(
 
 
 def get_frame_annotation(scene: Scene, current_time):
-    return f"""time: {str(round(current_time, 1))}
+    description = f"""time: {str(round(current_time, 1))}
 nodes: {str(scene.nodes_count)}
 elements: {str(scene.elements_count)}"""
+    if hasattr(scene, 'reduced'):
+        description += f"\nnodes sparse: {str(scene.reduced.nodes_count)}"
+    return description

@@ -131,7 +131,18 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
     else:
         plot_mesh(nodes=scene.moved_nodes, mesh=scene, color="tab:orange", axes=axes)
     plot_obstacles(axes, scene, "tab:orange")
+
     # return
+    if hasattr(scene, "reduced"):
+        shift = np.array([0, 2.0, 1.5])
+        mesh = scene.reduced
+        shifted_normalized_nodes = mesh.normalized_nodes + shift
+        # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
+        #     layer_number=i, base_values=scene.normalized_inner_forces
+        # )
+        # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
+        plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
+    return
 
     shift = np.array([0, 2.0, 0])
     for key, data in normalized_data.items():
@@ -141,19 +152,6 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
         plot_mesh(nodes=shifted_normalized_nodes, mesh=scene, color="tab:blue", axes=axes)
         plot_arrows(starts=shifted_normalized_nodes, vectors=data, axes=axes)
         shift += np.array([2.5, 0, 0])
-
-    # return
-    shift = np.array([0, 2.0, 1.5])
-    if hasattr(scene, "all_layers"):
-        for _, layer in enumerate(scene.all_layers):
-            mesh = layer.mesh
-            shifted_normalized_nodes = mesh.normalized_nodes + shift
-            # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
-            #     layer_number=i, base_values=scene.normalized_inner_forces
-            # )
-            # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
-            plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
-            shift += np.array([2.5, 0, 0])
 
     if isinstance(scene, SceneTemperature):
         plot_temperature(
