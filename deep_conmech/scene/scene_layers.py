@@ -136,10 +136,9 @@ class SceneLayers(Scene):
         self.reduced.normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
 
     def set_exact_acceleration(self, exact_acceleration, reduced_exact_acceleration):
-        self.exact_acceleration = exact_acceleration
-        self.reduced.exact_acceleration = (
-            reduced_exact_acceleration  ### self.lift_data(exact_acceleration)
-        )
+        self._exact_acceleration = exact_acceleration
+        self.reduced._exact_acceleration = reduced_exact_acceleration
+        ### self.lift_data(exact_acceleration)
 
     def lift_data(self, data):
         return self.approximate_boundary_or_all_from_base(layer_number=1, base_values=data)
@@ -158,8 +157,8 @@ class SceneLayers(Scene):
         self.update_reduced()
 
     # def recenter_reduced(self):
-    #     displacement_old = self.reduced.normalize_shift_and_rotate2(self.reduced.displacement_old)
-    #     self.reduced.displacement_old = self.denormalize_rotate2(displacement_old) + np.mean(
+    #     displacement_old = self.reduced.normalize_shift_and_rotate(self.reduced.displacement_old)
+    #     self.reduced.displacement_old = self.denormalize_rotate(displacement_old) + np.mean(
     #         self.displacement_old, axis=0
     #     )
     #     return

@@ -266,6 +266,7 @@ def simulate(
         # scene.set_displacement_old(displacement)
         # scene.update_reduced()
         scene.iterate_self(acceleration, temperature=temperature)
+        scene.exact_acceleration = acceleration #####
 
         if compare_with_base_scene:
             base_scene.iterate_self(base_a)

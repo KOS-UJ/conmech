@@ -651,11 +651,11 @@ def get_args(td):
 
 def all_train(td):
     args = get_args(td)
-    args["final_time"] = 1.0
+    # args["final_time"] = 1.0
     if td.dimension == 3:
-        # return [ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        return [ball_rotate_3d(**args)]#, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         ###
-        return [bunny_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        return [bunny_rotate_3d(**args)]#, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         ###
         data = []
         data.append(cube_move_3d(**args))
@@ -680,13 +680,12 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    # args['final_time'] = 0.02
-    args['final_time'] = 3
+    # args['final_time'] = 3
     if td.dimension == 3:
         return [
-            bunny_swing_3d(**args),
-            bunny_rotate_3d(**args),
             ball_rotate_3d(**args),
+            bunny_rotate_3d(**args),
+            bunny_swing_3d(**args),
             ball_swing_3d(**args),
             cube_rotate_3d(**args),
         ]

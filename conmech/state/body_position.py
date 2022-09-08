@@ -9,6 +9,7 @@ from conmech.helpers import lnh, nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
+from deep_conmech.training_config import NORMALIZE
 
 
 def get_base(nodes, base_seed_indices, best_seed_index):
@@ -114,18 +115,23 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self.displacement_old = np.zeros_like(self.initial_nodes)
-        self.velocity_old = np.zeros_like(self.initial_nodes)
+        self._displacement_old = np.zeros_like(self.initial_nodes)
+        self._velocity_old = np.zeros_like(self.initial_nodes)
         self.exact_acceleration = np.zeros_like(self.initial_nodes)
 
-    def set_velocity_old(self, velocity):
-        self.velocity_old = velocity
+    @property
+    def displacement_old(self):
+        return self._displacement_old
 
-    def set_exact_acceleration(self, acceleration):
-        self.exact_acceleration = acceleration
+    @property
+    def velocity_old(self):
+        return self._velocity_old
 
     def set_displacement_old(self, displacement):
-        self.displacement_old = displacement
+        self._displacement_old = displacement
+
+    def set_velocity_old(self, velocity):
+        self._displacement_old = velocity
 
     @property
     def time_step(self):
@@ -156,24 +162,17 @@ class BodyPosition(Mesh):
         return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
-        return vectors
+        if not NORMALIZE:
+            return vectors
         return lnh.get_in_base(vectors, self.moved_base)
 
     def denormalize_rotate(self, vectors):
-        return vectors
-        return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
-
-    def normalize_rotate2(self, vectors):
-        return lnh.get_in_base(vectors, self.moved_base)
-
-    def denormalize_rotate2(self, vectors):
+        if not NORMALIZE:
+            return vectors
         return lnh.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     def normalize_shift_and_rotate(self, vectors):
         return self.normalize_rotate(self.normalize_shift(vectors))
-
-    def normalize_shift_and_rotate2(self, vectors):
-        return self.normalize_rotate2(self.normalize_shift2(vectors))
 
     @property
     def moved_nodes(self):
@@ -215,12 +214,8 @@ class BodyPosition(Mesh):
         return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
 
     @property
-    def rotated_velocity_old(self):
-        return self.normalize_rotate(self.velocity_old)
-
-    @property
     def normalized_velocity_old(self):
-        return self.normalize_shift_and_rotate(self.velocity_old)
+        return self.normalize_rotate(self.velocity_old)  # normalize_shift_and_rotate
 
     @property
     def normalized_displacement_old(self):
@@ -247,11 +242,11 @@ class BodyPosition(Mesh):
 
     @property
     def input_velocity_old(self):
-        return self.velocity_old  # - np.mean(self.velocity_old, axis=0)
+        return self.normalized_velocity_old  # - np.mean(self.velocity_old, axis=0)
 
     @property
     def input_displacement_old(self):
-        return self.displacement_old  # - np.mean(self.displacement_old, axis=0)
+        return self.normalized_displacement_old  # - np.mean(self.displacement_old, axis=0)
 
     @property
     def exact_normalized_displacement(self):
@@ -261,21 +256,19 @@ class BodyPosition(Mesh):
         position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
         velocity = self.velocity_old + self.time_step * acceleration
         displacement = self.displacement_old + self.time_step * velocity
-        result = self.normalize_rotate2(
+        result = self.normalize_rotate(
             self.initial_nodes + displacement - position_old
-        ) - self.normalize_shift_and_rotate2(
+        ) - self.normalize_shift(
             self.initial_nodes
-        )  # normalize_shift2
+        )  # normalize_shift !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return result
 
     def from_normalized_displacement(self, normalized_displacement):
         position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
-        normalized_nodes = normalized_displacement + self.normalize_shift_and_rotate2(
+        normalized_nodes = normalized_displacement + self.normalize_shift(
             self.initial_nodes
-        )  # normalize_shift2
-        displacement = (
-            self.denormalize_rotate2(normalized_nodes) - self.initial_nodes + position_old
-        )
+        )  # normalize_shift !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        displacement = self.denormalize_rotate(normalized_nodes) - self.initial_nodes + position_old
         velocity = (displacement - self.displacement_old) / self.time_step
         result = (velocity - self.velocity_old) / self.time_step
         return result
