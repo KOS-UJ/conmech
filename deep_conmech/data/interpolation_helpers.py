@@ -177,7 +177,6 @@ def get_interlayer_data_numba(
     #     base_element_nodes = base_nodes[base_elements]
     #     base_nodes_min = base_element_nodes.min(axis=1)
     #     base_nodes_max = base_element_nodes.max(axis=1)
-
     for index, node in enumerate(interpolated_nodes):
         distances = nph.euclidean_norm_numba(base_nodes - node)
         closest_node_list = get_top_indices(distances, closest_count)
@@ -188,7 +187,14 @@ def get_interlayer_data_numba(
             if np.all(selected_base_nodes[0] == node):
                 closest_weights[index, 0] = 1
             else:
-                unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
+                # Moore-Penrose pseudo-inverse
+                weights_internal = np.ascontiguousarray(node) @ np.linalg.pinv(
+                    selected_base_nodes
+                )
+                if(np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003):
+                    unnormalized_weights = weights_internal
+                else:
+                    unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
                 weights = unnormalized_weights / np.sum(unnormalized_weights)
                 closest_weights[index, :] = weights
 

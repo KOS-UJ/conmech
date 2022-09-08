@@ -131,6 +131,7 @@ class ScenariosDataset(BaseDataset):
                 scene,
                 step_tqdm,
                 tqdm_description,
+                current_time
             )
             current_index += 1
 

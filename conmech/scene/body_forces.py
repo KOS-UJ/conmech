@@ -106,32 +106,32 @@ class BodyForces(Dynamics):
     def input_forces(self):
         return self.normalized_inner_forces
 
-    def get_integrated_outer_forces(self):
+    def get_normalized_integrated_outer_forces(self):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.neumann_boundary,
             considered_nodes_count=self.nodes_count,
-            moved_nodes=self.moved_nodes,
+            moved_nodes=self.moved_nodes, #normalized
         )
-        return neumann_surfaces * self.outer_forces
+        return neumann_surfaces * self.normalized_outer_forces
 
     def get_integrated_forces_column_np(self):
         integrated_inner_forces = self.matrices.volume_at_nodes @ self.normalized_inner_forces
-        integrated_outer_forces = self.get_integrated_outer_forces()
+        integrated_outer_forces = self.get_normalized_integrated_outer_forces()
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
-    def get_integrated_forces_column_for_jax(self):
+    def get_normalized_integrated_forces_column_for_jax(self):
         integrated_forces = get_integrated_forces_jax_int(
             volume_at_nodes_jax=self.matrices.volume_at_nodes_jax,
             normalized_inner_forces=self.normalized_inner_forces,
-            integrated_outer_forces=self.get_integrated_outer_forces(),
+            integrated_outer_forces=self.get_normalized_integrated_outer_forces(),
         )
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
         integrated_inner_forces = self.matrices.volume_at_nodes_jax @ jnp.array(
             self.normalized_inner_forces
         )
-        integrated_outer_forces = jnp.array(self.get_integrated_outer_forces())
+        integrated_outer_forces = jnp.array(self.get_normalized_integrated_outer_forces())
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
@@ -172,7 +172,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column_for_jax()
+        f_vector = self.get_normalized_integrated_forces_column_for_jax()
         rhs = (
             f_vector
             - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)

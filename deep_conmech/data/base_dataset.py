@@ -352,7 +352,7 @@ class BaseDataset:
         with pkh.open_file_read(self.features_data_path) as file:
             return pkh.load_byte_index(byte_index=self.features_indices[index], data_file=file)
 
-    def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description):
+    def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description, current_time):
         images_count = self.config.dataset_images_count
         if images_count is None:
             return
@@ -360,16 +360,16 @@ class BaseDataset:
         relative_index = 1 if plot_index_skip == 0 else current_index % plot_index_skip
         if relative_index == 0:
             step_tqdm.set_description(f"{tqdm_description} - plotting index {current_index}")
-            self.plot_data_scene(scene, current_index, self.images_directory)
+            self.plot_data_scene(scene, current_index, self.images_directory, current_time)
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
-    def plot_data_scene(self, scene: Scene, filename, catalog):
+    def plot_data_scene(self, scene: Scene, filename, catalog, current_time):
         cmh.create_folders(catalog)
         extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
         simulation_runner.plot_setting(
-            current_time=0,
+            current_time=current_time,
             scene=scene,
             path=path,
             base_scene=None,
@@ -386,16 +386,16 @@ class BaseDataset:
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
-        acceleration, exact_acceleration = self.solve_function(
+        acceleration, _ = self.solve_function(
             setting=scene, initial_a=scene.exact_acceleration
         )
         ###################################
-        _, reduced_exact_acceleration = self.solve_function(
+        reduced_acceleration, _ = self.solve_function(
             setting=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
         # reduced_exact_acceleration = scene.lift_data(exact_acceleration)
 
-        scene.set_exact_acceleration(exact_acceleration, reduced_exact_acceleration)
+        scene.set_exact_acceleration(acceleration, reduced_acceleration)
         return scene, acceleration
 
     def safe_save_scene(self, scene, data_path: str):

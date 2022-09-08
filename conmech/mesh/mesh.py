@@ -7,6 +7,7 @@ from conmech.helpers import cmh, nph
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
+from deep_conmech.training_config import NORMALIZE
 
 
 @numba.njit
@@ -157,10 +158,8 @@ class Mesh:
 
     def normalize_shift(self, vectors):
         _ = self
-        return vectors  # - np.mean(vectors, axis=0) ##########
-
-    def normalize_shift2(self, vectors):
-        _ = self
+        if not NORMALIZE:
+            return vectors
         return vectors - np.mean(vectors, axis=0)
 
     @property

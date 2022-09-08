@@ -113,9 +113,9 @@ class SceneRandomized(SceneLayers):
         return self.normalize_rotate(self.a_correction)
 
     def make_dirty(self):
-        self.velocity_old = self.randomized_velocity_old
-        self.displacement_old = self.randomized_displacement_old
-
+        self.set_velocity_old(self.randomized_velocity_old)
+        self.set_displacement_old(self.randomized_displacement_old)
+        
         self.unset_randomization()
 
     def iterate_self(self, acceleration, temperature=None):

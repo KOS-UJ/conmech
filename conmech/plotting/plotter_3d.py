@@ -142,7 +142,7 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
         # )
         # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
         plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
-    return
+    #return
 
     shift = np.array([0, 2.0, 0])
     for key, data in normalized_data.items():

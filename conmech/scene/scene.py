@@ -197,10 +197,8 @@ def get_eps_rot_jax(F):
 
 
 def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
-    # dimension = displacement.shape[-1]
-
     F_w = get_F_jax(component, dx_big_jax)
-    eps_w = get_eps_rot_jax(F=F_w)  # get_eps_lin_jax get_eps_rot_jax
+    eps_w = get_eps_lin_jax(F=F_w)  # get_eps_lin_jax get_eps_rot_jax
 
     phi = prop_1 * (eps_w * eps_w).sum(axis=(1, 2)) + (prop_2 / 2.0) * (
         ((eps_w).trace(axis1=1, axis2=2) ** 2)
@@ -351,7 +349,7 @@ class Scene(BodyForces):
 
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
-            rhs_acceleration=self.get_integrated_forces_column_for_jax(),
+            rhs_acceleration=self.get_normalized_integrated_forces_column_for_jax(),
             #
             # lhs_acceleration_torch=torch.Tensor(
             #     np.array(self.solver_cache.lhs_acceleration_jax.todense())
@@ -375,14 +373,14 @@ class Scene(BodyForces):
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,
             ),
-            base_velocity=self.velocity_old,
+            base_velocity=self.input_velocity_old,
             base_energy_velocity=compute_velocity_energy_jax(
-                velocity=self.velocity_old,
+                velocity=self.input_velocity_old,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,
             ),
-        )   
+        )
         return args
 
     @property
@@ -433,7 +431,7 @@ class Scene(BodyForces):
 
     @property
     def norm_boundary_velocity_old(self):
-        return self.rotated_velocity_old[self.boundary_indices]
+        return self.normalized_velocity_old[self.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
@@ -526,9 +524,13 @@ class Scene(BodyForces):
         # self.outer_forces = scene.approximate_boundary_or_all_from_base(
         #     layer_number=1, base_values=scene.outer_forces
         # )
-        self.displacement_old = scene.approximate_boundary_or_all_from_base(
-            layer_number=1, base_values=scene.displacement_old
+        self.set_displacement_old(
+            scene.approximate_boundary_or_all_from_base(
+                layer_number=1, base_values=scene.displacement_old
+            )
         )
-        self.velocity_old = scene.approximate_boundary_or_all_from_base(
-            layer_number=1, base_values=scene.velocity_old
+        self.set_velocity_old(
+            scene.approximate_boundary_or_all_from_base(
+                layer_number=1, base_values=scene.velocity_old
+            )
         )

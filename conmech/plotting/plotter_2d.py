@@ -323,7 +323,7 @@ def draw_input_u(scene: Scene, position, axes):
 
 
 def draw_input_v(scene: Scene, position, axes):
-    return draw_data("V", scene.rotated_velocity_old, scene, position, axes)
+    return draw_data("V", scene.normalized_velocity_old, scene, position, axes)
 
 
 def draw_a(scene, position, axes):
