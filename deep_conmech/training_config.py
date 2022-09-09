@@ -11,7 +11,8 @@ DIMENSION = 3
 MESH_LAYERS_PROPORTION = 2  # 4
 CLOSEST_COUNT = 4  # 3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
-NORMALIZE = True # True
+NORMALIZE = True
+
 
 @dataclass
 class TrainingData:
@@ -39,7 +40,7 @@ class TrainingData:
     corners_scale_proportion: float = 0.8
 
     displacement_to_velocity_noise: float = 0.1
-    displacement_in_random_factor: float = 0. #0.2 * (0.01**2)  # 0.1 0.5 0.1 0.01 0
+    displacement_in_random_factor: float = 0.0  # 0.2 * (0.01**2)  # 0.1 0.5 0.1 0.01 0
     # same as net error, so that a_correction is similar
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
@@ -93,7 +94,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 7 #8  # 16
+    dataset_images_count: Optional[float] = 7  # 8  # 16
 
     log_dataset_stats: bool = False  # True
     with_train_scenes_file: bool = False
