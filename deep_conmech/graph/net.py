@@ -436,7 +436,8 @@ class CustomGraphNet(nn.Module):
         return net_output
 
     def solve_all(self, scene: SceneInput, initial_a):
-        return Calculator.solve_all(scene=scene, initial_a=initial_a)
+        #return Calculator.solve_all(scene=scene, initial_a=initial_a)
+        
         self.eval()
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=initial_a
@@ -449,14 +450,16 @@ class CustomGraphNet(nn.Module):
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
-        normalized_a = thh.to_np_double(
-            self(layer_list=layers_list)
-        )  # scene.from_normalized_displacement(/10000))  # + scene.linear_acceleration
+        # normalized_a = thh.to_np_double(
+        #     self(layer_list=layers_list)
+        # )  # + scene.linear_acceleration
+        # a = scene.denormalize_rotate(normalized_a)
+        # return a, normalized_a
 
-        # normalized_a = Calculator.solve(scene=scene, initial_a=normalized_a)
-
-        a = scene.denormalize_rotate(normalized_a)
-        return a, normalized_a
+        a = scene.from_normalized_displacement(thh.to_np_double(
+           self(layer_list=layers_list) /1e2 )
+        ) # + scene.linear_acceleration
+        return a, None
 
     def solve(self, scene: SceneInput, initial_a):
         a, _ = self.solve_all(scene, initial_a)

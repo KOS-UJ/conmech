@@ -136,8 +136,8 @@ class SceneLayers(Scene):
         self.reduced.normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
 
     def set_exact_acceleration(self, exact_acceleration, reduced_exact_acceleration):
-        self._exact_acceleration = exact_acceleration
-        self.reduced._exact_acceleration = reduced_exact_acceleration
+        self.exact_acceleration = exact_acceleration
+        self.reduced.exact_acceleration = reduced_exact_acceleration
         ### self.lift_data(exact_acceleration)
 
     def lift_data(self, data):
@@ -152,9 +152,9 @@ class SceneLayers(Scene):
         self.reduced.prepare(reduced_inner_forces)
         # scene.reduced.prepare(scenario.get_forces_by_function(scene.reduced, current_time))
 
-    def iterate_self(self, acceleration, temperature=None):
+    def iterate_self(self, acceleration, temperature=None, lift_data=True):
         super().iterate_self(acceleration, temperature)
-        self.update_reduced()
+        self.update_reduced(lift_data)
 
     # def recenter_reduced(self):
     #     displacement_old = self.reduced.normalize_shift_and_rotate(self.reduced.displacement_old)
@@ -172,7 +172,10 @@ class SceneLayers(Scene):
         self.reduced.set_displacement_old(None)
         self.reduced.set_velocity_old(None)
 
-    def update_reduced(self):
+    def update_reduced(self, lift_data = True):
+        if not lift_data:
+            self.reduced.iterate_self(self.reduced.exact_acceleration)
+            return
         velocity = self.lift_data(self.input_velocity_old)  ####
         displacement = self.lift_data(self.input_displacement_old)  ###
 

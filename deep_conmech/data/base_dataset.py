@@ -387,11 +387,11 @@ class BaseDataset:
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
         acceleration, _ = self.solve_function(
-            setting=scene, initial_a=scene.exact_acceleration
+            scene=scene, initial_a=scene.exact_acceleration
         )
         ###################################
         reduced_acceleration, _ = self.solve_function(
-            setting=scene.reduced, initial_a=scene.reduced.exact_acceleration
+            scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
         # reduced_exact_acceleration = scene.lift_data(exact_acceleration)
 

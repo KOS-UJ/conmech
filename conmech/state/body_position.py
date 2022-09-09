@@ -131,7 +131,7 @@ class BodyPosition(Mesh):
         self._displacement_old = displacement
 
     def set_velocity_old(self, velocity):
-        self._displacement_old = velocity
+        self._velocity_old = velocity
 
     @property
     def time_step(self):
@@ -173,6 +173,10 @@ class BodyPosition(Mesh):
 
     def normalize_shift_and_rotate(self, vectors):
         return self.normalize_rotate(self.normalize_shift(vectors))
+
+    @property
+    def normalized_exact_acceleration(self):
+        return self.normalize_rotate(self.exact_acceleration)
 
     @property
     def moved_nodes(self):
@@ -253,21 +257,20 @@ class BodyPosition(Mesh):
         return self.to_normalized_displacement(self.exact_acceleration)
 
     def to_normalized_displacement(self, acceleration):
-        position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
-        velocity = self.velocity_old + self.time_step * acceleration
-        displacement = self.displacement_old + self.time_step * velocity
-        result = self.normalize_rotate(
-            self.initial_nodes + displacement - position_old
-        ) - self.normalize_shift(
-            self.initial_nodes
-        )  # normalize_shift !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        return result
+        position_old = np.mean(self.moved_nodes, axis=0)
+        velocity_new = self.velocity_old + self.time_step * acceleration
+        displacement_new = self.displacement_old + self.time_step * velocity_new
+        moved_nodes_new = self.initial_nodes + displacement_new
+        normalized_displacement = (
+            self.normalize_rotate(moved_nodes_new - position_old)
+            - self.normalized_initial_nodes
+        )
+        assert np.allclose(acceleration, self.from_normalized_displacement(normalized_displacement))
+        return normalized_displacement
 
     def from_normalized_displacement(self, normalized_displacement):
-        position_old = np.mean(self.initial_nodes + self.displacement_old, axis=0)
-        normalized_nodes = normalized_displacement + self.normalize_shift(
-            self.initial_nodes
-        )  # normalize_shift !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        position_old = np.mean(self.moved_nodes, axis=0)
+        normalized_nodes = normalized_displacement + self.normalized_initial_nodes
         displacement = self.denormalize_rotate(normalized_nodes) - self.initial_nodes + position_old
         velocity = (displacement - self.displacement_old) / self.time_step
         result = (velocity - self.velocity_old) / self.time_step

@@ -110,8 +110,8 @@ def plot(config: TrainingConfig):
         statistics = None
 
     net = CustomGraphNet(statistics=statistics, td=config.td).to(0)
-    #checkpoint_path = get_newest_checkpoint_path(config)
-    #net = GraphModelDynamic.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
+    checkpoint_path = get_newest_checkpoint_path(config)
+    net = GraphModelDynamic.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
 
     all_print_datasets = scenarios.all_print(config.td)
     GraphModelDynamic.plot_all_scenarios(net, all_print_datasets, config)

@@ -169,15 +169,14 @@ class SceneInput(SceneRandomized):
         if layer_number > 0:
             exact_acceleration = self.prepare_node_data(
                 layer_number=layer_number,
-                data=self.normalize_rotate(
-                    self.reduced.exact_acceleration
-                ),  # self.reduced.exact_normalized_displacement,  #########################
+                data=self.reduced.exact_normalized_displacement
+                * 1e2,  # self.reduced.normalized_exact_acceleration,  # self.reduced.exact_acceleration self.reduced.exact_normalized_displacement,  #########################
                 add_norm=True,
                 approximate=False,
             )
             return np.hstack(
                 (
-                    exact_acceleration,  # exact_normalized_displacement / (1 / 100) ** 2,  # - add multiple!
+                    exact_acceleration,
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
@@ -300,12 +299,10 @@ class SceneInput(SceneRandomized):
             # rhs=rhs,
         )
         if hasattr(self, "exact_acceleration"):
-            target_data.exact_acceleration = thh.to_double(
-                self.normalize_rotate(self.exact_acceleration)
-            )
-            # target_data.exact_acceleration = (
-            #     thh.to_double(self.exact_normalized_displacement) / (1 / 100) ** 2
-            # )
+            # target_data.exact_acceleration = thh.to_double(
+            #     self.normalized_exact_acceleration
+            # )  # exact_acceleration
+            target_data.exact_acceleration = thh.to_double(self.exact_normalized_displacement * 1e2)
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
         return target_data

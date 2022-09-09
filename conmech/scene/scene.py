@@ -198,7 +198,7 @@ def get_eps_rot_jax(F):
 
 def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
     F_w = get_F_jax(component, dx_big_jax)
-    eps_w = get_eps_lin_jax(F=F_w)  # get_eps_lin_jax get_eps_rot_jax
+    eps_w = get_eps_lin_jax(F=F_w)  ## get_eps_lin_jax get_eps_rot_jax
 
     phi = prop_1 * (eps_w * eps_w).sum(axis=(1, 2)) + (prop_2 / 2.0) * (
         ((eps_w).trace(axis1=1, axis2=2) ** 2)
