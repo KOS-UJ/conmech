@@ -60,11 +60,6 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
-        # contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0,
-        # piezo_dirichlet_0=(
-        #     lambda x: (x[0] == 1.0 and 0.0 <= x[1] <= 4.0),
-        #     lambda x: np.full(x.shape[0], -20)
-        # ),
         piezo_dirichlet_0=(
             lambda x: (x[0] == 1.0 and 1.0 <= x[1] <= 4.0),
             lambda x: np.full(x.shape[0], 0)
