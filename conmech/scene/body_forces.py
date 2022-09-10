@@ -110,7 +110,7 @@ class BodyForces(Dynamics):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.neumann_boundary,
             considered_nodes_count=self.nodes_count,
-            moved_nodes=self.moved_nodes, #normalized
+            moved_nodes=self.moved_nodes,  # normalized
         )
         return neumann_surfaces * self.normalized_outer_forces
 

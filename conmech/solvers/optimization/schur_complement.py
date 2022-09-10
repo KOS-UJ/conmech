@@ -67,7 +67,9 @@ class SchurComplement(Optimization):
 
         def get_sliced(matrix, indices_height, indices_width):
             if dimension == 1:
-                result_csr = scipy.sparse.csr_matrix(matrix[get_slice(indices_height, 0), get_slice(indices_width, 0)])
+                result_csr = scipy.sparse.csr_matrix(
+                    matrix[get_slice(indices_height, 0), get_slice(indices_width, 0)]
+                )
             else:
                 result_csr = scipy.sparse.bmat(
                     [

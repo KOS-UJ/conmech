@@ -49,7 +49,7 @@ def loss_normalized_obstacle_scatter(
         inner_energy=0,
         energy=0,
         boundary_integral=0,
-        mean=0,#thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
+        mean=0,  # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
         exact_energy=0,
         mse=0,
         me=0,

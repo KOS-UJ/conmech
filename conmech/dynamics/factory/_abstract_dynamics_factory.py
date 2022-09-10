@@ -19,7 +19,7 @@ def get_coo_sparse_data_numba(keys, values):
         index += 1
     return row, col, data
 
-    
+
 class AbstractDynamicsFactory:
     @property
     def dimension(self) -> int:

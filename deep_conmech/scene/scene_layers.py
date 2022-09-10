@@ -172,7 +172,7 @@ class SceneLayers(Scene):
         self.reduced.set_displacement_old(None)
         self.reduced.set_velocity_old(None)
 
-    def update_reduced(self, lift_data = True):
+    def update_reduced(self, lift_data=True):
         if not lift_data:
             self.reduced.iterate_self(self.reduced.exact_acceleration)
             return

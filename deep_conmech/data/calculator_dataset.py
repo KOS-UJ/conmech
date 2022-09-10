@@ -28,7 +28,7 @@ class CalculatorDataset(ScenariosDataset):
         super().__init__(
             description=f"{description}_calculator",
             all_scenarios=all_scenarios,
-            solve_function=Calculator.solve_all,  # solve_all_acceleration_normalized_function,  # Calculator.solve_all,
+            solve_function=Calculator.solve,  # solve_acceleration_normalized_function,
             load_data_to_ram=load_data_to_ram,
             with_scenes_file=with_scenes_file,
             randomize=randomize,

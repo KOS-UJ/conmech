@@ -198,7 +198,7 @@ def get_eps_rot_jax(F):
 
 def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
     F_w = get_F_jax(component, dx_big_jax)
-    eps_w = get_eps_lin_jax(F=F_w)  ## get_eps_lin_jax get_eps_rot_jax
+    eps_w = get_eps_rot_jax(F=F_w)  ## get_eps_lin_jax get_eps_rot_jax
 
     phi = prop_1 * (eps_w * eps_w).sum(axis=(1, 2)) + (prop_2 / 2.0) * (
         ((eps_w).trace(axis1=1, axis2=2) ** 2)
@@ -344,7 +344,10 @@ class Scene(BodyForces):
             )
 
     def get_energy_obstacle_args_for_jax(self, temperature=None):
-        base_displacement = self.input_displacement_old + self.time_step * self.input_velocity_old
+        displacement = self.calculator_displacement_old
+        velocity = self.calculator_velocity_old
+
+        base_displacement = displacement + self.time_step * velocity
         body_prop = self.body_prop.get_tuple()
 
         args = EnergyObstacleArguments(
@@ -356,11 +359,11 @@ class Scene(BodyForces):
             # ),
             # rhs_acceleration_torch=torch.Tensor(np.array(self.get_integrated_forces_column_jax())),
             # #
-            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
-            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
-            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
-            penetration=jnp.asarray(self.get_penetration_scalar()),
-            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
+            boundary_velocity_old=None,  # jnp.asarray(self.norm_boundary_velocity_old),
+            boundary_normals=None,  # jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_obstacle_normals=None,  # jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            penetration=None,  # jnp.asarray(self.get_penetration_scalar()),
+            surface_per_boundary_node=None,  # jnp.asarray(self.get_surface_per_boundary_node()),
             body_prop=body_prop,
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
@@ -373,9 +376,9 @@ class Scene(BodyForces):
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,
             ),
-            base_velocity=self.input_velocity_old,
+            base_velocity=velocity,
             base_energy_velocity=compute_velocity_energy_jax(
-                velocity=self.input_velocity_old,
+                velocity=velocity,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,

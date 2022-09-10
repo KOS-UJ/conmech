@@ -352,7 +352,9 @@ class BaseDataset:
         with pkh.open_file_read(self.features_data_path) as file:
             return pkh.load_byte_index(byte_index=self.features_indices[index], data_file=file)
 
-    def check_and_print(self, all_data_count, current_index, scene, step_tqdm, tqdm_description, current_time):
+    def check_and_print(
+        self, all_data_count, current_index, scene, step_tqdm, tqdm_description, current_time
+    ):
         images_count = self.config.dataset_images_count
         if images_count is None:
             return
@@ -386,11 +388,9 @@ class BaseDataset:
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
-        acceleration, _ = self.solve_function(
-            scene=scene, initial_a=scene.exact_acceleration
-        )
+        acceleration = self.solve_function(scene=scene, initial_a=scene.exact_acceleration)
         ###################################
-        reduced_acceleration, _ = self.solve_function(
+        reduced_acceleration = self.solve_function(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
         # reduced_exact_acceleration = scene.lift_data(exact_acceleration)

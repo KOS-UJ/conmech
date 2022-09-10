@@ -125,7 +125,7 @@ class SyntheticDataset(BaseDataset):
             description=f"{description}_synthetic",
             dimension=config.td.dimension,
             data_count=config.td.dataset_size,
-            solve_function=Calculator.solve_all,
+            solve_function=Calculator.solve,
             load_data_to_ram=load_data_to_ram,
             randomize=randomize,
             num_workers=config.synthetic_generation_workers,

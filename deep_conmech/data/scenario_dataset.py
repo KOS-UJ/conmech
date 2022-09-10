@@ -126,12 +126,7 @@ class ScenariosDataset(BaseDataset):
                 self.save_features_and_target(scene=scene)
 
             self.check_and_print(
-                self.data_count,
-                current_index,
-                scene,
-                step_tqdm,
-                tqdm_description,
-                current_time
+                self.data_count, current_index, scene, step_tqdm, tqdm_description, current_time
             )
             current_index += 1
 

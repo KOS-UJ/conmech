@@ -19,6 +19,7 @@ from conmech.scene.scene import (
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.lbfgs import minimize_lbfgs
 from deep_conmech.scene.scene_randomized import SceneRandomized
+from deep_conmech.training_config import CALCULATOR_NORMALIZE
 
 
 class Calculator:
@@ -89,7 +90,7 @@ class Calculator:
 
         if Calculator.MAX_K < state.k:
             Calculator.MAX_K = state.k
-        #if state.failed:
+        # if state.failed:
         #    print("Optimization failed")
         # if state.overrun:
         #     print(
@@ -126,15 +127,10 @@ class Calculator:
 
     @staticmethod
     def solve(scene: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
-        cleaned_a, _ = Calculator.solve_all(scene, initial_a)
-        return cleaned_a
-
-    @staticmethod
-    def solve_all(scene: Scene, initial_a: Optional[np.ndarray] = None):
         normalized_a = Calculator.solve_acceleration_normalized(scene, initial_a=initial_a)
         normalized_cleaned_a = Calculator.clean_acceleration(scene, normalized_a)
         cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
-        return cleaned_a, normalized_cleaned_a
+        return cleaned_a
 
     @staticmethod
     def solve_with_temperature(
@@ -254,13 +250,13 @@ class Calculator:
         # assert np.allclose(A @ normalized_a_vector_jax - b.reshape(-1), 0)
 
     @staticmethod
-    def solve_all_acceleration_normalized_function(setting, temperature=None, initial_a=None):
+    def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         normalized_a = Calculator.solve_acceleration_normalized_function(
             setting, temperature, initial_a
         )
         normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
-        return cleaned_a, normalized_cleaned_a
+        return cleaned_a
 
     @staticmethod
     def solve_acceleration_normalized_optimization_jax(scene, temperature=None, initial_a=None):
@@ -330,6 +326,8 @@ class Calculator:
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):
+        if not CALCULATOR_NORMALIZE:
+            return normalized_cleaned_a
         return setting.denormalize_rotate(normalized_cleaned_a)
 
     @staticmethod

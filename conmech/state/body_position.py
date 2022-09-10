@@ -9,7 +9,7 @@ from conmech.helpers import lnh, nph
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from deep_conmech.training_config import NORMALIZE
+from deep_conmech.training_config import CALCULATOR_NORMALIZE, NORMALIZE
 
 
 def get_base(nodes, base_seed_indices, best_seed_index):
@@ -246,11 +246,23 @@ class BodyPosition(Mesh):
 
     @property
     def input_velocity_old(self):
-        return self.normalized_velocity_old  # - np.mean(self.velocity_old, axis=0)
+        return self.normalized_velocity_old
 
     @property
     def input_displacement_old(self):
-        return self.normalized_displacement_old  # - np.mean(self.displacement_old, axis=0)
+        return self.normalized_displacement_old
+
+    @property
+    def calculator_velocity_old(self):
+        if not CALCULATOR_NORMALIZE:
+            return self.velocity_old
+        return self.normalized_velocity_old
+
+    @property
+    def calculator_displacement_old(self):
+        if not CALCULATOR_NORMALIZE:
+            return self.displacement_old
+        return self.normalized_displacement_old
 
     @property
     def exact_normalized_displacement(self):
@@ -262,8 +274,7 @@ class BodyPosition(Mesh):
         displacement_new = self.displacement_old + self.time_step * velocity_new
         moved_nodes_new = self.initial_nodes + displacement_new
         normalized_displacement = (
-            self.normalize_rotate(moved_nodes_new - position_old)
-            - self.normalized_initial_nodes
+            self.normalize_rotate(moved_nodes_new - position_old) - self.normalized_initial_nodes
         )
         assert np.allclose(acceleration, self.from_normalized_displacement(normalized_displacement))
         return normalized_displacement

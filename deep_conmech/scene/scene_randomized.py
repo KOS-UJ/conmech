@@ -115,10 +115,10 @@ class SceneRandomized(SceneLayers):
     def make_dirty(self):
         self.set_velocity_old(self.randomized_velocity_old)
         self.set_displacement_old(self.randomized_displacement_old)
-        
+
         self.unset_randomization()
 
-    def iterate_self(self, acceleration, temperature=None, lift_data = True):
+    def iterate_self(self, acceleration, temperature=None, lift_data=True):
         _ = temperature
         if self.randomized_inputs:
             self._regenerate_randomization()
@@ -131,4 +131,3 @@ class SceneRandomized(SceneLayers):
     @property
     def input_displacement_old(self):  # normalized_randomized_displacement_old
         return super().input_displacement_old + self.normalized_displacement_randomization
-

@@ -69,10 +69,12 @@ def normalize_euclidean_numba(data):
 def get_normal(vector, normal):
     return elementwise_dot(vector, normal, keepdims=True)
 
+
 def get_normal_tangential(vector, normal):
     normal_vector = get_normal(vector, normal)
     tangential_vector = vector - (normal_vector * normal)
     return normal_vector, tangential_vector
+
 
 def get_tangential(vector, normal):
     _, tangential_vector = get_normal_tangential(vector, normal)

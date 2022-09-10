@@ -653,7 +653,7 @@ def all_train(td):
     args = get_args(td)
     # args["final_time"] = 1.0
     if td.dimension == 3:
-        #return [ball_rotate_3d(**args)]  # , time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        # return [ball_rotate_3d(**args)]  # , time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         ###
         return [bunny_rotate_3d(**args)]  # , time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         ###

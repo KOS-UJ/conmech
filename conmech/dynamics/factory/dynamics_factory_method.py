@@ -44,6 +44,7 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape) for i in data]
     return edges_features_matrix
 
+
 def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
@@ -67,7 +68,9 @@ def get_dynamics(
     edges_features_matrix = to_edges_features_matrix(
         edges_features_dict=edges_features_dict, nodes_count=len(nodes)
     )
-    result.dx_big = factory.to_dx_matrix(dx_dict, elements_count=len(nodes), nodes_count=len(elements))
+    result.dx_big = factory.to_dx_matrix(
+        dx_dict, elements_count=len(nodes), nodes_count=len(elements)
+    )
 
     edges_features_matrix[0] = edges_features_matrix[0].tocsr()
     for i in range(1, len(edges_features_matrix)):

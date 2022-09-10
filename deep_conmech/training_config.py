@@ -11,7 +11,8 @@ DIMENSION = 3
 MESH_LAYERS_PROPORTION = 2  # 4
 CLOSEST_COUNT = 4  # 3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
-NORMALIZE = True
+NORMALIZE = True  # True
+CALCULATOR_NORMALIZE = False
 
 
 @dataclass
@@ -24,7 +25,7 @@ class TrainingData:
 
     dataset: str = "calculator"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 4  # 4  # 8
-    mesh_density: int = 16  # 8  # 16 # 64 if dimension == 2 else 16
+    mesh_density: int = 32  # 16  # 8  # 16 # 64 if dimension == 2 else 16
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0

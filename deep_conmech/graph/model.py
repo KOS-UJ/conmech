@@ -414,7 +414,7 @@ class GraphModelDynamic:
             all_acceleration=all_acceleration,
             graph_sizes_base=graph_sizes_base,
             all_exact_acceleration=target_data.exact_acceleration,
-            all_linear_acceleration=None#target_data.linear_acceleration,
+            all_linear_acceleration=None,  # target_data.linear_acceleration,
         )
         # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
 

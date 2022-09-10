@@ -151,13 +151,11 @@ def interpolate_corners(
     return mean + corner_interpolation
 
 
-
-
 # TODO: write in Numba
 def get_top_indices(array, indices_count):
     unsorted_indices = np.argpartition(array, indices_count)[:indices_count]
     result = unsorted_indices[array[unsorted_indices].argsort()]
-    #assert np.all(result == array.argsort()[:indices_count])
+    # assert np.all(result == array.argsort()[:indices_count])
     return result
 
 
@@ -183,15 +181,13 @@ def get_interlayer_data_numba(
         if closest_weights is not None:
             closest_node_list = get_top_indices(distances, closest_count)
             selected_base_nodes = base_nodes[closest_node_list]
-            
+
             if np.all(selected_base_nodes[0] == node):
                 closest_weights[index, 0] = 1
             else:
                 # Moore-Penrose pseudo-inverse
-                weights_internal = np.ascontiguousarray(node) @ np.linalg.pinv(
-                    selected_base_nodes
-                )
-                if(np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003):
+                weights_internal = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
+                if np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
                     unnormalized_weights = weights_internal
                 else:
                     unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
