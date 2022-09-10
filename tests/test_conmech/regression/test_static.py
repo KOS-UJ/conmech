@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 import pytest
+
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import Static
 from conmech.simulations.problem_solver import Static as StaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -41,15 +43,11 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        )
 
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
-
-    setup_m02_m02 = StaticSetup()
+    setup_m02_m02 = StaticSetup(mesh_type="cross")
 
     expected_displacement_vector_m02_m02 = [
         [0.0, 0.0],
@@ -72,7 +70,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = StaticSetup()
+    setup_0_02_p_0 = StaticSetup(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -101,7 +99,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = StaticSetup()
+    setup_0_m02_p_0 = StaticSetup(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -137,15 +135,11 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0.0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        )
 
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
-
-    setup_var = StaticSetup()
+    setup_var = StaticSetup(mesh_type="cross")
     expected_displacement_vector_var = [
         [0.0, 0.0],
         [-0.02154956, 0.01364313],
@@ -173,8 +167,8 @@ def test_direct_solver(solving_method, setup, expected_displacement_vector):
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(initial_displacement=setup.initial_displacement)
 
-    displacement = result.mesh.initial_nodes[:] - result.displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
+    displacement = result.body.mesh.initial_nodes[:] - result.displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

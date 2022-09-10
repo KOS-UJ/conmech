@@ -5,7 +5,6 @@ Created at 18.02.2021
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticStatement
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
@@ -15,16 +14,15 @@ from conmech.solvers.solver_methods import make_equation
 class Direct(Solver):
     def __init__(
         self,
-        mesh,
-        body_prop,
+        statement,
+        body,
         time_step,
         contact_law,
         friction_bound,
     ):
         super().__init__(
-            mesh,
-            StaticStatement(mesh),
-            body_prop,
+            statement,
+            body,
             time_step,
             contact_law,
             friction_bound,
@@ -52,8 +50,8 @@ class Direct(Solver):
             self.equation,
             initial_guess,
             args=(
-                self.mesh.initial_nodes,
-                self.mesh.contact_boundary,
+                self.body.mesh.initial_nodes,
+                self.body.mesh.contact_boundary,
                 self.node_relations,
                 self.node_forces,
             ),

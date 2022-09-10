@@ -1,11 +1,13 @@
 """
 Contact Mechanics Problem setups
 """
-
+from abc import ABC
 from dataclasses import dataclass
 from typing import Tuple, Union
 
 import numpy as np
+
+from conmech.mesh.boundaries_description import BoundariesDescription
 
 
 class ContactLaw:
@@ -30,7 +32,9 @@ class ContactLaw:
 @dataclass()
 class Problem:
     dimension = 2  # TODO #74 : Not used?
+    mesh_type: str
     grid_height: float
+    boundaries: BoundariesDescription
 
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
@@ -55,14 +59,6 @@ class Problem:
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
 
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
 
 class Static(Problem):
     @staticmethod
@@ -77,16 +73,8 @@ class Static(Problem):
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
 
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
 
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
-        raise NotImplementedError()
-
-
-class Quasistatic(Problem):
+class TimeDependent(Problem):
     th_coef: float
     ze_coef: float
     time_step: float
@@ -107,44 +95,40 @@ class Quasistatic(Problem):
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
 
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
 
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
-        raise NotImplementedError()
+class Quasistatic(TimeDependent, ABC):
+    pass
 
 
-class Dynamic(Problem):
-    th_coef: float
-    ze_coef: float
-    time_step: float
+class Dynamic(TimeDependent, ABC):
+    pass
 
-    @staticmethod
-    def initial_velocity(x: np.ndarray) -> np.ndarray:
-        return np.zeros_like(x)
+
+class TemperatureTimeDependent(TimeDependent, ABC):
+    thermal_expansion: np.ndarray
+    thermal_conductivity: np.ndarray
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
 
-    @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+
+class PiezoelectricTimeDependent(TimeDependent, ABC):
+    piezoelectricity: np.ndarray
+    permittivity: np.ndarray
 
     @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+    def initial_electric_potential(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
 
-    @staticmethod
-    def is_contact(x: np.ndarray) -> bool:
-        raise NotImplementedError()
+class TemperatureDynamic(Dynamic, TemperatureTimeDependent, ABC):
+    pass
 
-    @staticmethod
-    def is_dirichlet(x: np.ndarray) -> bool:
-        raise NotImplementedError()
+
+class PiezoelectricQuasistatic(Quasistatic, PiezoelectricTimeDependent, ABC):
+    pass
+
+
+class PiezoelectricDynamic(Dynamic, PiezoelectricTimeDependent, ABC):
+    pass

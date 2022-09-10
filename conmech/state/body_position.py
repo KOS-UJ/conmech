@@ -1,11 +1,11 @@
 import copy
 from ctypes import ArgumentError
-from typing import Callable
 
 import numba
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -97,28 +97,26 @@ def element_volume_part_numba(face_nodes):
     return volume / nodes_count
 
 
-class BodyPosition(Mesh):
+class BodyPosition:
     def __init__(
         self,
         mesh_prop: MeshProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
-        is_dirichlet: Callable = (lambda _: False),
-        is_contact: Callable = (lambda _: True),
+        boundaries_description: BoundariesDescription,
         create_in_subprocess: bool = False,
     ):
-        super().__init__(
+        self.mesh = Mesh(
             mesh_prop=mesh_prop,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description,
             create_in_subprocess=create_in_subprocess,
         )
 
         self.schedule = schedule
         self.normalize_by_rotation = normalize_by_rotation
-        self.displacement_old = np.zeros_like(self.initial_nodes)
-        self.velocity_old = np.zeros_like(self.initial_nodes)
-        self.acceleration_old = np.zeros_like(self.initial_nodes)
+        self.displacement_old = np.zeros_like(self.mesh.initial_nodes)
+        self.velocity_old = np.zeros_like(self.mesh.initial_nodes)
+        self.acceleration_old = np.zeros_like(self.mesh.initial_nodes)
 
     def set_acceleration_old(self, acceleration):
         self.acceleration_old = acceleration
@@ -149,7 +147,7 @@ class BodyPosition(Mesh):
 
     @property
     def moved_base(self):
-        return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
+        return get_base(self.moved_nodes, self.mesh.base_seed_indices, self.mesh.closest_seed_index)
 
     def normalize_rotate(self, vectors):
         if not self.normalize_by_rotation:
@@ -162,11 +160,11 @@ class BodyPosition(Mesh):
         return nph.get_in_base(vectors, np.linalg.inv(self.moved_base))
 
     def normalize_shift_and_rotate(self, vectors):
-        return self.normalize_rotate(self.normalize_shift(vectors))
+        return self.normalize_rotate(self.mesh.normalize_shift(vectors))
 
     @property
     def moved_nodes(self):
-        return self.initial_nodes + self.displacement_old
+        return self.mesh.initial_nodes + self.displacement_old
 
     @property
     def normalized_nodes(self):
@@ -174,11 +172,11 @@ class BodyPosition(Mesh):
 
     @property
     def boundary_nodes(self):
-        return self.moved_nodes[self.boundary_indices]
+        return self.moved_nodes[self.mesh.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_nodes[self.boundary_indices]
+        return self.normalized_nodes[self.mesh.boundary_indices]
 
     def get_normalized_boundary_normals(self):
         return self.normalize_rotate(self.get_boundary_normals())
@@ -193,19 +191,19 @@ class BodyPosition(Mesh):
 
     @property
     def edges_moved_nodes(self):
-        return self.moved_nodes[self.edges]
+        return self.moved_nodes[self.mesh.edges]
 
     @property
     def edges_normalized_nodes(self):
-        return self.normalized_nodes[self.edges]
+        return self.normalized_nodes[self.mesh.edges]
 
     @property
     def elements_normalized_nodes(self):
-        return self.normalized_nodes[self.elements]
+        return self.normalized_nodes[self.mesh.elements]
 
     @property
     def boundary_centers(self):
-        return np.mean(self.moved_nodes[self.boundary_surfaces], axis=1)
+        return np.mean(self.moved_nodes[self.mesh.boundary_surfaces], axis=1)
 
     @property
     def rotated_velocity_old(self):
@@ -217,7 +215,7 @@ class BodyPosition(Mesh):
 
     @property
     def normalized_displacement_old(self):
-        return self.normalized_nodes - self.normalized_initial_nodes
+        return self.normalized_nodes - self.mesh.normalized_initial_nodes
 
     @property
     def origin_displacement_old(self):
@@ -225,16 +223,16 @@ class BodyPosition(Mesh):
 
     def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
-            self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
+            self.moved_nodes, self.mesh.boundary_surfaces, self.mesh.boundary_internal_indices
         )
         return get_boundary_nodes_normals_numba(
-            self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals
+            self.mesh.boundary_surfaces, self.mesh.boundary_nodes_count, boundary_surfaces_normals
         )
 
     def get_surface_per_boundary_node(self):
         return get_surface_per_boundary_node_numba(
-            boundary_surfaces=self.boundary_surfaces,
-            considered_nodes_count=self.boundary_nodes_count,
+            boundary_surfaces=self.mesh.boundary_surfaces,
+            considered_nodes_count=self.mesh.boundary_nodes_count,
             moved_nodes=self.moved_nodes,
         )
 

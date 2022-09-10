@@ -1,13 +1,13 @@
 from dataclasses import dataclass
-from typing import Callable
 
 import numba
 import numpy as np
 
 from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
-    StaticBodyProperties,
     TemperatureBodyProperties,
+    BodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -59,18 +59,16 @@ class Dynamics(BodyPosition):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: StaticBodyProperties,
+        body_prop: BodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Callable,
-        is_contact: Callable,
+        boundaries_description: BoundariesDescription,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
             normalize_by_rotation=dynamics_config.normalize_by_rotation,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
         )
         self.body_prop = body_prop
@@ -84,12 +82,16 @@ class Dynamics(BodyPosition):
         self.viscosity: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
+        self.piezoelectricity: np.ndarray
+        self.permittivity: np.ndarray
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
 
-    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        super().remesh(is_dirichlet, is_contact, create_in_subprocess)
+    def remesh(self, boundaries_description, create_in_subprocess):
+        # For some reason pylint don't see that Dynamics(BodyPosition) has mesh
+        # pylint: disable=no-member
+        super().mesh.remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
@@ -101,11 +103,13 @@ class Dynamics(BodyPosition):
             self.viscosity,
             self.thermal_expansion,
             self.thermal_conductivity,
+            self.piezoelectricity,
+            self.permittivity,
         ) = get_dynamics(
-            elements=self.elements,
+            elements=self.mesh.elements,
             nodes=self.moved_nodes,
             body_prop=self.body_prop,
-            independent_indices=self.independent_indices,
+            independent_indices=self.mesh.independent_indices,
         )
 
         if not self.with_lhs:
@@ -123,13 +127,13 @@ class Dynamics(BodyPosition):
                 self.solver_cache.free_x_free_inverted,
             ) = SchurComplement.calculate_schur_complement_matrices(
                 matrix=self.solver_cache.lhs,
-                dimension=self.dimension,
-                contact_indices=self.contact_indices,
-                free_indices=self.free_indices,
+                dimension=self.mesh.dimension,
+                contact_indices=self.mesh.contact_indices,
+                free_indices=self.mesh.free_indices,
             )
 
             if self.with_temperature:
-                i = self.independent_indices
+                i = self.mesh.independent_indices
                 self.solver_cache.lhs_temperature = (
                     1 / self.time_step
                 ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
@@ -141,8 +145,8 @@ class Dynamics(BodyPosition):
                 ) = SchurComplement.calculate_schur_complement_matrices(
                     matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
-                    contact_indices=self.contact_indices,
-                    free_indices=self.free_indices,
+                    contact_indices=self.mesh.contact_indices,
+                    free_indices=self.mesh.free_indices,
                 )
 
     @property

@@ -5,8 +5,8 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
-    DynamicBodyProperties,
-    DynamicTemperatureBodyProperties,
+    TimeDependentBodyProperties,
+    TimeDependentTemperatureBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import (
@@ -25,7 +25,7 @@ class Scenario:
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
@@ -44,11 +44,11 @@ class Scenario:
     @staticmethod
     def get_by_function(function, setting, current_time):
         if isinstance(function, np.ndarray):
-            return np.tile(function, (setting.nodes_count, 1))
+            return np.tile(function, (setting.mesh.nodes_count, 1))
         return np.array(
             [
-                function(*nodes_pairs, setting.mesh_prop, current_time)
-                for nodes_pairs in zip(setting.initial_nodes, setting.moved_nodes)
+                function(*nodes_pairs, setting.mesh.mesh_prop, current_time)
+                for nodes_pairs in zip(setting.mesh.initial_nodes, setting.moved_nodes)
             ]
         )
 
@@ -102,7 +102,7 @@ class TemperatureScenario(Scenario):
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: DynamicTemperatureBodyProperties,
+        body_prop: TimeDependentTemperatureBodyProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacle: Obstacle,
@@ -146,7 +146,7 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
-default_body_prop = DynamicBodyProperties(
+default_body_prop = TimeDependentBodyProperties(
     mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
@@ -157,7 +157,7 @@ default_thermal_expansion_coefficients = np.array(
 default_thermal_conductivity_coefficients = np.array(
     [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
 )
-default_temp_body_prop = DynamicTemperatureBodyProperties(
+default_temp_body_prop = TimeDependentTemperatureBodyProperties(
     mass_density=1.0,
     mu=4.0,
     lambda_=4.0,
@@ -186,7 +186,7 @@ obstacle_mesh_prop = [
 
 
 def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
-    return DynamicTemperatureBodyProperties(
+    return TimeDependentTemperatureBodyProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,

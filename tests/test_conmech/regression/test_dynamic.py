@@ -7,8 +7,9 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import Dynamic
-from conmech.simulations.problem_solver import Dynamic as DynamicProblem
+from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -46,15 +47,11 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        )
 
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
-
-    setup_m02_m02 = DynamicSetup()
+    setup_m02_m02 = DynamicSetup(mesh_type="cross")
 
     expected_displacement_vector_m02_m02 = [
         [0.0, 0.0],
@@ -77,7 +74,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = DynamicSetup()
+    setup_0_02_p_0 = DynamicSetup(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -106,7 +103,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = DynamicSetup()
+    setup_0_m02_p_0 = DynamicSetup(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law(slope=0)
 
     def inner_forces(x):
@@ -145,15 +142,11 @@ def generate_test_suits():
         def friction_bound(u_nu):
             return 0.0
 
-        @staticmethod
-        def is_contact(x):
-            return x[1] == 0
+        boundaries: ... = BoundariesDescription(
+            contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        )
 
-        @staticmethod
-        def is_dirichlet(x):
-            return x[0] == 0
-
-    setup_var = DynamicSetup()
+    setup_var = DynamicSetup(mesh_type="cross")
     expected_displacement_vector_var = [
         [0.0, 0.0],
         [0.00805403, 0.04399692],
@@ -178,15 +171,15 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
 def test_global_optimization_solver(solving_method, setup, expected_displacement_vector):
-    runner = DynamicProblem(setup, solving_method)
+    runner = TimeDependentProblem(setup, solving_method)
     results = runner.solve(
         n_steps=32,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
     )
 
-    displacement = results[-1].mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.initial_nodes, runner.body.elements)
+    displacement = results[-1].body.mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

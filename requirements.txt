@@ -4,7 +4,7 @@ jupyter==1.0.0
 matplotlib==3.5.1
 scipy==1.7.3
 pytest==6.2.5
-meshzoo==0.10.2
+meshzoo==0.9.11
 pygmsh==7.1.17
 gmsh==4.9.5
 tqdm==4.63.0

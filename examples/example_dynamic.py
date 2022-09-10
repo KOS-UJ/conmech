@@ -6,9 +6,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from conmech.helpers.config import Config
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import Dynamic
-from conmech.simulations.problem_solver import Dynamic as DynamicProblemSolver
+from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblemSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -16,6 +17,9 @@ from examples.p_slope_contact_law import make_slope_contact_law
 class DynamicSetup(Dynamic):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
+    boundaries: ... = BoundariesDescription(
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+    )
     mu_coef: ... = 4
     la_coef: ... = 4
     th_coef: ... = 4
@@ -35,18 +39,10 @@ class DynamicSetup(Dynamic):
     def friction_bound(u_nu):
         return 0
 
-    @staticmethod
-    def is_contact(x):
-        return x[1] == 0
-
-    @staticmethod
-    def is_dirichlet(x):
-        return x[0] == 0
-
 
 def main(show: bool = True, save: bool = False):
-    setup = DynamicSetup()
-    runner = DynamicProblemSolver(setup, solving_method="schur")
+    setup = DynamicSetup(mesh_type="cross")
+    runner = TimeDependentProblemSolver(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=32,

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from conmech.helpers.config import Config
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
@@ -64,17 +65,13 @@ class StaticSetup(Static):
             return 8 * u_nu
         return 0.8
 
-    @staticmethod
-    def is_contact(x):
-        return x[1] == 0
-
-    @staticmethod
-    def is_dirichlet(x):
-        return x[0] == 0
+    boundaries: ... = BoundariesDescription(
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+    )
 
 
 def main(show: bool = True, save: bool = False):
-    setup = StaticSetup()
+    setup = StaticSetup(mesh_type="cross")
     runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(

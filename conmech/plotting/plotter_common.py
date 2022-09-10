@@ -206,4 +206,4 @@ def plot_animation(
 
 def get_frame_annotation(scene: Scene, current_time):
     return f"""time: {str(round(current_time, 1))}
-nodes: {str(scene.nodes_count)}"""
+nodes: {str(scene.mesh.nodes_count)}"""
