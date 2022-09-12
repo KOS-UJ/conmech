@@ -67,7 +67,7 @@ def profile(function: Callable, baypass: bool = False):
     if baypass:
         return function()
 
-    print(f"Profiling...")  # {function.__name__}...")
+    print("Profiling...")  # {function.__name__}...")
     pr = cProfile.Profile()
     pr.enable()
 
@@ -79,7 +79,7 @@ def profile(function: Callable, baypass: bool = False):
     return result
 
 
-class dotdict(dict):
+class dot_dict(dict):
     """dot.notation access to dictionary attributes"""
 
     __getattr__ = dict.get

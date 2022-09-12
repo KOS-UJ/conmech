@@ -187,7 +187,7 @@ def get_interlayer_data_numba(
             else:
                 # Moore-Penrose pseudo-inverse
                 weights_internal = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
-                if np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
+                if False: #np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
                     unnormalized_weights = weights_internal
                 else:
                     unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)

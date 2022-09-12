@@ -137,12 +137,12 @@ def plot_subframe(axes, scene: Scene, normalized_data: dict, t_scale):
     if hasattr(scene, "reduced"):
         shift = np.array([0, 2.0, 1.5])
         mesh = scene.reduced
-        shifted_normalized_nodes = mesh.normalized_nodes + shift
+        shifted_nodes = mesh.moved_nodes + shift
         # layer_inner_forces = scene.approximate_boundary_or_all_from_base(
         #     layer_number=i, base_values=scene.normalized_inner_forces
         # )
         # plot_arrows(starts=shifted_normalized_nodes, vectors=layer_inner_forces, axes=axes)
-        plot_mesh(nodes=shifted_normalized_nodes, mesh=mesh, color="tab:blue", axes=axes)
+        plot_mesh(nodes=shifted_nodes, mesh=mesh, color="tab:red", axes=axes)
     # return
 
     shift = np.array([0, 2.0, 0])

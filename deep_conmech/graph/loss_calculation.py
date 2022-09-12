@@ -9,7 +9,6 @@ from conmech.scene.body_forces import energy_lhs, energy_vector_lhs
 from conmech.scene.scene import (
     EnergyObstacleArguments,
     energy_obstacle_jax,
-    energy_obstacle_torch,
 )
 from deep_conmech.data.data_classes import EnergyObstacleArgumentsTorch
 from deep_conmech.graph.loss_raport import LossRaport
@@ -82,9 +81,6 @@ def loss_normalized_obstacle_scatter1(
         exact_acceleration_vector = nph.stack_column(exact_acceleration_split[batch_graph_index])
         args = energy_args[0]
         # vmap
-        inner_energy_torch = (
-            energy_obstacle_torch(acceleration_vector=acceleration_vector, args=args) / num_graphs
-        )
         inner_energy = (
             energy_obstacle_jax(
                 acceleration_vector=jnp.asarray(acceleration_vector.cpu().detach()), args=args

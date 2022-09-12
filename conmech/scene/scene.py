@@ -1,11 +1,9 @@
-from functools import partial
-from typing import Callable, List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional
 
 import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
-import torch
 
 from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
@@ -45,8 +43,6 @@ def obstacle_resistance_potential_tangential(
 class EnergyObstacleArguments(NamedTuple):
     lhs_acceleration_jax: np.ndarray
     rhs_acceleration: np.ndarray
-    # lhs_acceleration_torch: np.ndarray
-    # rhs_acceleration_torch: np.ndarray
     boundary_velocity_old: np.ndarray
     boundary_normals: np.ndarray
     boundary_obstacle_normals: np.ndarray
@@ -104,14 +100,7 @@ def energy_vector_jax(value_vector, lhs, rhs):
     return value[0]
 
 
-def energy_vector_torch(value_vector, lhs, rhs):
-    first = 0.5 * (lhs @ value_vector) - rhs
-    value = first.reshape(-1) @ value_vector
-    return value[0]
-
-
 def energy_obstacle(acceleration_vector, args: EnergyObstacleArguments):
-    # print("Obstacle")
     # TODO: Repeat if collision
     main_energy0 = energy_vector_jax(
         value_vector=nph.stack_column(acceleration_vector),
@@ -122,19 +111,8 @@ def energy_obstacle(acceleration_vector, args: EnergyObstacleArguments):
     return main_energy0 + main_energy1
 
 
-def energy_obstacle_torch(acceleration_vector, args: EnergyObstacleArguments):
-    main_energy0 = energy_vector_torch(
-        value_vector=nph.stack_column(acceleration_vector),
-        lhs=args.lhs_acceleration_torch,
-        rhs=args.rhs_acceleration_torch,
-    )
-    main_energy1 = compute_energy_jax(nph.unstack(acceleration_vector, dim=3), args)
-    return main_energy0 + main_energy1
-
-
 @jax.jit
 def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
-    # print("Obstacle colliding")
     # TODO: Repeat if collision
     main_energy = energy_obstacle(acceleration_vector, args)
     acceleration = nph.unstack(acceleration_vector, dim=3)
@@ -179,26 +157,26 @@ def get_jac(value, dx_big_jax):
     return result0
 
 
-def get_F_jax(value, dx_big_jax):
-    I = jnp.eye(3)
-    return get_jac(value, dx_big_jax) + I
+def get_deform_grad(value, dx_big_jax):
+    identity = jnp.eye(3)
+    return get_jac(value, dx_big_jax) + identity
 
 
-def get_eps_lin_jax(F):
-    I = jnp.eye(3)
-    F_T = F.transpose((0, 2, 1))
-    return 0.5 * (F + F_T) - I
+def get_strain_lin(deform_grad):
+    identity = jnp.eye(3)
+    deform_grad_t = deform_grad.transpose((0, 2, 1))
+    return 0.5 * (deform_grad + deform_grad_t) - identity
 
 
-def get_eps_rot_jax(F):
-    I = jnp.eye(3)
-    F_T = F.transpose((0, 2, 1))
-    return 0.5 * (F_T @ F - I)
+def get_strain_green(deform_grad):
+    identity = jnp.eye(3)
+    deform_grad_t = deform_grad.transpose((0, 2, 1))
+    return 0.5 * (deform_grad_t @ deform_grad - identity)
 
 
 def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
-    F_w = get_F_jax(component, dx_big_jax)
-    eps_w = get_eps_rot_jax(F=F_w)  ## get_eps_lin_jax get_eps_rot_jax
+    f_w = get_deform_grad(component, dx_big_jax)
+    eps_w = get_strain_green(deform_grad=f_w)  # get_eps_lin_jax get_eps_rot_jax
 
     phi = prop_1 * (eps_w * eps_w).sum(axis=(1, 2)) + (prop_2 / 2.0) * (
         ((eps_w).trace(axis1=1, axis2=2) ** 2)
@@ -252,46 +230,6 @@ def compute_energy_jax(acceleration, args):
     ) / (args.time_step)
 
     return energy_new
-
-    dimension = acceleration.shape[-1]
-
-    new_velocity_half = self.velocity_old + self.time_step * acceleration * 0.5
-    new_displacement_half = self.displacement_old + self.time_step * new_velocity_half
-
-    # new_nodes = self.initial_nodes + new_displacement
-    # element_nodes = new_nodes[self.elements].transpose(1, 2, 0)
-    # D_s = jnp.dstack(
-    #     (
-    #         element_nodes[0] - element_nodes[3],
-    #         element_nodes[1] - element_nodes[3],
-    #         element_nodes[2] - element_nodes[3],
-    #     )
-    # ).transpose(1, 0, 2)
-    # F_u = D_s @ self.B_m
-
-    I = jnp.eye(dimension)
-    F_u_half = self.get_F(new_displacement_half, I)
-    eps_u_half = self.get_eps_lin(F=F_u_half, I=I)  # get_eps_lin get_eps_rot
-
-    jac_a = self.get_jac(acceleration)
-
-    # phi = self.body_prop.mu * (eps_u * eps_u).sum(axis=(1, 2)) + (
-    #     self.body_prop.lambda_ / 2.0
-    # ) * (((eps_u).trace(axis1=1, axis2=2) ** 2))
-    # energy1a = self.matrices.element_initial_volume @ phi
-    # energy1 = energy1a * 1 / (self.time_step**2)
-
-    ########
-    P1 = 2 * self.body_prop.mu * eps_u_half + self.body_prop.lambda_ * (
-        (eps_u_half).trace(axis1=1, axis2=2).repeat(dimension).reshape(-1, dimension, 1) * I
-    )
-    phi = (P1 * jac_a).sum(axis=(1, 2))
-    # phi = ((F_u @ P1) * jac_a).sum(axis=(1, 2)
-    # instead of eps_a (for symetric sigma - the same)
-    energy2 = self.matrices.element_initial_volume @ phi
-
-
-#################
 
 
 class Scene(BodyForces):

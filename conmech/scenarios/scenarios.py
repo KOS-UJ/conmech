@@ -1,4 +1,3 @@
-from time import time
 from typing import Callable, Optional, Union
 
 import numpy as np
@@ -58,7 +57,10 @@ class Scenario:
 
     def get_forces_by_function(self, setting, current_time):
         if self.forces_function_parameter is not None:
-            function = lambda *args: self.forces_function(*args, self.forces_function_parameter)
+
+            def function(*args):
+                return self.forces_function(*args, self.forces_function_parameter)
+
         else:
             function = self.forces_function
         return Scenario.get_by_function(function, setting, current_time)
@@ -236,9 +238,9 @@ def f_fall(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([2.0, -1.0])
     return force * SCALE_FORCES
 
@@ -247,11 +249,11 @@ def f_slide(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
     _ = initial_node, moved_node, mesh_prop
     force = np.array([0.0, 0.0])
-    if time <= 0.5:
+    if apply_time <= 0.5:
         force = np.array([4.0, 0.0])
     return force * SCALE_FORCES
 
@@ -260,9 +262,9 @@ def f_accelerate_fast(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([2.0, 0.0])
     return force * SCALE_FORCES
 
@@ -271,9 +273,9 @@ def f_accelerate_slow_right(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([0.5, 0.0])
     return force * SCALE_FORCES
 
@@ -282,9 +284,9 @@ def f_accelerate_slow_left(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([-0.5, 0.0])
     return force * SCALE_FORCES
 
@@ -293,9 +295,9 @@ def f_accelerate_slow_up(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([0.0, 0.5])
     return force * SCALE_FORCES
 
@@ -304,9 +306,9 @@ def f_accelerate_slow_down(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([0.0, -0.5])
     return force * SCALE_FORCES
 
@@ -315,9 +317,9 @@ def f_accelerate_slow_up_left(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([-0.5, 0.5])
     return force * SCALE_FORCES
 
@@ -326,9 +328,9 @@ def f_stay(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
-    _ = initial_node, moved_node, mesh_prop, time
+    _ = initial_node, moved_node, mesh_prop, apply_time
     force = np.array([0.0, 0.0])
     return force * SCALE_FORCES
 
@@ -337,10 +339,10 @@ def f_rotate(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
     _ = moved_node
-    if time <= 0.5:
+    if apply_time <= 0.5:
         y_scaled = initial_node[1] / mesh_prop.scale_y
         return y_scaled * np.array([1.5, 0.0]) * SCALE_FORCES
     return np.array([0.0, 0.0]) * SCALE_FORCES
@@ -350,27 +352,26 @@ def f_swing_3d(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
+    apply_time: float,
 ):
     _ = initial_node, moved_node, mesh_prop
     force = np.array([1.0, 1.0, 1.0]) * SCALE_FORCES
-    if time <= 1.5:
+    if apply_time <= 1.5:
         return force
-    else:
-        return -force
+    return -force
 
 
 def f_rotate_3d(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
-    time: float,
-    time_cutoff: float = 1.0,
+    apply_time: float,
+    cutoff_time: float = 1.0,
 ):
     _ = moved_node, mesh_prop
-    if time <= np.abs(time_cutoff):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
+    if apply_time <= np.abs(cutoff_time):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
         scale = initial_node[1] * initial_node[2]
-        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES * np.sign(time_cutoff)
+        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES * np.sign(cutoff_time)
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
 
@@ -528,7 +529,7 @@ bottom_obstacle_3d = Obstacle(
 )
 
 
-def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
     return Scenario(
         name="ball_rotate",
@@ -539,12 +540,13 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", tim
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=time_cutoff,
+        forces_function_parameter=cutoff_time,
     )
 
 
-def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
+    _ = cutoff_time
     return Scenario(
         name="ball_swing",
         mesh_prop=MeshProperties(
@@ -557,7 +559,7 @@ def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", time
     )
 
 
-def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
     return Scenario(
         name="cube_rotate",
@@ -568,12 +570,13 @@ def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", tim
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=time_cutoff,
+        forces_function_parameter=cutoff_time,
     )
 
 
-def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
+    _ = cutoff_time
     return Scenario(
         name="cube_move",
         mesh_prop=MeshProperties(
@@ -586,8 +589,9 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", time_
     )
 
 
-def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
+    _ = scale
     return Scenario(
         name="bunny_rotate",
         mesh_prop=MeshProperties(
@@ -600,12 +604,13 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", ti
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=time_cutoff,
+        forces_function_parameter=cutoff_time,
     )
 
 
-def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", time_cutoff=1.0):
+def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
+    _ = cutoff_time
     return Scenario(
         name="bunny_swing",
         mesh_prop=MeshProperties(
@@ -651,15 +656,17 @@ def get_args(td):
 
 def all_train(td):
     args = get_args(td)
-    # args["final_time"] = 1.0
+    args["final_time"] = 2.0
     if td.dimension == 3:
-        # return [ball_rotate_3d(**args)]  # , time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        # return [ball_rotate_3d(**args)]  # , cutoff_time=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         ###
-        return [bunny_rotate_3d(**args)]  # , time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        return [
+            bunny_rotate_3d(**args, cutoff_time=tc) for tc in [-1, 1]
+        ]  # np.arange(-1.0, 1.0, 1.0)]
         ###
         data = []
         data.append(cube_move_3d(**args))
-        data.extend([ball_rotate_3d(**args, time_cutoff=tc) for tc in np.arange(-2.0, 2.0, 0.4)])
+        data.extend([ball_rotate_3d(**args, cutoff_time=tc) for tc in np.arange(-2.0, 2.0, 0.4)])
         return data
     return get_train_data(**args)
 
@@ -680,7 +687,7 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    # args['final_time'] = 3
+    # args["final_time"] = 2.0  # 0.7
     if td.dimension == 3:
         return [
             bunny_rotate_3d(**args),

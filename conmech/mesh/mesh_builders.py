@@ -16,7 +16,8 @@ def build_mesh(
     initial_nodes, elements = build_initial_mesh(
         mesh_prop=mesh_prop, create_in_subprocess=create_in_subprocess
     )
-    nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
+    nodes = initial_nodes
+    # nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
     return nodes, elements
 
 

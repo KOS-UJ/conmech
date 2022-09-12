@@ -82,6 +82,13 @@ class SceneLayers(Scene):
             with_schur=False,
         )
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
+        #############################
+        sparse_mesh.initial_nodes = interpolation_helpers.approximate_internal(
+            base_values=self.initial_nodes,
+            closest_nodes=from_base.closest_nodes,
+            closest_weights=from_base.closest_weights,
+        )
+        #############################
         to_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=False)
 
         mesh_layer_data = AllMeshLayerLinkData(
@@ -156,28 +163,43 @@ class SceneLayers(Scene):
         super().iterate_self(acceleration, temperature)
         self.update_reduced(lift_data)
 
-    # def recenter_reduced(self):
-    #     displacement_old = self.reduced.normalize_shift_and_rotate(self.reduced.displacement_old)
-    #     self.reduced.displacement_old = self.denormalize_rotate(displacement_old) + np.mean(
-    #         self.displacement_old, axis=0
-    #     )
-    #     return
-    #     self.reduced.displacement_old = (
-    #         self.reduced.displacement_old
-    #         - np.mean(self.reduced.displacement_old, axis=0)
-    #         + np.mean(self.displacement_old, axis=0)
-    #     )
+    def recenter_reduced_mesh(self):
+        displacement_old = self.denormalize_rotate(
+            self.reduced.normalized_displacement_old
+        ) + np.mean(self.displacement_old, axis=0)
+        # displacement_old = (
+        #     self.reduced.displacement_old
+        #     - np.mean(self.reduced.displacement_old, axis=0)
+        #     + np.mean(self.displacement_old, axis=0)
+        # )
+        self.reduced.set_displacement_old(displacement_old)
+
+    def recenter_main_mesh(self):
+        # displacement_old = self.reduced.denormalize_rotate(
+        #     self.normalized_displacement_old
+        # ) + np.mean(self.reduced.displacement_old, axis=0)
+        displacement_old = (
+            self.displacement_old
+            - np.mean(self.displacement_old, axis=0)
+            + np.mean(self.reduced.displacement_old, axis=0)
+        )
+        self.set_displacement_old(displacement_old)
 
     def clear_reduced(self):
         self.reduced.set_displacement_old(None)
         self.reduced.set_velocity_old(None)
 
     def update_reduced(self, lift_data=True):
-        if not lift_data:
+        if True: #not lift_data:  # True
+            if self.reduced.exact_acceleration is None:
+                return
             self.reduced.iterate_self(self.reduced.exact_acceleration)
+            self.recenter_main_mesh() #recenter_reduced_mesh()
+            self.reduced.exact_acceleration = None
             return
-        velocity = self.lift_data(self.input_velocity_old)  ####
-        displacement = self.lift_data(self.input_displacement_old)  ###
+        # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+        displacement = self.lift_data(self.displacement_old)
+        velocity = self.lift_data(self.velocity_old)
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)

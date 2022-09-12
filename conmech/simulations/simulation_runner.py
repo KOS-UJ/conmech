@@ -116,17 +116,22 @@ def run_scenario(
     create_in_subprocess = False
 
     if get_scene_function is None:
-        _get_scene_function = lambda randomize: scenario.get_scene(
-            randomize=randomize,
-            create_in_subprocess=create_in_subprocess,
-        )
+
+        def _get_scene_function(randomize):
+            return scenario.get_scene(
+                randomize=randomize,
+                create_in_subprocess=create_in_subprocess,
+            )
+
     else:
-        _get_scene_function = lambda randomize: get_scene_function(
-            config=config,
-            scenario=scenario,
-            randomize=randomize,
-            create_in_subprocess=create_in_subprocess,
-        )
+
+        def _get_scene_function(randomize):
+            return get_scene_function(
+                config=config,
+                scenario=scenario,
+                randomize=randomize,
+                create_in_subprocess=create_in_subprocess,
+            )
 
     scene = _get_scene_function(randomize=run_config.simulate_dirty_data)
     if run_config.compare_with_base_scene:
@@ -134,16 +139,18 @@ def run_scenario(
     else:
         base_scene = None
 
-    fun_sim = lambda: simulate(
-        scene=scene,
-        base_scene=base_scene,
-        solve_function=solve_function,
-        scenario=scenario,
-        simulate_dirty_data=run_config.simulate_dirty_data,
-        compare_with_base_scene=run_config.compare_with_base_scene,
-        config=config,
-        operation=operation_save if save_files else None,
-    )
+    def fun_sim():
+        return simulate(
+            scene=scene,
+            base_scene=base_scene,
+            solve_function=solve_function,
+            scenario=scenario,
+            simulate_dirty_data=run_config.simulate_dirty_data,
+            compare_with_base_scene=run_config.compare_with_base_scene,
+            config=config,
+            operation=operation_save if save_files else None,
+        )
+
     # cmh.profile(fun_sim)
     setting, energy_values = fun_sim()
 
@@ -235,20 +242,8 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            # displacement = solve_function(scene, initial_a=acceleration)
             acceleration = solve_function(scene, initial_a=acceleration)
-            # reduced_acceleration = scene.reduced.exact_acceleration
-            # reduced_acceleration = scene.approximate_boundary_or_all_from_base(
-            #     layer_number=1, base_values=acceleration
-            # )
 
-            # reduced_scene.set_displacement
-            # reduced_scene.interpolate_base(scene)
-
-            # reduced_acceleration = solve_function(reduced_scene, initial_a=reduced_acceleration)
-            # acceleration = scene.approximate_boundary_or_all_to_base(
-            #     layer_number=1, reduced_values=reduced_acceleration
-            # )
 
         solver_time += time.time() - start_time
 
@@ -263,9 +258,7 @@ def simulate(
         if operation is not None:
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
-        # scene.set_displacement_old(displacement)
-        # scene.update_reduced()
-        scene.iterate_self(acceleration, temperature=temperature, lift_data=False)
+        scene.iterate_self(acceleration, temperature=temperature, lift_data=False) #True ###########################################3
         scene.exact_acceleration = acceleration  #####
 
         if compare_with_base_scene:

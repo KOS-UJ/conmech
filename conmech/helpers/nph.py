@@ -2,7 +2,6 @@
 numpy helpers
 """
 from ctypes import ArgumentError
-from functools import partial
 
 import jax.numpy as jnp
 import numba

@@ -1,10 +1,8 @@
-import copy
 from typing import List
 
 import numba
 import numpy as np
 import torch
-from numba import prange
 
 from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
@@ -42,8 +40,8 @@ def get_edges_data_new(
     return np.hstack(
         (
             get_column(initial_nodes),
-            get_column(displacement_old),
-            get_column(velocity_old),
+            # get_column(displacement_old),
+            # get_column(velocity_old),
             get_column(forces),
         )
     )
@@ -67,11 +65,11 @@ def get_multilayer_edges_data_new(
     return np.hstack(
         (
             get_column(initial_nodes_sparse, initial_nodes_dense),
-            get_column(
-                displacement_old_sparse,
-                displacement_old_dense,
-            ),
-            get_column(velocity_old_sparse, velocity_old_dense),
+            # get_column(
+            #     displacement_old_sparse,
+            #     displacement_old_dense,
+            # ),
+            # get_column(velocity_old_sparse, velocity_old_dense),
             get_column(forces_sparse, forces_dense),
         )
     )
@@ -355,12 +353,12 @@ class SceneInput(SceneRandomized):
 
     @staticmethod
     def get_multilayer_edges_data_dim(dimension):
-        return (dimension + 1) * 4  # 3  # 6
+        return (dimension + 1) * 2  # 4
 
     @staticmethod
     def get_edges_data_description(dim):
         desc = []
-        for attr in ["initial_nodes", "displacement_old", "velocity_old", "forces"]:
+        for attr in ["initial_nodes", "displacement_old"]:  # , "velocity_old", "forces"]:
             for i in range(dim):
                 desc.append(f"{attr}_{i}")
             desc.append(f"{attr}_norm")

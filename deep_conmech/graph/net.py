@@ -11,7 +11,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from conmech.helpers.cmh import dotdict
+from conmech.helpers.cmh import dot_dict
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -407,7 +407,7 @@ class CustomGraphNet(nn.Module):
 
     def forward(self, layer_list: List[Data]):
         if isinstance(layer_list[0].x, Tuple):
-            layer_list = [dotdict(l.x) for l in layer_list]
+            layer_list = [dot_dict(l.x) for l in layer_list]
         self.processor_number = 0
 
         layer_dense = layer_list[0]
@@ -436,7 +436,6 @@ class CustomGraphNet(nn.Module):
         return net_output
 
     def solve(self, scene: SceneInput, initial_a):
-        return Calculator.solve(scene=scene, initial_a=initial_a)
 
         self.eval()
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
@@ -446,6 +445,8 @@ class CustomGraphNet(nn.Module):
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
+        #return Calculator.solve(scene=scene, initial_a=initial_a)
+
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)

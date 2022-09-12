@@ -3,11 +3,9 @@ from typing import Callable, Optional
 
 import jax.experimental.sparse
 import jax.interpreters.xla
-import jax.numpy as jnp
 import jax.scipy
 import numba
 import numpy as np
-import scipy.sparse
 
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
