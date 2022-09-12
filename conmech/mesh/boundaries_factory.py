@@ -1,11 +1,13 @@
 """
 Created at 16.02.2022
 """
-from dataclasses import dataclass
 from typing import Callable, Tuple
 
 import numba
 import numpy as np
+
+from conmech.mesh.boundaries import Boundaries
+from conmech.mesh.boundary import Boundary
 
 
 @numba.njit
@@ -50,12 +52,6 @@ def apply_predicate_to_surfaces(surfaces, nodes, predicate: Callable):
     return surfaces[mask]
 
 
-def apply_predicate_to_boundary_nodes(elements, nodes, predicate: Callable):
-    *_, boundary_indices = get_boundary_surfaces(elements)
-    mask = [predicate(n) for n in nodes[boundary_indices]]  # TODO: #65 Use numba (?)
-    return boundary_indices[mask]
-
-
 def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     # move boundary nodes to the top
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
@@ -82,6 +78,12 @@ def reorder(
         unordered_elements, unordered_nodes, predicate
     )
     return reorder_numba(unordered_nodes, unordered_elements, selected_indices, to_top)
+
+
+def apply_predicate_to_boundary_nodes(elements, nodes, predicate: Callable):
+    *_, boundary_indices = get_boundary_surfaces(elements)
+    mask = [predicate(n) for n in nodes[boundary_indices]]  # TODO: #65 Use numba (?)
+    return boundary_indices[mask]
 
 
 @numba.njit
@@ -118,34 +120,6 @@ def reorder_numba(
     return nodes, elements, len(selected_indices)
 
 
-@dataclass
-class Boundaries:
-    contact_boundary: np.ndarray
-    neumann_boundary: np.ndarray
-    dirichlet_boundary: np.ndarray
-
-    contact_nodes_count: int
-    neumann_nodes_count: int
-    dirichlet_nodes_count: int
-
-    boundary_internal_indices: np.ndarray
-
-    @property
-    def boundary_surfaces(self):
-        return np.unique(
-            np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
-            axis=1,
-        )
-
-    @property
-    def boundary_nodes_count(self):
-        return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
-
-    @property
-    def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
-
-
 class BoundariesFactory:
     """
     Rules:
@@ -156,8 +130,10 @@ class BoundariesFactory:
 
     @staticmethod
     def identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, is_dirichlet, is_contact
+        unordered_nodes, unordered_elements, boundaries_description
     ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
+        is_contact = boundaries_description["contact"]
+        is_dirichlet = boundaries_description["dirichlet"]
         (
             initial_nodes,
             elements,
@@ -185,62 +161,38 @@ class BoundariesFactory:
             lambda n: not is_contact(n) and not is_dirichlet(n),
         )
 
-        contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
-        dirichlet_boundary = apply_predicate_to_surfaces(
-            boundary_surfaces, initial_nodes, is_dirichlet
+        contact_boundary = Boundary(
+            surfaces=contact_boundary,
+            node_indices=slice(0, contact_nodes_count),
+            node_count=contact_nodes_count,
         )
-        neumann_boundary = apply_predicate_to_surfaces(
-            boundary_surfaces,
-            initial_nodes,
-            lambda n: not is_contact(n) and not is_dirichlet(n),
+        neumann_boundary = Boundary(
+            surfaces=neumann_boundary,
+            node_indices=slice(contact_nodes_count, contact_nodes_count + neumann_nodes_count),
+            node_count=neumann_nodes_count,
+        )
+        dirichlet_boundary = Boundary(
+            surfaces=dirichlet_boundary,
+            node_indices=slice(contact_nodes_count + neumann_nodes_count, boundary_nodes_count),
+            node_count=dirichlet_nodes_count,
         )
 
-        boundaries_data = Boundaries(
-            contact_boundary=contact_boundary,
-            neumann_boundary=neumann_boundary,
-            dirichlet_boundary=dirichlet_boundary,
-            contact_nodes_count=contact_nodes_count,
-            neumann_nodes_count=neumann_nodes_count,
-            dirichlet_nodes_count=dirichlet_nodes_count,
+        other_boundaries = {}
+        for name, indicator in boundaries_description.boundaries.items():
+            if name not in ("contact", "dirichlet"):
+                surfaces = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, indicator)
+                node_indices = np.unique(surfaces).sort()
+                if node_indices:
+                    other_boundaries[name] = Boundary(
+                        surfaces=surfaces, node_indices=node_indices, node_count=node_indices.size
+                    )
+
+        boundaries = Boundaries(
             boundary_internal_indices=boundary_internal_indices,
+            contact=contact_boundary,
+            neumann=neumann_boundary,
+            dirichlet=dirichlet_boundary,
+            **other_boundaries,
         )
 
-        return initial_nodes, elements, boundaries_data
-
-
-# For tests
-
-
-def extract_boundary_paths_from_elements(elements):
-    boundary_surfaces, *_ = get_boundary_surfaces(elements)
-    boundary_indices_to_visit = extract_unique_indices(boundary_surfaces)
-
-    boundary_paths = []
-    while len(boundary_indices_to_visit) > 0:
-        start_node = boundary_indices_to_visit[0]
-        visited_path = extract_boundary_path(boundary_surfaces, start_node=start_node)
-        visited_path = np.append(visited_path, visited_path[0])
-        boundary_paths.append(visited_path)
-        boundary_indices_to_visit = list(set(boundary_indices_to_visit) - set(visited_path))
-
-    return boundary_paths
-
-
-def extract_boundary_path(boundary_edges, start_node=0):
-    visited_path = []
-
-    def get_neighbours(node):
-        node_edges = boundary_edges[np.any(boundary_edges == node, axis=1)]
-        node_edges_flatten = node_edges.flatten()
-        neighbours = node_edges_flatten[node_edges_flatten != node]
-        return neighbours
-
-    def dfs(node):
-        if node not in visited_path:
-            visited_path.append(node)
-            for neighbour in get_neighbours(node):
-                dfs(neighbour)
-
-    dfs(start_node)
-
-    return np.array(visited_path)
+        return initial_nodes, elements, boundaries

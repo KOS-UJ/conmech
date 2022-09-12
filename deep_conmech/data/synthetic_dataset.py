@@ -58,7 +58,7 @@ def generate_base_scene(base: np.ndarray, layers_count: int, config: TrainingCon
 
 def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
     forces = interpolation_helpers.interpolate_four(
-        nodes=scene.initial_nodes,
+        nodes=scene.mesh.initial_nodes,
         mean_scale=config.td.forces_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -70,7 +70,7 @@ def generate_forces(config: TrainingConfig, scene: Scene, base: np.ndarray):
 
 def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     displacement_old = interpolation_helpers.interpolate_four(
-        nodes=scene.initial_nodes,
+        nodes=scene.mesh.initial_nodes,
         mean_scale=config.td.displacement_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -83,7 +83,7 @@ def generate_displacement_old(config: TrainingConfig, scene: Scene, base: np.nda
 def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray):
     interpolate_rotate = interpolation_helpers.decide(config.td.rotate_velocity_proportion)
     velocity_old = interpolation_helpers.interpolate_four(
-        nodes=scene.initial_nodes,
+        nodes=scene.mesh.initial_nodes,
         mean_scale=config.td.velocity_random_scale,
         corners_scale_proportion=config.td.corners_scale_proportion,
         base=base,
@@ -96,7 +96,7 @@ def generate_velocity_old(config: TrainingConfig, scene: Scene, base: np.ndarray
 def generate_obstacles(config: TrainingConfig, scene: SceneInput):
     obstacle_nodes_unnormaized = nph.generate_uniform_circle(
         rows=1,
-        columns=scene.dimension,
+        columns=scene.mesh.dimension,
         low=config.td.obstacle_origin_min_scale,
         high=config.td.obstacle_origin_max_scale,
     )

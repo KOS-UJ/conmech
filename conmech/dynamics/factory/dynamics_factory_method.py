@@ -2,9 +2,11 @@ import numpy as np
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.properties.body_properties import (
-    DynamicBodyProperties,
+    TimeDependentBodyProperties,
     StaticBodyProperties,
     TemperatureBodyProperties,
+    PiezoelectricBodyProperties,
+    BodyProperties,
 )
 
 
@@ -12,7 +14,7 @@ def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
     independent_indices: slice,
-    body_prop: StaticBodyProperties,
+    body_prop: BodyProperties,
 ):
     dimension = len(elements[0]) - 1
     if dimension == 2:
@@ -49,7 +51,7 @@ def get_dynamics(
 
     viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, DynamicBodyProperties)
+        if isinstance(body_prop, TimeDependentBodyProperties)
         else None
     )
 
@@ -64,6 +66,13 @@ def get_dynamics(
         thermal_expansion = None
         thermal_conductivity = None
 
+    if isinstance(body_prop, PiezoelectricBodyProperties):
+        piezoelectricity = factory.get_piezoelectric_tensor(W, body_prop.piezoelectricity)
+        permittivity = factory.get_permittivity_tensor(W, body_prop.permittivity)
+    else:
+        piezoelectricity = None
+        permittivity = None
+
     return (
         element_initial_volume,
         volume_at_nodes,
@@ -72,4 +81,6 @@ def get_dynamics(
         viscosity,
         thermal_expansion,
         thermal_conductivity,
+        piezoelectricity,
+        permittivity,
     )

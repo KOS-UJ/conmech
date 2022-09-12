@@ -5,10 +5,6 @@ Created 22.02.2021
 import numpy as np
 
 from conmech.dynamics.statement import (
-    StaticStatement,
-    QuasistaticStatement,
-    DynamicStatement,
-    TemperatureStatement,
     Variables,
 )
 from conmech.solvers._solvers import Solvers
@@ -30,38 +26,11 @@ class Global(Optimization):
 
 @Solvers.register("static", "global", "global optimization")
 class Static(Global):
-    def __init__(self, mesh, body_prop, time_step, contact_law, friction_bound):
-        self.statement = StaticStatement(mesh)
-        super().__init__(
-            mesh,
-            self.statement,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
+    pass
 
 
 @Solvers.register("quasistatic", "global", "global optimization")
 class Quasistatic(Global):
-    def __init__(
-        self,
-        mesh,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
-    ):
-        self.statement = QuasistaticStatement(mesh)
-        super().__init__(
-            mesh,
-            self.statement,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
-
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(Variables(displacement=self.u_vector))
@@ -69,52 +38,11 @@ class Quasistatic(Global):
 
 @Solvers.register("dynamic", "global", "global optimization")
 class Dynamic(Global):
-    def __init__(
-        self,
-        mesh,
-        body_prop,
-        time_step,
-        contact_law,
-        friction_bound,
-    ):
-        self.statement = DynamicStatement(mesh)
-        self.temperature_statement = TemperatureStatement(mesh)
-        super().__init__(
-            mesh,
-            self.statement,
-            body_prop,
-            time_step,
-            contact_law,
-            friction_bound,
-        )
-        self.temperature_statement.update(
-            Variables(
-                velocity=self.v_vector,
-                temperature=self.t_vector,
-                time_step=self.time_step,
-            )
-        )
-
-    @property
-    def node_temperature(self):
-        return self.temperature_statement.left_hand_side
-
-    @property
-    def temper_rhs(self):
-        return self.temperature_statement.right_hand_side
-
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
-                velocity=self.v_vector,
-                temperature=self.t_vector,
-                time_step=self.time_step,
-            )
-        )
-        self.temperature_statement.update(
-            Variables(
                 velocity=self.v_vector,
                 temperature=self.t_vector,
                 time_step=self.time_step,

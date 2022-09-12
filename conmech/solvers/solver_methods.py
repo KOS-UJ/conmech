@@ -148,7 +148,7 @@ def make_cost_functional(
         return cost
 
     @numba.njit()
-    def cost_functional(u_vector, u_vector_old, nodes, contact_boundary, lhs, rhs):
+    def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old):
         ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
         result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
         result = np.asarray(result).ravel()

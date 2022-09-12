@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 from conmech.helpers.config import Config
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
@@ -32,18 +33,14 @@ class StaticSetup(Static):
     def friction_bound(u_nu):
         return 0
 
-    @staticmethod
-    def is_contact(x):
-        return x[1] == 0
-
-    @staticmethod
-    def is_dirichlet(x):
-        return x[0] == 0
+    boundaries: ... = BoundariesDescription(
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+    )
 
 
 def main(show: bool = True, save: bool = False):
-    setup = StaticSetup()
-    runner = StaticProblemSolver(setup, "direct")
+    setup = StaticSetup(mesh_type="cross")
+    runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
     config = Config()

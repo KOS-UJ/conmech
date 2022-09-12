@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -12,7 +12,7 @@ class SceneRandomized(Scene):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
@@ -31,8 +31,8 @@ class SceneRandomized(Scene):
         self.velocity_in_random_factor = 0
         self.displacement_in_random_factor = 0
         self.displacement_to_velocity_noise = 0
-        self.velocity_randomization = np.zeros_like(self.initial_nodes)
-        self.displacement_randomization = np.zeros_like(self.initial_nodes)
+        self.velocity_randomization = np.zeros_like(self.mesh.initial_nodes)
+        self.displacement_randomization = np.zeros_like(self.mesh.initial_nodes)
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
 
     # def remesh(self):
@@ -61,18 +61,18 @@ class SceneRandomized(Scene):
 
     def regenerate_randomization(self):
         self.velocity_randomization = nph.generate_normal(
-            rows=self.nodes_count,
-            columns=self.dimension,
+            rows=self.mesh.nodes_count,
+            columns=self.mesh.dimension,
             scale=self.velocity_in_random_factor,
         )
         self.displacement_randomization = nph.generate_normal(
-            rows=self.nodes_count,
-            columns=self.dimension,
+            rows=self.mesh.nodes_count,
+            columns=self.mesh.dimension,
             scale=self.displacement_in_random_factor,
         )
         # Do not randomize boundaries
-        self.displacement_randomization[self.boundary_indices] = 0.0
-        self.velocity_randomization[self.boundary_indices] = 0.0
+        self.displacement_randomization[self.mesh.boundary_indices] = 0.0
+        self.velocity_randomization[self.mesh.boundary_indices] = 0.0
 
     @property
     def normalized_velocity_randomization(self):
@@ -132,4 +132,4 @@ class SceneRandomized(Scene):
 
     @property
     def boundary_forces(self):
-        return self.normalized_inner_forces[self.boundary_indices]
+        return self.normalized_inner_forces[self.mesh.boundary_indices]

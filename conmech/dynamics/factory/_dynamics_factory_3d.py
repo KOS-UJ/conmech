@@ -186,3 +186,9 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
             + coeff[2][1] * W[2, 1]
             + coeff[2][2] * W[2, 2]
         )
+
+    def get_piezoelectric_tensor(self, W, coeff):
+        raise NotImplementedError()
+
+    def get_permittivity_tensor(self, W, coeff):
+        raise NotImplementedError()

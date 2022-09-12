@@ -7,8 +7,9 @@ import numba
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
-from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -58,7 +59,7 @@ class SceneLayers(SceneRandomized):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
@@ -81,12 +82,13 @@ class SceneLayers(SceneRandomized):
 
     def set_layers(self, layers_count):
         self.all_layers = []
-        is_dirichlet = lambda _: False
-        is_contact = lambda _: True
-        layer_mesh_prop = copy.deepcopy(self.mesh_prop)
+        boundaries_description = BoundariesDescription(
+            contact=lambda x: True, dirichlet=lambda x: False
+        )
+        layer_mesh_prop = copy.deepcopy(self.mesh.mesh_prop)
 
         base_mesh_layer_data = MeshLayerData(
-            mesh=self,
+            mesh=self.mesh,
             to_down=None,
             from_down=None,
             to_base=None,
@@ -94,7 +96,7 @@ class SceneLayers(SceneRandomized):
         )
         self.all_layers.append(base_mesh_layer_data)
 
-        dense_mesh = self
+        dense_mesh = self.mesh
         for _ in range(layers_count - 1):
             layer_mesh_prop.mesh_density = list(
                 np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // 2
@@ -102,16 +104,15 @@ class SceneLayers(SceneRandomized):
 
             sparse_mesh = Mesh(
                 mesh_prop=layer_mesh_prop,
-                is_dirichlet=is_dirichlet,
-                is_contact=is_contact,
+                boundaries_description=boundaries_description,
                 create_in_subprocess=self.create_in_subprocess,
             )
             mesh_layer_data = MeshLayerData(
                 mesh=sparse_mesh,
                 to_down=self.get_link(from_mesh=sparse_mesh, to_mesh=dense_mesh),
                 from_down=self.get_link(from_mesh=dense_mesh, to_mesh=sparse_mesh),
-                to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self),
-                from_base=self.get_link(from_mesh=self, to_mesh=sparse_mesh),
+                to_base=self.get_link(from_mesh=sparse_mesh, to_mesh=self.mesh),
+                from_base=self.get_link(from_mesh=self.mesh, to_mesh=sparse_mesh),
             )
             self.all_layers.append(mesh_layer_data)
             dense_mesh = sparse_mesh
@@ -120,7 +121,7 @@ class SceneLayers(SceneRandomized):
         closest_nodes, closest_weights, closest_distances = get_interlayer_data(
             old_nodes=from_mesh.normalized_initial_nodes,
             new_nodes=to_mesh.normalized_initial_nodes,
-            closest_count=self.mesh_prop.dimension + 1,
+            closest_count=self.mesh.mesh_prop.dimension + 1,
         )
         (
             closest_boundary_nodes,
@@ -129,7 +130,7 @@ class SceneLayers(SceneRandomized):
         ) = get_interlayer_data(
             old_nodes=from_mesh.initial_boundary_nodes,
             new_nodes=to_mesh.initial_boundary_nodes,
-            closest_count=self.mesh_prop.dimension,
+            closest_count=self.mesh.mesh_prop.dimension,
         )
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,
@@ -155,11 +156,11 @@ class SceneLayers(SceneRandomized):
         if link is None:
             raise ArgumentError
 
-        if len(base_values) == self.nodes_count:
+        if len(base_values) == self.mesh.nodes_count:
             closest_nodes = link.closest_nodes
             closest_weights = link.closest_weights
 
-        elif len(base_values) == self.boundary_nodes_count:
+        elif len(base_values) == self.mesh.boundary_nodes_count:
             closest_nodes = link.closest_boundary_nodes
             closest_weights = link.closest_weights_boundary
         else:
