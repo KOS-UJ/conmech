@@ -17,6 +17,7 @@ from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStat
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
+from conmech.mesh.mesh import Mesh
 
 
 class BasicBlock(nn.Module):
@@ -350,9 +351,9 @@ class CustomGraphNet(nn.Module):
         self.downward_processor_layer = LinkProcessorLayer(td=td)
 
         self.decoder = ForwardNet(
-            input_dim=td.latent_dimension,  # 4,  # 1 3 4,
+            input_dim=td.latent_dimension,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension,
+            output_linear_dim=td.dimension * 2,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -445,19 +446,21 @@ class CustomGraphNet(nn.Module):
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
-        #return Calculator.solve(scene=scene, initial_a=initial_a)
+        # return Calculator.solve(scene=scene, initial_a=initial_a)
 
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
-        # normalized_a = thh.to_np_double(
-        #     self(layer_list=layers_list)
-        # )  # + scene.linear_acceleration
-        # a = scene.denormalize_rotate(normalized_a)
-        # return a
+
+        net_result = thh.to_np_double(self(layer_list=layers_list))  # + scene.linear_acceleration
+        net_scaled_new_normalized_displacement = net_result[:, : scene.dimension]
+        net_normalized_exact_acceleration = net_result[:, scene.dimension :]
+
+        acceleration = scene.force_denormalize(net_normalized_exact_acceleration)
+        return acceleration
 
         a = scene.from_normalized_displacement(
-            thh.to_np_double(self(layer_list=layers_list) / 1e2)
+            net_scaled_new_normalized_displacement / 1e2
         )  # + scene.linear_acceleration
         return a

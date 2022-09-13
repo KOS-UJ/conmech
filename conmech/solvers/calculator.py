@@ -19,7 +19,6 @@ from conmech.scene.scene import (
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.lbfgs import minimize_lbfgs
 from deep_conmech.scene.scene_randomized import SceneRandomized
-from deep_conmech.training_config import CALCULATOR_NORMALIZE
 
 
 class Calculator:
@@ -32,7 +31,7 @@ class Calculator:
             initial_vector,
             method="L-BFGS-B",
         )
-        return result
+        return result.x
 
     MAX_K = 0
 
@@ -245,15 +244,10 @@ class Calculator:
             lambda: solver(A=A, b=b, x0=x0, M=M),
             baypass=True,
         )
-        return np.array(nph.unstack(normalized_a_vector, setting.dimension))
+        normalized_a = np.array(nph.unstack(normalized_a_vector, setting.dimension))
         # assert info == 0
         # assert np.allclose(A @ normalized_a_vector_jax - b.reshape(-1), 0)
 
-    @staticmethod
-    def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
-        normalized_a = Calculator.solve_acceleration_normalized_function(
-            setting, temperature, initial_a
-        )
         normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a
@@ -326,8 +320,6 @@ class Calculator:
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):
-        if not CALCULATOR_NORMALIZE:
-            return normalized_cleaned_a
         return setting.denormalize_rotate(normalized_cleaned_a)
 
     @staticmethod

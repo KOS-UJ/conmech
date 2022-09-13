@@ -14,6 +14,7 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 from conmech.scene.scene import Scene
+from conmech.mesh.mesh import Mesh
 
 # TODO: #65 Move to config
 DPI = 800
@@ -119,6 +120,7 @@ class AnimationArgs:
     animation_tqdm: tqdm.tqdm
 
 
+# @Mesh.normalization_decorator
 def make_animation(get_axs, plot_frame, t_scale):
     def animate(step: int, args: AnimationArgs):
         args.animation_tqdm.update(1)

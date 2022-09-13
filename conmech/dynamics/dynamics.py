@@ -171,6 +171,7 @@ class Dynamics(BodyPosition):
             self.solver_cache.temperature_boundary,
             self.solver_cache.temperature_free_x_contact,
             self.solver_cache.temperature_contact_x_free,
+            self.solver_cache.temperature_free_x_free,
             self.solver_cache.temperature_free_x_free_inv,
         ) = SchurComplement.calculate_schur_complement_matrices_np(
             matrix=self.solver_cache.lhs_temperature,

@@ -15,10 +15,6 @@ from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
-from deep_conmech.graph.loss_calculation import (
-    clean_acceleration,
-    loss_normalized_obstacle_scatter,
-)
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net import CustomGraphNet
 from deep_conmech.helpers import thh
@@ -32,6 +28,18 @@ class ErrorResult:
 
 def get_graph_sizes(batch):
     return np.ediff1d(thh.to_np_long(batch.ptr)).tolist()
+
+
+def clean_acceleration(cleaned_a, a_correction):
+    return cleaned_a if (a_correction is None) else (cleaned_a - a_correction)
+
+
+def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
+    # F = m * a
+    return (boundary_integral == 0) * (
+        torch.norm(torch.mean(forces, axis=0) - torch.mean(mass_density * acceleration, axis=0))
+        ** 2
+    )
 
 
 class GraphModelDynamic:
@@ -362,37 +370,6 @@ class GraphModelDynamic:
 
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def calculate_loss_all(
-        self,
-        dimension,
-        node_features,
-        target_data,
-        all_acceleration,
-        graph_sizes_base,
-        all_exact_acceleration,
-        all_linear_acceleration,
-    ):
-        # big_forces = node_features[:, :dimension]
-        # big_lhs_size = target_data.a_correction.numel()
-        # big_lhs_sparse = torch.sparse_coo_tensor(
-        #     indices=target_data.lhs_index,
-        #     values=target_data.lhs_values,
-        #     size=(big_lhs_size, big_lhs_size),
-        # )
-        # big_lhs_sparse = big_lhs_sparse_coo.to_sparse_csr()
-        big_main_loss, big_loss_raport = loss_normalized_obstacle_scatter(
-            acceleration=all_acceleration,
-            # forces=big_forces,
-            # lhs=big_lhs_sparse,
-            # rhs=target_data.rhs,
-            # energy_args=target_data.energy_args,
-            graph_sizes_base=graph_sizes_base,
-            exact_acceleration=all_exact_acceleration,
-            linear_acceleration=all_linear_acceleration,
-        )
-
-        return big_main_loss, big_loss_raport
-
     def calculate_loss(self, batch_data: List[Data]):
         dimension = self.config.td.dimension
         batch_layers = batch_data[0]
@@ -400,22 +377,35 @@ class GraphModelDynamic:
         target_data = batch_data[1].to(self.rank, non_blocking=True)
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
-        node_features = batch_main_layer.x  # .to("cpu")
 
-        all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
-        all_acceleration = clean_acceleration(
-            cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
+        # all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
+        # all_acceleration = clean_acceleration(
+        #     cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
+        # )
+        net_result = self.ddp_net(layer_list)
+        net_scaled_new_normalized_displacement = net_result[:, :dimension]
+        net_normalized_exact_acceleration = net_result[:, dimension:]
+
+        num_graphs = len(graph_sizes_base)
+        displacement_loss = thh.root_mean_square_error_torch(
+            net_scaled_new_normalized_displacement, target_data.scaled_new_normalized_displacement
+        )
+        acceleration_loss = thh.root_mean_square_error_torch(
+            net_normalized_exact_acceleration, target_data.normalized_exact_acceleration
         )
 
-        loss_tuple = self.calculate_loss_all(
-            dimension=dimension,
-            node_features=node_features,
-            target_data=target_data,
-            all_acceleration=all_acceleration,
-            graph_sizes_base=graph_sizes_base,
-            all_exact_acceleration=target_data.exact_acceleration,
-            all_linear_acceleration=None,  # target_data.linear_acceleration,
-        )
-        # acceleration_list = [*all_acceleration.detach().split(graph_sizes_base)]
+        main_loss = (displacement_loss + acceleration_loss) * 0.5
 
-        return loss_tuple  # *, acceleration_list
+        loss_raport = LossRaport(
+            main=main_loss.item(),
+            inner_energy=displacement_loss.item(),
+            energy=acceleration_loss.item(),
+            boundary_integral=0,
+            mean=0,  # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
+            exact_energy=0,
+            mse=0,
+            me=0,
+            _count=num_graphs,
+        )
+
+        return main_loss, loss_raport

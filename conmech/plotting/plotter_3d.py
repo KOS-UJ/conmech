@@ -81,10 +81,9 @@ def plot_frame(
             axes=axes,
             scene=scene,
             normalized_data={
-                "F": scene.normalized_inner_forces,
-                "U": scene.normalized_displacement_old,
-                "V": scene.normalized_velocity_old,
-                "ND": scene.exact_normalized_displacement * 1e2,
+                "F": scene.input_forces,
+                "U": scene.input_displacement_old,
+                "V": scene.input_velocity_old,
                 "A": scene.exact_acceleration,
             },
             t_scale=t_scale,

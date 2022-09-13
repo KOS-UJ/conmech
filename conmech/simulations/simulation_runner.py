@@ -244,7 +244,6 @@ def simulate(
         else:
             acceleration = solve_function(scene, initial_a=acceleration)
 
-
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
@@ -258,7 +257,9 @@ def simulate(
         if operation is not None:
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
-        scene.iterate_self(acceleration, temperature=temperature, lift_data=False) #True ###########################################3
+        scene.iterate_self(
+            acceleration, temperature=temperature, lift_data=False
+        )  # True ###########################################3
         scene.exact_acceleration = acceleration  #####
 
         if compare_with_base_scene:

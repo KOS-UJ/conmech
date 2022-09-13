@@ -282,8 +282,8 @@ class Scene(BodyForces):
             )
 
     def get_energy_obstacle_args_for_jax(self, temperature=None):
-        displacement = self.calculator_displacement_old
-        velocity = self.calculator_velocity_old
+        displacement = self.normalized_displacement_old
+        velocity = self.normalized_velocity_old
 
         base_displacement = displacement + self.time_step * velocity
         body_prop = self.body_prop.get_tuple()
@@ -291,17 +291,11 @@ class Scene(BodyForces):
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
             rhs_acceleration=self.get_normalized_integrated_forces_column_for_jax(),
-            #
-            # lhs_acceleration_torch=torch.Tensor(
-            #     np.array(self.solver_cache.lhs_acceleration_jax.todense())
-            # ),
-            # rhs_acceleration_torch=torch.Tensor(np.array(self.get_integrated_forces_column_jax())),
-            # #
-            boundary_velocity_old=None,  # jnp.asarray(self.norm_boundary_velocity_old),
-            boundary_normals=None,  # jnp.asarray(self.get_normalized_boundary_normals()),
-            boundary_obstacle_normals=None,  # jnp.asarray(self.get_norm_boundary_obstacle_normals()),
-            penetration=None,  # jnp.asarray(self.get_penetration_scalar()),
-            surface_per_boundary_node=None,  # jnp.asarray(self.get_surface_per_boundary_node()),
+            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
+            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            penetration=jnp.asarray(self.get_penetration_scalar()),
+            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
             body_prop=body_prop,
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
@@ -447,11 +441,6 @@ class Scene(BodyForces):
     def is_colliding(self):
         return np.any(self.get_colliding_nodes_indicator())
 
-    def get_colliding_all_nodes_indicator(self):
-        if self.is_colliding():
-            return np.ones((self.nodes_count, 1), dtype=np.int64)
-        return np.zeros((self.nodes_count, 1), dtype=np.int64)
-
     def prepare_to_save(self):
         self.matrices = ConstMatrices()
         # lhs_sparse = self.solver_cache.lhs_sparse
@@ -475,3 +464,35 @@ class Scene(BodyForces):
                 layer_number=1, base_values=scene.velocity_old
             )
         )
+
+    ####################################
+
+    @property
+    @Mesh.normalization_decorator
+    def normalized_exact_acceleration(self):
+        return self.normalize_rotate(self.exact_acceleration)
+
+    @Mesh.normalization_decorator
+    def force_denormalize(self, acceleration):
+        return self.denormalize_rotate(acceleration)
+
+    @property
+    def new_normalized_displacement(self):
+        return self.to_normalized_displacement(self.exact_acceleration)
+
+    @Mesh.normalization_decorator
+    def to_normalized_displacement(self, acceleration):
+        velocity_new = self.velocity_old + self.time_step * acceleration
+        displacement_new = self.displacement_old + self.time_step * velocity_new
+
+        moved_nodes_new = self.initial_nodes + displacement_new
+        new_normalized_nodes = self.normalize_shift_and_rotate(moved_nodes_new)
+        return new_normalized_nodes - self.normalized_initial_nodes
+
+    @Mesh.normalization_decorator
+    def from_normalized_displacement(self, normalized_displacement):
+        velocity = (normalized_displacement - self.displacement_old) / self.time_step
+        acceleration = (velocity - self.velocity_old) / self.time_step
+        return acceleration
+
+    ####################################

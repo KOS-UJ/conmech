@@ -58,6 +58,13 @@ class SceneLayers(Scene):
         self.all_layers: List[AllMeshLayerLinkData] = []
         self.set_reduced()
 
+    def project_sparse_nodes(self, from_base, sparse_mesh):
+        sparse_mesh.initial_nodes = interpolation_helpers.approximate_internal(
+            base_values=self.initial_nodes,
+            closest_nodes=from_base.closest_nodes,
+            closest_weights=from_base.closest_weights,
+        )
+
     def set_reduced(self):
         self.all_layers = []
         layer_mesh_prop = copy.deepcopy(self.mesh_prop)
@@ -81,14 +88,9 @@ class SceneLayers(Scene):
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )
+
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
-        #############################
-        sparse_mesh.initial_nodes = interpolation_helpers.approximate_internal(
-            base_values=self.initial_nodes,
-            closest_nodes=from_base.closest_nodes,
-            closest_weights=from_base.closest_weights,
-        )
-        #############################
+        self.project_sparse_nodes(from_base, sparse_mesh)
         to_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=False)
 
         mesh_layer_data = AllMeshLayerLinkData(
@@ -180,8 +182,8 @@ class SceneLayers(Scene):
         # ) + np.mean(self.reduced.displacement_old, axis=0)
         displacement_old = (
             self.displacement_old
-            - np.mean(self.displacement_old, axis=0)
-            + np.mean(self.reduced.displacement_old, axis=0)
+            # - np.mean(self.displacement_old, axis=0)
+            # + np.mean(self.reduced.displacement_old, axis=0)
         )
         self.set_displacement_old(displacement_old)
 
@@ -190,11 +192,11 @@ class SceneLayers(Scene):
         self.reduced.set_velocity_old(None)
 
     def update_reduced(self, lift_data=True):
-        if True: #not lift_data:  # True
+        if not lift_data:
             if self.reduced.exact_acceleration is None:
                 return
             self.reduced.iterate_self(self.reduced.exact_acceleration)
-            self.recenter_main_mesh() #recenter_reduced_mesh()
+            # self.recenter_main_mesh() #recenter_reduced_mesh()
             self.reduced.exact_acceleration = None
             return
         # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
@@ -203,9 +205,6 @@ class SceneLayers(Scene):
 
         self.reduced.set_displacement_old(displacement)
         self.reduced.set_velocity_old(velocity)
-
-        # self.reduced.iterate_self(self.reduced.exact_acceleration)
-        # self.recenter_reduced()
 
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if base_values is None or layer_number == 0:

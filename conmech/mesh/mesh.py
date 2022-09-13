@@ -127,7 +127,18 @@ class Mesh:
         fun_data = lambda: self.reinitialize_data(
             mesh_prop, is_dirichlet, is_contact, create_in_subprocess
         )
+        self.normalize = NORMALIZE
         cmh.profile(fun_data, baypass=True)
+
+    def normalization_decorator(func):
+        def inner(self, *args, **kwargs):
+            saved_normalize = self.normalize
+            self.normalize = True
+            returned_value = func(self, *args, **kwargs)
+            self.normalize = saved_normalize
+            return returned_value
+
+        return inner
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
@@ -158,7 +169,7 @@ class Mesh:
 
     def normalize_shift(self, vectors):
         _ = self
-        if not NORMALIZE:
+        if not self.normalize:
             return vectors
         return vectors - np.mean(vectors, axis=0)
 

@@ -13,6 +13,7 @@ from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData
 from deep_conmech.scene.scene_randomized import SceneRandomized
+from conmech.mesh.mesh import Mesh
 
 
 @numba.njit
@@ -167,14 +168,20 @@ class SceneInput(SceneRandomized):
         if layer_number > 0:
             exact_acceleration = self.prepare_node_data(
                 layer_number=layer_number,
-                data=self.reduced.exact_normalized_displacement
-                * 1e2,  # self.reduced.normalized_exact_acceleration,  # self.reduced.exact_acceleration self.reduced.exact_normalized_displacement,  #########################
+                data=self.reduced.normalized_exact_acceleration,  # self.reduced.exact_acceleration self.reduced.new_normalized_displacement,  #########################
+                add_norm=True,
+                approximate=False,
+            )
+            scaled_new_displacement = self.prepare_node_data(
+                layer_number=layer_number,
+                data=self.reduced.new_normalized_displacement * 1e2,
                 add_norm=True,
                 approximate=False,
             )
             return np.hstack(
                 (
                     exact_acceleration,
+                    scaled_new_displacement,
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
@@ -220,6 +227,7 @@ class SceneInput(SceneRandomized):
         # )
         return edges_index, edges_data, closest_nodes
 
+    @Mesh.normalization_decorator
     def get_features_data(self, layer_number: int = 0):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
@@ -270,37 +278,17 @@ class SceneInput(SceneRandomized):
         """
         return data
 
+    @Mesh.normalization_decorator
     def get_target_data(self):
-        # to_float
-        # lhs_sparse = thh.to_double(self.solver_cache.lhs_acceleration_jax).to_sparse()
-        # lhs_sparse_copy = copy.deepcopy(lhs_sparse)
-        # rhs = thh.to_double(self.get_integrated_forces_column_jax())
         target_data = TargetData(
             a_correction=thh.to_double(self.normalized_a_correction),
-            # energy_args=self.get_energy_obstacle_for_jax(None)
-            # EnergyObstacleArgumentsTorch(
-            #     lhs_values=lhs_sparse_copy.values(),
-            #     lhs_indices=lhs_sparse_copy.indices(),
-            #     lhs_size=lhs_sparse_copy.size(),
-            #     rhs=rhs,
-            #     #
-            #     # boundary_velocity_old=thh.to_double(self.norm_boundary_velocity_old),
-            #     # boundary_normals=thh.to_double(self.get_normalized_boundary_normals()),
-            #     # boundary_obstacle_normals=thh.to_double(self.get_norm_boundary_obstacle_normals()),
-            #     # penetration=thh.to_double(self.get_penetration_scalar()),
-            #     # surface_per_boundary_node=thh.to_double(self.get_surface_per_boundary_node()),
-            #     # obstacle_prop=self.obstacle_prop,
-            #     # time_step=self.schedule.time_step,
-            # ),
-            # lhs_values=lhs_sparse.values(),
-            # lhs_index=lhs_sparse.indices(),
-            # rhs=rhs,
         )
-        if hasattr(self, "exact_acceleration"):
-            # target_data.exact_acceleration = thh.to_double(
-            #     self.normalized_exact_acceleration
-            # )  # exact_acceleration
-            target_data.exact_acceleration = thh.to_double(self.exact_normalized_displacement * 1e2)
+        target_data.normalized_exact_acceleration = thh.to_double(
+            self.normalized_exact_acceleration
+        )
+        target_data.scaled_new_normalized_displacement = thh.to_double(
+            self.new_normalized_displacement * 1e2
+        )
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
         return target_data
@@ -310,6 +298,7 @@ class SceneInput(SceneRandomized):
         desc = []
         for attr in [
             "exact_acceleration",
+            "scaled_new_displacement",
             # "linear_acceleration",
             # "input_forces",
             "boundary_normals",

@@ -129,6 +129,7 @@ class SchurComplement(Optimization):
             np.array(lhs_boundary, dtype=np.float64),
             np.array(free_x_contact.todense(), dtype=np.float64),
             np.array(contact_x_free.todense(), dtype=np.float64),
+            np.array(free_x_free.todense(), dtype=np.float64),
             np.array(free_x_free_inverted, dtype=np.float64),
         )
 
