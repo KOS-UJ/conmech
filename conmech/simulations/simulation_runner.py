@@ -112,7 +112,7 @@ def run_scenario(
         if plot_index:
             plot_scenes_count[0] += 1
 
-    print(f"Creating scene...")
+    print("Creating scene...")
     create_in_subprocess = False
 
     if get_scene_function is None:

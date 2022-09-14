@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from conmech.helpers import nph
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -13,7 +14,6 @@ from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData
 from deep_conmech.scene.scene_randomized import SceneRandomized
-from conmech.mesh.mesh import Mesh
 
 
 @numba.njit
@@ -174,7 +174,7 @@ class SceneInput(SceneRandomized):
             )
             scaled_new_displacement = self.prepare_node_data(
                 layer_number=layer_number,
-                data=self.reduced.new_normalized_displacement * 1e2,
+                data=self.reduced.new_normalized_displacement / self.time_step,
                 add_norm=True,
                 approximate=False,
             )
@@ -287,7 +287,7 @@ class SceneInput(SceneRandomized):
             self.normalized_exact_acceleration
         )
         target_data.scaled_new_normalized_displacement = thh.to_double(
-            self.new_normalized_displacement * 1e2
+            self.new_normalized_displacement / self.time_step
         )
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
@@ -342,7 +342,7 @@ class SceneInput(SceneRandomized):
 
     @staticmethod
     def get_multilayer_edges_data_dim(dimension):
-        return (dimension + 1) * 2  # 4
+        return (dimension + 1) * 2  # 2  # 4
 
     @staticmethod
     def get_edges_data_description(dim):

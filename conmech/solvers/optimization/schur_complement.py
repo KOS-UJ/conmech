@@ -47,6 +47,7 @@ class SchurComplement(Optimization):
             self._node_relations,
             self.free_x_contact,
             self.contact_x_free,
+            self.free_x_free,
             self.free_x_free_inverted,
         ) = self.recalculate_displacement()
 
@@ -287,6 +288,7 @@ class Dynamic(SchurComplement):
             self._node_temperature,
             self.temper_free_x_contact,
             self.temper_contact_x_free,
+            self.temper.free_x_free,
             self.temper_free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices_np(
             matrix=self.temperature_statement.left_hand_side,
@@ -364,6 +366,6 @@ class Dynamic(SchurComplement):
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.temper_contact_x_free,
-            free_x_free_inverted=self.temper_free_x_free_inverted,
+            free_x_free=self.temper_free_x_free, #inverted
         )
         return A_contact.reshape(-1), A_free.reshape(-1)

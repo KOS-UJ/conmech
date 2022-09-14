@@ -79,7 +79,7 @@ def profile(function: Callable, baypass: bool = False):
     return result
 
 
-class dot_dict(dict):
+class DotDict(dict):
     """dot.notation access to dictionary attributes"""
 
     __getattr__ = dict.get

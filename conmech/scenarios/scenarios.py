@@ -348,6 +348,19 @@ def f_rotate(
     return np.array([0.0, 0.0]) * SCALE_FORCES
 
 
+def f_rotate_fast(
+    initial_node: np.ndarray,
+    moved_node: np.ndarray,
+    mesh_prop: MeshProperties,
+    time: float,
+):
+    _ = moved_node
+    if time <= 0.5:
+        y_scaled = initial_node[1] / mesh_prop.scale_y
+        return y_scaled * np.array([3.0, 0.0]) * SCALE_FORCES
+    return np.array([0.0, 0.0]) * SCALE_FORCES
+
+
 def f_swing_3d(
     initial_node: np.ndarray,
     moved_node: np.ndarray,
@@ -609,8 +622,7 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cu
 
 
 def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
-    _ = tag
-    _ = cutoff_time
+    _, _, _ = scale, tag, cutoff_time
     return Scenario(
         name="bunny_swing",
         mesh_prop=MeshProperties(
@@ -687,7 +699,7 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    args["final_time"] = 1.0  # 2.0  # 0.7
+    args["final_time"] = 2.0  # 2.0  # 0.7
     if td.dimension == 3:
         return [
             bunny_rotate_3d(**args),

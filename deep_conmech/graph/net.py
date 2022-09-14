@@ -11,7 +11,7 @@ from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from conmech.helpers.cmh import dot_dict
+from conmech.helpers.cmh import DotDict
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -408,7 +408,7 @@ class CustomGraphNet(nn.Module):
 
     def forward(self, layer_list: List[Data]):
         if isinstance(layer_list[0].x, Tuple):
-            layer_list = [dot_dict(l.x) for l in layer_list]
+            layer_list = [DotDict(l.x) for l in layer_list]
         self.processor_number = 0
 
         layer_dense = layer_list[0]
@@ -457,10 +457,9 @@ class CustomGraphNet(nn.Module):
         net_scaled_new_normalized_displacement = net_result[:, : scene.dimension]
         net_normalized_exact_acceleration = net_result[:, scene.dimension :]
 
-        acceleration = scene.force_denormalize(net_normalized_exact_acceleration)
-        return acceleration
-
-        a = scene.from_normalized_displacement(
-            net_scaled_new_normalized_displacement / 1e2
+        acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
+        
+        acceleration_displacement = scene.from_normalized_displacement(
+            net_scaled_new_normalized_displacement * scene.time_step
         )  # + scene.linear_acceleration
-        return a
+        return acceleration_displacement

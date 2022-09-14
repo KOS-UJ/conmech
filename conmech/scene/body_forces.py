@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
-from conmech.helpers import jxh, nph
+from conmech.helpers import nph
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -15,17 +15,6 @@ from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 def energy(value, solver_cache, rhs):
     return energy_vector(nph.stack_column(value), solver_cache, rhs)
-
-
-def get_lhs_times_value(value_vector, lhs):
-    return lhs @ value_vector
-    # contact_x_contact - contact_x_free @ free_x_free_inverted @ free_x_contact
-    s1 = solver_cache.free_x_contact @ value_vector
-    s2 = jxh.solve_linear_jax(matrix=solver_cache.free_x_free, vector=s1)
-    s3 = nph.stack_column(solver_cache.contact_x_free @ s2)
-    s4 = solver_cache.contact_x_contact @ value_vector - s3
-    return s4
-
 
 def energy_vector(value_vector, lhs, rhs):
     lhs_times_value = lhs @ value_vector

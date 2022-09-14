@@ -14,7 +14,6 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 from conmech.scene.scene import Scene
-from conmech.mesh.mesh import Mesh
 
 # TODO: #65 Move to config
 DPI = 800
@@ -58,10 +57,13 @@ def get_t_scale(
 def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     # magma plasma cool coolwarm
     lim_small = 0.2
+    lim_medium = 2
     lim_big = 10
 
     if t_scale[0] > -lim_small and t_scale[1] < lim_small:
         return ColorbarSettings(vmin=-lim_small, vmax=lim_small, cmap=plt.cm.cool)  # coolwarm
+    if t_scale[0] > -lim_medium and t_scale[1] < lim_medium:
+        return ColorbarSettings(vmin=-lim_medium, vmax=lim_medium, cmap=plt.cm.coolwarm)
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
 

@@ -1,3 +1,4 @@
+from functools import partial
 from typing import List, NamedTuple, Optional
 
 import jax
@@ -15,18 +16,33 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
 from conmech.state.body_position import BodyPosition
+from deep_conmech.training_config import USE_GREEN_STRAIN
 
 
-def get_penetration_positive(displacement_step, normals, penetration):
+
+
+@numba.njit
+def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
+    boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
+
+    for i, boundary_node in enumerate(boundary_nodes):
+        distances = nph.euclidean_norm_numba(obstacle_nodes - boundary_node)
+        boundary_obstacle_indices[i] = distances.argmin()
+
+    return boundary_obstacle_indices
+
+############
+
+def _get_penetration_positive(displacement_step, normals, penetration):
     projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
     return (projection > 0) * projection
 
 
-def obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
+def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
-def obstacle_resistance_potential_tangential(
+def _obstacle_resistance_potential_tangential(
     penetration_norm,
     tangential_velocity,
     friction,
@@ -59,7 +75,7 @@ class EnergyObstacleArguments(NamedTuple):
     base_energy_velocity: np.ndarray
 
 
-def get_boundary_integral(
+def _get_boundary_integral(
     acceleration,
     args: EnergyObstacleArguments,
 ):
@@ -74,17 +90,17 @@ def get_boundary_integral(
     hardness = args.obstacle_prop.hardness
     friction = args.obstacle_prop.friction
 
-    penetration_norm = get_penetration_positive(
+    penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
         normals=normals,
         penetration=args.penetration,
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, normals)
 
-    resistance_normal = obstacle_resistance_potential_normal(
+    resistance_normal = _obstacle_resistance_potential_normal(
         penetration_norm=penetration_norm, hardness=hardness, time_step=args.time_step
     )
-    resistance_tangential = obstacle_resistance_potential_tangential(
+    resistance_tangential = _obstacle_resistance_potential_tangential(
         penetration_norm=args.penetration,
         tangential_velocity=velocity_tangential,
         friction=friction,
@@ -94,89 +110,53 @@ def get_boundary_integral(
     return boundary_integral
 
 
-def energy_vector_jax(value_vector, lhs, rhs):
-    first = 0.5 * (lhs @ value_vector) - rhs
-    value = first.reshape(-1) @ value_vector
-    return value[0]
+######################
 
 
-def energy_obstacle(acceleration_vector, args: EnergyObstacleArguments):
-    # TODO: Repeat if collision
-    main_energy0 = energy_vector_jax(
-        value_vector=nph.stack_column(acceleration_vector),
-        lhs=args.lhs_acceleration_jax,
-        rhs=args.rhs_acceleration,
-    )
-    main_energy1 = compute_energy_jax(nph.unstack(acceleration_vector, dim=3), args)
-    return main_energy0 + main_energy1
-
-
-@jax.jit
-def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
-    # TODO: Repeat if collision
-    main_energy = energy_obstacle(acceleration_vector, args)
-    acceleration = nph.unstack(acceleration_vector, dim=3)
-    boundary_integral = get_boundary_integral(acceleration=acceleration, args=args)
-    return main_energy + boundary_integral
-
-
-hes_energy_obstacle_new = jax.jit(
-    lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
-        energy_obstacle, x, x
-    )
-)
-
-hes_energy_obstacle_colliding_new = jax.jit(
-    lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
-        energy_obstacle_colliding_jax, x, x
-    )
-)
-
-
-energy_obstacle_jax = jax.jit(energy_obstacle)
-
-
-@numba.njit
-def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
-    boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
-
-    for i, boundary_node in enumerate(boundary_nodes):
-        distances = nph.euclidean_norm_numba(obstacle_nodes - boundary_node)
-        boundary_obstacle_indices[i] = distances.argmin()
-
-    return boundary_obstacle_indices
-
-
-###############
-
-
-def get_jac(value, dx_big_jax):
+def _get_jac(value, dx_big_jax):
+    dimension = value.shape[1]
     result0 = (
-        (dx_big_jax @ jnp.tile(value, (3, 1))).reshape(3, -1, 3).swapaxes(0, 1).transpose((0, 2, 1))
+        (dx_big_jax @ jnp.tile(value, (dimension, 1)))
+        .reshape(dimension, -1, dimension)
+        .swapaxes(0, 1)
+        .transpose((0, 2, 1))
     )
     return result0
 
 
-def get_deform_grad(value, dx_big_jax):
-    identity = jnp.eye(3)
-    return get_jac(value, dx_big_jax) + identity
+def _get_deform_grad(value, dx_big_jax):
+    dimension = value.shape[1]
+    identity = jnp.eye(dimension)
+    return _get_jac(value, dx_big_jax) + identity
 
 
-def get_strain_lin(deform_grad):
-    identity = jnp.eye(3)
+def _get_strain_lin(deform_grad):
+    dimension = deform_grad.shape[1]
+    identity = jnp.eye(dimension)
     deform_grad_t = deform_grad.transpose((0, 2, 1))
     return 0.5 * (deform_grad + deform_grad_t) - identity
 
 
-def get_strain_green(deform_grad):
-    identity = jnp.eye(3)
+def _get_strain_green(deform_grad):
+    dimension = deform_grad.shape[1]
+    identity = jnp.eye(dimension)
     deform_grad_t = deform_grad.transpose((0, 2, 1))
     return 0.5 * (deform_grad_t @ deform_grad - identity)
 
 
-def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, prop_1, prop_2):
-    f_w = get_deform_grad(component, dx_big_jax)
-    eps_w = get_strain_green(deform_grad=f_w)  # get_eps_lin_jax get_eps_rot_jax
+def _compute_component_energy(
+    component,
+    dx_big_jax,
+    element_initial_volume,
+    prop_1,
+    prop_2,
+    use_green_strain,
+):
+    f_w = _get_deform_grad(component, dx_big_jax)
+    if use_green_strain:
+        eps_w = _get_strain_green(deform_grad=f_w)
+    else:
+        eps_w = _get_strain_lin(deform_grad=f_w)
 
     phi = prop_1 * (eps_w * eps_w).sum(axis=(1, 2)) + (prop_2 / 2.0) * (
         ((eps_w).trace(axis1=1, axis2=2) ** 2)
@@ -185,51 +165,143 @@ def compute_component_energy_jax(component, dx_big_jax, element_initial_volume, 
     return energy
 
 
-def compute_displacement_energy_jax(displacement, dx_big_jax, element_initial_volume, body_prop):
-    return compute_component_energy_jax(
+def _compute_displacement_energy(
+    displacement, dx_big_jax, element_initial_volume, body_prop, use_green_strain
+):
+    return _compute_component_energy(
         component=displacement,
         dx_big_jax=dx_big_jax,
         element_initial_volume=element_initial_volume,
         prop_1=body_prop.mu,
         prop_2=body_prop.lambda_,
+        use_green_strain=use_green_strain,
     )
 
 
-def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, body_prop):
-    return compute_component_energy_jax(
+def _compute_velocity_energy(
+    velocity, dx_big_jax, element_initial_volume, body_prop, use_green_strain
+):
+    return _compute_component_energy(
         component=velocity,
         dx_big_jax=dx_big_jax,
         element_initial_volume=element_initial_volume,
         prop_1=body_prop.theta,
         prop_2=body_prop.zeta,
+        use_green_strain=use_green_strain,
     )
 
 
-def compute_energy_jax(acceleration, args):
+def _compute_energy(acceleration, args, use_green_strain):
     new_displacement = args.base_displacement + acceleration * args.time_step**2
     new_velocity = args.base_velocity + acceleration * args.time_step
 
     energy_new = (
-        compute_displacement_energy_jax(
+        _compute_displacement_energy(
             displacement=new_displacement,
             dx_big_jax=args.dx_big_jax,
             element_initial_volume=args.element_initial_volume,
             body_prop=args.body_prop,
+            use_green_strain=use_green_strain,
         )
         - args.base_energy_displacement
     ) / (args.time_step**2)
 
     energy_new += (
-        compute_velocity_energy_jax(
+        _compute_velocity_energy(
             velocity=new_velocity,
             dx_big_jax=args.dx_big_jax,
             element_initial_volume=args.element_initial_volume,
             body_prop=args.body_prop,
+            use_green_strain=use_green_strain,
         )
         - args.base_energy_velocity
     ) / (args.time_step)
 
     return energy_new
+
+
+#####################
+
+
+def _energy_vector(value_vector, lhs, rhs):
+    first = 0.5 * (lhs @ value_vector) - rhs
+    value = first.reshape(-1) @ value_vector
+    return value[0]
+
+
+def _energy_obstacle(acceleration_vector, args: EnergyObstacleArguments, use_green_strain: bool):
+    # TODO: Repeat if collision
+    dimension = args.base_displacement.shape[1]
+    main_energy0 = _energy_vector(
+        value_vector=nph.stack_column(acceleration_vector),
+        lhs=args.lhs_acceleration_jax,
+        rhs=args.rhs_acceleration,
+    )
+    main_energy1 = _compute_energy(
+        acceleration=nph.unstack(acceleration_vector, dim=dimension),
+        args=args,
+        use_green_strain=use_green_strain,
+    )
+    return main_energy0 + main_energy1
+
+
+def _energy_obstacle_colliding(
+    acceleration_vector, args: EnergyObstacleArguments, use_green_strain: bool
+):
+    # TODO: Repeat if collision
+    dimension = args.base_displacement.shape[1]
+    main_energy = _energy_obstacle(
+        acceleration_vector=acceleration_vector, args=args, use_green_strain=use_green_strain
+    )
+    acceleration = nph.unstack(acceleration_vector, dim=dimension)
+    boundary_integral = _get_boundary_integral(acceleration=acceleration, args=args)
+    return main_energy + boundary_integral
+
+
+#################
+
+
+# @partial(jax.jit, static_argnums=(2,))
+@jax.jit
+def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
+    return _energy_obstacle(acceleration_vector, args, USE_GREEN_STRAIN)
+
+
+# @partial(jax.jit, static_argnums=(2,))
+@jax.jit
+def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
+    return _energy_obstacle_colliding(acceleration_vector, args, USE_GREEN_STRAIN)
+
+
+# energy_obstacle_jax = jax.jit(energy_obstacle)
+
+
+@jax.jit
+def compute_displacement_energy_jax(displacement, dx_big_jax, element_initial_volume, body_prop):
+    return _compute_displacement_energy(
+        displacement, dx_big_jax, element_initial_volume, body_prop, USE_GREEN_STRAIN
+    )
+
+
+@jax.jit
+def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, body_prop):
+    return _compute_velocity_energy(
+        velocity, dx_big_jax, element_initial_volume, body_prop, USE_GREEN_STRAIN
+    )
+
+
+# hes_energy_obstacle_new = jax.jit(
+#     lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
+#         energy_obstacle, x, x
+#     )
+# )
+
+# hes_energy_obstacle_colliding_new = jax.jit(
+#     lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
+#         energy_obstacle_colliding_jax, x, x
+#     )
+# )
+
 
 
 class Scene(BodyForces):
@@ -282,15 +354,21 @@ class Scene(BodyForces):
             )
 
     def get_energy_obstacle_args_for_jax(self, temperature=None):
+        _ = temperature
+
         displacement = self.normalized_displacement_old
         velocity = self.normalized_velocity_old
 
         base_displacement = displacement + self.time_step * velocity
         body_prop = self.body_prop.get_tuple()
 
+        rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax()
+        if temperature is not None:
+            rhs_acceleration += jnp.array(self.thermal_expansion.T @ temperature)
+
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
-            rhs_acceleration=self.get_normalized_integrated_forces_column_for_jax(),
+            rhs_acceleration=rhs_acceleration,
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
@@ -410,12 +488,12 @@ class Scene(BodyForces):
         return self.obstacle_prop.friction * self.__get_friction_vector()
 
     def get_resistance_normal(self):
-        return obstacle_resistance_potential_normal(
+        return _obstacle_resistance_potential_normal(
             self.get_penetration_positive(), self.obstacle_prop.hardness, self.time_step
         )
 
     def get_resistance_tangential(self):
-        return obstacle_resistance_potential_tangential(
+        return _obstacle_resistance_potential_tangential(
             self.get_penetration_positive(),
             self.__get_boundary_v_tangential(),
             self.obstacle_prop.friction,

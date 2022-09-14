@@ -60,17 +60,19 @@ def build_initial_mesh(
             return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop)
 
     if "pygmsh" in mesh_prop.mesh_type:
-        if "3d" in mesh_prop.mesh_type:
-            if "polygon" in mesh_prop.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_polygon(mesh_prop)
-            if "twist" in mesh_prop.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_twist(mesh_prop)
-            if "bunny" in mesh_prop.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_bunny(mesh_prop)
-            if "armadillo" in mesh_prop.mesh_type:
-                inner_function = lambda: mesh_builders_3d.get_pygmsh_armadillo()
-        else:
-            inner_function = lambda: mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)
+
+        def inner_function():
+            if "3d" in mesh_prop.mesh_type:
+                if "polygon" in mesh_prop.mesh_type:
+                    return mesh_builders_3d.get_pygmsh_polygon(mesh_prop)
+                if "twist" in mesh_prop.mesh_type:
+                    return mesh_builders_3d.get_pygmsh_twist(mesh_prop)
+                if "bunny" in mesh_prop.mesh_type:
+                    return mesh_builders_3d.get_pygmsh_bunny(mesh_prop)
+                if "armadillo" in mesh_prop.mesh_type:
+                    return mesh_builders_3d.get_pygmsh_armadillo()
+            else:
+                return mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
