@@ -228,6 +228,7 @@ class GraphModelDynamic:
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
+                net=net,
                 solve_function=net.solve,  # (net.solve, Calculator.solve),
                 scenario=scenario,
                 config=config,

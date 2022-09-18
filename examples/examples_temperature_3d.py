@@ -100,7 +100,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
             return -1000
         return 0.0
 
-    #obstacle = Obstacle(None, default_temp_obstacle_prop)
+    # obstacle = Obstacle(None, default_temp_obstacle_prop)
     obstacle = Obstacle(
         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, -1.0]]]), default_temp_obstacle_prop
     )

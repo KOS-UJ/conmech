@@ -1,4 +1,3 @@
-from functools import partial
 from typing import List, NamedTuple, Optional
 
 import jax
@@ -19,8 +18,6 @@ from conmech.state.body_position import BodyPosition
 from deep_conmech.training_config import USE_GREEN_STRAIN
 
 
-
-
 @numba.njit
 def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
     boundary_obstacle_indices = np.zeros((len(boundary_nodes)), dtype=numba.int64)
@@ -31,7 +28,6 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 
     return boundary_obstacle_indices
 
-############
 
 def _get_penetration_positive(displacement_step, normals, penetration):
     projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
@@ -108,9 +104,6 @@ def _get_boundary_integral(
     )
     boundary_integral = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return boundary_integral
-
-
-######################
 
 
 def _get_jac(value, dx_big_jax):
@@ -220,7 +213,7 @@ def _compute_energy(acceleration, args, use_green_strain):
     return energy_new
 
 
-#####################
+
 
 
 def _energy_vector(value_vector, lhs, rhs):
@@ -258,7 +251,6 @@ def _energy_obstacle_colliding(
     return main_energy + boundary_integral
 
 
-#################
 
 
 # @partial(jax.jit, static_argnums=(2,))
@@ -301,7 +293,6 @@ def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, bo
 #         energy_obstacle_colliding_jax, x, x
 #     )
 # )
-
 
 
 class Scene(BodyForces):
@@ -511,39 +502,19 @@ class Scene(BodyForces):
     def has_no_obstacles(self):
         return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
 
-    def get_colliding_nodes_indicator(self):
+    def _get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
             return np.zeros((self.nodes_count, 1), dtype=np.int64)
         return self.complete_boundary_data_with_zeros((self.get_penetration_scalar() > 0) * 1)
 
     def is_colliding(self):
-        return np.any(self.get_colliding_nodes_indicator())
+        return np.any(self._get_colliding_nodes_indicator())
 
     def prepare_to_save(self):
         self.matrices = ConstMatrices()
         # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()
         # self.solver_cache.lhs_sparse = lhs_sparse
-
-    def interpolate_base(self, scene):
-        # self.inner_forces = scene.approximate_boundary_or_all_from_base(
-        #     layer_number=1, base_values=scene.inner_forces
-        # )
-        # self.outer_forces = scene.approximate_boundary_or_all_from_base(
-        #     layer_number=1, base_values=scene.outer_forces
-        # )
-        self.set_displacement_old(
-            scene.approximate_boundary_or_all_from_base(
-                layer_number=1, base_values=scene.displacement_old
-            )
-        )
-        self.set_velocity_old(
-            scene.approximate_boundary_or_all_from_base(
-                layer_number=1, base_values=scene.velocity_old
-            )
-        )
-
-    ####################################
 
     @property
     @Mesh.normalization_decorator
@@ -567,10 +538,27 @@ class Scene(BodyForces):
         new_normalized_nodes = self.normalize_shift_and_rotate(moved_nodes_new)
         return new_normalized_nodes - self.normalized_initial_nodes
 
-    @Mesh.normalization_decorator
-    def from_normalized_displacement(self, normalized_displacement):
-        velocity = (normalized_displacement - self.displacement_old) / self.time_step
+    def from_displacement(self, displacement):
+        velocity = (displacement - self.displacement_old) / self.time_step
         acceleration = (velocity - self.velocity_old) / self.time_step
         return acceleration
 
-    ####################################
+
+    def get_rotation(self):
+        F = _get_deform_grad(self.displacement_old, self.matrices.dx_big_jax)
+
+        def iterate_A(A):
+            A_inv_T = jnp.linalg.inv(A).transpose((0, 2, 1))
+            return 0.5 * (A + A_inv_T)
+
+        R = F
+        iter = 0
+        while iter < 1000:
+            iter +=1
+            R_new = iterate_A(R)
+            norm = jnp.linalg.norm(R - R_new)
+            if(norm< 0.0001):
+                break
+            R = R_new
+        print("iter / norm:", iter, norm)
+        return jnp.linalg.inv(np.mean(R, axis=0))

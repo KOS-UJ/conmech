@@ -123,13 +123,12 @@ class Mesh:
 
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
-        
+
         self.normalize = NORMALIZE
 
         def fun_data():
-            self.reinitialize_data(
-                mesh_prop, is_dirichlet, is_contact, create_in_subprocess
-            )
+            self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
+
         cmh.profile(fun_data, baypass=True)
 
     def normalization_decorator(func: Callable):

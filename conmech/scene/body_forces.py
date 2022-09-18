@@ -16,6 +16,7 @@ from conmech.state.body_position import get_surface_per_boundary_node_numba
 def energy(value, solver_cache, rhs):
     return energy_vector(nph.stack_column(value), solver_cache, rhs)
 
+
 def energy_vector(value_vector, lhs, rhs):
     lhs_times_value = lhs @ value_vector
     first = 0.5 * lhs_times_value - rhs

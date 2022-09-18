@@ -8,11 +8,12 @@ from conmech.helpers.config import Config
 
 TEST = False  # False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 2  # 4
-CLOSEST_COUNT = 4  # 3
+MESH_LAYERS_PROPORTION = 2
+CLOSEST_COUNT = 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
-NORMALIZE = False  # True
+NORMALIZE = False
 USE_GREEN_STRAIN = True
+
 
 @dataclass
 class TrainingData:

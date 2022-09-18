@@ -602,6 +602,26 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", cutof
     )
 
 
+def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+    _ = tag
+    _ = scale
+    return Scenario(
+            name="bunny_fall",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[32],
+            ),
+            body_prop=default_body_prop_3d,
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0.0, 0.0, -1.0]),
+            obstacle=Obstacle(  # 0.3
+                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                ObstacleProperties(hardness=100.0, friction=5.0),
+            ),
+        )
+
 def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
     _ = tag
     _ = scale
@@ -699,12 +719,13 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    args["final_time"] = 2.0  # 2.0  # 0.7
+    # args["final_time"] = 1 #2.0  # 2.0  # 0.7
     if td.dimension == 3:
         return [
             bunny_rotate_3d(**args),
+            bunny_fall_3d(**args),
+            bunny_swing_3d(**args),
             ball_rotate_3d(**args),
-            # bunny_swing_3d(**args),
             # ball_swing_3d(**args),
             # cube_rotate_3d(**args),
         ]

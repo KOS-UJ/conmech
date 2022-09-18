@@ -1,8 +1,6 @@
-from ctypes import ArgumentError
 from dataclasses import dataclass
 
-import numba
-import numba.typed
+import jax.experimental.sparse
 import numpy as np
 import scipy.sparse
 
@@ -30,10 +28,15 @@ class ConstMatrices:
         self.thermal_expansion: scipy.sparse.csr_matrix
         self.thermal_conductivity: scipy.sparse.csr_matrix
 
+        self.dx_big: np.ndarray
+        self.dx_big_jax: jax.experimental.sparse.BCOO
+        self.volume_at_nodes_jax: jax.experimental.sparse.BCOO
+        self.acceleration_operator_jax: jax.experimental.sparse.BCOO
+
     def initialize_sparse_jax(self):
+        self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
         self.volume_at_nodes_jax = jxh.to_jax_sparse(self.volume_at_nodes)
         self.acceleration_operator_jax = jxh.to_jax_sparse(self.acceleration_operator)
-        self.dx_big_jax = jxh.to_jax_sparse(self.dx_big)
 
 
 def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):

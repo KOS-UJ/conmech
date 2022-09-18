@@ -1,5 +1,5 @@
 from ctypes import ArgumentError
-from typing import Callable, Optional
+from typing import Optional
 
 import jax
 import jax.experimental
@@ -7,8 +7,6 @@ import jax.numpy as jnp
 import jax.scipy
 import jax.scipy.optimize
 import numpy as np
-import scipy.optimize
-import scipy.sparse.linalg
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.body_forces import energy
@@ -25,9 +23,9 @@ from optimization.lbfgs import minimize_lbfgs
 class Calculator:
 
     MAX_K = 0
-    
+
     @staticmethod
-    def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:        
+    def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:
         # result = scipy.optimize.minimize(
         #     function,
         #     initial_vector,
@@ -207,13 +205,13 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized_function(scene, temperature=None, initial_a=None):
-        #normalized_a_vector, _ = scipy.sparse.linalg.cg(A=A, b=b)
+        # normalized_a_vector, _ = scipy.sparse.linalg.cg(A=A, b=b)
 
-        A = scene.solver_cache.lhs_sparse_jax
-        b = scene.get_normalized_rhs_jax(temperature)
-        x0 = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None
+        matrix = scene.solver_cache.lhs_sparse_jax
+        vector = scene.get_normalized_rhs_jax(temperature)
+        initial_point = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None
 
-        M = scene.solver_cache.lhs_preconditioner_jax
+        preconditioner = scene.solver_cache.lhs_preconditioner_jax
 
         # A is symetric and positive definite
         # A_ = A.get().todense()
@@ -225,7 +223,7 @@ class Calculator:
 
         solver = jax.jit(jax.scipy.sparse.linalg.cg)
         normalized_a_vector, _ = cmh.profile(
-            lambda: solver(A=A, b=b, x0=x0, M=M),
+            lambda: solver(A=matrix, b=vector, x0=initial_point, M=preconditioner),
             baypass=True,
         )
         normalized_a = np.array(nph.unstack(normalized_a_vector, scene.dimension))
@@ -255,12 +253,11 @@ class Calculator:
                     initial_vector=initial_a_vector,
                     args=args,
                 )
-            else:
-                return Calculator.minimize_jax(
-                    function=energy_obstacle_colliding_jax,
-                    initial_vector=initial_a_vector,
-                    args=args,
-                )
+            return Calculator.minimize_jax(
+                function=energy_obstacle_colliding_jax,
+                initial_vector=initial_a_vector,
+                args=args,
+            )
 
         normalized_a_vector_np = cmh.profile(
             get_vector,

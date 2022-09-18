@@ -182,8 +182,8 @@ class SceneLayers(Scene):
         # ) + np.mean(self.reduced.displacement_old, axis=0)
         displacement_old = (
             self.displacement_old
-            # - np.mean(self.displacement_old, axis=0)
-            # + np.mean(self.reduced.displacement_old, axis=0)
+            - np.mean(self.displacement_old, axis=0)
+            + np.mean(self.reduced.displacement_old, axis=0)
         )
         self.set_displacement_old(displacement_old)
 

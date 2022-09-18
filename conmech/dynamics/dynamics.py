@@ -50,6 +50,14 @@ class SolverMatrices:
         self.temperature_free_x_contact: np.ndarray
         self.temperature_contact_x_free: np.ndarray
         self.temperature_free_x_free_inv: np.ndarray
+        self.temperature_free_x_free: np.ndarray
+
+        self.lhs_sparse_jax: jax.experimental.sparse.BCOO
+        self.lhs_acceleration_jax: np.ndarray
+        self.lhs_preconditioner_jax: np.ndarray
+        self.contact_x_contact: np.ndarray
+        self.free_x_free: np.ndarray
+
 
     @property
     def lhs(self):
@@ -92,9 +100,9 @@ class Dynamics(BodyPosition):
         self.matrices = ConstMatrices()
         self.reinitialize_matrices()
 
-    def iterate_self(self, acceleration, temperature=None):
-        super().iterate_self(acceleration, temperature)
-        # self.reinitialize_matrices()  ###!!!
+    # def iterate_self(self, acceleration, temperature=None):
+    #     super().iterate_self(acceleration, temperature)
+    #     # self.reinitialize_matrices()  ###!!!
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         super().remesh(is_dirichlet, is_contact, create_in_subprocess)
@@ -102,12 +110,13 @@ class Dynamics(BodyPosition):
 
     def reinitialize_matrices(self):
         # print("Initializing matrices...")
-        fun_dyn = lambda: get_dynamics(
-            elements=self.elements,
-            nodes=self.moved_nodes,
-            body_prop=self.body_prop,
-            independent_indices=self.independent_indices,
-        )
+        def fun_dyn():
+            return get_dynamics(
+                elements=self.elements,
+                nodes=self.moved_nodes,
+                body_prop=self.body_prop,
+                independent_indices=self.independent_indices,
+            )
         self.matrices = cmh.profile(fun_dyn, baypass=True)
 
         self.solver_cache.lhs_acceleration_jax = jxh.to_jax_sparse(
