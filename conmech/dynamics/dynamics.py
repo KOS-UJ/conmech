@@ -1,14 +1,17 @@
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, NamedTuple, Optional
 
 import jax.experimental.sparse
 import jax.interpreters.xla
+import jax.numpy as jnp
 import jax.scipy
 import numba
 import numpy as np
+from jax import lax
 
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
+from conmech.helpers.lnh import complete_base
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -58,7 +61,6 @@ class SolverMatrices:
         self.contact_x_contact: np.ndarray
         self.free_x_free: np.ndarray
 
-
     @property
     def lhs(self):
         return jxh.to_dense_np(self.lhs_sparse)
@@ -73,6 +75,53 @@ class DynamicsConfiguration:
     create_in_subprocess: bool = False
     with_lhs: bool = True
     with_schur: bool = True
+
+
+def _get_jac(value, dx_big_jax):
+    dimension = value.shape[1]
+    result0 = (
+        (dx_big_jax @ jnp.tile(value, (dimension, 1)))
+        .reshape(dimension, -1, dimension)
+        .swapaxes(0, 1)
+        .transpose((0, 2, 1))
+    )
+    return result0
+
+
+def _get_deform_grad(value, dx_big_jax):
+    dimension = value.shape[1]
+    identity = jnp.eye(dimension)
+    return _get_jac(value, dx_big_jax) + identity
+
+
+class _GetRotationState(NamedTuple):
+    rotation: jnp.ndarray
+    norm: float
+    iter: int
+    success: bool
+
+
+@jax.jit
+def _get_rotation_jax(displacement, dx_big):
+    max_iter = 30
+    max_norm = 1e-4
+    deform_grad = _get_deform_grad(displacement, dx_big)
+
+    def body(state):
+        rotation_inv_T = jnp.linalg.inv(state.rotation).transpose((0, 2, 1))
+        rotation_new = 0.5 * (state.rotation + rotation_inv_T)
+        norm = jnp.linalg.norm(state.rotation - rotation_new)
+        iter = state.iter + 1
+        return _GetRotationState(
+            rotation=rotation_new, norm=norm, iter=iter, success=iter < max_iter
+        )
+
+    state = _GetRotationState(rotation=deform_grad, norm=0, iter=0, success=True)
+    state = lax.while_loop(
+        lambda state: (state.norm > max_norm) & (state.iter < max_iter), body, state
+    )
+    final_rotation = jnp.linalg.inv(np.mean(state.rotation, axis=0))
+    return final_rotation, state.success
 
 
 class Dynamics(BodyPosition):
@@ -99,6 +148,20 @@ class Dynamics(BodyPosition):
         self.solver_cache = SolverMatrices()
         self.matrices = ConstMatrices()
         self.reinitialize_matrices()
+        self.set_rotation()
+
+    def set_displacement_old(self, displacement):
+        super().set_displacement_old(displacement)
+        self.set_rotation()
+
+    def set_rotation(self):
+        self.moved_base = self.get_rotation(self.displacement_old)
+
+    def get_rotation(self, displacement):
+        result = _get_rotation_jax(displacement, self.matrices.dx_big_jax)
+        if not result[1]:
+            raise Exception("Error calculating rotation")
+        return complete_base(base_seed=np.array(result[0]))
 
     # def iterate_self(self, acceleration, temperature=None):
     #     super().iterate_self(acceleration, temperature)
@@ -117,6 +180,7 @@ class Dynamics(BodyPosition):
                 body_prop=self.body_prop,
                 independent_indices=self.independent_indices,
             )
+
         self.matrices = cmh.profile(fun_dyn, baypass=True)
 
         self.solver_cache.lhs_acceleration_jax = jxh.to_jax_sparse(

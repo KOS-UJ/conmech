@@ -16,28 +16,6 @@ class MeshLayerData(Data):
             return super().__inc__(key, value, *args, **kwargs)
 
 
-"""
-
-    lhs_acceleration_jax: np.ndarray
-    rhs_acceleration: np.ndarray
-    boundary_velocity_old: np.ndarray
-    boundary_normals: np.ndarray
-    boundary_obstacle_normals: np.ndarray
-    penetration: np.ndarray
-    surface_per_boundary_node: np.ndarray
-    body_prop: np.ndarray
-    obstacle_prop: np.ndarray
-    time_step: float
-    element_initial_volume: np.ndarray
-    dx_big_jax: np.ndarray
-    base_displacement: np.ndarray
-    base_velocity: np.ndarray
-    base_energy_displacement: np.ndarray
-    base_energy_velocity: np.ndarray
-
-"""
-
-
 @dataclass
 class EnergyObstacleArgumentsTorch:
     lhs_values: torch.Tensor = None

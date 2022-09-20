@@ -15,7 +15,6 @@ from torch_scatter import scatter_sum
 from conmech.helpers import cmh, lnh, pkh
 from conmech.helpers.cmh import DotDict
 from conmech.mesh.mesh import Mesh
-from conmech.scene.scene import _get_deform_grad
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -353,20 +352,20 @@ class CustomGraphNet(nn.Module):
         )
         self.downward_processor_layer = LinkProcessorLayer(td=td)
 
-        self.decoder = ForwardNet(
-            input_dim=td.latent_dimension,
+        self.decoder_inner = ForwardNet(
+            input_dim=td.latent_dimension * CLOSEST_COUNT,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension * 2,
+            output_linear_dim=td.latent_dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
             td=td,
         )
 
-        self.decoder_inner = ForwardNet(
-            input_dim=td.latent_dimension * CLOSEST_COUNT,
+        self.decoder = ForwardNet(
+            input_dim=td.latent_dimension,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.latent_dimension,
+            output_linear_dim=td.dimension,  # * 2,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -439,12 +438,7 @@ class CustomGraphNet(nn.Module):
 
         return net_output
 
-    def solve(self, scene: SceneInput, initial_a, new_position, new_base):
-
-        #NODES: normalized_shift and normalized_shift and moved shift
-        # find matrix 3d that minimizes difference
-        # np.linalg.pinv(scene.initial_nodes - np.mean(scene.initial_nodes, axis=0)) @ (scene.moved_nodes - np.mean(scene.moved_nodes, axis=0))
-
+    def solve(self, scene: SceneInput, initial_a):
         self.eval()
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=initial_a
@@ -461,51 +455,31 @@ class CustomGraphNet(nn.Module):
         ]
 
         net_result = thh.to_np_double(self(layer_list=layers_list))  # + scene.linear_acceleration
-        net_scaled_new_normalized_displacement = net_result[:, : scene.dimension]
-        net_normalized_exact_acceleration = net_result[:, scene.dimension :]
-
-        acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
+        scaled_new_normalized_displacement = net_result[:, : scene.dimension]
+        # net_normalized_exact_acceleration = net_result[:, scene.dimension :]
+        # acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
 
         scene_reduced_copy = copy.deepcopy(scene.reduced)
         scene_reduced_copy.iterate_self(scene.reduced.exact_acceleration)
-        new_base = scene_reduced_copy.moved_base
-        new_position = np.mean(scene_reduced_copy.displacement_old, axis=0)
+        # base = scene_reduced_copy.moved_base
+        # new_position = np.mean(scene_reduced_copy.displacement_old, axis=0)
+        base = scene.moved_base
 
-        #scene_copy = copy.deepcopy(scene)
-        #scene_copy.iterate_self(acceleration_dirty) #acceleration_position
-        # new_base = scene_copy.moved_base
-        #new_position = np.mean(scene_copy.displacement_old, axis=0)
+        new_normalized_displacement = scaled_new_normalized_displacement * scene.time_step
+        # assuming no normalization
+        normalized_initial_nodes = scene.initial_nodes - np.mean(scene.initial_nodes, axis=0)
+        normalized_nodes = normalized_initial_nodes + new_normalized_displacement
+        moved_nodes = lnh.get_in_base(normalized_nodes, np.linalg.inv(base))
+        new_displacement = moved_nodes - normalized_initial_nodes  # + new_position
 
-        force_normalized_initial_nodes = scene.initial_nodes - np.mean(scene.initial_nodes, axis=0)
-        normalized_nodes = (
-            force_normalized_initial_nodes
-            + net_scaled_new_normalized_displacement * scene.time_step
-        )
-        moved_nodes = lnh.get_in_base(normalized_nodes, np.linalg.inv(new_base))
-        net_new_displacement = moved_nodes - force_normalized_initial_nodes + new_position
+        # moved_nodes_new = self.initial_nodes + new_displacement
+        # new_normalized_nodes = lnh.get_in_base(
+        #     (moved_nodes_new - np.mean(moved_nodes_new, axis=0)), self.get_rotation(new_displacement)
+        # )
+        # new_displacement = new_normalized_nodes - self.normalized_initial_nodes
 
-        acceleration_displacement = scene.from_displacement(net_new_displacement)
-        # + scene.linear_acceleration
+        acceleration_displacement = scene.from_displacement(
+            new_displacement
+        )  # new_normalized_displacement
 
         return acceleration_displacement
-
-
-
-    def solve_dirty(self, scene: SceneInput, initial_a):
-
-        self.eval()
-
-        scene.reduced.exact_acceleration = Calculator.solve(
-            scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
-        )
-        layers_list = [
-            scene.get_features_data(layer_number=layer_number).to(self.device)
-            for layer_number, _ in enumerate(scene.all_layers)
-        ]
-
-        net_result = thh.to_np_double(self(layer_list=layers_list))
-        net_normalized_exact_acceleration = net_result[:, scene.dimension :]
-
-        acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
-
-        return acceleration_position

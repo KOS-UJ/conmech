@@ -228,7 +228,6 @@ class GraphModelDynamic:
         catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
-                net=net,
                 solve_function=net.solve,  # (net.solve, Calculator.solve),
                 scenario=scenario,
                 config=config,
@@ -385,22 +384,22 @@ class GraphModelDynamic:
         # )
         net_result = self.ddp_net(layer_list)
         net_scaled_new_normalized_displacement = net_result[:, :dimension]
-        net_normalized_exact_acceleration = net_result[:, dimension:]
+        #net_normalized_exact_acceleration = net_result[:, dimension:]
 
         num_graphs = len(graph_sizes_base)
         displacement_loss = thh.root_mean_square_error_torch(
             net_scaled_new_normalized_displacement, target_data.scaled_new_normalized_displacement
         )
-        acceleration_loss = thh.root_mean_square_error_torch(
-            net_normalized_exact_acceleration, target_data.normalized_exact_acceleration
-        )
+        # acceleration_loss = thh.root_mean_square_error_torch(
+        #     net_normalized_exact_acceleration, target_data.normalized_exact_acceleration
+        # )
 
-        main_loss = (displacement_loss + acceleration_loss) * 0.5
+        main_loss = displacement_loss #(displacement_loss + acceleration_loss) * 0.5
 
         loss_raport = LossRaport(
             main=main_loss.item(),
             inner_energy=displacement_loss.item(),
-            energy=acceleration_loss.item(),
+            energy=0, #acceleration_loss.item(),
             boundary_integral=0,
             mean=0,  # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
             exact_energy=0,

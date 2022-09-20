@@ -5,9 +5,15 @@ import jax.numpy as jnp
 import numba
 import numpy as np
 
-from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
+from conmech.dynamics.dynamics import (
+    DynamicsConfiguration,
+    SolverMatrices,
+    _get_deform_grad,
+    _get_rotation_jax,
+)
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import nph
+from conmech.helpers.lnh import complete_base, get_in_base
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -106,23 +112,6 @@ def _get_boundary_integral(
     return boundary_integral
 
 
-def _get_jac(value, dx_big_jax):
-    dimension = value.shape[1]
-    result0 = (
-        (dx_big_jax @ jnp.tile(value, (dimension, 1)))
-        .reshape(dimension, -1, dimension)
-        .swapaxes(0, 1)
-        .transpose((0, 2, 1))
-    )
-    return result0
-
-
-def _get_deform_grad(value, dx_big_jax):
-    dimension = value.shape[1]
-    identity = jnp.eye(dimension)
-    return _get_jac(value, dx_big_jax) + identity
-
-
 def _get_strain_lin(deform_grad):
     dimension = deform_grad.shape[1]
     identity = jnp.eye(dimension)
@@ -213,9 +202,6 @@ def _compute_energy(acceleration, args, use_green_strain):
     return energy_new
 
 
-
-
-
 def _energy_vector(value_vector, lhs, rhs):
     first = 0.5 * (lhs @ value_vector) - rhs
     value = first.reshape(-1) @ value_vector
@@ -249,8 +235,6 @@ def _energy_obstacle_colliding(
     acceleration = nph.unstack(acceleration_vector, dim=dimension)
     boundary_integral = _get_boundary_integral(acceleration=acceleration, args=args)
     return main_energy + boundary_integral
-
-
 
 
 # @partial(jax.jit, static_argnums=(2,))
@@ -527,7 +511,7 @@ class Scene(BodyForces):
 
     @property
     def new_normalized_displacement(self):
-        return self.to_normalized_displacement(self.exact_acceleration)
+        return self.to_normalized_displacement_rotated(self.exact_acceleration)
 
     @Mesh.normalization_decorator
     def to_normalized_displacement(self, acceleration):
@@ -535,30 +519,41 @@ class Scene(BodyForces):
         displacement_new = self.displacement_old + self.time_step * velocity_new
 
         moved_nodes_new = self.initial_nodes + displacement_new
-        new_normalized_nodes = self.normalize_shift_and_rotate(moved_nodes_new)
+        new_normalized_nodes = get_in_base(
+            (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
+            self.get_rotation(displacement_new),
+        )
+        return new_normalized_nodes - self.normalized_initial_nodes
+
+    @Mesh.normalization_decorator
+    def to_normalized_displacement_rotated(self, acceleration):
+        velocity_new = self.velocity_old + self.time_step * acceleration
+        displacement_new = self.displacement_old + self.time_step * velocity_new
+
+        moved_nodes_new = self.initial_nodes + displacement_new
+        new_normalized_nodes = get_in_base(
+            (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
+            self.get_rotation(self.displacement_old),
+        )
+        assert np.allclose(new_normalized_nodes, self.normalize_shift_and_rotate(moved_nodes_new))
+        return new_normalized_nodes - self.normalized_initial_nodes
+
+    @Mesh.normalization_decorator
+    def to_normalized_displacement_rotated_displaced(self, acceleration):
+        velocity_new = self.velocity_old + self.time_step * acceleration
+        displacement_new = self.displacement_old + self.time_step * velocity_new
+
+        moved_nodes_new = self.initial_nodes + displacement_new
+        new_normalized_nodes = get_in_base(
+            (moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
+            self.get_rotation(self.displacement_old),
+        )
+        assert np.allclose(
+            new_normalized_nodes, self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes))
+        )
         return new_normalized_nodes - self.normalized_initial_nodes
 
     def from_displacement(self, displacement):
         velocity = (displacement - self.displacement_old) / self.time_step
         acceleration = (velocity - self.velocity_old) / self.time_step
         return acceleration
-
-
-    def get_rotation(self):
-        F = _get_deform_grad(self.displacement_old, self.matrices.dx_big_jax)
-
-        def iterate_A(A):
-            A_inv_T = jnp.linalg.inv(A).transpose((0, 2, 1))
-            return 0.5 * (A + A_inv_T)
-
-        R = F
-        iter = 0
-        while iter < 1000:
-            iter +=1
-            R_new = iterate_A(R)
-            norm = jnp.linalg.norm(R - R_new)
-            if(norm< 0.0001):
-                break
-            R = R_new
-        print("iter / norm:", iter, norm)
-        return jnp.linalg.inv(np.mean(R, axis=0))

@@ -12,8 +12,8 @@ from conmech.scenarios.scenarios import (
     M_CUBE_3D,
     M_TWIST_3D,
     Scenario,
-    default_obstacle_prop,
     default_body_prop,
+    default_obstacle_prop,
     f_rotate_3d,
 )
 from conmech.simulations import simulation_runner
@@ -30,72 +30,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
-    all_scenarios = [
-        Scenario(
-            name="bunny_fall",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[32],
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=8,
-                lambda_=8,
-                theta=8,
-                zeta=8,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=np.array([0.0, 0.0, -1.0]),
-            obstacle=Obstacle(  # 0.3
-                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-                ObstacleProperties(hardness=100.0, friction=5.0),
-            ),
-        ),
-        Scenario(
-            name="bunny_roll",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[32],
-            ),
-            body_prop=DynamicBodyProperties(
-                mu=12,
-                lambda_=12,
-                theta=16,
-                zeta=16,
-                mass_density=1.0,
-            ),
-            schedule=Schedule(final_time=final_time),
-            forces_function=f_rotate_3d,
-            obstacle=Obstacle(
-                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-            ),
-        ),
-        # Scenario(
-        #     name="armadillo_roll",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_ARMADILLO_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=DynamicBodyProperties(
-        #         mu=12,
-        #         lambda_=12,
-        #         theta=8,
-        #         zeta=8,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(  # 0.3
-        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-        #         ObstacleProperties(hardness=100.0, friction=5.0),
-        #     ),
-        # ),
+    basic_scenarios = [
         Scenario(
             name="ball_roll",
             mesh_prop=MeshProperties(
@@ -158,8 +93,76 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
         ),
     ]
 
+    advanced_scenarios = [
+        Scenario(
+            name="bunny_fall",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[32],
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=8,
+                lambda_=8,
+                theta=8,
+                zeta=8,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([0.0, 0.0, -1.0]),
+            obstacle=Obstacle(  # 0.3
+                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                ObstacleProperties(hardness=100.0, friction=5.0),
+            ),
+        ),
+        Scenario(
+            name="bunny_roll",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[32],
+            ),
+            body_prop=DynamicBodyProperties(
+                mu=12,
+                lambda_=12,
+                theta=16,
+                zeta=16,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
+            ),
+        )
+        # Scenario(
+        #     name="armadillo_roll",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_ARMADILLO_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=DynamicBodyProperties(
+        #         mu=12,
+        #         lambda_=12,
+        #         theta=8,
+        #         zeta=8,
+        #         mass_density=1.0,
+        #     ),
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=np.array([0.0, 0.0, -1.0]),
+        #     obstacle=Obstacle(  # 0.3
+        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+        #         ObstacleProperties(hardness=100.0, friction=5.0),
+        #     ),
+        # ),
+    ]
+
     simulation_runner.run_examples(
-        all_scenarios=all_scenarios,
+        all_scenarios=[*advanced_scenarios, *basic_scenarios],
         file=__file__,
         plot_animation=plot_animation,
         config=Config(shell=False),

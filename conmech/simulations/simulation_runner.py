@@ -51,7 +51,6 @@ class RunScenarioConfig:
 
 
 def run_scenario(
-    net,
     solve_function: Callable,
     scenario: Scenario,
     config: Config,
@@ -142,7 +141,6 @@ def run_scenario(
 
     def fun_sim():
         return simulate(
-            net=net,
             scene=scene,
             base_scene=base_scene,
             solve_function=solve_function,
@@ -214,7 +212,6 @@ def prepare(scenario, scene: Scene, base_scene: Scene, current_time, with_temper
 
 
 def simulate(
-    net,
     scene,
     base_scene,
     solve_function,
@@ -225,11 +222,10 @@ def simulate(
     operation: Optional[Callable] = None,
 ) -> Tuple[Scene, float]:
     with_temperature = isinstance(scene, SceneTemperature)
-    scene_dirty = copy.deepcopy(scene)
-    acceleration_dirty = None
 
     solver_time = 0.0
     calculator_time = 0.0
+    all_time = time.time()
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     acceleration = None
@@ -240,7 +236,6 @@ def simulate(
         current_time = (time_step + 1) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
-        prepare(scenario, scene_dirty, base_scene, current_time, with_temperature)
 
         start_time = time.time()
         if with_temperature:
@@ -248,15 +243,7 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            acceleration_dirty = net.solve_dirty(scene, initial_a=acceleration_dirty)
-            scene_dirty.iterate_self(
-                acceleration_dirty, temperature=temperature, lift_data=False
-            )
-            new_position = np.mean(scene_dirty.displacement_old, axis=0)
-            new_base = scene_dirty.moved_base
-            acceleration = solve_function(scene, initial_a=acceleration, new_position=new_position, new_base=new_base)
-
-
+            acceleration = solve_function(scene, initial_a=acceleration)
 
         solver_time += time.time() - start_time
 
@@ -282,8 +269,9 @@ def simulate(
 
         # setting.remesh_self() # TODO #65
 
+    all_time = time.time() - all_time
     comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_scene else ""
-    print(f"    Solver time : {solver_time}{comparison_str}")
+    print(f"    All time: {all_time} | Solver time : {solver_time}{comparison_str}")
     print(f"MAX_K: {Calculator.MAX_K}")
     return scene, energy_values
 

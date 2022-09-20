@@ -11,12 +11,6 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 
 
-def get_base(nodes, base_seed_indices, best_seed_index):
-    base_seed_initial_nodes = nodes[base_seed_indices]
-    base_seed = base_seed_initial_nodes[..., 1, :] - base_seed_initial_nodes[..., 0, :]
-    return lnh.complete_base(base_seed, best_seed_index)
-
-
 def get_unoriented_normals_2d(faces_nodes):
     tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
 
@@ -114,23 +108,24 @@ class BodyPosition(Mesh):
         )
 
         self.schedule = schedule
-        self._displacement_old = np.zeros_like(self.initial_nodes)
-        self._velocity_old = np.zeros_like(self.initial_nodes)
+        self.__displacement_old = np.zeros_like(self.initial_nodes)
+        self.__velocity_old = np.zeros_like(self.initial_nodes)
         self.exact_acceleration = np.zeros_like(self.initial_nodes)
+        self.moved_base = None
 
     @property
     def displacement_old(self):
-        return self._displacement_old
+        return self.__displacement_old
 
     @property
     def velocity_old(self):
-        return self._velocity_old
+        return self.__velocity_old
 
     def set_displacement_old(self, displacement):
-        self._displacement_old = displacement
+        self.__displacement_old = displacement
 
     def set_velocity_old(self, velocity):
-        self._velocity_old = velocity
+        self.__velocity_old = velocity
 
     @property
     def time_step(self):
@@ -155,10 +150,6 @@ class BodyPosition(Mesh):
         self.set_velocity_old(velocity)
 
         return self
-
-    @property
-    def moved_base(self):
-        return get_base(self.moved_nodes, self.base_seed_indices, self.closest_seed_index)
 
     def normalize_rotate(self, vectors):
         if not self.normalize:

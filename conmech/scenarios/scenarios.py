@@ -719,7 +719,7 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    # args["final_time"] = 1 #2.0  # 2.0  # 0.7
+    # args["final_time"] = 2.0  # 2.0  # 0.7
     if td.dimension == 3:
         return [
             bunny_rotate_3d(**args),

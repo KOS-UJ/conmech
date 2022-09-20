@@ -61,50 +61,6 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
-MAX_INDEX = 10000
-MIN_DIST = 0.2
-
-
-@numba.njit
-def get_closest_to_axis_numba(nodes, variable):
-    min_error = 1.0
-    final_i, final_j = 0, 0
-    nodes_projection = nodes.copy()
-    nodes_projection[:, variable] = 0
-    final_index = min(MAX_INDEX, len(nodes))
-    for i in range(final_index - 1):
-        start_index = i + 1
-        indices = slice(start_index, final_index)
-        error_i = nph.euclidean_norm_numba(nodes_projection[indices, :] - nodes_projection[i])
-        distances = nph.euclidean_norm_numba(nodes[indices, :] - nodes[i])
-        valid_idx = np.where(distances >= MIN_DIST)[0]
-        if len(valid_idx) == 0:
-            break
-
-        internal_j = valid_idx[np.argmin(error_i[valid_idx])]
-        error = error_i[internal_j]
-
-        if error < min_error:
-            min_error, final_i, final_j = error, i, internal_j + start_index
-
-    correct_order = nodes[final_i, variable] < nodes[final_j, variable]
-    indices = (final_i, final_j) if correct_order else (final_j, final_i)
-    return np.array([min_error, *indices])
-
-
-def get_base_seed_indices(nodes):
-    dim = nodes.shape[1]
-    base_seed_indices = np.zeros((dim, 2), dtype=np.int64)
-    errors = np.zeros(dim)
-    for i in range(dim):
-        result = get_closest_to_axis_numba(nodes, i)
-        errors[i] = result[0]
-        base_seed_indices[i] = result[1:].astype(np.int64)
-    closest_seed_index = int(np.argmin(errors))
-    # assert errors[closest_seed_index] < 0.01
-    return base_seed_indices, closest_seed_index
-
-
 class Mesh:
     def __init__(
         self,
@@ -120,9 +76,6 @@ class Mesh:
         self.edges: np.ndarray
 
         self.boundaries: Boundaries
-
-        self.base_seed_indices: np.ndarray
-        self.closest_seed_index: int
 
         self.normalize = NORMALIZE
 
@@ -164,7 +117,6 @@ class Mesh:
             is_dirichlet_numba=None if is_dirichlet is None else numba.njit(is_dirichlet),
             is_contact_numba=None if is_contact is None else numba.njit(is_contact),
         )
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices(self.initial_nodes)
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
