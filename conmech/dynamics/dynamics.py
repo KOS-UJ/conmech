@@ -48,18 +48,18 @@ class SolverMatrices:
         self.lhs_inv: jax.interpreters.xla.DeviceArray
         self.lhs_boundary: jax.interpreters.xla.DeviceArray
 
-        self.lhs_temperature_sparse: jax.experimental.sparse.BCOO  # sparse.base.spmatrix
-        self.temperature_boundary: np.ndarray
-        self.temperature_free_x_contact: np.ndarray
-        self.temperature_contact_x_free: np.ndarray
-        self.temperature_free_x_free_inv: np.ndarray
-        self.temperature_free_x_free: np.ndarray
-
         self.lhs_sparse_jax: jax.experimental.sparse.BCOO
         self.lhs_acceleration_jax: np.ndarray
         self.lhs_preconditioner_jax: np.ndarray
         self.contact_x_contact: np.ndarray
         self.free_x_free: np.ndarray
+
+        self.lhs_temperature_sparse_jax: jax.experimental.sparse.BCOO  # sparse.base.spmatrix
+        self.temperature_boundary: np.ndarray
+        self.temperature_free_x_contact: np.ndarray
+        self.temperature_contact_x_free: np.ndarray
+        self.temperature_free_x_free_inv: np.ndarray
+        self.temperature_free_x_free: np.ndarray
 
     @property
     def lhs(self):
@@ -67,14 +67,14 @@ class SolverMatrices:
 
     @property
     def lhs_temperature(self):
-        return jxh.to_dense_np(self.lhs_temperature_sparse)
+        return jxh.to_dense_np(self.lhs_temperature_sparse_jax)
 
 
 @dataclass
 class DynamicsConfiguration:
     create_in_subprocess: bool = False
-    with_lhs: bool = True
-    with_schur: bool = True
+    with_lhs: bool = False
+    with_schur: bool = False
 
 
 def _get_jac(value, dx_big_jax):
@@ -187,6 +187,16 @@ class Dynamics(BodyPosition):
             self.matrices.acceleration_operator
         )
 
+        if not self.with_temperature:
+            return
+
+        i = self.independent_indices
+
+        self.solver_cache.lhs_temperature_sparse_jax = jxh.to_jax_sparse(
+            (1 / self.time_step) * self.matrices.acceleration_operator[i, i]
+            + self.matrices.thermal_conductivity[i, i]
+        )
+
         if not self.with_lhs:
             return
 
@@ -229,16 +239,9 @@ class Dynamics(BodyPosition):
             @ self.solver_cache.free_x_contact.todense()
         )
 
-        #######################return
         if not self.with_temperature:
             return
 
-        i = self.independent_indices
-        # TODO: #65 Make faster
-        self.solver_cache.lhs_temperature_sparse = jax.experimental.sparse.BCOO.fromdense(
-            (1 / self.time_step) * self.acceleration_operator[i, i]
-            + self.thermal_conductivity[i, i]
-        )
         (
             self.solver_cache.temperature_boundary,
             self.solver_cache.temperature_free_x_contact,

@@ -89,7 +89,7 @@ class SceneTemperature(Scene):
         return value
 
     def get_all_normalized_t_rhs_np(self, normalized_acceleration):
-        normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_acceleration)
+        normalized_t_rhs = self.get_normalized_t_rhs_jax(normalized_acceleration)
         (
             normalized_t_rhs_boundary,
             normalized_t_rhs_free,
@@ -104,17 +104,17 @@ class SceneTemperature(Scene):
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
-    def get_normalized_t_rhs_np(self, normalized_acceleration):
-        U = self.acceleration_operator[self.independent_indices, self.independent_indices]
+    def get_normalized_t_rhs_jax(self, normalized_acceleration):
+        U = self.matrices.acceleration_operator[self.independent_indices, self.independent_indices]
 
-        v = self.normalized_velocity_old + normalized_acceleration * self.time_step
+        v = jnp.array(self.normalized_velocity_old + normalized_acceleration * self.time_step)
         v_vector = nph.stack_column(v)
 
-        A = nph.stack_column(self.volume_at_nodes @ self.heat)
-        A += (-1) * self.thermal_expansion @ v_vector
+        A = nph.stack_column(self.matrices.volume_at_nodes @ self.heat)
+        A += (-1) * self.matrices.thermal_expansion @ v_vector
         A += (1 / self.time_step) * U @ self.t_old
 
-        obstacle_heat_integral = self.get_obstacle_heat_integral()
+        obstacle_heat_integral = jnp.array(self.get_obstacle_heat_integral())
         A += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
         return A
 

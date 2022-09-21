@@ -199,7 +199,7 @@ class Calculator:
         scene: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         _ = initial_t
-        normalized_rhs = scene.get_normalized_t_rhs_np(normalized_acceleration)
+        normalized_rhs = scene.get_normalized_t_rhs_jax(normalized_acceleration)
         t_vector = np.linalg.solve(scene.solver_cache.lhs_temperature, normalized_rhs)
         return t_vector
 
@@ -278,12 +278,12 @@ class Calculator:
         else:
             initial_t_vector = nph.stack(initial_t)
 
-        normalized_t_rhs = scene.get_normalized_t_rhs_np(normalized_a)
+        normalized_t_rhs = scene.get_normalized_t_rhs_jax(normalized_a)
 
         cost_function = jax.jit(
             lambda x, args: energy(
                 nph.unstack(x, 1),
-                scene.solver_cache.lhs_temperature_sparse,
+                scene.solver_cache.lhs_temperature_sparse_jax,
                 normalized_t_rhs,
             )
         )

@@ -4,6 +4,7 @@ from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
+    M_BUNNY_3D,
     M_CUBE_3D,
     TemperatureScenario,
     default_temp_body_prop,
@@ -122,30 +123,44 @@ def get_K_temp_scenarios(mesh_density, final_time):
 
 def main(mesh_density=5, final_time=3, plot_animation=True):
     all_scenarios = []
-    all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
-    all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
+    C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
+    K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
+
     obstacle = Obstacle(
         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
     )
-    all_scenarios.extend(
-        [
-            TemperatureScenario(
-                name="temperature_3d_cube_throw",
-                mesh_prop=MeshProperties(
-                    dimension=3,
-                    mesh_type=M_CUBE_3D,
-                    scale=[1],
-                    mesh_density=[mesh_density],
-                ),
-                body_prop=default_temp_body_prop,
-                schedule=Schedule(final_time=final_time),
-                forces_function=f_rotate_3d,
-                obstacle=obstacle,
-                heat_function=np.array([0]),
+    advanced_scenarios = [
+        TemperatureScenario(
+            name="temperature_3d_bunny_throw",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[32],
             ),
-        ]
-    )
+            body_prop=default_temp_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=obstacle,
+            heat_function=np.array([0]),
+        ),
+        TemperatureScenario(
+            name="temperature_3d_cube_throw",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_CUBE_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=default_temp_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=obstacle,
+            heat_function=np.array([0]),
+        ),
+    ]
 
+    all_scenarios = [*advanced_scenarios, *C_temp_scenarios, *K_temp_scenarios]
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,

@@ -365,7 +365,7 @@ class CustomGraphNet(nn.Module):
         self.decoder = ForwardNet(
             input_dim=td.latent_dimension,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension,  # * 2,
+            output_linear_dim=td.dimension * 2,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -455,22 +455,39 @@ class CustomGraphNet(nn.Module):
         ]
 
         net_result = thh.to_np_double(self(layer_list=layers_list))  # + scene.linear_acceleration
-        scaled_new_normalized_displacement = net_result[:, : scene.dimension]
-        # net_normalized_exact_acceleration = net_result[:, scene.dimension :]
-        # acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
+        scaled_net_normalized_displacement = net_result[:, : scene.dimension]
+        net_normalized_exact_acceleration = net_result[:, scene.dimension :]
+        acceleration_position = scene.force_denormalize(net_normalized_exact_acceleration)
+
+
+        # base = scene.moved_base
+        # position = np.mean(scene.displacement_old, axis=0)
 
         scene_reduced_copy = copy.deepcopy(scene.reduced)
         scene_reduced_copy.iterate_self(scene.reduced.exact_acceleration)
-        # base = scene_reduced_copy.moved_base
-        # new_position = np.mean(scene_reduced_copy.displacement_old, axis=0)
-        base = scene.moved_base
+        base = scene_reduced_copy.moved_base
+        position = np.mean(scene_reduced_copy.displacement_old, axis=0)
 
-        new_normalized_displacement = scaled_new_normalized_displacement * scene.time_step
+        #scene_copy = copy.deepcopy(scene)
+        #scene_copy.iterate_self(acceleration_position)
+        #base = scene_copy.moved_base
+        #position = np.mean(scene_copy.displacement_old, axis=0)
+
+        net_normalized_displacement = scaled_net_normalized_displacement * scene.time_step
         # assuming no normalization
         normalized_initial_nodes = scene.initial_nodes - np.mean(scene.initial_nodes, axis=0)
-        normalized_nodes = normalized_initial_nodes + new_normalized_displacement
+        net_normalized_nodes = normalized_initial_nodes + net_normalized_displacement
+
+        normalized_nodes = lnh.get_in_base(
+             (net_normalized_nodes - np.mean(net_normalized_nodes, axis=0)), scene.get_rotation(net_normalized_displacement)
+        )
+
         moved_nodes = lnh.get_in_base(normalized_nodes, np.linalg.inv(base))
-        new_displacement = moved_nodes - normalized_initial_nodes  # + new_position
+        new_displacement = moved_nodes - normalized_initial_nodes + position
+
+        # new_displacement = (
+        #     new_displacement - np.mean(new_displacement, axis=0) #+ position
+        # )  # + np.mean(acceleration_position, axis=0) # + position
 
         # moved_nodes_new = self.initial_nodes + new_displacement
         # new_normalized_nodes = lnh.get_in_base(
@@ -482,4 +499,4 @@ class CustomGraphNet(nn.Module):
             new_displacement
         )  # new_normalized_displacement
 
-        return acceleration_displacement
+        return acceleration_displacement  # acceleration_displacement

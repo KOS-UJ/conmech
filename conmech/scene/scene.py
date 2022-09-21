@@ -287,7 +287,7 @@ class Scene(BodyForces):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         create_in_subprocess: bool,
-        with_schur: bool = True,
+        with_schur: bool = False,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -295,7 +295,7 @@ class Scene(BodyForces):
             schedule=schedule,
             dynamics_config=DynamicsConfiguration(
                 create_in_subprocess=create_in_subprocess,
-                with_lhs=True,
+                with_lhs=False,
                 with_schur=with_schur,
             ),
         )
@@ -339,7 +339,7 @@ class Scene(BodyForces):
 
         rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax()
         if temperature is not None:
-            rhs_acceleration += jnp.array(self.thermal_expansion.T @ temperature)
+            rhs_acceleration += jnp.array(self.matrices.thermal_expansion.T @ temperature)
 
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
@@ -511,7 +511,7 @@ class Scene(BodyForces):
 
     @property
     def new_normalized_displacement(self):
-        return self.to_normalized_displacement_rotated(self.exact_acceleration)
+        return self.to_normalized_displacement(self.exact_acceleration)
 
     @Mesh.normalization_decorator
     def to_normalized_displacement(self, acceleration):
@@ -549,7 +549,8 @@ class Scene(BodyForces):
             self.get_rotation(self.displacement_old),
         )
         assert np.allclose(
-            new_normalized_nodes, self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes))
+            new_normalized_nodes,
+            self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
         )
         return new_normalized_nodes - self.normalized_initial_nodes
 
