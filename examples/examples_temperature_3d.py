@@ -2,6 +2,7 @@ import numpy as np
 
 from conmech.helpers.config import Config
 from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
     M_BUNNY_3D,
@@ -126,22 +127,38 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
     C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
     K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
 
-    obstacle = Obstacle(
+    obstacle_slide = Obstacle(
         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
     )
     advanced_scenarios = [
+        TemperatureScenario(
+            name="temperature_3d_bunny_push",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[16], # [32]
+            ),
+            body_prop=default_temp_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function= lambda *_: np.array([1,0,-1]),
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]]), TemperatureObstacleProperties(hardness=100.0, friction=0.0, heat=0.0)
+            ),
+            heat_function=np.array([0]),
+        ),
         TemperatureScenario(
             name="temperature_3d_bunny_throw",
             mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[32],
+                mesh_density=[16], # [32]
             ),
             body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
-            obstacle=obstacle,
+            obstacle=obstacle_slide,
             heat_function=np.array([0]),
         ),
         TemperatureScenario(
@@ -155,7 +172,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
             body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
             forces_function=f_rotate_3d,
-            obstacle=obstacle,
+            obstacle=obstacle_slide,
             heat_function=np.array([0]),
         ),
     ]

@@ -224,15 +224,13 @@ class GraphModelDynamic:
     ):
         print("----PLOTTING----")
         start_time = time.time()
-        timestamp = cmh.get_timestamp(config)
-        catalog = f"GRAPH PLOT/{timestamp} - RESULT"
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
                 solve_function=net.solve,  # (net.solve, Calculator.solve),
                 scenario=scenario,
                 config=config,
                 run_config=simulation_runner.RunScenarioConfig(
-                    catalog=catalog,
+                    catalog="GRAPH PLOT",
                     simulate_dirty_data=False,
                     compare_with_base_scene=config.compare_with_base_scene,
                     plot_animation=True,
@@ -378,33 +376,31 @@ class GraphModelDynamic:
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
 
-        # all_predicted_normalized_a = self.ddp_net(layer_list)  # .to("cpu")
-        # all_acceleration = clean_acceleration(
-        #     cleaned_a=all_predicted_normalized_a, a_correction=target_data.a_correction
-        # )
-        net_result = self.ddp_net(layer_list)
-        net_scaled_new_normalized_displacement = net_result[:, :dimension]
-        net_normalized_exact_acceleration = net_result[:, dimension:]
+        net_result_dense, net_result_sparse = self.ddp_net(layer_list)
+        net_scaled_new_displacement = net_result_dense[:, :dimension]
+        net_exact_acceleration = net_result_dense[:, dimension:]
+        net_sparse_exact_acceleration = net_result_sparse
 
         num_graphs = len(graph_sizes_base)
         displacement_loss = thh.root_mean_square_error_torch(
-            net_scaled_new_normalized_displacement, target_data.scaled_new_normalized_displacement
+            net_scaled_new_displacement, target_data.scaled_new_normalized_displacement
         )
-        acceleration_loss = thh.root_mean_square_error_torch(
-            net_normalized_exact_acceleration, target_data.normalized_exact_acceleration
+        # acceleration_loss = thh.root_mean_square_error_torch(
+        #     net_exact_acceleration, target_data.normalized_exact_acceleration
+        # )
+        target_sparse_acceleration = layer_list[1].x[:, :dimension]
+        ##############################################
+        sparse_acceleration_loss = thh.root_mean_square_error_torch(
+            net_sparse_exact_acceleration, target_sparse_acceleration
         )
 
-        main_loss = (displacement_loss + acceleration_loss) * 0.5 #displacement_loss
-
+        main_loss = (displacement_loss + sparse_acceleration_loss) / 2.0  # 3. acceleration_loss
+        # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
         loss_raport = LossRaport(
             main=main_loss.item(),
-            inner_energy=displacement_loss.item(),
-            energy=acceleration_loss.item(),
-            boundary_integral=0,
-            mean=0,  # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
-            exact_energy=0,
-            mse=0,
-            me=0,
+            displacement_loss=displacement_loss.item(),
+            acceleration_loss=0,  # acceleration_loss.item(),
+            sparse_acceleration_loss=sparse_acceleration_loss.item(),
             _count=num_graphs,
         )
 

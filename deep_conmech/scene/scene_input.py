@@ -41,8 +41,8 @@ def get_edges_data_new(
     return np.hstack(
         (
             get_column(initial_nodes),
-            # get_column(displacement_old),
-            # get_column(velocity_old),
+            get_column(displacement_old),
+            #get_column(velocity_old),
             get_column(forces),
         )
     )
@@ -66,11 +66,11 @@ def get_multilayer_edges_data_new(
     return np.hstack(
         (
             get_column(initial_nodes_sparse, initial_nodes_dense),
-            # get_column(
-            #     displacement_old_sparse,
-            #     displacement_old_dense,
-            # ),
-            # get_column(velocity_old_sparse, velocity_old_dense),
+            get_column(
+                displacement_old_sparse,
+                displacement_old_dense,
+            ),
+            #get_column(velocity_old_sparse, velocity_old_dense),
             get_column(forces_sparse, forces_dense),
         )
     )
@@ -338,11 +338,12 @@ class SceneInput(SceneRandomized):
 
     @staticmethod
     def get_edges_data_dim(dimension):
-        return len(SceneInput.get_edges_data_description(dimension))
+        return (dimension + 1) * 3
+        # return len(SceneInput.get_edges_data_description(dimension))
 
     @staticmethod
     def get_multilayer_edges_data_dim(dimension):
-        return (dimension + 1) * 2  # 2  # 4
+        return (dimension + 1) * 3  # 2
 
     @staticmethod
     def get_edges_data_description(dim):

@@ -128,6 +128,10 @@ class BodyPosition(Mesh):
         self.__velocity_old = velocity
 
     @property
+    def position(self):
+        return np.mean(self.displacement_old, axis=0)
+
+    @property
     def time_step(self):
         return self.schedule.time_step
 
@@ -233,3 +237,9 @@ class BodyPosition(Mesh):
     @property
     def input_displacement_old(self):
         return self.normalized_displacement_old
+
+    @property
+    def centered_nodes(self):
+        return lnh.get_in_base(
+            (self.moved_nodes - np.mean(self.moved_nodes, axis=0)), self.moved_base
+        )

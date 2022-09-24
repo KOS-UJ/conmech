@@ -166,41 +166,23 @@ class SceneLayers(Scene):
         self.update_reduced(lift_data)
 
     def recenter_reduced_mesh(self):
-        displacement_old = self.denormalize_rotate(
-            self.reduced.normalized_displacement_old
-        ) + np.mean(self.displacement_old, axis=0)
-        # displacement_old = (
-        #     self.reduced.displacement_old
-        #     - np.mean(self.reduced.displacement_old, axis=0)
-        #     + np.mean(self.displacement_old, axis=0)
-        # )
-        self.reduced.set_displacement_old(displacement_old)
-
-    def recenter_main_mesh(self):
-        # displacement_old = self.reduced.denormalize_rotate(
-        #     self.normalized_displacement_old
-        # ) + np.mean(self.reduced.displacement_old, axis=0)
-        displacement_old = (
-            self.displacement_old
-            - np.mean(self.displacement_old, axis=0)
-            + np.mean(self.reduced.displacement_old, axis=0)
-        )
-        self.set_displacement_old(displacement_old)
-
-    def clear_reduced(self):
-        self.reduced.set_displacement_old(None)
-        self.reduced.set_velocity_old(None)
+        displacement = self.reduced.get_displacement(base=self.moved_base, position=self.position)
+        self.reduced.set_displacement_old(displacement)
 
     def update_reduced(self, lift_data=True):
         if not lift_data:
             if self.reduced.exact_acceleration is None:
                 return
             self.reduced.iterate_self(self.reduced.exact_acceleration)
-            # self.recenter_main_mesh() #recenter_reduced_mesh()
+            self.recenter_reduced_mesh()
             self.reduced.exact_acceleration = None
+
+            displacement = self.lift_data(self.displacement_old)
+            self.reduced.set_displacement_old(displacement)
             return
         # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         displacement = self.lift_data(self.displacement_old)
+        # CALCULATE VELOCITY FROM SPARSE DISPLACEMENT
         velocity = self.lift_data(self.velocity_old)
 
         self.reduced.set_displacement_old(displacement)

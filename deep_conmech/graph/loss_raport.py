@@ -5,15 +5,9 @@ from dataclasses import dataclass
 @dataclass
 class LossRaport:
     main: float = 0.0
-    inner_energy: float = 0.0
-    energy: float = 0.0
-    boundary_integral: float = 0.0
-    mean: float = 0.0
-    exact_energy: float = 0.0
-    mse: float = 0.0
-    me: float = 0.0
-    relative_energy: float = 0.0
-    normalized_relative_energy: float = 0.0
+    displacement_loss: float = 0.0
+    acceleration_loss: float = 0.0
+    sparse_acceleration_loss: float = 0.0
 
     _count: int = 0
 

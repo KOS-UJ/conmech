@@ -9,7 +9,6 @@ from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.training_config import NORMALIZE
 
-
 @numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
     edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
@@ -233,3 +232,8 @@ class Mesh:
     @property
     def edges_number(self):
         return len(self.edges)
+
+
+    @property
+    def centered_initial_nodes(self):
+        return self.initial_nodes - np.mean(self.initial_nodes, axis=0)

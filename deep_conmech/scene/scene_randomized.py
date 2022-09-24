@@ -77,8 +77,7 @@ class SceneRandomized(SceneLayers):
         #     self.velocity_randomization *= scaling
         #     self.displacement_randomization *= scaling
 
-        self.update_reduced()  ###################333
-        # self.clear_reduced()
+        self.update_reduced()  ###################
 
     @property
     def normalized_velocity_randomization(self):

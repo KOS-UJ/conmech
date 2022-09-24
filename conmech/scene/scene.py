@@ -12,7 +12,7 @@ from conmech.dynamics.dynamics import (
     _get_rotation_jax,
 )
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
-from conmech.helpers import nph
+from conmech.helpers import lnh, nph
 from conmech.helpers.lnh import complete_base, get_in_base
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
@@ -558,3 +558,19 @@ class Scene(BodyForces):
         velocity = (displacement - self.displacement_old) / self.time_step
         acceleration = (velocity - self.velocity_old) / self.time_step
         return acceleration
+
+    def get_centered_nodes(self, displacement):
+        nodes = self.centered_initial_nodes + displacement
+        centered_nodes = lnh.get_in_base(
+            (nodes - np.mean(nodes, axis=0)), self.get_rotation(displacement)
+        )
+        return centered_nodes
+
+    def get_displacement(self, base, position, base_displacement=None):
+        if base_displacement is None:
+            centered_nodes=self.centered_nodes
+        else:
+            centered_nodes=self.get_centered_nodes(base_displacement)
+        moved_centered_nodes = lnh.get_in_base(centered_nodes, np.linalg.inv(base)) + position
+        displacement = moved_centered_nodes - self.centered_initial_nodes
+        return displacement

@@ -57,66 +57,11 @@ def run_scenario(
     run_config: RunScenarioConfig,
     get_scene_function: Optional[Callable] = None,
 ) -> Tuple[Scene, str, float]:
-    time_skip = config.print_skip
-    ts = int(time_skip / scenario.time_step)
-    index_skip = ts if run_config.save_all else 1
-    plot_scenes_count = [0]
-
-    save_files = True  # run_config.plot_animation or run_config.save_all
-    if save_files:
-        final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
-        cmh.create_folders(f"{final_catalog}/scenarios")
-        scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
-        if run_config.compare_with_base_scene:
-            cmh.create_folders(f"{final_catalog}/scenarios_calculator")
-            calculator_scenes_path = (
-                f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA.scenes"
-            )
-    else:
-        final_catalog = ""
-        scenes_path = ""
-        calculator_scenes_path = ""
-
-    def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
-        scene_copy = copy.copy(scene)
-        scene_copy.prepare_to_save()
-
-        arrays_path = scenes_path + "_data"
-        nodes = scene.boundary_nodes
-        elements = scene.boundaries.boundary_surfaces
-        arrays = (nodes, elements)
-        scenes_file, indices_file = pkh.open_files_append(arrays_path)
-        with scenes_file, indices_file:
-            pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
-
-        if save_animation:
-            scenes_file, indices_file = pkh.open_files_append(scenes_path)
-            with scenes_file, indices_file:
-                pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
-
-    step = [0]  # TODO: #65 Clean
-
-    def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
-        step[0] += 1
-        plot_index = step[0] % ts == 0
-        if run_config.save_all or plot_index:
-            save_scene(
-                scene=scene, scenes_path=scenes_path, save_animation=run_config.plot_animation
-            )
-            if base_scene is not None:
-                save_scene(
-                    scene=base_scene,
-                    scenes_path=calculator_scenes_path,
-                    save_animation=run_config.plot_animation,
-                )
-        if plot_index:
-            plot_scenes_count[0] += 1
 
     print("Creating scene...")
     create_in_subprocess = False
 
     if get_scene_function is None:
-
         def _get_scene_function(randomize):
             return scenario.get_scene(
                 randomize=randomize,
@@ -124,7 +69,6 @@ def run_scenario(
             )
 
     else:
-
         def _get_scene_function(randomize):
             return get_scene_function(
                 config=config,
@@ -138,6 +82,75 @@ def run_scenario(
         base_scene = _get_scene_function(randomize=False)
     else:
         base_scene = None
+
+    time_skip = config.print_skip
+    ts = int(time_skip / scenario.time_step)
+    index_skip = ts if run_config.save_all else 1
+    plot_scenes_count = [0]
+    with_reduced = hasattr(scene, 'reduced')
+    save_files = True  # run_config.plot_animation or run_config.save_all
+
+    if save_files:
+        final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
+        cmh.create_folders(f"{final_catalog}/scenarios")
+        if with_reduced:
+            cmh.create_folders(f"{final_catalog}/scenarios_reduced")
+        scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
+        scenes_path_reduced = f"{final_catalog}/scenarios_reduced/{scenario.name}_DATA.scenes"
+        if run_config.compare_with_base_scene:
+            cmh.create_folders(f"{final_catalog}/scenarios_calculator")
+            calculator_scenes_path = (
+                f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA.scenes"
+            )
+    else:
+        final_catalog = ""
+        scenes_path = ""
+        scenes_path_reduced = ""
+        calculator_scenes_path = ""
+
+    def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
+        scene_copy = copy.copy(scene)
+        scene_copy.prepare_to_save()
+
+        arrays_path = scenes_path + "_data"
+        nodes = scene.boundary_nodes
+        elements = scene.boundaries.boundary_surfaces
+        arrays = (nodes, elements)
+        if isinstance(scene, SceneTemperature):
+            temperatue = scene.t_old
+            arrays += (temperatue,)
+        scenes_file, indices_file = pkh.open_files_append(arrays_path)
+        with scenes_file, indices_file:
+            pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
+
+        if save_animation:
+            scenes_file, indices_file = pkh.open_files_append(scenes_path)
+            with scenes_file, indices_file:
+                pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
+
+    step = [0]  # TODO: #65 Clean
+
+    def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
+        plot_index = step[0] % ts == 0
+        if run_config.save_all or plot_index:
+            save_scene(
+                scene=scene, scenes_path=scenes_path, save_animation=run_config.plot_animation
+            )
+            if with_reduced:
+                save_scene(
+                    scene=scene.reduced,
+                    scenes_path=scenes_path_reduced,
+                    save_animation=run_config.plot_animation,
+                )
+            if base_scene is not None:
+                save_scene(
+                    scene=base_scene,
+                    scenes_path=calculator_scenes_path,
+                    save_animation=run_config.plot_animation,
+                )
+        if plot_index:
+            plot_scenes_count[0] += 1
+        step[0] += 1
 
     def fun_sim():
         return simulate(
@@ -233,9 +246,12 @@ def simulate(
     base_a = None
     energy_values = np.zeros(len(time_tqdm))
     for time_step in time_tqdm:
-        current_time = (time_step + 1) * scene.time_step
+        current_time = (time_step) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
+
+        if operation is not None:
+            operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
 
         start_time = time.time()
         if with_temperature:
@@ -255,14 +271,10 @@ def simulate(
             base_a = Calculator.solve(base_scene)  # TODO #65: save in setting
             calculator_time += time.time() - start_time
 
-        if operation is not None:
-            operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
-
         scene.iterate_self(
             acceleration, temperature=temperature, lift_data=False
         )  # True ###########################################
         scene.exact_acceleration = acceleration  #####
-
 
         if compare_with_base_scene:
             base_scene.iterate_self(base_a)
