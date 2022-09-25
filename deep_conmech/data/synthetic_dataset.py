@@ -160,7 +160,6 @@ class SyntheticDataset(BaseDataset):
 
         scene.update_reduced()
 
-        scene.exact_acceleration = None
         scene, acceleration = self.solve_and_prepare_scene(scene, forces)
         return scene
 

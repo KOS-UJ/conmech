@@ -388,15 +388,13 @@ class BaseDataset:
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
-        acceleration = self.solve_function(scene=scene, initial_a=scene.exact_acceleration)
-        ###################################
-        reduced_acceleration = self.solve_function(
+        scene.exact_acceleration = self.solve_function(scene=scene, initial_a=scene.exact_acceleration)
+        scene.reduced.exact_acceleration = self.solve_function(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
-        # reduced_exact_acceleration = scene.lift_data(exact_acceleration)
+        scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
 
-        scene.set_exact_acceleration(acceleration, reduced_acceleration)
-        return scene, acceleration
+        return scene, scene.exact_acceleration
 
     def safe_save_scene(self, scene, data_path: str):
         scene_copy = copy.copy(scene)  ###

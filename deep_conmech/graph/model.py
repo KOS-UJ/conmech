@@ -388,7 +388,7 @@ class GraphModelDynamic:
         # acceleration_loss = thh.root_mean_square_error_torch(
         #     net_exact_acceleration, target_data.normalized_exact_acceleration
         # )
-        target_sparse_acceleration = layer_list[1].x[:, :dimension]
+        target_sparse_acceleration =  target_data.normalized_reduced_lifted_acceleration #layer_list[1].x[:, :dimension]
         ##############################################
         sparse_acceleration_loss = thh.root_mean_square_error_torch(
             net_sparse_exact_acceleration, target_sparse_acceleration

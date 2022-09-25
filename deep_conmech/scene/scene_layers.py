@@ -88,6 +88,7 @@ class SceneLayers(Scene):
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )
+        sparse_mesh.lifted_acceleration = np.zeros_like(sparse_mesh.initial_nodes)
 
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
         self.project_sparse_nodes(from_base, sparse_mesh)
@@ -144,11 +145,6 @@ class SceneLayers(Scene):
         super().normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
         self.reduced.normalize_and_set_obstacles(obstacles_unnormalized, all_mesh_prop)
 
-    def set_exact_acceleration(self, exact_acceleration, reduced_exact_acceleration):
-        self.exact_acceleration = exact_acceleration
-        self.reduced.exact_acceleration = reduced_exact_acceleration
-        ### self.lift_data(exact_acceleration)
-
     def lift_data(self, data):
         return self.approximate_boundary_or_all_from_base(layer_number=1, base_values=data)
 
@@ -170,23 +166,27 @@ class SceneLayers(Scene):
         self.reduced.set_displacement_old(displacement)
 
     def update_reduced(self, lift_data=True):
-        if not lift_data:
-            if self.reduced.exact_acceleration is None:
+        if True: # not lift_data:
+            if self.reduced.lifted_acceleration is None:
                 return
-            self.reduced.iterate_self(self.reduced.exact_acceleration)
+            #displacement_old = self.reduced.displacement_old
+            self.reduced.iterate_self(self.reduced.lifted_acceleration)
             self.recenter_reduced_mesh()
-            self.reduced.exact_acceleration = None
+            self.reduced.lifted_acceleration = None
 
-            displacement = self.lift_data(self.displacement_old)
-            self.reduced.set_displacement_old(displacement)
+            # displacement_new = self.lift_data(self.displacement_old)
+            # velocity_new = (displacement_new - displacement_old) / self.time_step
+
+            # self.reduced.set_displacement_old(displacement_new)
+            # self.reduced.set_velocity_old(velocity_new)
             return
         # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-        displacement = self.lift_data(self.displacement_old)
-        # CALCULATE VELOCITY FROM SPARSE DISPLACEMENT
-        velocity = self.lift_data(self.velocity_old)
+        displacement_new = self.lift_data(self.displacement_old)
+        #velocity_new = self.lift_data(self.velocity_old)
+        velocity_new = (displacement_new - self.reduced.displacement_old) / self.time_step
 
-        self.reduced.set_displacement_old(displacement)
-        self.reduced.set_velocity_old(velocity)
+        self.reduced.set_displacement_old(displacement_new)
+        self.reduced.set_velocity_old(velocity_new)
 
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if base_values is None or layer_number == 0:

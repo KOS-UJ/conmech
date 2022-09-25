@@ -42,7 +42,7 @@ def get_edges_data_new(
         (
             get_column(initial_nodes),
             get_column(displacement_old),
-            #get_column(velocity_old),
+            # get_column(velocity_old),
             get_column(forces),
         )
     )
@@ -70,7 +70,7 @@ def get_multilayer_edges_data_new(
                 displacement_old_sparse,
                 displacement_old_dense,
             ),
-            #get_column(velocity_old_sparse, velocity_old_dense),
+            # get_column(velocity_old_sparse, velocity_old_dense),
             get_column(forces_sparse, forces_dense),
         )
     )
@@ -280,14 +280,16 @@ class SceneInput(SceneRandomized):
 
     @Mesh.normalization_decorator
     def get_target_data(self):
-        target_data = TargetData(
-            a_correction=thh.to_double(self.normalized_a_correction),
-        )
+        target_data = TargetData()
+        # a_correction=thh.to_double(self.normalized_a_correction),
         target_data.normalized_exact_acceleration = thh.to_double(
             self.normalized_exact_acceleration
         )
         target_data.scaled_new_normalized_displacement = thh.to_double(
             self.new_normalized_displacement / self.time_step
+        )
+        target_data.normalized_reduced_lifted_acceleration = thh.to_double(
+            self.reduced.normalized_lifted_acceleration
         )
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)

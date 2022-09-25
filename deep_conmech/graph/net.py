@@ -227,7 +227,7 @@ class LinkProcessorLayerDown(MessagePassing):
             output_linear_dim=td.latent_dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
-            layer_norm=False, # TODO #65
+            layer_norm=False,  # TODO #65
             td=td,
         )
 
@@ -251,6 +251,7 @@ class LinkProcessorLayerDown(MessagePassing):
     def update(self, aggregated_edge_latents, node_latents):
         return self.decoder_inner(aggregated_edge_latents)
 
+
 # pylint: disable=W0223, W0221
 class LinkProcessorLayerUp(MessagePassing):
     def __init__(self, td: TrainingData):
@@ -267,7 +268,6 @@ class LinkProcessorLayerUp(MessagePassing):
         )
         self.attention = Attention(td=td)
         # self.epsilon = Parameter(torch.Tensor(1))
-
 
     def forward(self, edge_index, node_latents, edge_latents):
         processed_node_latents = self.propagate(
@@ -390,9 +390,11 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        #mesh_layers_count = 2
+        # mesh_layers_count = 2
         self.processor_layers = nn.ModuleList(
-            [ProcessorLayer(td=td) for _ in range(td.message_passes)] # td.message_passes * (mesh_layers_count * 2 - 1))]
+            [
+                ProcessorLayer(td=td) for _ in range(td.message_passes)
+            ]  # td.message_passes * (mesh_layers_count * 2 - 1))]
         )
         self.downward_processor_layer = LinkProcessorLayerDown(td=td)
         self.upward_processor_layer = LinkProcessorLayerUp(td=td)
@@ -441,7 +443,7 @@ class CustomGraphNet(nn.Module):
         # residual connection (included in processor)
         # new_node_latents = node_latents + node_latents_from_up
         return new_node_latents
-    
+
     def move_to_sparse(self, node_latents_sparse, node_latents_dense, edge_latents, edge_index):
         new_node_latents = self.upward_processor_layer(
             edge_index=edge_index,
@@ -471,19 +473,19 @@ class CustomGraphNet(nn.Module):
 
         layer_sparse = layer_list[1]
         node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
-        multilayer_edge_latents=self.multilayer_edge_encoder(layer_sparse.edge_attr_to_down)
+        multilayer_edge_latents = self.multilayer_edge_encoder(layer_sparse.edge_attr_to_down)
 
         node_latents_common = self.move_to_dense(
             node_latents_sparse=node_latents_sparse,
             node_latents_dense=node_latents_dense,
             edge_latents=multilayer_edge_latents,
             edge_index=layer_sparse.edge_index_to_down,
-        ) # torch.hstack((node_latents_dense, self.decoder_inner(node_latents_from_sparse)))
+        )  # torch.hstack((node_latents_dense, self.decoder_inner(node_latents_from_sparse)))
         node_latents_common = self.propagate_messages(
             layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
         )
 
-        edge_index_from_down = torch.flip(layer_sparse.edge_index_to_down, dims= (0,))
+        edge_index_from_down = torch.flip(layer_sparse.edge_index_to_down, dims=(0,))
         node_latents_from_dense = self.move_to_sparse(
             node_latents_sparse=node_latents_sparse,
             node_latents_dense=node_latents_common,
@@ -513,20 +515,22 @@ class CustomGraphNet(nn.Module):
         ]
 
         net_result = self(layer_list=layers_list)
-        net_result_dense, net_result_sparse = thh.to_np_double(net_result[0]), thh.to_np_double(net_result[1])  # + scene.linear_acceleration
+        net_result_dense, net_result_sparse = thh.to_np_double(net_result[0]), thh.to_np_double(
+            net_result[1]
+        )  # + scene.linear_acceleration
         scaled_net_displacement = net_result_dense[:, : scene.dimension]
-        net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
+        # net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
         net_sparse_exact_acceleration = net_result_sparse
 
-        acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
+        # acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
         sparse_acceleration = scene.force_denormalize(net_sparse_exact_acceleration)
-        #scene.reduced.exact_acceleration = sparse_acceleration
+        scene.reduced.lifted_acceleration = sparse_acceleration
 
         # base = scene.moved_base
         # position = scene.position
 
         scene_copy = copy.deepcopy(scene.reduced)
-        scene_copy.iterate_self(scene.reduced.exact_acceleration)
+        scene_copy.iterate_self(scene.reduced.lifted_acceleration)
         # scene_copy = copy.deepcopy(scene)
         # scene_copy.iterate_self(acceleration_position)
         base = scene_copy.moved_base

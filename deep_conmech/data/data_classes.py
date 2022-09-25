@@ -42,14 +42,14 @@ class EnergyObstacleArgumentsTorch:
 class TargetData(Data):
     def __init__(
         self,
-        a_correction: torch.Tensor,
+        # a_correction: torch.Tensor,
         # energy_args: EnergyObstacleArgumentsTorch,
         # lhs_values: torch.Tensor,
         # lhs_index: torch.Tensor,
         # rhs: torch.Tensor,
     ):
         super().__init__()
-        self.a_correction = a_correction
+        #self.a_correction = a_correction
         # self.energy_args = energy_args
 
         # self.lhs_values = lhs_values
