@@ -518,19 +518,19 @@ class CustomGraphNet(nn.Module):
         net_result_dense, net_result_sparse = thh.to_np_double(net_result[0]), thh.to_np_double(
             net_result[1]
         )  # + scene.linear_acceleration
+
         scaled_net_displacement = net_result_dense[:, : scene.dimension]
-        # net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
+        net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
         net_sparse_exact_acceleration = net_result_sparse
 
-        # acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
+        acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
         sparse_acceleration = scene.force_denormalize(net_sparse_exact_acceleration)
-        scene.reduced.lifted_acceleration = sparse_acceleration
+        scene.reduced.exact_acceleration = sparse_acceleration
 
         # base = scene.moved_base
         # position = scene.position
-
         scene_copy = copy.deepcopy(scene.reduced)
-        scene_copy.iterate_self(scene.reduced.lifted_acceleration)
+        scene_copy.iterate_self(scene.reduced.exact_acceleration)
         # scene_copy = copy.deepcopy(scene)
         # scene_copy.iterate_self(acceleration_position)
         base = scene_copy.moved_base
@@ -541,8 +541,7 @@ class CustomGraphNet(nn.Module):
             base=base, position=position, base_displacement=net_displacement
         )
 
-        acceleration_displacement = scene.from_displacement(
-            new_displacement
-        )  # new_normalized_displacement
+        acceleration_displacement = scene.from_displacement(new_displacement)
+        # new_normalized_displacement
 
-        return acceleration_displacement  # acceleration_displacement
+        return acceleration_displacement

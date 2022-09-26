@@ -505,11 +505,6 @@ class Scene(BodyForces):
     def normalized_exact_acceleration(self):
         return self.normalize_rotate(self.exact_acceleration)
 
-    @property
-    @Mesh.normalization_decorator
-    def normalized_lifted_acceleration(self):
-        return self.normalize_rotate(self.lifted_acceleration)
-
     @Mesh.normalization_decorator
     def force_denormalize(self, acceleration):
         return self.denormalize_rotate(acceleration)

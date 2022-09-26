@@ -392,7 +392,7 @@ class BaseDataset:
         scene.reduced.exact_acceleration = self.solve_function(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
-        scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
+        #scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
 
         return scene, scene.exact_acceleration
 

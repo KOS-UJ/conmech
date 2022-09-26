@@ -288,9 +288,6 @@ class SceneInput(SceneRandomized):
         target_data.scaled_new_normalized_displacement = thh.to_double(
             self.new_normalized_displacement / self.time_step
         )
-        target_data.normalized_reduced_lifted_acceleration = thh.to_double(
-            self.reduced.normalized_lifted_acceleration
-        )
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)
         return target_data

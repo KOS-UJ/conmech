@@ -385,21 +385,20 @@ class GraphModelDynamic:
         displacement_loss = thh.root_mean_square_error_torch(
             net_scaled_new_displacement, target_data.scaled_new_normalized_displacement
         )
-        # acceleration_loss = thh.root_mean_square_error_torch(
-        #     net_exact_acceleration, target_data.normalized_exact_acceleration
-        # )
-        target_sparse_acceleration =  target_data.normalized_reduced_lifted_acceleration #layer_list[1].x[:, :dimension]
-        ##############################################
+        acceleration_loss = thh.root_mean_square_error_torch(
+            net_exact_acceleration, target_data.normalized_exact_acceleration
+        )
+        target_sparse_acceleration = layer_list[1].x[:, :dimension]
         sparse_acceleration_loss = thh.root_mean_square_error_torch(
             net_sparse_exact_acceleration, target_sparse_acceleration
         )
 
-        main_loss = (displacement_loss + sparse_acceleration_loss) / 2.0  # 3. acceleration_loss
+        main_loss = (displacement_loss + sparse_acceleration_loss) / 2.0  # 3. sparse_acceleration_loss
         # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
         loss_raport = LossRaport(
             main=main_loss.item(),
             displacement_loss=displacement_loss.item(),
-            acceleration_loss=0,  # acceleration_loss.item(),
+            acceleration_loss=acceleration_loss.item(),
             sparse_acceleration_loss=sparse_acceleration_loss.item(),
             _count=num_graphs,
         )
