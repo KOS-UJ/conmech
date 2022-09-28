@@ -248,13 +248,11 @@ class Calculator:
 
         def get_vector():
             if not scene.is_colliding():
-                return Calculator.minimize_jax(
-                    function=energy_obstacle_jax,
-                    initial_vector=initial_a_vector,
-                    args=args,
-                )
+                f = energy_obstacle_jax  # (use_green_strain=scene.use_green_strain)
+            else:
+                f = energy_obstacle_colliding_jax
             return Calculator.minimize_jax(
-                function=energy_obstacle_colliding_jax,
+                function=f,
                 initial_vector=initial_a_vector,
                 args=args,
             )

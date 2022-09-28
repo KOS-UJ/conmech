@@ -21,8 +21,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
 from conmech.state.body_position import BodyPosition
-from deep_conmech.training_config import USE_GREEN_STRAIN
-
+from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN
 
 @numba.njit
 def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
@@ -341,6 +340,7 @@ class Scene(BodyForces):
         if temperature is not None:
             rhs_acceleration += jnp.array(self.matrices.thermal_expansion.T @ temperature)
 
+        # self.use_green_strain
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
             rhs_acceleration=rhs_acceleration,
@@ -499,11 +499,17 @@ class Scene(BodyForces):
         # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()
         # self.solver_cache.lhs_sparse = lhs_sparse
+        # self.reduced ...
 
     @property
     @Mesh.normalization_decorator
     def normalized_exact_acceleration(self):
         return self.normalize_rotate(self.exact_acceleration)
+
+    @property
+    @Mesh.normalization_decorator
+    def normalized_lifted_acceleration(self):
+        return self.normalize_rotate(self.lifted_acceleration)
 
     @Mesh.normalization_decorator
     def force_denormalize(self, acceleration):
@@ -568,9 +574,9 @@ class Scene(BodyForces):
 
     def get_displacement(self, base, position, base_displacement=None):
         if base_displacement is None:
-            centered_nodes=self.centered_nodes
+            centered_nodes = self.centered_nodes
         else:
-            centered_nodes=self.get_centered_nodes(base_displacement)
+            centered_nodes = self.get_centered_nodes(base_displacement)
         moved_centered_nodes = lnh.get_in_base(centered_nodes, np.linalg.inv(base)) + position
         displacement = moved_centered_nodes - self.centered_initial_nodes
         return displacement

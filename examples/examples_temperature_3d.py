@@ -123,66 +123,73 @@ def get_K_temp_scenarios(mesh_density, final_time):
 
 
 def main(mesh_density=5, final_time=3, plot_animation=True):
-    all_scenarios = []
-    C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
-    K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
-
-    obstacle_slide = Obstacle(
-        np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
+    config = Config(shell=False)
+    mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[16],  # [32]
     )
+    #mesh_prop.normalize=True ################
+    #mesh_prop.use_green_strain=False ################
+
+    all_scenarios = []
     advanced_scenarios = [
         TemperatureScenario(
             name="temperature_3d_bunny_push",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[16], # [32]
-            ),
+            mesh_prop=mesh_prop,
             body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
-            forces_function= lambda *_: np.array([1,0,-1]),
+            forces_function=lambda *_: np.array([1, 0, -1]),
             obstacle=Obstacle(
-                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]]), TemperatureObstacleProperties(hardness=100.0, friction=0.0, heat=0.0)
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]]),
+                TemperatureObstacleProperties(hardness=100.0, friction=0.0, heat=0.0),
             ),
             heat_function=np.array([0]),
         ),
-        TemperatureScenario(
-            name="temperature_3d_bunny_throw",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[16], # [32]
-            ),
-            body_prop=default_temp_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=f_rotate_3d,
-            obstacle=obstacle_slide,
-            heat_function=np.array([0]),
-        ),
-        TemperatureScenario(
-            name="temperature_3d_cube_throw",
-            mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_CUBE_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            ),
-            body_prop=default_temp_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=f_rotate_3d,
-            obstacle=obstacle_slide,
-            heat_function=np.array([0]),
-        ),
+        # TemperatureScenario(
+        #     name="temperature_3d_bunny_throw",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_BUNNY_3D,
+        #         scale=[1],
+        #         mesh_density=[16],  # [32]
+        #     ),
+        #     body_prop=default_temp_body_prop,
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=f_rotate_3d,
+        #     obstacle= Obstacle(
+        #         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
+        #     ),
+        #     heat_function=np.array([0]),
+        # ),
+        # TemperatureScenario(
+        #     name="temperature_3d_cube_throw",
+        #     mesh_prop=MeshProperties(
+        #         dimension=3,
+        #         mesh_type=M_CUBE_3D,
+        #         scale=[1],
+        #         mesh_density=[mesh_density],
+        #     ),
+        #     body_prop=default_temp_body_prop,
+        #     schedule=Schedule(final_time=final_time),
+        #     forces_function=f_rotate_3d,
+        #     obstacle= Obstacle(
+        #         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
+        #     ),
+        #     heat_function=np.array([0]),
+        # ),
     ]
+
+    C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
+    K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
 
     all_scenarios = [*advanced_scenarios, *C_temp_scenarios, *K_temp_scenarios]
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,
-        config=Config(shell=False),
+        config=config,
     )
 
 

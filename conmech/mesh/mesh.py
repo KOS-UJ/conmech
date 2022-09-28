@@ -7,7 +7,8 @@ from conmech.helpers import cmh, nph
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.training_config import NORMALIZE
+from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN
+
 
 @numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
@@ -76,8 +77,6 @@ class Mesh:
 
         self.boundaries: Boundaries
 
-        self.normalize = NORMALIZE
-
         def fun_data():
             self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
@@ -86,9 +85,9 @@ class Mesh:
     def normalization_decorator(func: Callable):
         def inner(self, *args, **kwargs):
             saved_normalize = self.normalize
-            self.normalize = True
+            self.mesh_prop.normalize = True
             returned_value = func(self, *args, **kwargs)
-            self.normalize = saved_normalize
+            self.mesh_prop.normalize = saved_normalize
             return returned_value
 
         return inner
@@ -124,6 +123,20 @@ class Mesh:
         if not self.normalize:
             return vectors
         return vectors - np.mean(vectors, axis=0)
+
+    @property
+    def normalize(self):
+        if hasattr(self.mesh_prop, "normalize"):
+            return self.mesh_prop.normalize
+        else:
+            return NORMALIZE
+
+    @property
+    def use_green_strain(self):
+        if hasattr(self.mesh_prop, "use_green_strain"):
+            return self.mesh_prop.use_green_strain
+        else:
+            return USE_GREEN_STRAIN
 
     @property
     def normalized_initial_nodes(self):
@@ -232,7 +245,6 @@ class Mesh:
     @property
     def edges_number(self):
         return len(self.edges)
-
 
     @property
     def centered_initial_nodes(self):

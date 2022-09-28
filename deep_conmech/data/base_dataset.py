@@ -126,7 +126,7 @@ class BaseDataset:
         self.config = config
         self.scene_indices = None
         self.features_indices = None
-        self.files_lock = mph.get_lock()
+        self.files_lock = None if world_size < 2 else mph.get_lock()
         self.rank = rank
         self.world_size = world_size
         self.file = None
@@ -388,11 +388,15 @@ class BaseDataset:
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
-        scene.exact_acceleration = self.solve_function(scene=scene, initial_a=scene.exact_acceleration)
+        scene.exact_acceleration = self.solve_function(
+            scene=scene, initial_a=scene.exact_acceleration
+        )
         scene.reduced.exact_acceleration = self.solve_function(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
-        #scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
+        # lifted vs exact !#
+        scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
+        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         return scene, scene.exact_acceleration
 

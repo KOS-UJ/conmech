@@ -379,7 +379,8 @@ class GraphModelDynamic:
         net_result_dense, net_result_sparse = self.ddp_net(layer_list)
         net_scaled_new_displacement = net_result_dense[:, :dimension]
         net_exact_acceleration = net_result_dense[:, dimension:]
-        net_sparse_exact_acceleration = net_result_sparse
+        net_sparse_lifted_acceleration = net_result_sparse[:, :dimension]
+        net_sparse_exact_acceleration = net_result_sparse[:, dimension:]
 
         num_graphs = len(graph_sizes_base)
         displacement_loss = thh.root_mean_square_error_torch(
@@ -388,18 +389,27 @@ class GraphModelDynamic:
         acceleration_loss = thh.root_mean_square_error_torch(
             net_exact_acceleration, target_data.normalized_exact_acceleration
         )
-        target_sparse_acceleration = layer_list[1].x[:, :dimension]
-        sparse_acceleration_loss = thh.root_mean_square_error_torch(
-            net_sparse_exact_acceleration, target_sparse_acceleration
+        target_sparse_acceleration = (
+            target_data.normalized_reduced_lifted_acceleration
+        )  # layer_list[1].x[:, :dimension]
+        sparse_lifted_acceleration_loss = thh.root_mean_square_error_torch(
+            net_sparse_lifted_acceleration, target_sparse_acceleration
+        )
+        target_exact_acceleration = target_data.normalized_reduced_exact_acceleration
+        sparse_exact_acceleration_loss = thh.root_mean_square_error_torch(
+            net_sparse_exact_acceleration, target_exact_acceleration
         )
 
-        main_loss = (displacement_loss + sparse_acceleration_loss) / 2.0  # 3. sparse_acceleration_loss
+        main_loss = (
+            displacement_loss + sparse_lifted_acceleration_loss + sparse_exact_acceleration_loss
+        ) / 3.0  # 3. sparse_acceleration_loss
         # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
         loss_raport = LossRaport(
             main=main_loss.item(),
             displacement_loss=displacement_loss.item(),
             acceleration_loss=acceleration_loss.item(),
-            sparse_acceleration_loss=sparse_acceleration_loss.item(),
+            sparse_lifted_acceleration_loss=sparse_lifted_acceleration_loss.item(),
+            sparse_exact_acceleration_loss=sparse_exact_acceleration_loss.item(),
             _count=num_graphs,
         )
 

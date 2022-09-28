@@ -89,7 +89,7 @@ class TrainingConfig(Config):
     scenario_generation_workers = 2
 
     total_mempry_gb = psutil.virtual_memory().total / 1024**3
-    total_memory_limit_gb = round(total_mempry_gb * 0.9, 2)
+    total_memory_limit_gb = round(total_mempry_gb * 0.7, 2)
     synthetic_generation_memory_limit_gb = round(
         (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
     )
@@ -97,7 +97,7 @@ class TrainingConfig(Config):
 
     dataset_images_count: Optional[float] = 7  # 8  # 16
 
-    log_dataset_stats: bool = False  # True
+    log_dataset_stats: bool = False
     with_train_scenes_file: bool = False
 
     compare_with_base_scene = False
@@ -106,6 +106,6 @@ class TrainingConfig(Config):
     log_catalog: str = "log"
     load_newest_train: bool = False
 
-    load_training_data_to_ram: bool = True  # True
-    load_validation_data_to_ram: bool = False  # True
+    load_training_data_to_ram: bool = False
+    load_validation_data_to_ram: bool = False
     profile_training: bool = False

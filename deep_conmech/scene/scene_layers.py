@@ -88,6 +88,7 @@ class SceneLayers(Scene):
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )
+        sparse_mesh.lifted_acceleration = np.zeros_like(sparse_mesh.initial_nodes)
 
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
         self.project_sparse_nodes(from_base, sparse_mesh)
@@ -166,11 +167,11 @@ class SceneLayers(Scene):
 
     def update_reduced(self, lift_data=True):
         if True: # not lift_data:
-            if self.reduced.exact_acceleration is None:
+            if self.reduced.lifted_acceleration is None:
                 return
-            self.reduced.iterate_self(self.reduced.exact_acceleration)
+            self.reduced.iterate_self(self.reduced.lifted_acceleration)
             self.recenter_reduced_mesh()
-            self.reduced.exact_acceleration = None
+            self.reduced.lifted_acceleration = None
             return
         
         # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1

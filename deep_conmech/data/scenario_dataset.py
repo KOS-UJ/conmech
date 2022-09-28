@@ -130,7 +130,6 @@ class ScenariosDataset(BaseDataset):
             )
             current_index += 1
 
-            # setting = setting.get_copy()
             scene.iterate_self(acceleration)
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")

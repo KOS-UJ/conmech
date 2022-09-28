@@ -411,7 +411,7 @@ class CustomGraphNet(nn.Module):
         self.decoder_sparse = ForwardNet(
             input_dim=td.latent_dimension * 2,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension,
+            output_linear_dim=td.dimension * 2,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -525,12 +525,14 @@ class CustomGraphNet(nn.Module):
 
         acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
         sparse_acceleration = scene.force_denormalize(net_sparse_exact_acceleration)
-        scene.reduced.exact_acceleration = sparse_acceleration
+        # lifted vs exact !#
+        scene.reduced.lifted_acceleration = sparse_acceleration
+        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         # base = scene.moved_base
         # position = scene.position
         scene_copy = copy.deepcopy(scene.reduced)
-        scene_copy.iterate_self(scene.reduced.exact_acceleration)
+        scene_copy.iterate_self(scene.reduced.lifted_acceleration)
         # scene_copy = copy.deepcopy(scene)
         # scene_copy.iterate_self(acceleration_position)
         base = scene_copy.moved_base
