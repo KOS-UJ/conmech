@@ -141,6 +141,7 @@ class GraphModelDynamic:
 
             self.optional_barrier()
             if self.is_at_skip(self.config.td.validate_at_epochs):
+                # if elapsed_time > self.config.td.validate_at_minutes * 60:
                 for dataloader in all_valid_dataloaders:
                     _ = self.iterate_dataset(
                         dataloader=dataloader,
@@ -233,7 +234,7 @@ class GraphModelDynamic:
                     catalog="GRAPH PLOT",
                     simulate_dirty_data=False,
                     compare_with_base_scene=config.compare_with_base_scene,
-                    plot_animation=True,
+                    plot_animation=False,  # True,
                 ),
                 get_scene_function=GraphModelDynamic.get_scene_function,
             )
@@ -377,39 +378,35 @@ class GraphModelDynamic:
         graph_sizes_base = get_graph_sizes(batch_main_layer)
 
         net_result_dense, net_result_sparse = self.ddp_net(layer_list)
-        net_scaled_new_displacement = net_result_dense[:, :dimension]
+        net_new_displacement = net_result_dense[:, :dimension]
         net_exact_acceleration = net_result_dense[:, dimension:]
-        net_sparse_lifted_acceleration = net_result_sparse[:, :dimension]
-        net_sparse_exact_acceleration = net_result_sparse[:, dimension:]
+        net_reduced_lifted_new_displacement = net_result_sparse[:, :dimension]
+        net_reduced_lifted_acceleration = net_result_sparse[:, dimension:]
 
         num_graphs = len(graph_sizes_base)
         displacement_loss = thh.root_mean_square_error_torch(
-            net_scaled_new_displacement, target_data.scaled_new_normalized_displacement
+            net_new_displacement, target_data.new_normalized_displacement
         )
         acceleration_loss = thh.root_mean_square_error_torch(
             net_exact_acceleration, target_data.normalized_exact_acceleration
         )
-        target_sparse_acceleration = (
-            target_data.normalized_reduced_lifted_acceleration
-        )  # layer_list[1].x[:, :dimension]
-        sparse_lifted_acceleration_loss = thh.root_mean_square_error_torch(
-            net_sparse_lifted_acceleration, target_sparse_acceleration
+        reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
+            net_reduced_lifted_new_displacement,
+            target_data.reduced_new_normalized_lifted_displacement,
         )
-        target_exact_acceleration = target_data.normalized_reduced_exact_acceleration
-        sparse_exact_acceleration_loss = thh.root_mean_square_error_torch(
-            net_sparse_exact_acceleration, target_exact_acceleration
+        reduced_lifted_acceleration_loss = thh.root_mean_square_error_torch(
+            net_reduced_lifted_acceleration, target_data.reduced_normalized_lifted_acceleration
         )
+        # layer_list[1].x[:, :dimension]
 
-        main_loss = (
-            displacement_loss + sparse_lifted_acceleration_loss + sparse_exact_acceleration_loss
-        ) / 3.0  # 3. sparse_acceleration_loss
+        main_loss = (displacement_loss + reduced_lifted_displacement_loss) / 2.0  # 3.
         # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
         loss_raport = LossRaport(
             main=main_loss.item(),
             displacement_loss=displacement_loss.item(),
             acceleration_loss=acceleration_loss.item(),
-            sparse_lifted_acceleration_loss=sparse_lifted_acceleration_loss.item(),
-            sparse_exact_acceleration_loss=sparse_exact_acceleration_loss.item(),
+            reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
+            reduced_lifted_acceleration_loss=reduced_lifted_acceleration_loss.item(),
             _count=num_graphs,
         )
 

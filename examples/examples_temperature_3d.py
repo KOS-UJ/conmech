@@ -122,16 +122,17 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=5, final_time=3, plot_animation=True):
+def main(mesh_density=5, final_time=2, plot_animation=True):
     config = Config(shell=False)
+    config.print_skip = 0.05
     mesh_prop=MeshProperties(
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[16],  # [32]
+                mesh_density=[16],  # 16 32
     )
-    #mesh_prop.normalize=True ################
-    #mesh_prop.use_green_strain=False ################
+    mesh_prop.normalize=False ################
+    mesh_prop.use_green_strain=False ################
 
     all_scenarios = []
     advanced_scenarios = [
@@ -140,7 +141,7 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
             mesh_prop=mesh_prop,
             body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
-            forces_function=lambda *_: np.array([1, 0, -1]),
+            forces_function=lambda *_: np.array([-1, 0, -1]),
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]]),
                 TemperatureObstacleProperties(hardness=100.0, friction=0.0, heat=0.0),

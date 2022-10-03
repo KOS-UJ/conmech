@@ -691,10 +691,10 @@ def all_train(td):
     args = get_args(td)
     # args["final_time"] = 2.0  # 4.0
     if td.dimension == 3:
-        # return [ball_rotate_3d(**args)]  # , cutoff_time=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
+        return [bunny_fall_3d(**args)]  # , cutoff_time=tc) for tc in np.arange(-2.0, 2.0, 1.0)]
         data = []
-        data.extend([bunny_rotate_3d(**args, cutoff_time=tc) for tc in [-1.5, 1.5]])
-        data.extend([bunny_fall_3d(**args, cutoff_time=tc) for tc in [0]])
+        data.extend([bunny_rotate_3d(**args, cutoff_time=tc) for tc in [-2.0, -0.75, 0.75, 2.0]])
+        data.extend([bunny_fall_3d(**args, cutoff_time=tc) for tc in [-0.5, 0, 0.5]])
         data.extend([bunny_swing_3d(**args)])
 
         # data.append(bunny_fall_3d(**args))
@@ -708,8 +708,8 @@ def all_validation(td):
     args = get_args(td)
     if td.dimension == 3:
         return [
-            [bunny_fall_3d(**args)],
-            [bunny_rotate_3d(**args)],
+            #[bunny_fall_3d(**args)],
+            #[bunny_rotate_3d(**args)],
             # [bunny_swing_3d(**args)],
             # [ball_rotate_3d(**args)],
             # [ball_swing_3d(**args)],

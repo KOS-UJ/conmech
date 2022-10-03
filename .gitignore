@@ -14,6 +14,7 @@
 # conmech input/output
 log/*
 datasets/*
+datasetsOLD/*
 output/*
 
 *.jpg

@@ -62,6 +62,7 @@ def run_scenario(
     create_in_subprocess = False
 
     if get_scene_function is None:
+
         def _get_scene_function(randomize):
             return scenario.get_scene(
                 randomize=randomize,
@@ -69,6 +70,7 @@ def run_scenario(
             )
 
     else:
+
         def _get_scene_function(randomize):
             return get_scene_function(
                 config=config,
@@ -87,7 +89,7 @@ def run_scenario(
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if run_config.save_all else 1
     plot_scenes_count = [0]
-    with_reduced = hasattr(scene, 'reduced')
+    with_reduced = hasattr(scene, "reduced")
     save_files = True  # run_config.plot_animation or run_config.save_all
 
     if save_files:
@@ -245,10 +247,12 @@ def simulate(
     temperature = None
     base_a = None
     energy_values = np.zeros(len(time_tqdm))
+    scene_clean = copy.deepcopy(scene)
     for time_step in time_tqdm:
         current_time = (time_step) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
+        prepare(scenario, scene_clean, base_scene, current_time, with_temperature)
 
         if operation is not None:
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
@@ -259,7 +263,7 @@ def simulate(
                 scene, initial_a=acceleration, initial_t=temperature
             )
         else:
-            acceleration = solve_function(scene, initial_a=acceleration)
+            acceleration = solve_function(scene, initial_a=acceleration, scene_clean=scene_clean)
 
         solver_time += time.time() - start_time
 

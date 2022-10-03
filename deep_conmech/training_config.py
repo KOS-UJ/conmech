@@ -46,9 +46,10 @@ class TrainingData:
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
 
-    save_at_minutes: int = 4
+    save_at_minutes: int = 5
     raport_at_examples: int = 256 * 64
-    validate_at_epochs: Optional[int] = 20  # 00  # 10 100
+    validate_at_minutes: int = 15  # 00  # 10 100
+    validate_at_epochs: int = 5
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 4  # 8  # 1  # 16  # 32  # 16  # 32 # 256

@@ -10,11 +10,7 @@ import numpy as np
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.body_forces import energy
-from conmech.scene.scene import (
-    Scene,
-    energy_obstacle_colliding_jax,
-    energy_obstacle_jax,
-)
+from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from deep_conmech.scene.scene_randomized import SceneRandomized
 from optimization.lbfgs import minimize_lbfgs
@@ -245,21 +241,13 @@ class Calculator:
             lambda: scene.get_energy_obstacle_args_for_jax(temperature),
             baypass=True,
         )
-
-        def get_vector():
-            if not scene.is_colliding():
-                f = energy_obstacle_jax  # (use_green_strain=scene.use_green_strain)
-            else:
-                f = energy_obstacle_colliding_jax
-            return Calculator.minimize_jax(
-                function=f,
+        normalized_a_vector_np = cmh.profile(
+            lambda: Calculator.minimize_jax(
+                function=scene.get_energy_function(),
                 initial_vector=initial_a_vector,
                 args=args,
-            )
-
-        normalized_a_vector_np = cmh.profile(
-            get_vector,
-            baypass=True,  # False,
+            ),
+            baypass=True,
         )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)

@@ -498,7 +498,7 @@ class CustomGraphNet(nn.Module):
 
         return net_output_dense, net_output_sparse
 
-    def solve(self, scene: SceneInput, initial_a):
+    def solve(self, scene: SceneInput, initial_a, scene_clean: SceneInput):
         self.eval()
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=initial_a
@@ -519,31 +519,62 @@ class CustomGraphNet(nn.Module):
             net_result[1]
         )  # + scene.linear_acceleration
 
-        scaled_net_displacement = net_result_dense[:, : scene.dimension]
-        net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
-        net_sparse_exact_acceleration = net_result_sparse
+        net_displacement = net_result_dense[:, : scene.dimension]
+        # net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
+        net_reduced_displacement = net_result_sparse[:, : scene.dimension]
+        # net_reduced_lifted_acceleration = net_result_sparse[:, scene.dimension :]
 
-        acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
-        sparse_acceleration = scene.force_denormalize(net_sparse_exact_acceleration)
-        # lifted vs exact !#
-        scene.reduced.lifted_acceleration = sparse_acceleration
-        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        # acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
+        # sparse_acceleration = scene.force_denormalize(net_reduced_lifted_acceleration)
 
-        # base = scene.moved_base
-        # position = scene.position
-        scene_copy = copy.deepcopy(scene.reduced)
-        scene_copy.iterate_self(scene.reduced.lifted_acceleration)
-        # scene_copy = copy.deepcopy(scene)
-        # scene_copy.iterate_self(acceleration_position)
-        base = scene_copy.moved_base
-        position = scene_copy.position
+        if True:
+            # base = scene.moved_base
+            # position = scene.position
+            scene_copy = copy.deepcopy(scene.reduced)
+            scene_copy.iterate_self(scene.reduced.exact_acceleration)  # sparse_acceleration)
+            # scene_copy = copy.deepcopy(scene)
+            # scene_copy.iterate_self(acceleration_position)
+            base = scene_copy.moved_base
+            position = scene_copy.position
+            
+        if False:
+            # net_reduced_displacement = scene.reduced.new_normalized_displacement
+            # net_reduced_displacement = scene.lift_data(net_displacement)
 
-        net_displacement = scaled_net_displacement * scene.time_step
+            ea = Calculator.solve(scene=scene_clean, initial_a=initial_a)
+            # lifted_calculator_acceleration = scene.lift_data(ea)
+            # scene.reduced.lifted_acceleration = lifted_calculator_acceleration
+            # net_reduced_displacement = scene.reduced.new_normalized_lifted_displacement
+
+            displacement_new = scene_clean.to_displacement(ea)
+            reduced_displacement_new = scene_clean.lift_data(displacement_new)
+            scene.reduced.lifted_acceleration = scene.reduced.from_displacement(
+                reduced_displacement_new
+            )
+            net_reduced_displacement = scene.reduced.new_normalized_lifted_displacement
+            scene_clean.iterate_self(ea)
+
         new_displacement = scene.get_displacement(
             base=base, position=position, base_displacement=net_displacement
         )
+        new_reduced_displacement = scene.reduced.get_displacement(
+            base=base, position=position, base_displacement=net_reduced_displacement
+        )
 
         acceleration_displacement = scene.from_displacement(new_displacement)
-        # new_normalized_displacement
+        acceleration_reduced_displacement = scene.reduced.from_displacement(
+            new_reduced_displacement
+        )
+
+
+        if False:
+            displacement_new = scene.to_displacement(acceleration_displacement)
+            reduced_displacement_new = scene.lift_data(displacement_new)
+            scene.reduced.lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
+
+        # lifted vs exact !#
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration #sparse_acceleration
+        # scene.reduced.lifted_acceleration = acceleration_reduced_displacement
+        # scene.reduced.lifted_acceleration = lifted_calculator_acceleration
 
         return acceleration_displacement

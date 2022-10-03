@@ -166,17 +166,19 @@ class SceneLayers(Scene):
         self.reduced.set_displacement_old(displacement)
 
     def update_reduced(self, lift_data=True):
-        if True: # not lift_data:
+        if True:  # not lift_data:
+            # lifted_acceleration
             if self.reduced.lifted_acceleration is None:
                 return
             self.reduced.iterate_self(self.reduced.lifted_acceleration)
-            self.recenter_reduced_mesh()
+            # self.recenter_reduced_mesh()
+            # recenter velocity !!!
             self.reduced.lifted_acceleration = None
             return
-        
+
         # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         displacement_new = self.lift_data(self.displacement_old)
-        #velocity_new = self.lift_data(self.velocity_old)
+        # velocity_new = self.lift_data(self.velocity_old)
         velocity_new = (displacement_new - self.reduced.displacement_old) / self.time_step
 
         self.reduced.set_displacement_old(displacement_new)

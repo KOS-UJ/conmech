@@ -161,7 +161,7 @@ class Dynamics(BodyPosition):
         result = _get_rotation_jax(displacement, self.matrices.dx_big_jax)
         if not result[1]:
             raise Exception("Error calculating rotation")
-        return complete_base(base_seed=np.array(result[0]))
+        return complete_base(base_seed=np.array(result[0], dtype=np.float64))
 
     # def iterate_self(self, acceleration, temperature=None):
     #     super().iterate_self(acceleration, temperature)

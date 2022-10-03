@@ -168,20 +168,20 @@ class SceneInput(SceneRandomized):
         if layer_number > 0:
             exact_acceleration = self.prepare_node_data(
                 layer_number=layer_number,
-                data=self.reduced.normalized_exact_acceleration,  # self.reduced.exact_acceleration self.reduced.new_normalized_displacement,  #########################
+                data=self.reduced.normalized_exact_acceleration,  # self.reduced.exact_acceleration
                 add_norm=True,
                 approximate=False,
             )
-            scaled_new_displacement = self.prepare_node_data(
+            new_displacement = self.prepare_node_data(
                 layer_number=layer_number,
-                data=self.reduced.new_normalized_displacement / self.time_step,
+                data=self.reduced.new_normalized_displacement,
                 add_norm=True,
                 approximate=False,
             )
             return np.hstack(
                 (
                     exact_acceleration,
-                    scaled_new_displacement,
+                    new_displacement,
                     # linear_acceleration,
                     # input_forces,
                     boundary_normals,
@@ -285,14 +285,12 @@ class SceneInput(SceneRandomized):
         target_data.normalized_exact_acceleration = thh.to_double(
             self.normalized_exact_acceleration
         )
-        target_data.scaled_new_normalized_displacement = thh.to_double(
-            self.new_normalized_displacement / self.time_step
+        target_data.new_normalized_displacement = thh.to_double(self.new_normalized_displacement)
+        target_data.reduced_new_normalized_lifted_displacement = thh.to_double(
+            self.reduced.new_normalized_lifted_displacement
         )
-        target_data.normalized_reduced_lifted_acceleration = thh.to_double(
+        target_data.reduced_normalized_lifted_acceleration = thh.to_double(
             self.reduced.normalized_lifted_acceleration
-        )
-        target_data.normalized_reduced_exact_acceleration = thh.to_double(
-            self.reduced.normalized_exact_acceleration
         )
         # if hasattr(self, "linear_acceleration"):
         #     target_data.linear_acceleration = thh.to_double(self.linear_acceleration)

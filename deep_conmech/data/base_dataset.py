@@ -395,8 +395,11 @@ class BaseDataset:
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
         )
         # lifted vs exact !#
-        scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)
         # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        # scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration) X
+        displacement_new = scene.to_displacement(scene.exact_acceleration)
+        reduced_displacement_new = scene.lift_data(displacement_new)
+        scene.reduced.lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
 
         return scene, scene.exact_acceleration
 

@@ -19,9 +19,6 @@ from conmech.scenarios.scenarios import (
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
-# os.environ["JAX_ENABLE_X64"] = "1"
-# os.environ["JAX_PLATFORM_NAME"] = "cpu"
-
 
 def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
     obstacles = [

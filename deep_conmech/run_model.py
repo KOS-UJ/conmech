@@ -1,12 +1,11 @@
 import argparse
 import os
 
-import jax
-
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+# os.environ["JAX_ENABLE_X64"] = "1"
+# os.environ["JAX_PLATFORM_NAME"] = "cpu"
 
-import socketserver
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
 
@@ -40,12 +39,12 @@ def cleanup_distributed():
 
 
 def train(config: TrainingConfig):
-    train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
-    train_dataset.initialize_data()
-
     all_validation_datasets = get_all_val_datasets(config=config, rank=0, world_size=1)
     for datasets in all_validation_datasets:
         datasets.initialize_data()
+
+    train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
+    train_dataset.initialize_data()
 
     if not config.distributed_training:
         train_single(config, train_dataset=train_dataset)

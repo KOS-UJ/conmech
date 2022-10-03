@@ -7,8 +7,8 @@ class LossRaport:
     main: float = 0.0
     displacement_loss: float = 0.0
     acceleration_loss: float = 0.0
-    sparse_exact_acceleration_loss: float = 0.0
-    sparse_lifted_acceleration_loss: float = 0.0
+    reduced_lifted_displacement_loss: float = 0.0
+    reduced_lifted_acceleration_loss: float = 0.0
 
     _count: int = 0
 

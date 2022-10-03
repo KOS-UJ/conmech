@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, NamedTuple, Optional
 
 import jax
@@ -22,6 +23,7 @@ from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
 from conmech.state.body_position import BodyPosition
 from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN
+
 
 @numba.njit
 def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
@@ -237,33 +239,7 @@ def _energy_obstacle_colliding(
 
 
 # @partial(jax.jit, static_argnums=(2,))
-@jax.jit
-def energy_obstacle_jax(acceleration_vector, args: EnergyObstacleArguments):
-    return _energy_obstacle(acceleration_vector, args, USE_GREEN_STRAIN)
-
-
-# @partial(jax.jit, static_argnums=(2,))
-@jax.jit
-def energy_obstacle_colliding_jax(acceleration_vector, args: EnergyObstacleArguments):
-    return _energy_obstacle_colliding(acceleration_vector, args, USE_GREEN_STRAIN)
-
-
 # energy_obstacle_jax = jax.jit(energy_obstacle)
-
-
-@jax.jit
-def compute_displacement_energy_jax(displacement, dx_big_jax, element_initial_volume, body_prop):
-    return _compute_displacement_energy(
-        displacement, dx_big_jax, element_initial_volume, body_prop, USE_GREEN_STRAIN
-    )
-
-
-@jax.jit
-def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, body_prop):
-    return _compute_velocity_energy(
-        velocity, dx_big_jax, element_initial_volume, body_prop, USE_GREEN_STRAIN
-    )
-
 
 # hes_energy_obstacle_new = jax.jit(
 #     lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
@@ -276,6 +252,43 @@ def compute_velocity_energy_jax(velocity, dx_big_jax, element_initial_volume, bo
 #         energy_obstacle_colliding_jax, x, x
 #     )
 # )
+
+
+@dataclass
+class EnergyFunctions:
+    def __init__(self, use_green_strain):
+        self.energy_obstacle_jax = jax.jit(
+            lambda acceleration_vector, args: _energy_obstacle(
+                acceleration_vector=acceleration_vector,
+                args=args,
+                use_green_strain=use_green_strain,
+            )
+        )
+        self.energy_obstacle_colliding_jax = jax.jit(
+            lambda acceleration_vector, args: _energy_obstacle_colliding(
+                acceleration_vector=acceleration_vector,
+                args=args,
+                use_green_strain=use_green_strain,
+            )
+        )
+        self.compute_displacement_energy_jax = jax.jit(
+            lambda displacement, dx_big_jax, element_initial_volume, body_prop: _compute_displacement_energy(
+                displacement=displacement,
+                dx_big_jax=dx_big_jax,
+                element_initial_volume=element_initial_volume,
+                body_prop=body_prop,
+                use_green_strain=use_green_strain,
+            )
+        )
+        self.compute_velocity_energy_jax = jax.jit(
+            lambda velocity, dx_big_jax, element_initial_volume, body_prop: _compute_velocity_energy(
+                velocity=velocity,
+                dx_big_jax=dx_big_jax,
+                element_initial_volume=element_initial_volume,
+                body_prop=body_prop,
+                use_green_strain=use_green_strain,
+            )
+        )
 
 
 class Scene(BodyForces):
@@ -302,7 +315,7 @@ class Scene(BodyForces):
         self.closest_obstacle_indices = None
         self.linear_obstacles: np.ndarray = np.array([[], []])
         self.mesh_obstacles: List[BodyPosition] = []
-
+        self._energy_functions = None
         self.clear()
 
     def prepare(self, inner_forces):
@@ -311,6 +324,17 @@ class Scene(BodyForces):
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
                 self.boundary_nodes, self.obstacle_nodes
             )
+
+    def get_energy_functions(self):
+        if not self._energy_functions:
+            self._energy_functions = EnergyFunctions(self.use_green_strain)
+        return self._energy_functions
+
+    def get_energy_function(self):
+        if not self.is_colliding():
+            return self.get_energy_functions().energy_obstacle_jax
+        else:
+            return self.get_energy_functions().energy_obstacle_colliding_jax
 
     def normalize_and_set_obstacles(
         self,
@@ -355,14 +379,14 @@ class Scene(BodyForces):
             base_displacement=base_displacement,
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
-            base_energy_displacement=compute_displacement_energy_jax(
+            base_energy_displacement=self.get_energy_functions().compute_displacement_energy_jax(
                 displacement=base_displacement,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,
             ),
             base_velocity=velocity,
-            base_energy_velocity=compute_velocity_energy_jax(
+            base_energy_velocity=self.get_energy_functions().compute_velocity_energy_jax(
                 velocity=velocity,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
@@ -495,6 +519,7 @@ class Scene(BodyForces):
         return np.any(self._get_colliding_nodes_indicator())
 
     def prepare_to_save(self):
+        self._energy_functions = None
         self.matrices = ConstMatrices()
         # lhs_sparse = self.solver_cache.lhs_sparse
         self.solver_cache = SolverMatrices()
@@ -518,6 +543,15 @@ class Scene(BodyForces):
     @property
     def new_normalized_displacement(self):
         return self.to_normalized_displacement(self.exact_acceleration)
+
+    @property
+    def new_normalized_lifted_displacement(self):
+        return self.to_normalized_displacement(self.lifted_acceleration)
+
+    def to_displacement(self, acceleration):
+        velocity_new = self.velocity_old + self.time_step * acceleration
+        displacement_new = self.displacement_old + self.time_step * velocity_new
+        return displacement_new
 
     @Mesh.normalization_decorator
     def to_normalized_displacement(self, acceleration):
