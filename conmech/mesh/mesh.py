@@ -3,7 +3,7 @@ from typing import Callable, Optional
 import numba
 import numpy as np
 
-from conmech.helpers import cmh, nph
+from conmech.helpers import cmh
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties

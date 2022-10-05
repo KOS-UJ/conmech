@@ -234,7 +234,7 @@ class GraphModelDynamic:
                     catalog="GRAPH PLOT",
                     simulate_dirty_data=False,
                     compare_with_base_scene=config.compare_with_base_scene,
-                    plot_animation=False,  # True,
+                    plot_animation=False,
                 ),
                 get_scene_function=GraphModelDynamic.get_scene_function,
             )
@@ -395,7 +395,7 @@ class GraphModelDynamic:
         loss_raport = LossRaport(
             main=main_loss.item(),
             displacement_loss=displacement_loss.item(),
-            #reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
+            # reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
             _count=num_graphs,
         )
 

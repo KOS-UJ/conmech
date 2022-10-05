@@ -10,11 +10,10 @@ from conmech.dynamics.dynamics import (
     DynamicsConfiguration,
     SolverMatrices,
     _get_deform_grad,
-    _get_rotation_jax,
 )
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import lnh, nph
-from conmech.helpers.lnh import complete_base, get_in_base
+from conmech.helpers.lnh import get_in_base
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -22,7 +21,6 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
 from conmech.state.body_position import BodyPosition
-from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN
 
 
 @numba.njit

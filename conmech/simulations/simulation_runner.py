@@ -275,9 +275,7 @@ def simulate(
             base_a = Calculator.solve(base_scene)  # TODO #65: save in setting
             calculator_time += time.time() - start_time
 
-        scene.iterate_self(
-            acceleration, temperature=temperature
-        )
+        scene.iterate_self(acceleration, temperature=temperature)
         scene.exact_acceleration = acceleration  #####
 
         if compare_with_base_scene:

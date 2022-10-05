@@ -49,7 +49,7 @@ class TargetData(Data):
         # rhs: torch.Tensor,
     ):
         super().__init__()
-        #self.a_correction = a_correction
+        # self.a_correction = a_correction
         # self.energy_args = energy_args
 
         # self.lhs_values = lhs_values

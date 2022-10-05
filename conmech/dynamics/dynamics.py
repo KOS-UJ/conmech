@@ -97,7 +97,7 @@ def _get_deform_grad(value, dx_big_jax):
 class _GetRotationState(NamedTuple):
     rotation: jnp.ndarray
     norm: float
-    iter: int
+    iteration: int
     success: bool
 
 
@@ -111,14 +111,14 @@ def _get_rotation_jax(displacement, dx_big):
         rotation_inv_T = jnp.linalg.inv(state.rotation).transpose((0, 2, 1))
         rotation_new = 0.5 * (state.rotation + rotation_inv_T)
         norm = jnp.linalg.norm(state.rotation - rotation_new)
-        iter = state.iter + 1
+        iteration = state.iteration + 1
         return _GetRotationState(
-            rotation=rotation_new, norm=norm, iter=iter, success=iter < max_iter
+            rotation=rotation_new, norm=norm, iteration=iteration, success=iteration < max_iter
         )
 
-    state = _GetRotationState(rotation=deform_grad, norm=0, iter=0, success=True)
+    state = _GetRotationState(rotation=deform_grad, norm=0, iteration=0, success=True)
     state = lax.while_loop(
-        lambda state: (state.norm > max_norm) & (state.iter < max_iter), body, state
+        lambda state: (state.norm > max_norm) & (state.iteration < max_iter), body, state
     )
     final_rotation = jnp.linalg.inv(np.mean(state.rotation, axis=0))
     return final_rotation, state.success
