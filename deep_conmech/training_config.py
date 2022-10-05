@@ -49,7 +49,7 @@ class TrainingData:
     save_at_minutes: int = 5
     raport_at_examples: int = 256 * 64
     validate_at_minutes: int = 15  # 00  # 10 100
-    validate_at_epochs: int = 5
+    validate_at_epochs: int = 2  # 5
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 4  # 8  # 1  # 16  # 32  # 16  # 32 # 256
@@ -60,7 +60,7 @@ class TrainingData:
     internal_batch_norm: bool = False
     layer_norm: bool = False  # True
 
-    dropout_rate: Optional[float] = None  # 0.0  # 0.1 # 0.2  0.05
+    dropout_rate: Optional[float] = 0.5  # None  # 0.0  # 0.1 # 0.2  0.05
     skip_connections: bool = True
     gradient_clip = None  # 10.0
 
@@ -96,7 +96,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 7  # 8  # 16
+    dataset_images_count: Optional[float] = None # 7  # 8  # 16
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False

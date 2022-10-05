@@ -157,32 +157,23 @@ class SceneLayers(Scene):
         self.reduced.prepare(reduced_inner_forces)
         # scene.reduced.prepare(scenario.get_forces_by_function(scene.reduced, current_time))
 
-    def iterate_self(self, acceleration, temperature=None, lift_data=True):
+    def iterate_self(self, acceleration, temperature=None):
         super().iterate_self(acceleration, temperature)
-        self.update_reduced(lift_data)
+        self.update_reduced()
 
     def recenter_reduced_mesh(self):
         displacement = self.reduced.get_displacement(base=self.moved_base, position=self.position)
         self.reduced.set_displacement_old(displacement)
 
-    def update_reduced(self, lift_data=True):
-        if True:  # not lift_data:
-            # lifted_acceleration
-            if self.reduced.lifted_acceleration is None:
-                return
-            self.reduced.iterate_self(self.reduced.lifted_acceleration)
-            # self.recenter_reduced_mesh()
-            # recenter velocity !!!
-            self.reduced.lifted_acceleration = None
+    def update_reduced(self):
+        # Randomizarion calls this method twice
+        if self.reduced.lifted_acceleration is None:
             return
-
-        # WONT WORK WITH RANDOMIZATION !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-        displacement_new = self.lift_data(self.displacement_old)
-        # velocity_new = self.lift_data(self.velocity_old)
-        velocity_new = (displacement_new - self.reduced.displacement_old) / self.time_step
-
-        self.reduced.set_displacement_old(displacement_new)
-        self.reduced.set_velocity_old(velocity_new)
+        self.reduced.iterate_self(self.reduced.lifted_acceleration)
+        # self.recenter_reduced_mesh()
+        # recenter velocity !!!
+        self.reduced.lifted_acceleration = None
+        return
 
     def approximate_boundary_or_all_from_base(self, layer_number: int, base_values: np.ndarray):
         if base_values is None or layer_number == 0:

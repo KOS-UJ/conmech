@@ -117,11 +117,11 @@ class SceneRandomized(SceneLayers):
 
         self.unset_randomization()
 
-    def iterate_self(self, acceleration, temperature=None, lift_data=True):
+    def iterate_self(self, acceleration, temperature=None):
         _ = temperature
         if self.randomized_inputs:
             self._regenerate_randomization()
-        super().iterate_self(acceleration, temperature=temperature, lift_data=lift_data)
+        super().iterate_self(acceleration, temperature=temperature)
 
     @property
     def input_velocity_old(self):  # normalized_randomized_velocity_old

@@ -295,7 +295,7 @@ class BaseDataset:
         dataloader = get_train_dataloader(self, rank=self.rank, world_size=self.world_size)
 
         nodes_data = torch.empty((0, SceneInput.get_nodes_data_up_dim(self.dimension)))
-        edges_data = torch.empty((0, SceneInput.get_edges_data_dim(self.dimension)))
+        edges_data = torch.empty((0, SceneInput.get_dense_edges_data_dim(self.dimension)))
         target_data = torch.empty((0, self.dimension))
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
@@ -396,10 +396,12 @@ class BaseDataset:
         )
         # lifted vs exact !#
         # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-        # scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration) X
+        # scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)  # X
         displacement_new = scene.to_displacement(scene.exact_acceleration)
         reduced_displacement_new = scene.lift_data(displacement_new)
-        scene.reduced.lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
+        scene.reduced.lifted_acceleration = scene.reduced.from_displacement(
+            reduced_displacement_new
+        )
 
         return scene, scene.exact_acceleration
 

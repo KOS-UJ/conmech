@@ -370,8 +370,8 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        self.edge_encoder = ForwardNet(
-            input_dim=SceneInput.get_edges_data_dim(td.dimension),
+        self.edge_encoder_sparse = ForwardNet(
+            input_dim=SceneInput.get_sparse_edges_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
             statistics=None if statistics is None else statistics.edges_statistics,
@@ -380,7 +380,17 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        self.multilayer_edge_encoder = ForwardNet(
+        self.edge_encoder_dense = ForwardNet(
+            input_dim=SceneInput.get_dense_edges_data_dim(td.dimension),
+            layers_count=td.encoder_layers_count,
+            output_linear_dim=td.latent_dimension,
+            statistics=None if statistics is None else statistics.edges_statistics,
+            batch_norm=td.input_batch_norm,
+            layer_norm=td.layer_norm,
+            td=td,
+        )
+
+        self.edge_encoder_multilayer = ForwardNet(
             input_dim=SceneInput.get_multilayer_edges_data_dim(td.dimension),
             layers_count=td.encoder_layers_count,
             output_linear_dim=td.latent_dimension,
@@ -390,11 +400,11 @@ class CustomGraphNet(nn.Module):
             td=td,
         )
 
-        # mesh_layers_count = 2
-        self.processor_layers = nn.ModuleList(
-            [
-                ProcessorLayer(td=td) for _ in range(td.message_passes)
-            ]  # td.message_passes * (mesh_layers_count * 2 - 1))]
+        self.sparse_processor_layers = nn.ModuleList(
+            [ProcessorLayer(td=td) for _ in range(td.message_passes)]
+        )
+        self.dense_processor_layers = nn.ModuleList(
+            [ProcessorLayer(td=td) for _ in range(td.message_passes)]
         )
         self.downward_processor_layer = LinkProcessorLayerDown(td=td)
         self.upward_processor_layer = LinkProcessorLayerUp(td=td)
@@ -402,7 +412,7 @@ class CustomGraphNet(nn.Module):
         self.decoder_dense = ForwardNet(
             input_dim=td.latent_dimension,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension * 2,
+            output_linear_dim=td.dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -411,7 +421,7 @@ class CustomGraphNet(nn.Module):
         self.decoder_sparse = ForwardNet(
             input_dim=td.latent_dimension * 2,
             layers_count=td.decoder_layers_count,
-            output_linear_dim=td.dimension * 2,
+            output_linear_dim=td.dimension,
             statistics=None,
             batch_norm=td.internal_batch_norm,
             layer_norm=False,  # TODO #65
@@ -432,7 +442,7 @@ class CustomGraphNet(nn.Module):
 
     @property
     def edge_statistics(self):
-        return self.edge_encoder.statistics
+        return self.edge_encoder_dense.statistics
 
     def move_to_dense(self, node_latents_sparse, node_latents_dense, edge_latents, edge_index):
         new_node_latents = self.downward_processor_layer(
@@ -452,57 +462,68 @@ class CustomGraphNet(nn.Module):
         )
         return new_node_latents
 
-    def propagate_messages(
+    def propagate_messages_sparse(
         self, layer: Data, node_latents: torch.Tensor, edge_latents: torch.Tensor
     ):
-        for _ in range(self.td.message_passes):
-            node_latents, edge_latents = self.processor_layers[self.processor_number](
+        for processor_id in range(self.td.message_passes):
+            node_latents, edge_latents = self.sparse_processor_layers[processor_id](
                 layer.edge_index, node_latents, edge_latents
             )
-            self.processor_number += 1
+        return node_latents
+
+    def propagate_messages_dense(
+        self, layer: Data, node_latents: torch.Tensor, edge_latents: torch.Tensor
+    ):
+        for processor_id in range(self.td.message_passes):
+            node_latents, edge_latents = self.dense_processor_layers[processor_id](
+                layer.edge_index, node_latents, edge_latents
+            )
         return node_latents
 
     def forward(self, layer_list: List[Data]):
         if isinstance(layer_list[0].x, Tuple):
             layer_list = [DotDict(l.x) for l in layer_list]
-        self.processor_number = 0
 
         layer_dense = layer_list[0]
         node_latents_dense = self.node_encoder_dense(layer_dense["x"])
-        edge_latents_dense = self.edge_encoder(layer_dense.edge_attr)
+        edge_latents_dense = self.edge_encoder_dense(layer_dense.edge_attr)
 
         layer_sparse = layer_list[1]
         node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
-        multilayer_edge_latents = self.multilayer_edge_encoder(layer_sparse.edge_attr_to_down)
+        edge_latents_sparse = self.edge_encoder_sparse(layer_sparse.edge_attr)
 
-        node_latents_common = self.move_to_dense(
-            node_latents_sparse=node_latents_sparse,
+        multilayer_edge_latents = self.edge_encoder_multilayer(layer_sparse.edge_attr_to_down)
+
+        updated_node_latents_sparse = self.propagate_messages_sparse(
+            layer=layer_sparse, node_latents=node_latents_sparse, edge_latents=edge_latents_sparse
+        )
+        updated_node_latents_dense = self.move_to_dense(
+            node_latents_sparse=updated_node_latents_sparse,
             node_latents_dense=node_latents_dense,
             edge_latents=multilayer_edge_latents,
             edge_index=layer_sparse.edge_index_to_down,
         )  # torch.hstack((node_latents_dense, self.decoder_inner(node_latents_from_sparse)))
-        node_latents_common = self.propagate_messages(
-            layer=layer_dense, node_latents=node_latents_common, edge_latents=edge_latents_dense
+        updated_node_latents_dense = self.propagate_messages_dense(
+            layer=layer_dense,
+            node_latents=updated_node_latents_dense,
+            edge_latents=edge_latents_dense,
         )
 
         edge_index_from_down = torch.flip(layer_sparse.edge_index_to_down, dims=(0,))
         node_latents_from_dense = self.move_to_sparse(
             node_latents_sparse=node_latents_sparse,
-            node_latents_dense=node_latents_common,
+            node_latents_dense=updated_node_latents_dense,
             edge_latents=multilayer_edge_latents,
             edge_index=edge_index_from_down,
         )
 
-        net_output_dense = self.decoder_dense(node_latents_common)
+        net_output_dense = self.decoder_dense(updated_node_latents_dense)
         net_output_sparse = self.decoder_sparse(node_latents_from_dense)
 
         return net_output_dense, net_output_sparse
 
     def solve(self, scene: SceneInput, initial_a, scene_clean: SceneInput):
         self.eval()
-        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-        #     setting=scene, temperature=None, initial_a=initial_a
-        # )
 
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
@@ -515,66 +536,37 @@ class CustomGraphNet(nn.Module):
         ]
 
         net_result = self(layer_list=layers_list)
-        net_result_dense, net_result_sparse = thh.to_np_double(net_result[0]), thh.to_np_double(
-            net_result[1]
-        )  # + scene.linear_acceleration
+        net_displacement = thh.to_np_double(net_result[0])
+        # net_reduced_lifted_acceleration = thh.to_np_double(net_result[1])
+        net_reduced_displacement = thh.to_np_double(net_result[1])
 
-        net_displacement = net_result_dense[:, : scene.dimension]
-        # net_dense_exact_acceleration = net_result_dense[:, scene.dimension :]
-        net_reduced_displacement = net_result_sparse[:, : scene.dimension]
-        # net_reduced_lifted_acceleration = net_result_sparse[:, scene.dimension :]
+        # base = scene.moved_base
+        # position = scene.position
+        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+        base = scene.reduced.get_rotation(reduced_displacement_new)
+        position = np.mean(reduced_displacement_new, axis=0)
 
-        # acceleration_position = scene.force_denormalize(net_dense_exact_acceleration)
-        # sparse_acceleration = scene.force_denormalize(net_reduced_lifted_acceleration)
-
-        if True:
-            # base = scene.moved_base
-            # position = scene.position
-            scene_copy = copy.deepcopy(scene.reduced)
-            scene_copy.iterate_self(scene.reduced.exact_acceleration)  # sparse_acceleration)
-            # scene_copy = copy.deepcopy(scene)
-            # scene_copy.iterate_self(acceleration_position)
-            base = scene_copy.moved_base
-            position = scene_copy.position
-            
-        if False:
-            # net_reduced_displacement = scene.reduced.new_normalized_displacement
-            # net_reduced_displacement = scene.lift_data(net_displacement)
-
-            ea = Calculator.solve(scene=scene_clean, initial_a=initial_a)
-            # lifted_calculator_acceleration = scene.lift_data(ea)
-            # scene.reduced.lifted_acceleration = lifted_calculator_acceleration
-            # net_reduced_displacement = scene.reduced.new_normalized_lifted_displacement
-
-            displacement_new = scene_clean.to_displacement(ea)
-            reduced_displacement_new = scene_clean.lift_data(displacement_new)
-            scene.reduced.lifted_acceleration = scene.reduced.from_displacement(
-                reduced_displacement_new
-            )
-            net_reduced_displacement = scene.reduced.new_normalized_lifted_displacement
-            scene_clean.iterate_self(ea)
+        # scene.reduced.lifted_acceleration = sparse_acceleration
 
         new_displacement = scene.get_displacement(
             base=base, position=position, base_displacement=net_displacement
         )
         new_reduced_displacement = scene.reduced.get_displacement(
-            base=base, position=position, base_displacement=net_reduced_displacement
+            base=base,
+            position=position,
+            base_displacement=net_reduced_displacement,
         )
 
-        acceleration_displacement = scene.from_displacement(new_displacement)
-        acceleration_reduced_displacement = scene.reduced.from_displacement(
+        acceleration_from_displacement = scene.from_displacement(new_displacement)
+        reduced_acceleration_from_displacement = scene.reduced.from_displacement(
             new_reduced_displacement
         )
 
-
-        if False:
-            displacement_new = scene.to_displacement(acceleration_displacement)
-            reduced_displacement_new = scene.lift_data(displacement_new)
-            scene.reduced.lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
-
         # lifted vs exact !#
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration #sparse_acceleration
-        # scene.reduced.lifted_acceleration = acceleration_reduced_displacement
-        # scene.reduced.lifted_acceleration = lifted_calculator_acceleration
+        # scene.reduced.lifted_acceleration = (
+        #     reduced_acceleration_from_displacement #net_reduced_lifted_acceleration  # reduced_acceleration_from_displacement
+        # )
+        # scene.reduced.lifted_acceleration = sparse_acceleration
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-        return acceleration_displacement
+        return acceleration_from_displacement

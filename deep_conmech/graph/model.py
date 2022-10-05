@@ -377,36 +377,25 @@ class GraphModelDynamic:
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
 
-        net_result_dense, net_result_sparse = self.ddp_net(layer_list)
-        net_new_displacement = net_result_dense[:, :dimension]
-        net_exact_acceleration = net_result_dense[:, dimension:]
-        net_reduced_lifted_new_displacement = net_result_sparse[:, :dimension]
-        net_reduced_lifted_acceleration = net_result_sparse[:, dimension:]
+        net_new_displacement, net_reduced_lifted_new_displacement = self.ddp_net(layer_list)
 
         num_graphs = len(graph_sizes_base)
         displacement_loss = thh.root_mean_square_error_torch(
-            net_new_displacement, target_data.new_normalized_displacement
+            net_new_displacement, target_data.normalized_new_displacement
         )
-        acceleration_loss = thh.root_mean_square_error_torch(
-            net_exact_acceleration, target_data.normalized_exact_acceleration
-        )
-        reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
-            net_reduced_lifted_new_displacement,
-            target_data.reduced_new_normalized_lifted_displacement,
-        )
-        reduced_lifted_acceleration_loss = thh.root_mean_square_error_torch(
-            net_reduced_lifted_acceleration, target_data.reduced_normalized_lifted_acceleration
-        )
-        # layer_list[1].x[:, :dimension]
+        # reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
+        #     net_reduced_lifted_new_displacement,
+        #     target_data.reduced_normalized_lifted_new_displacement,
+        # )
+        # reduced_lifted_acceleration_loss = thh.root_mean_square_error_torch(
+        #     net_reduced_lifted_acceleration, target_data.reduced_normalized_lifted_acceleration
+        # )
 
-        main_loss = (displacement_loss + reduced_lifted_displacement_loss) / 2.0  # 3.
-        # thh.root_mean_square_error_torch(linear_acceleration, exact_acceleration).item(),
+        main_loss = displacement_loss  # + reduced_lifted_displacement_loss) / 2.0
         loss_raport = LossRaport(
             main=main_loss.item(),
             displacement_loss=displacement_loss.item(),
-            acceleration_loss=acceleration_loss.item(),
-            reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
-            reduced_lifted_acceleration_loss=reduced_lifted_acceleration_loss.item(),
+            #reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
             _count=num_graphs,
         )
 

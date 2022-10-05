@@ -276,8 +276,8 @@ def simulate(
             calculator_time += time.time() - start_time
 
         scene.iterate_self(
-            acceleration, temperature=temperature, lift_data=False
-        )  # True ###########################################
+            acceleration, temperature=temperature
+        )
         scene.exact_acceleration = acceleration  #####
 
         if compare_with_base_scene:

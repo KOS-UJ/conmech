@@ -541,11 +541,11 @@ class Scene(BodyForces):
         return self.denormalize_rotate(acceleration)
 
     @property
-    def new_normalized_displacement(self):
+    def normalized_exact_new_displacement(self):
         return self.to_normalized_displacement(self.exact_acceleration)
 
     @property
-    def new_normalized_lifted_displacement(self):
+    def normalized_lifted_new_displacement(self):
         return self.to_normalized_displacement(self.lifted_acceleration)
 
     def to_displacement(self, acceleration):
@@ -553,10 +553,14 @@ class Scene(BodyForces):
         displacement_new = self.displacement_old + self.time_step * velocity_new
         return displacement_new
 
+    def from_displacement(self, displacement):
+        velocity = (displacement - self.displacement_old) / self.time_step
+        acceleration = (velocity - self.velocity_old) / self.time_step
+        return acceleration
+
     @Mesh.normalization_decorator
     def to_normalized_displacement(self, acceleration):
-        velocity_new = self.velocity_old + self.time_step * acceleration
-        displacement_new = self.displacement_old + self.time_step * velocity_new
+        displacement_new = self.to_displacement(acceleration)
 
         moved_nodes_new = self.initial_nodes + displacement_new
         new_normalized_nodes = get_in_base(
@@ -567,8 +571,7 @@ class Scene(BodyForces):
 
     @Mesh.normalization_decorator
     def to_normalized_displacement_rotated(self, acceleration):
-        velocity_new = self.velocity_old + self.time_step * acceleration
-        displacement_new = self.displacement_old + self.time_step * velocity_new
+        displacement_new = self.to_displacement(acceleration)
 
         moved_nodes_new = self.initial_nodes + displacement_new
         new_normalized_nodes = get_in_base(
@@ -580,8 +583,7 @@ class Scene(BodyForces):
 
     @Mesh.normalization_decorator
     def to_normalized_displacement_rotated_displaced(self, acceleration):
-        velocity_new = self.velocity_old + self.time_step * acceleration
-        displacement_new = self.displacement_old + self.time_step * velocity_new
+        displacement_new = self.to_displacement(acceleration)
 
         moved_nodes_new = self.initial_nodes + displacement_new
         new_normalized_nodes = get_in_base(
@@ -593,11 +595,6 @@ class Scene(BodyForces):
             self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
         )
         return new_normalized_nodes - self.normalized_initial_nodes
-
-    def from_displacement(self, displacement):
-        velocity = (displacement - self.displacement_old) / self.time_step
-        acceleration = (velocity - self.velocity_old) / self.time_step
-        return acceleration
 
     def get_centered_nodes(self, displacement):
         nodes = self.centered_initial_nodes + displacement

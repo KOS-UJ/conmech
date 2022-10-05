@@ -86,8 +86,12 @@ class Mesh:
         def inner(self, *args, **kwargs):
             saved_normalize = self.normalize
             self.mesh_prop.normalize = True
+            if hasattr(self, "reduced"):
+                self.reduced.mesh_prop.normalize = True
             returned_value = func(self, *args, **kwargs)
             self.mesh_prop.normalize = saved_normalize
+            if hasattr(self, "reduced"):
+                self.reduced.mesh_prop.normalize = saved_normalize
             return returned_value
 
         return inner

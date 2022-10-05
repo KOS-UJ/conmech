@@ -77,8 +77,7 @@ class SceneTemperature(Scene):
     def set_temperature_old(self, temperature):
         self.t_old = temperature
 
-    def iterate_self(self, acceleration, temperature=None, lift_data=None):
-        _ = lift_data
+    def iterate_self(self, acceleration, temperature=None):
         self.set_temperature_old(temperature)
         return super().iterate_self(acceleration=acceleration)
 
