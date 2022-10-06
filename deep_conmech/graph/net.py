@@ -494,7 +494,7 @@ class CustomGraphNet(nn.Module):
 
         multilayer_edge_latents = self.edge_encoder_multilayer(layer_sparse.edge_attr_to_down)
 
-        updated_node_latents_sparse = self.propagate_messages_sparse(
+        updated_node_latents_sparse = node_latents_sparse + self.propagate_messages_sparse(
             layer=layer_sparse, node_latents=node_latents_sparse, edge_latents=edge_latents_sparse
         )
         updated_node_latents_dense = self.move_to_dense(
@@ -503,7 +503,7 @@ class CustomGraphNet(nn.Module):
             edge_latents=multilayer_edge_latents,
             edge_index=layer_sparse.edge_index_to_down,
         )  # torch.hstack((node_latents_dense, self.decoder_inner(node_latents_from_sparse)))
-        updated_node_latents_dense = self.propagate_messages_dense(
+        updated_node_latents_dense = updated_node_latents_dense + self.propagate_messages_dense(
             layer=layer_dense,
             node_latents=updated_node_latents_dense,
             edge_latents=edge_latents_dense,

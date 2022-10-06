@@ -15,6 +15,7 @@
 log/*
 datasets/*
 datasetsOLD/*
+blender/output/*
 output/*
 
 *.jpg
