@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import seaborn as sns
 import matplotlib.tri as tri
+import matplotlib.pylab as pl
+
 
 from conmech.state.state import State, TemperatureState
 
@@ -143,15 +145,16 @@ if __name__ == "__main__":
     plt.style.use("seaborn")
     sns.set(rc={'axes.facecolor': '#E6EDF4'})
 
-    plt.xscale("log")
-    plt.yscale("log")
+    # plt.xscale("log")
+    # plt.yscale("log")
     plt.title("Velocity error")
     plt.xlabel("spatial step: h")
     plt.ylabel("error: $||v-v^h||_V$")
-    optimal = (ue[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2
+    optimal = (ue[ks[0], 0] * np.asarray(h_ticks) ** 1)
     plt.plot(h_ticks, optimal, color="silver", linewidth=4.0, label="optimal")
-    for k in ks:
-        plt.plot(h_ticks, ue[k, hs[0]:hs[-1]+1], "s-", label="$2^{-" + str(k) + "}$")
+    colors = pl.cm.jet(np.linspace(0, 1, len(ks)))
+    for i, k in enumerate(ks):
+        plt.plot(h_ticks, ue[k, hs[0]:hs[-1]+1], "s-", label="$2^{-" + str(k) + "}$", color=colors[i])
     plt.xticks(h_ticks, h_ticks)
     plt.legend(title="time step: k")
     plt.xlim(max(h_ticks)*1.125, min(h_ticks)*0.875)
@@ -170,9 +173,10 @@ if __name__ == "__main__":
     plt.title("Temperature error")
     plt.xlabel("spatial step: h")
     plt.ylabel(r"error: $||\theta-\theta^h||_E$")
-    plt.plot(h_ticks, (te[ks[0], 0] ** .5 * np.asarray(h_ticks)) ** 2, color="silver", linewidth=4.0, label="optimal")
-    for k in ks:
-        plt.plot(h_ticks, te[k, hs[0]:hs[-1]+1], "s-", label="$2^{-" + str(k) + "}$")
+    plt.plot(h_ticks, (te[ks[0], 0] * np.asarray(h_ticks) ** 1), color="silver", linewidth=4.0, label="optimal")
+    colors = pl.cm.jet(np.linspace(0, 1, len(ks)))
+    for i, k in enumerate(ks):
+        plt.plot(h_ticks, te[k, hs[0]:hs[-1]+1], "s-", label="$2^{-" + str(k) + "}$", color=colors[i])
     plt.xticks(h_ticks, h_ticks)
     plt.legend(title="time step: k")
     plt.xlim(max(h_ticks)*1.125, min(h_ticks)*0.875)
