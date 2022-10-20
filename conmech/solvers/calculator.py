@@ -10,6 +10,7 @@ import numpy as np
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.body_forces import energy
+from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from deep_conmech.scene.scene_randomized import SceneRandomized
@@ -117,8 +118,12 @@ class Calculator:
         # return np.asarray(result.x)
 
     @staticmethod
-    def solve(scene: Scene, initial_a: Optional[np.ndarray] = None) -> np.ndarray:
-        normalized_a = Calculator.solve_acceleration_normalized(scene, initial_a=initial_a)
+    def solve(
+        scene: Scene, energy_functions: EnergyFunctions, initial_a: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        normalized_a = Calculator.solve_acceleration_normalized(
+            scene, energy_functions, initial_a=initial_a
+        )
         normalized_cleaned_a = Calculator.clean_acceleration(scene, normalized_a)
         cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
         return cleaned_a
@@ -126,6 +131,7 @@ class Calculator:
     @staticmethod
     def solve_with_temperature(
         scene: SceneTemperature,
+        energy_functions: EnergyFunctions,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
     ):
@@ -141,7 +147,9 @@ class Calculator:
             and not np.allclose(last_t, temperature)
         ):
             last_normalized_a, last_t = normalized_a, temperature
-            normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
+            normalized_a = Calculator.solve_acceleration_normalized(
+                scene, energy_functions, temperature, initial_a
+            )
             temperature = Calculator.solve_temperature_normalized(scene, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
@@ -164,12 +172,18 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized(
-        scene: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
+        scene: Scene,
+        energy_functions: EnergyFunctions,
+        temperature=None,
+        initial_a: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if True:  # setting.is_colliding():
             return Calculator.solve_acceleration_normalized_optimization_jax(
-                scene, temperature=temperature, initial_a=initial_a
+                scene=scene,
+                energy_functions=energy_functions,
+                temperature=temperature,
+                initial_a=initial_a,
             )
         return Calculator.solve_acceleration_normalized_function(
             scene=scene, temperature=temperature, initial_a=initial_a
@@ -231,19 +245,21 @@ class Calculator:
         return cleaned_a
 
     @staticmethod
-    def solve_acceleration_normalized_optimization_jax(scene, temperature=None, initial_a=None):
+    def solve_acceleration_normalized_optimization_jax(
+        scene, energy_functions: EnergyFunctions, temperature=None, initial_a=None
+    ):
         if initial_a is None:
             initial_a_vector = np.zeros(scene.nodes_count * scene.dimension)
         else:
             initial_a_vector = nph.stack(initial_a)
 
         args = cmh.profile(
-            lambda: scene.get_energy_obstacle_args_for_jax(temperature),
+            lambda: scene.get_energy_obstacle_args_for_jax(energy_functions, temperature),
             baypass=True,
         )
         normalized_a_vector_np = cmh.profile(
             lambda: Calculator.minimize_jax(
-                function=scene.get_energy_function(),
+                function=energy_functions.get_energy_function(scene),
                 initial_vector=initial_a_vector,
                 args=args,
             ),

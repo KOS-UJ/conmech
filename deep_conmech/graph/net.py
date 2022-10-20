@@ -15,6 +15,7 @@ from torch_scatter import scatter_sum
 from conmech.helpers import cmh, lnh, pkh
 from conmech.helpers.cmh import DotDict
 from conmech.mesh.mesh import Mesh
+from conmech.scene.energy_functions import EnergyFunctions
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
@@ -522,11 +523,13 @@ class CustomGraphNet(nn.Module):
 
         return net_output_dense, net_output_sparse
 
-    def solve(self, scene: SceneInput, initial_a, scene_clean: SceneInput):
+    def solve(self, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
         self.eval()
 
         scene.reduced.exact_acceleration = Calculator.solve(
-            scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
+            scene=scene.reduced,
+            energy_functions=energy_functions,
+            initial_a=scene.reduced.exact_acceleration,
         )
         # return Calculator.solve(scene=scene, initial_a=initial_a)
 

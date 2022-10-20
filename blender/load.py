@@ -30,8 +30,12 @@ load_world = True
 render = True
 
 cycles = True  # False
-output_video = True
-output_path = "/home/michal/Desktop/conmech/blender/output"
+output_video = False  # True
+output_path = "/home/michal/Desktop/conmech/output"
+
+
+def get_tqdm(iterable, desc=None, position=None) -> tqdm:
+    return tqdm(iterable, desc=desc, position=position, ascii=True)
 
 
 def find_files_by_extension(directory, extension):
@@ -46,15 +50,16 @@ def find_files_by_extension(directory, extension):
 scene_files = find_files_by_extension(input_path, "scenes_data")
 path_id = "/scenarios/" if dense else "/scenarios_reduced/"
 scene_files = [f for f in scene_files if path_id in f]
-scene_files.sort()
-all_arrays_path = scene_files[-1]
-print(f"FILE: {all_arrays_path}")
+all_arrays_path = max(scene_files, key=os.path.getctime)
+all_arrays_name = os.path.basename(all_arrays_path).split("DATA")[0]
 
+print(f"FILE: {all_arrays_name}")
 # raise ArgumentError(file_name)
 
 
 def load_data():
-    simulation, with_temperature = load_simulation()
+    simulation, temperature = load_simulation()
+    with_temperature = temperature is not None
 
     initial_nodes, initial_elements = simulation[0][:2]
     mesh, object = create_mesh(initial_nodes, initial_elements, with_temperature)
@@ -70,13 +75,12 @@ def load_data():
         mesh.vertex_colors.new()
     # color_layer = mesh.vertex_colors.active
 
-    skip = 1
-    frame_num = 0
     steps = len(simulation)
-    frames = range(0, steps, skip)
+    frames = range(steps)
+    bpy.context.scene.frame_start = 0
     bpy.context.scene.frame_end = steps
 
-    # for v in tqdm(mesh.vertices, "Vertices"):
+    # for v in get_tqdm(mesh.vertices, "Vertices"):
     #     fcurves = [action.fcurves.new(f"vertices[{v.index}].co", index=i) for i in range(3)]
 
     #     for frame_num in frames:
@@ -89,7 +93,7 @@ def load_data():
     #     for fc in fcurves:
     #         fc.update()
 
-    for v in tqdm(mesh.vertices, "Vertices"):
+    for v in get_tqdm(mesh.vertices, "Vertices"):
         for i in range(3):
             samples = [simulation[frame_num][0][v.index][i] for frame_num in frames]
             fc = action.fcurves.new(f"vertices[{v.index}].co", index=i)
@@ -106,8 +110,16 @@ def load_data():
         return
 
     print("WITH TEMPERATURE")
-    norm_max_t = 0.005  # 1 #2 #1
-    norm_min_t = -0.0009  # 0.1
+    max_t = np.max(temperature)
+    min_t = np.min(temperature)
+    print(f"MAX_TEMP: {max_t}")
+    print(f"MIN_TEMP: {min_t}")
+    # exit()
+    # raise ArgumentError(max_t)
+    # raise ArgumentError(min_t)
+
+    norm_max_t = 3.0  # 0.005
+    norm_min_t = 0.0  # -0.0009
 
     def normalize_t(t):
         return (t - norm_min_t) / (norm_max_t - norm_min_t)
@@ -117,52 +129,48 @@ def load_data():
     mapper = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 
     def get_color(temp):
-        return mapper.to_rgba(normalize_t(temp))[0]  # np.array([temp,0,0,1])
+        return np.array(mapper.to_rgba(normalize_t(temp)))  # np.array([temp,0,0,1])
 
-    max_t = 0
-    min_t = 0
+    # TODO: make better
+    all_colors = np.array(
+        [
+            [get_color(temperature[frame_num, idx]) for frame_num in frames]
+            for idx in range(len(mesh.vertices))
+        ]
+    )
     index = 0
-
-    # for poly in tqdm(mesh.polygons, "Temperature - polygons"):
-    #     for idx in poly.vertices:
-    #         for i in range(4):
-    #             samples = [get_color(simulation[frame_num][2][idx])[i] for frame_num in frames]
-    #             fc = action.fcurves.new(f"vertex_colors.active.data[{index}].color", index=i)
-    #             fc.keyframe_points.add(count=len(frames))
-    #             fc.keyframe_points.foreach_set("co", [x for co in zip(frames, samples) for x in co])
-    #             fc.update()
-    #         index += 1
-    # return
-
-    for poly in tqdm(mesh.polygons, "Temperature - polygons"):
+    for poly in get_tqdm(mesh.polygons, "Temperature - polygons"):
         for idx in poly.vertices:
-            fcurves_color = [
-                action.fcurves.new(f"vertex_colors.active.data[{index}].color", index=i)
-                for i in range(4)
-            ]
-
-            for frame_num in range(0, steps, skip):
-                nodes, elements, temperatures = simulation[frame_num]
-                node = nodes[idx]
-                temp = temperatures[idx]
-                if temp > max_t:
-                    max_t = temp
-                if temp < min_t:
-                    min_t = temp
-                # RGB, 0 = dark, 1 = light
-                color = get_color(temp)  # np.array([temp,0,0,1]) #(node[2])
-                for fc, val in zip(fcurves_color, color):
-                    fc.keyframe_points.insert(frame_num, val, options={"FAST"})
-
+            for i in range(4):
+                samples = all_colors[idx, :, i]
+                fc = action.fcurves.new(f"vertex_colors.active.data[{index}].color", index=i)
+                fc.keyframe_points.add(count=len(frames))
+                fc.keyframe_points.foreach_set("co", [x for co in zip(frames, samples) for x in co])
+                fc.update()
             index += 1
 
-            for fc in fcurves_color:
-                fc.update()
+    # for poly in get_tqdm(mesh.polygons, "Temperature - polygons"):
+    #     for idx in poly.vertices:
+    #         fcurves_color = [
+    #             action.fcurves.new(f"vertex_colors.active.data[{index}].color", index=i)
+    #             for i in range(4)
+    #         ]
 
-    print(f"MAX_TEMP: {max_t}")
-    print(f"MIN_TEMP: {min_t}")
-    # raise ArgumentError(max_t)
-    # raise ArgumentError(min_t)
+    #         for frame_num in range(0, steps, skip):
+    #             temp = temperature[frame_num, idx]
+    #             if temp > max_t:
+    #                 max_t = temp
+    #             if temp < min_t:
+    #                 min_t = temp
+    #             # RGB, 0 = dark, 1 = light
+    #             color = get_color(temp)  # np.array([temp,0,0,1]) #(node[2])
+    #             for fc, val in zip(fcurves_color, color):
+    #                 fc.keyframe_points.insert(frame_num, val, options={"FAST"})
+
+    #         index += 1
+
+    #         for fc in fcurves_color:
+    #             fc.update()
 
 
 def get_all_indices(data_path):
@@ -192,6 +200,7 @@ def load_byte_index(byte_index: int, data_file: BufferedReader):
 def load_simulation():
     all_indices = get_all_indices(all_arrays_path)
     simulation = []
+    temperature = None
     scenes_file = open_file_read(all_arrays_path)
     with scenes_file:
         for step in range(len(all_indices)):
@@ -202,7 +211,14 @@ def load_simulation():
             )
             simulation.append(arrays)
             with_temperature = len(arrays) > 2
-    return simulation, with_temperature
+            if with_temperature:
+                if temperature is None:
+                    temperature = []
+                temperature.append(arrays[2])
+
+    if with_temperature:
+        temperature = np.array(temperature)[..., 0]
+    return simulation, temperature
 
 
 def clear_scene():
@@ -458,7 +474,7 @@ def set_render():
     scene.render.resolution_x = r_x
     scene.render.resolution_y = r_y
 
-    scene.render.filepath = f"{output_path}/result_{time()}_"
+    scene.render.filepath = f"{output_path}/{time()}_{all_arrays_name}_"
 
     # Set output type
     if not output_video:
@@ -471,7 +487,22 @@ def set_render():
 
 
 def render_animation():
-    bpy.ops.render.render(animation=True)
+    if not output_video:
+        scene = bpy.context.scene
+        fp = scene.render.filepath
+        scene.render.image_settings.file_format = "PNG"  # set output format to .png
+
+        skip = 10
+        frames = range(0, bpy.context.scene.frame_end + 1, skip)
+
+        for frame_nr in frames:
+            scene.frame_set(frame_nr)
+            scene.render.filepath = fp + str(frame_nr)
+            bpy.ops.render.render(write_still=True)
+
+        scene.render.filepath = fp
+    else:
+        bpy.ops.render.render(animation=True)
 
 
 def set_scene_and_render():

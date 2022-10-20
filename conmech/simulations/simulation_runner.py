@@ -1,5 +1,6 @@
 import copy
 import os
+import subprocess
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
@@ -10,6 +11,7 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
@@ -91,6 +93,7 @@ def run_scenario(
     plot_scenes_count = [0]
     with_reduced = hasattr(scene, "reduced")
     save_files = True  # run_config.plot_animation or run_config.save_all
+    save_animation = True  # False
 
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
@@ -110,7 +113,7 @@ def run_scenario(
         scenes_path_reduced = ""
         calculator_scenes_path = ""
 
-    def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
+    def save_scene(scene: Scene, scenes_path: str):
         scene_copy = copy.copy(scene)
         scene_copy.prepare_to_save()
 
@@ -135,21 +138,11 @@ def run_scenario(
     def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_scene(
-                scene=scene, scenes_path=scenes_path, save_animation=run_config.plot_animation
-            )
+            save_scene(scene=scene, scenes_path=scenes_path)
             if with_reduced:
-                save_scene(
-                    scene=scene.reduced,
-                    scenes_path=scenes_path_reduced,
-                    save_animation=run_config.plot_animation,
-                )
+                save_scene(scene=scene.reduced, scenes_path=scenes_path_reduced)
             if base_scene is not None:
-                save_scene(
-                    scene=base_scene,
-                    scenes_path=calculator_scenes_path,
-                    save_animation=run_config.plot_animation,
-                )
+                save_scene(scene=base_scene, scenes_path=calculator_scenes_path)
         if plot_index:
             plot_scenes_count[0] += 1
         step[0] += 1
@@ -170,6 +163,9 @@ def run_scenario(
     setting, energy_values = fun_sim()
 
     if run_config.plot_animation:
+        plot_blender()
+
+    if False:
         animation_path = f"{final_catalog}/{scenario.name}.gif"
         plot_scenario_animation(
             scenario,
@@ -185,6 +181,13 @@ def run_scenario(
         )
 
     return setting, scenes_path, energy_values
+
+
+def plot_blender():
+    subprocess.call(
+        "~/Desktop/Blender/blender-3.2.0-linux-x64/blender --background --python ~/Desktop/conmech/blender/load.py",
+        shell=True,
+    )
 
 
 def plot_scenario_animation(
@@ -243,16 +246,17 @@ def simulate(
     all_time = time.time()
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
+
+    energy_functions = EnergyFunctions(scene.use_green_strain)
+
     acceleration = None
     temperature = None
     base_a = None
     energy_values = np.zeros(len(time_tqdm))
-    scene_clean = copy.deepcopy(scene)
     for time_step in time_tqdm:
         current_time = (time_step) * scene.time_step
 
         prepare(scenario, scene, base_scene, current_time, with_temperature)
-        prepare(scenario, scene_clean, base_scene, current_time, with_temperature)
 
         if operation is not None:
             operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
@@ -260,10 +264,13 @@ def simulate(
         start_time = time.time()
         if with_temperature:
             acceleration, temperature = solve_function(
-                scene, initial_a=acceleration, initial_t=temperature
+                scene,
+                energy_functions=energy_functions,
+                initial_a=acceleration,
+                initial_t=temperature,
             )
         else:
-            acceleration = solve_function(scene, initial_a=acceleration, scene_clean=scene_clean)
+            acceleration = solve_function(scene, energy_functions, initial_a=acceleration)
 
         solver_time += time.time() - start_time
 

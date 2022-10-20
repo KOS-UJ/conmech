@@ -234,7 +234,7 @@ class GraphModelDynamic:
                     catalog="GRAPH PLOT",
                     simulate_dirty_data=False,
                     compare_with_base_scene=config.compare_with_base_scene,
-                    plot_animation=False,
+                    plot_animation=True,
                 ),
                 get_scene_function=GraphModelDynamic.get_scene_function,
             )

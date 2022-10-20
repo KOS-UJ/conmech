@@ -605,6 +605,7 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", cutof
 def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=0.7):
     _ = tag
     _ = scale
+    _ = mesh_density
     return Scenario(
         name="bunny_fall",
         mesh_prop=MeshProperties(
@@ -690,7 +691,7 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        return [bunny_fall_3d(**args, cutoff_time=0)]
+        # return [bunny_fall_3d(**args, cutoff_time=0)]
         args["final_time"] = 8.0
         data = []
         data.extend([bunny_rotate_3d(**args, cutoff_time=tc) for tc in [-2.0, -0.75, 0.75, 2.0]])
@@ -701,11 +702,11 @@ def all_train(td):
 
 def all_validation(td):
     args = get_args(td)
-    args["final_time"] = 8.0
     if td.dimension == 3:
+        args["final_time"] = 8.0
         return [
-            # [bunny_fall_3d(**args)],
-            # [bunny_rotate_3d(**args)],
+            [bunny_fall_3d(**args)],
+            [bunny_rotate_3d(**args)],
             # [bunny_swing_3d(**args)],
             # [ball_rotate_3d(**args)],
             # [ball_swing_3d(**args)],
@@ -716,8 +717,8 @@ def all_validation(td):
 
 def all_print(td):
     args = get_args(td)
-    args["final_time"] = 8.0
     if td.dimension == 3:
+        args["final_time"] = 8.0
         return [
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),
