@@ -78,7 +78,12 @@ class QuasistaticVelocityStatement(Statement):
         super().__init__(dynamics, 2)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.viscosity.copy()
+        assert var.time_step is not None
+
+        self.left_hand_side = (
+            self.body.viscosity
+            + self.body.elasticity * var.time_step
+        )
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
