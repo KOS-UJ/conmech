@@ -7,7 +7,7 @@ import scipy.optimize
 
 from conmech.dynamics.statement import StaticDisplacementStatement
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional
+from conmech.solvers.solver_methods import make_cost_functional, make_cost_functional_2
 from conmech.solvers.solver_methods import make_cost_functional_temperature
 
 
@@ -28,7 +28,7 @@ class Optimization(Solver):
             friction_bound,
         )
         if statement.dimension == 2:  # TODO
-            self.loss = make_cost_functional(
+            self.loss = make_cost_functional_2(  # TODO
                 jn=contact_law.potential_normal_direction,
                 jt=contact_law.potential_tangential_direction
                 if hasattr(contact_law, "potential_tangential_direction")
@@ -59,12 +59,14 @@ class Optimization(Solver):
         initial_guess: np.ndarray,
         *,
         velocity: np.ndarray,
+        displacement: np.ndarray,
         fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         velocity = np.squeeze(velocity.copy().reshape(1, -1))
+        displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
 
         while norm >= fixed_point_abs_tol:
@@ -76,9 +78,9 @@ class Optimization(Solver):
                     self.body.mesh.contact_boundary,
                     self.node_relations,
                     self.node_forces,
-                    old_solution
-                    if isinstance(self.statement, StaticDisplacementStatement)
-                    else velocity,
+                    displacement,
+                    velocity,
+                    self.time_step
                 ),
                 method="BFGS",
                 options={"disp": False, "maxiter": len(initial_guess) * 1e5},

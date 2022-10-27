@@ -140,7 +140,7 @@ class ProblemSolver:
     def solve(self, **kwargs):
         raise NotImplementedError()
 
-    def run(self, solution, state, n_steps: int, verbose: bool = False, **kwargs):
+    def run(self, state, n_steps: int, verbose: bool = False, **kwargs):
         """
         :param state:
         :param n_steps: number of steps
@@ -149,13 +149,12 @@ class ProblemSolver:
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
-
+            solution = state.velocity.reshape(2, -1)
             solution = self.find_solution(
                 state,
                 solution,
                 self.validator,
                 verbose=verbose,
-                velocity=solution,
                 **kwargs,
             )
 
@@ -208,7 +207,7 @@ class ProblemSolver:
             if isinstance(self.step_solver, SchurComplement):
                 self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
             ### end iterate
-            solution = self.step_solver.solve(solution, temperature=solution_t, velocity=solution)
+            solution = self.step_solver.solve(solution, temperature=solution_t)
             ### iterate 2
             u_vector = old_u_vector + self.step_solver.time_step * solution
             self.second_step_solver.statement.update(
@@ -223,7 +222,7 @@ class ProblemSolver:
             if isinstance(self.second_step_solver, SchurComplement):
                 self.second_step_solver._node_forces, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
             ### end iterate 2
-            solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
+            solution_t = self.second_step_solver.solve(solution_t)
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
@@ -343,8 +342,6 @@ class TimeDependent(ProblemSolver):
             self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
-        solution = state.velocity.reshape(2, -1)
-
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.ravel().copy()
 
@@ -352,9 +349,9 @@ class TimeDependent(ProblemSolver):
         results = []
         done = 0
         for n in output_step:
-            done += 1
+            done += n
             print(f"{done / n_steps * 100:.2f}%", end="\r")
-            self.run(solution, state, n_steps=n, verbose=verbose)
+            self.run(state, n_steps=n, verbose=verbose)
             results.append(state.copy())
 
         return results

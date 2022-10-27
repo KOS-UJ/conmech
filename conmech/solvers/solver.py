@@ -47,11 +47,11 @@ class Solver:
         self.v_vector = velocity.reshape(-1)
         self.u_vector = self.u_vector + self.time_step * self.v_vector
 
-    def _solve(self, initial_guess, *, velocity: np.ndarray, **kwargs):
+    def _solve(self, initial_guess, *, velocity: np.ndarray, displacement: np.ndarray, **kwargs):
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
-        solution = self._solve(initial_guess, **kwargs)
+        solution = self._solve(initial_guess, velocity=self.v_vector, displacement=self.u_vector, **kwargs)
 
         for dirichlet_cond in self.statement.find_dirichlet_conditions():
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
