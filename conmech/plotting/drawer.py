@@ -18,7 +18,7 @@ class Drawer:
         self.state = state
         self.config = config
         self.mesh = state.body.mesh
-        self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+        self.node_size = 2 + (3000 / len(self.mesh.initial_nodes))
 
     def get_directory(self):
         return f"./output/{self.config.current_time} - DRAWING"
@@ -53,7 +53,9 @@ class Drawer:
         plt.axis("on")
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
+        axes.set_aspect('equal', adjustable='box')
+
+        # fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
 
         if show:
             fig.tight_layout()
@@ -105,7 +107,7 @@ class Drawer:
             edge_color=edge_color,
             node_size=self.node_size,
             ax=axes,
-            width=6,
+            width=2,
         )
 
     def draw_field(self, field, v_min, v_max, axes, fig):
