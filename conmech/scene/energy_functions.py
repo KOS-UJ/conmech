@@ -19,18 +19,13 @@ def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
 
 
 def _obstacle_resistance_potential_tangential(
-    penetration_norm,
-    tangential_velocity,
-    friction,
-    time_step,
+    penetration_norm, tangential_velocity, friction, time_step, use_nonconvex_friction_law
 ):
-    return (
-        (penetration_norm > 0)
-        * friction
-        # * nph.euclidean_norm(tangential_velocity, keepdims=True) #############################
-        * jnp.log(nph.euclidean_norm(tangential_velocity, keepdims=True) + 1.0)
-        * (1.0 / time_step)
-    )
+    if use_nonconvex_friction_law:
+        friction_law = jnp.log(nph.euclidean_norm(tangential_velocity, keepdims=True) + 1.0)
+    else:
+        friction_law = nph.euclidean_norm(tangential_velocity, keepdims=True)
+    return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
 
 
 class EnergyObstacleArguments(NamedTuple):
@@ -52,9 +47,13 @@ class EnergyObstacleArguments(NamedTuple):
     base_energy_velocity: np.ndarray
 
 
+class StaticEnergyArguments(NamedTuple):
+    use_green_strain: bool
+    use_nonconvex_friction_law: bool
+
+
 def _get_boundary_integral(
-    acceleration,
-    args: EnergyObstacleArguments,
+    acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
@@ -82,6 +81,7 @@ def _get_boundary_integral(
         tangential_velocity=velocity_tangential,
         friction=friction,
         time_step=args.time_step,
+        use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
     boundary_integral = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
     return boundary_integral
@@ -183,8 +183,9 @@ def _energy_vector(value_vector, lhs, rhs):
     return value[0]
 
 
-def _energy_obstacle(acceleration_vector, args: EnergyObstacleArguments, use_green_strain: bool):
-    # TODO: Repeat if collision
+def _energy_obstacle(
+    acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
+):
     dimension = args.base_displacement.shape[1]
     main_energy0 = _energy_vector(
         value_vector=nph.stack_column(acceleration_vector),
@@ -194,21 +195,27 @@ def _energy_obstacle(acceleration_vector, args: EnergyObstacleArguments, use_gre
     main_energy1 = _compute_energy(
         acceleration=nph.unstack(acceleration_vector, dim=dimension),
         args=args,
-        use_green_strain=use_green_strain,
+        use_green_strain=static_args.use_green_strain,
     )
     return main_energy0 + main_energy1
 
 
 def _energy_obstacle_colliding(
-    acceleration_vector, args: EnergyObstacleArguments, use_green_strain: bool
+    acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
     # TODO: Repeat if collision
     dimension = args.base_displacement.shape[1]
     main_energy = _energy_obstacle(
-        acceleration_vector=acceleration_vector, args=args, use_green_strain=use_green_strain
+        acceleration_vector=acceleration_vector,
+        args=args,
+        static_args=static_args,
     )
     acceleration = nph.unstack(acceleration_vector, dim=dimension)
-    boundary_integral = _get_boundary_integral(acceleration=acceleration, args=args)
+    boundary_integral = _get_boundary_integral(
+        acceleration=acceleration,
+        args=args,
+        use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+    )
     return main_energy + boundary_integral
 
 
@@ -230,19 +237,22 @@ def _energy_obstacle_colliding(
 
 @dataclass
 class EnergyFunctions:
-    def __init__(self, use_green_strain):
+    def __init__(self, use_green_strain, use_nonconvex_friction_law):
+        static_args = StaticEnergyArguments(
+            use_green_strain=use_green_strain, use_nonconvex_friction_law=use_nonconvex_friction_law
+        )
         self.energy_obstacle_jax = jax.jit(
             lambda acceleration_vector, args: _energy_obstacle(
                 acceleration_vector=acceleration_vector,
                 args=args,
-                use_green_strain=use_green_strain,
+                static_args=static_args,
             )
         )
         self.energy_obstacle_colliding_jax = jax.jit(
             lambda acceleration_vector, args: _energy_obstacle_colliding(
                 acceleration_vector=acceleration_vector,
                 args=args,
-                use_green_strain=use_green_strain,
+                static_args=static_args,
             )
         )
         self.compute_displacement_energy_jax = jax.jit(
@@ -251,7 +261,7 @@ class EnergyFunctions:
                 dx_big_jax=dx_big_jax,
                 element_initial_volume=element_initial_volume,
                 body_prop=body_prop,
-                use_green_strain=use_green_strain,
+                use_green_strain=static_args.use_green_strain,
             )
         )
         self.compute_velocity_energy_jax = jax.jit(
@@ -260,12 +270,11 @@ class EnergyFunctions:
                 dx_big_jax=dx_big_jax,
                 element_initial_volume=element_initial_volume,
                 body_prop=body_prop,
-                use_green_strain=use_green_strain,
+                use_green_strain=static_args.use_green_strain,
             )
         )
 
     def get_energy_function(self, scene):
         if not scene.is_colliding():
             return self.energy_obstacle_jax
-        else:
-            return self.energy_obstacle_colliding_jax
+        return self.energy_obstacle_colliding_jax

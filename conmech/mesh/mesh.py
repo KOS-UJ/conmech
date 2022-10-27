@@ -7,7 +7,7 @@ from conmech.helpers import cmh
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN
+from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN, USE_NONCONVEX_FRICTION_LAW
 
 
 @numba.njit
@@ -132,15 +132,19 @@ class Mesh:
     def normalize(self):
         if hasattr(self.mesh_prop, "normalize"):
             return self.mesh_prop.normalize
-        else:
-            return NORMALIZE
+        return NORMALIZE
 
     @property
     def use_green_strain(self):
         if hasattr(self.mesh_prop, "use_green_strain"):
             return self.mesh_prop.use_green_strain
-        else:
-            return USE_GREEN_STRAIN
+        return USE_GREEN_STRAIN
+
+    @property
+    def use_nonconvex_friction_law(self):
+        if hasattr(self.mesh_prop, "use_nonconvex_friction_law"):
+            return self.mesh_prop.use_nonconvex_friction_law
+        return USE_NONCONVEX_FRICTION_LAW
 
     @property
     def normalized_initial_nodes(self):

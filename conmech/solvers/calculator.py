@@ -178,15 +178,15 @@ class Calculator:
         initial_a: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if True:  # setting.is_colliding():
-            return Calculator.solve_acceleration_normalized_optimization_jax(
-                scene=scene,
-                energy_functions=energy_functions,
-                temperature=temperature,
-                initial_a=initial_a,
-            )
-        return Calculator.solve_acceleration_normalized_function(
-            scene=scene, temperature=temperature, initial_a=initial_a
+        # if not scene.is_colliding():
+        #     return Calculator.solve_acceleration_normalized_function(
+        #         scene=scene, temperature=temperature, initial_a=initial_a
+        #     )
+        return Calculator.solve_acceleration_normalized_optimization_jax(
+            scene=scene,
+            energy_functions=energy_functions,
+            temperature=temperature,
+            initial_a=initial_a,
         )
 
     @staticmethod
@@ -196,11 +196,11 @@ class Calculator:
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
-        if True:  # setting.is_colliding():
-            return Calculator.solve_temperature_normalized_optimization(
-                scene, normalized_acceleration, initial_t
-            )
-        return Calculator.solve_temperature_normalized_function(
+        # if not scene.is_colliding():
+        #     return Calculator.solve_temperature_normalized_function(
+        #         scene, normalized_acceleration, initial_t
+        #     )
+        return Calculator.solve_temperature_normalized_optimization(
             scene, normalized_acceleration, initial_t
         )
 

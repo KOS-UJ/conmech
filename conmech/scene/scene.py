@@ -14,7 +14,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
-from conmech.scene.energy_functions import EnergyObstacleArguments
+from conmech.scene.energy_functions import EnergyObstacleArguments, _obstacle_resistance_potential_normal, _obstacle_resistance_potential_tangential
 from conmech.state.body_position import BodyPosition
 
 

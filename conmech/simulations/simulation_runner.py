@@ -250,7 +250,7 @@ def simulate(
     print(f"Nodes count: {scene.nodes_count}")
     print(f"Elements count: {scene.elements_count}")
 
-    energy_functions = EnergyFunctions(scene.use_green_strain)
+    energy_functions = EnergyFunctions(scene.use_green_strain, scene.use_nonconvex_friction_law)
 
     acceleration = None
     temperature = None

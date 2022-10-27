@@ -71,8 +71,7 @@ def build_initial_mesh(
                     return mesh_builders_3d.get_pygmsh_bunny(mesh_prop)
                 if "armadillo" in mesh_prop.mesh_type:
                     return mesh_builders_3d.get_pygmsh_armadillo()
-            else:
-                return mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)
+            return mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 

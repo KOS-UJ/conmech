@@ -138,6 +138,7 @@ def main(args, mesh_density=5, final_time=2, plot_animation=True):
     final_time = 2.5
     mesh_prop.normalize = False
     mesh_prop.use_green_strain = False
+    mesh_prop.use_nonconvex_friction_law = True
 
     forces_function = lambda *_: np.array([-0.7, 0, -2])
     obstacle_geometry = np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]])
