@@ -239,11 +239,27 @@ def main(args, mesh_density=5, final_time=2, plot_animation=True):
         #     heat_function=np.array([0]),
         # ),
     ]
+    other_scenarios = [
+        TemperatureScenario(
+            name="temperature_3d_bunny_push_base",
+            mesh_prop=mesh_prop,
+            body_prop=temp_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=lambda *_: np.array([0, 0, -2]),
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.0]]]),
+                TemperatureObstacleProperties(hardness=800.0, friction=0.0, heat=0.0),
+            ),
+            heat_function=np.array([0]),
+        ),
+    ]
 
     C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
     K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
 
-    all_scenarios = [*advanced_scenarios]  # , *C_temp_scenarios, *K_temp_scenarios]
+    all_scenarios = [
+        *advanced_scenarios
+    ]  # *advanced_scenarios, *other_scenarios , *C_temp_scenarios, *K_temp_scenarios]
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,

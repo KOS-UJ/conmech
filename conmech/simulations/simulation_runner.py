@@ -246,6 +246,9 @@ def simulate(
     all_time = time.time()
 
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
+    print(f"Mesh type: {scene.mesh_prop.mesh_type}")
+    print(f"Nodes count: {scene.nodes_count}")
+    print(f"Elements count: {scene.elements_count}")
 
     energy_functions = EnergyFunctions(scene.use_green_strain)
 

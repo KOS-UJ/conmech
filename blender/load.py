@@ -28,6 +28,7 @@ dense = True
 load_mesh = True
 load_world = True
 render = True
+draw_obstacle = True
 
 cycles = True  # False
 output_video = False  # True
@@ -305,7 +306,7 @@ def set_object_color(obj, rgb, alpha):
 
 
 def add_obstacle():
-    if not object_with_temperature():
+    if not draw_obstacle or not object_with_temperature():
         return
 
     mesh = bpy.ops.mesh.primitive_cube_add(location=(0, -1.3, 0))
