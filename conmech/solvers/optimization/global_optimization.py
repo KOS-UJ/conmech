@@ -37,6 +37,7 @@ class Quasistatic(Global):
             Variables(
                 displacement=self.u_vector,
                 electric_potential=self.p_vector,
+                time_step=self.time_step,
             )
         )
 
