@@ -38,6 +38,19 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     return result
 
 
+@numba.njit(inline="always")
+def interpolate_node_between_2(node_id_0, node_id_1, vector, dimension=DIMENSION):
+    result = np.zeros(dimension)
+    offset = len(vector) // dimension
+    for i in range(dimension):
+        if node_id_0 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += vector[i * offset + node_id_0]
+    # for i in range(dimension):
+    #     if node_id_1 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+    #         result[i] += 0.5 * vector[i * offset + node_id_1]
+    return result
+
+
 def make_equation(jn, jt, h_functional):
     jn = numba.njit(jn)
     jt = numba.njit(jt)
@@ -151,6 +164,61 @@ def make_cost_functional(
     def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old):
         ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
         result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
+        result = np.asarray(result).ravel()
+        return result
+
+    return cost_functional
+
+
+def make_cost_functional_2(
+    jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
+):
+    jn = njit(jn)
+    jt = njit(jt)
+    h_functional = njit(h_functional)
+
+    # @numba.njit()
+    def contact_cost_functional(v_vector, u_vector_old, nodes, contact_boundary):
+        cost = 0
+        offset = len(v_vector) // DIMENSION
+
+        for edge in contact_boundary:
+            n_id_0 = edge[0]
+            n_id_1 = edge[1]
+            n_0 = nodes[n_id_0]
+            n_1 = nodes[n_id_1]
+
+            # ASSUMING `u_vector` and `nodes` have the same order!
+            vm = interpolate_node_between_2(n_id_0, n_id_1, v_vector)
+            vm_2 = interpolate_node_between_2(n_id_1, n_id_0, v_vector)
+            um_old = interpolate_node_between_2(n_id_0, n_id_1, u_vector_old)
+            um_old_2 = interpolate_node_between_2(n_id_1, n_id_0, u_vector_old)
+
+            normal_vector = n_down(n_0, n_1)
+
+            vm_normal = (vm * normal_vector).sum()
+            um_old_normal = (um_old * normal_vector).sum()
+            vm_tangential = vm - vm_normal * normal_vector
+            vm_normal_2 = (vm_2 * normal_vector).sum()
+            um_old_normal_2 = (um_old_2 * normal_vector).sum()
+            vm_tangential_2 = vm_2 - vm_normal * normal_vector
+
+            if n_id_0 < offset and n_id_1 < offset:
+                cost += 0.5 * nph.length(n_0, n_1) * (
+                    jn(um_old_normal) * (vm_normal) +# h_functional(um_old_normal) * jt(vm_tangential)
+                    + jn(um_old_normal_2) * (vm_normal_2) #+ h_functional(um_old_normal_2) * jt(
+                    #vm_tangential_2)
+                )
+        return cost
+
+    # @numba.njit()
+    def cost_functional(v_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, v_vector_old, dt):
+        u_vector = u_vector_old + dt * v_vector
+        ju = contact_cost_functional(v_vector, u_vector, nodes, contact_boundary)
+        print("ju =", ju)
+        # if ju < 0 and np.max(u_vector) > 0:
+        #     print("!")
+        result = 0.5 * np.dot(np.dot(lhs, v_vector), v_vector) - np.dot(rhs, v_vector) + ju
         result = np.asarray(result).ravel()
         return result
 

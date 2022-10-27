@@ -114,9 +114,22 @@ class SchurComplement(Optimization):
         return self._node_forces
 
     def _solve(
-        self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
+        self,
+        initial_guess: np.ndarray,
+        *,
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs,
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_nodes(initial_guess)
+        displacement = kwargs.get("displacement")
+        if displacement is not None:
+            truncated_displacement = self.truncate_free_nodes(displacement)
+            kwargs["displacement"] = truncated_displacement
+        velocity = kwargs.get("velocity")
+        if velocity is not None:
+            truncated_velocity = self.truncate_free_nodes(velocity)
+            kwargs["velocity"] = truncated_velocity
+
         solution_contact = super()._solve(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
