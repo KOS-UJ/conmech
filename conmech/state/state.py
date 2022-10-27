@@ -42,9 +42,12 @@ class State:
         raise ValueError(f"Unknown coordinates {item}")
 
     def copy(self) -> "State":
-        return self.__copy__()
+        return self.__copy_internal()
 
     def __copy__(self) -> "State":
+        return self.__copy_internal()
+
+    def __copy_internal(self) -> "State":
         copy = State(self.mesh)
         copy.displacement[:] = self.displacement
         copy.displaced_nodes[:] = self.displaced_nodes

@@ -45,7 +45,6 @@ class SolverMatrices:
         self.contact_x_free: np.ndarray
         self.free_x_free_inverted: np.ndarray
 
-        self.lhs_inv: jax.interpreters.xla.DeviceArray
         self.lhs_boundary: jax.interpreters.xla.DeviceArray
 
         self.lhs_sparse_jax: jax.experimental.sparse.BCOO

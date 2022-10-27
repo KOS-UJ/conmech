@@ -7,7 +7,11 @@ from conmech.helpers import cmh
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.training_config import NORMALIZE, USE_GREEN_STRAIN, USE_NONCONVEX_FRICTION_LAW
+from deep_conmech.training_config import (
+    NORMALIZE,
+    USE_GREEN_STRAIN,
+    USE_NONCONVEX_FRICTION_LAW,
+)
 
 
 @numba.njit
@@ -61,6 +65,21 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
+def mesh_normalization_decorator(func: Callable):
+    def inner(self, *args, **kwargs):
+        saved_normalize = self.normalize
+        self.mesh_prop.normalize = True
+        if hasattr(self, "reduced"):
+            self.reduced.mesh_prop.normalize = True
+        returned_value = func(self, *args, **kwargs)
+        self.mesh_prop.normalize = saved_normalize
+        if hasattr(self, "reduced"):
+            self.reduced.mesh_prop.normalize = saved_normalize
+        return returned_value
+
+    return inner
+
+
 class Mesh:
     def __init__(
         self,
@@ -81,20 +100,6 @@ class Mesh:
             self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
 
         cmh.profile(fun_data, baypass=True)
-
-    def normalization_decorator(func: Callable):
-        def inner(self, *args, **kwargs):
-            saved_normalize = self.normalize
-            self.mesh_prop.normalize = True
-            if hasattr(self, "reduced"):
-                self.reduced.mesh_prop.normalize = True
-            returned_value = func(self, *args, **kwargs)
-            self.mesh_prop.normalize = saved_normalize
-            if hasattr(self, "reduced"):
-                self.reduced.mesh_prop.normalize = saved_normalize
-            return returned_value
-
-        return inner
 
     def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
         self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
@@ -122,7 +127,7 @@ class Mesh:
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
-    def normalize_shift(self, vectors):
+    def __normalize_shift(self, vectors):
         _ = self
         if not self.normalize:
             return vectors
@@ -148,7 +153,7 @@ class Mesh:
 
     @property
     def normalized_initial_nodes(self):
-        return self.normalize_shift(self.initial_nodes)
+        return self.__normalize_shift(self.initial_nodes)
 
     @property
     def input_initial_nodes(self):

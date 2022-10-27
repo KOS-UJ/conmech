@@ -52,6 +52,27 @@ class RunScenarioConfig:
     save_all: bool = False
 
 
+def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
+    scene_copy = copy.copy(scene)
+    scene_copy.prepare_to_save()
+
+    arrays_path = scenes_path + "_data"
+    nodes = scene.boundary_nodes
+    elements = scene.boundaries.boundary_surfaces
+    arrays = (nodes, elements)
+    if isinstance(scene, SceneTemperature):
+        temperatue = scene.t_old
+        arrays += (temperatue,)
+    scenes_file, indices_file = pkh.open_files_append(arrays_path)
+    with scenes_file, indices_file:
+        pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
+
+    if save_animation:
+        scenes_file, indices_file = pkh.open_files_append(scenes_path)
+        with scenes_file, indices_file:
+            pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
+
+
 def run_scenario(
     solve_function: Callable,
     scenario: Scenario,
@@ -89,7 +110,6 @@ def run_scenario(
 
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
-    index_skip = ts if run_config.save_all else 1
     plot_scenes_count = [0]
     with_reduced = hasattr(scene, "reduced")
     save_files = True  # run_config.plot_animation or run_config.save_all
@@ -113,36 +133,24 @@ def run_scenario(
         scenes_path_reduced = ""
         calculator_scenes_path = ""
 
-    def save_scene(scene: Scene, scenes_path: str):
-        scene_copy = copy.copy(scene)
-        scene_copy.prepare_to_save()
-
-        arrays_path = scenes_path + "_data"
-        nodes = scene.boundary_nodes
-        elements = scene.boundaries.boundary_surfaces
-        arrays = (nodes, elements)
-        if isinstance(scene, SceneTemperature):
-            temperatue = scene.t_old
-            arrays += (temperatue,)
-        scenes_file, indices_file = pkh.open_files_append(arrays_path)
-        with scenes_file, indices_file:
-            pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
-
-        if save_animation:
-            scenes_file, indices_file = pkh.open_files_append(scenes_path)
-            with scenes_file, indices_file:
-                pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
-
     step = [0]  # TODO: #65 Clean
 
     def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
-            save_scene(scene=scene, scenes_path=scenes_path)
+            save_scene(scene=scene, scenes_path=scenes_path, save_animation=save_animation)
             if with_reduced:
-                save_scene(scene=scene.reduced, scenes_path=scenes_path_reduced)
+                save_scene(
+                    scene=scene.reduced,
+                    scenes_path=scenes_path_reduced,
+                    save_animation=save_animation,
+                )
             if base_scene is not None:
-                save_scene(scene=base_scene, scenes_path=calculator_scenes_path)
+                save_scene(
+                    scene=base_scene,
+                    scenes_path=calculator_scenes_path,
+                    save_animation=save_animation,
+                )
         if plot_index:
             plot_scenes_count[0] += 1
         step[0] += 1
@@ -165,29 +173,27 @@ def run_scenario(
     if run_config.plot_animation:
         plot_blender()
 
-    if False:
-        animation_path = f"{final_catalog}/{scenario.name}.gif"
-        plot_scenario_animation(
-            scenario,
-            config,
-            animation_path,
-            time_skip,
-            index_skip,
-            plot_scenes_count[0],
-            all_scenes_path=scenes_path,
-            all_calc_scenes_path=calculator_scenes_path
-            if run_config.compare_with_base_scene
-            else None,
-        )
+        # animation_path = f"{final_catalog}/{scenario.name}.gif"
+        # plot_scenario_animation(
+        #     scenario,
+        #     config,
+        #     animation_path,
+        #     time_skip,
+        #     index_skip,
+        #     plot_scenes_count[0],
+        #     all_scenes_path=scenes_path,
+        #     all_calc_scenes_path=calculator_scenes_path
+        #     if run_config.compare_with_base_scene
+        #     else None,
+        # )
 
     return setting, scenes_path, energy_values
 
 
 def plot_blender():
-    subprocess.call(
-        "~/Desktop/Blender/blender-3.2.0-linux-x64/blender --background --python ~/Desktop/conmech/blender/load.py",
-        shell=True,
-    )
+    path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
+    args = " --background --python ~/Desktop/conmech/blender/load.py"
+    subprocess.call(path + args, shell=True)
 
 
 def plot_scenario_animation(
@@ -282,11 +288,12 @@ def simulate(
 
         if compare_with_base_scene:
             start_time = time.time()
-            base_a = Calculator.solve(base_scene)  # TODO #65: save in setting
+            # TODO #65: save in setting
+            base_a = Calculator.solve(scene=base_scene, energy_functions=energy_functions)
             calculator_time += time.time() - start_time
 
         scene.iterate_self(acceleration, temperature=temperature)
-        scene.exact_acceleration = acceleration  #####
+        scene.exact_acceleration = acceleration
 
         if compare_with_base_scene:
             base_scene.iterate_self(base_a)

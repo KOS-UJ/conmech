@@ -385,7 +385,7 @@ class GraphModelDynamic:
         )
         # reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
         #     net_reduced_lifted_new_displacement,
-        #     target_data.reduced_normalized_lifted_new_displacement,
+        #     target_data.reduced_norm_lifted_new_displacement,
         # )
         # reduced_lifted_acceleration_loss = thh.root_mean_square_error_torch(
         #     net_reduced_lifted_acceleration, target_data.reduced_normalized_lifted_acceleration

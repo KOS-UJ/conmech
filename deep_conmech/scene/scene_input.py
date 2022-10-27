@@ -182,7 +182,7 @@ class SceneInput(SceneRandomized):
             )
             new_displacement = self.prepare_node_data(
                 scene=scene,
-                data=scene.normalized_exact_new_displacement,
+                data=scene.norm_exact_new_displacement,
                 add_norm=True,
             )
             return np.hstack(
@@ -291,11 +291,9 @@ class SceneInput(SceneRandomized):
         target_data.normalized_exact_acceleration = thh.to_double(
             self.normalized_exact_acceleration
         )
-        target_data.normalized_new_displacement = thh.to_double(
-            self.normalized_exact_new_displacement
-        )
-        target_data.reduced_normalized_lifted_new_displacement = thh.to_double(
-            self.reduced.normalized_lifted_new_displacement
+        target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
+        target_data.reduced_norm_lifted_new_displacement = thh.to_double(
+            self.reduced.norm_lifted_new_displacement
         )
         target_data.reduced_normalized_lifted_acceleration = thh.to_double(
             self.reduced.normalized_lifted_acceleration

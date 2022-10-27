@@ -8,13 +8,17 @@ from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import lnh, nph
 from conmech.helpers.lnh import get_in_base
-from conmech.mesh.mesh import Mesh
+from conmech.mesh.mesh import Mesh, mesh_normalization_decorator
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces
-from conmech.scene.energy_functions import EnergyObstacleArguments, _obstacle_resistance_potential_normal, _obstacle_resistance_potential_tangential
+from conmech.scene.energy_functions import (
+    EnergyObstacleArguments,
+    _obstacle_resistance_potential_normal,
+    _obstacle_resistance_potential_tangential,
+)
 from conmech.state.body_position import BodyPosition
 
 
@@ -54,6 +58,7 @@ class Scene(BodyForces):
         self.linear_obstacles: np.ndarray = np.array([[], []])
         self.mesh_obstacles: List[BodyPosition] = []
         self.energy_functions = None
+        self.lifted_acceleration = None
         self.clear()
 
     def prepare(self, inner_forces):
@@ -221,8 +226,9 @@ class Scene(BodyForces):
         return _obstacle_resistance_potential_tangential(
             self.get_penetration_positive(),
             self.__get_boundary_v_tangential(),
-            self.obstacle_prop.friction,
-            self.time_step,
+            friction=self.obstacle_prop.friction,
+            time_step=self.time_step,
+            use_nonconvex_friction_law=self.use_nonconvex_friction_law,
         )
 
     @staticmethod
@@ -253,25 +259,25 @@ class Scene(BodyForces):
         # self.reduced ...
 
     @property
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def normalized_exact_acceleration(self):
         return self.normalize_rotate(self.exact_acceleration)
 
     @property
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def normalized_lifted_acceleration(self):
         return self.normalize_rotate(self.lifted_acceleration)
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def force_denormalize(self, acceleration):
         return self.denormalize_rotate(acceleration)
 
     @property
-    def normalized_exact_new_displacement(self):
+    def norm_exact_new_displacement(self):
         return self.to_normalized_displacement(self.exact_acceleration)
 
     @property
-    def normalized_lifted_new_displacement(self):
+    def norm_lifted_new_displacement(self):
         return self.to_normalized_displacement(self.lifted_acceleration)
 
     def to_displacement(self, acceleration):
@@ -284,7 +290,7 @@ class Scene(BodyForces):
         acceleration = (velocity - self.velocity_old) / self.time_step
         return acceleration
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def to_normalized_displacement(self, acceleration):
         displacement_new = self.to_displacement(acceleration)
 
@@ -295,7 +301,7 @@ class Scene(BodyForces):
         )
         return new_normalized_nodes - self.normalized_initial_nodes
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def to_normalized_displacement_rotated(self, acceleration):
         displacement_new = self.to_displacement(acceleration)
 
@@ -307,7 +313,7 @@ class Scene(BodyForces):
         assert np.allclose(new_normalized_nodes, self.normalize_shift_and_rotate(moved_nodes_new))
         return new_normalized_nodes - self.normalized_initial_nodes
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def to_normalized_displacement_rotated_displaced(self, acceleration):
         displacement_new = self.to_displacement(acceleration)
 

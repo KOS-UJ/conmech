@@ -118,13 +118,6 @@ class BodyForces(Dynamics):
         )
         return nph.stack_column(integrated_forces[self.independent_indices, :])
 
-        integrated_inner_forces = self.matrices.volume_at_nodes_jax @ jnp.array(
-            self.normalized_inner_forces
-        )
-        integrated_outer_forces = jnp.array(self.get_normalized_integrated_outer_forces())
-        integrated_forces = integrated_inner_forces + integrated_outer_forces
-        return nph.stack_column(integrated_forces[self.independent_indices, :])
-
     def get_integrated_forces_vector_np(self):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 

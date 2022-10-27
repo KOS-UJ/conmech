@@ -241,38 +241,48 @@ class EnergyFunctions:
         static_args = StaticEnergyArguments(
             use_green_strain=use_green_strain, use_nonconvex_friction_law=use_nonconvex_friction_law
         )
-        self.energy_obstacle_jax = jax.jit(
-            lambda acceleration_vector, args: _energy_obstacle(
+
+        def energy_obstacle(acceleration_vector, args):
+            return _energy_obstacle(
                 acceleration_vector=acceleration_vector,
                 args=args,
                 static_args=static_args,
             )
-        )
-        self.energy_obstacle_colliding_jax = jax.jit(
-            lambda acceleration_vector, args: _energy_obstacle_colliding(
+
+        self.energy_obstacle_jax = jax.jit(energy_obstacle)
+
+        def energy_obstacle_colliding(acceleration_vector, args):
+            return _energy_obstacle_colliding(
                 acceleration_vector=acceleration_vector,
                 args=args,
                 static_args=static_args,
             )
-        )
-        self.compute_displacement_energy_jax = jax.jit(
-            lambda displacement, dx_big_jax, element_initial_volume, body_prop: _compute_displacement_energy(
+
+        self.energy_obstacle_colliding_jax = jax.jit(energy_obstacle_colliding)
+
+        def compute_displacement_energy(
+            displacement, dx_big_jax, element_initial_volume, body_prop
+        ):
+            return _compute_displacement_energy(
                 displacement=displacement,
                 dx_big_jax=dx_big_jax,
                 element_initial_volume=element_initial_volume,
                 body_prop=body_prop,
                 use_green_strain=static_args.use_green_strain,
             )
-        )
-        self.compute_velocity_energy_jax = jax.jit(
-            lambda velocity, dx_big_jax, element_initial_volume, body_prop: _compute_velocity_energy(
+
+        self.compute_displacement_energy_jax = jax.jit(compute_displacement_energy)
+
+        def compute_velocity_energy(velocity, dx_big_jax, element_initial_volume, body_prop):
+            return _compute_velocity_energy(
                 velocity=velocity,
                 dx_big_jax=dx_big_jax,
                 element_initial_volume=element_initial_volume,
                 body_prop=body_prop,
                 use_green_strain=static_args.use_green_strain,
             )
-        )
+
+        self.compute_velocity_energy_jax = jax.jit(compute_velocity_energy)
 
     def get_energy_function(self, scene):
         if not scene.is_colliding():

@@ -307,7 +307,9 @@ class Calculator:
             cost_function,
             normalized_t_rhs_free,
         ) = scene.get_normalized_energy_temperature_np(normalized_a)
-        boundary_t_vector_np = Calculator.minimize_jax(cost_function, initial_t_boundary_vector)
+        boundary_t_vector_np = Calculator.minimize_jax(
+            cost_function, initial_t_boundary_vector, None
+        )
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)
         t_vector = Calculator.complete_t_vector(scene, normalized_t_rhs_free, boundary_t_vector)
