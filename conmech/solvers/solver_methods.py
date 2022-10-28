@@ -177,7 +177,7 @@ def make_cost_functional_2(
     jt = njit(jt)
     h_functional = njit(h_functional)
 
-    # @numba.njit()
+    @numba.njit()
     def contact_cost_functional(v_vector, u_vector_old, nodes, contact_boundary):
         cost = 0
         offset = len(v_vector) // DIMENSION
@@ -205,17 +205,16 @@ def make_cost_functional_2(
 
             if n_id_0 < offset and n_id_1 < offset:
                 cost += 0.5 * nph.length(n_0, n_1) * (
-                    jn(um_old_normal) * (vm_normal) +# h_functional(um_old_normal) * jt(vm_tangential)
-                    + jn(um_old_normal_2) * (vm_normal_2) #+ h_functional(um_old_normal_2) * jt(
-                    #vm_tangential_2)
+                    jn(um_old_normal) * vm_normal + h_functional(um_old_normal) * jt(vm_tangential)
+                    + jn(um_old_normal_2) * vm_normal_2 + h_functional(um_old_normal_2) * jt(vm_tangential_2)
                 )
         return cost
 
-    # @numba.njit()
+    @numba.njit()
     def cost_functional(v_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, v_vector_old, dt):
         u_vector = u_vector_old + dt * v_vector
         ju = contact_cost_functional(v_vector, u_vector, nodes, contact_boundary)
-        print("ju =", ju)
+        # print("ju =", ju)
         # if ju < 0 and np.max(u_vector) > 0:
         #     print("!")
         result = 0.5 * np.dot(np.dot(lhs, v_vector), v_vector) - np.dot(rhs, v_vector) + ju
