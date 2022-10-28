@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pickle
+import matplotlib.pyplot as plt
 
 
 from conmech.helpers.config import Config
@@ -12,7 +13,44 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamic
 from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
+from conmech.state.state import TemperatureState
 from examples.p_slope_contact_law import make_slope_contact_law
+import matplotlib.tri as tri
+
+
+def compute_error(ref: TemperatureState, sol: TemperatureState):
+    x = sol.body.mesh.initial_nodes[:, 0]
+    y = sol.body.mesh.initial_nodes[:, 1]
+
+    soltri = tri.Triangulation(x, y, triangles=sol.body.mesh.elements)
+    u1hi = tri.LinearTriInterpolator(soltri, sol.velocity[:, 0])
+    u2hi = tri.LinearTriInterpolator(soltri, sol.velocity[:, 1])
+    thi = tri.LinearTriInterpolator(soltri, sol.temperature)
+
+    total_abs_error = np.full_like(ref.temperature, fill_value=np.nan)
+
+    for element in ref.body.mesh.elements:
+        x0 = ref.body.mesh.initial_nodes[element[0]]
+        x1 = ref.body.mesh.initial_nodes[element[1]]
+        x2 = ref.body.mesh.initial_nodes[element[2]]
+        if total_abs_error[element[0]] != np.nan:
+            total_abs_error[element[0]] = (#abs(ref.velocity[element[0], 0] - u1hi(*x0))
+                                           #+ abs(ref.velocity[element[0], 1] - u2hi(*x0))
+                                            + abs(ref.temperature[element[0]] - thi(*x0)) / ref.temperature[element[0]]
+                                           )
+        if total_abs_error[element[1]] != np.nan:
+            total_abs_error[element[1]] = (#abs(ref.velocity[element[1], 0] - u1hi(*x1))
+                                           #+ abs(ref.velocity[element[1], 1] - u2hi(*x1))
+                                            + abs(ref.temperature[element[1]] - thi(*x1)) / ref.temperature[element[1]]
+                                           )
+        if total_abs_error[element[2]] != np.nan:
+            total_abs_error[element[2]] = (#abs(ref.velocity[element[2], 0] - u1hi(*x2))
+                                           #+ abs(ref.velocity[element[2], 1] - u2hi(*x2))
+                                            + abs(ref.temperature[element[2]] - thi(*x2)) / ref.temperature[element[2]]
+                                           )
+
+    return total_abs_error
+
 
 
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
@@ -76,7 +114,7 @@ class TDynamicSetup(TemperatureDynamic):
 
     @staticmethod
     def inner_forces(x):
-        return np.array([0.0, -9.81e3])
+        return np.array([0.0, -1])
 
     @staticmethod
     def outer_forces(x):
@@ -94,36 +132,79 @@ class TDynamicSetup(TemperatureDynamic):
 
 
 def main(steps, setup, show: bool = True, save: bool = False):
-    setup = setup or TDynamicSetup(mesh_type="cross")
-    runner = TDynamicProblemSolver(setup, solving_method="schur")
-
-    states = runner.solve(
-        n_steps=steps,
-        output_step=(0, 4, 8, 16, 32, 64),
-        verbose=True,
-        initial_displacement=setup.initial_displacement,
-        initial_velocity=setup.initial_velocity,
-        initial_temperature=setup.initial_temperature,
-    )
     config = Config()
-    # with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
-    #           'wb') as output:
-    #     pickle.dump(states[-1], output)
+    output_step = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256,]
+
+    # setup = setup or TDynamicSetup(mesh_type="cross")
+    # runner = TDynamicProblemSolver(setup, solving_method="schur")
     #
-    # with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
-    #           'rb') as output:
-    #     state = pickle.load(output)
-    #     print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
-    for state in states:
-        Drawer(state=state, config=config).draw(
-            temp_max=np.max(state.temperature), temp_min=np.min(state.temperature), show=True, save=False
+    # for step, state in zip(output_step, runner.solve(
+    #     n_steps=257,
+    #     output_step=output_step,
+    #     verbose=True,
+    #     initial_displacement=setup.initial_displacement,
+    #     initial_velocity=setup.initial_velocity,
+    #     initial_temperature=setup.initial_temperature,
+    # )):
+    #     with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}_t_{step}',
+    #               'wb') as output:
+    #         pickle.dump(state, output)
+
+    # fig, axes = plt.subplots(3, 2)
+    for si, step in enumerate([0, 64, 256]):
+        with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}_t_{step}',
+                  'rb') as output:
+            state6 = pickle.load(output)
+            print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
+            # Drawer(state=state6, config=config).draw(
+            #     temp_max=np.max(state6.temperature), temp_min=np.min(state6.temperature), draw_mesh=False, show=show, save=save
+            # )
+        with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))-1}_t_{step}',
+                  'rb') as output:
+            state5 = pickle.load(output)
+            print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
+            drawer = Drawer(state=state5, config=config)
+            drawer.node_size = 0
+            drawer.draw(#fig_axes=(fig, axes[si, 0]),
+                temp_max=0.275, temp_min=0.25, draw_mesh=False, show=show, save=False, title=f"t={step / 512}"
+            )
+        state_err = state6.copy()
+        state_err.temperature = compute_error(state6, state5)
+        drawer = Drawer(state=state_err, config=config, colormap="PuRd")
+        drawer.node_size = 0
+        drawer.draw(#fig_axes=(fig, axes[si, 1]),
+            temp_max=0.0005, temp_min=0, draw_mesh=False, show=show,
+            save=save, title=f"t={step / 512}"
         )
+        # plt.show()
+
+    # states = runner.solve(
+    #     n_steps=steps // 2 + 1,
+    #     output_step=(0, 4, 8, 16, 32, 64, 128, 256),
+    #     verbose=True,
+    #     initial_displacement=setup.initial_displacement,
+    #     initial_velocity=setup.initial_velocity,
+    #     initial_temperature=setup.initial_temperature,
+    # )
+    # config = Config()
+    # for state in states:
+    #     with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
+    #               'wb') as output:
+    #         pickle.dump(state, output)
+    #
+    #     with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
+    #               'rb') as output:
+    #         state = pickle.load(output)
+    #         print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
+    #         Drawer(state=state, config=config).draw(
+    #             temp_max=np.max(state.temperature), temp_min=np.min(state.temperature), show=True, save=False
+    #         )
 
 
 if __name__ == "__main__":
     T = 1
-    ks = [2**i for i in [6]]
-    hs = [2**i for i in [4]]
+    ks = [2**i for i in [9]]
+    hs = [2**i for i in [6]]
     for h in hs:
         for k in ks:
             setup = TDynamicSetup(mesh_type="cross")

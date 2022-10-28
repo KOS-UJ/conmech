@@ -14,17 +14,19 @@ from conmech.helpers.config import Config
 
 
 class Drawer:
-    def __init__(self, state, config: Config):
+    def __init__(self, state, config: Config, colormap=plt.cm.magma):
         self.state = state
         self.config = config
         self.mesh = state.body.mesh
-        self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+        self.node_size = 10 + (3000 / len(self.mesh.initial_nodes))
+        self.cmap = colormap
+        self.boundary_width = 2
 
     def get_directory(self):
         return f"./output/{self.config.current_time} - DRAWING"
 
-    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
-        fig, axes = plt.subplots()
+    def draw(self, fig_axes=None, temp_max=None, temp_min=None, draw_mesh=True, show=True, save=False, save_format="png", title=None):
+        fig, axes = fig_axes or plt.subplots()
 
         if hasattr(self.state, "temperature"):
             temperature = self.state.temperature[:]
@@ -33,16 +35,18 @@ class Drawer:
             electric_potential = self.state.electric_potential[:]
             self.draw_field(electric_potential, temp_min, temp_max, axes, fig)
 
-        self.draw_mesh(
-            self.mesh.initial_nodes,
-            axes,
-            label="Original",
-            node_color="0.6",
-            edge_color="0.8",
-        )
+        if draw_mesh:
+            self.draw_mesh(
+                self.mesh.initial_nodes,
+                axes,
+                label="Original",
+                node_color="0.6",
+                edge_color="0.8",
+            )
 
         nodes = self.state.displaced_nodes
-        self.draw_mesh(nodes, axes, label="Deformed", node_color="k")
+        if draw_mesh:
+            self.draw_mesh(nodes, axes, label="Deformed", node_color="k")
         self.draw_boundary(edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b")
         self.draw_boundary(
             edges=self.mesh.dirichlet_boundary, nodes=nodes, axes=axes, edge_color="r"
@@ -51,9 +55,12 @@ class Drawer:
 
         # turns on axis, since networkx turn them off
         plt.axis("on")
+        plt.xlim(0-.125, 1.5 + .125)
+        plt.ylim(0-.125, 1.0 + .125)
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
+        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 4.5, self.mesh.mesh_prop.scale_y * 6)
+        plt.title(title)
 
         if show:
             fig.tight_layout()
@@ -105,7 +112,7 @@ class Drawer:
             edge_color=edge_color,
             node_size=self.node_size,
             ax=axes,
-            width=6,
+            width=self.boundary_width,
         )
 
     def draw_field(self, field, v_min, v_max, axes, fig):
@@ -119,12 +126,12 @@ class Drawer:
             self.mesh.elements,
             field,
             n_layers,
-            cmap=plt.cm.magma,
+            cmap=self.cmap,
             vmin=v_min,
             vmax=v_max,
         )
 
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.magma, norm=plt.Normalize(vmin=v_min, vmax=v_max))
+        sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm)
+        fig.colorbar(sm, orientation="horizontal", label="Temperature relative error")
