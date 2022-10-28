@@ -97,24 +97,24 @@ def main(steps, setup, show: bool = True, save: bool = False):
     setup = setup or TDynamicSetup(mesh_type="cross")
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
-    states = runner.solve(
-        n_steps=steps,
-        output_step=(0, 4, 8, 16, 32, 64),
-        verbose=True,
-        initial_displacement=setup.initial_displacement,
-        initial_velocity=setup.initial_velocity,
-        initial_temperature=setup.initial_temperature,
-    )
+    # states = runner.solve(
+    #     n_steps=steps,
+    #     output_step=(0, 4, 8, 16, 32, 64),
+    #     verbose=True,
+    #     initial_displacement=setup.initial_displacement,
+    #     initial_velocity=setup.initial_velocity,
+    #     initial_temperature=setup.initial_temperature,
+    # )
     config = Config()
     # with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
     #           'wb') as output:
     #     pickle.dump(states[-1], output)
     #
-    # with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
-    #           'rb') as output:
-    #     state = pickle.load(output)
-    #     print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
-    for state in states:
+    with open(f'output/temp/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
+              'rb') as output:
+        state = pickle.load(output)
+        print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
+    # for state in states:
         Drawer(state=state, config=config).draw(
             temp_max=np.max(state.temperature), temp_min=np.min(state.temperature), show=True, save=False
         )
@@ -122,8 +122,8 @@ def main(steps, setup, show: bool = True, save: bool = False):
 
 if __name__ == "__main__":
     T = 1
-    ks = [2**i for i in [6]]
-    hs = [2**i for i in [4]]
+    ks = [2**i for i in [2]]
+    hs = [2**i for i in [2]]
     for h in hs:
         for k in ks:
             setup = TDynamicSetup(mesh_type="cross")
