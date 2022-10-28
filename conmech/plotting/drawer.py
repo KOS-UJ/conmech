@@ -6,7 +6,6 @@ Created at 21.08.2019
 """
 
 import matplotlib.pyplot as plt
-import matplotlib.patches
 import networkx as nx
 import numpy as np
 
@@ -15,41 +14,19 @@ from conmech.helpers.config import Config
 
 
 class Drawer:
-    def __init__(self, state, config: Config):
+    def __init__(self, state, config: Config, colormap=plt.cm.magma):
         self.state = state
         self.config = config
         self.mesh = state.body.mesh
-        self.node_size = 2 + (300 / len(self.mesh.initial_nodes))
-        self.line_width = self.node_size / 2
-        self.deformed_mesh_color = "k"
-        self.original_mesh_color = "0.7"
-        self.cmap = plt.cm.plasma
+        self.node_size = 10 + (3000 / len(self.mesh.initial_nodes))
+        self.cmap = colormap
+        self.boundary_width = 2
 
     def get_directory(self):
         return f"./output/{self.config.current_time} - DRAWING"
 
-    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
-        fig, axes = plt.subplots()
-
-
-        x_min = min(min(self.state.body.mesh.initial_nodes[:, 0]),
-                    min(self.state.displaced_nodes[:, 0]))
-        x_max = max(max(self.state.body.mesh.initial_nodes[:, 0]),
-                    max(self.state.displaced_nodes[:, 0]))
-        dx = x_max - x_min
-        x_margin = dx * 0.2
-        xlim = (x_min - x_margin, x_max + x_margin)
-        y_min = min(min(self.state.body.mesh.initial_nodes[:, 1]),
-                    min(self.state.displaced_nodes[:, 1]))
-        y_max = max(max(self.state.body.mesh.initial_nodes[:, 1]),
-                    max(self.state.displaced_nodes[:, 1]))
-        dy = y_max - y_min
-        y_margin = dy * 0.2
-        ylim = (y_min - y_margin, y_max + y_margin)
-
-        axes.fill_between(xlim, [ylim[0], ylim[0]], color='blue',alpha=.25)
-        axes.set_xlim(*xlim)
-        axes.set_ylim(*ylim)
+    def draw(self, fig_axes=None, temp_max=None, temp_min=None, draw_mesh=True, show=True, save=False, save_format="png", title=None):
+        fig, axes = fig_axes or plt.subplots()
 
         if hasattr(self.state, "temperature"):
             temperature = self.state.temperature[:]
@@ -58,24 +35,18 @@ class Drawer:
             electric_potential = self.state.electric_potential[:]
             self.draw_field(electric_potential, temp_min, temp_max, axes, fig)
 
-        if self.original_mesh_color is not None:
+        if draw_mesh:
             self.draw_mesh(
                 self.mesh.initial_nodes,
                 axes,
                 label="Original",
-                node_color=self.original_mesh_color,
-                edge_color=self.original_mesh_color,
+                node_color="0.6",
+                edge_color="0.8",
             )
 
         nodes = self.state.displaced_nodes
-        if self.original_mesh_color is not None:
-            self.draw_mesh(
-                nodes,
-                axes,
-                label="Deformed",
-                node_color=self.deformed_mesh_color,
-                edge_color=self.deformed_mesh_color,
-            )
+        if draw_mesh:
+            self.draw_mesh(nodes, axes, label="Deformed", node_color="k")
         self.draw_boundary(edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b")
         self.draw_boundary(
             edges=self.mesh.dirichlet_boundary, nodes=nodes, axes=axes, edge_color="r"
@@ -84,11 +55,12 @@ class Drawer:
 
         # turns on axis, since networkx turn them off
         plt.axis("on")
+        plt.xlim(0-.125, 1.5 + .125)
+        plt.ylim(0-.125, 1.0 + .125)
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        axes.set_aspect('equal', adjustable='box')
-
-        # fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
+        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 4.5, self.mesh.mesh_prop.scale_y * 6)
+        plt.title(title)
 
         if show:
             fig.tight_layout()
@@ -140,7 +112,7 @@ class Drawer:
             edge_color=edge_color,
             node_size=self.node_size,
             ax=axes,
-            width=self.line_width,
+            width=self.boundary_width,
         )
 
     def draw_field(self, field, v_min, v_max, axes, fig):
@@ -148,15 +120,6 @@ class Drawer:
         y = self.state.displaced_nodes[:, 1]
 
         n_layers = 100
-        axes.tricontour(
-            x,
-            y,
-            self.mesh.elements,
-            field,
-            15,
-            colors='k',
-            linewidths=0.2
-        )
         axes.tricontourf(
             x,
             y,
@@ -171,4 +134,4 @@ class Drawer:
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm, fraction=0.046, pad=0.04)
+        fig.colorbar(sm, orientation="horizontal", label="Temperature relative error")
