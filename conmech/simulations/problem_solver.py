@@ -429,7 +429,6 @@ class TemperatureTimeDependent(ProblemSolver):
         self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
 
         output_step = np.diff(output_step)
-        results = []
         done = 0
         for n in output_step:
             for _ in range(n):
@@ -454,9 +453,7 @@ class TemperatureTimeDependent(ProblemSolver):
                     # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
-            results.append(state.copy())
-
-        return results
+            yield state.copy()
 
 
 class PiezoelectricTimeDependent(ProblemSolver):

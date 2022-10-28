@@ -28,8 +28,8 @@ class Drawer:
     def get_directory(self):
         return f"./output/{self.config.current_time} - DRAWING"
 
-    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
-        fig, axes = plt.subplots()
+    def draw(self, fig_axes=None, temp_max=None, temp_min=None, draw_mesh=True, show=True, save=False, save_format="png", title=None):
+        fig, axes = fig_axes or plt.subplots()
 
 
         x_min = min(min(self.state.body.mesh.initial_nodes[:, 0]),
@@ -87,7 +87,7 @@ class Drawer:
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
         axes.set_aspect('equal', adjustable='box')
-
+        plt.title(title)
         # fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
 
         if show:
@@ -171,4 +171,4 @@ class Drawer:
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm, fraction=0.046, pad=0.04)
+        fig.colorbar(sm, orientation="horizontal", label="Temperature relative error")
