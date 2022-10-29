@@ -126,8 +126,8 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(args, mesh_density=5, final_time=2, plot_animation=True):
-    config = Config(shell=args.shell)
+def main(mesh_density=5, final_time=2, plot_animation=True, shell=False):
+    config = Config(shell=shell)
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
         dimension=3,
@@ -277,4 +277,4 @@ if __name__ == "__main__":
         "--shell", action=argparse.BooleanOptionalAction, default=False
     )  # Python 3.9+
     args = parser.parse_args()
-    main(args)
+    main(shell=args.shell)

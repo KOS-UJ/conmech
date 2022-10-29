@@ -127,7 +127,7 @@ class Mesh:
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
-    def __normalize_shift(self, vectors):
+    def _normalize_shift(self, vectors):
         _ = self
         if not self.normalize:
             return vectors
@@ -153,7 +153,7 @@ class Mesh:
 
     @property
     def normalized_initial_nodes(self):
-        return self.__normalize_shift(self.initial_nodes)
+        return self._normalize_shift(self.initial_nodes)
 
     @property
     def input_initial_nodes(self):

@@ -72,15 +72,16 @@ class SchurComplement(Optimization):
                     matrix[get_slice(indices_height, 0), get_slice(indices_width, 0)]
                 )
             else:
-                result_csr = scipy.sparse.bmat(
+                blocks = [
                     [
-                        [
-                            matrix[get_slice(indices_height, row), get_slice(indices_width, col)]
-                            for col in range(dimension)
-                        ]
-                        for row in range(dimension)
-                    ],
-                    format="coo",
+                        matrix[get_slice(indices_height, row), get_slice(indices_width, col)]
+                        for col in range(dimension)
+                    ]
+                    for row in range(dimension)
+                ]
+                result_csr = scipy.sparse.bmat(
+                    blocks,
+                    format="csr",  # coo",
                 )
             return jxh.to_jax_sparse(result_csr)
 
@@ -116,7 +117,7 @@ class SchurComplement(Optimization):
             lhs_boundary,
             free_x_free_inverted,
         ) = SchurComplement.calculate_schur_complement_matrices(
-            matrix=matrix,
+            matrix=scipy.sparse.csr_matrix(matrix),
             dimension=dimension,
             contact_indices=contact_indices,
             free_indices=free_indices,
@@ -368,4 +369,4 @@ class Dynamic(SchurComplement):
             contact_x_free=self.temper_contact_x_free,
             free_x_free=self.temper_free_x_free,  # inverted
         )
-        return A_contact.reshape(-1), A_free.reshape(-1)
+        return np.array(A_contact.reshape(-1), dtype=np.float64), A_free.reshape(-1)

@@ -42,12 +42,12 @@ class State:
         raise ValueError(f"Unknown coordinates {item}")
 
     def copy(self) -> "State":
-        return self.__copy_internal()
+        return self._copy_internal()
 
     def __copy__(self) -> "State":
-        return self.__copy_internal()
+        return self._copy_internal()
 
-    def __copy_internal(self) -> "State":
+    def _copy_internal(self) -> "State":
         copy = State(self.mesh)
         copy.displacement[:] = self.displacement
         copy.displaced_nodes[:] = self.displaced_nodes
@@ -64,7 +64,7 @@ class TemperatureState(State):
     def set_temperature(self, temperature_vector: np.ndarray):
         self.temperature = temperature_vector
 
-    def __copy__(self) -> "TemperatureState":
+    def _copy_internal(self) -> "TemperatureState":
         copy = TemperatureState(self.mesh)
         copy.displacement[:] = self.displacement
         copy.displaced_nodes[:] = self.displaced_nodes

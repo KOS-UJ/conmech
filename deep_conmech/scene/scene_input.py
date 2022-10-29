@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from conmech.helpers import nph
-from conmech.mesh.mesh import Mesh
+from conmech.mesh.mesh import Mesh, mesh_normalization_decorator
 from conmech.properties.body_properties import DynamicBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -85,7 +85,7 @@ class SceneInput(SceneRandomized):
             create_in_subprocess=create_in_subprocess,
         )
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def prepare_node_data(self, scene, data: np.ndarray, add_norm=False):
         # if approximate:
         #     approximated_data = self.approximate_boundary_or_all_from_base(
@@ -99,7 +99,7 @@ class SceneInput(SceneRandomized):
             result = nph.append_euclidean_norm(result)
         return result
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_edges_data(self, directional_edges, reduced=False):
         scene = self.reduced if reduced else self
 
@@ -130,7 +130,7 @@ class SceneInput(SceneRandomized):
             )
         )
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_multilayer_edges_data(self, directional_edges):
         # displacement_old_sparse = self.reduced.input_displacement_old
         # displacement_old_dense = self.input_displacement_old
@@ -153,7 +153,7 @@ class SceneInput(SceneRandomized):
             )
         )
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_nodes_data(self, reduced):
         scene = self.reduced if reduced else self
 
@@ -214,7 +214,7 @@ class SceneInput(SceneRandomized):
                 )
             )
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_multilayer_edges_with_data(self, link: MeshLayerLinkData):
         closest_nodes = torch.tensor(link.closest_nodes)
         edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
@@ -235,7 +235,7 @@ class SceneInput(SceneRandomized):
         # )
         return edges_index, edges_data, closest_nodes
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_features_data(self, layer_number: int = 0):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
@@ -285,7 +285,7 @@ class SceneInput(SceneRandomized):
         """
         return data
 
-    @Mesh.normalization_decorator
+    @mesh_normalization_decorator
     def get_target_data(self):
         target_data = TargetData()
         target_data.normalized_exact_acceleration = thh.to_double(

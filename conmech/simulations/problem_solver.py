@@ -53,7 +53,7 @@ class ProblemSolver:
                 thermal_conductivity=self.thermal_conductivity,
             )
         )
-        time_step = setup.time_step if with_time else 0
+        time_step = setup.time_step if with_time else 1
 
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
@@ -94,7 +94,7 @@ class ProblemSolver:
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
-            time_step = 0
+            time_step = 1
             body_prop = StaticTemperatureBodyProperties(
                 mu=self.setup.mu_coef,
                 lambda_=self.setup.la_coef,
