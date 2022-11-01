@@ -112,8 +112,8 @@ def run_scenario(
     ts = int(time_skip / scenario.time_step)
     plot_scenes_count = [0]
     with_reduced = hasattr(scene, "reduced")
-    save_files = True  # run_config.plot_animation or run_config.save_all
-    save_animation = True  # False
+    save_files = run_config.plot_animation or run_config.save_all
+    save_animation = run_config.plot_animation
 
     if save_files:
         final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"

@@ -126,16 +126,15 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=5, final_time=2, plot_animation=True, shell=False):
+def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     config = Config(shell=shell)
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
         dimension=3,
         mesh_type=M_BUNNY_3D,
         scale=[1],
-        mesh_density=[32],  # 16 32
+        mesh_density=[mesh_density],
     )
-    final_time = 2.5
     mesh_prop.normalize = False
     mesh_prop.use_green_strain = False
     mesh_prop.use_nonconvex_friction_law = True
@@ -213,7 +212,7 @@ def main(mesh_density=5, final_time=2, plot_animation=True, shell=False):
         #         dimension=3,
         #         mesh_type=M_BUNNY_3D,
         #         scale=[1],
-        #         mesh_density=[16],  # [32]
+        #         mesh_density=[mesh_density],
         #     ),
         #     body_prop=default_temp_body_prop,
         #     schedule=Schedule(final_time=final_time),
@@ -255,6 +254,7 @@ def main(mesh_density=5, final_time=2, plot_animation=True, shell=False):
         ),
     ]
 
+    # mesh_density = 5
     C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
     K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
 

@@ -6,6 +6,7 @@ import numba
 import numpy as np
 import pytest
 
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import (
     BoundariesFactory,
     extract_boundary_paths_from_elements,
@@ -209,6 +210,10 @@ def test_condition_boundaries(_test_name_, params):
         expected_neumann_boundary,
         expected_dirichlet_boundary,
     ) = params
+    
+    boundaries_description = BoundariesDescription(
+        contact=is_contact, dirichlet=is_dirichlet
+    )
 
     # Act
     (
@@ -216,7 +221,7 @@ def test_condition_boundaries(_test_name_, params):
         elements,
         boundaries_data,
     ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, numba.njit(is_dirichlet), numba.njit(is_contact)
+        unordered_nodes, unordered_elements, boundaries_description
     )
 
     # Assert

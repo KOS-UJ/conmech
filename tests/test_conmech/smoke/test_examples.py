@@ -25,7 +25,7 @@ test_suits = {
     "examples_2d": lambda: examples_2d(**default_args_deep),
     "examples_3d": lambda: examples_3d(**default_args_deep),
     "examples_temperature_2d": lambda: examples_temperature_2d(**default_args_deep),
-    "examples_temperature_3d": lambda: examples_temperature_3d(**default_args_deep),
+    "examples_temperature_3d": lambda: examples_temperature_3d(mesh_density=16, final_time=0.05, plot_animation=False),
 }
 
 

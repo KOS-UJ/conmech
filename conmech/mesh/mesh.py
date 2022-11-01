@@ -1,10 +1,12 @@
-from typing import Callable, Optional
+from typing import Callable
 
 import numba
 import numpy as np
 
-from conmech.helpers import cmh
+from conmech.helpers import cmh, nph
 from conmech.mesh import mesh_builders
+from conmech.mesh.boundaries import Boundaries
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.training_config import (
@@ -84,8 +86,7 @@ class Mesh:
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        is_dirichlet: Optional[Callable],
-        is_contact: Optional[Callable],
+        boundaries_description: BoundariesDescription,
         create_in_subprocess: bool,
     ):
         self.mesh_prop = mesh_prop
@@ -97,15 +98,18 @@ class Mesh:
         self.boundaries: Boundaries
 
         def fun_data():
-            self.reinitialize_data(mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
+            self.reinitialize_data(mesh_prop, boundaries_description, create_in_subprocess)
 
         cmh.profile(fun_data, baypass=True)
 
-    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        self.reinitialize_data(self.mesh_prop, is_dirichlet, is_contact, create_in_subprocess)
+    def remesh(self, boundaries_description, create_in_subprocess):
+        self.reinitialize_data(self.mesh_prop, boundaries_description, create_in_subprocess)
 
     def reinitialize_data(
-        self, mesh_prop: MeshProperties, is_dirichlet, is_contact, create_in_subprocess
+        self,
+        mesh_prop: MeshProperties,
+        boundaries_description: BoundariesDescription,
+        create_in_subprocess,
     ):
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_prop=mesh_prop,
@@ -121,8 +125,7 @@ class Mesh:
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes=unordered_nodes,
             unordered_elements=unordered_elements,
-            is_dirichlet_numba=None if is_dirichlet is None else numba.njit(is_dirichlet),
-            is_contact_numba=None if is_contact is None else numba.njit(is_contact),
+            boundaries_description=boundaries_description,
         )
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)

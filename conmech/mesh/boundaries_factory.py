@@ -1,11 +1,14 @@
 """
 Created at 16.02.2022
 """
-from dataclasses import dataclass
-from typing import Callable, Optional, Tuple
+from typing import Callable, Tuple
 
 import numba
 import numpy as np
+
+from conmech.mesh.boundaries import Boundaries
+from conmech.mesh.boundaries_description import BoundariesDescription
+from conmech.mesh.boundary import Boundary
 
 
 @numba.njit
@@ -146,28 +149,6 @@ def reorder_numba(
     return nodes, elements, len(selected_indices)
 
 
-@dataclass
-class Boundaries:
-    contact_boundary: np.ndarray
-    neumann_boundary: np.ndarray
-    dirichlet_boundary: np.ndarray
-
-    contact_nodes_count: int
-    neumann_nodes_count: int
-    dirichlet_nodes_count: int
-
-    boundary_internal_indices: np.ndarray
-    boundary_surfaces: np.ndarray
-
-    @property
-    def boundary_nodes_count(self):
-        return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
-
-    @property
-    def boundary_indices(self):
-        return slice(self.boundary_nodes_count)
-
-
 class BoundariesFactory:
     """
     Rules:
@@ -180,9 +161,13 @@ class BoundariesFactory:
     def identify_boundaries_and_reorder_nodes(
         unordered_nodes: np.ndarray,
         unordered_elements: np.ndarray,
-        is_dirichlet_numba: Optional[Callable],
-        is_contact_numba: Optional[Callable],
+        boundaries_description: BoundariesDescription,
     ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
+        is_dirichlet = boundaries_description["dirichlet"]
+        is_contact = boundaries_description["contact"]
+        is_dirichlet_numba = None if is_dirichlet is None else numba.njit(is_dirichlet)
+        is_contact_numba = None if is_contact is None else numba.njit(is_contact)
+
         (
             initial_nodes,
             elements,
@@ -200,9 +185,9 @@ class BoundariesFactory:
         boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
         if is_contact_numba is None:
             # is_contact_numba is None - assuming all contact
-            contact_boundary = boundary_surfaces
-            dirichlet_boundary = np.empty(shape=(0, boundary_surfaces.shape[-1]), dtype=np.int64)
-            neumann_boundary = dirichlet_boundary.copy()
+            contact_boundary_surfaces = boundary_surfaces
+            dirichlet_boundary_surfaces = np.empty(shape=(0, boundary_surfaces.shape[-1]), dtype=np.int64)
+            neumann_boundary_surfaces = dirichlet_boundary_surfaces.copy()
         else:
             boundary_surface_centers = get_surface_centers(
                 surfaces=boundary_surfaces, nodes=initial_nodes
@@ -219,27 +204,49 @@ class BoundariesFactory:
                 np.logical_not(dirichlet_mask), np.logical_not(contact_mask)
             )
 
-            dirichlet_boundary = boundary_surfaces[dirichlet_mask]
-            contact_boundary = boundary_surfaces[contact_mask]
-            neumann_boundary = boundary_surfaces[neumann_mask]
+            dirichlet_boundary_surfaces = boundary_surfaces[dirichlet_mask]
+            contact_boundary_surfaces = boundary_surfaces[contact_mask]
+            neumann_boundary_surfaces = boundary_surfaces[neumann_mask]
 
-        # boundary_surfaces2 = np.unique(
-        #     np.vstack((contact_boundary, neumann_boundary, dirichlet_boundary)),
-        #     axis=1,
-        # )
-
-        boundaries_data = Boundaries(
-            contact_boundary=contact_boundary,
-            neumann_boundary=neumann_boundary,
-            dirichlet_boundary=dirichlet_boundary,
-            contact_nodes_count=contact_nodes_count,
-            neumann_nodes_count=neumann_nodes_count,
-            dirichlet_nodes_count=dirichlet_nodes_count,
-            boundary_internal_indices=boundary_internal_indices,
-            boundary_surfaces=boundary_surfaces,
+        contact_boundary = Boundary(
+            surfaces=contact_boundary_surfaces,
+            node_indices=slice(0, contact_nodes_count),
+            node_count=contact_nodes_count,
+        )
+        neumann_boundary = Boundary(
+            surfaces=neumann_boundary_surfaces,
+            node_indices=slice(contact_nodes_count, contact_nodes_count + neumann_nodes_count),
+            node_count=neumann_nodes_count,
+        )
+        dirichlet_boundary = Boundary(
+            surfaces=dirichlet_boundary_surfaces,
+            node_indices=slice(contact_nodes_count + neumann_nodes_count, boundary_nodes_count),
+            node_count=dirichlet_nodes_count,
         )
 
-        return initial_nodes, elements, boundaries_data
+        other_boundaries = {}
+        for name, indicator in boundaries_description.boundaries.items():
+            if name not in ("contact", "dirichlet"):
+                mask = get_nodes_mask_numba(
+                    nodes=boundary_surface_centers,
+                    predicate_numba=indicator,
+                )
+                surfaces = boundary_surfaces[mask]
+                node_indices = np.unique(surfaces).sort()
+                if node_indices:
+                    other_boundaries[name] = Boundary(
+                        surfaces=surfaces, node_indices=node_indices, node_count=node_indices.size
+                    )
+
+        boundaries = Boundaries(
+            boundary_internal_indices=boundary_internal_indices,
+            contact=contact_boundary,
+            neumann=neumann_boundary,
+            dirichlet=dirichlet_boundary,
+            **other_boundaries,
+        )
+
+        return initial_nodes, elements, boundaries
 
 
 # For tests

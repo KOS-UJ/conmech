@@ -31,7 +31,7 @@ render = True
 draw_obstacle = True
 
 cycles = True  # False
-output_video = False  # True
+output_video = True  # True
 output_path = "/home/michal/Desktop/conmech/output"
 
 
