@@ -186,7 +186,9 @@ class BoundariesFactory:
         if is_contact_numba is None:
             # is_contact_numba is None - assuming all contact
             contact_boundary_surfaces = boundary_surfaces
-            dirichlet_boundary_surfaces = np.empty(shape=(0, boundary_surfaces.shape[-1]), dtype=np.int64)
+            dirichlet_boundary_surfaces = np.empty(
+                shape=(0, boundary_surfaces.shape[-1]), dtype=np.int64
+            )
             neumann_boundary_surfaces = dirichlet_boundary_surfaces.copy()
         else:
             boundary_surface_centers = get_surface_centers(

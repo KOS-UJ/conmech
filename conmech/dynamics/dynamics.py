@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 import jax.experimental.sparse
 import jax.interpreters.xla
@@ -12,6 +12,7 @@ from jax import lax
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
 from conmech.helpers.lnh import complete_base
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
@@ -130,14 +131,12 @@ class Dynamics(BodyPosition):
         body_prop: StaticBodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
-        is_dirichlet: Optional[Callable],
-        is_contact: Optional[Callable],
+        boundaries_description: Optional[BoundariesDescription] = None,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
-            is_dirichlet=is_dirichlet,
-            is_contact=is_contact,
+            boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
         )
         self.body_prop = body_prop
@@ -166,8 +165,8 @@ class Dynamics(BodyPosition):
     #     super().iterate_self(acceleration, temperature)
     #     # self.reinitialize_matrices()  ###!!!
 
-    def remesh(self, is_dirichlet, is_contact, create_in_subprocess):
-        super().remesh(is_dirichlet, is_contact, create_in_subprocess)
+    def remesh(self, boundaries_description, create_in_subprocess):
+        super().remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):

@@ -3,11 +3,11 @@ from typing import Callable
 import numba
 import numpy as np
 
-from conmech.helpers import cmh, nph
+from conmech.helpers import cmh
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries import Boundaries
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.mesh.boundaries_factory import Boundaries, BoundariesFactory
+from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.training_config import (
     NORMALIZE,

@@ -1,6 +1,6 @@
 import copy
 from ctypes import ArgumentError
-from typing import Callable, Optional
+from typing import Optional
 
 import numba
 import numpy as np
@@ -97,13 +97,11 @@ class BodyPosition(Mesh):
         self,
         mesh_prop: MeshProperties,
         schedule: Schedule,
-        is_dirichlet: Optional[Callable] = None,
-        is_contact: Optional[Callable] = None,
+        boundaries_description: Optional[BoundariesDescription] = None,
         create_in_subprocess: bool = False,
     ):
-        boundaries_description = BoundariesDescription(
-            contact=is_contact, dirichlet=is_dirichlet
-        )
+        if boundaries_description is None:
+            boundaries_description = BoundariesDescription(contact=None, dirichlet=None)
         super().__init__(
             mesh_prop=mesh_prop,
             boundaries_description=boundaries_description,

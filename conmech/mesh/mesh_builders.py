@@ -4,7 +4,11 @@ from typing import Tuple
 import numpy as np
 
 from conmech.helpers import lnh, mph
-from conmech.mesh import mesh_builders_2d, mesh_builders_3d, mesh_builders_legacy
+from conmech.mesh import (
+    mesh_builders_2d,
+    mesh_builders_3d,
+    mesh_builders_legacy,
+)
 from conmech.properties.mesh_properties import MeshProperties
 from deep_conmech.data import interpolation_helpers
 
@@ -76,3 +80,23 @@ def build_initial_mesh(
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
     raise NotImplementedError(f"Mesh type not implemented: {mesh_prop.mesh_type}")
+
+
+# def special_mesh(mesh_prop):
+#     with pygmsh.geo.Geometry() as geom:
+#         geom.add_polygon(
+#             [
+#                 [0.0, 1.0],
+#                 [1.0, 0.0],
+#                 [3.0, 0.0],
+#                 [3.0, 1.0],
+#                 [1.5, 1.0],
+#                 [1.0, 1.5],
+#                 [1.0, 4.0],
+#                 [0.0, 4.0],
+#             ],
+#             mesh_size=0.1,
+#         )
+#         mesh_builders_helpers.set_mesh_size(geom, mesh_prop)
+#         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 2)
+#     return nodes, elements

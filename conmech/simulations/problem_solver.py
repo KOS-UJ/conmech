@@ -6,6 +6,7 @@ from typing import Callable, List, Optional, Tuple
 import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration
+from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
     DynamicTemperatureBodyProperties,
     StaticTemperatureBodyProperties,
@@ -57,6 +58,9 @@ class ProblemSolver:
 
         grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
 
+        boundaries_description = BoundariesDescription(
+            contact=setup.is_contact, dirichlet=setup.is_dirichlet
+        )
         self.body = BodyForces(
             mesh_prop=MeshProperties(
                 dimension=2,
@@ -66,8 +70,7 @@ class ProblemSolver:
             ),
             body_prop=body_prop,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            is_dirichlet=setup.is_dirichlet,
-            is_contact=setup.is_contact,
+            boundaries_description=boundaries_description,
             dynamics_config=DynamicsConfiguration(
                 create_in_subprocess=False,
                 with_lhs=False,
