@@ -22,4 +22,4 @@ jobs:
 
       - name: Running tests
         shell: bash
-        run: PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception
+        run: PYTHONPATH=. pytest --ignore=tests/test_deep_conmech -p no:unraisableexception -s

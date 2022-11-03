@@ -259,6 +259,7 @@ class BoundariesFactory:
 
 # For tests
 
+
 def extract_boundary_paths_from_elements(elements):
     boundary_surfaces, *_ = get_boundary_surfaces(elements)
     boundary_indices_to_visit = extract_unique_indices(boundary_surfaces)

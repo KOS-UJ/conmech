@@ -67,7 +67,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     )
 
 
-def main(show: bool=True, save: bool = False):
+def main(show: bool = True, save: bool = False):
     setup = PQuasistaticSetup(mesh_type="Barboteu2008")
     runner = PiezoelectricTimeDependent(setup, solving_method="schur")
 
