@@ -29,6 +29,7 @@ class SceneRandomized(SceneLayers):
         self.displacement_to_velocity_noise = 0
         self.velocity_randomization = np.zeros_like(self.initial_nodes)
         self.displacement_randomization = np.zeros_like(self.initial_nodes)
+
         # printer.print_setting_internal(self, f"output/setting_{helpers.get_timestamp()}.png", None, "png", 0)
 
     # def remesh(self):
