@@ -258,25 +258,5 @@ class Dynamics(BodyPosition):
         return jxh.to_dense_np(self.matrices.volume_at_nodes)
 
     @property
-    def acceleration_operator(self):
-        return jxh.to_dense_np(self.matrices.acceleration_operator)
-
-    @property
-    def elasticity(self):
-        return jxh.to_dense_np(self.matrices.elasticity)
-
-    @property
-    def viscosity(self):
-        return jxh.to_dense_np(self.matrices.viscosity)
-
-    @property
-    def thermal_expansion(self):
-        return jxh.to_dense_np(self.matrices.thermal_expansion)
-
-    @property
-    def thermal_conductivity(self):
-        return jxh.to_dense_np(self.matrices.thermal_conductivity)
-
-    @property
     def with_temperature(self):
         return isinstance(self.body_prop, TemperatureBodyProperties)

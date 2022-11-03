@@ -1,7 +1,8 @@
 from ctypes import ArgumentError
 from typing import Tuple
-import numpy as np
+
 import numba
+import numpy as np
 
 
 @numba.njit
@@ -38,4 +39,10 @@ class AbstractDynamicsFactory:
         raise NotImplementedError()
 
     def calculate_thermal_conductivity(self, W, coeff):
+        raise NotImplementedError()
+
+    def get_piezoelectric_tensor(self, W, coeff):
+        raise NotImplementedError()
+
+    def get_permittivity_tensor(self, W, coeff):
         raise NotImplementedError()

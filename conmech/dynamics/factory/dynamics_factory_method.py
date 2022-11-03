@@ -11,9 +11,10 @@ from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.helpers import jxh
 from conmech.properties.body_properties import (
-    DynamicBodyProperties,
+    PiezoelectricBodyProperties,
     StaticBodyProperties,
     TemperatureBodyProperties,
+    TimeDependentBodyProperties,
 )
 
 
@@ -27,6 +28,9 @@ class ConstMatrices:
         self.viscosity: scipy.sparse.csr_matrix
         self.thermal_expansion: scipy.sparse.csr_matrix
         self.thermal_conductivity: scipy.sparse.csr_matrix
+
+        self.piezoelectricity: scipy.sparse.csr_matrix
+        self.permittivity: scipy.sparse.csr_matrix
 
         self.dx_big: np.ndarray
         self.dx_big_jax: jax.experimental.sparse.BCOO
@@ -107,7 +111,7 @@ def get_dynamics(
 
     result.viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, DynamicBodyProperties)
+        if isinstance(body_prop, TimeDependentBodyProperties)
         else None
     )
 
@@ -123,6 +127,13 @@ def get_dynamics(
     else:
         result.thermal_expansion = None
         result.thermal_conductivity = None
+
+    if isinstance(body_prop, PiezoelectricBodyProperties):
+        result.piezoelectricity = factory.get_piezoelectric_tensor(W, body_prop.piezoelectricity)
+        result.permittivity = factory.get_permittivity_tensor(W, body_prop.permittivity)
+    else:
+        result.piezoelectricity = None
+        result.permittivity = None
 
     result.initialize_sparse_jax()
     return result

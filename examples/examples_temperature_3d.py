@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import numpy as np
 
 from conmech.helpers.config import Config
-from conmech.properties.body_properties import DynamicTemperatureBodyProperties
+from conmech.properties.body_properties import TimeDependentTemperatureBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -146,7 +146,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     thermal_conductivity_coefficients = np.array(
         [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
     )
-    temp_body_prop = DynamicTemperatureBodyProperties(
+    temp_body_prop = TimeDependentTemperatureBodyProperties(
         mass_density=1.0,
         mu=10.0,
         lambda_=10.0,

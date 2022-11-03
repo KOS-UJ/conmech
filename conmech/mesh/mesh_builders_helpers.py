@@ -28,10 +28,15 @@ def normalize(nodes: np.ndarray):
     return (nodes - v_min) / (v_max - v_min)
 
 
-def get_normalized_nodes_and_elements(geom, dimension: int):
+def get_nodes_and_elements(geom, dimension: int):
     geom_mesh = geom.generate_mesh()
     points = geom_mesh.points.copy()
-    initial_nodes = points[:, :dimension]
+    nodes = points[:, :dimension]
     elements = geom_mesh.cells[-2].data.astype("long").copy()
+    return nodes, elements
+
+
+def get_normalized_nodes_and_elements(geom, dimension: int):
+    initial_nodes, elements = get_nodes_and_elements(geom, dimension)
     nodes = normalize(initial_nodes)
     return nodes, elements

@@ -7,7 +7,7 @@ import numpy as np
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
 from conmech.helpers import nph
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.solvers.optimization.schur_complement import SchurComplement
@@ -49,7 +49,7 @@ class BodyForces(Dynamics):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
@@ -143,8 +143,9 @@ class BodyForces(Dynamics):
         f_vector = self.get_integrated_forces_column_np()
         rhs = (
             f_vector
-            - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector
-            - self.elasticity @ displacement_old_vector
+            - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)
+            @ velocity_old_vector
+            - self.matrices.elasticity @ displacement_old_vector
         )
 
         return rhs

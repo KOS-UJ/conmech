@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.helpers.config import Config
-from conmech.properties.body_properties import DynamicBodyProperties
+from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -43,7 +43,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
             mesh_prop=MeshProperties(
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
-            body_prop=DynamicBodyProperties(
+            body_prop=TimeDependentBodyProperties(
                 mu=12,  # 8,
                 lambda_=12,  # 8,
                 theta=4,
@@ -75,7 +75,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
-            body_prop=DynamicBodyProperties(
+            body_prop=TimeDependentBodyProperties(
                 mu=12,  # 8,
                 lambda_=12,  # 8,
                 theta=4,
@@ -99,7 +99,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
                 scale=[1],
                 mesh_density=[32],
             ),
-            body_prop=DynamicBodyProperties(
+            body_prop=TimeDependentBodyProperties(
                 mu=8,
                 lambda_=8,
                 theta=8,
@@ -121,7 +121,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
                 scale=[1],
                 mesh_density=[32],
             ),
-            body_prop=DynamicBodyProperties(
+            body_prop=TimeDependentBodyProperties(
                 mu=12,
                 lambda_=12,
                 theta=16,
@@ -142,7 +142,7 @@ def main(mesh_density=8, final_time=4, plot_animation=True):  # 8 20 100
         #         scale=[1],
         #         mesh_density=[mesh_density],
         #     ),
-        #     body_prop=DynamicBodyProperties(
+        #     body_prop=TimeDependentBodyProperties(
         #         mu=12,
         #         lambda_=12,
         #         theta=8,

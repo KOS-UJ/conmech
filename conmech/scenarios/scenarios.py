@@ -5,8 +5,8 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
-    DynamicBodyProperties,
-    DynamicTemperatureBodyProperties,
+    TimeDependentBodyProperties,
+    TimeDependentTemperatureBodyProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import (
@@ -26,7 +26,7 @@ class Scenario:
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: DynamicBodyProperties,
+        body_prop: TimeDependentBodyProperties,
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
@@ -110,7 +110,7 @@ class TemperatureScenario(Scenario):
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: DynamicTemperatureBodyProperties,
+        body_prop: TimeDependentTemperatureBodyProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacle: Obstacle,
@@ -156,14 +156,14 @@ SCALE_MASS = 1.0
 SCALE_COEFF = 1.0
 SCALE_FORCES = 1.0
 
-default_body_prop = DynamicBodyProperties(
+default_body_prop = TimeDependentBodyProperties(
     mu=4.0 * SCALE_COEFF,
     lambda_=4.0 * SCALE_COEFF,
     theta=4.0 * SCALE_COEFF,
     zeta=4.0 * SCALE_COEFF,
     mass_density=SCALE_MASS,
 )
-default_body_prop_3d = DynamicBodyProperties(
+default_body_prop_3d = TimeDependentBodyProperties(
     mu=12,  # 8,
     lambda_=12,  # 8,
     theta=4,
@@ -178,7 +178,7 @@ default_thermal_expansion_coefficients = np.array(
 default_thermal_conductivity_coefficients = np.array(
     [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
 )
-default_temp_body_prop = DynamicTemperatureBodyProperties(
+default_temp_body_prop = TimeDependentTemperatureBodyProperties(
     mass_density=1.0,
     mu=4.0,
     lambda_=4.0,
@@ -207,7 +207,7 @@ obstacle_mesh_prop = [
 
 
 def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
-    return DynamicTemperatureBodyProperties(
+    return TimeDependentTemperatureBodyProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,

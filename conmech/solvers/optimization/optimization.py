@@ -2,45 +2,61 @@
 Created at 18.02.2021
 """
 import math
+
 import numpy as np
 import scipy.optimize
 
+from conmech.dynamics.statement import StaticDisplacementStatement
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional
-from conmech.solvers.solver_methods import make_cost_functional_temperature
+from conmech.solvers.solver_methods import (
+    make_cost_functional,
+    make_cost_functional_temperature,
+)
 
 
 class Optimization(Solver):
     def __init__(
         self,
-        mesh,
         statement,
-        body_prop,
+        body,
         time_step,
         contact_law,
         friction_bound,
     ):
         super().__init__(
-            mesh,
             statement,
-            body_prop,
+            body,
             time_step,
             contact_law,
             friction_bound,
         )
-        self.loss = make_cost_functional(
-            jn=contact_law.potential_normal_direction,
-            jt=contact_law.potential_tangential_direction
-            if hasattr(contact_law, "potential_tangential_direction")
-            else None,
-            h_functional=friction_bound,
-        )
-        if hasattr(contact_law, "h_temp"):
-            self.loss_temp = make_cost_functional_temperature(
+        if statement.dimension == 2:  # TODO
+            self.loss = make_cost_functional(
+                jn=contact_law.potential_normal_direction,
+                jt=contact_law.potential_tangential_direction
+                if hasattr(contact_law, "potential_tangential_direction")
+                else None,
+                h_functional=friction_bound,
+            )
+        else:
+            self.loss = make_cost_functional_temperature(
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
             )
+        # self.loss = make_cost_functional(
+        #     jn=contact_law.potential_normal_direction,
+        #     jt=contact_law.potential_tangential_direction
+        #     if hasattr(contact_law, "potential_tangential_direction")
+        #     else None,
+        #     h_functional=friction_bound,
+        # )
+        # if hasattr(contact_law, "h_temp"):
+        #     self.loss_temp = make_cost_functional_temperature(
+        #         h_functional=contact_law.h_temp,
+        #         hn=contact_law.h_nu,
+        #         ht=contact_law.h_tau,
+        #     )
 
     def __str__(self):
         raise NotImplementedError()
@@ -54,10 +70,16 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     def solve(
-        self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
+        self,
+        initial_guess: np.ndarray,
+        *,
+        velocity: np.ndarray,
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs,
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
+        velocity = np.squeeze(velocity.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
 
         while norm >= fixed_point_abs_tol:
@@ -65,11 +87,13 @@ class Optimization(Solver):
                 self.loss,
                 solution,
                 args=(
-                    old_solution,
-                    self.mesh.initial_nodes,
-                    self.mesh.contact_boundary,
+                    self.body.initial_nodes,
+                    self.body.contact_boundary,
                     self.node_relations,
                     self.node_forces,
+                    old_solution
+                    if isinstance(self.statement, StaticDisplacementStatement)
+                    else velocity,
                 ),
                 method="BFGS",
                 options={"disp": True, "maxiter": len(initial_guess) * 1e5},
@@ -81,24 +105,24 @@ class Optimization(Solver):
             old_solution = solution.copy()
         return solution
 
-    def solve_t(self, initial_guess: np.ndarray, velocity: np.ndarray) -> np.ndarray:
-        loss_args = (
-            self.mesh.initial_nodes,
-            self.mesh.contact_boundary,
-            # pylint: disable=no-member # TODO #48
-            self.node_temperature,
-            # pylint: disable=no-member # TODO #48
-            self.temper_rhs,
-            velocity,
-        )
-        # TODO #33
-        result = scipy.optimize.minimize(
-            self.loss_temp,
-            initial_guess,
-            args=loss_args,
-            method="BFGS",
-            options={"disp": True, "maxiter": len(initial_guess) * 1e5},
-            tol=1e-12,
-        )
-        result = result.x
-        return result
+    # def solve_t(self, initial_guess: np.ndarray, velocity: np.ndarray) -> np.ndarray:
+    #     loss_args = (
+    #         self.mesh.initial_nodes,
+    #         self.mesh.contact_boundary,
+    #         # pylint: disable=no-member # TODO #48
+    #         self.node_temperature,
+    #         # pylint: disable=no-member # TODO #48
+    #         self.temper_rhs,
+    #         velocity,
+    #     )
+    #     # TODO #33
+    #     result = scipy.optimize.minimize(
+    #         self.loss_temp,
+    #         initial_guess,
+    #         args=loss_args,
+    #         method="BFGS",
+    #         options={"disp": True, "maxiter": len(initial_guess) * 1e5},
+    #         tol=1e-12,
+    #     )
+    #     result = result.x
+    #     return result

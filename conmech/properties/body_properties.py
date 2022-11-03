@@ -15,7 +15,7 @@ class StaticBodyProperties(BodyProperties):
     lambda_: float
 
 
-class DynamicBodyPropertiesTuple(NamedTuple):
+class TimeDependentBodyPropertiesTuple(NamedTuple):
     mass_density: float
     mu: float
     lambda_: float
@@ -24,18 +24,25 @@ class DynamicBodyPropertiesTuple(NamedTuple):
 
 
 @dataclass
-class DynamicBodyProperties(StaticBodyProperties):
+class TimeDependentBodyProperties(StaticBodyProperties):
     theta: float
     zeta: float
 
+    # 65: TODO: remove
     def get_tuple(self):
-        return DynamicBodyPropertiesTuple(
+        return TimeDependentBodyPropertiesTuple(
             mass_density=self.mass_density,
             mu=self.mu,
             lambda_=self.lambda_,
             theta=self.theta,
             zeta=self.zeta,
         )
+
+
+@dataclass
+class PiezoelectricBodyProperties:
+    piezoelectricity: np.ndarray
+    permittivity: np.ndarray
 
 
 @dataclass
@@ -50,5 +57,16 @@ class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyPrope
 
 
 @dataclass
-class DynamicTemperatureBodyProperties(DynamicBodyProperties, TemperatureBodyProperties):
+class TimeDependentTemperatureBodyProperties(
+    TimeDependentBodyProperties,
+    TemperatureBodyProperties,
+):
+    pass
+
+
+@dataclass
+class TimeDependentPiezoelectricBodyProperties(
+    TimeDependentBodyProperties,
+    PiezoelectricBodyProperties,
+):
     pass

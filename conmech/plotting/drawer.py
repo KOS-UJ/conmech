@@ -17,7 +17,7 @@ class Drawer:
     def __init__(self, state, config: Config):
         self.state = state
         self.config = config
-        self.mesh = state.mesh
+        self.mesh = state.body
         self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
 
     def get_directory(self):
@@ -34,6 +34,14 @@ class Drawer:
                 )  # TODO #60
             )
             self.draw_field(temperature, temp_min, temp_max, axes, fig)
+        if hasattr(self.state, "electric_potential"):
+            electric_potential = np.concatenate(
+                (
+                    self.state.electric_potential[:],
+                    np.zeros(self.mesh.dirichlet_nodes_count),
+                )  # TODO #60
+            )
+            self.draw_field(electric_potential, temp_min, temp_max, axes, fig)
 
         self.draw_mesh(
             self.mesh.initial_nodes,
@@ -55,7 +63,7 @@ class Drawer:
         plt.axis("on")
         axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
 
-        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 10)
+        fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
 
         if show:
             plt.show()

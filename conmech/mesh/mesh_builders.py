@@ -2,11 +2,13 @@ from ctypes import ArgumentError
 from typing import Tuple
 
 import numpy as np
+import pygmsh
 
 from conmech.helpers import lnh, mph
 from conmech.mesh import (
     mesh_builders_2d,
     mesh_builders_3d,
+    mesh_builders_helpers,
     mesh_builders_legacy,
 )
 from conmech.properties.mesh_properties import MeshProperties
@@ -54,12 +56,17 @@ def build_initial_mesh(
     if "cross" in mesh_prop.mesh_type:
         return mesh_builders_legacy.get_cross_rectangle(mesh_prop)
 
+    if "Barboteu2008" in mesh_prop.mesh_type:  # TODO # 85
+        return special_mesh(mesh_prop)
+
     if "meshzoo" in mesh_prop.mesh_type:
         if "3d" in mesh_prop.mesh_type:
             if "cube" in mesh_prop.mesh_type:
-                return mesh_builders_3d.get_meshzoo_cube(mesh_prop)
+                # return mesh_builders_3d.get_meshzoo_cube(mesh_prop)
+                return mesh_builders_3d.get_test_cube(mesh_prop)
             if "ball" in mesh_prop.mesh_type:
-                return mesh_builders_3d.get_meshzoo_ball(mesh_prop)
+                # return mesh_builders_3d.get_meshzoo_ball(mesh_prop)
+                return mesh_builders_3d.get_test_ball(mesh_prop)
         else:
             return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop)
 
@@ -82,21 +89,21 @@ def build_initial_mesh(
     raise NotImplementedError(f"Mesh type not implemented: {mesh_prop.mesh_type}")
 
 
-# def special_mesh(mesh_prop):
-#     with pygmsh.geo.Geometry() as geom:
-#         geom.add_polygon(
-#             [
-#                 [0.0, 1.0],
-#                 [1.0, 0.0],
-#                 [3.0, 0.0],
-#                 [3.0, 1.0],
-#                 [1.5, 1.0],
-#                 [1.0, 1.5],
-#                 [1.0, 4.0],
-#                 [0.0, 4.0],
-#             ],
-#             mesh_size=0.1,
-#         )
-#         mesh_builders_helpers.set_mesh_size(geom, mesh_prop)
-#         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 2)
-#     return nodes, elements
+def special_mesh(mesh_prop):
+    with pygmsh.geo.Geometry() as geom:
+        geom.add_polygon(
+            [
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [3.0, 0.0],
+                [3.0, 1.0],
+                [1.5, 1.0],
+                [1.0, 1.5],
+                [1.0, 4.0],
+                [0.0, 4.0],
+            ],
+            mesh_size=0.1,
+        )
+        geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
+        nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 2)
+    return nodes, elements
