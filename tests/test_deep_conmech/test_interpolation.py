@@ -1,6 +1,6 @@
 import numpy as np
 
-from deep_conmech.data.interpolation_helpers import interpolate_scaled_nodes_numba
+from conmech.helpers.interpolation_helpers import interpolate_scaled_nodes_numba
 
 
 def test_interpolate_scaled_nodes_2d():

@@ -12,7 +12,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
-from deep_conmech.data import interpolation_helpers
+from conmech.helpers import interpolation_helpers
 from deep_conmech.training_config import (
     CLOSEST_BOUNDARY_COUNT,
     CLOSEST_COUNT,

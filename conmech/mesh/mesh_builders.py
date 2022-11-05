@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 import pygmsh
 
-from conmech.helpers import lnh, mph
+from conmech.helpers import interpolation_helpers, lnh, mph
 from conmech.mesh import (
     mesh_builders_2d,
     mesh_builders_3d,
@@ -12,7 +12,6 @@ from conmech.mesh import (
     mesh_builders_legacy,
 )
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.data import interpolation_helpers
 
 
 def build_mesh(
@@ -32,7 +31,7 @@ def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
     if mesh_prop.initial_nodes_corner_vectors is not None:
         if np.min(nodes) < -0 or np.max(nodes) > 1:
             raise ArgumentError
-        nodes_interpolation = interpolation_helpers.interpolate_corner_vectors(
+        nodes_interpolation = interpolation_helpers.interpolate_3d_corner_vectors(
             nodes=nodes,
             base=mesh_prop.initial_base,
             corner_vectors=mesh_prop.initial_nodes_corner_vectors,

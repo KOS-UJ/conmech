@@ -3,7 +3,7 @@ from ctypes import ArgumentError
 import numpy as np
 
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.data import interpolation_helpers
+from conmech.helpers import interpolation_helpers
 
 
 def get_mesh_corner_vectors(mesh_prop: MeshProperties):

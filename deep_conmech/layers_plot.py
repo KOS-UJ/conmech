@@ -5,7 +5,7 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.plotting import plotter_2d, plotter_common
 from deep_conmech.data import base_dataset
-from deep_conmech.data.interpolation_helpers import approximate_internal
+from conmech.helpers.interpolation_helpers import approximate_internal
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.training_config import TrainingConfig, TrainingData
 

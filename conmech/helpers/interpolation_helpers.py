@@ -3,11 +3,8 @@ from ctypes import ArgumentError
 
 import numba
 import numpy as np
-import scipy
-from tqdm import tqdm
 
 from conmech.helpers import lnh, nph
-from deep_conmech.training_config import CLOSEST_BOUNDARY_COUNT, CLOSEST_COUNT
 
 
 def decide(scale):
@@ -87,25 +84,27 @@ def get_mesh_callback(corner_vectors):
     if len(corner_vectors) == 4:
         corner_values = corner_vectors.reshape(2, 2, -1)
 
-        def interpolate(dim, tag, x, y, z, lc):
+        def interpolate_2d(dim, tag, x, y, z, lc):
+            _ = dim, tag, z, lc
             interpolated_values_1 = interpolate_node_numba(corner_values, x)
             reinterpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
             return reinterpolated_values_2
 
-        return interpolate
+        return interpolate_2d
 
     if len(corner_vectors) == 8:
         corner_values = corner_vectors.reshape(2, 2, 2, -1)
 
-        def interpolate(dim, tag, x, y, z, lc):
+        def interpolate_3d(dim, tag, x, y, z, lc):
+            _ = dim, tag, lc
             interpolated_values_1 = interpolate_node_numba(corner_values, x)
             interpolated_values_2 = interpolate_node_numba(interpolated_values_1, y)
             interpolated_values_3 = interpolate_node_numba(interpolated_values_2, z)
             return interpolated_values_3
 
-        return interpolate
-    else:
-        raise ArgumentError
+        return interpolate_3d
+
+    raise ArgumentError
 
 
 def scale_nodes_to_cube(nodes):
@@ -115,7 +114,7 @@ def scale_nodes_to_cube(nodes):
     return scaled_nodes
 
 
-def interpolate_corner_vectors(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):
+def interpolate_3d_corner_vectors(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):
     # orthonormal matrix; inverse equals transposition
     upward_nodes = lnh.get_in_base(nodes, base.T)
     scaled_nodes = scale_nodes_to_cube(upward_nodes)
@@ -145,7 +144,7 @@ def interpolate_corners(
     mean = get_mean(dimension=dimension, scale=mean_scale)
 
     corner_vectors = generate_corner_vectors(dimension=dimension, scale=corners_scale)
-    corner_interpolation = interpolate_corner_vectors(
+    corner_interpolation = interpolate_3d_corner_vectors(
         nodes=initial_nodes, base=base, corner_vectors=corner_vectors
     )
     return mean + corner_interpolation
@@ -167,6 +166,7 @@ def get_interlayer_data_numba(
     with_weights: bool,
     closest_count: int,
 ):
+    _ = base_elements
     closest_distances = np.zeros((len(interpolated_nodes), closest_count))
     closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
     closest_weights = np.zeros_like(closest_distances) if with_weights else None
@@ -186,13 +186,12 @@ def get_interlayer_data_numba(
                 closest_weights[index, 0] = 1
             else:
                 # Moore-Penrose pseudo-inverse
-                weights_internal = np.ascontiguousarray(node) @ np.linalg.pinv(selected_base_nodes)
-                if (
-                    False
-                ):  # np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
-                    unnormalized_weights = weights_internal
-                else:
-                    unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
+                # weights_internal = np.ascontiguousarray(node) @
+                #  np.linalg.pinv(selected_base_nodes)
+                # if np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
+                #     unnormalized_weights = weights_internal
+                # else:
+                unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
                 weights = unnormalized_weights / np.sum(unnormalized_weights)
                 closest_weights[index, :] = weights
 

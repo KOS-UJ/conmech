@@ -2,7 +2,7 @@ import torch
 
 from conmech.helpers import cmh
 from deep_conmech.data import base_dataset
-from deep_conmech.data.interpolation_helpers import approximate_internal
+from conmech.helpers.interpolation_helpers import approximate_internal
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.training_config import TrainingConfig, TrainingData
 

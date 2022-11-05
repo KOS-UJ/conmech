@@ -3,7 +3,7 @@ from typing import Callable
 
 import numpy as np
 
-import deep_conmech.data.interpolation_helpers as interpolation_helpers
+import conmech.helpers.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, lnh, mph, nph
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
