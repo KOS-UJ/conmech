@@ -80,6 +80,11 @@ class SceneRandomized(SceneLayers):
 
         self.update_reduced()  ###################
 
+    def clean_acceleration(self, normalized_acceleration):
+        if normalized_acceleration is None:
+            return None
+        return normalized_acceleration + self.normalized_a_correction
+
     @property
     def normalized_velocity_randomization(self):
         return self.normalize_rotate(self.velocity_randomization)

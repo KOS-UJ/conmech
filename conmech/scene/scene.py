@@ -68,6 +68,11 @@ class Scene(BodyForces):
                 self.boundary_nodes, self.obstacle_nodes
             )
 
+    def clean_acceleration(self, normalized_acceleration):
+        if normalized_acceleration is None:
+            return None
+        return normalized_acceleration
+
     def normalize_and_set_obstacles(
         self,
         obstacles_unnormalized: Optional[np.ndarray],
