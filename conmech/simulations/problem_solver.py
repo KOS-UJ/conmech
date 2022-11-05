@@ -235,10 +235,10 @@ class ProblemSolver:
         self.step_solver.u_vector = old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
         self.second_step_solver.v_vector = velocity.reshape(-1)
         self.second_step_solver.u_vector = old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
-        self.step_solver.p_vector = solution_t  # TODO
-        self.second_step_solver.p_vector = solution_t  # TODO
-        self.step_solver.t_vector = solution_t  # TODO
-        self.second_step_solver.t_vector = solution_t  # TODO
+        self.step_solver.p_vector = solution_t  # FIXME
+        self.second_step_solver.p_vector = solution_t  # FIXME
+        self.step_solver.t_vector = solution_t  # FIXME
+        self.second_step_solver.t_vector = solution_t  # FIXME
 
         return solution, solution_t
 

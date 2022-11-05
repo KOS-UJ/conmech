@@ -44,8 +44,8 @@ class Solver:
         raise NotImplementedError()
 
     def iterate(self, velocity):
-        self.v_vector = velocity.reshape(-1)
-        self.u_vector = self.u_vector + self.time_step * self.v_vector
+        self.v_vector[:] = velocity.reshape(-1)
+        self.u_vector[:] = self.u_vector + self.time_step * self.v_vector
 
     def _solve(self, initial_guess, *, velocity: np.ndarray, displacement: np.ndarray, **kwargs):
         raise NotImplementedError()
