@@ -156,6 +156,7 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         return DIMENSION
 
     def to_dx_matrix(self, dx_dict: dict, elements_count: int, nodes_count: int):
+        _ = self
         keys = np.array(list(dx_dict.keys()), dtype=np.int64)
         values = np.array(list(dx_dict.values()), dtype=np.float64)
         row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)

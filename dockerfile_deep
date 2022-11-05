@@ -8,6 +8,7 @@ RUN apt-get install -y git
 
 RUN apt-get install -y python3-gmsh
 COPY requirements.txt ./
+RUN pip install --upgrade pip
 RUN pip install pytest
 RUN pip install -r requirements.txt
 RUN rm requirements.txt
