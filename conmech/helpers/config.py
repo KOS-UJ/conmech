@@ -2,6 +2,10 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 
+NORMALIZE = False
+USE_GREEN_STRAIN = True
+USE_NONCONVEX_FRICTION_LAW = False
+
 
 @dataclass
 class Config:

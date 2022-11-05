@@ -4,16 +4,16 @@ import numba
 import numpy as np
 
 from conmech.helpers import cmh
+from conmech.helpers.config import (
+    NORMALIZE,
+    USE_GREEN_STRAIN,
+    USE_NONCONVEX_FRICTION_LAW,
+)
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries import Boundaries
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.training_config import (
-    NORMALIZE,
-    USE_GREEN_STRAIN,
-    USE_NONCONVEX_FRICTION_LAW,
-)
 
 
 @numba.njit
