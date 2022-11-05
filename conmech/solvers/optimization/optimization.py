@@ -5,10 +5,18 @@ import math
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticDisplacementStatement
+from conmech.dynamics.statement import (
+    StaticDisplacementStatement,
+    TemperatureStatement,
+    PiezoelectricStatement,
+)
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional, make_cost_functional_2
-from conmech.solvers.solver_methods import make_cost_functional_temperature
+from conmech.solvers.solver_methods import (
+    make_cost_functional,
+    make_cost_functional_2,
+    make_cost_functional_temperature,
+    make_cost_functional_piezoelectricity,
+)
 
 
 class Optimization(Solver):
@@ -28,20 +36,28 @@ class Optimization(Solver):
             friction_bound,
         )
         if statement.dimension == 2:  # TODO
-            self.loss = make_cost_functional_2(  # TODO
+            self.loss = make_cost_functional(
                 jn=contact_law.potential_normal_direction,
                 jt=contact_law.potential_tangential_direction
                 if hasattr(contact_law, "potential_tangential_direction")
                 else None,
                 h_functional=friction_bound,
             )
-        else:
+        elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional_temperature(
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
                 r=contact_law.temp_exchange,
             )
+        elif isinstance(statement, PiezoelectricStatement):
+            self.loss = make_cost_functional_piezoelectricity(
+                h_functional=contact_law.h_temp,
+                hn=contact_law.h_nu,
+                ht=contact_law.h_tau,
+            )
+        else:
+            raise ValueError(f"Unknown statement: {statement}")
 
     def __str__(self):
         raise NotImplementedError()

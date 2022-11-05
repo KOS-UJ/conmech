@@ -285,7 +285,7 @@ class Static(ProblemSolver):
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
 
-        self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
+        self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
 

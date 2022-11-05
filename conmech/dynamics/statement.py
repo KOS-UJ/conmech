@@ -81,8 +81,8 @@ class QuasistaticVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.viscosity
-            + self.body.elasticity * var.time_step
+            self.body.viscosity.copy()
+            # + self.body.elasticity * var.time_step  # FIXME
         )
 
     def update_right_hand_side(self, var: Variables):

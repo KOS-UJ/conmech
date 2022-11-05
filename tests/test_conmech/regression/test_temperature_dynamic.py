@@ -39,6 +39,16 @@ def make_slope_contact_law_temp(slope):
         def h_temp(vTnorm):
             return 0.1 * vTnorm
 
+        # FIXME: ContactLaw abstract class
+
+        @staticmethod
+        def temp_exchange(temp):  # potential  # TODO # 48
+            return 0 * temp
+
+        @staticmethod
+        def h_temp(u_tau):  # potential  # TODO # 48
+            return 0 * u_tau
+
     return TPSlopeContactLaw
 
 
@@ -243,12 +253,14 @@ def test_global_optimization_solver(
     solving_method, setup, expected_displacement_vector, expected_temperature_vector
 ):
     runner = TDynamicProblem(setup, solving_method)
-    results = runner.solve(
+    result_generator = runner.solve(
         n_steps=32,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
         initial_temperature=setup.initial_temperature,
     )
+    # replace generator with collection
+    results = tuple(result_generator)
 
     std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
     displacement = results[-1].body.mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
