@@ -10,4 +10,4 @@ gmsh==4.9.5
 tqdm==4.63.0
 networkx==2.6.3
 jax==0.3.14
-jaxlib==0.3.14
+jaxlib

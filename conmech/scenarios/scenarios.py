@@ -18,7 +18,6 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.scene.scene_layers import SceneLayers
 
 
 class Scenario:
@@ -82,7 +81,7 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        setting = SceneLayers(
+        setting = Scene(
             mesh_prop=self.mesh_prop,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
