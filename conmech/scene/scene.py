@@ -69,6 +69,7 @@ class Scene(BodyForces):
             )
 
     def clean_acceleration(self, normalized_acceleration):
+        _ = self
         if normalized_acceleration is None:
             return None
         return normalized_acceleration
