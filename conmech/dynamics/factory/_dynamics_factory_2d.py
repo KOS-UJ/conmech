@@ -132,11 +132,15 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         )
 
     def get_piezoelectric_tensor(self, W, coeff):
-        # TODO!!!
-        A_11 = 0 * W[0, 0] + 0 * W[1, 1]
-        A_12 = -0.61 * W[1, 0] + -0.59 * W[0, 1]
-        A_21 = 0 * W[1, 0] + 0 * W[0, 1]
-        A_22 = -0.59 * W[0, 0] + 1.14 * W[1, 1]
+        # FIXME!!!
+        # A_11 = 0 * W[0, 0] + 0 * W[1, 1]
+        # A_12 = -0.61 * W[1, 0] + -0.59 * W[0, 1]
+        # A_21 = 0 * W[1, 0] + 0 * W[0, 1]
+        # A_22 = -0.59 * W[0, 0] + 1.14 * W[1, 1]
+        A_11 = coeff[0][0] * W[0, 0] + coeff[1][1] * W[1, 1]
+        A_12 = coeff[1][0] * W[1, 0] + coeff[0][1] * W[0, 1]
+        A_21 = coeff[1][0] * W[1, 0] + coeff[0][1] * W[0, 1]
+        A_22 = coeff[0][0] * W[0, 0] + coeff[1][1] * W[1, 1]
         return np.block([[A_11 + A_12, A_22 + A_21]])
 
     def get_permittivity_tensor(self, W, coeff):
