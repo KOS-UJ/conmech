@@ -25,6 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: pip install pytest
+      - run: pip install --upgrade pip
       - run: pip install -r requirements.txt
 
       - if: matrix.platform == 'ubuntu-latest'
