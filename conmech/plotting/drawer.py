@@ -23,7 +23,7 @@ class Drawer:
         self.boundary_width = 2
 
     def get_directory(self):
-        return f"./output/{self.config.current_time} - DRAWING"
+        return f"/Users/prb/PycharmProjects/conmech//output/{self.config.current_time} - DRAWING"
 
     def draw(self, fig_axes=None, temp_max=None, temp_min=None, draw_mesh=True, show=True, save=False, save_format="png", title=None):
         fig, axes = fig_axes or plt.subplots()
@@ -134,4 +134,4 @@ class Drawer:
         # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm, orientation="horizontal", label="Temperature relative error")
+        fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor")

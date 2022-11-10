@@ -40,7 +40,7 @@ class SchurComplement(Optimization):
             self.free_x_free_inverted,
         ) = self.recalculate_displacement()
 
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()
 
     @staticmethod
     def calculate_schur_complement_matrices(
@@ -100,6 +100,7 @@ class SchurComplement(Optimization):
         )
         if self.statement.dimension == 2:
             return node_forces.T, forces_free
+        print(node_forces.shape, forces_free.shape)
         return node_forces.reshape(-1), forces_free.reshape(-1)
 
     def __str__(self):
@@ -111,7 +112,7 @@ class SchurComplement(Optimization):
 
     @property
     def node_forces(self) -> np.ndarray:
-        return self._node_forces
+        return self.node_forces_
 
     def _solve(
         self,
@@ -121,14 +122,14 @@ class SchurComplement(Optimization):
         **kwargs,
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_nodes(initial_guess)
-        displacement = kwargs.get("displacement")
-        if displacement is not None:
-            truncated_displacement = self.truncate_free_nodes(displacement)
-            kwargs["displacement"] = truncated_displacement
-        velocity = kwargs.get("velocity")
-        if velocity is not None:
-            truncated_velocity = self.truncate_free_nodes(velocity)
-            kwargs["velocity"] = truncated_velocity
+        # displacement = kwargs.get("displacement")
+        # if displacement is not None:
+        #     truncated_displacement = self.truncate_free_nodes(displacement)
+        #     kwargs["displacement"] = truncated_displacement
+        # velocity = kwargs.get("velocity")
+        # if velocity is not None:
+        #     truncated_velocity = self.truncate_free_nodes(velocity)
+        #     kwargs["velocity"] = truncated_velocity
 
         solution_contact = super()._solve(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
@@ -185,12 +186,11 @@ class Quasistatic(SchurComplement):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
-                velocity=self.v_vector,
                 time_step=self.time_step,
                 electric_potential=self.p_vector,
             )
         )
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
@@ -241,4 +241,4 @@ class Dynamic(SchurComplement):
                 time_step=self.time_step,
             )
         )
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()

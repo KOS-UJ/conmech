@@ -1,6 +1,6 @@
 from typing import Tuple
 
-# import dmsh as dmsh  # FIXME
+import dmsh as dmsh  # FIXME
 import numpy as np
 import pygmsh
 

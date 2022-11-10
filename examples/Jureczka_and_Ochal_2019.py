@@ -44,7 +44,7 @@ class JureczkaOchal2019(ContactLaw):
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1.0
-    elements_number: ... = (4, 8)
+    elements_number: ... = (8, 16)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = JureczkaOchal2019
@@ -84,4 +84,4 @@ def main(show: bool = True, save: bool = False):
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(show=False, save=True)

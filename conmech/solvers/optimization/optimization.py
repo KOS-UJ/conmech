@@ -84,6 +84,9 @@ class Optimization(Solver):
         velocity = np.squeeze(velocity.copy().reshape(1, -1))
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
+        print("vel", velocity)
+        print("dis", displacement)
+        print("old", old_solution)
 
         while norm >= fixed_point_abs_tol:
             result = scipy.optimize.minimize(

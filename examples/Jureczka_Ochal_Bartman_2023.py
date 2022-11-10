@@ -62,7 +62,7 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         la_coef: ... = 100
         th_coef: ... = 40
         ze_coef: ... = 100
-        time_step: ... = 1/32
+        time_step: ... = 1/128
         contact_law: ... = contact_law_
 
         @staticmethod
@@ -170,12 +170,12 @@ def constitutive_law(u, v, setup, elements, nodes):
 
 
 def main(show: bool = True, save: bool = False):
-    simulate = True
+    simulate = False
     config = Config()
-    names = ("four_screws", "one_screw", "friction", "hard")
-    h = 100
-    n_steps = 3
-    output_steps = (0, n_steps)
+    names = ("four_screws", ) #"one_screw", "friction", "hard")
+    h = 64
+    n_steps = 32
+    output_steps = range(0, n_steps)
 
     four_screws = BoundariesDescription(
         contact=lambda x: x[1] == 0,
@@ -220,8 +220,8 @@ def main(show: bool = True, save: bool = False):
                 initial_velocity=setup.initial_velocity,
             )
             for state in states:
-                with open(f'output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}',
-                          'wb') as output:
+                with open(f'/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}',
+                          'wb+') as output:
                     pickle.dump(state, output)
 
     for name in names:
@@ -239,7 +239,7 @@ def main(show: bool = True, save: bool = False):
         else:
             steps = output_steps[1:]
         for time_step in steps:
-            with open(f'output/2023/{name}_t_{time_step}_h_{h}',
+            with open(f'/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{time_step}_h_{h}',
                       'rb') as output:
                 state = pickle.load(output)
             if time_step == 0:
@@ -258,11 +258,8 @@ def main(show: bool = True, save: bool = False):
             drawer.original_mesh_color = None
             drawer.deformed_mesh_color = None
             drawer.cmap = plt.cm.rainbow
-            drawer.draw(show=show, temp_min=0, temp_max=40, save=save)
-
-
+            drawer.draw(show=show, temp_min=0, temp_max=30, save=True)
 
 
 if __name__ == "__main__":
-    main(show=True)
-
+    main(show=False)

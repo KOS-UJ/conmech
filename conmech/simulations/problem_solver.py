@@ -92,6 +92,7 @@ class ProblemSolver:
     @solving_method.setter
     def solving_method(self, value):
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
+        second_solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
@@ -126,7 +127,7 @@ class ProblemSolver:
                 self.setup.friction_bound,
             )
         elif isinstance(self.setup, PiezoelectricTimeDependentProblem):
-            self.second_step_solver = solver_class(
+            self.second_step_solver = second_solver_class(
                 PiezoelectricStatement(self.body),
                 self.body,
                 time_step,
@@ -185,10 +186,10 @@ class ProblemSolver:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
-        old_u_vector = self.step_solver.u_vector
-        old_v_vector = self.step_solver.v_vector
-        old_t_vector = self.step_solver.t_vector
-        old_p_vector = self.step_solver.p_vector
+        old_u_vector = self.step_solver.u_vector.copy()
+        old_v_vector = self.step_solver.v_vector.copy()
+        old_t_vector = self.step_solver.t_vector.copy()
+        old_p_vector = self.step_solver.p_vector.copy()
         fuse = 10
         minimum_iter = 2
         while minimum_iter > 0 or norm > 1e-3 and bool(fuse):
@@ -205,10 +206,12 @@ class ProblemSolver:
                 )
             )
             if isinstance(self.step_solver, SchurComplement):
-                self.step_solver._node_forces, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+                self.step_solver.node_forces_, self.step_solver.forces_free = self.step_solver.recalculate_forces()
             ### end iterate
-            solution = self.step_solver.solve(solution, temperature=solution_t)
+            print("V:", old_solution)
+            solution = self.step_solver.solve(solution)
             ### iterate 2
+            print(solution.shape)
             u_vector = old_u_vector + self.step_solver.time_step * solution
             self.second_step_solver.statement.update(
                 Variables(
@@ -220,8 +223,9 @@ class ProblemSolver:
                 )
             )
             if isinstance(self.second_step_solver, SchurComplement):
-                self.second_step_solver._node_forces, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
+                self.second_step_solver.node_forces_, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
             ### end iterate 2
+            print("T:", old_solution_t)
             solution_t = self.second_step_solver.solve(solution_t)
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
