@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.preprocessing import normalize
 
 from conmech.helpers.config import Config
+from conmech.state.state import State
 
 
 class Drawer:
@@ -52,6 +53,7 @@ class Drawer:
         save=False,
         save_format="png",
         title=None,
+        foundation=True,
     ):
         fig, axes = fig_axes or plt.subplots()
 
@@ -110,6 +112,7 @@ class Drawer:
         y_margin = dy * 0.2
         ylim = (self.y_min - y_margin, self.y_max + y_margin)
 
+        if foundation:
         axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)

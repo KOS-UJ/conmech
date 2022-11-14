@@ -37,7 +37,6 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
             result[i] += 0.5 * vector[i * offset + node_id_1]
     return result
 
-
 # TODO #97
 @numba.njit(inline="always")
 def interpolate_node_between_2023(node_id_0, _node_id_1, vector, dimension=DIMENSION):
@@ -49,66 +48,80 @@ def interpolate_node_between_2023(node_id_0, _node_id_1, vector, dimension=DIMEN
     return result
 
 
-def make_equation(jn, jt, h_functional):
-    jn = numba.njit(jn)
-    jt = numba.njit(jt)
-    h_functional = numba.njit(h_functional)
+def make_equation(
+    jn: Optional[callable], jt: Optional[callable], h_functional: Optional[callable]
+) -> callable:
+    # TODO Make it prettier
+    if jn is None:
 
-    @numba.njit()
-    def contact_part(u_vector, nodes, contact_boundary):
-        contact_vector = np.zeros_like(u_vector)
-        offset = len(u_vector) // DIMENSION
+        @numba.njit
+        def equation(u_vector: np.ndarray, _, __, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
+            result = np.dot(lhs, u_vector) - rhs
+            return result
 
-        for edge in contact_boundary:
-            n_id_0 = edge[0]
-            n_id_1 = edge[1]
-            n_0 = nodes[n_id_0]
-            n_1 = nodes[n_id_1]
+    else:
 
-            # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
+        jn = numba.njit(jn)
+        jt = numba.njit(jt)
+        h_functional = numba.njit(h_functional)
 
-            normal_vector = n_down(n_0, n_1)
+        @numba.njit()
+        def contact_part(u_vector, nodes, contact_boundary):
+            contact_vector = np.zeros_like(u_vector)
+            offset = len(u_vector) // DIMENSION
 
-            um_normal = (um * normal_vector).sum()
-            um_tangential = um - um_normal * normal_vector
+            for edge in contact_boundary:
+                n_id_0 = edge[0]
+                n_id_1 = edge[1]
+                n_0 = nodes[n_id_0]
+                n_1 = nodes[n_id_1]
 
-            v_tau_0 = np.asarray(
-                [
-                    1 - normal_vector[0] * normal_vector[0],
-                    0 - normal_vector[0] * normal_vector[1],
-                ]
-            )
-            v_tau_1 = np.asarray(
-                [
-                    0 - normal_vector[0] * normal_vector[1],
-                    1 - normal_vector[1] * normal_vector[1],
-                ]
-            )
+                # ASSUMING `u_vector` and `nodes` have the same order!
+                um = interpolate_node_between(n_id_0, n_id_1, u_vector)
 
-            edge_len = nph.length(n_0, n_1)
-            j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) + h_functional(um_normal) * jt(
-                um_tangential, v_tau_0
-            )
-            j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) + h_functional(um_normal) * jt(
-                um_tangential, v_tau_1
-            )
+                normal_vector = n_down(n_0, n_1)
 
-            if n_id_0 < offset:
-                contact_vector[n_id_0] += j_x
-                contact_vector[n_id_0 + offset] += j_y
+                um_normal = (um * normal_vector).sum()
+                um_tangential = um - um_normal * normal_vector
 
-            if n_id_1 < offset:
-                contact_vector[n_id_1] += j_x
-                contact_vector[n_id_1 + offset] += j_y
+                v_tau_0 = np.asarray(
+                    [
+                        1 - normal_vector[0] * normal_vector[0],
+                        0 - normal_vector[0] * normal_vector[1],
+                    ]
+                )
+                v_tau_1 = np.asarray(
+                    [
+                        0 - normal_vector[0] * normal_vector[1],
+                        1 - normal_vector[1] * normal_vector[1],
+                    ]
+                )
 
-        return contact_vector
+                edge_len = nph.length(n_0, n_1)
+                j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) + h_functional(
+                    um_normal
+                ) * jt(um_tangential, v_tau_0)
+                j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) + h_functional(
+                    um_normal
+                ) * jt(um_tangential, v_tau_1)
 
-    @numba.njit()
-    def equation(u_vector, vertices, contact_boundary, lhs, rhs):
-        c_part = contact_part(u_vector, vertices, contact_boundary)
-        result = np.dot(lhs, u_vector) + c_part - rhs
-        return result
+                if n_id_0 < offset:
+                    contact_vector[n_id_0] += j_x
+                    contact_vector[n_id_0 + offset] += j_y
+
+                if n_id_1 < offset:
+                    contact_vector[n_id_1] += j_x
+                    contact_vector[n_id_1 + offset] += j_y
+
+            return contact_vector
+
+        @numba.njit
+        def equation(
+            u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray
+        ) -> np.ndarray:
+            c_part = contact_part(u_vector, vertices, contact_boundary)
+            result = np.dot(lhs, u_vector) + c_part - rhs
+            return result
 
     return equation
 

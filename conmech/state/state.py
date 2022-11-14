@@ -15,7 +15,7 @@ class State:
         self.setup = None
         self.__stress: np.ndarray = None
         self.constitutive_law = None
-        self.time = 0
+        self.time: float = 0
 
     def set_displacement(
         self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
@@ -75,7 +75,7 @@ class State:
         """
         return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
 
-    def __getitem__(self, item) -> np.ndarray:
+    def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item in (0, "displacement"):
             return self.displacement
         if item in (1, "velocity"):

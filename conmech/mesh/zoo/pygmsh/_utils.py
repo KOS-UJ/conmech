@@ -23,12 +23,17 @@ def set_mesh_size(geom, mesh_prop: MeshProperties):
         if mesh_prop.dimension != 2:
             raise NotImplementedError
         corner_vectors = get_random_corner_mesh_size(mesh_prop=mesh_prop)
-        callback = lambda dim, tag, x, y, z, *_: interpolate_nodes(
-            scaled_nodes=np.array([[x / mesh_prop.scale_x, y / mesh_prop.scale_y]]),
-            corner_vectors=corner_vectors,
-        ).item()
+
+        def callback(_, __, x, y, *___):
+            return interpolate_nodes(
+                scaled_nodes=np.array([[x / mesh_prop.scale_x, y / mesh_prop.scale_y]]),
+                corner_vectors=corner_vectors,
+            ).item()
+
     else:
-        callback = lambda dim, tag, x, y, z, *_: 1.0 / mesh_prop.mesh_density_x
+
+        def callback(*_):
+            return 1.0 / mesh_prop.mesh_density_x
 
     geom.set_mesh_size_callback(callback)
 

@@ -5,15 +5,16 @@ import math
 
 import numpy as np
 
-from conmech.dynamics.statement import (
-    Variables,
-)
-from conmech.helpers import nph
-from conmech.solvers._solvers import Solvers
+from conmech.dynamics.statement import Variables
+from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.optimization.optimization import Optimization
+from conmech.helpers.schur_complement_functions import (
+    calculate_schur_complement_matrices,
+    calculate_schur_complement_vector,
+)
 
 
-class SchurComplement(Optimization):
+class SchurComplementOptimization(Optimization):
     def __init__(
         self,
         statement,
@@ -42,47 +43,8 @@ class SchurComplement(Optimization):
 
         self.node_forces_, self.forces_free = self.recalculate_forces()
 
-    @staticmethod
-    def calculate_schur_complement_matrices(
-        matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
-    ):
-        def get_sliced(matrix_split, indices_height, indices_width):
-            matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
-            dim, height, _, width = matrix.shape
-            return matrix.reshape(dim * height, dim * width)
-
-        matrix_split = np.array(
-            np.split(np.array(np.split(matrix, dimension, axis=-1)), dimension, axis=1)
-        )
-        free_x_free = get_sliced(matrix_split, free_indices, free_indices)
-        free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
-        contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
-        contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
-
-        free_x_free_inverted = np.linalg.inv(free_x_free)
-        matrix_boundary = contact_x_contact - contact_x_free @ (
-            free_x_free_inverted @ free_x_contact
-        )
-
-        return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted
-
-    @staticmethod
-    def calculate_schur_complement_vector(
-        vector: np.ndarray,
-        dimension: int,
-        contact_indices: slice,
-        free_indices: slice,
-        free_x_free_inverted: np.ndarray,
-        contact_x_free: np.ndarray,
-    ):
-        vector_split = nph.unstack(vector, dimension)
-        vector_contact = nph.stack_column(vector_split[contact_indices, :])
-        vector_free = nph.stack_column(vector_split[free_indices, :])
-        vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
-        return vector_boundary, vector_free
-
     def recalculate_displacement(self):
-        return SchurComplement.calculate_schur_complement_matrices(
+        return calculate_schur_complement_matrices(
             matrix=self.statement.left_hand_side,
             dimension=self.statement.dimension,
             contact_indices=self.contact_ids,
@@ -90,7 +52,7 @@ class SchurComplement(Optimization):
         )
 
     def recalculate_forces(self):
-        node_forces, forces_free = SchurComplement.calculate_schur_complement_vector(
+        node_forces, forces_free = calculate_schur_complement_vector(
             vector=self.statement.right_hand_side,
             dimension=self.statement.dimension,
             contact_indices=self.contact_ids,
@@ -162,13 +124,13 @@ class SchurComplement(Optimization):
         return result
 
 
-@Solvers.register("static", "schur", "schur complement", "schur complement method")
-class Static(SchurComplement):
+@SolversRegistry.register("static", "schur", "schur complement", "schur complement method")
+class StaticSchurOptimization(SchurComplementOptimization):
     pass
 
 
-@Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
-class Quasistatic(SchurComplement):
+@SolversRegistry.register("quasistatic", "schur", "schur complement", "schur complement method")
+class QuasistaticSchurOptimization(SchurComplementOptimization):
     def iterate(self):
         self.statement.update(
             Variables(
@@ -195,8 +157,8 @@ class QuasistaticRelaxed(SchurComplement):
         self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
-@Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
-class Dynamic(SchurComplement):
+@SolversRegistry.register("dynamic", "schur", "schur complement", "schur complement method")
+class DynamicSchurOptimization(SchurComplementOptimization):
     def iterate(self):
         self.statement.update(
             Variables(

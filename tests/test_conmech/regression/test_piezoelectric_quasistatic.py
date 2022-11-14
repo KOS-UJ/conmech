@@ -8,10 +8,8 @@ import numpy as np
 import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import PiezoelectricQuasistatic
-from conmech.simulations.problem_solver import (
-    PiezoelectricTimeDependent as PiezoelectricQuasistaticSolver,
-)
+from conmech.scenarios.problems import PiezoelectricQuasistaticProblem, PiezoelectricDynamicProblem
+from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -50,7 +48,7 @@ def generate_test_suits():
     # Simple example
 
     @dataclass()
-    class QuasistaticSetup(PiezoelectricQuasistatic):
+    class QuasistaticSetup(PiezoelectricQuasistaticProblem):
         grid_height: ... = 1
         elements_number: ... = (2, 5)
         mu_coef: ... = 4
@@ -211,7 +209,7 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class QuasistaticSetup(PiezoelectricQuasistatic):
+    class DynamicSetup(PiezoelectricDynamicProblem):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
@@ -301,7 +299,7 @@ def generate_test_suits():
 def test_global_optimization_solver(
     solving_method, setup, expected_displacement_vector, expected_electric_potential_vector
 ):
-    runner = PiezoelectricQuasistaticSolver(setup, solving_method)
+    runner = PiezoelectricTimeDependentSolver(setup, solving_method)
     results = runner.solve(
         n_steps=32,
         initial_displacement=setup.initial_displacement,

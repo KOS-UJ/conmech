@@ -19,11 +19,13 @@ from examples.examples_temperature_3d import main as examples_temperature_3d
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
+from examples.examples_poisson import main as poisson
 
 default_args = dict(show=False, save=False, force=True, test=True)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
 
 test_suits = {
+    "poisson": lambda: poisson(**default_args),
     "static": lambda: static(Config(**default_args).init()),
     "quasistatic": lambda: quasistatic(Config(**default_args).init()),
     "quasi_piezo": lambda: quasi_piezo(Config(**default_args).init()),

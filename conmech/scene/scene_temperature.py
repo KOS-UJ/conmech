@@ -1,9 +1,9 @@
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.helpers.schur_complement_functions import calculate_schur_complement_vector
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import Scene
-from conmech.solvers import SchurComplement
 
 
 def obstacle_heat(
@@ -89,10 +89,7 @@ class SceneTemperature(Scene):
 
     def get_all_normalized_t_rhs_np(self, normalized_acceleration):
         normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_acceleration)
-        (
-            normalized_t_rhs_boundary,
-            normalized_t_rhs_free,
-        ) = SchurComplement.calculate_schur_complement_vector(
+        (normalized_t_rhs_boundary, normalized_t_rhs_free,) = calculate_schur_complement_vector(
             vector=normalized_t_rhs,
             dimension=1,
             contact_indices=self.mesh.contact_indices,

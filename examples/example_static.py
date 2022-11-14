@@ -7,14 +7,14 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import Static
-from conmech.simulations.problem_solver import Static as StaticProblemSolver
+from conmech.scenarios.problems import StaticDisplacementProblem
+from conmech.simulations.problem_solver import StaticSolver
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
-@dataclass()
-class StaticSetup(Static):
+@dataclass
+class StaticSetup(StaticDisplacementProblem):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
     mu_coef: ... = 4
@@ -30,7 +30,7 @@ class StaticSetup(Static):
         return np.array([0, 0])
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
         return 0
 
     boundaries: ... = BoundariesDescription(
@@ -45,7 +45,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     setup = StaticSetup(mesh_type="cross")
-    runner = StaticProblemSolver(setup, "schur")
+    runner = StaticSolver(setup, "schur")
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
     Drawer(state=state, config=config).draw(show=config.show, save=config.save)

@@ -7,14 +7,14 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import Quasistatic
-from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblemSolver
+from conmech.scenarios.problems import QuasistaticDisplacementProblem
+from conmech.simulations.problem_solver import TimeDependentSolver
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
-class QuasistaticSetup(Quasistatic):
+class QuasistaticSetup(QuasistaticDisplacementProblem):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
     mu_coef: ... = 4
@@ -33,7 +33,7 @@ class QuasistaticSetup(Quasistatic):
         return np.array([0, 0])
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
         return 0
 
     boundaries: ... = BoundariesDescription(
@@ -48,7 +48,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     setup = QuasistaticSetup(mesh_type="cross")
-    runner = TimeDependentProblemSolver(setup, solving_method="schur")
+    runner = TimeDependentSolver(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=32,

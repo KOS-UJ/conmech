@@ -9,10 +9,8 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import PiezoelectricDynamic
-from conmech.simulations.problem_solver import (
-    PiezoelectricTimeDependent as PDynamicProblemSolver,
-)  # in fact Quasi and dynamic is the same
+from conmech.scenarios.problems import PiezoelectricDynamicProblem
+from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -47,7 +45,7 @@ class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class PDynamicSetup(PiezoelectricDynamic):
+class PDynamicSetup(PiezoelectricDynamicProblem):
     grid_height: ... = 1.0
     elements_number: ... = (4, 3)
     mu_coef: ... = 45
@@ -105,7 +103,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     setup = PDynamicSetup(mesh_type="Barboteu2008")
-    runner = PDynamicProblemSolver(setup, solving_method="global")
+    runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
 
     steps = 100 if not config.test else 10
     output = steps // 5
