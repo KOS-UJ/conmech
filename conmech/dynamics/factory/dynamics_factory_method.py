@@ -6,7 +6,7 @@ from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
-    BodyProperties,
+    BodyProperties, BaseFunctionNormBodyProperties,
 )
 
 
@@ -43,6 +43,10 @@ def get_dynamics(
         ]
     )
 
+    poisson_operator = (
+        factory.calculate_poisson_matrix(W)
+    )
+
     elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, StaticBodyProperties)
@@ -73,6 +77,12 @@ def get_dynamics(
         piezoelectricity = None
         permittivity = None
 
+    if dimension == 2 and isinstance(body_prop, BaseFunctionNormBodyProperties):
+        Q = np.asarray([edges_features_matrix[2 + factory.dimension + factory.dimension ** 2][i, i]])
+        norm_operator = Q
+    else:
+        norm_operator = None
+
     return (
         element_initial_volume,
         volume_at_nodes,
@@ -83,4 +93,6 @@ def get_dynamics(
         thermal_conductivity,
         piezoelectricity,
         permittivity,
+        poisson_operator,
+        norm_operator,
     )

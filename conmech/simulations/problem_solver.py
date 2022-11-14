@@ -28,7 +28,7 @@ from conmech.scenarios.problems import (
     Dynamic as DynamicProblem,
     TimeDependent as TimeDependentProblem,
 )
-from conmech.scenarios.problems import Problem
+from conmech.scenarios.problems import DisplacementProblem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
 from conmech.scenarios.problems import Static as StaticProblem
 from conmech.scenarios.problems import TemperatureDynamic as TemperatureDynamicProblem
@@ -45,7 +45,7 @@ from conmech.state.state import State, TemperatureState, PiezoelectricState
 
 
 class ProblemSolver:
-    def __init__(self, setup: Problem, body_properties: BodyProperties):
+    def __init__(self, setup: DisplacementProblem, body_properties: BodyProperties):
         """Solves general Contact Mechanics problem.
 
         :param setup:

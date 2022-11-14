@@ -28,13 +28,30 @@ class ContactLaw:
         """
         raise NotImplementedError()
 
-
 @dataclass()
 class Problem:
     dimension = 2  # TODO #74 : Not used?
     mesh_type: str
     grid_height: float
     boundaries: BoundariesDescription
+
+    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
+
+    @staticmethod
+    def initial_displacement(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
+
+    @staticmethod
+    def inner_forces(x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+
+@dataclass()
+class DisplacementProblem(Problem):
 
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
@@ -60,7 +77,7 @@ class Problem:
         raise NotImplementedError()
 
 
-class Static(Problem):
+class Static(DisplacementProblem):
     @staticmethod
     def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
@@ -74,7 +91,7 @@ class Static(Problem):
         raise NotImplementedError()
 
 
-class TimeDependent(Problem):
+class TimeDependent(DisplacementProblem):
     th_coef: float
     ze_coef: float
     time_step: float

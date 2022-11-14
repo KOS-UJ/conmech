@@ -51,3 +51,8 @@ class TimeDependentPiezoelectricBodyProperties(
     PiezoelectricBodyProperties,
 ):
     pass
+
+
+@dataclass
+class BaseFunctionNormBodyProperties(BodyProperties):
+    pass

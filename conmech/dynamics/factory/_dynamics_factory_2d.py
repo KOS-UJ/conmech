@@ -8,7 +8,7 @@ ELEMENT_NODES_COUNT = 3
 CONNECTED_EDGES_COUNT = 2
 INT_PH = 1 / ELEMENT_NODES_COUNT
 U_DIVIDER = 12
-FEATURE_MATRIX_COUNT = 2 + DIMENSION + DIMENSION**2
+FEATURE_MATRIX_COUNT = 3 + DIMENSION + DIMENSION ** 2
 VOLUME_DIVIDER = 2
 
 
@@ -27,6 +27,16 @@ def get_edges_features_matrix_numba(elements, nodes):
         element = elements[element_index]
         element_nodes = nodes[element]
 
+        int_sqr = np.sum(element_nodes ** 2, axis=0) + element_nodes[0] * (element_nodes[1] + element_nodes[2]) + \
+                  element_nodes[1] * element_nodes[2]
+        int_xy = element_nodes[:, 0] @ np.array([[2., 1., 1.], [1., 2., 1.], [1., 1., 2.]]) @ element_nodes[:, 1]
+        INT_MATRIX = np.array(
+            [[0, 1 / 6 * element_nodes[:, 0].sum(), 1 / 6 * element_nodes[:, 1].sum()],
+             [1 / 6 * element_nodes[:, 0].sum(), 1 / 12 * int_sqr[0], 1 / 24 * int_xy],
+             [1 / 6 * element_nodes[:, 1].sum(), 1 / 24 * int_xy, 1 / 12 * int_sqr[1]]]
+        )
+        jacobian = np.abs(np.linalg.det(element_nodes[1:] - element_nodes[0]))
+
         # TODO: #65 Get rid of repetition (?)
         for i in range(element_size):
             i_integrals = get_integral_parts_numba(element_nodes, i)
@@ -34,8 +44,23 @@ def get_edges_features_matrix_numba(elements, nodes):
             element_volume = i_integrals[DIMENSION]
             # TODO: #65 Avoid repetition
             element_initial_volume[element_index] = element_volume
+            vert_ip1 = element_nodes[(i + 1) % 3]
+            vert_ip2 = element_nodes[(i + 2) % 3]
+            c_i = np.linalg.det(np.row_stack((vert_ip1, vert_ip2)))
+            d_i = vert_ip1[1] - vert_ip2[1]
+            e_i = vert_ip2[0] - vert_ip1[0]
+            coeffs_i = np.array([c_i, d_i, e_i])
 
             for j in range(element_size):
+                vert_jp1 = element_nodes[(j + 1) % 3]
+                vert_jp2 = element_nodes[(j + 2) % 3]
+                c_j = np.linalg.det(np.row_stack((vert_jp1, vert_jp2)))
+                d_j = vert_jp1[1] - vert_jp2[1]
+                e_j = vert_jp2[0] - vert_jp1[0]
+                coeffs_j = np.array([c_j, d_j, e_j])
+                q = jacobian * coeffs_i @ INT_MATRIX @ coeffs_j / (4 * element_volume ** 2) \
+                    + c_i * c_j / (4 * element_volume)
+
                 j_integrals = get_integral_parts_numba(element_nodes, j)
                 j_d_phi_vec = j_integrals[:DIMENSION]
 
@@ -50,7 +75,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
                 edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
-                    [volume_at_nodes, u, v[0], v[1], w[0][0], w[0][1], w[1][0], w[1][1]]
+                    [volume_at_nodes, u, v[0], v[1], w[0][0], w[0][1], w[1][0], w[1][1], q / element_volume]
                 )
 
     # Performance TIP: we need only sparse, triangular matrix (?)
@@ -75,22 +100,14 @@ def get_integral_parts_numba(element_nodes, element_index):
 
 
 @numba.njit
-def shoelace_area_numba(nodes):
-    x = nodes[:, 0].copy()
-    y = nodes[:, 1].copy()
-    area = 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
-    return area
-
-
-@numba.njit
 def denominator_numba(x_i, x_j1, x_j2):
     return (
-        x_i[1] * x_j1[0]
-        + x_j1[1] * x_j2[0]
-        + x_i[0] * x_j2[1]
-        - x_i[1] * x_j2[0]
-        - x_j2[1] * x_j1[0]
-        - x_i[0] * x_j1[1]
+            x_i[1] * x_j1[0]
+            + x_j1[1] * x_j2[0]
+            + x_i[0] * x_j2[1]
+            - x_i[1] * x_j2[0]
+            - x_j2[1] * x_j1[0]
+            - x_i[0] * x_j1[1]
     )
 
 
@@ -101,6 +118,9 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
     @property
     def dimension(self) -> int:
         return DIMENSION
+
+    def calculate_poisson_matrix(self, W):
+        return W[0, 0]
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
@@ -120,10 +140,10 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
 
     def calculate_thermal_conductivity(self, W, coeff):
         return (
-            coeff[0][0] * W[0, 0]
-            + coeff[0][1] * W[0, 1]
-            + coeff[1][0] * W[1, 0]
-            + coeff[1][1] * W[1, 1]
+                coeff[0][0] * W[0, 0]
+                + coeff[0][1] * W[0, 1]
+                + coeff[1][0] * W[1, 0]
+                + coeff[1][1] * W[1, 1]
         )
 
     def get_piezoelectric_tensor(self, W, coeff):
@@ -135,8 +155,8 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
 
     def get_permittivity_tensor(self, W, coeff):
         return (
-            coeff[0][0] * W[0, 0]
-            + coeff[0][1] * W[0, 1]
-            + coeff[1][0] * W[1, 0]
-            + coeff[1][1] * W[1, 1]
+                coeff[0][0] * W[0, 0]
+                + coeff[0][1] * W[0, 1]
+                + coeff[1][0] * W[1, 0]
+                + coeff[1][1] * W[1, 1]
         )

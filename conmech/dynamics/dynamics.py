@@ -84,6 +84,8 @@ class Dynamics(BodyPosition):
         self.thermal_conductivity: np.ndarray
         self.piezoelectricity: np.ndarray
         self.permittivity: np.ndarray
+        self.poisson_operator: np.ndarray
+        self.norm_operator: np.ndarray
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
@@ -105,6 +107,8 @@ class Dynamics(BodyPosition):
             self.thermal_conductivity,
             self.piezoelectricity,
             self.permittivity,
+            self.poisson_operator,
+            self.norm_operator,
         ) = get_dynamics(
             elements=self.mesh.elements,
             nodes=self.moved_nodes,
