@@ -1,6 +1,6 @@
 from ctypes import ArgumentError
 
-import meshzoo
+# import meshzoo
 import numpy as np
 import pygmsh
 

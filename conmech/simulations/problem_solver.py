@@ -13,7 +13,7 @@ from conmech.dynamics.statement import (
     TemperatureStatement,
     PiezoelectricStatement,
     DynamicVelocityStatement,
-    QuasistaticVelocityWithPiezoelectricStatement,
+    QuasistaticVelocityWithPiezoelectricStatement, StaticPoissonStatement,
 )
 from conmech.properties.body_properties import (
     TimeDependentTemperatureBodyProperties,
@@ -92,23 +92,28 @@ class ProblemSolver:
     @solving_method.setter
     def solving_method(self, value):
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
+        statement = StaticPoissonStatement(self.body)
+        time_step = 0
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
-        if isinstance(self.setup, StaticProblem):
-            statement = StaticDisplacementStatement(self.body)
-            time_step = 0
-        elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-            if isinstance(self.setup, PiezoelectricQuasistaticProblem):
-                statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
-            elif isinstance(self.setup, QuasistaticProblem):
-                statement = QuasistaticVelocityStatement(self.body)
-            elif isinstance(self.setup, TemperatureDynamicProblem):
-                statement = DynamicVelocityWithTemperatureStatement(self.body)
-            else:
-                statement = DynamicVelocityStatement(self.body)
-            time_step = self.setup.time_step
-        else:
-            raise ValueError(f"Unknown problem class: {self.setup.__class__}")
+        # if isinstance(self.setup, StaticProblem):
+        #     statement = StaticDisplacementStatement(self.body)
+        #     time_step = 0
+        # elif isinstance(self.setup, StaticPoissonSetup):
+        #     statement = StaticPoissonStatement(self.body)
+        #     time_step = 0
+        # elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
+        #     if isinstance(self.setup, PiezoelectricQuasistaticProblem):
+        #         statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
+        #     elif isinstance(self.setup, QuasistaticProblem):
+        #         statement = QuasistaticVelocityStatement(self.body)
+        #     elif isinstance(self.setup, TemperatureDynamicProblem):
+        #         statement = DynamicVelocityWithTemperatureStatement(self.body)
+        #     else:
+        #         statement = DynamicVelocityStatement(self.body)
+        #     time_step = self.setup.time_step
+        # else:
+        #     raise ValueError(f"Unknown problem class: {self.setup.__class__}")
 
         self.step_solver = solver_class(
             statement,
@@ -160,8 +165,9 @@ class ProblemSolver:
             )
 
             if self.coordinates == "displacement":
-                state.set_displacement(solution, time=self.step_solver.current_time)
-                self.step_solver.u_vector[:] = state.displacement.reshape(-1)
+                state.set_temperature(solution)
+                # state.set_displacement(solution, time=self.step_solver.current_time)  # TODO
+                # self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
                     solution,
@@ -175,11 +181,11 @@ class ProblemSolver:
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
-        self.step_solver.iterate(solution)
+        # self.step_solver.iterate(solution)
         if self.second_step_solver is not None:
             self.second_step_solver.iterate(solution)
-        quality = validator.check_quality(state, solution, quality)
-        self.print_iteration_info(quality, validator.error_tolerance, verbose)
+        # quality = validator.check_quality(state, solution, quality)
+        # self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(
@@ -218,6 +224,7 @@ class ProblemSolver:
         if verbose:
             print(f"quality = {quality} {sign} {error_tolerance}{end}")
 
+
 class PoissonSolver(ProblemSolver):
     def __init__(self, setup: Problem, solving_method: str):
         """Solves general Contact Mechanics problem.
@@ -225,7 +232,11 @@ class PoissonSolver(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = None
+        body_prop = StaticBodyProperties(
+            mass_density=1.0,
+            mu=0,
+            lambda_=0,
+        )
         super().__init__(setup, body_prop)
 
         self.coordinates = "displacement"
@@ -233,22 +244,20 @@ class PoissonSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
+    def solve(self, *, verbose: bool = False, **kwargs) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints
         :return: state
         """
-        state = State(self.body)
-        state.displacement = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
-        )
+        state = TemperatureState(self.body)
+        state.temperature[:] = 0
 
-        solution = state.displacement.reshape(2, -1)
+        solution_t = state.temperature
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
 
-        self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
+        self.run(solution_t, state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
 

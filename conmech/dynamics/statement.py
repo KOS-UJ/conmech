@@ -33,7 +33,7 @@ class Statement:
 
 class StaticPoissonStatement(Statement):
     def __init__(self, dynamics):
-        super().__init__(dynamics, 2)
+        super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.poisson_operator

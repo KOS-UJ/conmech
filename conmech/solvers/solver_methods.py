@@ -95,7 +95,7 @@ def make_equation(jn, jt, h_functional):
 
     @numba.njit()
     def equation(u_vector, vertices, contact_boundary, lhs, rhs):
-        c_part = contact_part(u_vector, vertices, contact_boundary)
+        c_part = 0 #contact_part(u_vector, vertices, contact_boundary)
         result = np.dot(lhs, u_vector) + c_part - rhs
         return result
 
