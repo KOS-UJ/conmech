@@ -26,7 +26,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     Dynamic as DynamicProblem,
-    TimeDependent as TimeDependentProblem,
+    TimeDependent as TimeDependentProblem, Problem,
 )
 from conmech.scenarios.problems import DisplacementProblem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
@@ -183,7 +183,7 @@ class ProblemSolver:
         return solution
 
     def find_solution_uzawa(
-        self, state, solution, solution_t, *, verbose=False
+            self, state, solution, solution_t, *, verbose=False
     ) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
@@ -203,9 +203,9 @@ class ProblemSolver:
             self.step_solver.t_vector = solution_t
             self.second_step_solver.t_vector = solution_t
             norm = (
-                np.linalg.norm(solution - old_solution) ** 2
-                + np.linalg.norm(old_solution_t - solution_t) ** 2
-            ) ** 0.5
+                           np.linalg.norm(solution - old_solution) ** 2
+                           + np.linalg.norm(old_solution_t - solution_t) ** 2
+                   ) ** 0.5
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
         return solution, solution_t
@@ -218,6 +218,39 @@ class ProblemSolver:
         if verbose:
             print(f"quality = {quality} {sign} {error_tolerance}{end}")
 
+class PoissonSolver(ProblemSolver):
+    def __init__(self, setup: Problem, solving_method: str):
+        """Solves general Contact Mechanics problem.
+
+        :param setup:
+        :param solving_method: 'schur', 'optimization', 'direct'
+        """
+        body_prop = None
+        super().__init__(setup, body_prop)
+
+        self.coordinates = "displacement"
+        self.solving_method = solving_method
+
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
+    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
+        """
+        :param initial_displacement: for the solver
+        :param verbose: show prints
+        :return: state
+        """
+        state = State(self.body)
+        state.displacement = initial_displacement(
+            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+        )
+
+        solution = state.displacement.reshape(2, -1)
+
+        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+
+        self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
+
+        return state
 
 class Static(ProblemSolver):
     def __init__(self, setup: StaticProblem, solving_method: str):
@@ -447,15 +480,15 @@ class PiezoelectricTimeDependent(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        initial_electric_potential: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            initial_electric_potential: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[PiezoelectricState]:
         """
         :param n_steps: number of time-step in simulation

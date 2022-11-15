@@ -5,11 +5,11 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import Problem
-from conmech.simulations.problem_solver import Static as StaticProblemSolver
+from conmech.simulations.problem_solver import PoissonSolver
 
 
 @dataclass()
-class StaticSetup(Problem):
+class StaticPoissonSetup(Problem):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
 
@@ -19,16 +19,16 @@ class StaticSetup(Problem):
 
     @staticmethod
     def outer_forces(x):
-        return np.array([0., 0.])
+        return np.array([0.])
 
     boundaries: ... = BoundariesDescription(
-        dirichlet=lambda x: x[0] == 0 || x[0] == 1
+        dirichlet=lambda x: (x[0] == 0) | (x[0] == 1)
     )
 
 
 def main(show: bool = True, save: bool = False):
-    setup = StaticSetup(mesh_type="cross")
-    runner = StaticProblemSolver(setup, "schur")
+    setup = StaticPoissonSetup(mesh_type="cross")
+    runner = PoissonSolver(setup, "schur")
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
     config = Config()
