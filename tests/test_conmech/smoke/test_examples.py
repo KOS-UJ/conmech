@@ -12,6 +12,7 @@ from examples.examples_2d import main as examples_2d
 from examples.examples_3d import main as examples_3d
 from examples.examples_temperature_2d import main as examples_temperature_2d
 from examples.examples_temperature_3d import main as examples_temperature_3d
+from examples.examples_poisson import main as poisson
 
 default_args = dict(show=False, save=False)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
@@ -20,6 +21,7 @@ test_suits = {
     "static": lambda: static(**default_args),
     "quasistatic": lambda: quasistatic(**default_args),
     "dynamic": lambda: dynamic(**default_args),
+    "poisson": lambda: poisson(**default_args),
     "temperature": lambda: temperature(**default_args),
     "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(**default_args),
     "examples_2d": lambda: examples_2d(**default_args_deep),
