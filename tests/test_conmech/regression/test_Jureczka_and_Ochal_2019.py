@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from conmech.simulations.problem_solver import Static as StaticProblem
+from conmech.simulations.problem_solver import StaticSolver as StaticProblem
 from examples.Jureczka_and_Ochal_2019 import StaticSetup
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 

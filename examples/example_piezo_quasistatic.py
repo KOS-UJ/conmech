@@ -7,8 +7,8 @@ import numpy as np
 
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.simulations.problem_solver import PiezoelectricTimeDependent
-from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
+from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
+from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
 
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -68,7 +68,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
 
 def main(show: bool):
     setup = PQuasistaticSetup(mesh_type="Barboteu2008")
-    runner = PiezoelectricTimeDependent(setup, solving_method="schur")
+    runner = PiezoelectricTimeDependentSolver(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=32,

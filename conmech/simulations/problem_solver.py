@@ -24,19 +24,15 @@ from conmech.properties.body_properties import (
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.problems import (
-    Dynamic as DynamicProblem,
-    TimeDependent as TimeDependentProblem, Problem,
-)
+from conmech.scenarios.problems import TimeDependentProblem, Problem, PoissonProblem, \
+    StaticDisplacementProblem, TimeDependentDisplacementProblem
 from conmech.scenarios.problems import DisplacementProblem
-from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
-from conmech.scenarios.problems import Static as StaticProblem
-from conmech.scenarios.problems import TemperatureDynamic as TemperatureDynamicProblem
-from conmech.scenarios.problems import TemperatureTimeDependent as TemperatureTimeDependentProblem
-from conmech.scenarios.problems import PiezoelectricQuasistatic as PiezoelectricQuasistaticProblem
-from conmech.scenarios.problems import (
-    PiezoelectricTimeDependent as PiezoelectricTimeDependentProblem,
-)
+from conmech.scenarios.problems import QuasistaticProblem
+from conmech.scenarios.problems import StaticProblem
+from conmech.scenarios.problems import TemperatureDynamicProblem
+from conmech.scenarios.problems import TemperatureTimeDependentProblem
+from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
+from conmech.scenarios.problems import PiezoelectricTimeDependentProblem
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers import Solvers
 from conmech.solvers.solver import Solver
@@ -45,29 +41,29 @@ from conmech.state.state import State, TemperatureState, PiezoelectricState
 
 
 class ProblemSolver:
-    def __init__(self, setup: DisplacementProblem, body_properties: BodyProperties):
+    def __init__(self, problem: Problem, body_properties: BodyProperties):
         """Solves general Contact Mechanics problem.
 
-        :param setup:
+        :param problem:
         :param body_properties:
         """
-        if isinstance(setup, TimeDependentProblem):
-            time_step = setup.time_step
+        if isinstance(problem, TimeDependentProblem):
+            time_step = problem.time_step
         else:
             time_step = 0
 
-        grid_width = (setup.grid_height / setup.elements_number[0]) * setup.elements_number[1]
+        grid_width = (problem.grid_height / problem.elements_number[0]) * problem.elements_number[1]
 
         self.body = BodyForces(
             mesh_prop=MeshProperties(
                 dimension=2,
-                mesh_type=setup.mesh_type,
-                mesh_density=[setup.elements_number[1], setup.elements_number[0]],
-                scale=[float(grid_width), float(setup.grid_height)],
+                mesh_type=problem.mesh_type,
+                mesh_density=[problem.elements_number[1], problem.elements_number[0]],
+                scale=[float(grid_width), float(problem.grid_height)],
             ),
             body_prop=body_properties,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            boundaries_description=setup.boundaries,
+            boundaries_description=problem.boundaries,
             dynamics_config=DynamicsConfiguration(
                 normalize_by_rotation=False,
                 create_in_subprocess=False,
@@ -76,9 +72,9 @@ class ProblemSolver:
             ),
         )
         self.body.set_permanent_forces_by_functions(
-            inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces
+            inner_forces_function=problem.inner_forces, outer_forces_function=problem.outer_forces
         )
-        self.setup = setup
+        self.problem = problem
 
         self.coordinates = None
         self.step_solver: Optional[Solver] = None
@@ -91,52 +87,57 @@ class ProblemSolver:
 
     @solving_method.setter
     def solving_method(self, value):
-        solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
-        statement = StaticPoissonStatement(self.body)
-        time_step = 0
+        solver_class = Solvers.get_by_name(solver_name=value, problem=self.problem)
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
-        # if isinstance(self.setup, StaticProblem):
-        #     statement = StaticDisplacementStatement(self.body)
-        #     time_step = 0
-        # elif isinstance(self.setup, StaticPoissonSetup):
-        #     statement = StaticPoissonStatement(self.body)
-        #     time_step = 0
-        # elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
-        #     if isinstance(self.setup, PiezoelectricQuasistaticProblem):
-        #         statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
-        #     elif isinstance(self.setup, QuasistaticProblem):
-        #         statement = QuasistaticVelocityStatement(self.body)
-        #     elif isinstance(self.setup, TemperatureDynamicProblem):
-        #         statement = DynamicVelocityWithTemperatureStatement(self.body)
-        #     else:
-        #         statement = DynamicVelocityStatement(self.body)
-        #     time_step = self.setup.time_step
-        # else:
-        #     raise ValueError(f"Unknown problem class: {self.setup.__class__}")
+        if isinstance(self.problem, DisplacementProblem):
+            contact_law = self.problem.contact_law
+            friction_bound = self.problem.friction_bound
+            if isinstance(self.problem, StaticProblem):
+                statement = StaticDisplacementStatement(self.body)
+                time_step = 0
+            elif isinstance(self.problem, TimeDependentProblem):
+                if isinstance(self.problem, PiezoelectricQuasistaticProblem):
+                    statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
+                elif isinstance(self.problem, QuasistaticProblem):
+                    statement = QuasistaticVelocityStatement(self.body)
+                elif isinstance(self.problem, TemperatureDynamicProblem):
+                    statement = DynamicVelocityWithTemperatureStatement(self.body)
+                else:
+                    statement = DynamicVelocityStatement(self.body)
+                time_step = self.problem.time_step
+            else:
+                raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
+        elif isinstance(self.problem, PoissonProblem):
+            statement = StaticPoissonStatement(self.body)
+            time_step = 0
+            contact_law = None
+            friction_bound = None
+        else:
+            raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
 
         self.step_solver = solver_class(
             statement,
             self.body,
             time_step,
-            self.setup.contact_law,
-            self.setup.friction_bound,
+            contact_law,
+            friction_bound,
         )
-        if isinstance(self.setup, TemperatureTimeDependentProblem):
+        if isinstance(self.problem, TemperatureTimeDependentProblem):
             self.second_step_solver = solver_class(
                 TemperatureStatement(self.body),
                 self.body,
                 time_step,
-                self.setup.contact_law,
-                self.setup.friction_bound,
+                self.problem.contact_law,
+                self.problem.friction_bound,
             )
-        elif isinstance(self.setup, PiezoelectricTimeDependentProblem):
+        elif isinstance(self.problem, PiezoelectricTimeDependentProblem):
             self.second_step_solver = solver_class(
                 PiezoelectricStatement(self.body),
                 self.body,
                 time_step,
-                self.setup.contact_law,
-                self.setup.friction_bound,
+                self.problem.contact_law,
+                self.problem.friction_bound,
             )
         else:
             self.second_step_solver = None
@@ -145,7 +146,7 @@ class ProblemSolver:
     def solve(self, **kwargs):
         raise NotImplementedError()
 
-    def run(self, solution, state, n_steps: int, verbose: bool = False, **kwargs):
+    def run(self, solution: np.ndarray, state: State, n_steps: int, verbose: bool = False, **kwargs):
         """
         :param state:
         :param n_steps: number of steps
@@ -164,10 +165,11 @@ class ProblemSolver:
                 **kwargs,
             )
 
-            if self.coordinates == "displacement":
+            if self.coordinates == "temperature":
                 state.set_temperature(solution)
-                # state.set_displacement(solution, time=self.step_solver.current_time)  # TODO
-                # self.step_solver.u_vector[:] = state.displacement.reshape(-1)
+            elif self.coordinates == "displacement":
+                state.set_displacement(solution, time=self.step_solver.current_time)
+                self.step_solver.u_vector[:] = state.displacement.reshape(-1)
             elif self.coordinates == "velocity":
                 state.set_velocity(
                     solution,
@@ -181,10 +183,11 @@ class ProblemSolver:
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
-        # self.step_solver.iterate(solution)
+
+        self.step_solver.iterate(solution)
         if self.second_step_solver is not None:
             self.second_step_solver.iterate(solution)
-        # quality = validator.check_quality(state, solution, quality)
+        # quality = validator.check_quality(state, solution, quality) # TODO Is validator needed?
         # self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
@@ -226,10 +229,10 @@ class ProblemSolver:
 
 
 class PoissonSolver(ProblemSolver):
-    def __init__(self, setup: Problem, solving_method: str):
-        """Solves general Contact Mechanics problem.
+    def __init__(self, problem: Problem, solving_method: str):
+        """Solves Poisson problem and saves solution as temperature state.
 
-        :param setup:
+        :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = StaticBodyProperties(
@@ -237,16 +240,15 @@ class PoissonSolver(ProblemSolver):
             mu=0,
             lambda_=0,
         )
-        super().__init__(setup, body_prop)
+        super().__init__(problem, body_prop)
 
-        self.coordinates = "displacement"
+        self.coordinates = "temperature"
         self.solving_method = solving_method
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, verbose: bool = False, **kwargs) -> State:
+    def solve(self, *, verbose: bool = False, **kwargs) -> TemperatureState:
         """
-        :param initial_displacement: for the solver
         :param verbose: show prints
         :return: state
         """
@@ -261,19 +263,24 @@ class PoissonSolver(ProblemSolver):
 
         return state
 
-class Static(ProblemSolver):
-    def __init__(self, setup: StaticProblem, solving_method: str):
+    def find_solution(self, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:
+        solution = self.step_solver.solve(solution, **kwargs)
+        return solution
+
+
+class StaticSolver(ProblemSolver):
+    def __init__(self, problem: StaticDisplacementProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
-        :param setup:
+        :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = StaticBodyProperties(
             mass_density=1.0,
-            mu=setup.mu_coef,
-            lambda_=setup.la_coef,
+            mu=problem.mu_coef,
+            lambda_=problem.la_coef,
         )
-        super().__init__(setup, body_prop)
+        super().__init__(problem, body_prop)
 
         self.coordinates = "displacement"
         self.solving_method = solving_method
@@ -300,21 +307,21 @@ class Static(ProblemSolver):
         return state
 
 
-class TimeDependent(ProblemSolver):
-    def __init__(self, setup: TimeDependentProblem, solving_method: str):
+class TimeDependentSolver(ProblemSolver):
+    def __init__(self, problem: TimeDependentDisplacementProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
-        :param setup:
+        :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = TimeDependentBodyProperties(
             mass_density=1.0,
-            mu=setup.mu_coef,
-            lambda_=setup.la_coef,
-            theta=setup.th_coef,
-            zeta=setup.ze_coef,
+            mu=problem.mu_coef,
+            lambda_=problem.la_coef,
+            theta=problem.th_coef,
+            zeta=problem.ze_coef,
         )
-        super().__init__(setup, body_prop)
+        super().__init__(problem, body_prop)
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -322,14 +329,14 @@ class TimeDependent(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
@@ -366,24 +373,24 @@ class TimeDependent(ProblemSolver):
         return results
 
 
-class TemperatureTimeDependent(ProblemSolver):
-    def __init__(self, setup: TemperatureTimeDependentProblem, solving_method: str):
+class TemperatureTimeDependentSolver(ProblemSolver):
+    def __init__(self, problem: TemperatureTimeDependentProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
-        :param setup:
+        :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
 
         body_prop = TimeDependentTemperatureBodyProperties(
             mass_density=1.0,
-            mu=setup.mu_coef,
-            lambda_=setup.la_coef,
-            theta=setup.th_coef,
-            zeta=setup.ze_coef,
-            thermal_expansion=setup.thermal_expansion,
-            thermal_conductivity=setup.thermal_conductivity,
+            mu=problem.mu_coef,
+            lambda_=problem.la_coef,
+            theta=problem.th_coef,
+            zeta=problem.ze_coef,
+            thermal_expansion=problem.thermal_expansion,
+            thermal_conductivity=problem.thermal_conductivity,
         )
-        super().__init__(setup, body_prop)
+        super().__init__(problem, body_prop)
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -391,15 +398,15 @@ class TemperatureTimeDependent(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        initial_temperature: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            initial_temperature: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[TemperatureState]:
         """
         :param n_steps: number of time-step in simulation
@@ -465,23 +472,23 @@ class TemperatureTimeDependent(ProblemSolver):
         return results
 
 
-class PiezoelectricTimeDependent(ProblemSolver):
-    def __init__(self, setup: PiezoelectricTimeDependentProblem, solving_method: str):
+class PiezoelectricTimeDependentSolver(ProblemSolver):
+    def __init__(self, problem: PiezoelectricTimeDependentProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
-        :param setup:
+        :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = TimeDependentPiezoelectricBodyProperties(
             mass_density=1.0,
-            mu=setup.mu_coef,
-            lambda_=setup.la_coef,
-            theta=setup.th_coef,
-            zeta=setup.ze_coef,
-            piezoelectricity=setup.piezoelectricity,
-            permittivity=setup.permittivity,
+            mu=problem.mu_coef,
+            lambda_=problem.la_coef,
+            theta=problem.th_coef,
+            zeta=problem.ze_coef,
+            piezoelectricity=problem.piezoelectricity,
+            permittivity=problem.permittivity,
         )
-        super().__init__(setup, body_prop)
+        super().__init__(problem, body_prop)
 
         self.coordinates = "velocity"
         self.solving_method = solving_method

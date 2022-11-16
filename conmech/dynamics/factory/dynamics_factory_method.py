@@ -77,12 +77,12 @@ def get_dynamics(
         piezoelectricity = None
         permittivity = None
 
-    if dimension == 2 and isinstance(body_prop, BaseFunctionNormBodyProperties):
+    if isinstance(body_prop, BaseFunctionNormBodyProperties):
+        if dimension != 2:
+            raise NotImplementedError()
         Q = np.asarray([edges_features_matrix[2 + factory.dimension + factory.dimension ** 2][i, i]])
         norm_operator = Q
     else:
-        if dimension != 2:
-            raise NotImplementedError()
         norm_operator = None
 
     return (

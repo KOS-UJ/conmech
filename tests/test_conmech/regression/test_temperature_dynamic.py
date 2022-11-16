@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblem
+from conmech.scenarios.problems import TemperatureDynamicProblem
+from conmech.simulations.problem_solver import TemperatureTimeDependentSolver as TDynamicProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -48,7 +48,7 @@ def generate_test_suits():
     # Simple example
 
     @dataclass()
-    class DynamicSetup(TemperatureDynamic):
+    class DynamicSetup(TemperatureDynamicProblem):
         grid_height: ... = 1
         elements_number: ... = (2, 5)
         mu_coef: ... = 4
@@ -200,7 +200,7 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class DynamicSetup(TemperatureDynamic):
+    class DynamicSetup(TemperatureDynamicProblem):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58

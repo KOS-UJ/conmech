@@ -21,14 +21,15 @@ class ContactLaw:
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization
         """
         raise NotImplementedError()
 
-@dataclass()
+
+@dataclass
 class Problem:
     dimension = 2  # TODO #74 : Not used?
     mesh_type: str
@@ -38,7 +39,7 @@ class Problem:
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     @staticmethod
-    def initial_displacement(x: np.ndarray) -> np.ndarray:
+    def initial_value(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
     @staticmethod
@@ -50,9 +51,40 @@ class Problem:
         raise NotImplementedError()
 
 
-@dataclass()
-class DisplacementProblem(Problem):
+class StaticProblem(Problem, ABC):
+    pass
 
+
+class TimeDependentProblem(Problem, ABC):
+    time_step = 0
+
+
+class QuasistaticProblem(TimeDependentProblem, ABC):
+    pass
+
+
+class DynamicProblem(TimeDependentProblem, ABC):
+    pass
+
+
+@dataclass
+class PoissonProblem(StaticProblem):
+
+    @staticmethod
+    def initial_temperature(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
+
+    @staticmethod
+    def inner_forces(x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+    @staticmethod
+    def outer_forces(x: np.ndarray) -> np.ndarray:
+        raise NotImplementedError()
+
+
+@dataclass
+class DisplacementProblem(Problem):
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     mu_coef: float
@@ -61,6 +93,10 @@ class DisplacementProblem(Problem):
     dynamism: str = None  # TODO: #65 remove
 
     @staticmethod
+    def initial_value(x: np.ndarray) -> np.ndarray:
+        return DisplacementProblem.initial_displacement(x)
+
+    @staticmethod
     def initial_displacement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
@@ -77,7 +113,7 @@ class DisplacementProblem(Problem):
         raise NotImplementedError()
 
 
-class Static(DisplacementProblem):
+class StaticDisplacementProblem(DisplacementProblem, StaticProblem):
     @staticmethod
     def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
@@ -91,7 +127,7 @@ class Static(DisplacementProblem):
         raise NotImplementedError()
 
 
-class TimeDependent(DisplacementProblem):
+class TimeDependentDisplacementProblem(DisplacementProblem, ABC):
     th_coef: float
     ze_coef: float
     time_step: float
@@ -100,28 +136,16 @@ class TimeDependent(DisplacementProblem):
     def initial_velocity(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
-    @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
 
-    @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
-
-
-class Quasistatic(TimeDependent, ABC):
+class QuasistaticDisplacementProblem(QuasistaticProblem, TimeDependentDisplacementProblem, ABC):
     pass
 
 
-class Dynamic(TimeDependent, ABC):
+class DynamicDisplacementProblem(DynamicProblem, TimeDependentDisplacementProblem, ABC):
     pass
 
 
-class TemperatureTimeDependent(TimeDependent, ABC):
+class TemperatureTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
     thermal_expansion: np.ndarray
     thermal_conductivity: np.ndarray
 
@@ -130,7 +154,7 @@ class TemperatureTimeDependent(TimeDependent, ABC):
         return np.zeros_like(len(x))
 
 
-class PiezoelectricTimeDependent(TimeDependent, ABC):
+class PiezoelectricTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
     piezoelectricity: np.ndarray
     permittivity: np.ndarray
 
@@ -139,13 +163,13 @@ class PiezoelectricTimeDependent(TimeDependent, ABC):
         return np.zeros_like(len(x))
 
 
-class TemperatureDynamic(Dynamic, TemperatureTimeDependent, ABC):
+class TemperatureDynamicProblem(DynamicProblem, TemperatureTimeDependentProblem, ABC):
     pass
 
 
-class PiezoelectricQuasistatic(Quasistatic, PiezoelectricTimeDependent, ABC):
+class PiezoelectricQuasistaticProblem(QuasistaticDisplacementProblem, PiezoelectricTimeDependentProblem, ABC):
     pass
 
 
-class PiezoelectricDynamic(Dynamic, PiezoelectricTimeDependent, ABC):
+class PiezoelectricDynamicProblem(DynamicDisplacementProblem, PiezoelectricTimeDependentProblem, ABC):
     pass

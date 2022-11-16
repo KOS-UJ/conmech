@@ -9,10 +9,8 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import PiezoelectricDynamic
-from conmech.simulations.problem_solver import (
-    PiezoelectricTimeDependent as PDynamicProblemSolver,
-)  # in fact Quasi and dynamic is the same
+from conmech.scenarios.problems import PiezoelectricDynamicProblem
+from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -46,7 +44,7 @@ class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class PDynamicSetup(PiezoelectricDynamic):
+class PDynamicSetup(PiezoelectricDynamicProblem):
     grid_height: ... = 1.0
     elements_number: ... = (4, 10)
     mu_coef: ... = 4
@@ -86,7 +84,7 @@ class PDynamicSetup(PiezoelectricDynamic):
 
 def main(show: bool = True, save: bool = False):
     setup = PDynamicSetup(mesh_type="cross")
-    runner = PDynamicProblemSolver(setup, solving_method="schur")
+    runner = PiezoelectricTimeDependentSolver(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=4,  # FIXME 32

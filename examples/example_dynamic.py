@@ -8,13 +8,13 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import Dynamic
-from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblemSolver
+from conmech.scenarios.problems import DynamicDisplacementProblem
+from conmech.simulations.problem_solver import TimeDependentSolver
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
-class DynamicSetup(Dynamic):
+class DynamicSetup(DynamicDisplacementProblem):
     grid_height: ... = 1.0
     elements_number: ... = (2, 5)
     boundaries: ... = BoundariesDescription(
@@ -42,7 +42,7 @@ class DynamicSetup(Dynamic):
 
 def main(show: bool = True, save: bool = False):
     setup = DynamicSetup(mesh_type="cross")
-    runner = TimeDependentProblemSolver(setup, solving_method="schur")
+    runner = TimeDependentSolver(setup, solving_method="schur")
 
     states = runner.solve(
         n_steps=32,

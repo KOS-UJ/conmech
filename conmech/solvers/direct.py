@@ -13,12 +13,12 @@ from conmech.solvers.solver_methods import make_equation
 @Solvers.register("static", "direct")
 class Direct(Solver):
     def __init__(
-        self,
-        statement,
-        body,
-        time_step,
-        contact_law,
-        friction_bound,
+            self,
+            statement,
+            body,
+            time_step,
+            contact_law,
+            friction_bound,
     ):
         super().__init__(
             statement,
@@ -28,11 +28,14 @@ class Direct(Solver):
             friction_bound,
         )
 
-        self.equation = make_equation(
-            jn=contact_law.subderivative_normal_direction,
-            jt=contact_law.regularized_subderivative_tangential_direction,
-            h_functional=friction_bound,
-        )
+        if contact_law is None:
+            self.equation = make_equation(None, None, None)
+        else:
+            self.equation = make_equation(
+                jn=contact_law.subderivative_normal_direction,
+                jt=contact_law.regularized_subderivative_tangential_direction,
+                h_functional=friction_bound,
+            )
 
     def __str__(self):
         return "direct"

@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import Static
-from conmech.simulations.problem_solver import Static as StaticProblem
+from conmech.scenarios.problems import StaticDisplacementProblem
+from conmech.simulations.problem_solver import StaticSolver as StaticProblem
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -24,7 +24,7 @@ def generate_test_suits():
     # Simple example
 
     @dataclass()
-    class StaticSetup(Static):
+    class StaticSetup(StaticDisplacementProblem):
         grid_height: ... = 1
         elements_number: ... = (2, 5)
         mu_coef: ... = 4
@@ -116,7 +116,7 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class StaticSetup(Static):
+    class StaticSetup(StaticDisplacementProblem):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58

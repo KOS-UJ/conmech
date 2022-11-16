@@ -4,18 +4,14 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import Static
+from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
-class StaticPoissonSetup(Static):
+class StaticPoissonSetup(PoissonProblem):
     grid_height: ... = 1.0
-    elements_number: ... = (32, 32)
-    mu_coef: ... = 0
-    la_coef: ... = 0
-    contact_law: ... = make_slope_contact_law(slope=0)
+    elements_number: ... = (10, 10)
 
     @staticmethod
     def inner_forces(x):
@@ -34,7 +30,7 @@ def main(show: bool = True, save: bool = False):
     setup = StaticPoissonSetup(mesh_type="cross")
     runner = PoissonSolver(setup, "direct")
 
-    state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
+    state = runner.solve(verbose=True)
     config = Config()
     t_max = max(state.temperature)
     t_min = min(state.temperature)

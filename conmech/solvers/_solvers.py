@@ -1,8 +1,5 @@
 from conmech.scenarios.problems import (
-    DisplacementProblem,
-    Static as StaticProblem,
-    Quasistatic as QuasistaticProblem,
-    Dynamic as DynamicProblem,
+    StaticProblem, QuasistaticProblem, DynamicProblem, Problem,
 )
 
 
@@ -28,7 +25,7 @@ class Solvers:
         return add_to_dict
 
     @staticmethod
-    def get_by_name(solver_name: str, problem: DisplacementProblem) -> type:
+    def get_by_name(solver_name: str, problem: Problem) -> type:
         if isinstance(problem, StaticProblem):
             dynamism_type = "static"
         elif isinstance(problem, QuasistaticProblem):
