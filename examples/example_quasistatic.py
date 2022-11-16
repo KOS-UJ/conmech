@@ -25,15 +25,15 @@ class QuasistaticSetup(QuasistaticDisplacementProblem):
     contact_law: ... = make_slope_contact_law(slope=1e1)
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         return np.array([-0.2, -0.2])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         return np.array([0, 0])
 
     @staticmethod
-    def friction_bound(u_nu):
+    def friction_bound(u_nu: float) -> float:
         return 0
 
     boundaries: ... = BoundariesDescription(

@@ -4,14 +4,16 @@ Created at 18.02.2021
 
 import numpy as np
 
-from conmech.solvers import Solver
+from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
+from conmech.state.state import State
 
 
 class Validator:
     def __init__(self, solver: Solver, error_tolerance: float = 1):
-        self.error_tolerance = error_tolerance
-        self.elasticity = solver.elasticity
+        self.error_tolerance: float = error_tolerance
+        self.elasticity: np.ndarray = solver.elasticity
+        self.rhs: callable
         if solver.contact_law is None:
             self.rhs = make_equation(None, None, None)
         else:
@@ -21,7 +23,7 @@ class Validator:
                 h_functional=solver.friction_bound,
             )
 
-    def validate(self, state, solution) -> float:
+    def validate(self, state: State, solution: np.ndarray) -> float:
         quality_inv = np.linalg.norm(
             self.rhs(
                 solution,
@@ -31,10 +33,10 @@ class Validator:
                 state.body.get_integrated_forces_vector(),
             )
         )
-        quality = quality_inv**-1
+        quality = quality_inv ** -1
         return quality
 
-    def check_quality(self, state, solution, previous_quality: float = None) -> float:
+    def check_quality(self, state: State, solution: np.ndarray, previous_quality: float = None) -> float:
         quality = self.validate(state, solution)
         if previous_quality is not None and previous_quality == quality:
             raise RuntimeError("Can't find a solution! ")

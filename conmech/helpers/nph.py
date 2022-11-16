@@ -2,46 +2,47 @@
 numpy helpers
 """
 from ctypes import ArgumentError
+from typing import Optional, Tuple
 
 import numba
 import numpy as np
 
 
-def stack(data):
+def stack(data: np.ndarray) -> np.ndarray:
     return data.T.flatten()
 
 
-def stack_column(data):
+def stack_column(data: np.ndarray) -> np.ndarray:
     return data.T.flatten().reshape(-1, 1)
 
 
 stack_column_numba = numba.njit(stack_column)
 
 
-def unstack(vector, dim):
+def unstack(vector: np.ndarray, dim: int) -> np.ndarray:
     return vector.reshape(-1, dim, order="F")
 
 
-def unstack_and_sum_columns(data, dim, keepdims=False):
+def unstack_and_sum_columns(data: np.ndarray, dim: int, keepdims: bool = False) -> np.ndarray:
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 
-def elementwise_dot(matrix_1, matrix_2, keepdims=False):
+def elementwise_dot(matrix_1: np.ndarray, matrix_2: np.ndarray, keepdims: bool = False) -> np.ndarray:
     return (matrix_1 * matrix_2).sum(axis=1, keepdims=keepdims)
 
 
-def get_occurances(data):
+def get_occurances(data: np.ndarray) -> np.ndarray:
     return np.array(list(set(data.flatten())))
 
 
-def close_modulo(value, divider):
+def close_modulo(value: np.ndarray, divider: Optional[int]) -> bool:
     if divider is None:
         return True
     return np.allclose(value % divider, 0.0) or np.allclose(value % divider, divider)
 
 
-def euclidean_norm(vector, keepdims=False):
-    data = (vector**2).sum(axis=-1, keepdims=keepdims)
+def euclidean_norm(vector: np.ndarray, keepdims=False) -> np.ndarray:
+    data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
     if isinstance(vector, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
@@ -50,45 +51,45 @@ def euclidean_norm(vector, keepdims=False):
 
 
 @numba.njit
-def euclidean_norm_numba(vector):
-    data = (vector**2).sum(axis=-1)
+def euclidean_norm_numba(vector: np.ndarray) -> np.ndarray:
+    data = (vector ** 2).sum(axis=-1)
     return np.sqrt(data)
 
 
 @numba.njit
-def normalize_euclidean_numba(data):
+def normalize_euclidean_numba(data: np.ndarray) -> np.ndarray:
     norm = euclidean_norm_numba(data)
     reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
     return data / reshaped_norm
 
 
-def get_normal(vector, normal):
+def get_normal(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     return elementwise_dot(vector, normal, keepdims=True)
 
 
-def get_normal_tangential(vector, normal):
+def get_normal_tangential(vector: np.ndarray, normal: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     normal_vector = get_normal(vector, normal)
     tangential_vector = vector - (normal_vector * normal)
     return normal_vector, tangential_vector
 
 
-def get_tangential(vector, normal):
+def get_tangential(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     _, tangential_vector = get_normal_tangential(vector, normal)
     return tangential_vector
 
 
 @numba.njit
-def get_tangential_numba(vector, normal):
+def get_tangential_numba(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     normal_vector = vector @ normal
     tangential_vector = vector - (normal_vector * normal)
     return tangential_vector
 
 
-def get_tangential_2d(normal):
+def get_tangential_2d(normal: np.ndarray) -> np.ndarray:
     return np.array((normal[..., 1], -normal[..., 0])).T
 
 
-def complete_base(base_seed, closest_seed_index=0):
+def complete_base(base_seed: np.ndarray, closest_seed_index: int = 0) -> np.ndarray:
     dim = base_seed.shape[-1]
     normalized_base_seed = normalize_euclidean_numba(base_seed)
     if dim == 2:
@@ -103,7 +104,7 @@ def complete_base(base_seed, closest_seed_index=0):
     return base
 
 
-def orthogonalize_gram_schmidt(vectors):
+def orthogonalize_gram_schmidt(vectors: np.ndarray) -> np.ndarray:
     # Gramm-schmidt orthog.
     b0 = vectors[0]
     if len(vectors) == 1:
@@ -120,7 +121,7 @@ def orthogonalize_gram_schmidt(vectors):
     return np.array((b0, b1, b2))
 
 
-def get_in_base(vectors, base):
+def get_in_base(vectors: np.ndarray, base: np.ndarray) -> np.ndarray:
     return vectors @ base.T
 
 
@@ -152,25 +153,24 @@ def get_node_index_numba(node, nodes):
     raise ArgumentError
 
 
-def generate_normal(rows, columns, scale):
+def generate_normal(rows: int, columns: int, scale: float) -> np.ndarray:
     return np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
 
 
-def generate_uniform_circle(rows, columns, low, high):
+def generate_uniform_circle(rows: int, columns: int, low: float, high: float) -> np.ndarray:
     result = generate_normal(rows=rows, columns=columns, scale=1.0)
     normalized_result = normalize_euclidean_numba(result)
     radius = np.random.uniform(low=low, high=high, size=[rows, 1])
     return radius * normalized_result
 
 
-def append_euclidean_norm(data):
+def append_euclidean_norm(data: np.ndarray) -> np.ndarray:
     return np.hstack((data, euclidean_norm(data, keepdims=True)))
 
 
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
-
 
 # @numba.njit
 # def calculate_angle_numba(new_up_vector):

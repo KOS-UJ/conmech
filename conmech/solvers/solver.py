@@ -1,34 +1,38 @@
 """
 Created at 18.02.2021
 """
+from typing import Callable, Optional
+
 import numpy as np
 
 from conmech.dynamics.statement import Statement, Variables
+from conmech.scenarios.problems import ContactLaw
+from conmech.scene.body_forces import BodyForces
 
 
 class Solver:
     def __init__(
         self,
-        statement,
-        body,
-        time_step,
-        contact_law,
-        friction_bound,
+        statement: Statement,
+        body: BodyForces,
+        time_step: float,
+        contact_law: Optional[ContactLaw],
+        friction_bound: Optional[Callable[[float], float]],
     ):
-        self.contact_law = contact_law
-        self.friction_bound = friction_bound
+        self.contact_law: Optional[ContactLaw] = contact_law
+        self.friction_bound: Optional[Callable[[float], float]] = friction_bound
 
-        self.body = body
+        self.body: BodyForces = body
         self.statement: Statement = statement
 
-        self.time_step = time_step
-        self.current_time = 0
-        self.u_vector = np.zeros(self.body.mesh.independent_nodes_count * 2)
-        self.v_vector = np.zeros(self.body.mesh.independent_nodes_count * 2)
-        self.t_vector = np.zeros(self.body.mesh.independent_nodes_count)
-        self.p_vector = np.zeros(self.body.mesh.independent_nodes_count)  # TODO #23
+        self.time_step: float = time_step
+        self.current_time: float = 0
+        self.u_vector: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count * 2)
+        self.v_vector: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count * 2)
+        self.t_vector: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count)
+        self.p_vector: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count)  # TODO #23
 
-        self.elasticity = body.elasticity
+        self.elasticity: np.ndarray = body.elasticity
 
         self.statement.update(
             Variables(
@@ -40,12 +44,12 @@ class Solver:
             )
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         raise NotImplementedError()
 
-    def iterate(self, velocity):
+    def iterate(self, velocity: np.ndarray) -> None:
         self.v_vector = velocity.reshape(-1)
         self.u_vector = self.u_vector + self.time_step * self.v_vector
 
-    def solve(self, initial_guess, *, velocity: np.ndarray, **kwargs):
+    def solve(self, initial_guess: np.ndarray, *, velocity: np.ndarray, **kwargs) -> np.ndarray:
         raise NotImplementedError()

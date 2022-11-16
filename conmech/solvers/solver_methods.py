@@ -38,10 +38,11 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     return result
 
 
-def make_equation(jn, jt, h_functional):
+def make_equation(jn: Optional[callable], jt: Optional[callable], h_functional: Optional[callable]) -> callable:
+    # TODO Make it prettier
     if jn is None:
         @numba.njit
-        def equation(u_vector, vertices, contact_boundary, lhs, rhs):
+        def equation(u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
             result = np.dot(lhs, u_vector) - rhs
             return result
     else:
@@ -101,7 +102,7 @@ def make_equation(jn, jt, h_functional):
             return contact_vector
 
         @numba.njit
-        def equation(u_vector, vertices, contact_boundary, lhs, rhs):
+        def equation(u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
             c_part = contact_part(u_vector, vertices, contact_boundary)
             result = np.dot(lhs, u_vector) + c_part - rhs
             return result

@@ -4,14 +4,12 @@ Created 22.02.2021
 
 import numpy as np
 
-from conmech.dynamics.statement import (
-    Variables,
-)
-from conmech.solvers._solvers import Solvers
+from conmech.dynamics.statement import Variables
+from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.optimization.optimization import Optimization
 
 
-class Global(Optimization):
+class GlobalOptimization(Optimization):
     def __str__(self):
         return "global optimization"
 
@@ -24,20 +22,20 @@ class Global(Optimization):
         return self.statement.right_hand_side
 
 
-@Solvers.register("static", "global", "global optimization")
-class Static(Global):
+@SolversRegistry.register("static", "global", "global optimization")
+class StaticGlobalOptimization(GlobalOptimization):
     pass
 
 
-@Solvers.register("quasistatic", "global", "global optimization")
-class Quasistatic(Global):
+@SolversRegistry.register("quasistatic", "global", "global optimization")
+class QuasistaticGlobalOptimization(GlobalOptimization):
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(Variables(displacement=self.u_vector))
 
 
-@Solvers.register("dynamic", "global", "global optimization")
-class Dynamic(Global):
+@SolversRegistry.register("dynamic", "global", "global optimization")
+class DynamicGlobalOptimization(GlobalOptimization):
     def iterate(self, velocity):
         super().iterate(velocity)
         self.statement.update(

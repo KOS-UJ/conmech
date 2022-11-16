@@ -14,11 +14,11 @@ class StaticPoissonSetup(PoissonProblem):
     elements_number: ... = (10, 10)
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x: np.ndarray) -> np.ndarray:
         return np.array([1000.])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x: np.ndarray) -> np.ndarray:
         return np.array([3.])
 
     boundaries: ... = BoundariesDescription(

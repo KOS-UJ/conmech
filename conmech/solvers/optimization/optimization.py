@@ -2,10 +2,14 @@
 Created at 18.02.2021
 """
 import math
+from typing import Optional
+
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticDisplacementStatement
+from conmech.dynamics.statement import StaticDisplacementStatement, Statement
+from conmech.scenarios.problems import ContactLaw
+from conmech.scene.body_forces import BodyForces
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_cost_functional
 from conmech.solvers.solver_methods import make_cost_functional_temperature
@@ -14,10 +18,10 @@ from conmech.solvers.solver_methods import make_cost_functional_temperature
 class Optimization(Solver):
     def __init__(
         self,
-        statement,
-        body,
-        time_step,
-        contact_law,
+        statement: Statement,
+        body: BodyForces,
+        time_step: float,
+        contact_law: Optional[ContactLaw],
         friction_bound,
     ):
         super().__init__(

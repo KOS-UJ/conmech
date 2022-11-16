@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import BodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.optimization.schur_complement import SchurComplement
+from conmech.helpers.schur_complement_functions import calculate_schur_complement_vector
 from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
@@ -36,20 +36,20 @@ class BodyForces(Dynamics):
             boundaries_description=boundaries_description,
         )
 
-        self.inner_forces = None
-        self.outer_forces = None
+        self.inner_forces: Optional[np.ndarray] = None
+        self.outer_forces: Optional[np.ndarray] = None
 
     def set_permanent_forces_by_functions(
         self, inner_forces_function: Callable, outer_forces_function: Callable
-    ):
+    ) -> None:
         self.inner_forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
         self.outer_forces = np.array([outer_forces_function(p) for p in self.moved_nodes])
 
-    def prepare(self, inner_forces: np.ndarray):
+    def prepare(self, inner_forces: np.ndarray) -> None:
         self.inner_forces = inner_forces
         self.outer_forces = np.zeros_like(self.mesh.initial_nodes)
 
-    def clear(self):
+    def clear(self) -> None:
         self.inner_forces = None
         self.outer_forces = None
 
@@ -64,7 +64,7 @@ class BodyForces(Dynamics):
     def get_integrated_inner_forces(self):
         return self.volume_at_nodes @ self.normalized_inner_forces
 
-    def get_integrated_outer_forces(self):
+    def get_integrated_outer_forces(self) -> np.ndarray:
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.mesh.neumann_boundary,
             considered_nodes_count=self.mesh.nodes_count,
@@ -84,7 +84,7 @@ class BodyForces(Dynamics):
         (
             normalized_rhs_boundary,
             normalized_rhs_free,
-        ) = SchurComplement.calculate_schur_complement_vector(
+        ) = calculate_schur_complement_vector(
             vector=normalized_rhs,
             dimension=self.mesh.dimension,
             contact_indices=self.mesh.contact_indices,

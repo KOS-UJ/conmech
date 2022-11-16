@@ -1,24 +1,28 @@
 """
 Created at 18.02.2021
 """
+from typing import Optional, Callable
 
 import numpy as np
 import scipy.optimize
 
-from conmech.solvers._solvers import Solvers
+from conmech.dynamics.statement import Statement
+from conmech.scenarios.problems import ContactLaw
+from conmech.scene.body_forces import BodyForces
+from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
 
 
-@Solvers.register("static", "direct")
+@SolversRegistry.register("static", "direct")
 class Direct(Solver):
     def __init__(
             self,
-            statement,
-            body,
-            time_step,
-            contact_law,
-            friction_bound,
+            statement: Statement,
+            body: BodyForces,
+            time_step: float,
+            contact_law: Optional[ContactLaw],
+            friction_bound: Optional[Callable[[float], float]],
     ):
         super().__init__(
             statement,
@@ -37,7 +41,7 @@ class Direct(Solver):
                 h_functional=friction_bound,
             )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "direct"
 
     @property

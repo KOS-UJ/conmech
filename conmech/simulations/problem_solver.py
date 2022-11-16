@@ -1,7 +1,7 @@
 """
 General solver for Contact Mechanics problem.
 """
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -24,17 +24,22 @@ from conmech.properties.body_properties import (
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.problems import TimeDependentProblem, Problem, PoissonProblem, \
-    StaticDisplacementProblem, TimeDependentDisplacementProblem
-from conmech.scenarios.problems import DisplacementProblem
-from conmech.scenarios.problems import QuasistaticProblem
-from conmech.scenarios.problems import StaticProblem
-from conmech.scenarios.problems import TemperatureDynamicProblem
-from conmech.scenarios.problems import TemperatureTimeDependentProblem
-from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
-from conmech.scenarios.problems import PiezoelectricTimeDependentProblem
+from conmech.scenarios.problems import (
+    TimeDependentProblem,
+    Problem,
+    StaticProblem,
+    QuasistaticProblem,
+    PoissonProblem,
+    DisplacementProblem,
+    StaticDisplacementProblem,
+    TimeDependentDisplacementProblem,
+    TemperatureTimeDependentProblem,
+    TemperatureDynamicProblem,
+    PiezoelectricTimeDependentProblem,
+    PiezoelectricQuasistaticProblem, ContactLaw,
+)
 from conmech.scene.body_forces import BodyForces
-from conmech.solvers import Solvers
+from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state.state import State, TemperatureState, PiezoelectricState
@@ -47,14 +52,15 @@ class ProblemSolver:
         :param problem:
         :param body_properties:
         """
+        self.time_step: float
         if isinstance(problem, TimeDependentProblem):
-            time_step = problem.time_step
+            self.time_step = problem.time_step
         else:
-            time_step = 0
+            self.time_step = 0
 
-        grid_width = (problem.grid_height / problem.elements_number[0]) * problem.elements_number[1]
+        grid_width: float = (problem.grid_height / problem.elements_number[0]) * problem.elements_number[1]
 
-        self.body = BodyForces(
+        self.body: BodyForces = BodyForces(
             mesh_prop=MeshProperties(
                 dimension=2,
                 mesh_type=problem.mesh_type,
@@ -62,7 +68,7 @@ class ProblemSolver:
                 scale=[float(grid_width), float(problem.grid_height)],
             ),
             body_prop=body_properties,
-            schedule=Schedule(time_step=time_step, final_time=0.0),
+            schedule=Schedule(time_step=self.time_step, final_time=0.0),
             boundaries_description=problem.boundaries,
             dynamics_config=DynamicsConfiguration(
                 normalize_by_rotation=False,
@@ -74,20 +80,22 @@ class ProblemSolver:
         self.body.set_permanent_forces_by_functions(
             inner_forces_function=problem.inner_forces, outer_forces_function=problem.outer_forces
         )
-        self.problem = problem
+        self.problem: Problem = problem
 
-        self.coordinates = None
+        self.coordinates: Optional[str] = None
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
 
     @property
-    def solving_method(self):
+    def solving_method(self) -> str:
         return str(self.step_solver)
 
     @solving_method.setter
-    def solving_method(self, value):
-        solver_class = Solvers.get_by_name(solver_name=value, problem=self.problem)
+    def solving_method(self, value: str) -> None:
+        solver_class: Type[Solver] = SolversRegistry.get_by_name(solver_name=value, problem=self.problem)
+        contact_law: Optional[ContactLaw]
+        friction_bound: Optional[Callable[[float], float]]
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.problem, DisplacementProblem):
@@ -95,7 +103,6 @@ class ProblemSolver:
             friction_bound = self.problem.friction_bound
             if isinstance(self.problem, StaticProblem):
                 statement = StaticDisplacementStatement(self.body)
-                time_step = 0
             elif isinstance(self.problem, TimeDependentProblem):
                 if isinstance(self.problem, PiezoelectricQuasistaticProblem):
                     statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
@@ -105,21 +112,18 @@ class ProblemSolver:
                     statement = DynamicVelocityWithTemperatureStatement(self.body)
                 else:
                     statement = DynamicVelocityStatement(self.body)
-                time_step = self.problem.time_step
             else:
                 raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         elif isinstance(self.problem, PoissonProblem):
             statement = StaticPoissonStatement(self.body)
-            time_step = 0
             contact_law = None
             friction_bound = None
         else:
             raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
-
         self.step_solver = solver_class(
             statement,
             self.body,
-            time_step,
+            self.time_step,
             contact_law,
             friction_bound,
         )
@@ -127,7 +131,7 @@ class ProblemSolver:
             self.second_step_solver = solver_class(
                 TemperatureStatement(self.body),
                 self.body,
-                time_step,
+                self.time_step,
                 self.problem.contact_law,
                 self.problem.friction_bound,
             )
@@ -135,7 +139,7 @@ class ProblemSolver:
             self.second_step_solver = solver_class(
                 PiezoelectricStatement(self.body),
                 self.body,
-                time_step,
+                self.time_step,
                 self.problem.contact_law,
                 self.problem.friction_bound,
             )
@@ -148,6 +152,7 @@ class ProblemSolver:
 
     def run(self, solution: np.ndarray, state: State, n_steps: int, verbose: bool = False, **kwargs):
         """
+        :param solution:
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
@@ -166,7 +171,10 @@ class ProblemSolver:
             )
 
             if self.coordinates == "temperature":
-                state.set_temperature(solution)
+                if isinstance(state, TemperatureState):
+                    state.set_temperature(solution)
+                else:
+                    raise ValueError(f"Wrong coordinates type {self.coordinates} for state class {type(solution)}")
             elif self.coordinates == "displacement":
                 state.set_displacement(solution, time=self.step_solver.current_time)
                 self.step_solver.u_vector[:] = state.displacement.reshape(-1)
@@ -179,7 +187,8 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:
+    def find_solution(self, state: State, solution: np.ndarray, validator: Validator, *, verbose: bool = False,
+                      **kwargs) -> np.ndarray:
         quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
@@ -192,7 +201,7 @@ class ProblemSolver:
         return solution
 
     def find_solution_uzawa(
-            self, state, solution, solution_t, *, verbose=False
+            self, state: State, solution: np.ndarray, solution_t: np.ndarray, *, verbose: bool = False
     ) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
@@ -220,7 +229,7 @@ class ProblemSolver:
         return solution, solution_t
 
     @staticmethod
-    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool):
+    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool) -> None:
         qualitative = quality > error_tolerance
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
@@ -351,7 +360,7 @@ class TimeDependentSolver(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.body)
+        state: State = State(self.body)
         state.displacement[:] = initial_displacement(
             self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
         )

@@ -30,7 +30,7 @@ class ContactLaw:
 
 
 @dataclass
-class Problem:
+class Problem(ABC):
     dimension = 2  # TODO #74 : Not used?
     mesh_type: str
     grid_height: float
@@ -68,23 +68,15 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 
 @dataclass
-class PoissonProblem(StaticProblem):
+class PoissonProblem(StaticProblem, ABC):
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
 
-    @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
 
 @dataclass
-class DisplacementProblem(Problem):
+class DisplacementProblem(Problem, ABC):
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     mu_coef: float
@@ -113,7 +105,7 @@ class DisplacementProblem(Problem):
         raise NotImplementedError()
 
 
-class StaticDisplacementProblem(DisplacementProblem, StaticProblem):
+class StaticDisplacementProblem(DisplacementProblem, StaticProblem, ABC):
     @staticmethod
     def inner_forces(x: np.ndarray) -> np.ndarray:
         raise NotImplementedError()

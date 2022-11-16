@@ -4,14 +4,16 @@ Created at 18.02.2021
 
 import numpy as np
 
+from conmech.scene.body_forces import BodyForces
+
 
 class State:
-    def __init__(self, body):
-        self.body = body
+    def __init__(self, body: BodyForces):
+        self.body: BodyForces = body
         self.displacement: np.ndarray = np.zeros((self.body.mesh.independent_nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
         self.velocity: np.ndarray = np.zeros((self.body.mesh.independent_nodes_count, 2))
-        self.time = 0
+        self.time: float = 0
 
     def set_displacement(self, displacement_vector: np.ndarray, time: float = 0):
         self.displacement = displacement_vector.reshape((2, -1)).T
@@ -34,7 +36,7 @@ class State:
             )
         self.time = time
 
-    def __getitem__(self, item) -> np.ndarray:
+    def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item in (0, "displacement"):
             return self.displacement
         if item in (1, "velocity"):
