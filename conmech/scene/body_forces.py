@@ -81,10 +81,7 @@ class BodyForces(Dynamics):
 
     def get_all_normalized_rhs_np(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_np(temperature)
-        (
-            normalized_rhs_boundary,
-            normalized_rhs_free,
-        ) = calculate_schur_complement_vector(
+        (normalized_rhs_boundary, normalized_rhs_free,) = calculate_schur_complement_vector(
             vector=normalized_rhs,
             dimension=self.mesh.dimension,
             contact_indices=self.mesh.contact_indices,

@@ -89,10 +89,7 @@ class SceneTemperature(Scene):
 
     def get_all_normalized_t_rhs_np(self, normalized_acceleration):
         normalized_t_rhs = self.get_normalized_t_rhs_np(normalized_acceleration)
-        (
-            normalized_t_rhs_boundary,
-            normalized_t_rhs_free,
-        ) = calculate_schur_complement_vector(
+        (normalized_t_rhs_boundary, normalized_t_rhs_free,) = calculate_schur_complement_vector(
             vector=normalized_t_rhs,
             dimension=1,
             contact_indices=self.mesh.contact_indices,

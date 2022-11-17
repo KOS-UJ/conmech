@@ -64,7 +64,7 @@ class QuasistaticVelocityStatement(Statement):
         assert var.displacement is not None
 
         self.right_hand_side = (
-                self.body.get_integrated_forces_vector() - self.body.elasticity @ var.displacement.T
+            self.body.get_integrated_forces_vector() - self.body.elasticity @ var.displacement.T
         )
 
 
@@ -76,9 +76,9 @@ class DynamicVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-                self.body.viscosity
-                + (1 / var.time_step)
-                * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
+            self.body.viscosity
+            + (1 / var.time_step)
+            * self.body.acceleration_operator  # + self.body.elasticity @ var.time_step ???
         )
 
     def update_right_hand_side(self, var):
@@ -114,8 +114,8 @@ class TemperatureStatement(Statement):
         ind = self.body.mesh.independent_nodes_count
 
         self.left_hand_side = (1 / var.time_step) * self.body.acceleration_operator[
-                                                    :ind, :ind
-                                                    ] + self.body.thermal_conductivity[:ind, :ind]
+            :ind, :ind
+        ] + self.body.thermal_conductivity[:ind, :ind]
 
     def update_right_hand_side(self, var):
         assert var.velocity is not None

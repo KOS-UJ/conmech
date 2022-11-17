@@ -33,10 +33,12 @@ class Validator:
                 state.body.get_integrated_forces_vector(),
             )
         )
-        quality = quality_inv ** -1
+        quality = quality_inv**-1
         return quality
 
-    def check_quality(self, state: State, solution: np.ndarray, previous_quality: float = None) -> float:
+    def check_quality(
+        self, state: State, solution: np.ndarray, previous_quality: float = None
+    ) -> float:
         quality = self.validate(state, solution)
         if previous_quality is not None and previous_quality == quality:
             raise RuntimeError("Can't find a solution! ")

@@ -8,8 +8,10 @@ import numpy as np
 from conmech.dynamics.statement import Variables
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.optimization.optimization import Optimization
-from conmech.helpers.schur_complement_functions import calculate_schur_complement_matrices, \
-    calculate_schur_complement_vector
+from conmech.helpers.schur_complement_functions import (
+    calculate_schur_complement_matrices,
+    calculate_schur_complement_vector,
+)
 
 
 class SchurComplementOptimization(Optimization):

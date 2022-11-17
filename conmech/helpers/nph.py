@@ -27,7 +27,9 @@ def unstack_and_sum_columns(data: np.ndarray, dim: int, keepdims: bool = False) 
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 
-def elementwise_dot(matrix_1: np.ndarray, matrix_2: np.ndarray, keepdims: bool = False) -> np.ndarray:
+def elementwise_dot(
+    matrix_1: np.ndarray, matrix_2: np.ndarray, keepdims: bool = False
+) -> np.ndarray:
     return (matrix_1 * matrix_2).sum(axis=1, keepdims=keepdims)
 
 
@@ -42,7 +44,7 @@ def close_modulo(value: np.ndarray, divider: Optional[int]) -> bool:
 
 
 def euclidean_norm(vector: np.ndarray, keepdims=False) -> np.ndarray:
-    data = (vector ** 2).sum(axis=-1, keepdims=keepdims)
+    data = (vector**2).sum(axis=-1, keepdims=keepdims)
     if isinstance(vector, np.ndarray):
         return np.sqrt(data)
     return data.sqrt()
@@ -52,7 +54,7 @@ def euclidean_norm(vector: np.ndarray, keepdims=False) -> np.ndarray:
 
 @numba.njit
 def euclidean_norm_numba(vector: np.ndarray) -> np.ndarray:
-    data = (vector ** 2).sum(axis=-1)
+    data = (vector**2).sum(axis=-1)
     return np.sqrt(data)
 
 
@@ -171,6 +173,7 @@ def append_euclidean_norm(data: np.ndarray) -> np.ndarray:
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
+
 
 # @numba.njit
 # def calculate_angle_numba(new_up_vector):

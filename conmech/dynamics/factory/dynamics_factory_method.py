@@ -6,7 +6,8 @@ from conmech.properties.body_properties import (
     StaticBodyProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
-    BodyProperties, BaseFunctionNormBodyProperties,
+    BodyProperties,
+    BaseFunctionNormBodyProperties,
 )
 
 
@@ -43,9 +44,7 @@ def get_dynamics(
         ]
     )
 
-    poisson_operator = (
-        factory.calculate_poisson_matrix(W)
-    )
+    poisson_operator = factory.calculate_poisson_matrix(W)
 
     elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
@@ -80,7 +79,9 @@ def get_dynamics(
     if isinstance(body_prop, BaseFunctionNormBodyProperties):
         if dimension != 2:
             raise NotImplementedError()
-        Q = np.asarray([edges_features_matrix[2 + factory.dimension + factory.dimension ** 2][i, i]])
+        Q = np.asarray(
+            [edges_features_matrix[2 + factory.dimension + factory.dimension**2][i, i]]
+        )
         norm_operator = Q
     else:
         norm_operator = None

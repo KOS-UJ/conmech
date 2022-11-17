@@ -2,7 +2,10 @@ from typing import Type, Callable, Dict
 
 from conmech.solvers.solver import Solver
 from conmech.scenarios.problems import (
-    StaticProblem, QuasistaticProblem, DynamicProblem, Problem,
+    StaticProblem,
+    QuasistaticProblem,
+    DynamicProblem,
+    Problem,
 )
 
 

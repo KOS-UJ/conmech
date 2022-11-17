@@ -6,12 +6,12 @@ from conmech.helpers import nph
 
 
 def calculate_schur_complement_vector(
-        vector: np.ndarray,
-        dimension: int,
-        contact_indices: slice,
-        free_indices: slice,
-        free_x_free_inverted: np.ndarray,
-        contact_x_free: np.ndarray,
+    vector: np.ndarray,
+    dimension: int,
+    contact_indices: slice,
+    free_indices: slice,
+    free_x_free_inverted: np.ndarray,
+    contact_x_free: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray]:
     vector_split = nph.unstack(vector, dimension)
     vector_contact = nph.stack_column(vector_split[contact_indices, :])
@@ -37,8 +37,6 @@ def calculate_schur_complement_matrices(
     contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
 
     free_x_free_inverted = np.linalg.inv(free_x_free)
-    matrix_boundary = contact_x_contact - contact_x_free @ (
-        free_x_free_inverted @ free_x_contact
-    )
+    matrix_boundary = contact_x_contact - contact_x_free @ (free_x_free_inverted @ free_x_contact)
 
     return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted

@@ -15,15 +15,13 @@ class StaticPoissonSetup(PoissonProblem):
 
     @staticmethod
     def inner_forces(x: np.ndarray) -> np.ndarray:
-        return np.array([0.])
+        return np.array([0.0])
 
     @staticmethod
     def outer_forces(x: np.ndarray) -> np.ndarray:
-        return np.array([10.])
+        return np.array([10.0])
 
-    boundaries: ... = BoundariesDescription(
-        dirichlet=lambda x: x[0] == 0 or x[0] == 1
-    )
+    boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
 
 
 def main(show: bool = True, save: bool = False):

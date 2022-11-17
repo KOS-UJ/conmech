@@ -62,8 +62,7 @@ def build_initial_mesh(
         else:
             if "cross" in mesh_prop.mesh_type or "zigzag" in mesh_prop.mesh_type:
                 return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop)
-            else:
-                return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop, "up")
+            return mesh_builders_2d.get_meshzoo_rectangle(mesh_prop, "up")
 
     if "pygmsh" in mesh_prop.mesh_type:
         if "3d" in mesh_prop.mesh_type:

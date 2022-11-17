@@ -21,7 +21,7 @@ class ContactLaw:
 
     @staticmethod
     def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
     ) -> float:
         """
         Coulomb regularization
@@ -69,7 +69,6 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 @dataclass
 class PoissonProblem(StaticProblem, ABC):
-
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
@@ -159,9 +158,13 @@ class TemperatureDynamicProblem(DynamicProblem, TemperatureTimeDependentProblem,
     pass
 
 
-class PiezoelectricQuasistaticProblem(QuasistaticDisplacementProblem, PiezoelectricTimeDependentProblem, ABC):
+class PiezoelectricQuasistaticProblem(
+    QuasistaticDisplacementProblem, PiezoelectricTimeDependentProblem, ABC
+):
     pass
 
 
-class PiezoelectricDynamicProblem(DynamicDisplacementProblem, PiezoelectricTimeDependentProblem, ABC):
+class PiezoelectricDynamicProblem(
+    DynamicDisplacementProblem, PiezoelectricTimeDependentProblem, ABC
+):
     pass

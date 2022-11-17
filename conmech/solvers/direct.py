@@ -17,12 +17,12 @@ from conmech.solvers.solver_methods import make_equation
 @SolversRegistry.register("static", "direct")
 class Direct(Solver):
     def __init__(
-            self,
-            statement: Statement,
-            body: BodyForces,
-            time_step: float,
-            contact_law: Optional[ContactLaw],
-            friction_bound: Optional[Callable[[float], float]],
+        self,
+        statement: Statement,
+        body: BodyForces,
+        time_step: float,
+        contact_law: Optional[ContactLaw],
+        friction_bound: Optional[Callable[[float], float]],
     ):
         super().__init__(
             statement,

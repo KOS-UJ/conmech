@@ -18,7 +18,7 @@ def n_down(n0, n1):
     y = 1
     dx = n0[x] - n1[x]
     dy = n0[y] - n1[y]
-    norm = np.sqrt(dx ** 2 + dy ** 2)
+    norm = np.sqrt(dx**2 + dy**2)
     n = np.array([float(dy) / norm, float(-dx) / norm])
     if n[1] > 0:
         n = -n
@@ -38,13 +38,19 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     return result
 
 
-def make_equation(jn: Optional[callable], jt: Optional[callable], h_functional: Optional[callable]) -> callable:
+def make_equation(
+    jn: Optional[callable], jt: Optional[callable], h_functional: Optional[callable]
+) -> callable:
     # TODO Make it prettier
     if jn is None:
+
         @numba.njit
-        def equation(u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
+        def equation(
+            u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray
+        ) -> np.ndarray:
             result = np.dot(lhs, u_vector) - rhs
             return result
+
     else:
 
         jn = numba.njit(jn)
@@ -84,12 +90,12 @@ def make_equation(jn: Optional[callable], jt: Optional[callable], h_functional: 
                 )
 
                 edge_len = nph.length(n_0, n_1)
-                j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) + h_functional(um_normal) * jt(
-                    um_tangential, v_tau_0
-                )
-                j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) + h_functional(um_normal) * jt(
-                    um_tangential, v_tau_1
-                )
+                j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0])) + h_functional(
+                    um_normal
+                ) * jt(um_tangential, v_tau_0)
+                j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1])) + h_functional(
+                    um_normal
+                ) * jt(um_tangential, v_tau_1)
 
                 if n_id_0 < offset:
                     contact_vector[n_id_0] += j_x
@@ -102,7 +108,9 @@ def make_equation(jn: Optional[callable], jt: Optional[callable], h_functional: 
             return contact_vector
 
         @numba.njit
-        def equation(u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
+        def equation(
+            u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray
+        ) -> np.ndarray:
             c_part = contact_part(u_vector, vertices, contact_boundary)
             result = np.dot(lhs, u_vector) + c_part - rhs
             return result
@@ -112,6 +120,7 @@ def make_equation(jn: Optional[callable], jt: Optional[callable], h_functional: 
 
 def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
     if func is None:
+
         @numba.njit()
         def const(_):
             return value
@@ -121,7 +130,7 @@ def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
 
 
 def make_cost_functional(
-        jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
+    jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
 ):
     jn = njit(jn)
     jt = njit(jt)
@@ -150,7 +159,7 @@ def make_cost_functional(
 
             if n_id_0 < offset and n_id_1 < offset:
                 cost += nph.length(n_0, n_1) * (
-                        jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential)
+                    jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential)
                 )
         return cost
 
@@ -165,7 +174,7 @@ def make_cost_functional(
 
 
 def make_cost_functional_temperature(
-        hn: Callable, ht: Optional[Callable] = None, h_functional: Optional[Callable] = None
+    hn: Callable, ht: Optional[Callable] = None, h_functional: Optional[Callable] = None
 ):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
@@ -199,9 +208,9 @@ def make_cost_functional_temperature(
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundary, lhs, rhs, u_vector):
         result = (
-                0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
-                - np.dot(rhs, temp_vector)
-                - contact_cost_functional(u_vector, nodes, contact_boundary)
+            0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
+            - np.dot(rhs, temp_vector)
+            - contact_cost_functional(u_vector, nodes, contact_boundary)
         )
         result = np.asarray(result).ravel()
         return result
