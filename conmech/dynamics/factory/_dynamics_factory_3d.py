@@ -192,6 +192,3 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
 
     def get_permittivity_tensor(self, W, coeff):
         raise NotImplementedError()
-
-    def calculate_poisson_matrix(self, W):
-        return W[0, 0]

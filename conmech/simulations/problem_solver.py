@@ -97,6 +97,7 @@ class ProblemSolver:
 
     @solving_method.setter
     def solving_method(self, value: str) -> None:
+        # pylint: disable=R0912
         solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
         )
