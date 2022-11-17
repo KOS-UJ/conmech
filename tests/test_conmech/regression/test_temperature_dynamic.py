@@ -281,7 +281,7 @@ def generate_test_suits():
 def test_global_optimization_solver(
     solving_method, setup, expected_displacement_vector, expected_temperature_vector
 ):
-    runner = TDynamicProblem(setup, solving_method)
+    runner = TemperatureTimeDependentSolver(setup, solving_method)
     results = runner.solve(
         n_steps=32,
         initial_displacement=setup.initial_displacement,

@@ -9,10 +9,9 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
-@pytest.fixture(params=["direct", "global optimization", "schur"])
+@pytest.fixture(params=["direct"])
 def solving_method(request):
     return request.param
 
@@ -41,14 +40,14 @@ def generate_test_suits():
 
     setup_1 = StaticSetup(mesh_type="cross")
 
-    expected_temperature_1 = [57.94791667, 121.32291667, 121.32291667, 57.94791667,
-                              57.19791667, 119.57291667, 119.57291667, 57.19791667,
-                              57.19791667, 119.57291667, 119.57291667, 57.19791667,
-                              57.94791667, 121.32291667, 121.32291667, 57.94791667,
-                              93.1875, 124.25, 93.1875, 93.9375,
-                              125.25, 93.9375, 93.1875, 124.25,
-                              93.1875, 96.9375, 129.25, 96.9375,
-                              96.9375, 129.25, 96.9375]
+    expected_temperature_1 = [52.44178922, 115.40502451, 115.40502451, 52.44178922,
+                              52.28737745, 115.07414216, 115.07414216, 52.28737745,
+                              52.28737745, 115.07414216, 115.07414216, 52.28737745,
+                              52.44178922, 115.40502451, 115.40502451, 52.44178922,
+                              94.21875, 125.65625, 94.21875, 94.09742647,
+                              125.49080882, 94.09742647, 94.21875, 125.65625,
+                              94.21875, 94.71507353, 126.19669118, 94.71507353,
+                              94.71507353, 126.19669118, 94.71507353]
 
     test_suites.append((setup_1, expected_temperature_1))
 
@@ -72,22 +71,11 @@ def generate_test_suits():
         )
 
     setup_2 = StaticSetup(mesh_type="cross")
-    expected_temperature_vector_2 = [
-        [0.0, 0.0],
-        [-0.02154956, 0.01364313],
-        [-0.04849654, 0.05059958],
-        [-0.07590132, 0.0972985],
-        [-0.09873572, 0.15498692],
-        [-0.12252541, 0.22719522],
-        [-0.19937449, 0.26118308],
-        [-0.30552747, 0.28092124],
-        [-0.27474735, 0.1939756],
-        [-0.22880436, 0.13188258],
-        [-0.17312159, 0.08296667],
-        [-0.10282189, 0.04289061],
-        [0.0, 0.0],
-        [0.0, 0.0],
-    ]
+    expected_temperature_vector_2 = [1147.375, 1010.375, 804.875, 530.875, 188.375, 1147.375,
+                                     1010.375, 804.875, 530.875, 188.375, 1078.875, 907.625,
+                                     667.875, 359.625, 393.875, 702.125, 941.875, 1113.125,
+                                     1215.875, 1181.625, 1215.875, 1113.125, 941.875, 702.125,
+                                     393.875]
 
     test_suites.append((setup_2, expected_temperature_vector_2))
 
@@ -102,7 +90,6 @@ def test_direct_solver(solving_method, setup, expected_temperature_vector):
     temperature = result.temperature
     # print result
     np.set_printoptions(precision=8, suppress=True)
-    print(repr(temperature))
 
     np.testing.assert_array_almost_equal(
         temperature, expected_temperature_vector, decimal=3
