@@ -45,9 +45,7 @@ def make_equation(
     if jn is None:
 
         @numba.njit
-        def equation(
-            u_vector: np.ndarray, vertices, contact_boundary, lhs: np.ndarray, rhs: np.ndarray
-        ) -> np.ndarray:
+        def equation(u_vector: np.ndarray, _, __, lhs: np.ndarray, rhs: np.ndarray) -> np.ndarray:
             result = np.dot(lhs, u_vector) - rhs
             return result
 

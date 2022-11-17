@@ -200,14 +200,14 @@ class ProblemSolver:
 
     def find_solution(
         self,
-        state: State,
+        _: State,
         solution: np.ndarray,
-        validator: Validator,
+        __: Validator,
         *,
         verbose: bool = False,
         **kwargs,
     ) -> np.ndarray:
-        # quality = 0
+        ___ = verbose
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
 
@@ -290,7 +290,9 @@ class PoissonSolver(ProblemSolver):
 
         return state
 
-    def find_solution(self, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:
+    def find_solution(
+        self, _: State, solution: np.ndarray, __: Validator, *, verbose: bool = False, **kwargs
+    ) -> np.ndarray:
         solution = self.step_solver.solve(solution, **kwargs)
         return solution
 

@@ -1,3 +1,4 @@
+# pylint: disable=R0914
 import numba
 import numpy as np
 

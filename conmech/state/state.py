@@ -44,6 +44,7 @@ class State:
         raise ValueError(f"Unknown coordinates {item}")
 
     def copy(self) -> "State":
+        # pylint: disable=C2801
         return self.__copy__()
 
     def __copy__(self) -> "State":

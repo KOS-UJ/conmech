@@ -1,6 +1,7 @@
 """
 Contact Mechanics Problem setups
 """
+# pylint: disable=R0901
 from abc import ABC
 from dataclasses import dataclass
 from typing import Tuple, Union
