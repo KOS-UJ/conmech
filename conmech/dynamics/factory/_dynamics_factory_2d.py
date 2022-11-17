@@ -119,10 +119,10 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
     def dimension(self) -> int:
         return DIMENSION
 
-    def calculate_poisson_matrix(self, W):
-        return W[0, 0]
+    def calculate_poisson_matrix(self, W: np.ndarray) -> np.ndarray:
+        return np.sum(W.diagonal(), axis=2)
 
-    def calculate_constitutive_matrices(self, W, mu, lambda_):
+    def calculate_constitutive_matrices(self, W: np.ndarray, mu: float, lambda_: float) -> np.ndarray:
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
         A_12 = mu * W[1, 0] + lambda_ * W[0, 1]

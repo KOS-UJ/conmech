@@ -10,16 +10,16 @@ from conmech.simulations.problem_solver import PoissonSolver
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (10, 10)
+    grid_height: ... = 1
+    elements_number: ... = (14, 14)
 
     @staticmethod
     def inner_forces(x: np.ndarray) -> np.ndarray:
-        return np.array([1000.])
+        return np.array([0.])
 
     @staticmethod
     def outer_forces(x: np.ndarray) -> np.ndarray:
-        return np.array([3.])
+        return np.array([10.])
 
     boundaries: ... = BoundariesDescription(
         dirichlet=lambda x: x[0] == 0 or x[0] == 1
@@ -27,7 +27,7 @@ class StaticPoissonSetup(PoissonProblem):
 
 
 def main(show: bool = True, save: bool = False):
-    setup = StaticPoissonSetup(mesh_type="cross")
+    setup = StaticPoissonSetup(mesh_type="meshzoo")
     runner = PoissonSolver(setup, "direct")
 
     state = runner.solve(verbose=True)

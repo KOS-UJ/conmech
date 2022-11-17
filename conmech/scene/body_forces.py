@@ -54,14 +54,14 @@ class BodyForces(Dynamics):
         self.outer_forces = None
 
     @property
-    def normalized_inner_forces(self):
+    def normalized_inner_forces(self) -> np.ndarray:
         return self.normalize_rotate(self.inner_forces)
 
     @property
-    def normalized_outer_forces(self):
+    def normalized_outer_forces(self) -> np.ndarray:
         return self.normalize_rotate(self.outer_forces)
 
-    def get_integrated_inner_forces(self):
+    def get_integrated_inner_forces(self) -> np.ndarray:
         return self.volume_at_nodes @ self.normalized_inner_forces
 
     def get_integrated_outer_forces(self) -> np.ndarray:
@@ -72,11 +72,11 @@ class BodyForces(Dynamics):
         )
         return neumann_surfaces * self.outer_forces
 
-    def get_integrated_forces_column(self):
+    def get_integrated_forces_column(self) -> np.ndarray:
         integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
         return nph.stack_column(integrated_forces[self.mesh.independent_indices, :])
 
-    def get_integrated_forces_vector(self):
+    def get_integrated_forces_vector(self) -> np.ndarray:
         return self.get_integrated_forces_column().reshape(-1)
 
     def get_all_normalized_rhs_np(self, temperature=None):
@@ -94,7 +94,7 @@ class BodyForces(Dynamics):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_rhs_np(self, temperature=None):
+    def get_normalized_rhs_np(self, temperature=None) -> np.ndarray:
         _ = temperature
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)

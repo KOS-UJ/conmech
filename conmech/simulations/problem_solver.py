@@ -189,7 +189,7 @@ class ProblemSolver:
 
     def find_solution(self, state: State, solution: np.ndarray, validator: Validator, *, verbose: bool = False,
                       **kwargs) -> np.ndarray:
-        quality = 0
+        # quality = 0
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
 
