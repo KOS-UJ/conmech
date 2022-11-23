@@ -208,10 +208,8 @@ class ProblemSolver:
             if isinstance(self.step_solver, SchurComplement):
                 self.step_solver.node_forces_, self.step_solver.forces_free = self.step_solver.recalculate_forces()
             ### end iterate
-            print("V:", old_solution)
             solution = self.step_solver.solve(solution)
             ### iterate 2
-            print(solution.shape)
             u_vector = old_u_vector + self.step_solver.time_step * solution
             self.second_step_solver.statement.update(
                 Variables(
@@ -225,7 +223,6 @@ class ProblemSolver:
             if isinstance(self.second_step_solver, SchurComplement):
                 self.second_step_solver.node_forces_, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
             ### end iterate 2
-            print("T:", old_solution_t)
             solution_t = self.second_step_solver.solve(solution_t)
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2

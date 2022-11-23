@@ -214,9 +214,6 @@ def make_cost_functional_2(  # FIXME
     def cost_functional(v_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, v_vector_old, dt):
         u_vector = u_vector_old + dt * v_vector
         ju = contact_cost_functional(v_vector, u_vector, nodes, contact_boundary)
-        # print("ju =", ju)
-        # if ju < 0 and np.max(u_vector) > 0:
-        #     print("!")
         result = 0.5 * np.dot(np.dot(lhs, v_vector), v_vector) - np.dot(rhs, v_vector) + ju
         result = np.asarray(result).ravel()
         return result

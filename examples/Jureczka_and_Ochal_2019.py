@@ -84,4 +84,4 @@ def main(show: bool = True, save: bool = False):
 
 
 if __name__ == "__main__":
-    main(show=False, save=True)
+    main(show=True, save=False)

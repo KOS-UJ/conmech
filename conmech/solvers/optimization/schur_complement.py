@@ -100,7 +100,6 @@ class SchurComplement(Optimization):
         )
         if self.statement.dimension == 2:
             return node_forces.T, forces_free
-        print(node_forces.shape, forces_free.shape)
         return node_forces.reshape(-1), forces_free.reshape(-1)
 
     def __str__(self):
