@@ -13,7 +13,8 @@ from conmech.dynamics.statement import (
     TemperatureStatement,
     PiezoelectricStatement,
     DynamicVelocityStatement,
-    QuasistaticVelocityWithPiezoelectricStatement, Variables,
+    QuasistaticVelocityWithPiezoelectricStatement,
+    Variables,
 )
 from conmech.properties.body_properties import (
     TimeDependentTemperatureBodyProperties,
@@ -205,7 +206,10 @@ class ProblemSolver:
                 )
             )
             if isinstance(self.step_solver, SchurComplement):
-                self.step_solver.node_forces_, self.step_solver.forces_free = self.step_solver.recalculate_forces()
+                (
+                    self.step_solver.node_forces_,
+                    self.step_solver.forces_free,
+                ) = self.step_solver.recalculate_forces()
             ### end iterate
             solution = self.step_solver.solve(solution)
             ### iterate 2
@@ -220,7 +224,10 @@ class ProblemSolver:
                 )
             )
             if isinstance(self.second_step_solver, SchurComplement):
-                self.second_step_solver.node_forces_, self.second_step_solver.forces_free = self.second_step_solver.recalculate_forces()
+                (
+                    self.second_step_solver.node_forces_,
+                    self.second_step_solver.forces_free,
+                ) = self.second_step_solver.recalculate_forces()
             ### end iterate 2
             solution_t = self.second_step_solver.solve(solution_t)
             norm = (
@@ -232,9 +239,13 @@ class ProblemSolver:
 
         velocity = solution
         self.step_solver.v_vector = velocity.reshape(-1)
-        self.step_solver.u_vector = old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
+        self.step_solver.u_vector = (
+            old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
+        )
         self.second_step_solver.v_vector = velocity.reshape(-1)
-        self.second_step_solver.u_vector = old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
+        self.second_step_solver.u_vector = (
+            old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
+        )
         self.step_solver.p_vector = solution_t
         self.second_step_solver.p_vector = solution_t
         self.step_solver.t_vector = solution_t
@@ -386,7 +397,6 @@ class TemperatureTimeDependent(ProblemSolver):
         initial_velocity: Callable,
         initial_temperature: Callable,
         output_step: Optional[iter] = None,
-        verbose: bool = False,
         **kwargs,
     ) -> List[TemperatureState]:
         """
@@ -398,7 +408,6 @@ class TemperatureTimeDependent(ProblemSolver):
         :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param initial_temperature: for the solver
-        :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
@@ -482,7 +491,6 @@ class PiezoelectricTimeDependent(ProblemSolver):
         initial_velocity: Callable,
         initial_electric_potential: Callable,
         output_step: Optional[iter] = None,
-        verbose: bool = False,
         **kwargs,
     ) -> List[PiezoelectricState]:
         """
@@ -494,7 +502,6 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param initial_electric_potential: for the solver
-        :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff

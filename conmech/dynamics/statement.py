@@ -34,11 +34,10 @@ class Statement:
 
     def apply_dirichlet_condition(self):
         for dirichlet_cond in self.find_dirichlet_conditions():
-            n = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_count
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
             for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
-                    dirichlet_cond, node_count, self.dimension
+                dirichlet_cond, node_count, self.dimension
             ):
                 self.right_hand_side[:] -= self.left_hand_side[:, i] @ c[j]
                 self.left_hand_side[:, i] = 0
@@ -80,10 +79,7 @@ class QuasistaticVelocityStatement(Statement):
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
-        self.left_hand_side = (
-            self.body.viscosity.copy()
-            + self.body.elasticity * var.time_step
-        )
+        self.left_hand_side = self.body.viscosity.copy() + self.body.elasticity * var.time_step
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
@@ -102,8 +98,7 @@ class DynamicVelocityStatement(Statement):
 
         self.left_hand_side = (
             self.body.viscosity
-            + (1 / var.time_step)
-            * self.body.acceleration_operator
+            + (1 / var.time_step) * self.body.acceleration_operator
             + self.body.elasticity * var.time_step
         )
 

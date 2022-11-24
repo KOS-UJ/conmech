@@ -6,14 +6,12 @@ import numpy as np
 import scipy.optimize
 
 from conmech.dynamics.statement import (
-    StaticDisplacementStatement,
     TemperatureStatement,
     PiezoelectricStatement,
 )
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
-    make_cost_functional_2023,
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
 )
@@ -48,7 +46,7 @@ class Optimization(Solver):
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
-                r=contact_law.temp_exchange,
+                heat_exchange=contact_law.temp_exchange,
             )
         elif isinstance(statement, PiezoelectricStatement):
             self.loss = make_cost_functional_piezoelectricity(
@@ -95,7 +93,7 @@ class Optimization(Solver):
                     self.node_relations,
                     self.node_forces,
                     displacement,
-                    self.time_step
+                    self.time_step,
                 ),
                 method="BFGS",
                 options={"disp": False, "maxiter": len(initial_guess) * 1e5},

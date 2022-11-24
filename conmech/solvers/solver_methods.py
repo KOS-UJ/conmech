@@ -38,8 +38,9 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     return result
 
 
+# TODO #97
 @numba.njit(inline="always")
-def interpolate_node_between_2(node_id_0, node_id_1, vector, dimension=DIMENSION):
+def interpolate_node_between_2023(node_id_0, _node_id_1, vector, dimension=DIMENSION):
     result = np.zeros(dimension)
     offset = len(vector) // dimension
     for i in range(dimension):
@@ -160,6 +161,7 @@ def make_cost_functional(
                 )
         return cost
 
+    # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, dt):
         ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
@@ -189,10 +191,10 @@ def make_cost_functional_2023(  # TODO #97
             n_1 = nodes[n_id_1]
 
             # ASSUMING `u_vector` and `nodes` have the same order!
-            vm = interpolate_node_between_2(n_id_0, n_id_1, v_vector)
-            vm_2 = interpolate_node_between_2(n_id_1, n_id_0, v_vector)
-            um_old = interpolate_node_between_2(n_id_0, n_id_1, u_vector_old)
-            um_old_2 = interpolate_node_between_2(n_id_1, n_id_0, u_vector_old)
+            vm = interpolate_node_between_2023(n_id_0, n_id_1, v_vector)
+            vm_2 = interpolate_node_between_2023(n_id_1, n_id_0, v_vector)
+            um_old = interpolate_node_between_2023(n_id_0, n_id_1, u_vector_old)
+            um_old_2 = interpolate_node_between_2023(n_id_1, n_id_0, u_vector_old)
 
             normal_vector = n_down(n_0, n_1)
 
@@ -204,10 +206,15 @@ def make_cost_functional_2023(  # TODO #97
             vm_tangential_2 = vm_2 - vm_normal * normal_vector
 
             if n_id_0 < offset and n_id_1 < offset:
-                cost += 0.5 * nph.length(n_0, n_1) * (
-                    jn(um_old_normal) * vm_normal + h_functional(um_old_normal) * jt(vm_tangential)
-                    + jn(um_old_normal_2) * vm_normal_2
-                    + h_functional(um_old_normal_2) * jt(vm_tangential_2)
+                cost += (
+                    0.5
+                    * nph.length(n_0, n_1)
+                    * (
+                        jn(um_old_normal) * vm_normal
+                        + h_functional(um_old_normal) * jt(vm_tangential)
+                        + jn(um_old_normal_2) * vm_normal_2
+                        + h_functional(um_old_normal_2) * jt(vm_tangential_2)
+                    )
                 )
         return cost
 
@@ -223,14 +230,15 @@ def make_cost_functional_2023(  # TODO #97
 
 
 def make_cost_functional_temperature(
-    hn: Callable, ht: Optional[Callable] = None,
-        h_functional: Optional[Callable] = None,
-        r: Optional[Callable] = None
+    hn: Callable,
+    ht: Optional[Callable] = None,
+    h_functional: Optional[Callable] = None,
+    heat_exchange: Optional[Callable] = None,
 ):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
     h_functional = numba.njit(h_functional)
-    r = njit(r)
+    heat_exchange = njit(heat_exchange)
 
     @numba.njit()
     def contact_cost_functional(u_vector, nodes, contact_boundary, temp_vector):
@@ -256,10 +264,11 @@ def make_cost_functional_temperature(
                 # cost += edgeLength * (hn(uNmL, tmL)
                 #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
                 cost += nph.length(n_0, n_1) * (
-                        h_functional(np.linalg.norm(um_tangential)) - r(temp_m[0])
+                    h_functional(np.linalg.norm(um_tangential)) - heat_exchange(temp_m[0])
                 )
         return cost
 
+    # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundary, lhs, rhs, u_vector, dt):
         result = (
@@ -274,14 +283,15 @@ def make_cost_functional_temperature(
 
 
 def make_cost_functional_piezoelectricity(
-    hn: Callable, ht: Optional[Callable] = None,
-        h_functional: Optional[Callable] = None,
-        r: Optional[Callable] = None
+    hn: Callable,
+    ht: Optional[Callable] = None,
+    h_functional: Optional[Callable] = None,
+    heat_exchange: Optional[Callable] = None,
 ):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
     h_functional = numba.njit(h_functional)
-    r = njit(r)
+    heat_exchange = njit(heat_exchange)
 
     @numba.njit()
     def contact_cost_functional(u_vector, nodes, contact_boundary, temp_vector):
@@ -307,10 +317,11 @@ def make_cost_functional_piezoelectricity(
                 # cost += edgeLength * (hn(uNmL, tmL)
                 #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
                 cost += nph.length(n_0, n_1) * (
-                        h_functional(np.linalg.norm(um_tangential)) - r(temp_m[0])
+                    h_functional(np.linalg.norm(um_tangential)) - heat_exchange(temp_m[0])
                 )
         return cost
 
+    # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def cost_functional(temp_vector, nodes, contact_boundary, lhs, rhs, u_vector, dt):
         result = (

@@ -177,7 +177,8 @@ class BoundariesFactory:
             node_indices=dirichlet_indices,
             node_count=dirichlet_nodes_count,
             node_condition=boundaries_description.conditions["dirichlet"](
-                initial_nodes[dirichlet_indices])
+                initial_nodes[dirichlet_indices]
+            ),
         )
 
         other_boundaries = {}
@@ -191,7 +192,8 @@ class BoundariesFactory:
                         node_indices=node_indices,
                         node_count=index_size(node_indices),
                         node_condition=boundaries_description.conditions[name](
-                            initial_nodes[node_indices])
+                            initial_nodes[node_indices]
+                        ),
                     )
 
         boundaries = Boundaries(

@@ -48,6 +48,7 @@ def build_initial_mesh(
     mesh_prop: MeshProperties,
     create_in_subprocess=False,
 ) -> Tuple[np.ndarray, np.ndarray]:
+    # pylint: disable=too-many-return-statements,too-many-branches
     if "cross" in mesh_prop.mesh_type:
         return mesh_builders_legacy.get_cross_rectangle(mesh_prop)
 
@@ -100,49 +101,25 @@ def special_mesh(mesh_prop):
 
 
 def special_mesh_bow(mesh_prop):
-    with pygmsh.geo.Geometry() as geo:
-        geo = dmsh.Polygon(
-            [
-                [0.0, 0.0],
-                [1.2, 0.0],
-                [1.2, 0.6],
-                [0.0, 0.6],
-            ]
-        )
-        x1 = 0.15
-        x2 = 1.05
-        y1 = 0.15
-        y2 = 0.45
-        r = 0.05
-        eps = 0.01
-        geo = geo - dmsh.Circle([0.6, 0.0], .3)
-        geo = geo - dmsh.Circle([x1, y1], r)
-        geo = geo - dmsh.Circle([x2, y1], r)
-        geo = geo - dmsh.Circle([x1, y2], r)
-        geo = geo - dmsh.Circle([x2, y2], r)
-        # geo = dmsh.Rectangle(-1.0, +2.0, -1.0, +1.0)
-        nodes, elements = dmsh.generate(geo, 1 / mesh_prop.mesh_density[0])
+    # pylint: disable=no-member  # for dmsh
+    geo = dmsh.Polygon(
+        [
+            [0.0, 0.0],
+            [1.2, 0.0],
+            [1.2, 0.6],
+            [0.0, 0.6],
+        ]
+    )
+    x1 = 0.15
+    x2 = 1.05
+    y1 = 0.15
+    y2 = 0.45
+    r = 0.05
+    geo = geo - dmsh.Circle([0.6, 0.0], 0.3)
+    geo = geo - dmsh.Circle([x1, y1], r)
+    geo = geo - dmsh.Circle([x2, y1], r)
+    geo = geo - dmsh.Circle([x1, y2], r)
+    geo = geo - dmsh.Circle([x2, y2], r)
+    nodes, elements = dmsh.generate(geo, 1 / mesh_prop.mesh_density[0])
 
-
-
-        # geom.add_polygon(
-        #     [
-        #         [0.0, 0.0],
-        #         [0.0, 2.0],
-        #         [1.5, 3.5],
-        #         [4.5, 3.5],
-        #         [6.0, 2.0],
-        #         [6.0, 0.0],
-        #         [4.5, 0.0],
-        #         [4.5, 1.25],
-        #         [3.75, 2.0],
-        #         [2.25, 2.0],
-        #         [1.5, 1.25],
-        #         [1.5, 0.0],
-        #     ],
-        #     mesh_size=0.1,
-        # )
-        #
-        # mesh_builders_helpers.set_mesh_size(geom, mesh_prop)
-        # nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, 2)
     return nodes, elements

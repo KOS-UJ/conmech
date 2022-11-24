@@ -51,13 +51,15 @@ class Solver:
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
-        solution = self._solve(initial_guess, velocity=self.v_vector, displacement=self.u_vector, **kwargs)
+        solution = self._solve(
+            initial_guess, velocity=self.v_vector, displacement=self.u_vector, **kwargs
+        )
 
         for dirichlet_cond in self.statement.find_dirichlet_conditions():
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
             for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
-                    dirichlet_cond, node_count, self.statement.dimension
+                dirichlet_cond, node_count, self.statement.dimension
             ):
                 solution[i] = c[j]
 

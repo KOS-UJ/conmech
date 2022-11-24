@@ -60,8 +60,10 @@ class Boundaries:
             for d in range(dimension):
                 condition_start = 0
                 condition_stop = condition_start + i.stop - i.start
-                yield (slice(i.start + d * total_node_count, i.stop + d * total_node_count),
-                       slice(condition_start, condition_stop))
+                yield (
+                    slice(i.start + d * total_node_count, i.stop + d * total_node_count),
+                    slice(condition_start, condition_stop),
+                )
                 condition_start = condition_stop  # TODO
         else:
             # assuming node_indices are sorted
@@ -72,6 +74,8 @@ class Boundaries:
                 condition_start = 0
                 for start, stop in zip(starts, stops):
                     condition_stop = condition_start + stop - start
-                    yield (slice(start + d * total_node_count, stop + d * total_node_count),
-                           slice(condition_start, condition_stop))
+                    yield (
+                        slice(start + d * total_node_count, stop + d * total_node_count),
+                        slice(condition_start, condition_stop),
+                    )
                     condition_start = condition_stop
