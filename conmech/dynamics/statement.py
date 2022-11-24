@@ -82,7 +82,7 @@ class QuasistaticVelocityStatement(Statement):
 
         self.left_hand_side = (
             self.body.viscosity.copy()
-            # + self.body.elasticity * var.time_step  # FIXME
+            + self.body.elasticity * var.time_step
         )
 
     def update_right_hand_side(self, var: Variables):
