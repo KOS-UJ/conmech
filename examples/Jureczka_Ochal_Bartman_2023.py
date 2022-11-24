@@ -29,7 +29,7 @@ def make_contact_law(limit_value, limit):
 
         @staticmethod
         def potential_tangential_direction(u_tau: np.ndarray) -> float:
-            return -0.3 * np.exp(- np.sum(u_tau * u_tau) ** 0.5) + 0.7 * np.sum(u_tau * u_tau) ** 0.5
+            return -0.3 * np.exp(-np.sum(u_tau * u_tau) ** 0.5) + 0.7 * np.sum(u_tau * u_tau) ** 0.5
             # return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)\
 
         @staticmethod
@@ -62,7 +62,7 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         la_coef: ... = 100
         th_coef: ... = 40
         ze_coef: ... = 100
-        time_step: ... = 1/128
+        time_step: ... = 1 / 128
         contact_law: ... = contact_law_
 
         @staticmethod
@@ -90,6 +90,7 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         boundaries: ... = boundaries_
 
     return QuasistaticSetup(mesh_type=mesh_type_)
+
 
 def get_interpolated(u, vertices):
     x = vertices[:, 0].copy()
@@ -150,8 +151,12 @@ def constitutive_law(u, v, setup, elements, nodes):
     grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
     stress_u = np.zeros_like(grad_u)
-    stress_u[:, 0, 0] = 2 * setup.mu_coef * grad_u[:, 0, 0] + setup.la_coef * (grad_u[:, 0, 0] + grad_u[:, 1, 1])
-    stress_u[:, 1, 1] = 2 * setup.mu_coef * grad_u[:, 1, 1] + setup.la_coef * (grad_u[:, 0, 0] + grad_u[:, 1, 1])
+    stress_u[:, 0, 0] = 2 * setup.mu_coef * grad_u[:, 0, 0] + setup.la_coef * (
+        grad_u[:, 0, 0] + grad_u[:, 1, 1]
+    )
+    stress_u[:, 1, 1] = 2 * setup.mu_coef * grad_u[:, 1, 1] + setup.la_coef * (
+        grad_u[:, 0, 0] + grad_u[:, 1, 1]
+    )
     stress_u[:, 0, 1] = setup.mu_coef * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
     stress_u[:, 1, 0] = stress_u[:, 0, 1]
 
@@ -161,9 +166,11 @@ def constitutive_law(u, v, setup, elements, nodes):
 
     stress_v = np.zeros_like(grad_v)
     stress_v[:, 0, 0] = 2 * setup.th_coef * grad_v[:, 0, 0] + setup.ze_coef * (
-                grad_v[:, 0, 0] + grad_v[:, 1, 1])
+        grad_v[:, 0, 0] + grad_v[:, 1, 1]
+    )
     stress_v[:, 1, 1] = 2 * setup.th_coef * grad_v[:, 1, 1] + setup.ze_coef * (
-                grad_v[:, 0, 0] + grad_v[:, 1, 1])
+        grad_v[:, 0, 0] + grad_v[:, 1, 1]
+    )
     stress_v[:, 0, 1] = setup.th_coef * (grad_v[:, 0, 1] + grad_v[:, 1, 0])
     stress_v[:, 1, 0] = stress_v[:, 0, 1]
     return stress_u + stress_v
@@ -172,22 +179,23 @@ def constitutive_law(u, v, setup, elements, nodes):
 def main(show: bool = True, save: bool = False):
     simulate = False
     config = Config()
-    names = ("four_screws", ) #"one_screw", "friction", "hard")
+    names = ("four_screws",)  # "one_screw", "friction", "hard")
     h = 64
     n_steps = 32
     output_steps = range(0, n_steps)
 
     four_screws = BoundariesDescription(
         contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: ((x[0] - x1) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2
-                             or (x[0] - x1) ** 2 + (x[1] - y2) ** 2 <= (r + eps) ** 2
-                             or (x[0] - x2) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2
-                             or (x[0] - x2) ** 2 + (x[1] - y2) ** 2 <= (r + eps) ** 2
-                             )
+        dirichlet=lambda x: (
+            (x[0] - x1) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2
+            or (x[0] - x1) ** 2 + (x[1] - y2) ** 2 <= (r + eps) ** 2
+            or (x[0] - x2) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2
+            or (x[0] - x2) ** 2 + (x[1] - y2) ** 2 <= (r + eps) ** 2
+        ),
     )
     one_screw = BoundariesDescription(
         contact=lambda x: x[1] == 0,
-        dirichlet=lambda x: (x[0] - x1) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2
+        dirichlet=lambda x: (x[0] - x1) ** 2 + (x[1] - y1) ** 2 <= (r + eps) ** 2,
     )
     soft_foundation = make_contact_law(300, 0.1)
     hard_foundation = make_contact_law(3000, 0.1)
@@ -220,8 +228,10 @@ def main(show: bool = True, save: bool = False):
                 initial_velocity=setup.initial_velocity,
             )
             for state in states:
-                with open(f'/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}',
-                          'wb+') as output:
+                with open(
+                    f"/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}",
+                    "wb+",
+                ) as output:
                     pickle.dump(state, output)
 
     for name in names:
@@ -232,15 +242,16 @@ def main(show: bool = True, save: bool = False):
             boundaries_=boundaries,
             contact_law_=contact_law,
             elements_number_=(h, h),
-            friction_bound_=friction_bound
+            friction_bound_=friction_bound,
         )
         if name == names[0]:
             steps = (0, *output_steps[1:])
         else:
             steps = output_steps[1:]
         for time_step in steps:
-            with open(f'/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{time_step}_h_{h}',
-                      'rb') as output:
+            with open(
+                f"/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{time_step}_h_{h}", "rb"
+            ) as output:
                 state = pickle.load(output)
             if time_step == 0:
                 drawer = Drawer(state=state, config=config)
@@ -248,9 +259,13 @@ def main(show: bool = True, save: bool = False):
                 drawer.original_mesh_color = "k"
                 drawer.deformed_mesh_color = None
                 drawer.draw(show=show, temp_min=0, temp_max=40, save=save)
-            stress = constitutive_law(state.displacement, state.velocity, setup,
-                                      state.body.mesh.elements,
-                                      state.body.mesh.initial_nodes)
+            stress = constitutive_law(
+                state.displacement,
+                state.velocity,
+                setup,
+                state.body.mesh.elements,
+                state.body.mesh.initial_nodes,
+            )
             c = np.linalg.norm(stress, axis=(1, 2))
             state.temperature = c  # stress[:, 0, 1]
             drawer = Drawer(state=state, config=config)

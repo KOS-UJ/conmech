@@ -34,27 +34,28 @@ def compute_error(ref: TemperatureState, sol: TemperatureState):
         x1 = ref.body.mesh.initial_nodes[element[1]]
         x2 = ref.body.mesh.initial_nodes[element[2]]
         if total_abs_error[element[0]] != np.nan:
-            total_abs_error[element[0]] = (#abs(ref.velocity[element[0], 0] - u1hi(*x0))
-                                           #+ abs(ref.velocity[element[0], 1] - u2hi(*x0))
-                                            + abs(ref.temperature[element[0]] - thi(*x0)) / ref.temperature[element[0]]
-                                           )
+            total_abs_error[element[0]] = (  # abs(ref.velocity[element[0], 0] - u1hi(*x0))
+                # + abs(ref.velocity[element[0], 1] - u2hi(*x0))
+                +abs(ref.temperature[element[0]] - thi(*x0))
+                / ref.temperature[element[0]]
+            )
         if total_abs_error[element[1]] != np.nan:
-            total_abs_error[element[1]] = (#abs(ref.velocity[element[1], 0] - u1hi(*x1))
-                                           #+ abs(ref.velocity[element[1], 1] - u2hi(*x1))
-                                            + abs(ref.temperature[element[1]] - thi(*x1)) / ref.temperature[element[1]]
-                                           )
+            total_abs_error[element[1]] = (  # abs(ref.velocity[element[1], 0] - u1hi(*x1))
+                # + abs(ref.velocity[element[1], 1] - u2hi(*x1))
+                +abs(ref.temperature[element[1]] - thi(*x1))
+                / ref.temperature[element[1]]
+            )
         if total_abs_error[element[2]] != np.nan:
-            total_abs_error[element[2]] = (#abs(ref.velocity[element[2], 0] - u1hi(*x2))
-                                           #+ abs(ref.velocity[element[2], 1] - u2hi(*x2))
-                                            + abs(ref.temperature[element[2]] - thi(*x2)) / ref.temperature[element[2]]
-                                           )
+            total_abs_error[element[2]] = (  # abs(ref.velocity[element[2], 0] - u1hi(*x2))
+                # + abs(ref.velocity[element[2], 1] - u2hi(*x2))
+                +abs(ref.temperature[element[2]] - thi(*x2))
+                / ref.temperature[element[2]]
+            )
 
     return total_abs_error
 
 
-
 class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
         if u_nu <= 0:
@@ -177,7 +178,7 @@ def main(steps, setup, show: bool = True, save: bool = False):
     #         temp_max=0.0005, temp_min=0, draw_mesh=False, show=show,
     #         save=save, title=f"t={step / 512}"
     #     )
-        # plt.show()
+    # plt.show()
 
     states = runner.solve(
         n_steps=steps // 2 + 1,
@@ -198,7 +199,10 @@ def main(steps, setup, show: bool = True, save: bool = False):
         #     state = pickle.load(output)
         #     print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
         Drawer(state=state, config=config).draw(
-            temp_max=np.max(state.temperature), temp_min=np.min(state.temperature), show=True, save=False
+            temp_max=np.max(state.temperature),
+            temp_min=np.min(state.temperature),
+            show=True,
+            save=False,
         )
 
 

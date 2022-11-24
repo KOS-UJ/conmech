@@ -83,7 +83,7 @@ def generate_test_suits():
     setup_0_02_p_0.inner_forces = inner_forces
 
     expected_displacement_vector_0_02_p_0 = [
-        [0., 0.],
+        [0.0, 0.0],
         [-0.09966612, -0.10786224],
         [-0.16211241, -0.27162989],
         [-0.19323258, -0.47377581],
@@ -95,8 +95,8 @@ def generate_test_suits():
         [0.19323354, -0.47377587],
         [0.16211313, -0.27162999],
         [0.09966652, -0.10786237],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_0_02_p_0, expected_displacement_vector_0_02_p_0))
@@ -148,7 +148,7 @@ def generate_test_suits():
 
     setup_var = DynamicSetup(mesh_type="cross")
     expected_displacement_vector_var = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.00795525, 0.04239592],
         [0.00329271, 0.13442716],
         [-0.01108608, 0.25795936],
@@ -160,8 +160,8 @@ def generate_test_suits():
         [-0.31286012, 0.29330865],
         [-0.23892132, 0.16925194],
         [-0.139945, 0.07466286],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))

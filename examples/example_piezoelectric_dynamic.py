@@ -55,8 +55,12 @@ class PDynamicSetup(PiezoelectricDynamic):
     ze_coef: ... = 10.5
     time_step: ... = 0.01
     contact_law: ... = PPSlopeContactLaw
-    piezoelectricity: ... = np.array([[[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                                     [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]]])
+    piezoelectricity: ... = np.array(
+        [
+            [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
+        ]
+    )
     permittivity: ... = np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
 
     @staticmethod
@@ -84,11 +88,11 @@ class PDynamicSetup(PiezoelectricDynamic):
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
         piezo_dirichlet_0=(
             lambda x: (x[0] == 1.0 and 1.0 <= x[1] <= 4.0),
-            lambda x: np.full(x.shape[0], 0)
+            lambda x: np.full(x.shape[0], 0),
         ),
         piezo_dirichlet_1=(
             lambda x: (1.5 <= x[0] <= 3.0 and x[1] == 1.0),
-            lambda x: np.full(x.shape[0], 20)
+            lambda x: np.full(x.shape[0], 20),
         ),
     )
 
@@ -101,7 +105,7 @@ def main(show: bool = True, save: bool = False):
     output = steps // 5
     states = runner.solve(
         n_steps=steps,
-        output_step=range(0, steps+1, output),
+        output_step=range(0, steps + 1, output),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
