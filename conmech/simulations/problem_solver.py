@@ -191,7 +191,7 @@ class ProblemSolver:
         old_t_vector = self.step_solver.t_vector.copy()
         old_p_vector = self.step_solver.p_vector.copy()
         fuse = 10
-        minimum_iter = 2
+        minimum_iter = 5
         while minimum_iter > 0 or norm > 1e-3 and bool(fuse):
             fuse -= 1
             minimum_iter -= 1

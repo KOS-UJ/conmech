@@ -38,7 +38,8 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     ze_coef: ... = 10.5
     time_step: ... = 0.01
     contact_law: ... = PPSlopeContactLaw
-    piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+    piezoelectricity: ... = np.array([[[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                                     [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]]])
     permittivity: ... = np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
 
     @staticmethod
@@ -94,7 +95,6 @@ def main(show: bool):
         Drawer(state=state, config=config).draw(
             temp_max=e_max, temp_min=e_min, show=show, save=False
         )
-
 
 if __name__ == "__main__":
     main(show=True)

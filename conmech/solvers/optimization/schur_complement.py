@@ -149,12 +149,10 @@ class SchurComplement(Optimization):
     def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
         if self.statement.dimension == 2:
             _result = truncated_solution.reshape(-1, 1)
-            _result = self.free_x_contact @ _result
-            _result = self.forces_free - _result
-            result = self.free_x_free_inverted @ _result
-            return result
+        else:
+            _result = truncated_solution
 
-        _result = self.free_x_contact @ truncated_solution
+        _result = self.free_x_contact @ _result
         _result = self.forces_free - _result
         result = self.free_x_free_inverted @ _result
         return result
