@@ -13,7 +13,7 @@ from conmech.dynamics.statement import (
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
-    make_cost_functional_2,
+    make_cost_functional_2023,
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
 )
@@ -95,7 +95,6 @@ class Optimization(Solver):
                     self.node_relations,
                     self.node_forces,
                     displacement,
-                    velocity,
                     self.time_step
                 ),
                 method="BFGS",

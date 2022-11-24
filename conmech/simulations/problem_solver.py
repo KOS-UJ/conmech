@@ -180,9 +180,8 @@ class ProblemSolver:
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
-    def find_solution_uzawa(
-        self, state, solution, solution_t, *, verbose=False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:
+        # TODO #95
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
@@ -201,7 +200,7 @@ class ProblemSolver:
                     displacement=old_u_vector,
                     velocity=old_v_vector,
                     temperature=solution_t,
-                    electric_potential=solution_t,  # TODO
+                    electric_potential=solution_t,
                     time_step=self.step_solver.time_step,
                 )
             )
@@ -236,10 +235,10 @@ class ProblemSolver:
         self.step_solver.u_vector = old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
         self.second_step_solver.v_vector = velocity.reshape(-1)
         self.second_step_solver.u_vector = old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
-        self.step_solver.p_vector = solution_t  # FIXME
-        self.second_step_solver.p_vector = solution_t  # FIXME
-        self.step_solver.t_vector = solution_t  # FIXME
-        self.second_step_solver.t_vector = solution_t  # FIXME
+        self.step_solver.p_vector = solution_t
+        self.second_step_solver.p_vector = solution_t
+        self.step_solver.t_vector = solution_t
+        self.second_step_solver.t_vector = solution_t
 
         return solution, solution_t
 
@@ -282,10 +281,7 @@ class Static(ProblemSolver):
             self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
-        solution = state.displacement.reshape(2, -1)
-
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-
         self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
@@ -440,9 +436,7 @@ class TemperatureTimeDependent(ProblemSolver):
 
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
-                solution, solution_t = self.find_solution_uzawa(
-                    state, solution, solution_t, verbose=verbose
-                )
+                solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
                     state.set_velocity(
@@ -537,11 +531,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
-                # solution = self.find_solution(self.step_solver, state, solution, self.validator,
-                #                               verbose=verbose)
-                solution, solution_t = self.find_solution_uzawa(
-                    state, solution, solution_t, verbose=verbose
-                )
+                solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
                     state.set_velocity(
@@ -550,7 +540,6 @@ class PiezoelectricTimeDependent(ProblemSolver):
                         time=self.step_solver.current_time,
                     )
                     state.set_electric_potential(solution_t)
-                    # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
             results.append(state.copy())

@@ -39,7 +39,7 @@ def make_slope_contact_law_temp(slope):
         def h_temp(vTnorm):
             return 0.1 * vTnorm
 
-        # FIXME: ContactLaw abstract class
+        # TODO #96: ContactLaw abstract class
 
         @staticmethod
         def temp_exchange(temp):  # potential  # TODO # 48
