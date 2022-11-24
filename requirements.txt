@@ -1,11 +1,12 @@
-numpy==1.23.4
+numpy==1.21.6
 numba==0.56.3
 jupyter==1.0.0
 matplotlib==3.5.1
-scipy==1.9.3
+scipy==1.7.3
 pytest==6.2.5
 meshzoo==0.9.11
 pygmsh==7.1.17
 gmsh==4.9.5
 tqdm==4.63.0
 networkx==2.6.3
+dmsh==0.2.20
