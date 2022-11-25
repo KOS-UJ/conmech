@@ -24,7 +24,7 @@ class Drawer:
         self.cmap = plt.cm.plasma
 
     def get_directory(self):
-        return f"/Users/prb/PycharmProjects/conmech//output/{self.config.current_time} - DRAWING"
+        return f"./output/{self.config.current_time} - DRAWING"
 
     def draw(
         self,
@@ -98,7 +98,6 @@ class Drawer:
 
         axes.set_aspect("equal", adjustable="box")
         plt.title(title)
-        # fig.set_size_inches(self.mesh.mesh_prop.scale_x * 12, self.mesh.mesh_prop.scale_y * 16)
 
         if show:
             fig.tight_layout()

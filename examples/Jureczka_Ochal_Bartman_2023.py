@@ -229,7 +229,7 @@ def main(show: bool = True, save: bool = False):
             )
             for state in states:
                 with open(
-                    f"/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}",
+                    f"./output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}",
                     "wb+",
                 ) as output:
                     pickle.dump(state, output)
@@ -250,7 +250,7 @@ def main(show: bool = True, save: bool = False):
             steps = output_steps[1:]
         for time_step in steps:
             with open(
-                f"/Users/prb/PycharmProjects/conmech/output/2023/{name}_t_{time_step}_h_{h}", "rb"
+                f"./output/2023/{name}_t_{time_step}_h_{h}", "rb"
             ) as output:
                 state = pickle.load(output)
             if time_step == 0:

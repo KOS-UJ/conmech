@@ -46,9 +46,6 @@ def interpolate_node_between_2023(node_id_0, _node_id_1, vector, dimension=DIMEN
     for i in range(dimension):
         if node_id_0 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
             result[i] += vector[i * offset + node_id_0]
-    # for i in range(dimension):
-    #     if node_id_1 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
-    #         result[i] += 0.5 * vector[i * offset + node_id_1]
     return result
 
 
@@ -286,12 +283,12 @@ def make_cost_functional_piezoelectricity(
     hn: Callable,
     ht: Optional[Callable] = None,
     h_functional: Optional[Callable] = None,
-    heat_exchange: Optional[Callable] = None,
+    electric_charge_exchange: Optional[Callable] = None,
 ):
     _hn = njit(hn)  # TODO #48
     _ht = njit(ht)
     h_functional = numba.njit(h_functional)
-    heat_exchange = njit(heat_exchange)
+    electric_charge_exchange = njit(electric_charge_exchange)
 
     @numba.njit()
     def contact_cost_functional(u_vector, nodes, contact_boundary, temp_vector):
@@ -317,7 +314,8 @@ def make_cost_functional_piezoelectricity(
                 # cost += edgeLength * (hn(uNmL, tmL)
                 #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
                 cost += nph.length(n_0, n_1) * (
-                    h_functional(np.linalg.norm(um_tangential)) - heat_exchange(temp_m[0])
+                    h_functional(np.linalg.norm(um_tangential))
+                    - electric_charge_exchange(temp_m[0])
                 )
         return cost
 

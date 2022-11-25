@@ -43,7 +43,7 @@ class Statement:
                 self.left_hand_side[:, i] = 0
                 self.left_hand_side[i, :] = 0
                 # have to be "[i][:, i]" instead of just a "[i, i]" because the i may be ndarray
-                self.left_hand_side[i, i] = np.eye(j.stop - j.start)
+                self.left_hand_side[i][:, i] = np.eye(j.stop - j.start)
                 self.right_hand_side[i] = c[j]
 
     def find_dirichlet_conditions(self):

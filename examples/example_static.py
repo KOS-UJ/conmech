@@ -16,7 +16,7 @@ from examples.p_slope_contact_law import make_slope_contact_law
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1.0
-    elements_number: ... = (2, 2)
+    elements_number: ... = (2, 5)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
@@ -40,7 +40,7 @@ class StaticSetup(Static):
 
 def main(show: bool = True, save: bool = False):
     setup = StaticSetup(mesh_type="cross")
-    runner = StaticProblemSolver(setup, "global")
+    runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
     config = Config()

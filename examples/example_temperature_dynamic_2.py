@@ -132,6 +132,7 @@ class TDynamicSetup(TemperatureDynamic):
     boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0)
 
 
+# TODO: #99
 def main(steps, setup, show: bool = True, save: bool = False):
     simulate = True
     config = Config()

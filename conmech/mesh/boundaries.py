@@ -64,7 +64,6 @@ class Boundaries:
                     slice(i.start + d * total_node_count, i.stop + d * total_node_count),
                     slice(condition_start, condition_stop),
                 )
-                condition_start = condition_stop  # TODO
         else:
             # assuming node_indices are sorted
             discontinuities = np.concatenate(([0], np.nonzero(np.diff(i) - 1)[0] + 1, [len(i)]))
