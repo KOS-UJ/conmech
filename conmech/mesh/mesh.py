@@ -11,7 +11,7 @@ from conmech.properties.mesh_properties import MeshProperties
 
 @numba.njit
 def get_edges_matrix(nodes_count: int, elements: np.ndarray):
-    edges_matrix = np.zeros((nodes_count, nodes_count), dtype=numba.int32)
+    edges_matrix = np.zeros((nodes_count, nodes_count), dtype=np.int32)
     element_vertices_number = len(elements[0])
     for element in elements:  # TODO: #65 prange?
         for i in range(element_vertices_number):
@@ -30,7 +30,7 @@ def get_edges_list_numba(edges_matrix):
             for i, j in np.ndindex((nodes_count, nodes_count))
             if j > i and edges_matrix[i, j] > 0
         ],
-        dtype=numba.int64,
+        dtype=np.int64,
     )
     return edges
 
