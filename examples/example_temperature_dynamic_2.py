@@ -19,6 +19,7 @@ import matplotlib.tri as tri
 
 # TODO #99
 
+
 def compute_error(ref: TemperatureState, sol: TemperatureState):
     x = sol.body.mesh.initial_nodes[:, 0]
     y = sol.body.mesh.initial_nodes[:, 1]
