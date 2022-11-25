@@ -45,7 +45,7 @@ class Direct(Solver):
     def node_forces(self) -> np.ndarray:
         return self.statement.right_hand_side
 
-    def _solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
+    def _solve_impl(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
         result = scipy.optimize.fsolve(
             self.equation,
             initial_guess,

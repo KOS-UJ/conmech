@@ -7,9 +7,9 @@ import matplotlib.ticker as ticker
 import seaborn as sns
 import matplotlib.tri as tri
 import matplotlib.pylab as pl
+from conmech.state.state import TemperatureState
 
-
-from conmech.state.state import State, TemperatureState
+# TODO #99
 
 
 def compare(ref: TemperatureState, sol: TemperatureState):

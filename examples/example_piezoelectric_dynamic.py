@@ -16,8 +16,9 @@ from conmech.simulations.problem_solver import (
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
+# TODO # 48
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-    # @staticmethod  # TODO # 48
+    # @staticmethod
     # def g(t):
     #     return 10.7 + t * 0.02
     # return 0.5 + t * 0.01
@@ -36,12 +37,12 @@ class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
         #     return 10.0 * (uN - g_t)
         return 0
 
-    # def jT(self, vTx, vTy):  # TODO # 48
+    # def jT(self, vTx, vTy):
     #     # return np.log(np.linalg.norm(vTx, vTy)+1)
     #     return np.linalg.norm(vTx, vTy)
 
     @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
+    def h_temp(u_tau):  # potential
         return 0 * 0.1 * 0.5 * u_tau**2
 
 
@@ -73,10 +74,6 @@ class PDynamicSetup(PiezoelectricDynamic):
 
     @staticmethod
     def outer_forces(x):
-        # if x[0] == 0:
-        #     return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
-        # if x[0] == 2.5:
-        #     return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod

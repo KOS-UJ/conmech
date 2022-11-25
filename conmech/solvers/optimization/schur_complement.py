@@ -113,7 +113,7 @@ class SchurComplement(Optimization):
     def node_forces(self) -> np.ndarray:
         return self.node_forces_
 
-    def _solve(
+    def _solve_impl(
         self,
         initial_guess: np.ndarray,
         *,
@@ -121,7 +121,7 @@ class SchurComplement(Optimization):
         **kwargs,
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_nodes(initial_guess)
-        solution_contact = super()._solve(
+        solution_contact = super()._solve_impl(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
         solution_free = self.complement_free_nodes(solution_contact)
