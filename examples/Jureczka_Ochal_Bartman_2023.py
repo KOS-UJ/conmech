@@ -249,9 +249,7 @@ def main(show: bool = True, save: bool = False):
         else:
             steps = output_steps[1:]
         for time_step in steps:
-            with open(
-                f"./output/2023/{name}_t_{time_step}_h_{h}", "rb"
-            ) as output:
+            with open(f"./output/2023/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
             if time_step == 0:
                 drawer = Drawer(state=state, config=config)
