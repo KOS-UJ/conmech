@@ -1,6 +1,7 @@
 """
 Created at 18.02.2021
 """
+from abc import ABC
 from typing import Callable, Optional
 
 import numpy as np
@@ -10,7 +11,7 @@ from conmech.scenarios.problems import ContactLaw
 from conmech.scene.body_forces import BodyForces
 
 
-class Solver:
+class Solver(ABC):
     def __init__(
         self,
         statement: Statement,

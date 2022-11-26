@@ -1,5 +1,5 @@
 from ctypes import ArgumentError
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import scipy.optimize
@@ -31,12 +31,17 @@ class Calculator:
 
     @staticmethod
     def minimize(
-        function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
+            function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray, verbose: bool = False,
+            args: Tuple = None
     ) -> np.ndarray:
+        if args is None:
+            args = ()
         return scipy.optimize.minimize(
             function,
             initial_vector,
+            args=args,
             method="L-BFGS-B",
+            options={"disp": verbose},
         ).x
 
     @staticmethod
@@ -53,9 +58,9 @@ class Calculator:
 
     @staticmethod
     def solve_with_temperature(
-        scene: SceneTemperature,
-        initial_a: Optional[np.ndarray] = None,
-        initial_t: Optional[np.ndarray] = None,
+            scene: SceneTemperature,
+            initial_a: Optional[np.ndarray] = None,
+            initial_t: Optional[np.ndarray] = None,
     ):
         uzawa = False
         max_iter = 10
@@ -64,9 +69,9 @@ class Calculator:
         temperature = scene.t_old
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
         while (
-            i < 2
-            or not np.allclose(last_normalized_a, normalized_a)
-            and not np.allclose(last_t, temperature)
+                i < 2
+                or not np.allclose(last_normalized_a, normalized_a)
+                and not np.allclose(last_t, temperature)
         ):
             last_normalized_a, last_t = normalized_a, temperature
             normalized_a = Calculator.solve_acceleration_normalized(scene, temperature, initial_a)
@@ -84,7 +89,7 @@ class Calculator:
 
     @staticmethod
     def solve_temperature(
-        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
+            setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         t = Calculator.solve_temperature_normalized(setting, normalized_acceleration, initial_t)
         cleaned_t = Calculator.clean_temperature(setting, t)
@@ -92,7 +97,7 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized(
-        setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
+            setting: Scene, temperature=None, initial_a: Optional[np.ndarray] = None
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding():
@@ -103,9 +108,9 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized(
-        setting: SceneTemperature,
-        normalized_acceleration: np.ndarray,
-        initial_t: Optional[np.ndarray] = None,
+            setting: SceneTemperature,
+            normalized_acceleration: np.ndarray,
+            initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         if setting.is_colliding():
@@ -118,7 +123,7 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized_function(
-        setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
+            setting: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
         _ = initial_t
         normalized_rhs = setting.get_normalized_t_rhs_np(normalized_acceleration)
@@ -164,9 +169,9 @@ class Calculator:
 
     @staticmethod
     def solve_temperature_normalized_optimization(
-        setting: SceneTemperature,
-        normalized_a: np.ndarray,
-        initial_t_vector: Optional[np.ndarray] = None,
+            setting: SceneTemperature,
+            normalized_a: np.ndarray,
+            initial_t_vector: Optional[np.ndarray] = None,
     ):
         _ = initial_t_vector
         initial_t_boundary_vector = np.zeros(setting.mesh.boundary_nodes_count)
@@ -201,7 +206,7 @@ class Calculator:
     @staticmethod
     def complete_a_vector(setting, normalized_rhs_free, a_contact_vector):
         a_independent_vector = setting.solver_cache.free_x_free_inverted @ (
-            normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
+                normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
         )
 
         normalized_a = np.vstack(
@@ -215,8 +220,8 @@ class Calculator:
     @staticmethod
     def complete_t_vector(setting: SceneTemperature, normalized_t_rhs_free, t_contact_vector):
         t_independent_vector = setting.solver_cache.temperature_free_x_free_inv @ (
-            normalized_t_rhs_free
-            - (setting.solver_cache.temperature_free_x_contact @ t_contact_vector)
+                normalized_t_rhs_free
+                - (setting.solver_cache.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

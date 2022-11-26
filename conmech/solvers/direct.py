@@ -32,9 +32,8 @@ class Direct(Solver):
             friction_bound,
         )
 
-        if contact_law is None:
-            self.equation = make_equation(None, None, None)
-        else:
+        self.equation: Optional[callable] = None
+        if contact_law is not None:
             self.equation = make_equation(
                 jn=contact_law.subderivative_normal_direction,
                 jt=contact_law.regularized_subderivative_tangential_direction,
@@ -46,21 +45,24 @@ class Direct(Solver):
 
     @property
     def node_relations(self) -> np.ndarray:
-        return self.statement.left_hand_side
+        return self.statement.left_hand_side.copy()
 
     @property
     def node_forces(self) -> np.ndarray:
-        return self.statement.right_hand_side
+        return self.statement.right_hand_side.copy()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
-        result = scipy.optimize.fsolve(
-            self.equation,
-            initial_guess,
-            args=(
-                self.body.mesh.initial_nodes,
-                self.body.mesh.contact_boundary,
-                self.node_relations,
-                self.node_forces,
-            ),
-        )
+        if self.equation is not None:
+            result = scipy.optimize.fsolve(
+                self.equation,
+                initial_guess,
+                args=(
+                    self.body.mesh.initial_nodes,
+                    self.body.mesh.contact_boundary,
+                    self.node_relations,
+                    self.node_forces,
+                ),
+            )
+        else:
+            result = np.linalg.solve(self.node_relations, self.node_forces)
         return np.asarray(result)

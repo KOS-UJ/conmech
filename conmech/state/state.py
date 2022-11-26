@@ -56,12 +56,12 @@ class State:
 
 
 class TemperatureState(State):
-    def __init__(self, body):
+    def __init__(self, body: BodyForces):
         super().__init__(body)
-        self.temperature = np.zeros(self.body.mesh.independent_nodes_count)
+        self.temperature: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count)
 
-    def set_temperature(self, temperature_vector: np.ndarray):
-        self.temperature = temperature_vector
+    def set_temperature(self, temperature_vector: np.ndarray) -> None:
+        self.temperature[:] = temperature_vector
 
     def __copy__(self) -> "TemperatureState":
         copy = TemperatureState(self.body)
@@ -70,6 +70,24 @@ class TemperatureState(State):
         copy.velocity[:] = self.velocity
         copy.time = self.time
         copy.temperature[:] = self.temperature
+        return copy
+
+
+class OptimizationTemperatureState(TemperatureState):
+    def __init__(self, body):
+        super().__init__(body)
+        self.optimization_inner_forces: np.ndarray = np.zeros(self.body.mesh.independent_nodes_count)
+        self.optimization_outer_forces: np.ndarray = np.zeros(self.body.mesh.neumann_nodes_count)
+
+    def __copy__(self) -> "OptimizationTemperatureState":
+        copy = OptimizationTemperatureState(self.body)
+        copy.displacement[:] = self.displacement
+        copy.displaced_nodes[:] = self.displaced_nodes
+        copy.velocity[:] = self.velocity
+        copy.time = self.time
+        copy.temperature[:] = self.temperature
+        copy.optimization_inner_forces[:] = self.optimization_inner_forces
+        copy.optimization_outer_forces[:] = self.optimization_outer_forces
         return copy
 
 

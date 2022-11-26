@@ -128,7 +128,7 @@ def generate_test_suits():
 @pytest.mark.parametrize("setup, expected_temperature_vector", generate_test_suits())
 def test_direct_solver(solving_method, setup, expected_temperature_vector):
     runner = PoissonSolver(setup, solving_method)
-    result = runner.solve()
+    result = runner.solve()[0]
 
     temperature = result.temperature
     # print result

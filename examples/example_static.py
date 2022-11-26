@@ -42,7 +42,7 @@ def main(show: bool = True, save: bool = False):
     setup = StaticSetup(mesh_type="cross")
     runner = StaticSolver(setup, "schur")
 
-    state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
+    state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)[0]
     config = Config()
     Drawer(state=state, config=config).draw(show=show, save=save)
 

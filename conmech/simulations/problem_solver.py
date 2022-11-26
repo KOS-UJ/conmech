@@ -14,7 +14,7 @@ from conmech.dynamics.statement import (
     PiezoelectricStatement,
     DynamicVelocityStatement,
     QuasistaticVelocityWithPiezoelectricStatement,
-    StaticPoissonStatement,
+    StaticPoissonStatement, Variables,
 )
 from conmech.properties.body_properties import (
     TimeDependentTemperatureBodyProperties,
@@ -42,9 +42,10 @@ from conmech.scenarios.problems import (
 )
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers._solvers import SolversRegistry
+from conmech.solvers.calculator import Calculator
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
-from conmech.state.state import State, TemperatureState, PiezoelectricState
+from conmech.state.state import State, TemperatureState, PiezoelectricState, OptimizationTemperatureState
 
 
 class ProblemSolver:
@@ -61,8 +62,8 @@ class ProblemSolver:
             self.time_step = 0
 
         grid_width: float = (
-            problem.grid_height / problem.elements_number[0]
-        ) * problem.elements_number[1]
+                                    problem.grid_height / problem.elements_number[0]
+                            ) * problem.elements_number[1]
 
         self.body: BodyForces = BodyForces(
             mesh_prop=MeshProperties(
@@ -154,12 +155,12 @@ class ProblemSolver:
             self.second_step_solver = None
         self.validator = Validator(self.step_solver)
 
-    def solve(self, **kwargs):
+    def solve(self, **kwargs) -> List[State]:
         raise NotImplementedError()
 
     def run(
-        self, solution: np.ndarray, state: State, n_steps: int, verbose: bool = False, **kwargs
-    ):
+            self, solution: np.ndarray, state: State, n_steps: int, verbose: bool = False, **kwargs
+    ) -> None:
         """
         :param solution:
         :param state:
@@ -180,7 +181,10 @@ class ProblemSolver:
             )
 
             if self.coordinates == "temperature":
-                if isinstance(state, TemperatureState):
+                if isinstance(state, OptimizationTemperatureState):
+                    state.set_temperature(solution[0])
+                    state.optimization_inner_forces = solution[1].copy()
+                elif isinstance(state, TemperatureState):
                     state.set_temperature(solution)
                 else:
                     raise ValueError(
@@ -200,13 +204,13 @@ class ProblemSolver:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
     def find_solution(
-        self,
-        _: State,
-        solution: np.ndarray,
-        __: Validator,
-        *,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            _: State,
+            solution: np.ndarray,
+            __: Validator,
+            *,
+            verbose: bool = False,
+            **kwargs,
     ) -> np.ndarray:
         ___ = verbose
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
@@ -220,7 +224,7 @@ class ProblemSolver:
         return solution
 
     def find_solution_uzawa(
-        self, state: State, solution: np.ndarray, solution_t: np.ndarray, *, verbose: bool = False
+            self, state: State, solution: np.ndarray, solution_t: np.ndarray, *, verbose: bool = False
     ) -> Tuple[np.ndarray, np.ndarray]:
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
@@ -240,9 +244,9 @@ class ProblemSolver:
             self.step_solver.t_vector = solution_t
             self.second_step_solver.t_vector = solution_t
             norm = (
-                np.linalg.norm(solution - old_solution) ** 2
-                + np.linalg.norm(old_solution_t - solution_t) ** 2
-            ) ** 0.5
+                           np.linalg.norm(solution - old_solution) ** 2
+                           + np.linalg.norm(old_solution_t - solution_t) ** 2
+                   ) ** 0.5
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
         return solution, solution_t
@@ -263,10 +267,8 @@ class PoissonSolver(ProblemSolver):
         :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = StaticBodyProperties(
-            mass_density=1.0,
-            mu=0,
-            lambda_=0,
+        body_prop = BodyProperties(
+            mass_density=1.0
         )
         super().__init__(problem, body_prop)
 
@@ -275,27 +277,65 @@ class PoissonSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, verbose: bool = False, **kwargs) -> TemperatureState:
+    def solve(self, *, verbose: bool = False, **kwargs) -> List[TemperatureState]:
         """
         :param verbose: show prints
         :return: state
         """
         state = TemperatureState(self.body)
-        state.temperature[:] = 0
 
-        solution_t = state.temperature
+        self.run(state.temperature, state, n_steps=1, verbose=verbose, **kwargs)
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-
-        self.run(solution_t, state, n_steps=1, verbose=verbose, **kwargs)
-
-        return state
+        return [state]
 
     def find_solution(
-        self, _: State, solution: np.ndarray, __: Validator, *, verbose: bool = False, **kwargs
+            self, _: State, solution: np.ndarray, __: Validator, *, verbose: bool = False, **kwargs
     ) -> np.ndarray:
         solution = self.step_solver.solve(solution, **kwargs)
         return solution
+
+
+class PoissonOptimizationProblemSolver(PoissonSolver):
+
+    def solve(self, initial_vector=None, *, verbose: bool = False, **kwargs) -> List[OptimizationTemperatureState]:
+        state = OptimizationTemperatureState(self.body)
+
+        initial_guess = initial_vector if initial_vector is not None else np.ones_like(state.temperature)
+
+        self.run(initial_guess, state, n_steps=1, verbose=verbose, **kwargs)
+
+        return [state]
+
+    def find_solution(
+            self,
+            state: TemperatureState,
+            initial_guess: np.ndarray,
+            __: Validator,
+            *,
+            verbose: bool = False,
+            zd: np.ndarray = None,
+            M: float = 1e-6,
+            **kwargs,
+    ) -> np.ndarray:
+        if zd is None:
+            def function(x: np.ndarray) -> np.ndarray:
+                return -(x[:, 0] - 1) ** 2 + 1
+            zd = function(self.body.mesh.initial_nodes[self.body.mesh.free_indices])
+
+        def minimized_functional(g: np.ndarray, zd: np.ndarray, M: float):
+            self.step_solver.body.inner_forces[self.body.mesh.free_indices] = g.reshape(-1, 1)
+            self.step_solver.statement.update_right_hand_side(Variables())
+            Q = self.step_solver.body.poisson_operator
+            solution_u: np.ndarray = self.step_solver.solve(state.temperature.copy(), **kwargs)
+            return (solution_u - zd) @ Q @ (solution_u - zd) + M * g @ Q @ g
+
+        opt_inner_forces = Calculator().minimize(minimized_functional, initial_guess, verbose, args=(zd, M))
+        self.step_solver.body.inner_forces[self.body.mesh.free_indices] = opt_inner_forces.reshape(-1, 1).copy()
+        self.step_solver.statement.update_right_hand_side(Variables())
+        solution = self.step_solver.solve(state.temperature.copy(), **kwargs)
+        print(np.linalg.norm(
+            self.step_solver.statement.left_hand_side @ solution - self.step_solver.statement.right_hand_side))
+        return solution, opt_inner_forces.copy()
 
 
 class StaticSolver(ProblemSolver):
@@ -317,7 +357,7 @@ class StaticSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
+    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> List[State]:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints
@@ -334,7 +374,7 @@ class StaticSolver(ProblemSolver):
 
         self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
 
-        return state
+        return [state]
 
 
 class TimeDependentSolver(ProblemSolver):
@@ -359,14 +399,14 @@ class TimeDependentSolver(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[State]:
         """
         :param n_steps: number of time-step in simulation
@@ -428,15 +468,15 @@ class TemperatureTimeDependentSolver(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        initial_temperature: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            initial_temperature: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[TemperatureState]:
         """
         :param n_steps: number of time-step in simulation
@@ -526,15 +566,15 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
     def solve(
-        self,
-        *,
-        n_steps: int,
-        initial_displacement: Callable,
-        initial_velocity: Callable,
-        initial_electric_potential: Callable,
-        output_step: Optional[iter] = None,
-        verbose: bool = False,
-        **kwargs,
+            self,
+            *,
+            n_steps: int,
+            initial_displacement: Callable,
+            initial_velocity: Callable,
+            initial_electric_potential: Callable,
+            output_step: Optional[iter] = None,
+            verbose: bool = False,
+            **kwargs,
     ) -> List[PiezoelectricState]:
         """
         :param n_steps: number of time-step in simulation

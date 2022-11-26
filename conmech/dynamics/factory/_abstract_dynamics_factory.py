@@ -1,13 +1,14 @@
+from abc import ABC
 from typing import Tuple
 import numpy as np
 
 
-class AbstractDynamicsFactory:
+class AbstractDynamicsFactory(ABC):
     @property
     def dimension(self) -> int:
         raise NotImplementedError()
 
-    def get_edges_features_matrix(self, elements, nodes) -> Tuple:
+    def get_edges_features_matrix(self, elements: np.ndarray, nodes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError()
 
     def calculate_constitutive_matrices(

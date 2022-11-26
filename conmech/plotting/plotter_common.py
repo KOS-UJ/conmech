@@ -17,7 +17,7 @@ from conmech.scene.scene import Scene
 
 # TODO: #65 Move to config
 DPI = 800
-savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
+savefig_args: dict = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
 
 
 @dataclass
@@ -27,17 +27,17 @@ class ColorbarSettings:
     cmap: ListedColormap
 
     @property
-    def mappable(self):
+    def mappable(self) -> plt.cm.ScalarMappable:
         norm = matplotlib.colors.Normalize(vmin=self.vmin, vmax=self.vmax)
         return plt.cm.ScalarMappable(norm=norm, cmap=self.cmap)
 
 
 def get_t_scale(
-    scenario: Scenario,
-    index_skip: int,
-    plot_scenes_count: int,
-    all_scenes_path: str,
-):
+        scenario: Scenario,
+        index_skip: int,
+        plot_scenes_count: int,
+        all_scenes_path: str,
+) -> Optional[np.ndarray]:
     if isinstance(scenario, TemperatureScenario) is False:
         return None
     # TODO: #65 Refactor (repetition from plot_animation)
@@ -66,7 +66,7 @@ def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     return ColorbarSettings(vmin=-lim_big, vmax=lim_big, cmap=plt.cm.magma)
 
 
-def plot_colorbar(fig, axs, cbar_settings):
+def plot_colorbar(fig: plt.Figure, axs: List[plt.Axes], cbar_settings: ColorbarSettings) -> None:
     for axes in axs:
         position = axes.get_position()
         if position.p0[0] > 0.1:
@@ -81,7 +81,7 @@ def plot_colorbar(fig, axs, cbar_settings):
     cbar.outline.set_linewidth(0.2)
 
 
-def set_ax(axes):
+def set_ax(axes: plt.Axes) -> None:
     for spine in axes.spines.values():
         spine.set_edgecolor("w")
         spine.set_linewidth(0.2)
@@ -121,8 +121,8 @@ class AnimationArgs:
     animation_tqdm: tqdm.tqdm
 
 
-def make_animation(get_axs, plot_frame, t_scale):
-    def animate(step: int, args: AnimationArgs):
+def make_animation(get_axs: Callable[[plt.Figure], plt.Axes], plot_frame: Callable, t_scale) -> callable:
+    def animate(step: int, args: AnimationArgs) -> plt.Figure:
         args.animation_tqdm.update(1)
         args.fig.clf()
         axs = get_axs(args.fig)
@@ -165,7 +165,7 @@ class PlotAnimationConfig:
 
 
 def plot_animation(
-    animate: Callable, fig: Figure, config: Config, plot_config: PlotAnimationConfig
+        animate: Callable, fig: Figure, config: Config, plot_config: PlotAnimationConfig
 ):
     fps = int(1 / plot_config.time_skip)
     animation_tqdm = cmh.get_tqdm(
@@ -204,6 +204,6 @@ def plot_animation(
     plt.close()
 
 
-def get_frame_annotation(scene: Scene, current_time):
+def get_frame_annotation(scene: Scene, current_time: float) -> str:
     return f"""time: {str(round(current_time, 1))}
 nodes: {str(scene.mesh.nodes_count)}"""

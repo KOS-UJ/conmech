@@ -11,19 +11,25 @@ import numpy as np
 
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
+from conmech.mesh.mesh import Mesh
+from conmech.state.state import State
 
 
 class Drawer:
-    def __init__(self, state, config: Config):
-        self.state = state
-        self.config = config
-        self.mesh = state.body.mesh
-        self.node_size = 20 + (3000 / len(self.mesh.initial_nodes))
+    def __init__(self, state: State, config: Config):
+        self.state: State = state
+        self.config: Config = config
+        self.mesh: Mesh = state.body.mesh
+        self.node_size: float = 20 + (3000 / len(self.mesh.initial_nodes))
 
-    def get_directory(self):
+    def get_directory(self) -> str:
         return f"./output/{self.config.current_time} - DRAWING"
 
-    def draw(self, temp_max=None, temp_min=None, show=True, save=False, save_format="png"):
+    def draw(self, temp_max: float = None, temp_min: float = None, show: bool = True, save: bool = False,
+             save_format: str = "png") -> None:
+
+        fig: plt.Figure
+        axes: plt.Axes
         fig, axes = plt.subplots()
 
         if hasattr(self.state, "temperature"):
@@ -70,7 +76,7 @@ class Drawer:
         if save:
             self.save_plot(save_format)
 
-    def save_plot(self, format_):
+    def save_plot(self, format_: str) -> None:
         directory = self.get_directory()
         cmh.create_folders(directory)
         path = f"{directory}/{cmh.get_timestamp(self.config)}.{format_}"
@@ -84,8 +90,9 @@ class Drawer:
         )
         plt.close()
 
-    def draw_mesh(self, nodes, axes, label="", node_color="k", edge_color="k"):
-        graph = nx.Graph()
+    def draw_mesh(self, nodes: np.ndarray, axes: plt.Axes, label: str = "", node_color: str = "k",
+                  edge_color: str = "k") -> None:
+        graph: nx.Graph = nx.Graph()
         for i, j, k in self.mesh.elements:
             graph.add_edge(i, j)
             graph.add_edge(i, k)
@@ -101,8 +108,9 @@ class Drawer:
             ax=axes,
         )
 
-    def draw_boundary(self, edges, nodes, axes, label="", node_color="k", edge_color="k"):
-        graph = nx.Graph()
+    def draw_boundary(self, edges: np.ndarray, nodes: np.ndarray, axes: plt.Axes, label: str = "", node_color: str = "k",
+                      edge_color: str = "k") -> None:
+        graph: nx.Graph = nx.Graph()
         for edge in edges:
             graph.add_edge(edge[0], edge[1])
 
@@ -117,11 +125,11 @@ class Drawer:
             width=6,
         )
 
-    def draw_field(self, field, v_min, v_max, axes, fig):
-        x = self.state.displaced_nodes[:, 0]
-        y = self.state.displaced_nodes[:, 1]
+    def draw_field(self, field: np.ndarray, v_min: float, v_max: float, axes: plt.Axes, fig: plt.Figure) -> None:
+        x: np.ndarray = self.state.displaced_nodes[:, 0]
+        y: np.ndarray = self.state.displaced_nodes[:, 1]
 
-        n_layers = 100
+        n_layers: int = 100
         axes.tricontourf(
             x,
             y,

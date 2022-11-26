@@ -1,7 +1,10 @@
+from abc import ABC
 from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+
+from conmech.scene.body_forces import BodyForces
 
 
 @dataclass
@@ -13,12 +16,12 @@ class Variables:
     time_step: Optional[float] = None
 
 
-class Statement:
+class Statement(ABC):
     def __init__(self, body, dimension):
-        self.body = body
-        self.dimension = dimension
-        self.left_hand_side = None
-        self.right_hand_side = None
+        self.body: BodyForces = body
+        self.dimension: int = dimension
+        self.left_hand_side: Optional[np.ndarray] = None
+        self.right_hand_side: Optional[np.ndarray] = None
 
     def update_left_hand_side(self, var: Variables):
         raise NotImplementedError()

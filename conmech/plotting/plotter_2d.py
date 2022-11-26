@@ -7,22 +7,22 @@ from matplotlib.patches import Rectangle
 
 from conmech.helpers.config import Config
 from conmech.plotting import plotter_common
-from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation
+from conmech.plotting.plotter_common import PlotAnimationConfig, make_animation, ColorbarSettings
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 
 
-def get_fig():
+def get_fig() -> plt.Figure:
     return plt.figure(figsize=(4, 2))
 
 
-def get_axs(fig):
+def get_axs(fig: plt.Figure) -> plt.Axes:
     # axs = fig.add_subplot(1, 1, 1, facecolor="none")
     axs = fig.add_axes([0.075, 0.15, 0.9, 0.8], facecolor="none")
     return axs
 
 
-def set_perspective(scale, axes):
+def set_perspective(scale: float, axes: plt.Axes) -> None:
     axes.set_aspect("equal", "box")
     padding = 6
     axes.set_xlim(-padding * scale, 18 * scale)
@@ -39,7 +39,7 @@ def plot_animation(
     all_scenes_path: str,
     all_calc_scenes_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
-):
+) -> None:
     animate = make_animation(get_axs, plot_frame, t_scale)
     plotter_common.plot_animation(
         animate=animate,
@@ -57,20 +57,20 @@ def plot_animation(
 
 
 def plot_frame(
-    fig,
-    axs,
+    fig: plt.Figure,
+    axs: plt.Axes,
     scene: Scene,
     current_time: float,
     draw_detailed: bool = True,
     base_scene: Optional[Scene] = None,
     t_scale: Optional[np.ndarray] = None,
-):
+) -> None:
     axes = axs
     scale = scene.mesh.mesh_prop.scale_x
     set_perspective(scale, axes=axes)
 
     if isinstance(scene, SceneTemperature):
-        cbar_settings = plotter_common.get_t_data(t_scale)
+        cbar_settings: ColorbarSettings = plotter_common.get_t_data(t_scale)
         plotter_common.plot_colorbar(fig, axs=[axes], cbar_settings=cbar_settings)
         draw_main_temperature(axes=axes, scene=scene, cbar_settings=cbar_settings)
     else:
@@ -127,7 +127,7 @@ def plot_frame(
 
 
 def plot_temperature(
-    axes,
+    axes: plt.Axes,
     scene: SceneTemperature,
     position,
     cbar_settings: plotter_common.ColorbarSettings,
@@ -336,22 +336,22 @@ def draw_a(scene, position, axes):
     )
 
 
-def draw_data(annotation, data, scene: Scene, position, axes):
+def draw_data(annotation, data, scene: Scene, position, axes) -> None:
     draw_moved_body(annotation, scene, position, axes)
     plot_arrows(scene.normalized_nodes + position, data, axes)
 
 
-def draw_moved_body(annotation, scene: Scene, position, axes):
+def draw_moved_body(annotation, scene: Scene, position, axes) -> None:
     draw_triplot(scene.normalized_nodes + position, scene, "tab:blue", axes)
     add_annotation(annotation, scene, position, axes)
 
 
-def draw_initial_body(annotation, scene: Scene, position, axes):
+def draw_initial_body(annotation, scene: Scene, position, axes) -> None:
     draw_triplot(scene.mesh.normalized_initial_nodes + position, scene, "tab:blue", axes)
     add_annotation(annotation, scene, position, axes)
 
 
-def draw_all_sparse(scene: Scene, position, axes):
+def draw_all_sparse(scene: Scene, position, axes) -> None:
     if not hasattr(scene, "all_layers"):
         return
     for i, layer in enumerate(scene.all_layers):
@@ -374,13 +374,13 @@ def draw_all_sparse(scene: Scene, position, axes):
         position[0] += 2.5
 
 
-def add_annotation(annotation, scene: Scene, position, axes):
+def add_annotation(annotation: str, scene: Scene, position, axes: plt.Axes) -> None:
     scale = scene.mesh.mesh_prop.scale_x
     description_offset = np.array([-0.5, -1.1]) * scale
     axes.annotate(annotation, xy=position + description_offset, color="w", fontsize=5)
 
 
-def draw_parameters(current_time, scene: Scene, scale, axes):
+def draw_parameters(current_time: float, scene: Scene, scale: float, axes: plt.Axes) -> None:
     x_max = axes.get_xlim()[1]
     y_max = axes.get_ylim()[1]
     args = dict(
@@ -392,7 +392,7 @@ def draw_parameters(current_time, scene: Scene, scale, axes):
     axes.text(x_max - 4.0 * scale, y_max - 2.0 * scale, s=annotation, **args)
 
 
-def draw_triplot(nodes, scene: Scene, color, axes):
+def draw_triplot(nodes: np.ndarray, scene: Scene, color: str, axes: plt.Axes) -> None:
     boundary_nodes = nodes[scene.mesh.boundary_surfaces]
     axes.add_collection(
         collections.LineCollection(
@@ -404,19 +404,19 @@ def draw_triplot(nodes, scene: Scene, color, axes):
     triplot(nodes, scene.mesh.elements, color, axes)
 
 
-def triplot(nodes, elements, color, axes):
+def triplot(nodes: np.ndarray, elements: np.ndarray, color: str, axes: plt.Axes) -> None:
     axes.triplot(nodes[:, 0], nodes[:, 1], elements, color=color, linewidth=0.1)
 
 
-def draw_edges_data(position, scene: Scene, axes):
+def draw_edges_data(position, scene: Scene, axes: plt.Axes) -> None:
     draw_data_at_edges(scene, scene.mesh.edges_data[:, 2:4], position, axes)
 
 
-def draw_vertices_data(position, scene: Scene, axes):
+def draw_vertices_data(position, scene: Scene, axes: plt.Axes) -> None:
     draw_data_at_vertices(scene, scene.normalized_displacement_old, position, axes)
 
 
-def draw_data_at_edges(scene: Scene, features, position, axes):
+def draw_data_at_edges(scene: Scene, features, position, axes: plt.Axes) -> None:
     draw_triplot(scene.normalized_nodes + position, scene, "tab:orange", axes)
 
     centers = np.sum(scene.edges_normalized_nodes + position, axis=1) / 2.0
@@ -438,7 +438,7 @@ def draw_data_at_edges(scene: Scene, features, position, axes):
         )
 
 
-def draw_data_at_vertices(scene: Scene, features, position, axes):
+def draw_data_at_vertices(scene: Scene, features, position, axes: plt.Axes) -> None:
     draw_triplot(scene.normalized_nodes + position, scene, "tab:orange", axes)
 
     nodes = scene.normalized_nodes + position
@@ -456,7 +456,7 @@ def draw_data_at_vertices(scene: Scene, features, position, axes):
         )
 
 
-def plot_simple_data(elements, nodes, path):
+def plot_simple_data(elements: np.ndarray, nodes: np.ndarray, path: str) -> None:
     fig = get_fig()
     axs = get_axs(fig)
     set_perspective(scale=1, axes=axs)

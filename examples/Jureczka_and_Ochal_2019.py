@@ -78,7 +78,7 @@ def main(show: bool = True, save: bool = False):
         verbose=True,
         fixed_point_abs_tol=0.001,
         initial_displacement=setup.initial_displacement,
-    )
+    )[0]
     config = Config()
     Drawer(state=state, config=config).draw(show=show, save=save)
 
