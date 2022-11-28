@@ -6,7 +6,10 @@ import jax.experimental
 import jax.numpy as jnp
 import jax.scipy
 import jax.scipy.optimize
+
+# import jaxopt
 import numpy as np
+from jax._src.scipy.optimize.bfgs import minimize_bfgs
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.body_forces import energy
@@ -14,6 +17,22 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from optimization.lbfgs import minimize_lbfgs
+
+
+class console:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+    @staticmethod
+    def print_warning(text):
+        print(f"{console.WARNING}{text}{console.ENDC}")
 
 
 class Calculator:
@@ -31,11 +50,75 @@ class Calculator:
 
         x0 = jnp.asarray(initial_vector)
 
+        #  set(p.dtype for p in jax.tree_util.tree_leaves(args)
+        #        if isinstance(p, jnp.ndarray))
+        # solver = jaxopt.LBFGS(fun=function, condition="wolfe")#, implicit_diff =False)
+        # solver = jaxopt.LBFGS(fun=jax.value_and_grad(function), value_and_grad=True, condition="wolfe")
+        # maxls=1000, use_gamma=False, jit=True,
+        # increase_factor=10,
+        # decrease_factor=0.1,
+        # maxiter=10000, tol=1e-6)
+        # solve = jax.jit(lambda x, args: solver.run(x, args=args), static_argnums=(1,))
+        # result, state = cmh.profile(
+        #      lambda: solver.run(x0, args=args), #solve(x0, args=args), #solver.run(x0, args=args),
+        #     baypass=False,
+        # )
+
+        # #print(f"Linesearch succeeded: {not bool(state.failed_linesearch)}")
+        # return np.asarray(result)
+
         state = cmh.profile(
             lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
             baypass=True,
         )
+
+        if Calculator.MAX_K < state.k:
+            Calculator.MAX_K = state.k
+
+        if True:
+            text = f"Converged: {state.converged}, status: {state.status}"
+            if state.converged:
+                print(text)
+            else:
+                console.print_warning(text)
+        # if not state.converged and state.status != 5:
+        #     raise ArgumentError("Error not due to line search")
+        # # if state.failed:
+        # #    print("Optimization failed")
+        # # if state.overrun:
+        # #     print(
+        # # f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
+        # #     )
+        return np.asarray(state.x_k)
+
+        # # custom: f_0, g_0 = jax.value_and_grad(function)(x0, args)
+        # state = minimize_bfgs(fun=function, args=args, x0=x0)
+        # success = state.converged & jnp.logical_not(state.failed)
         # return np.array(state.x_k)
+
+        # state = cmh.profile(
+        #     lambda: jax.scipy.optimize.minimize(
+        #         function,
+        #         x0,
+        #         args=(args,),
+        #         method="bfgs",
+        #     ),
+        #     baypass=True,
+        # )
+
+        # print(f"Converged: {state.success}, status: {state.status}")
+        # # if not state.success:
+        # #     raise ArgumentError("Not convergd")
+        # return np.array(state.x)
+
+        # def least_squares(w, data):
+        #     X, y = data
+        #     residuals = jnp.dot(X, w) - y
+        #     return jnp.mean(residuals ** 2)
+
+        # l1reg = 1.0
+        # pg = jaxopt.ProximalGradient(fun=least_squares, prox=prox_lasso)
+        # #pg_sol = pg.run(w_init, hyperparams_prox=l1reg, data=(X, y)).params
 
         # jac = jax.jit(jax.grad(function))
         # result = cmh.profile(
@@ -49,17 +132,6 @@ class Calculator:
         #     baypass=True,
         # )
         # return result.x
-
-        # result = cmh.profile(
-        #     lambda: jax.scipy.optimize.minimize(
-        #         function,
-        #         x0,
-        #         args=(args,),
-        #         method="l-bfgs-experimental-do-not-rely-on-this",
-        #     ),
-        #     baypass=False,
-        # )
-        # return np.array(result.x)
 
         # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x)
         # hes_jax = jax.jit(lambda x: hvp(function, x, x))
@@ -78,16 +150,6 @@ class Calculator:
         #     ),
         #     baypass=True,
         # )
-
-        if Calculator.MAX_K < state.k:
-            Calculator.MAX_K = state.k
-        # if state.failed:
-        #    print("Optimization failed")
-        # if state.overrun:
-        #     print(
-        # f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
-        #     )
-        return np.asarray(state.x_k)
 
         # hes_jax = jax.hessian(function)
         # hes = hes_jax(x0)  # jnp.zeros_like(x0)
@@ -259,6 +321,7 @@ class Calculator:
         normalized_a_vector_np = cmh.profile(
             lambda: Calculator.minimize_jax(
                 function=energy_functions.get_energy_function(scene),
+                # solver= energy_functions.get_solver(scene),
                 initial_vector=initial_a_vector,
                 args=args,
             ),

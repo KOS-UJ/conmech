@@ -3,8 +3,13 @@ import os
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-# os.environ["JAX_ENABLE_X64"] = "1"
+os.environ["JAX_ENABLE_X64"] = "1"
 # os.environ["JAX_PLATFORM_NAME"] = "cpu"
+
+import lovely_tensors as lt
+import lovely_jax as lj
+lt.monkey_patch()
+lj.monkey_patch()
 
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError

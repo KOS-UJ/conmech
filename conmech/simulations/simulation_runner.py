@@ -193,7 +193,9 @@ def run_scenario(
 def plot_blender():
     path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
     args = " --background --python ~/Desktop/conmech/blender/load.py"
-    subprocess.call(path + args, shell=True)
+    print("Plotting using Blender...")
+    subprocess.call(path + args, shell=True, stdout=subprocess.DEVNULL)
+    print("Blender done")
 
 
 def plot_scenario_animation(

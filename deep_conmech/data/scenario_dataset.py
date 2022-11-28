@@ -5,6 +5,7 @@ import numpy as np
 
 from conmech.helpers import cmh
 from conmech.scenarios.scenarios import Scenario
+from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.base_dataset import BaseDataset
@@ -114,11 +115,14 @@ class ScenariosDataset(BaseDataset):
             if ts == 1:
                 scenario = assigned_scenarios[int(index / episode_steps)]
                 scene = self.get_scene(scenario=scenario, config=self.config)
+                energy_functions = EnergyFunctions(
+                    scene.use_green_strain, scene.use_nonconvex_friction_law
+                )
 
             current_time = ts * scene.time_step
 
             forces = scenario.get_forces_by_function(scene, current_time)
-            scene, acceleration = self.solve_and_prepare_scene(scene, forces)
+            scene, acceleration = self.solve_and_prepare_scene(scene, forces, energy_functions)
 
             if self.with_scenes_file:
                 self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)

@@ -9,6 +9,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
+from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
@@ -382,17 +383,20 @@ class BaseDataset:
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         pass
 
-    def solve_and_prepare_scene(self, scene, forces):
+    def solve_and_prepare_scene(self, scene, forces, energy_functions):
         scene.prepare(forces)
 
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
+
         scene.exact_acceleration = self.solve_function(
-            scene=scene, initial_a=scene.exact_acceleration
+            scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
         )
         scene.reduced.exact_acceleration = self.solve_function(
-            scene=scene.reduced, initial_a=scene.reduced.exact_acceleration
+            scene=scene.reduced,
+            initial_a=scene.reduced.exact_acceleration,
+            energy_functions=energy_functions,
         )
         # lifted vs exact !#
         # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration

@@ -61,6 +61,7 @@ class GraphModelDynamic:
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
         self.world_size = world_size
+        self.net = net
 
         print("UNUSED PARAMETERS")
         if config.distributed_training:
@@ -119,12 +120,20 @@ class GraphModelDynamic:
             # self.train_dataset.reset()
             # for _ in range(2):
             self.epoch += 1
+
+            dense = self.epoch % 2 == 1
+            if dense:
+                self.net.dense_grad()
+            else:
+                self.net.sparse_grad()
+                    
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
                 train=True,
                 step_function=self.train_step,
                 tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
                 raport_description="Training",
+                dense=dense
             )  # , all_acceleration
             # self.train_dataset.update(all_acceleration)
 
@@ -134,7 +143,7 @@ class GraphModelDynamic:
             if self.is_main:
                 current_time = time.time()
                 elapsed_time = current_time - last_save_time
-                if elapsed_time > self.config.td.save_at_minutes * 60:
+                if not dense and elapsed_time > self.config.td.save_at_minutes * 60:
                     # print(f"--Training time: {(elapsed_time / 60):.4f} min")
                     self.save_checkpoint()
                     last_save_time = time.time()
@@ -149,6 +158,7 @@ class GraphModelDynamic:
                         step_function=self.test_step,
                         tqdm_description=f"Validation: {self.epoch}",
                         raport_description=dataloader.dataset.description,
+                        dense = True
                     )
                 # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
                 #     self.validate_all_scenarios_raport()
@@ -242,13 +252,13 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, batch_data: List[Data]):
+    def train_step(self, batch_data: List[Data], dense: bool):
         self.ddp_net.train()
         self.ddp_net.zero_grad()
 
         # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
         with torch.cuda.amp.autocast():
-            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
+            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data, dense=dense)  # acceleration_list
         self.fp16_scaler.scale(main_loss).backward()
         # main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
         # main_loss.backward()
@@ -261,11 +271,11 @@ class GraphModelDynamic:
 
         return loss_raport  # , acceleration_list
 
-    def test_step(self, batch_data: List[Data]):
+    def test_step(self, batch_data: List[Data], dense:bool):
         self.ddp_net.eval()
 
         with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_raport = self.calculate_loss(batch_data=batch_data)
+            _, loss_raport = self.calculate_loss(batch_data=batch_data, dense=dense)
 
         return loss_raport
 
@@ -283,6 +293,7 @@ class GraphModelDynamic:
         step_function: Callable,
         tqdm_description: str,
         raport_description: str,
+        dense: bool
     ):
         batch_tqdm = cmh.get_tqdm(
             dataloader, desc=tqdm_description, config=self.config, position=self.rank
@@ -300,7 +311,7 @@ class GraphModelDynamic:
         # all_acceleration = []
         for batch_id, batch_data in enumerate(batch_tqdm):
 
-            loss_raport = step_function(batch_data)  # , acceleration_list
+            loss_raport = step_function(batch_data, dense=dense)  # , acceleration_list
             # all_acceleration.extend(acceleration_list)
 
             mean_loss_raport.add(loss_raport)
@@ -369,34 +380,40 @@ class GraphModelDynamic:
 
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def calculate_loss(self, batch_data: List[Data]):
-        dimension = self.config.td.dimension
+    def calculate_loss(self, batch_data: List[Data], dense: bool):
         batch_layers = batch_data[0]
         layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
         target_data = batch_data[1].to(self.rank, non_blocking=True)
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
-
-        net_new_displacement, net_reduced_lifted_new_displacement = self.ddp_net(layer_list)
-
         num_graphs = len(graph_sizes_base)
-        displacement_loss = thh.root_mean_square_error_torch(
-            net_new_displacement, target_data.normalized_new_displacement
-        )
-        # reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
-        #     net_reduced_lifted_new_displacement,
-        #     target_data.reduced_norm_lifted_new_displacement,
-        # )
-        # reduced_lifted_acceleration_loss = thh.root_mean_square_error_torch(
-        #     net_reduced_lifted_acceleration, target_data.reduced_normalized_lifted_acceleration
-        # )
 
-        main_loss = displacement_loss  # + reduced_lifted_displacement_loss) / 2.0
+        if dense:
+            net_new_displacement = self.ddp_net(layer_list, only_dense=True)
+
+            displacement_loss = thh.root_mean_square_error_torch(
+                net_new_displacement, target_data.normalized_new_displacement
+            )
+            loss_raport = LossRaport(
+                main=displacement_loss.item(),
+                displacement_loss=displacement_loss.item(),
+                _count=num_graphs,
+            )
+
+            return displacement_loss, loss_raport
+
+        net_new_displacement, net_reduced_lifted_new_displacement = self.ddp_net(layer_list, only_dense=False)
+        reduced_lifted_displacement_loss = thh.root_mean_square_error_torch(
+            net_reduced_lifted_new_displacement,
+            target_data.reduced_norm_lifted_new_displacement,
+        )
+
+
+        main_loss = displacement_loss 
         loss_raport = LossRaport(
-            main=main_loss.item(),
-            displacement_loss=displacement_loss.item(),
-            # reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
+            main=reduced_lifted_displacement_loss.item(),
+            reduced_lifted_displacement_loss=reduced_lifted_displacement_loss.item(),
             _count=num_graphs,
         )
 
-        return main_loss, loss_raport
+        return reduced_lifted_displacement_loss, loss_raport

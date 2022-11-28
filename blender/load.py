@@ -449,6 +449,7 @@ def set_cycles():
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "GPU"
+    # enable_gpus("CUDA")
     scene.view_settings.look = "High Contrast"
 
     scene.cycles.use_preview_denoising = True
@@ -460,6 +461,32 @@ def set_cycles():
     scene.world.light_settings.ao_factor = 0.4
     scene.world.light_settings.distance = 0.1
 
+
+def enable_gpus(device_type):
+    preferences = bpy.context.preferences
+    cycles_preferences = preferences.addons["cycles"].preferences
+    cuda_devices, opencl_devices = cycles_preferences.get_devices()
+
+    if device_type == "CUDA":
+        devices = cuda_devices
+    elif device_type == "OPENCL":
+        devices = opencl_devices
+    else:
+        raise RuntimeError("Unsupported device type")
+
+    activated_gpus = []
+
+    for device in devices:
+        if device.type == "CPU":
+            device.use = False
+        else:
+            device.use = True
+            activated_gpus.append(device.name)
+
+    cycles_preferences.compute_device_type = device_type
+    bpy.context.scene.cycles.device = "GPU"
+
+    return activated_gpus
 
 def set_render():
     if cycles:

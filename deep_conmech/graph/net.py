@@ -481,7 +481,7 @@ class CustomGraphNet(nn.Module):
             )
         return node_latents
 
-    def forward(self, layer_list: List[Data]):
+    def forward(self, layer_list: List[Data], only_dense:bool=False):
         if isinstance(layer_list[0].x, Tuple):
             layer_list = [DotDict(l.x) for l in layer_list]
 
@@ -509,6 +509,10 @@ class CustomGraphNet(nn.Module):
             node_latents=updated_node_latents_dense,
             edge_latents=edge_latents_dense,
         )
+        net_output_dense = self.decoder_dense(updated_node_latents_dense)
+
+        if only_dense:
+            return net_output_dense
 
         edge_index_from_down = torch.flip(layer_sparse.edge_index_to_down, dims=(0,))
         node_latents_from_dense = self.move_to_sparse(
@@ -518,12 +522,36 @@ class CustomGraphNet(nn.Module):
             edge_index=edge_index_from_down,
         )
 
-        net_output_dense = self.decoder_dense(updated_node_latents_dense)
         net_output_sparse = self.decoder_sparse(node_latents_from_dense)
-
         return net_output_dense, net_output_sparse
 
+    def dense_grad(self):
+        self._set_all_grad(True)
+        self._set_sparse_grad(False)
+
+    def sparse_grad(self):
+        self._set_all_grad(False)
+        self._set_sparse_grad(True)
+
+
+    def _set_all_grad(self, requires_grad: bool):
+        for param in self.parameters():
+            param.requires_grad = requires_grad
+
+    def _set_sparse_grad(self, requires_grad: bool):
+        for param in self.upward_processor_layer.parameters():
+            param.requires_grad = requires_grad
+      
+        for param in self.decoder_sparse.parameters():
+            param.requires_grad = requires_grad
+
+
+
     def solve(self, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
+        # 120: 2:20
+        # 120: 1:41
+        # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
+
         self.eval()
 
         scene.reduced.exact_acceleration = Calculator.solve(
@@ -531,7 +559,6 @@ class CustomGraphNet(nn.Module):
             energy_functions=energy_functions,
             initial_a=scene.reduced.exact_acceleration,
         )
-        # return Calculator.solve(scene=scene, initial_a=initial_a)
 
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
@@ -540,7 +567,6 @@ class CustomGraphNet(nn.Module):
 
         net_result = self(layer_list=layers_list)
         net_displacement = thh.to_np_double(net_result[0])
-        # net_reduced_lifted_acceleration = thh.to_np_double(net_result[1])
         net_reduced_displacement = thh.to_np_double(net_result[1])
 
         # base = scene.moved_base
@@ -548,8 +574,6 @@ class CustomGraphNet(nn.Module):
         reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
         base = scene.reduced.get_rotation(reduced_displacement_new)
         position = np.mean(reduced_displacement_new, axis=0)
-
-        # scene.reduced.lifted_acceleration = sparse_acceleration
 
         new_displacement = scene.get_displacement(
             base=base, position=position, base_displacement=net_displacement
@@ -566,10 +590,7 @@ class CustomGraphNet(nn.Module):
         )
 
         # lifted vs exact !#
-        # scene.reduced.lifted_acceleration = (
-        #     reduced_acceleration_from_displacement #net_reduced_lifted_acceleration  # reduced_acceleration_from_displacement
-        # )
-        # scene.reduced.lifted_acceleration = sparse_acceleration
+        #   scene.reduced.lifted_acceleration = reduced_acceleration_from_displacement # net_reduced_lifted_acceleration
         scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         return acceleration_from_displacement

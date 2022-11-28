@@ -266,9 +266,9 @@ def custom_line_search_jax(
     old_fval=None,
     old_old_fval=None,
     gfk=None,
-    c1=1e-4,
-    c2=0.9,
-    maxiter=20,
+    c1=1e-4, #1e-4,
+    c2=0.9, #0.2 (Solver time : 1332.60), #0.99 not working, #0.5 (Solver time : 1127.87), #0.9 (Solver time : 1159.39),
+    maxiter=20, #200  Solver time : 1204.75
 ):
     """Inexact line search that satisfies strong Wolfe conditions.
 
@@ -309,7 +309,14 @@ def custom_line_search_jax(
         return phi_i > phi_0 + c1 * a_i * dphi_0
 
     def wolfe_two(dphi_i):
-        return jnp.abs(dphi_i) <= -c2 * dphi_0
+        # return jnp.abs(dphi_i) <= -c2 * dphi_0
+
+        # return jnp.abs(dphi_i) <= jnp.abs(c2 * dphi_0)
+        # page 75: We assume that pk is a descent direction —
+        # that is, \dphi(0) < 0 — so that oursearch can be confined to positive values of α.
+        
+        # Customization: weak Wolfe condition
+        return dphi_i >= c2 * dphi_0
 
     state = _LineSearchState(
         done=False,
@@ -508,7 +515,7 @@ def minimize_lbfgs(
     fun: Callable,
     args,
     x0: Array,
-    maxiter: Optional[float] = None,
+    maxiter: Optional[float] = None,  # 500
     norm=jnp.inf,
     maxcor: int = 10,
     ftol: float = 2.220446049250313e-09,
@@ -676,16 +683,15 @@ def body_fun_jax(state: LBFGSResults):
 
     # replacements for next iteration
     status = 0
-    status = jnp.where(state.f_k - f_kp1 < state.ftol, 4, status)
-    status = jnp.where(state.ngev >= state.maxgrad, 3, status)  # type: ignore
-    status = jnp.where(state.nfev >= state.maxfun, 2, status)  # type: ignore
-    status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
+    # status = jnp.where(state.f_k - f_kp1 < state.ftol, 4, status)
+    # status = jnp.where(state.ngev >= state.maxgrad, 3, status)  # type: ignore
+    # status = jnp.where(state.nfev >= state.maxfun, 2, status)  # type: ignore
+    # status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
     status = jnp.where(ls_results.failed, 5, status)
 
+    # Added custom stopping criterion
     norm = jnp.inf  # state.norm ###
     # converged = jnp.linalg.norm(g_kp1, ord=norm) < state.gtol
-
-    # Added custom stop criterion
     converged = jnp.linalg.norm(s_k, ord=norm) < state.xtol
 
     # TODO(jakevdp): use a fixed-point procedure rather than type-casting?

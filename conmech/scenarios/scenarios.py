@@ -163,10 +163,10 @@ default_body_prop = TimeDependentBodyProperties(
     mass_density=SCALE_MASS,
 )
 default_body_prop_3d = TimeDependentBodyProperties(
-    mu=12,  # 8,
-    lambda_=12,  # 8,
-    theta=4,
-    zeta=4,
+    mu=12.0,  # 8,
+    lambda_=12.0,  # 8,
+    theta=4.0,
+    zeta=4.0,
     mass_density=1.0,
 )
 
@@ -378,12 +378,12 @@ def f_rotate_3d(
     moved_node: np.ndarray,
     mesh_prop: MeshProperties,
     apply_time: float,
-    cutoff_time: float = 1.0,
+    arg: float = 1.0,
 ):
     _ = moved_node, mesh_prop
-    if apply_time <= np.abs(cutoff_time):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
+    if apply_time <= np.abs(arg):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
         scale = initial_node[1] * initial_node[2]
-        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES * np.sign(cutoff_time)
+        return scale * np.array([4.0, 0.0, 0.0]) * SCALE_FORCES * np.sign(arg)
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
 
@@ -541,7 +541,7 @@ bottom_obstacle_3d = Obstacle(
 )
 
 
-def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _ = tag
     return Scenario(
         name="ball_rotate",
@@ -552,13 +552,13 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cut
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=cutoff_time,
+        forces_function_parameter=arg,
     )
 
 
-def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _ = tag
-    _ = cutoff_time
+    _ = arg
     return Scenario(
         name="ball_swing",
         mesh_prop=MeshProperties(
@@ -571,7 +571,7 @@ def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cuto
     )
 
 
-def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _ = tag
     return Scenario(
         name="cube_rotate",
@@ -582,13 +582,13 @@ def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cut
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=cutoff_time,
+        forces_function_parameter=arg,
     )
 
 
-def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _ = tag
-    _ = cutoff_time
+    _ = arg
     return Scenario(
         name="cube_move",
         mesh_prop=MeshProperties(
@@ -601,7 +601,7 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", cutof
     )
 
 
-def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=0.7):
+def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=0.7):
     _ = tag
     _ = scale
     _ = mesh_density
@@ -617,13 +617,13 @@ def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", cuto
         schedule=Schedule(final_time=final_time),
         forces_function=np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(  # 0.3
-            np.array([[[0.0, cutoff_time, 1.0]], [[1.0, 1.0, 0.0]]]),
+            np.array([[[0.0, arg, 1.0]], [[1.0, 1.0, 0.0]]]),
             ObstacleProperties(hardness=100.0, friction=5.0),
         ),
     )
 
 
-def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
+def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _ = tag
     _ = scale
     return Scenario(
@@ -638,12 +638,12 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", cu
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate_3d,
         obstacle=bottom_obstacle_3d,
-        forces_function_parameter=cutoff_time,
+        forces_function_parameter=arg,
     )
 
 
-def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", cutoff_time=1.0):
-    _, _, _ = scale, tag, cutoff_time
+def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+    _, _, _ = scale, tag, arg
     return Scenario(
         name="bunny_swing",
         mesh_prop=MeshProperties(
@@ -690,11 +690,12 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        # return [bunny_fall_3d(**args, cutoff_time=0)]
+        val = all_validation(td)
+        return  [item for sublist in val for item in sublist]
         args["final_time"] = 8.0
         data = []
-        data.extend([bunny_rotate_3d(**args, cutoff_time=tc) for tc in [-2.0, -0.75, 0.75, 2.0]])
-        data.extend([bunny_fall_3d(**args, cutoff_time=tc) for tc in [-0.8, 0, 0.8]])
+        data.extend([bunny_rotate_3d(**args, arg=a) for a in [-2.0, -0.75, 0.75, 2.0]])
+        data.extend([bunny_fall_3d(**args, arg=a) for a in [-0.8, 0, 0.8]])
         return data
     return get_train_data(**args)
 
@@ -717,7 +718,7 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        args["final_time"] = 8.0
+        args["final_time"] = 2 # 8.0
         return [
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),

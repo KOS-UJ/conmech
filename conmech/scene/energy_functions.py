@@ -3,6 +3,8 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+
+# import jaxopt
 import numpy as np
 
 from conmech.dynamics.dynamics import _get_deform_grad
@@ -15,6 +17,7 @@ def _get_penetration_positive(displacement_step, normals, penetration):
 
 
 def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
+    ##########(penetration_norm / (3)) *
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
@@ -25,6 +28,7 @@ def _obstacle_resistance_potential_tangential(
         friction_law = jnp.log(nph.euclidean_norm(tangential_velocity, keepdims=True) + 1.0)
     else:
         friction_law = nph.euclidean_norm(tangential_velocity, keepdims=True)
+    ########## 0 *
     return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
 
 
@@ -186,6 +190,7 @@ def _energy_vector(value_vector, lhs, rhs):
 def _energy_obstacle(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
+    print("_energy_obstacle")
     dimension = args.base_displacement.shape[1]
     main_energy0 = _energy_vector(
         value_vector=nph.stack_column(acceleration_vector),
@@ -203,6 +208,7 @@ def _energy_obstacle(
 def _energy_obstacle_colliding(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
+    print("_energy_obstacle_colliding")
     # TODO: Repeat if collision
     dimension = args.base_displacement.shape[1]
     main_energy = _energy_obstacle(
@@ -284,7 +290,22 @@ class EnergyFunctions:
 
         self.compute_velocity_energy_jax = jax.jit(compute_velocity_energy)
 
+        # self.solver = jaxopt.ScipyMinimize(method="L-BFGS-B", fun=self.energy_obstacle_jax)
+        # self.solver_colliding = jaxopt.ScipyMinimize(
+        #     method="L-BFGS-B", fun=self.energy_obstacle_colliding_jax
+        # )
+
+        # self.solver = jaxopt.LBFGS(fun=self.energy_obstacle_jax, condition="wolfe")
+        # self.solver_colliding = jaxopt.LBFGS(
+        #     fun=self.energy_obstacle_colliding_jax, condition="wolfe"
+        # )
+
     def get_energy_function(self, scene):
         if not scene.is_colliding():
             return self.energy_obstacle_jax
         return self.energy_obstacle_colliding_jax
+
+    # def get_solver(self, scene):
+    #     if not scene.is_colliding():
+    #         return self.solver_colliding
+    #     return self.solver
