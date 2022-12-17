@@ -97,7 +97,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[32],
+                mesh_density=[8], #32],
             ),
             body_prop=TimeDependentBodyProperties(
                 mu=8,

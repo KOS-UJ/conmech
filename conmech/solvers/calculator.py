@@ -75,12 +75,15 @@ class Calculator:
         if Calculator.MAX_K < state.k:
             Calculator.MAX_K = state.k
 
-        if True:
-            text = f"Converged: {state.converged}, status: {state.status}"
-            if state.converged:
-                print(text)
-            else:
-                console.print_warning(text)
+        assert state.converged
+        
+        # if True:
+        #     text = f"Converged: {state.converged}, status: {state.status}"
+        #     if state.converged:
+        #         print(text)
+        #     else:
+        #         console.print_warning(text)
+
         # if not state.converged and state.status != 5:
         #     raise ArgumentError("Error not due to line search")
         # # if state.failed:

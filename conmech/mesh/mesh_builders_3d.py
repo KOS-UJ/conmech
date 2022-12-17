@@ -87,6 +87,8 @@ def get_pygmsh_bunny(mesh_prop):
         mesh_id = 2  # 3
     elif mesh_prop.mesh_density_x == 16:
         mesh_id = 3  # 4
+    elif mesh_prop.mesh_density_x == 8:
+        mesh_id = 4
     else:
         raise ArgumentError
 

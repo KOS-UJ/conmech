@@ -81,15 +81,15 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        setting = Scene(
+        scene = Scene(
             mesh_prop=self.mesh_prop,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
             create_in_subprocess=create_in_subprocess,
         )
-        setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
-        return setting
+        scene.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
+        return scene
 
     @property
     def dimension(self):
@@ -690,8 +690,8 @@ def get_args(td):
 def all_train(td):
     args = get_args(td)
     if td.dimension == 3:
-        val = all_validation(td)
-        return  [item for sublist in val for item in sublist]
+        # val = all_validation(td)
+        # return  [item for sublist in val for item in sublist]
         args["final_time"] = 8.0
         data = []
         data.extend([bunny_rotate_3d(**args, arg=a) for a in [-2.0, -0.75, 0.75, 2.0]])
@@ -718,7 +718,7 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        args["final_time"] = 2 # 8.0
+        args["final_time"] = 2 # 12.0
         return [
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),

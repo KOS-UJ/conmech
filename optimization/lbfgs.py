@@ -266,9 +266,9 @@ def custom_line_search_jax(
     old_fval=None,
     old_old_fval=None,
     gfk=None,
-    c1=1e-4, #1e-4,
-    c2=0.9, #0.2 (Solver time : 1332.60), #0.99 not working, #0.5 (Solver time : 1127.87), #0.9 (Solver time : 1159.39),
-    maxiter=20, #200  Solver time : 1204.75
+    c1=1e-4,  # 1e-4,
+    c2=0.9,  # 0.2 (Solver time : 1332.60), #0.99 not working, #0.5 (Solver time : 1127.87), #0.9 (Solver time : 1159.39),
+    maxiter=20,  # 200  Solver time : 1204.75
 ):
     """Inexact line search that satisfies strong Wolfe conditions.
 
@@ -314,7 +314,7 @@ def custom_line_search_jax(
         # return jnp.abs(dphi_i) <= jnp.abs(c2 * dphi_0)
         # page 75: We assume that pk is a descent direction —
         # that is, \dphi(0) < 0 — so that oursearch can be confined to positive values of α.
-        
+
         # Customization: weak Wolfe condition
         return dphi_i >= c2 * dphi_0
 

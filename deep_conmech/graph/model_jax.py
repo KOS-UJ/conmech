@@ -1,12 +1,17 @@
 import gc
 import time
+from functools import partial
 from typing import Callable, List
 
+import flax
+import flax.jax_utils
+import jax
+import jax.numpy as jnp
 import numpy as np
+import optax
 import torch
-import torch.distributed as dist
-from torch import nn
-from torch.nn.parallel import DistributedDataParallel
+import torch.utils
+from flax.training.train_state import TrainState
 from torch_geometric.data.batch import Data
 
 from conmech.helpers import cmh
@@ -16,7 +21,7 @@ from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_raport import LossRaport
-from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.graph.net_jax import CustomGraphNetJax
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
@@ -42,13 +47,16 @@ def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
     )
 
 
-class GraphModelDynamic:
+class NetState(TrainState):
+    batch_stats: float
+
+
+class GraphModelDynamicJax:
     def __init__(
         self,
         train_dataset,
         all_validation_datasets,
         print_scenarios: List[Scenario],
-        net: CustomGraphNet,
         config: TrainingConfig,
         rank: int,
         world_size: int,
@@ -61,34 +69,13 @@ class GraphModelDynamic:
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
         self.world_size = world_size
-        self.net = net
+        self.train_state = None
 
-        print("UNUSED PARAMETERS")
-        if config.distributed_training:
-            self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
-            self.ddp_net = DistributedDataParallel(
-                self.ddp_net, device_ids=[rank], find_unused_parameters=True
-            )
-        else:
-            self.ddp_net = net
-
-        self.optimizer = torch.optim.Adam(
-            self.ddp_net.parameters(),
-            lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
-        )
-        lr_lambda = lambda epoch: max(
-            self.config.td.learning_rate_decay**epoch,
-            self.config.td.final_learning_rate / self.config.td.initial_learning_rate,
-        )
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         self.logger = Logger(dataset=self.train_dataset, config=config)
         self.epoch = 0
         self.examples_seen = 0
-        self.fp16_scaler = torch.cuda.amp.GradScaler(enabled=True)
         if self.is_main:
             self.logger.save_parameters_and_statistics()
-        if self.config.distributed_training:
-            dist.barrier()
 
     @property
     def is_main(self):
@@ -120,7 +107,7 @@ class GraphModelDynamic:
             # self.train_dataset.reset()
             # for _ in range(2):
             self.epoch += 1
-                    
+
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
                 train=True,
@@ -130,53 +117,34 @@ class GraphModelDynamic:
             )  # , all_acceleration
             # self.train_dataset.update(all_acceleration)
 
-            self.scheduler.step()
-            self.optional_barrier()
+            # self.scheduler.step()
+            # self.optional_barrier()
 
-            if self.is_main:
-                current_time = time.time()
-                elapsed_time = current_time - last_save_time
-                if elapsed_time > self.config.td.save_at_minutes * 60:
-                    # print(f"--Training time: {(elapsed_time / 60):.4f} min")
-                    self.save_checkpoint()
-                    last_save_time = time.time()
+            # if self.is_main:
+            #     current_time = time.time()
+            #     elapsed_time = current_time - last_save_time
+            #     if elapsed_time > self.config.td.save_at_minutes * 60:
+            #         # print(f"--Training time: {(elapsed_time / 60):.4f} min")
+            #         self.save_checkpoint()
+            #         last_save_time = time.time()
 
-            self.optional_barrier()
-            if self.is_at_skip(self.config.td.validate_at_epochs):
-                # if elapsed_time > self.config.td.validate_at_minutes * 60:
-                for dataloader in all_valid_dataloaders:
-                    _ = self.iterate_dataset(
-                        dataloader=dataloader,
-                        train=False,
-                        step_function=self.test_step,
-                        tqdm_description=f"Validation: {self.epoch}",
-                        raport_description=dataloader.dataset.description,
-                    )
-                # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
-                #     self.validate_all_scenarios_raport()
-
-            self.optional_barrier()
-
-    def optional_barrier(self):
-        if self.config.distributed_training:
-            dist.barrier()
+            # self.optional_barrier()
+            # if self.is_at_skip(self.config.td.validate_at_epochs):
+            #     # if elapsed_time > self.config.td.validate_at_minutes * 60:
+            #     for dataloader in all_valid_dataloaders:
+            #         _ = self.iterate_dataset(
+            #             dataloader=dataloader,
+            #             train=False,
+            #             step_function=self.test_step,
+            #             tqdm_description=f"Validation: {self.epoch}",
+            #             raport_description=dataloader.dataset.description,
+            #         )
+            #     # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
+            #     #     self.validate_all_scenarios_raport()
 
     def save_checkpoint(self):
         print("----SAVING CHECKPOINT----")
-        timestamp = cmh.get_timestamp(self.config)
-        catalog = f"{self.config.output_catalog}/{self.config.current_time} - GRAPH MODELS"
-        cmh.create_folders(catalog)
-        path = f"{catalog}/{timestamp} - MODEL.pt"
-
-        net = self.ddp_net.module if self.config.distributed_training else self.ddp_net
-        checkpoint = {
-            "epoch": self.epoch,
-            "examples_seen": self.examples_seen,
-            "optimizer": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
-            "net": net.state_dict(),
-        }
-        torch.save(checkpoint, path)
+        raise NotImplementedError()
 
     @staticmethod
     def get_checkpoint(rank: int, path: str):
@@ -185,20 +153,11 @@ class GraphModelDynamic:
     @staticmethod
     def load_checkpointed_net(net, rank: int, path: str):
         print("----LOADING NET----")
-        checkpoint = GraphModelDynamic.get_checkpoint(rank=rank, path=path)
-        # consume_prefix_in_state_dict_if_present()
-        net.load_state_dict(checkpoint["net"])
-        net.eval()
-        return net
+        raise NotImplementedError()
 
     def load_checkpoint(self, path: str):
         print("----LOADING CHECKPOINT----")
-        checkpoint = GraphModelDynamic.get_checkpoint(rank=self.rank, path=path)
-
-        self.epoch = checkpoint["epoch"]
-        self.examples_seen = checkpoint["examples_seen"]
-        self.optimizer.load_state_dict(checkpoint["optimizer"])
-        self.scheduler.load_state_dict(checkpoint["scheduler"])
+        raise NotImplementedError()
 
     @staticmethod
     def get_scene_function(
@@ -223,7 +182,7 @@ class GraphModelDynamic:
 
     @staticmethod
     def plot_all_scenarios(
-        net: CustomGraphNet, print_scenarios: List[Scenario], config: TrainingConfig
+        net: CustomGraphNetJax, print_scenarios: List[Scenario], config: TrainingConfig
     ):
         print("----PLOTTING----")
         start_time = time.time()
@@ -244,30 +203,11 @@ class GraphModelDynamic:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, batch_data: List[Data]):
-        scale = False
-        self.ddp_net.train()
-        self.ddp_net.zero_grad()
-
-        # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
-        if scale:
-            with torch.cuda.amp.autocast():
-                main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
-            self.fp16_scaler.scale(main_loss).backward()
-        else:
-            main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
-            main_loss.backward()
-
-        if self.config.td.gradient_clip is not None:
-            self.clip_gradients(self.config.td.gradient_clip)
-            
-        if scale:
-            self.fp16_scaler.step(self.optimizer)
-            self.fp16_scaler.update()
-        else:
-            self.optimizer.step()
-
-        return loss_raport  # , acceleration_list
+    def train_step(self, state, batch_data: List[Data]):
+        state, main_loss, loss_raport = self.calculate_loss(
+            state, batch_data=batch_data
+        )  # acceleration_list
+        return state, loss_raport  # , acceleration_list
 
     def test_step(self, batch_data: List[Data]):
         self.ddp_net.eval()
@@ -306,9 +246,23 @@ class GraphModelDynamic:
 
         # rae = self.config.td.raport_at_examples
         # all_acceleration = []
-        for batch_id, batch_data in enumerate(batch_tqdm):
 
-            loss_raport = step_function(batch_data)  # , acceleration_list
+        sample_batch_data = next(iter(dataloader))
+        sample_layer_list, _ = self.get_layer_list_and_target_data(sample_batch_data)
+        sample_args, sample_static_args = CustomGraphNetJax().prepare_input(sample_layer_list)
+
+        init_rng = jax.random.PRNGKey(0)
+        rng = jax.random.split(init_rng, jax.device_count())
+
+        def cts(rng):
+            return create_train_state(
+                rng, sample_args, sample_static_args, self.config.td.initial_learning_rate
+            )
+
+        state = jax.pmap(cts)(rng)
+        # , sample_args, sample_static_args, self.config.td.initial_learning_rate) # static_broadcasted_argnums=(2, 3))
+        for batch_id, batch_data in enumerate(batch_tqdm):
+            state, loss_raport = step_function(state, batch_data)  # , acceleration_list
             # all_acceleration.extend(acceleration_list)
 
             mean_loss_raport.add(loss_raport)
@@ -316,13 +270,13 @@ class GraphModelDynamic:
                 self.examples_seen += loss_raport._count * self.world_size
 
             loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main):.4f}"
-            if batch_id == len(batch_tqdm) - 1:  # or self.examples_seen % rae == 0:
-                if self.is_main:
-                    self.save_raport(
-                        mean_loss_raport=mean_loss_raport, description=raport_description
-                    )
-                mean_loss_raport = LossRaport()
-                loss_description += " - raport saved"
+            # if batch_id == len(batch_tqdm) - 1:  # or self.examples_seen % rae == 0:
+            #     if self.is_main:
+            #         self.save_raport(
+            #             mean_loss_raport=mean_loss_raport, description=raport_description
+            #         )
+            #     mean_loss_raport = LossRaport()
+            #     loss_description += " - raport saved"
             batch_tqdm.set_description(loss_description)
 
             if self.config.profile_training:
@@ -377,23 +331,105 @@ class GraphModelDynamic:
 
         print(f"--Validating scenarios time: {int((time.time() - start_time) / 60)} min")
 
-    def calculate_loss(self, batch_data: List[Data]):
+    #####
+
+    def convert_to_jax(self, layer_list, target_data=None):
+        for layer in layer_list:
+            layer["x"] = thh.convert_cuda_tensor_to_jax(layer["x"])
+            layer.edge_attr = thh.convert_cuda_tensor_to_jax(layer.edge_attr)
+            layer.edge_index = thh.convert_cuda_tensor_to_jax(layer.edge_index)
+
+        layer_sparse = layer_list[1]
+        layer_sparse.edge_index_to_down = thh.convert_cuda_tensor_to_jax(
+            layer_sparse.edge_index_to_down
+        )
+        layer_sparse.edge_attr_to_down = thh.convert_cuda_tensor_to_jax(
+            layer_sparse.edge_attr_to_down
+        )
+        if target_data is None:
+            return layer_list
+        target_data.normalized_new_displacement = thh.convert_cuda_tensor_to_jax(
+            target_data.normalized_new_displacement
+        )
+        return layer_list, target_data
+
+    def get_layer_list_and_target_data(self, batch_data):
         batch_layers = batch_data[0]
-        layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
         target_data = batch_data[1].to(self.rank, non_blocking=True)
+        layer_list = [layer.to(self.rank, non_blocking=True) for layer in batch_layers]
+        layer_list, target_data = self.convert_to_jax(layer_list, target_data)
+        return layer_list, target_data
+
+    def calculate_loss(self, state, batch_data: List[Data]):
+        layer_list, target_data = self.get_layer_list_and_target_data(batch_data)
         batch_main_layer = layer_list[0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
         num_graphs = len(graph_sizes_base)
 
-        net_new_displacement = self.ddp_net(layer_list)
-
-        displacement_loss = thh.root_mean_square_error_torch(
-            net_new_displacement, target_data.normalized_new_displacement
+        args, static_args = CustomGraphNetJax().prepare_input(layer_list)
+        state, displacement_loss = train_step(
+            state,
+            flax.jax_utils.replicate(
+                target_data.normalized_new_displacement.astype(np.float32)
+            ),  ###############################
+            flax.jax_utils.replicate(args),
+            # flax.jax_utils.replicate(static_args),
+            static_args,
         )
+
         loss_raport = LossRaport(
             main=displacement_loss.item(),
             displacement_loss=displacement_loss.item(),
             _count=num_graphs,
         )
 
-        return displacement_loss, loss_raport
+        return state, displacement_loss, loss_raport
+
+
+def create_train_state(rng, sample_args, sample_static_args, learning_rate):
+    params = CustomGraphNetJax().get_params(sample_args, sample_static_args, rng)
+    jax.tree_util.tree_map(lambda x: x.shape, params)  # Checking output shapes
+
+    optimizer = optax.adam(learning_rate=learning_rate)
+
+    def a_fn(variables, args, static_args, train):
+        return CustomGraphNetJax().apply(variables, args, static_args, train)
+
+    return NetState.create(apply_fn=a_fn, params=params, tx=optimizer, batch_stats=None)
+
+
+def MSE(predicted, exact):
+    return jnp.mean(jnp.linalg.norm(predicted - exact, axis=-1) ** 2)
+
+
+def RMSE(predicted, exact):
+    return jnp.sqrt(MSE(predicted, exact))
+
+
+# send all static edge indexes, each replica chooses one
+# make edge indices non static
+@partial(jax.pmap, axis_name="ensemble", static_broadcasted_argnums=(2))
+# @partial(jax.jit, static_argnames=("static_args"))
+def apply_model(state, args, static_args, normalized_new_displacement):
+    def loss_fn(params, args):
+        variables = {"params": params}
+        net_new_displacement = state.apply_fn(variables, args, static_args, train=True)
+        losses = RMSE(net_new_displacement, normalized_new_displacement)
+        return losses
+
+    losses, grads = jax.value_and_grad(loss_fn)(state.params, args)
+    losses = jax.lax.pmean(losses, axis_name="ensemble")
+    return losses, grads
+
+
+def train_step(state, normalized_new_displacement, args, static_args):
+    losses, grads = cmh.profile(
+        lambda: apply_model(state, args, static_args, normalized_new_displacement), baypass=True
+    )
+    state = update_model(state, grads)
+    return state, jnp.mean(losses)
+
+
+@jax.pmap
+def update_model(state, grads):
+    return state.apply_gradients(grads=grads)

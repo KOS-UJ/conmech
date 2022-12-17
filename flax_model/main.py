@@ -1,5 +1,6 @@
 from typing import Callable, List
 
+import flax
 import jax
 import jax.numpy as jnp
 import jraph
@@ -7,17 +8,16 @@ import numpy as np
 import optax
 import torch
 import torch_geometric.data
+from flax import linen as nn
+from flax.training.train_state import TrainState
 from torch_geometric.data import Data, Dataset
 from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
-import flax
 from deep_conmech import run_model
 from deep_conmech.data import base_dataset
 from deep_conmech.training_config import TrainingConfig
-from flax import linen as nn
-from flax.training.train_state import TrainState
 
 
 # Adapted from https://github.com/deepmind/jraph/blob/master/jraph/ogb_examples/train.py

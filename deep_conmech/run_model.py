@@ -1,15 +1,27 @@
 import argparse
 import os
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
-os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-os.environ["JAX_ENABLE_X64"] = "1"
-# os.environ["JAX_PLATFORM_NAME"] = "cpu"
+if __name__ == "__main__":
+    use_jax = True
+    print(f"Use JAX: {use_jax}")
+    jax_64 = False  # True
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "0"  # "-1"
+    # os.environ["JAX_PLATFORM_NAME"] = "cpu"
+    # os.environ["JAX_DISABLE_JIT"] = "1"
+    # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
-import lovely_tensors as lt
-import lovely_jax as lj
-lt.monkey_patch()
-lj.monkey_patch()
+    if jax_64:
+        os.environ["JAX_ENABLE_X64"] = "1"
+        print("JAX 64 BIT MODE")
+    else:
+        print("JAX 32 BIT MODE")
+
+
+# import lovely_jax as lj
+# import lovely_tensors as lt
+
+# lt.monkey_patch()
+# lj.monkey_patch()
 
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
@@ -24,7 +36,9 @@ from conmech.scenarios import scenarios
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.graph.model import GraphModelDynamic
+from deep_conmech.graph.model_jax import GraphModelDynamicJax
 from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.graph.net_jax import CustomGraphNetJax
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
 
@@ -88,19 +102,30 @@ def train_single(config, rank=0, world_size=1, train_dataset=None):
         d.initialize_data()
     all_print_datasets = scenarios.all_print(config.td)
 
-    net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
-    if config.load_newest_train:
-        checkpoint_path = get_newest_checkpoint_path(config)
-        net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
-    model = GraphModelDynamic(
-        train_dataset=train_dataset,
-        all_validation_datasets=all_validation_datasets,
-        print_scenarios=all_print_datasets,
-        net=net,
-        config=config,
-        rank=rank,
-        world_size=world_size,
-    )
+    if use_jax:
+        model = GraphModelDynamicJax(
+            train_dataset=train_dataset,
+            all_validation_datasets=all_validation_datasets,
+            print_scenarios=all_print_datasets,
+            config=config,
+            rank=rank,
+            world_size=world_size,
+        )
+    else:
+        net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
+        if config.load_newest_train:
+            checkpoint_path = get_newest_checkpoint_path(config)
+            net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
+
+        model = GraphModelDynamic(
+            train_dataset=train_dataset,
+            all_validation_datasets=all_validation_datasets,
+            print_scenarios=all_print_datasets,
+            net=net,
+            config=config,
+            rank=rank,
+            world_size=world_size,
+        )
     if config.load_newest_train:
         model.load_checkpoint(path=checkpoint_path)
     model.train()
