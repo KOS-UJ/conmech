@@ -16,6 +16,7 @@ class CalculatorDataset(ScenariosDataset):
     def __init__(
         self,
         description: str,
+        use_jax: bool,
         all_scenarios: List[Scenario],
         load_data_to_ram: bool,
         with_scenes_file: bool,
@@ -27,6 +28,7 @@ class CalculatorDataset(ScenariosDataset):
     ):
         super().__init__(
             description=f"{description}_calculator",
+            use_jax=use_jax,
             all_scenarios=all_scenarios,
             solve_function=Calculator.solve,  # solve_acceleration_normalized_function,
             load_data_to_ram=load_data_to_ram,

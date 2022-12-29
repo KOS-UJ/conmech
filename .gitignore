@@ -1,15 +1,15 @@
 #flax/*
 
 # VSCode
-.vscode/*
-.isort.cfg
+#.vscode/*
+#.isort.cfg
 
 # PyCharm
 .idea/*
 
 *.tfrecord
 *.pkl
-*.json
+meta/*
 
 # conmech input/output
 log/*
@@ -18,6 +18,8 @@ datasetsOLD/*
 blender/output/*
 output/*
 
+*.mp4
+*.jpeg
 *.jpg
 *.png
 *.pdf
@@ -129,7 +131,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+# .env
 .venv
 env/
 venv/

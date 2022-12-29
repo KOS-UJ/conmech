@@ -108,6 +108,9 @@ def run_scenario(
     else:
         base_scene = None
 
+    # np.save("./pt-jax/bunny_boundary_nodes2.npy", scene.boundary_nodes)
+    # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
+
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)
     plot_scenes_count = [0]

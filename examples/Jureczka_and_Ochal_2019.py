@@ -4,6 +4,7 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
+
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer

@@ -488,6 +488,7 @@ def enable_gpus(device_type):
 
     return activated_gpus
 
+
 def set_render():
     if cycles:
         set_cycles()

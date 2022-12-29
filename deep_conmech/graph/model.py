@@ -63,9 +63,28 @@ class GraphModelDynamic:
         self.world_size = world_size
         self.net = net
 
+        ###
+        # def plot_weights(data_jax, name):
+        #     data = thh.to_np_double(data_jax.flatten())
+
+        #     import matplotlib.pyplot as plt
+
+        #     _ = plt.hist(data, bins=100)
+        #     plt.title(f"Weight histogram {name} shape: {data_jax.shape}")
+        #     plt.savefig(f"{name}.png")
+
+        # net.sparse_processor_layers[0].node_processor.net[0].blocks[0].weight
+
+        # plot_weights(net.node_encoder_sparse.net[0].blocks[0].weight, "TForwardKernel1")
+        # plot_weights(net.node_encoder_sparse.net[0].blocks[0].bias, "TForwardBias1")
+
+        # plot_weights(net.sparse_processor_layers[0].node_processor.net[0].blocks[0].weight, "TProcessorKernel1")
+        # plot_weights(net.sparse_processor_layers[0].node_processor.net[0].blocks[0].bias, "TProcessorBias1")
+        ###
+
         print("UNUSED PARAMETERS")
         if config.distributed_training:
-            self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)
+            self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)  # TODO: Add this for JAX
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net, device_ids=[rank], find_unused_parameters=True
             )
@@ -120,7 +139,7 @@ class GraphModelDynamic:
             # self.train_dataset.reset()
             # for _ in range(2):
             self.epoch += 1
-                    
+
             _ = self.iterate_dataset(
                 dataloader=train_dataloader,
                 train=True,
@@ -164,7 +183,7 @@ class GraphModelDynamic:
     def save_checkpoint(self):
         print("----SAVING CHECKPOINT----")
         timestamp = cmh.get_timestamp(self.config)
-        catalog = f"{self.config.output_catalog}/{self.config.current_time} - GRAPH MODELS"
+        catalog = f"{self.config.output_catalog}/{self.config.current_time} - TORCH GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
 
@@ -252,7 +271,9 @@ class GraphModelDynamic:
         # cmh.profile(lambda: self.calculate_loss(batch_data=batch_data, layer_number=0))
         if scale:
             with torch.cuda.amp.autocast():
-                main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
+                main_loss, loss_raport = self.calculate_loss(
+                    batch_data=batch_data
+                )  # acceleration_list
             self.fp16_scaler.scale(main_loss).backward()
         else:
             main_loss, loss_raport = self.calculate_loss(batch_data=batch_data)  # acceleration_list
@@ -260,7 +281,7 @@ class GraphModelDynamic:
 
         if self.config.td.gradient_clip is not None:
             self.clip_gradients(self.config.td.gradient_clip)
-            
+
         if scale:
             self.fp16_scaler.step(self.optimizer)
             self.fp16_scaler.update()

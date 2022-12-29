@@ -488,16 +488,17 @@ class CustomGraphNet(nn.Module):
         )
 
         acceleration_from_displacement = scene.from_displacement(new_displacement)
-        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         ###
-        displacement_new = scene.to_displacement(acceleration_from_displacement)
-        reduced_displacement_new = scene.lift_data(displacement_new)
-        lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
+        # displacement_new = scene.to_displacement(acceleration_from_displacement)
+        # reduced_displacement_new = scene.lift_data(displacement_new)
+        # lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
 
-        alpha = 0.9
-        scene.reduced.lifted_acceleration = (
-            alpha * scene.reduced.exact_acceleration + (1 - alpha) * lifted_acceleration
-        )
+        # alpha = 0.9
+        # scene.reduced.lifted_acceleration = (
+        #     alpha * scene.reduced.exact_acceleration + (1 - alpha) * lifted_acceleration
+        # )
+        ###
 
         return acceleration_from_displacement

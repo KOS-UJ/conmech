@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "Train graph",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/run_model.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--mode=train"
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Plot graph",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/run_model.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--mode=plot"
+            ],
+            "justMyCode": false
+        }
+    ]
+}

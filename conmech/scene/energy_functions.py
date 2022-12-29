@@ -17,7 +17,6 @@ def _get_penetration_positive(displacement_step, normals, penetration):
 
 
 def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step):
-    ##########(penetration_norm / (3)) *
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
@@ -28,7 +27,6 @@ def _obstacle_resistance_potential_tangential(
         friction_law = jnp.log(nph.euclidean_norm(tangential_velocity, keepdims=True) + 1.0)
     else:
         friction_law = nph.euclidean_norm(tangential_velocity, keepdims=True)
-    ########## 0 *
     return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
 
 

@@ -113,6 +113,7 @@ class SyntheticDataset(BaseDataset):
     def __init__(
         self,
         description: str,
+        use_jax: bool,
         load_data_to_ram: bool,
         randomize: bool,
         with_scenes_file: bool,
@@ -123,6 +124,7 @@ class SyntheticDataset(BaseDataset):
     ):
         super().__init__(
             description=f"{description}_synthetic",
+            use_jax=use_jax,
             dimension=config.td.dimension,
             data_count=config.td.dataset_size,
             solve_function=Calculator.solve,

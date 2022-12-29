@@ -46,7 +46,7 @@ class TrainingData:
 
     save_at_minutes: int = 5
     raport_at_examples: int = 256 * 64
-    validate_at_minutes: int = 15  # 00  # 10 100
+    validate_at_minutes: int = 15  # 0 # 10 100
     validate_at_epochs: int = 2  # 5
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
@@ -68,21 +68,23 @@ class TrainingData:
     learning_rate_decay: float = 1.0  # 0.995
     final_learning_rate: float = initial_learning_rate  # 1e-6
 
-    activation = nn.ReLU()  # nn.PReLU() LeakyReLU
+    activation = nn.ReLU()  # PReLU LeakyReLU
     latent_dimension: int = 64  # 128
     encoder_layers_count: int = 0  # 3
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
-    message_passes: int = 8  # 10  # 8  # 4  # 8  # 3
+    message_passes: int = 8  # 10  # 8  # 4 # 3
 
 
 @dataclass
 class TrainingConfig(Config):
+    use_jax: bool = True
+
     td: TrainingData = TrainingData()
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    distributed_training = False # True
+    distributed_training = False and not use_jax
     dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
@@ -94,7 +96,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 8  # 16
+    dataset_images_count: Optional[float] = None  # 8
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False

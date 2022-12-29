@@ -104,6 +104,7 @@ class BaseDataset:
     def __init__(
         self,
         description: str,
+        use_jax: bool,
         dimension: int,
         data_count: int,
         solve_function: Callable,
@@ -117,6 +118,7 @@ class BaseDataset:
         item_fn: Callable = None,
     ):
         self.dimension = dimension
+        self.use_jax = use_jax
         self.description = description
         self.data_count = data_count
         self.solve_function = solve_function
@@ -418,7 +420,26 @@ class BaseDataset:
             lock=self.files_lock,
         )
 
-    def __getitem__(self, index: int):
+    def _getitem_jax(self, index: int):
+        graph_data_1 = self.get_features_and_targets_data(index)
+        return [
+            [graph_data_1.layer_list, graph_data_1.target_data],
+        ]
+
+        # graph_data_1 = self.get_features_and_targets_data(index)
+        # graph_data_2 = self.get_features_and_targets_data(index + len(self))
+        # if self.item_fn:
+        #     raise ArgumentError
+        # return [
+        #     [graph_data_1.layer_list, graph_data_1.target_data],
+        #     [graph_data_2.layer_list, graph_data_2.target_data],
+        # ]
+
+    @property
+    def _len_jax(self):
+        return self.data_count  # // 2
+
+    def _getitem_torch(self, index: int):
         # self.load_data()
         graph_data = self.get_features_and_targets_data(index)
         if self.item_fn:
@@ -426,5 +447,12 @@ class BaseDataset:
         return graph_data.layer_list, graph_data.target_data  # , graph_data.scene
         # return [*graph_data.layer_list, graph_data.target_data]
 
+    @property
+    def _len_torch(self):
+        return self.data_count
+
+    def __getitem__(self, index: int):
+        return self._getitem_jax(index) if self.use_jax else self._getitem_torch(index)
+
     def __len__(self):
-        return self.data_count  # // self.world_size
+        return self._len_jax if self.use_jax else self._len_torch

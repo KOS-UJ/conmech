@@ -4,12 +4,14 @@ Created at 21.08.2019
 from dataclasses import dataclass
 
 import numpy as np
+
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import Quasistatic
-from conmech.simulations.problem_solver import TimeDependent as TimeDependentProblemSolver
-
+from conmech.simulations.problem_solver import (
+    TimeDependent as TimeDependentProblemSolver,
+)
 from examples.p_slope_contact_law import make_slope_contact_law
 
 

@@ -11,8 +11,8 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PiezoelectricDynamic
 from conmech.simulations.problem_solver import (
-    PiezoelectricTimeDependent as PDynamicProblemSolver,
-)  # in fact Quasi and dynamic is the same
+    PiezoelectricTimeDependent as PDynamicProblemSolver,  # in fact Quasi and dynamic is the same
+)
 from examples.p_slope_contact_law import make_slope_contact_law
 
 

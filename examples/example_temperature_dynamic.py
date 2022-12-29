@@ -10,7 +10,9 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
+from conmech.simulations.problem_solver import (
+    TemperatureTimeDependent as TDynamicProblemSolver,
+)
 from examples.p_slope_contact_law import make_slope_contact_law
 
 

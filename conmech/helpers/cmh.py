@@ -63,6 +63,15 @@ def find_files_by_extension(directory, extension):
     return files
 
 
+def find_files_by_name(directory, name):
+    files = []
+    for dirpath, _, filenames in os.walk(directory):
+        for filename in [f for f in filenames if name in f]:
+            path = os.path.join(dirpath, filename)
+            files.append(path)
+    return files
+
+
 def profile(function: Callable, baypass: bool = False):
     if baypass:
         return function()

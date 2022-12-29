@@ -1,4 +1,5 @@
 from ctypes import ArgumentError
+import os
 from typing import Optional
 
 import jax
@@ -9,7 +10,8 @@ import jax.scipy.optimize
 
 # import jaxopt
 import numpy as np
-from jax._src.scipy.optimize.bfgs import minimize_bfgs
+
+# from jax._src.scipy.optimize.bfgs import minimize_bfgs
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.scene.body_forces import energy
@@ -19,7 +21,7 @@ from conmech.scene.scene_temperature import SceneTemperature
 from optimization.lbfgs import minimize_lbfgs
 
 
-class console:
+class Console:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
@@ -32,7 +34,7 @@ class console:
 
     @staticmethod
     def print_warning(text):
-        print(f"{console.WARNING}{text}{console.ENDC}")
+        print(f"{Console.WARNING}{text}{Console.ENDC}")
 
 
 class Calculator:
@@ -53,7 +55,8 @@ class Calculator:
         #  set(p.dtype for p in jax.tree_util.tree_leaves(args)
         #        if isinstance(p, jnp.ndarray))
         # solver = jaxopt.LBFGS(fun=function, condition="wolfe")#, implicit_diff =False)
-        # solver = jaxopt.LBFGS(fun=jax.value_and_grad(function), value_and_grad=True, condition="wolfe")
+        # solver = jaxopt.LBFGS(fun=jax.value_and_grad(function),
+        #       value_and_grad=True, condition="wolfe")
         # maxls=1000, use_gamma=False, jit=True,
         # increase_factor=10,
         # decrease_factor=0.1,
@@ -68,21 +71,21 @@ class Calculator:
         # return np.asarray(result)
 
         state = cmh.profile(
-            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
+            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),  # TODO: jit this(?)
             baypass=True,
         )
 
         if Calculator.MAX_K < state.k:
             Calculator.MAX_K = state.k
 
-        assert state.converged
-        
-        # if True:
-        #     text = f"Converged: {state.converged}, status: {state.status}"
-        #     if state.converged:
-        #         print(text)
-        #     else:
-        #         console.print_warning(text)
+        if "JAX_ENABLE_X64" in os.environ and os.environ["JAX_ENABLE_X64"]:
+            assert state.converged
+        else:
+            text = f"Converged: {state.converged}, status: {state.status}"
+            if state.converged:
+                print(text)
+            else:
+                Console.print_warning(text)
 
         # if not state.converged and state.status != 5:
         #     raise ArgumentError("Error not due to line search")
