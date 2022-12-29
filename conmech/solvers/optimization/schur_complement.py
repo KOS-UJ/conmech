@@ -31,7 +31,7 @@ class SchurComplement(Optimization):
         )
 
         self.contact_ids = slice(0, body.mesh.contact_nodes_count)
-        self.free_ids = slice(body.mesh.contact_nodes_count, body.mesh.independent_nodes_count)
+        self.free_ids = slice(body.mesh.contact_nodes_count, body.mesh.nodes_count)
 
         (
             self._node_relations,
@@ -40,7 +40,7 @@ class SchurComplement(Optimization):
             self.free_x_free_inverted,
         ) = self.recalculate_displacement()
 
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()
 
     @staticmethod
     def calculate_schur_complement_matrices(
@@ -111,13 +111,17 @@ class SchurComplement(Optimization):
 
     @property
     def node_forces(self) -> np.ndarray:
-        return self._node_forces
+        return self.node_forces_
 
-    def solve(
-        self, initial_guess: np.ndarray, *, fixed_point_abs_tol: float = math.inf, **kwargs
+    def _solve_impl(
+        self,
+        initial_guess: np.ndarray,
+        *,
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs,
     ) -> np.ndarray:
         truncated_initial_guess = self.truncate_free_nodes(initial_guess)
-        solution_contact = super().solve(
+        solution_contact = super()._solve_impl(
             truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
         )
         solution_free = self.complement_free_nodes(solution_contact)
@@ -136,12 +140,10 @@ class SchurComplement(Optimization):
     def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
         if self.statement.dimension == 2:
             _result = truncated_solution.reshape(-1, 1)
-            _result = self.free_x_contact @ _result
-            _result = self.forces_free - _result
-            result = self.free_x_free_inverted @ _result
-            return result
+        else:
+            _result = truncated_solution
 
-        _result = self.free_x_contact @ truncated_solution
+        _result = self.free_x_contact @ _result
         _result = self.forces_free - _result
         result = self.free_x_free_inverted @ _result
         return result
@@ -172,12 +174,11 @@ class Quasistatic(SchurComplement):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
-                velocity=self.v_vector,
                 time_step=self.time_step,
                 electric_potential=self.p_vector,
             )
         )
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
@@ -228,4 +229,4 @@ class Dynamic(SchurComplement):
                 time_step=self.time_step,
             )
         )
-        self._node_forces, self.forces_free = self.recalculate_forces()
+        self.node_forces_, self.forces_free = self.recalculate_forces()

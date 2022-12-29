@@ -42,6 +42,16 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     def h_temp(u_tau):  # potential  # TODO # 48
         return 0.1 * 0.5 * u_tau**2
 
+    # TODO #96 : ContactLaw abstract class
+
+    @staticmethod
+    def temp_exchange(temp):  # potential  # TODO # 48
+        return 0 * temp
+
+    @staticmethod
+    def h_temp(u_tau):  # potential  # TODO # 48
+        return 0 * u_tau
+
 
 @dataclass()
 class TDynamicSetup(TemperatureDynamic):
