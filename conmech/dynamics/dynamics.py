@@ -176,7 +176,6 @@ class Dynamics(BodyPosition):
                 elements=self.elements,
                 nodes=self.moved_nodes,
                 body_prop=self.body_prop,
-                independent_indices=self.independent_indices,
             )
 
         self.matrices = cmh.profile(fun_dyn, baypass=True)
@@ -222,7 +221,7 @@ class Dynamics(BodyPosition):
             self.solver_cache.free_x_free,
             self.solver_cache.lhs_boundary,
             self.solver_cache.free_x_free_inverted,
-        ) = SchurComplement.calculate_schur_complement_matrices(
+        ) = SchurComplement.calculate_schur_complement_matrices_jax(
             matrix=self.solver_cache.lhs_sparse,
             dimension=self.dimension,
             contact_indices=self.contact_indices,

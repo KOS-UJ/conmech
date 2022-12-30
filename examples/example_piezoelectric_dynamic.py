@@ -16,62 +16,64 @@ from conmech.simulations.problem_solver import (
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
+# TODO # 48
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-    # @staticmethod  # TODO # 48
+    # @staticmethod
     # def g(t):
     #     return 10.7 + t * 0.02
     # return 0.5 + t * 0.01
 
     @staticmethod
     def h_nu(uN, t):
-        g_t = 10.7 + t * 0.02
-        if uN > g_t:
-            return 100.0 * (uN - g_t)
+        # g_t = 10.7 + t * 0.02
+        # if uN > g_t:
+        #     return 100.0 * (uN - g_t)
         return 0
 
     @staticmethod
     def h_tau(uN, t):
-        g_t = 10.7 + t * 0.02
-        if uN > g_t:
-            return 10.0 * (uN - g_t)
+        # g_t = 10.7 + t * 0.02
+        # if uN > g_t:
+        #     return 10.0 * (uN - g_t)
         return 0
 
-    # def jT(self, vTx, vTy):  # TODO # 48
+    # def jT(self, vTx, vTy):
     #     # return np.log(np.linalg.norm(vTx, vTy)+1)
     #     return np.linalg.norm(vTx, vTy)
 
     @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * u_tau**2
+    def h_temp(u_tau):  # potential
+        return 0 * 0.1 * 0.5 * u_tau**2
 
 
 @dataclass()
 class PDynamicSetup(PiezoelectricDynamic):
     grid_height: ... = 1.0
-    elements_number: ... = (4, 10)
-    mu_coef: ... = 4
-    la_coef: ... = 4
-    th_coef: ... = 4
-    ze_coef: ... = 4
-    time_step: ... = 0.02
+    elements_number: ... = (4, 3)
+    mu_coef: ... = 45
+    la_coef: ... = 105
+    th_coef: ... = 4.5
+    ze_coef: ... = 10.5
+    time_step: ... = 0.01
     contact_law: ... = PPSlopeContactLaw
-    piezoelectricity: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-    permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+    piezoelectricity: ... = np.array(
+        [
+            [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
+        ]
+    )
+    permittivity: ... = np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
-        return np.asarray([0.25])
+        return np.asarray([0.0])
 
     @staticmethod
     def inner_forces(x):
-        return np.array([0.0, -1.0])
+        return np.array([0.0, 0.0])
 
     @staticmethod
     def outer_forces(x):
-        if x[0] == 0:
-            return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
-        if x[0] == 2.5:
-            return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
     @staticmethod
@@ -81,16 +83,26 @@ class PDynamicSetup(PiezoelectricDynamic):
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
         dirichlet=lambda x: 1.0 <= x[0] <= 1.5 and 1.0 <= x[1] <= 1.5,
+        piezo_dirichlet_0=(
+            lambda x: (x[0] == 1.0 and 1.0 <= x[1] <= 4.0),
+            lambda x: np.full(x.shape[0], 0),
+        ),
+        piezo_dirichlet_1=(
+            lambda x: (1.5 <= x[0] <= 3.0 and x[1] == 1.0),
+            lambda x: np.full(x.shape[0], 20),
+        ),
     )
 
 
 def main(show: bool = True, save: bool = False):
-    setup = PDynamicSetup(mesh_type="cross")
-    runner = PDynamicProblemSolver(setup, solving_method="schur")
+    setup = PDynamicSetup(mesh_type="Barboteu2008")
+    runner = PDynamicProblemSolver(setup, solving_method="global")
 
+    steps = 100
+    output = steps // 5
     states = runner.solve(
-        n_steps=4,  # FIXME 32
-        output_step=range(0, 4, 1),  # FIXME (0, 32, 4)
+        n_steps=steps,
+        output_step=range(0, steps + 1, output),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,

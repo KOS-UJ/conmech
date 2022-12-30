@@ -12,7 +12,7 @@ from conmech.scenarios.problems import ContactLaw, Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
 
 
-class JureczkaOchal2018(ContactLaw):
+class JureczkaOchal2019(ContactLaw):
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
         if u_nu <= 0:
@@ -45,10 +45,10 @@ class JureczkaOchal2018(ContactLaw):
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 1.0
-    elements_number: ... = (4, 8)
+    elements_number: ... = (8, 16)
     mu_coef: ... = 4
     la_coef: ... = 4
-    contact_law: ... = JureczkaOchal2018
+    contact_law: ... = JureczkaOchal2019
 
     @staticmethod
     def inner_forces(x):
@@ -85,4 +85,4 @@ def main(show: bool = True, save: bool = False):
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(show=True, save=False)

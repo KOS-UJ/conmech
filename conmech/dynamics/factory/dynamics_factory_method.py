@@ -48,14 +48,13 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     values = np.array(list(edges_features_dict.values()), dtype=np.float64)
     row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
     shape = (nodes_count, nodes_count)
-    edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape) for i in data]
+    edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape).tocsr() for i in data]
     return edges_features_matrix
 
 
 def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
-    independent_indices: slice,
     body_prop: StaticBodyProperties,
 ):
     dimension = len(elements[0]) - 1
@@ -79,11 +78,11 @@ def get_dynamics(
         dx_dict, elements_count=len(nodes), nodes_count=len(elements)
     )
 
-    edges_features_matrix[0] = edges_features_matrix[0].tocsr()
-    for i in range(1, len(edges_features_matrix)):
-        edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
-            independent_indices, independent_indices
-        ]
+    # edges_features_matrix[0] = edges_features_matrix[0].tocsr()
+    # for i in range(1, len(edges_features_matrix)):
+    #     edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
+    #         independent_indices, independent_indices
+    #     ]
 
     result.volume_at_nodes = edges_features_matrix[0]
     U = edges_features_matrix[1]
@@ -92,7 +91,7 @@ def get_dynamics(
 
     # return result
 
-    V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])  # [i, i]
+    V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])
     W = np.asarray(
         [
             [
@@ -101,7 +100,7 @@ def get_dynamics(
             ]
             for k in range(factory.dimension)
         ]
-    )  # [i, i]
+    )
 
     result.elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)

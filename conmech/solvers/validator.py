@@ -28,7 +28,10 @@ class Validator:
                 state.body.get_integrated_forces_vector_np(),
             )
         )
-        quality = quality_inv**-1
+        if quality_inv == 0:
+            quality = np.inf
+        else:
+            quality = quality_inv**-1
         return quality
 
     def check_quality(self, state, solution, previous_quality: float = None) -> float:

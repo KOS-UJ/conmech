@@ -6,10 +6,11 @@ import math
 import numpy as np
 import scipy.optimize
 
-from conmech.dynamics.statement import StaticDisplacementStatement
+from conmech.dynamics.statement import PiezoelectricStatement, TemperatureStatement
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
+    make_cost_functional_piezoelectricity,
     make_cost_functional_temperature,
 )
 
@@ -38,25 +39,21 @@ class Optimization(Solver):
                 else None,
                 h_functional=friction_bound,
             )
-        else:
+        elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional_temperature(
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
+                heat_exchange=contact_law.temp_exchange,
             )
-        # self.loss = make_cost_functional(
-        #     jn=contact_law.potential_normal_direction,
-        #     jt=contact_law.potential_tangential_direction
-        #     if hasattr(contact_law, "potential_tangential_direction")
-        #     else None,
-        #     h_functional=friction_bound,
-        # )
-        # if hasattr(contact_law, "h_temp"):
-        #     self.loss_temp = make_cost_functional_temperature(
-        #         h_functional=contact_law.h_temp,
-        #         hn=contact_law.h_nu,
-        #         ht=contact_law.h_tau,
-        #     )
+        elif isinstance(statement, PiezoelectricStatement):
+            self.loss = make_cost_functional_piezoelectricity(
+                h_functional=contact_law.h_temp,
+                hn=contact_law.h_nu,
+                ht=contact_law.h_tau,
+            )
+        else:
+            raise ValueError(f"Unknown statement: {statement}")
 
     def __str__(self):
         raise NotImplementedError()
@@ -69,18 +66,22 @@ class Optimization(Solver):
     def node_forces(self) -> np.ndarray:
         raise NotImplementedError()
 
-    def solve(
+    def _solve_impl(
         self,
         initial_guess: np.ndarray,
         *,
         velocity: np.ndarray,
+        displacement: np.ndarray,
         fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         velocity = np.squeeze(velocity.copy().reshape(1, -1))
+        displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
+        disp = kwargs.get("disp", False)
+        maxiter = kwargs.get("maxiter", len(initial_guess) * 1e5)
 
         while norm >= fixed_point_abs_tol:
             result = scipy.optimize.minimize(
@@ -91,12 +92,11 @@ class Optimization(Solver):
                     self.body.contact_boundary,
                     self.node_relations,
                     self.node_forces,
-                    old_solution
-                    if isinstance(self.statement, StaticDisplacementStatement)
-                    else velocity,
+                    displacement,
+                    self.time_step,
                 ),
                 method="BFGS",
-                options={"disp": True, "maxiter": len(initial_guess) * 1e5},
+                options={"disp": disp, "maxiter": maxiter},
                 tol=1e-12,
             )
             solution = result.x

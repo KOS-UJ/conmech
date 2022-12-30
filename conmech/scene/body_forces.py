@@ -107,7 +107,7 @@ class BodyForces(Dynamics):
         integrated_inner_forces = self.matrices.volume_at_nodes @ self.normalized_inner_forces
         integrated_outer_forces = self.get_normalized_integrated_outer_forces()
         integrated_forces = integrated_inner_forces + integrated_outer_forces
-        return nph.stack_column(integrated_forces[self.independent_indices, :])
+        return nph.stack_column(integrated_forces) #[self.independent_indices, :])
 
     def get_normalized_integrated_forces_column_for_jax(self):
         integrated_forces = get_integrated_forces_jax_int(
@@ -115,7 +115,12 @@ class BodyForces(Dynamics):
             normalized_inner_forces=self.normalized_inner_forces,
             integrated_outer_forces=self.get_normalized_integrated_outer_forces(),
         )
-        return nph.stack_column(integrated_forces[self.independent_indices, :])
+        return nph.stack_column(integrated_forces) #[self.independent_indices, :])
+        # return neumann_surfaces * self.outer_forces
+
+    def get_integrated_forces_column(self):
+        integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
+        return nph.stack_column(integrated_forces[:, :])
 
     def get_integrated_forces_vector_np(self):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)

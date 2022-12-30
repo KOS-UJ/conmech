@@ -14,6 +14,7 @@ from conmech.dynamics.statement import (
     QuasistaticVelocityWithPiezoelectricStatement,
     StaticDisplacementStatement,
     TemperatureStatement,
+    Variables,
 )
 from conmech.properties.body_properties import (
     BodyProperties,
@@ -40,7 +41,7 @@ from conmech.scenarios.problems import (
 )
 from conmech.scenarios.problems import TimeDependent as TimeDependentProblem
 from conmech.scene.body_forces import BodyForces
-from conmech.solvers import Solvers
+from conmech.solvers import SchurComplement, Solvers
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state.state import PiezoelectricState, State, TemperatureState
@@ -93,6 +94,7 @@ class ProblemSolver:
     @solving_method.setter
     def solving_method(self, value):
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
+        second_solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
         # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
@@ -127,7 +129,7 @@ class ProblemSolver:
                 self.setup.friction_bound,
             )
         elif isinstance(self.setup, PiezoelectricTimeDependentProblem):
-            self.second_step_solver = solver_class(
+            self.second_step_solver = second_solver_class(
                 PiezoelectricStatement(self.body),
                 self.body,
                 time_step,
@@ -141,7 +143,7 @@ class ProblemSolver:
     def solve(self, **kwargs):
         raise NotImplementedError()
 
-    def run(self, solution, state, n_steps: int, verbose: bool = False, **kwargs):
+    def run(self, state, n_steps: int, verbose: bool = False, **kwargs):
         """
         :param state:
         :param n_steps: number of steps
@@ -150,13 +152,12 @@ class ProblemSolver:
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
-
+            solution = state.velocity.reshape(2, -1)
             solution = self.find_solution(
                 state,
                 solution,
                 self.validator,
                 verbose=verbose,
-                velocity=solution,
                 **kwargs,
             )
 
@@ -177,38 +178,80 @@ class ProblemSolver:
         # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
         solution = self.step_solver.solve(solution, **kwargs)
         self.step_solver.iterate(solution)
-        if self.second_step_solver is not None:
-            self.second_step_solver.iterate(solution)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
-    def find_solution_uzawa(
-        self, state, solution, solution_t, *, verbose=False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:
+        # TODO #95
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
         old_solution_t = solution_t.copy()
-        fuse = 5
-        while norm > 1e-3 and bool(fuse):
+        old_u_vector = self.step_solver.u_vector.copy()
+        old_v_vector = self.step_solver.v_vector.copy()
+        old_t_vector = self.step_solver.t_vector.copy()
+        old_p_vector = self.step_solver.p_vector.copy()
+        fuse = 10
+        minimum_iter = 5
+        while minimum_iter > 0 or norm > 1e-3 and bool(fuse):
             fuse -= 1
-            solution = self.find_solution(
-                state,
-                solution,
-                self.validator,
-                temperature=solution_t,
-                verbose=verbose,
-                velocity=solution,
+            minimum_iter -= 1
+            ### iterate
+            self.step_solver.statement.update(
+                Variables(
+                    displacement=old_u_vector,
+                    velocity=old_v_vector,
+                    temperature=solution_t,
+                    electric_potential=solution_t,
+                    time_step=self.step_solver.time_step,
+                )
             )
-            solution_t = self.second_step_solver.solve(solution_t, velocity=solution)
-            self.step_solver.t_vector = solution_t
-            self.second_step_solver.t_vector = solution_t
+            if isinstance(self.step_solver, SchurComplement):
+                (
+                    self.step_solver.node_forces_,
+                    self.step_solver.forces_free,
+                ) = self.step_solver.recalculate_forces()
+            ### end iterate
+            solution = self.step_solver.solve(solution)
+            ### iterate 2
+            u_vector = old_u_vector + self.step_solver.time_step * solution
+            self.second_step_solver.statement.update(
+                Variables(
+                    displacement=u_vector,
+                    velocity=solution,
+                    temperature=old_t_vector,
+                    electric_potential=old_p_vector,
+                    time_step=self.second_step_solver.time_step,
+                )
+            )
+            if isinstance(self.second_step_solver, SchurComplement):
+                (
+                    self.second_step_solver.node_forces_,
+                    self.second_step_solver.forces_free,
+                ) = self.second_step_solver.recalculate_forces()
+            ### end iterate 2
+            solution_t = self.second_step_solver.solve(solution_t)
             norm = (
                 np.linalg.norm(solution - old_solution) ** 2
                 + np.linalg.norm(old_solution_t - solution_t) ** 2
             ) ** 0.5
             old_solution = solution.copy()
             old_solution_t = solution_t.copy()
+
+        velocity = solution
+        self.step_solver.v_vector = velocity.reshape(-1)
+        self.step_solver.u_vector = (
+            old_u_vector + self.step_solver.time_step * self.step_solver.v_vector
+        )
+        self.second_step_solver.v_vector = velocity.reshape(-1)
+        self.second_step_solver.u_vector = (
+            old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
+        )
+        self.step_solver.p_vector = solution_t
+        self.second_step_solver.p_vector = solution_t
+        self.step_solver.t_vector = solution_t
+        self.second_step_solver.t_vector = solution_t
+
         return solution, solution_t
 
     @staticmethod
@@ -247,14 +290,13 @@ class Static(ProblemSolver):
         """
         state = State(self.body)
         state.displacement = initial_displacement(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
+            self.body.initial_nodes[: self.body.nodes_count]
         )
 
         solution = state.displacement.reshape(2, -1)
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-
-        self.run(solution, state, n_steps=1, verbose=verbose, **kwargs)
+        self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
 
@@ -305,21 +347,20 @@ class TimeDependent(ProblemSolver):
 
         state = State(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
+            self.body.initial_nodes[: self.body.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
-
-        solution = state.velocity.reshape(2, -1)
+        state.velocity[:] = initial_velocity(self.body.initial_nodes[: self.body.nodes_count])
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []
+        done = 0
         for n in output_step:
-            self.run(solution, state, n_steps=n, verbose=verbose)
+            done += n
+            print(f"{done / n_steps * 100:.2f}%", end="\r")
+            self.run(state, n_steps=n, verbose=verbose)
             results.append(state.copy())
 
         return results
@@ -357,7 +398,6 @@ class TemperatureTimeDependent(ProblemSolver):
         initial_velocity: Callable,
         initial_temperature: Callable,
         output_step: Optional[iter] = None,
-        verbose: bool = False,
         **kwargs,
     ) -> List[TemperatureState]:
         """
@@ -369,21 +409,16 @@ class TemperatureTimeDependent(ProblemSolver):
         :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param initial_temperature: for the solver
-        :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = TemperatureState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
+            self.body.initial_nodes[: self.body.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
-        state.temperature[:] = initial_temperature(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.initial_nodes[: self.body.nodes_count])
+        state.temperature[:] = initial_temperature(self.body.initial_nodes[: self.body.nodes_count])
 
         solution = state.velocity.reshape(2, -1)
         solution_t = state.temperature
@@ -397,17 +432,17 @@ class TemperatureTimeDependent(ProblemSolver):
         self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
 
         output_step = np.diff(output_step)
-        results = []
+        done = 0
         for n in output_step:
             for _ in range(n):
+                done += 1
+                print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
-                solution, solution_t = self.find_solution_uzawa(
-                    state, solution, solution_t, verbose=verbose
-                )
+                solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
                     state.set_velocity(
@@ -419,9 +454,7 @@ class TemperatureTimeDependent(ProblemSolver):
                     # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
-            results.append(state.copy())
-
-        return results
+            yield state.copy()
 
 
 class PiezoelectricTimeDependent(ProblemSolver):
@@ -432,7 +465,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param solving_method: 'schur', 'optimization', 'direct'
         """
         body_prop = TimeDependentPiezoelectricBodyProperties(
-            mass_density=1.0,
+            mass_density=0.1,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
             theta=setup.th_coef,
@@ -455,7 +488,6 @@ class PiezoelectricTimeDependent(ProblemSolver):
         initial_velocity: Callable,
         initial_electric_potential: Callable,
         output_step: Optional[iter] = None,
-        verbose: bool = False,
         **kwargs,
     ) -> List[PiezoelectricState]:
         """
@@ -467,20 +499,17 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param initial_displacement: for the solver
         :param initial_velocity: for the solver
         :param initial_electric_potential: for the solver
-        :param verbose: show prints
         :return: state
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = PiezoelectricState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
+            self.body.initial_nodes[: self.body.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.initial_nodes[: self.body.nodes_count])
         state.electric_potential[:] = initial_electric_potential(
-            self.body.initial_nodes[: self.body.independent_nodes_count]
+            self.body.initial_nodes[: self.body.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -496,16 +525,15 @@ class PiezoelectricTimeDependent(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
+        done = 0
         for n in output_step:
             for _ in range(n):
+                done += 1
+                print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
-                # solution = self.find_solution(self.step_solver, state, solution, self.validator,
-                #                               verbose=verbose)
-                solution, solution_t = self.find_solution_uzawa(
-                    state, solution, solution_t, verbose=verbose
-                )
+                solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
                     state.set_velocity(
@@ -514,7 +542,6 @@ class PiezoelectricTimeDependent(ProblemSolver):
                         time=self.step_solver.current_time,
                     )
                     state.set_electric_potential(solution_t)
-                    # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
             results.append(state.copy())
