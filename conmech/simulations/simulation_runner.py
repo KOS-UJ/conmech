@@ -103,7 +103,7 @@ def run_scenario(
             )
 
     fun = lambda: _get_scene_function(randomize=run_config.simulate_dirty_data)
-    scene = cmh.profile(fun, baypass=False)
+    scene = cmh.profile(fun, baypass=True)
     if run_config.compare_with_base_scene:
         base_scene = _get_scene_function(randomize=False)
     else:

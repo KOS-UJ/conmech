@@ -78,7 +78,7 @@ class TrainingData:
 
 @dataclass
 class TrainingConfig(Config):
-    use_jax: bool = False #True
+    use_jax: bool = True #False
 
     td: TrainingData = TrainingData()
     device: str = "cuda"  # "cpu" if TEST else "cuda"

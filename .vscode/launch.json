@@ -20,7 +20,8 @@
             "args": [
                 "--mode=plot"
             ],
-            "justMyCode": false
+            "justMyCode": false,
+            // "sudo": true
         },
         {
             "name": "Examples temperature 3D",

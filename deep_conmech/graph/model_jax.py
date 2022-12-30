@@ -210,8 +210,15 @@ class GraphModelDynamicJax:
         print("----PLOTTING----")
         start_time = time.time()
 
+        variables = {"params": state["params"]}
+
+        @jax.jit
+        def apply_net(args):
+            args = jax.lax.stop_gradient(args)
+            return CustomGraphNetJax().apply(variables, args, train=False)
+
         solve_function = lambda scene, energy_functions, initial_a: solve(
-            state, scene, energy_functions, initial_a
+            apply_net, scene, energy_functions, initial_a
         )  # (net.solve, Calculator.solve),
 
         for scenario in print_scenarios:
@@ -437,17 +444,10 @@ def convert_to_jax(layer_list, target_data=None):
     return layer_list, target_data
 
 
-@jax.jit
-def apply_jit(variables, args, train):
-    print("COMPILING")
-    return CustomGraphNetJax().apply(variables, args, train)
-
-
 # TODO: all in Jax?
-def solve(state, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
+def solve(apply_net, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
     # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
-    
-    
+
     t_start = time.time()
     scene.reduced.exact_acceleration = Calculator.solve(
         scene=scene.reduced,
@@ -455,7 +455,7 @@ def solve(state, scene: SceneInput, energy_functions: EnergyFunctions, initial_a
         initial_a=scene.reduced.exact_acceleration,
     )
 
-    print("1", time.time()-t_start)
+    print("1", time.time() - t_start)
     t_start = time.time()
 
     layers_list = [
@@ -463,15 +463,20 @@ def solve(state, scene: SceneInput, energy_functions: EnergyFunctions, initial_a
         for layer_number, _ in enumerate(scene.all_layers)
     ]
 
-    variables = {"params": state["params"]}  # state.params
     args = prepare_input(convert_to_jax(layers_list))
+    local_devices = jax.local_devices()
+    args = jax.device_put(args, local_devices[0])
 
-    print("2", time.time()-t_start)
+    print("2", time.time() - t_start)
     t_start = time.time()
 
-    net_result = apply_jit(variables, args, train=False)
+    # with jax.profiler.trace("./log", create_perfetto_link=True):
+    # https://github.com/google/jax/issues/13009
+    def fun():
+        return apply_net(args)
+    net_result = cmh.profile(fun, baypass=True)
 
-    print("3", time.time()-t_start)
+    print("3", time.time() - t_start)
     t_start = time.time()
 
     net_displacement = np.array(net_result)
@@ -489,8 +494,7 @@ def solve(state, scene: SceneInput, energy_functions: EnergyFunctions, initial_a
     acceleration_from_displacement = scene.from_displacement(new_displacement)
     scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-
-    print("4", time.time()-t_start)
+    print("4", time.time() - t_start)
     t_start = time.time()
 
     ###
@@ -584,4 +588,4 @@ def train_step(state, normalized_new_displacement, args):
 
 @jax.pmap
 def update_model(state, grads):
-    return state.apply_gradients(grads=grads)
+    return state.apply_gradients(grads=grads) # TODO: move to apply_map
