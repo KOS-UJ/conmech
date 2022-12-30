@@ -118,7 +118,9 @@ class ScenariosDataset(BaseDataset):
                 scenario = assigned_scenarios[int(index / episode_steps)]
                 scene = self.get_scene(scenario=scenario, config=self.config)
                 energy_functions = EnergyFunctions(
-                    scene.use_green_strain, scene.use_nonconvex_friction_law
+                    scene.use_green_strain,
+                    scene.use_nonconvex_friction_law,
+                    scene.use_constant_contact_integral,
                 )
 
             current_time = ts * scene.time_step

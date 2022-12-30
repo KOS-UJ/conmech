@@ -6,6 +6,7 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.helpers.config import (
     NORMALIZE,
+    USE_CONSTANT_CONTACT_INTEGRAL,
     USE_GREEN_STRAIN,
     USE_NONCONVEX_FRICTION_LAW,
 )
@@ -153,6 +154,12 @@ class Mesh:
         if hasattr(self.mesh_prop, "use_nonconvex_friction_law"):
             return self.mesh_prop.use_nonconvex_friction_law
         return USE_NONCONVEX_FRICTION_LAW
+
+    @property
+    def use_constant_contact_integral(self):
+        if hasattr(self.mesh_prop, "use_constant_contact_integral"):
+            return self.mesh_prop.use_constant_contact_integral
+        return USE_CONSTANT_CONTACT_INTEGRAL
 
     @property
     def normalized_initial_nodes(self):

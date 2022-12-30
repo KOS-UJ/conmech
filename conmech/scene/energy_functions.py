@@ -1,3 +1,4 @@
+from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -20,6 +21,10 @@ def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
+def _obstacle_resistance_normal(penetration_norm, hardness):
+    return hardness * penetration_norm
+
+
 def _obstacle_resistance_potential_tangential(
     penetration_norm, tangential_velocity, friction, time_step, use_nonconvex_friction_law
 ):
@@ -28,6 +33,16 @@ def _obstacle_resistance_potential_tangential(
     else:
         friction_law = nph.euclidean_norm(tangential_velocity, keepdims=True)
     return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
+
+
+def _obstacle_resistance_tangential(
+    penetration_norm, tangential_velocity, friction, use_nonconvex_friction_law
+):
+    if use_nonconvex_friction_law:
+        raise ArgumentError()
+    else:
+        friction_law = tangential_velocity / nph.euclidean_norm(tangential_velocity, keepdims=True)
+    return (penetration_norm > 0) * friction * friction_law
 
 
 class EnergyObstacleArguments(NamedTuple):
@@ -52,9 +67,48 @@ class EnergyObstacleArguments(NamedTuple):
 class StaticEnergyArguments(NamedTuple):
     use_green_strain: bool
     use_nonconvex_friction_law: bool
+    use_constant_contact_integral: bool
 
 
-def _get_boundary_integral(
+def _get_constant_boundary_integral(
+    acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
+):
+    boundary_nodes_count = args.boundary_velocity_old.shape[0]
+    boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
+
+    boundary_v_new = args.boundary_velocity_old
+    boundary_displacement_step = args.time_step * boundary_v_new
+
+    penetration_norm = _get_penetration_positive(
+        displacement_step=boundary_displacement_step,
+        normals=args.boundary_normals,
+        penetration=args.penetration,
+    )
+    velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
+
+    resistance_normal = _obstacle_resistance_normal(
+        penetration_norm=penetration_norm, hardness=args.obstacle_prop.hardness
+    )
+    resistance_tangential = _obstacle_resistance_tangential(
+        penetration_norm=args.penetration,
+        tangential_velocity=velocity_tangential,
+        friction=args.obstacle_prop.friction,
+        use_nonconvex_friction_law=use_nonconvex_friction_law,
+    )
+
+    normal_a, tangential_a = nph.get_normal_tangential(boundary_a, args.boundary_normals)
+    resistance_normal_a = resistance_normal * normal_a
+    resistance_tangential_a = nph.elementwise_dot(
+        resistance_tangential, tangential_a, keepdims=True
+    )
+
+    boundary_integral = (
+        args.surface_per_boundary_node * (resistance_normal_a + resistance_tangential_a)
+    ).sum()
+    return boundary_integral
+
+
+def _get_actual_boundary_integral(
     acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
@@ -63,30 +117,40 @@ def _get_boundary_integral(
     boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
     boundary_displacement_step = args.time_step * boundary_v_new
 
-    normals = args.boundary_normals
-    nodes_volume = args.surface_per_boundary_node
-    hardness = args.obstacle_prop.hardness
-    friction = args.obstacle_prop.friction
-
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=normals,
+        normals=args.boundary_normals,
         penetration=args.penetration,
     )
-    velocity_tangential = nph.get_tangential(boundary_v_new, normals)
+    velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
     resistance_normal = _obstacle_resistance_potential_normal(
-        penetration_norm=penetration_norm, hardness=hardness, time_step=args.time_step
+        penetration_norm=penetration_norm, hardness=args.obstacle_prop.hardness, time_step=args.time_step
     )
     resistance_tangential = _obstacle_resistance_potential_tangential(
         penetration_norm=args.penetration,
         tangential_velocity=velocity_tangential,
-        friction=friction,
+        friction=args.obstacle_prop.friction,
         time_step=args.time_step,
         use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
-    boundary_integral = (nodes_volume * (resistance_normal + resistance_tangential)).sum()
+    boundary_integral = (args.surface_per_boundary_node * (resistance_normal + resistance_tangential)).sum()
     return boundary_integral
+
+
+def _get_boundary_integral(acceleration, args: EnergyObstacleArguments, static_args: bool):
+    if static_args.use_constant_contact_integral:
+        return _get_constant_boundary_integral(
+            acceleration=acceleration,
+            args=args,
+            use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+        )
+    else:
+        return _get_actual_boundary_integral(
+            acceleration=acceleration,
+            args=args,
+            use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+        )
 
 
 def _get_strain_lin(deform_grad):
@@ -218,7 +282,7 @@ def _energy_obstacle_colliding(
     boundary_integral = _get_boundary_integral(
         acceleration=acceleration,
         args=args,
-        use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+        static_args=static_args,
     )
     return main_energy + boundary_integral
 
@@ -241,9 +305,9 @@ def _energy_obstacle_colliding(
 
 @dataclass
 class EnergyFunctions:
-    def __init__(self, use_green_strain, use_nonconvex_friction_law):
+    def __init__(self, use_green_strain, use_nonconvex_friction_law, use_constant_contact_integral):
         static_args = StaticEnergyArguments(
-            use_green_strain=use_green_strain, use_nonconvex_friction_law=use_nonconvex_friction_law
+            use_green_strain=use_green_strain, use_nonconvex_friction_law=use_nonconvex_friction_law, use_constant_contact_integral=use_constant_contact_integral
         )
 
         def energy_obstacle(acceleration_vector, args):

@@ -4,7 +4,7 @@ import os
 if __name__ == "__main__":
     jax_64 = False  # True
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
     # os.environ["JAX_PLATFORM_NAME"] = "cpu"
     # os.environ["JAX_DISABLE_JIT"] = "1"
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"

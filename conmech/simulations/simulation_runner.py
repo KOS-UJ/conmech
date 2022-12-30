@@ -102,7 +102,8 @@ def run_scenario(
                 create_in_subprocess=create_in_subprocess,
             )
 
-    scene = _get_scene_function(randomize=run_config.simulate_dirty_data)
+    fun = lambda: _get_scene_function(randomize=run_config.simulate_dirty_data)
+    scene = cmh.profile(fun, baypass=False)
     if run_config.compare_with_base_scene:
         base_scene = _get_scene_function(randomize=False)
     else:
@@ -261,7 +262,11 @@ def simulate(
     print(f"Nodes count: {scene.nodes_count}")
     print(f"Elements count: {scene.elements_count}")
 
-    energy_functions = EnergyFunctions(scene.use_green_strain, scene.use_nonconvex_friction_law)
+    energy_functions = EnergyFunctions(
+        scene.use_green_strain,
+        scene.use_nonconvex_friction_law,
+        scene.use_constant_contact_integral,
+    )
 
     acceleration = None
     temperature = None

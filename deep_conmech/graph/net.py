@@ -1,5 +1,6 @@
 import copy
 from ctypes import ArgumentError
+import time
 from typing import List, Optional, Tuple
 
 import jax.numpy as jnp
@@ -461,21 +462,32 @@ class CustomGraphNet(nn.Module):
     def solve(self, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
         # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
 
-        self.eval()
+        t_start = time.time()
 
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced,
             energy_functions=energy_functions,
             initial_a=scene.reduced.exact_acceleration,
         )
+        
+        print("1", time.time()-t_start)
+        t_start = time.time()
+
+        self.eval()
 
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
 
+        print("2", time.time()-t_start)
+        t_start = time.time()
+
         net_result = self(layer_list=layers_list)
         net_displacement = thh.to_np_double(net_result)
+
+        print("3", time.time()-t_start)
+        t_start = time.time()
 
         # base = scene.moved_base
         # position = scene.position
@@ -490,6 +502,8 @@ class CustomGraphNet(nn.Module):
         acceleration_from_displacement = scene.from_displacement(new_displacement)
         scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
+        print("4", time.time()-t_start)
+        t_start = time.time()
         ###
         # displacement_new = scene.to_displacement(acceleration_from_displacement)
         # reduced_displacement_new = scene.lift_data(displacement_new)

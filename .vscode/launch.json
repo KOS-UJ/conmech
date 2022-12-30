@@ -21,6 +21,20 @@
                 "--mode=plot"
             ],
             "justMyCode": false
+        },
+        {
+            "name": "Examples temperature 3D",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/examples_temperature_3d.py",
+            "justMyCode": false
+        },
+        {
+            "name": "Examples 3D",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/examples_3d.py",
+            "justMyCode": false
         }
     ]
 }

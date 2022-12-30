@@ -5,6 +5,7 @@ from datetime import datetime
 NORMALIZE = False
 USE_GREEN_STRAIN = True
 USE_NONCONVEX_FRICTION_LAW = False
+USE_CONSTANT_CONTACT_INTEGRAL = False
 
 
 @dataclass
