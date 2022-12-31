@@ -40,8 +40,8 @@ def _obstacle_resistance_tangential(
 ):
     if use_nonconvex_friction_law:
         raise ArgumentError()
-    else:
-        friction_law = tangential_velocity / nph.euclidean_norm(tangential_velocity, keepdims=True)
+
+    friction_law = tangential_velocity / nph.euclidean_norm(tangential_velocity, keepdims=True)
     return (penetration_norm > 0) * friction * friction_law
 
 
@@ -125,7 +125,9 @@ def _get_actual_boundary_integral(
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
     resistance_normal = _obstacle_resistance_potential_normal(
-        penetration_norm=penetration_norm, hardness=args.obstacle_prop.hardness, time_step=args.time_step
+        penetration_norm=penetration_norm,
+        hardness=args.obstacle_prop.hardness,
+        time_step=args.time_step,
     )
     resistance_tangential = _obstacle_resistance_potential_tangential(
         penetration_norm=args.penetration,
@@ -134,7 +136,9 @@ def _get_actual_boundary_integral(
         time_step=args.time_step,
         use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
-    boundary_integral = (args.surface_per_boundary_node * (resistance_normal + resistance_tangential)).sum()
+    boundary_integral = (
+        args.surface_per_boundary_node * (resistance_normal + resistance_tangential)
+    ).sum()
     return boundary_integral
 
 
@@ -145,12 +149,12 @@ def _get_boundary_integral(acceleration, args: EnergyObstacleArguments, static_a
             args=args,
             use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
         )
-    else:
-        return _get_actual_boundary_integral(
-            acceleration=acceleration,
-            args=args,
-            use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
-        )
+
+    return _get_actual_boundary_integral(
+        acceleration=acceleration,
+        args=args,
+        use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+    )
 
 
 def _get_strain_lin(deform_grad):
@@ -252,7 +256,7 @@ def _energy_vector(value_vector, lhs, rhs):
 def _energy_obstacle(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    print("_energy_obstacle")
+    # print("energy_obstacle")
     dimension = args.base_displacement.shape[1]
     main_energy0 = _energy_vector(
         value_vector=nph.stack_column(acceleration_vector),
@@ -270,7 +274,7 @@ def _energy_obstacle(
 def _energy_obstacle_colliding(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    print("_energy_obstacle_colliding")
+    # print("energy_obstacle_colliding")
     # TODO: Repeat if collision
     dimension = args.base_displacement.shape[1]
     main_energy = _energy_obstacle(
@@ -307,7 +311,9 @@ def _energy_obstacle_colliding(
 class EnergyFunctions:
     def __init__(self, use_green_strain, use_nonconvex_friction_law, use_constant_contact_integral):
         static_args = StaticEnergyArguments(
-            use_green_strain=use_green_strain, use_nonconvex_friction_law=use_nonconvex_friction_law, use_constant_contact_integral=use_constant_contact_integral
+            use_green_strain=use_green_strain,
+            use_nonconvex_friction_law=use_nonconvex_friction_law,
+            use_constant_contact_integral=use_constant_contact_integral,
         )
 
         def energy_obstacle(acceleration_vector, args):

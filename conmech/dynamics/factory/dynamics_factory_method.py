@@ -48,7 +48,9 @@ def to_edges_features_matrix(edges_features_dict: dict, nodes_count: int):
     values = np.array(list(edges_features_dict.values()), dtype=np.float64)
     row, col, data = get_coo_sparse_data_numba(keys=keys, values=values)
     shape = (nodes_count, nodes_count)
-    edges_features_matrix = [scipy.sparse.coo_matrix((i, (row, col)), shape=shape).tocsr() for i in data]
+    edges_features_matrix = [
+        scipy.sparse.coo_matrix((i, (row, col)), shape=shape).tocsr() for i in data
+    ]
     return edges_features_matrix
 
 

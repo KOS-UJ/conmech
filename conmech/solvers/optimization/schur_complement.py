@@ -8,7 +8,7 @@ import scipy.sparse
 import scipy.sparse.linalg
 
 from conmech.dynamics.statement import Variables
-from conmech.helpers import nph
+from conmech.helpers import jxh, nph
 from conmech.solvers._solvers import Solvers
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -31,7 +31,9 @@ class SchurComplement(Optimization):
         )
 
         self.contact_ids = slice(0, body.contact_nodes_count)
-        self.free_ids = slice(body.contact_nodes_count, body.nodes_count) # body.independent_nodes_count
+        self.free_ids = slice(
+            body.contact_nodes_count, body.nodes_count
+        )  # body.independent_nodes_count
 
         (
             self._node_relations,
@@ -50,9 +52,6 @@ class SchurComplement(Optimization):
         contact_indices: slice,
         free_indices: slice,
     ):
-        import jax.scipy
-
-        from conmech.helpers import jxh
 
         size = matrix.shape[0] // dimension
 

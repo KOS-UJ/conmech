@@ -158,7 +158,9 @@ class BoundariesFactory:
     """
 
     @staticmethod
-    def get_other_boundaries(initial_nodes, boundaries_description, boundary_surfaces, boundary_surface_centers):
+    def get_other_boundaries(
+        initial_nodes, boundaries_description, boundary_surfaces, boundary_surface_centers
+    ):
         other_boundaries = {}
         for name, indicator in boundaries_description.indicators.items():
             if name not in ("contact", "dirichlet"):
@@ -208,6 +210,7 @@ class BoundariesFactory:
         nodes_count = len(initial_nodes)
         neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
         boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
+        
         if is_contact_numba is None:
             # is_contact_numba is None - assuming all contact
             contact_boundary_surfaces = boundary_surfaces

@@ -83,7 +83,7 @@ class GraphModelDynamic:
         ###
 
         print("UNUSED PARAMETERS")
-        if config.distributed_training:
+        if config.torch_distributed_training:
             self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)  # TODO: Add this for JAX
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net, device_ids=[rank], find_unused_parameters=True
@@ -106,7 +106,7 @@ class GraphModelDynamic:
         self.fp16_scaler = torch.cuda.amp.GradScaler(enabled=True)
         if self.is_main:
             self.logger.save_parameters_and_statistics()
-        if self.config.distributed_training:
+        if self.config.torch_distributed_training:
             dist.barrier()
 
     @property
@@ -177,7 +177,7 @@ class GraphModelDynamic:
             self.optional_barrier()
 
     def optional_barrier(self):
-        if self.config.distributed_training:
+        if self.config.torch_distributed_training:
             dist.barrier()
 
     def save_checkpoint(self):
@@ -187,7 +187,7 @@ class GraphModelDynamic:
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL.pt"
 
-        net = self.ddp_net.module if self.config.distributed_training else self.ddp_net
+        net = self.ddp_net.module if self.config.torch_distributed_training else self.ddp_net
         checkpoint = {
             "epoch": self.epoch,
             "examples_seen": self.examples_seen,

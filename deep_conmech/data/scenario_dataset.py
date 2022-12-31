@@ -34,6 +34,7 @@ class ScenariosDataset(BaseDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        device_count: int,
         item_fn,
     ):
         self.all_scenarios = all_scenarios
@@ -51,6 +52,7 @@ class ScenariosDataset(BaseDataset):
             config=config,
             rank=rank,
             world_size=world_size,
+            device_count=device_count,
             item_fn=item_fn,
         )
 

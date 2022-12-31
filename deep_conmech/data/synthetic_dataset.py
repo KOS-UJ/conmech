@@ -120,6 +120,7 @@ class SyntheticDataset(BaseDataset):
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        device_count: int,
         item_fn: Callable = None,
     ):
         super().__init__(
@@ -135,6 +136,7 @@ class SyntheticDataset(BaseDataset):
             config=config,
             rank=rank,
             world_size=world_size,
+            device_count=device_count,
             item_fn=item_fn,
         )
 

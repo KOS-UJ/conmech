@@ -1,5 +1,6 @@
 import copy
 import os
+from ctypes import ArgumentError
 from typing import Callable, Iterable
 
 import numpy as np
@@ -115,6 +116,7 @@ class BaseDataset:
         config: TrainingConfig,
         rank: int,
         world_size: int,
+        device_count: int,
         item_fn: Callable = None,
     ):
         self.dimension = dimension
@@ -135,6 +137,7 @@ class BaseDataset:
         self.file = None
         self.loaded_data = None
         self.data_file = None
+        self.device_count = device_count
         self.item_fn = item_fn
 
     @property
@@ -421,23 +424,20 @@ class BaseDataset:
         )
 
     def _getitem_jax(self, index: int):
-        graph_data_1 = self.get_features_and_targets_data(index)
-        return [
-            [graph_data_1.layer_list, graph_data_1.target_data],
-        ]
+        def get_list(index):
+            graph_data = self.get_features_and_targets_data(index)
+            return [graph_data.layer_list, graph_data.target_data]
 
-        # graph_data_1 = self.get_features_and_targets_data(index)
-        # graph_data_2 = self.get_features_and_targets_data(index + len(self))
-        # if self.item_fn:
-        #     raise ArgumentError
-        # return [
-        #     [graph_data_1.layer_list, graph_data_1.target_data],
-        #     [graph_data_2.layer_list, graph_data_2.target_data],
-        # ]
+        if self.item_fn:
+            raise ArgumentError
+        return [
+            get_list(index + i * len(self)) for i in range(self.device_count)
+        ]
 
     @property
     def _len_jax(self):
-        return self.data_count  # // 2
+        return self.data_count // self.device_count
+
 
     def _getitem_torch(self, index: int):
         # self.load_data()

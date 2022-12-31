@@ -106,7 +106,8 @@ class GraphModelDynamicJax:
             for dataset in self.all_validation_datasets
         ]
 
-        state = self.initialize_state(train_dataloader)
+        train_devices = jax.local_devices()
+        states = self.initialize_state(train_dataloader, devices=train_devices)
 
         ###
         # def plot_weights(data_jax, name):
@@ -125,17 +126,19 @@ class GraphModelDynamicJax:
         # plot_weights(state.params['ProcessorLayer_1']['ForwardNet_1']['Dense_0']['bias'], "ProcessorBias1")
         ###
 
+        devices_count = len(jax.local_devices())
+
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             # self.train_dataset.reset()
             # for _ in range(2):
             self.epoch += 1
 
-            state = self.iterate_dataset(
-                state=state,
+            states = self.iterate_dataset(
+                states=states,
                 dataloader=train_dataloader,
                 train=True,
                 step_function=self.train_step,
-                tqdm_description=f"EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
+                tqdm_description=f"DEVICES: {devices_count} EPOCH: {self.epoch}",  # , lr: {self.lr:.6f}",
                 raport_description="Training",
             )  # , all_acceleration
             # self.train_dataset.update(all_acceleration)
@@ -144,31 +147,32 @@ class GraphModelDynamicJax:
             elapsed_time = current_time - last_save_time
             if True:  # elapsed_time > self.config.td.save_at_minutes * 60:
                 # print(f"--Training time: {(elapsed_time / 60):.4f} min")
-                self.save_checkpoint(state=state)
+                self.save_checkpoint(states=states)
                 last_save_time = time.time()
 
-            # if self.is_at_skip(self.config.td.validate_at_epochs):
-            #     # if elapsed_time > self.config.td.validate_at_minutes * 60:
-            #     for dataloader in all_valid_dataloaders:
-            #         _ = self.iterate_dataset(
-            #             dataloader=dataloader,
-            #             train=False,
-            #             step_function=self.test_step,
-            #             tqdm_description=f"Validation: {self.epoch}",
-            #             raport_description=dataloader.dataset.description,
-            #         )
-            #     # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
-            #     #     self.validate_all_scenarios_raport()
+            if self.is_at_skip(self.config.td.validate_at_epochs):
+                # if elapsed_time > self.config.td.validate_at_minutes * 60:
+                for dataloader in all_valid_dataloaders:
+                    _ = self.iterate_dataset(
+                        states=states,
+                        dataloader=dataloader,
+                        train=False,
+                        step_function=self.test_step,
+                        tqdm_description=f"Validation: {self.epoch}",
+                        raport_description=dataloader.dataset.description,
+                    )
+                # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
+                #     self.validate_all_scenarios_raport()
 
-    def save_checkpoint(self, state):
+    def save_checkpoint(self, states):
         print("----SAVING CHECKPOINT----")
 
-        target = flax.jax_utils.unreplicate(state)
+        state = flax.jax_utils.unreplicate(states)
         timestamp = cmh.get_timestamp(self.config)
         catalog = f"{self.config.output_catalog}/{self.config.current_time} - JAX GRAPH MODELS"
         cmh.create_folders(catalog)
-        path = f"{catalog}/{timestamp} - MODEL.pt"
-        checkpoints.save_checkpoint(ckpt_dir=path, target=target, step=0)
+        path = f"{catalog}/{timestamp} - MODEL"
+        checkpoints.save_checkpoint(ckpt_dir=path, target=state, step=0)
 
     @staticmethod
     def get_checkpoint(rank: int, path: str):
@@ -210,16 +214,12 @@ class GraphModelDynamicJax:
         print("----PLOTTING----")
         start_time = time.time()
 
-        variables = {"params": state["params"]}
+        apply_net = get_apply_net(state)
 
-        @jax.jit
-        def apply_net(args):
-            args = jax.lax.stop_gradient(args)
-            return CustomGraphNetJax().apply(variables, args, train=False)
-
-        solve_function = lambda scene, energy_functions, initial_a: solve(
-            apply_net, scene, energy_functions, initial_a
-        )  # (net.solve, Calculator.solve),
+        def solve_function(scene, energy_functions, initial_a):
+            return solve(
+                apply_net, scene, energy_functions, initial_a
+            )  # (net.solve, Calculator.solve),
 
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
@@ -238,30 +238,31 @@ class GraphModelDynamicJax:
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
         # return catalog
 
-    def train_step(self, state, batch_data: List[Data]):
-        state, main_loss, loss_raport = self.calculate_loss(
-            state, batch_data=batch_data
-        )  # acceleration_list
-        return state, loss_raport  # , acceleration_list
+    def train_step(self, states, batch_data: List[Data]):
+        devices = jax.local_devices()
+        states, loss_raport = self.calculate_loss(
+            states, batch_data=batch_data, devices=devices, train=True
+        )
+        # states = rereplicate_states(states, devices) TODO: Check if needed, add assert
+        return states, loss_raport
 
-    def test_step(self, batch_data: List[Data]):
-        self.ddp_net.eval()
+    def test_step(self, states, batch_data: List[Data]):
+        validation_device_count = self.all_validation_datasets[0].device_count
+        devices = jax.local_devices()[:validation_device_count]
+        # validate on single GPU
+        states = rereplicate_states(states, devices)
 
-        with torch.no_grad():  # with tc.set_grad_enabled(train):
-            _, loss_raport = self.calculate_loss(batch_data=batch_data)
-
-        return loss_raport
+        _, loss_raport = self.calculate_loss(
+            states=states, batch_data=batch_data, devices=devices, train=False
+        )
+        return states, loss_raport
 
     def clip_gradients(self, max_norm: float):
-        parameters = self.ddp_net.parameters()
-        # norms = [np.max(np.abs(p.grad.cpu().detach().numpy())) for p in parameters]
-        # total_norm = np.max(norms)_
-        # print("total_norm", total_norm)
-        torch.nn.utils.clip_grad_norm_(parameters, max_norm)
+        raise NotImplementedError
 
     def iterate_dataset(
         self,
-        state,
+        states,
         dataloader,
         train: bool,
         step_function: Callable,
@@ -284,10 +285,10 @@ class GraphModelDynamicJax:
         # all_acceleration = []
 
         for batch_id, batch_data in enumerate(batch_tqdm):
-            state, loss_raport = step_function(state, batch_data)  # , acceleration_list
+            states, loss_raport = step_function(states, batch_data)  # , acceleration_list
             # all_acceleration.extend(acceleration_list)
 
-            # TODO: check / assert state consistency across GPUs
+            # TODO: Check / assert state consistency across GPUs
             # TODO: Check if data are randomized
             mean_loss_raport.add(loss_raport)
             if train:
@@ -306,7 +307,7 @@ class GraphModelDynamicJax:
             profiler.stop()
         gc.enable()
 
-        return state  # mean_loss_raport  # , all_acceleration
+        return states  # mean_loss_raport  # , all_acceleration
 
     def should_raport_training(self, batch_id: int, batches_count: int):
         return (
@@ -361,9 +362,9 @@ class GraphModelDynamicJax:
         layer_list, target_data = convert_to_jax(layer_list, target_data)
         return layer_list, target_data
 
-    def calculate_loss(self, state, batch_data: List[List[Data]]):
-        local_devices = jax.local_devices()
-        devices_count = len(local_devices)
+    def calculate_loss(self, states, batch_data: List[List[Data]], devices, train):
+        devices_count = len(devices)
+
         data = [self.get_layer_list_and_target_data(bd) for bd in batch_data]
 
         all_args = [
@@ -374,24 +375,25 @@ class GraphModelDynamicJax:
         ]
 
         sharded_targets = jax.device_put_sharded(
-            all_target_data, local_devices
+            all_target_data, devices
         )  # TODO: check order with pmap
         # flax.jax_utils.replicate(
         #        target_data.normalized_new_displacement.astype(np.float32)
         # )
-        sharded_args = jax.device_put_sharded(
-            all_args, local_devices
-        )  # flax.jax_utils.replicate(args)
+        sharded_args = jax.device_put_sharded(all_args, devices)  # flax.jax_utils.replicate(args)
 
-        state, displacement_loss = train_step(
-            state,
-            sharded_targets,
-            sharded_args,
-        )
+        if train:
+            states, losses = cmh.profile(
+                lambda: apply_model(states, sharded_args, sharded_targets), baypass=True
+            )
+        else:
+            losses = apply_model_test(states, sharded_args, sharded_targets)
+
+        displacement_loss = jnp.mean(losses)
 
         batch_main_layer = data[0][0][0]
         graph_sizes_base = get_graph_sizes(batch_main_layer)
-        num_graphs = len(graph_sizes_base) * len(jax.local_devices())  # TODO: generalize
+        num_graphs = len(graph_sizes_base) * devices_count
 
         loss_raport = LossRaport(
             main=displacement_loss.item(),
@@ -399,9 +401,9 @@ class GraphModelDynamicJax:
             _count=num_graphs,
         )
 
-        return state, displacement_loss, loss_raport
+        return states, loss_raport
 
-    def initialize_state(self, dataloader):
+    def initialize_state(self, dataloader, devices):
         sample_batch_data = next(iter(dataloader))
         sample_layer_list, _ = self.get_layer_list_and_target_data(
             sample_batch_data[0]
@@ -409,7 +411,7 @@ class GraphModelDynamicJax:
         sample_args = prepare_input(sample_layer_list)
 
         # init_rng = jax.random.PRNGKey(0)  # the same initialization instead of training an ensemble
-        # rng = flax.jax_utils.replicate(init_rng)  # jax.random.split(init_rng, jax.device_count())
+        # rng = flax.jax_utils.replicate(init_rng, devices)  # jax.random.split(init_rng, jax.device_count())
 
         # def cts(rng):
         #     return create_train_state(rng, sample_args, self.config.td.initial_learning_rate)
@@ -420,25 +422,28 @@ class GraphModelDynamicJax:
             jax.random.PRNGKey(42), sample_args, self.config.td.initial_learning_rate
         )
 
-        state = flax.jax_utils.replicate(init_state)
+        states = flax.jax_utils.replicate(init_state, devices=devices)
         # , sample_args, sample_static_args, self.config.td.initial_learning_rate) # static_broadcasted_argnums=(2, 3))
-        return state
+        return states
+
+
+def rereplicate_states(states, devices):
+    states = flax.jax_utils.replicate(flax.jax_utils.unreplicate(states), devices)
+    return states
 
 
 def convert_to_jax(layer_list, target_data=None):
     for layer in layer_list:
-        layer["x"] = thh.convert_cuda_tensor_to_jax(layer["x"])
-        layer.edge_attr = thh.convert_cuda_tensor_to_jax(layer.edge_attr)
-        layer.edge_index = thh.convert_cuda_tensor_to_jax(layer.edge_index)
+        layer["x"] = thh.convert_tensor_to_jax(layer["x"])
+        layer.edge_attr = thh.convert_tensor_to_jax(layer.edge_attr)
+        layer.edge_index = thh.convert_tensor_to_jax(layer.edge_index)
 
     layer_sparse = layer_list[1]
-    layer_sparse.edge_index_to_down = thh.convert_cuda_tensor_to_jax(
-        layer_sparse.edge_index_to_down
-    )
-    layer_sparse.edge_attr_to_down = thh.convert_cuda_tensor_to_jax(layer_sparse.edge_attr_to_down)
+    layer_sparse.edge_index_to_down = thh.convert_tensor_to_jax(layer_sparse.edge_index_to_down)
+    layer_sparse.edge_attr_to_down = thh.convert_tensor_to_jax(layer_sparse.edge_attr_to_down)
     if target_data is None:
         return layer_list
-    target_data.normalized_new_displacement = thh.convert_cuda_tensor_to_jax(
+    target_data.normalized_new_displacement = thh.convert_tensor_to_jax(
         target_data.normalized_new_displacement
     )
     return layer_list, target_data
@@ -448,37 +453,24 @@ def convert_to_jax(layer_list, target_data=None):
 def solve(apply_net, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
     # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
 
-    t_start = time.time()
     scene.reduced.exact_acceleration = Calculator.solve(
         scene=scene.reduced,
         energy_functions=energy_functions,
         initial_a=scene.reduced.exact_acceleration,
     )
 
-    print("1", time.time() - t_start)
-    t_start = time.time()
-
     layers_list = [
-        scene.get_features_data(layer_number=layer_number)  # .to(device)
+        scene.get_features_data(layer_number=layer_number)
         for layer_number, _ in enumerate(scene.all_layers)
     ]
 
     args = prepare_input(convert_to_jax(layers_list))
     local_devices = jax.local_devices()
-    args = jax.device_put(args, local_devices[0])
-
-    print("2", time.time() - t_start)
-    t_start = time.time()
+    args = jax.device_put(args, local_devices[0])  # using GPU 0
 
     # with jax.profiler.trace("./log", create_perfetto_link=True):
     # https://github.com/google/jax/issues/13009
-    def fun():
-        return apply_net(args)
-    net_result = cmh.profile(fun, baypass=True)
-
-    print("3", time.time() - t_start)
-    t_start = time.time()
-
+    net_result = apply_net(args)
     net_displacement = np.array(net_result)
 
     # base = scene.moved_base
@@ -493,20 +485,6 @@ def solve(apply_net, scene: SceneInput, energy_functions: EnergyFunctions, initi
 
     acceleration_from_displacement = scene.from_displacement(new_displacement)
     scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-
-    print("4", time.time() - t_start)
-    t_start = time.time()
-
-    ###
-    # displacement_new = scene.to_displacement(acceleration_from_displacement)
-    # reduced_displacement_new = scene.lift_data(displacement_new)
-    # lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
-
-    # alpha = 0.9
-    # scene.reduced.lifted_acceleration = (
-    #     alpha * scene.reduced.exact_acceleration + (1 - alpha) * lifted_acceleration
-    # )
-    ###
 
     return acceleration_from_displacement
 
@@ -542,7 +520,7 @@ def prepare_input(layer_list):
 
 def create_train_state(rng, sample_args, learning_rate):
     params = CustomGraphNetJax().get_params(sample_args, rng)
-    jax.tree_util.tree_map(lambda x: x.shape, params)  # Checking output shapes
+    # jax.tree_util.tree_map(lambda x: x.shape, params)  # Checking output shapes
 
     optimizer = optax.adam(learning_rate=learning_rate)
 
@@ -560,32 +538,46 @@ def RMSE(predicted, exact):
     return jnp.sqrt(MSE(predicted, exact))
 
 
-@partial(jax.pmap, axis_name="models")  # , static_broadcasted_argnums=(2))
-# @partial(jax.jit, static_argnames=("static_args"))
-def apply_model(state, args, normalized_new_displacement):
+def get_apply_net(state):
+    variables = {"params": state["params"]}
+
+    @jax.jit
+    def apply_net(args):
+        args = jax.lax.stop_gradient(args)
+        return CustomGraphNetJax().apply(variables, args, train=False)
+
+    return apply_net
+
+
+@partial(jax.pmap, axis_name="models")
+def apply_model_test(states, sharded_args, sharded_targets):
+    # TODO: Synchronize Batchnorm (when used)
+    sharded_args = jax.lax.stop_gradient(sharded_args)
+
     def loss_fn(params):
         variables = {"params": params}
-        net_new_displacement = state.apply_fn(variables, args, train=True)
-        losses = RMSE(net_new_displacement, normalized_new_displacement)
+        sharded_net_result = states.apply_fn(variables, sharded_args, train=False)
+        losses = RMSE(sharded_net_result, sharded_targets)
         return losses
 
-    losses, grads = jax.value_and_grad(loss_fn)(state.params)
+    losses = loss_fn(states.params)
+    return losses
 
-    losses_pmean = jax.lax.pmean(losses, axis_name="models")
+
+@partial(jax.pmap, axis_name="models")  # , static_broadcasted_argnums=(2))
+# @partial(jax.jit, static_argnames=("static_args"))
+def apply_model(states, sharded_args, sharded_targets):
+    # TODO: Synchronize Batchnorm (when used)
+    def loss_fn(params):
+        variables = {"params": params}
+        sharded_net_result = states.apply_fn(variables, sharded_args, train=True)
+        losses = RMSE(sharded_net_result, sharded_targets)
+        return losses
+
+    losses, grads = jax.value_and_grad(loss_fn)(states.params)
+
     grads_pmean = jax.lax.pmean(grads, axis_name="models")
-    return losses, losses_pmean, grads_pmean
+    states = states.apply_gradients(grads=grads_pmean)
 
-
-def train_step(state, normalized_new_displacement, args):
-    losses, losses_pmean, grads_pmean = cmh.profile(
-        lambda: apply_model(state, args, normalized_new_displacement), baypass=True
-    )
-
-    # print("Losses:", losses)
-    state = update_model(state, grads_pmean)
-    return state, jnp.mean(losses_pmean)
-
-
-@jax.pmap
-def update_model(state, grads):
-    return state.apply_gradients(grads=grads) # TODO: move to apply_map
+    # losses_pmean = jax.lax.pmean(losses, axis_name="models")losses
+    return states, losses

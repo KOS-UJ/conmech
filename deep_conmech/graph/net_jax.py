@@ -29,12 +29,9 @@ class ForwardNet(nn.Module):
 
     @nn.compact
     def __call__(self, x, train):
-        # kernel_init = jax.nn.initializers.variance_scaling(
-        #     1.0 / 3.0, "fan_in", "uniform", in_axis=-2, out_axis=-1, batch_axis=(), dtype=jnp.float_
-        # )  # in JAX code uniform is multiplied by 3
-
         def kernel_init(key, shape, dtype=jnp.float_):
             return jax.random.uniform(key, shape, dtype, -1) / jnp.sqrt(x.shape[1])
+            # in JAX code uniform is multiplied by 3, so using custom version
 
         def bias_init(key, shape, dtype=jnp.float_):
             return jax.random.uniform(key, shape, dtype, -1) / jnp.sqrt(x.shape[1])  # shape[0]
@@ -59,56 +56,40 @@ class ForwardNet(nn.Module):
 
 class MessagePassingJax(nn.Module):
     def propagate(self, node_latents, edge_latents, edge_index, receivers_count):
-        # scale = 1
-        # TODO: Do only once?
-        # receivers_count = edge_index[1].max() + 1
-        # aggregated_edge_latents = jnp.zeros((receivers_count, edge_latents.shape[1]))
-
+        # senders, receivers = edge_index
         senders = edge_index[0]
-        # torch.index_select
+        receivers = edge_index[1]
+
         node_latents_j = node_latents.at[senders].get()
         edge_inputs = jnp.hstack((node_latents_j, edge_latents))
-        # edge_inputs = jnp.hstack((node_latents_j / scale, edge_latents))
+
         new_edge_latents = self.message(edge_inputs=edge_inputs)
+
         aggregated_edge_latents = self.aggregate(
-            new_edge_latents, edge_index, receivers_count=receivers_count
+            new_edge_latents=new_edge_latents, receivers=receivers, receivers_count=receivers_count
         )
+
         new_node_latents = self.update(
             node_latents=node_latents,
             aggregated_edge_latents=aggregated_edge_latents,
         )
         return new_node_latents, edge_latents  # new_edge_latents
 
-    def message(self, node_latents_j, edge_latents, edge_index, receivers_count):
-        pass
+    def message(self, edge_inputs):
+        return edge_inputs
 
-    def aggregate(self, new_edge_latents, edge_index, receivers_count):
+    def aggregate(self, new_edge_latents, receivers, receivers_count):
         # alpha = self.attention(new_edge_latents, index)
-        receivers_index = edge_index[1]
 
-        # Compute normalization.
-        # row, col = edge_index
-        # deg = degree(col, x.size(0), dtype=x.dtype)
-        # deg_inv_sqrt = deg.pow(-0.5)
-        # deg_inv_sqrt[deg_inv_sqrt == float('inf')] = 0
-        # norm = deg_inv_sqrt[row] * deg_inv_sqrt[col]
-
-        # TODO: check if sorted
+        # TODO: check if sorted is needed, add degree normalizarion: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
         aggregated_edge_latents = jax.ops.segment_sum(
-            new_edge_latents, receivers_index, num_segments=receivers_count  # TODO: Check
+            new_edge_latents, receivers, num_segments=receivers_count
         )
-
-        # aggregated_edge_latents2 = thh.convert_cuda_tensor_to_jax(
-        #     scatter_sum(
-        #         thh.convert_jax_cuda_tensor(new_edge_latents),
-        #         torch.tensor(edge_index[1], dtype=torch.int64).cuda(),
-        #         dim=0,
-        #     )
-        # )
         return aggregated_edge_latents
 
     def update(self, node_latents, aggregated_edge_latents):
-        pass
+        _ = aggregated_edge_latents
+        return node_latents
 
 
 class ProcessorLayer(MessagePassingJax):
@@ -153,14 +134,15 @@ class LinkProcessorLayer(MessagePassingJax):
         )(edge_inputs, train=True)
         return new_edge_latents
 
-    def aggregate(self, new_edge_latents, edge_index, receivers_count):
-        _ = edge_index
+    def aggregate(self, new_edge_latents, receivers, receivers_count):
+        _ = receivers, receivers_count
         latent_dim = new_edge_latents.shape[-1]
+        # assuming special ordering (tested empirically)
         result = new_edge_latents.reshape(-1, CLOSEST_COUNT * latent_dim)
         return result
 
     def update(self, node_latents, aggregated_edge_latents):
-        new_node_latents = ForwardNet(
+        new_node_latents = ForwardNet(  # node_latents +
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
         )(aggregated_edge_latents, train=True)
         return new_node_latents
@@ -188,7 +170,6 @@ class CustomGraphNetJax(nn.Module):
         dim = 3
 
         def propagate_messages(node_latents, edge_latents, edge_index, receivers_count):
-            # proc = ProcessorLayer()
             for _ in range(message_passes):
                 node_latents, edge_latents = ProcessorLayer(
                     latent_dimension=latent_dimension, internal_layer_count=internal_layer_count

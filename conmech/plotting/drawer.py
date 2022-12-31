@@ -38,21 +38,13 @@ class Drawer:
     ):
         fig, axes = fig_axes or plt.subplots()
 
-        x_min = min(
-            min(self.state.body.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
-        )
-        x_max = max(
-            max(self.state.body.initial_nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
-        )
+        x_min = min(min(self.state.body.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0]))
+        x_max = max(max(self.state.body.initial_nodes[:, 0]), max(self.state.displaced_nodes[:, 0]))
         dx = x_max - x_min
         x_margin = dx * 0.2
         xlim = (x_min - x_margin, x_max + x_margin)
-        y_min = min(
-            min(self.state.body.initial_nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
-        )
-        y_max = max(
-            max(self.state.body.initial_nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
-        )
+        y_min = min(min(self.state.body.initial_nodes[:, 1]), min(self.state.displaced_nodes[:, 1]))
+        y_max = max(max(self.state.body.initial_nodes[:, 1]), max(self.state.displaced_nodes[:, 1]))
         dy = y_max - y_min
         y_margin = dy * 0.2
         ylim = (y_min - y_margin, y_max + y_margin)

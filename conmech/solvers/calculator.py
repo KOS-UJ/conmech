@@ -82,9 +82,7 @@ class Calculator:
             assert state.converged
         else:
             text = f"Converged: {state.converged}, status: {state.status}"
-            if state.converged:
-                print(text)
-            else:
+            if not state.converged:
                 Console.print_warning(text)
 
         # if not state.converged and state.status != 5:

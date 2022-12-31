@@ -1,6 +1,8 @@
 import argparse
 import os
 
+import jax
+
 if __name__ == "__main__":
     jax_64 = False  # True
 
@@ -56,16 +58,35 @@ def cleanup_distributed():
     dist.destroy_process_group()
 
 
-def train(config: TrainingConfig):
-    all_validation_datasets = get_all_val_datasets(config=config, rank=0, world_size=1)
+def get_device_count(config):
+    if not config.use_jax:
+        return 1
+    return len(jax.local_devices())
+
+
+def initialize_data(config: TrainingConfig):
+    device_count = get_device_count(config)
+    all_validation_datasets = get_all_val_datasets(
+        config=config, rank=0, world_size=1, device_count=1 # validating on a single GPU
+    )
     for datasets in all_validation_datasets:
         datasets.initialize_data()
 
-    train_dataset = get_train_dataset(config.td.dataset, config=config, rank=0, world_size=1)
+    train_dataset = get_train_dataset(
+        config.td.dataset, config=config, rank=0, world_size=1, device_count=device_count
+    )
     train_dataset.initialize_data()
 
-    if not config.distributed_training:
-        train_single(config, train_dataset=train_dataset)
+    return train_dataset, all_validation_datasets
+
+
+def train(config: TrainingConfig):
+    train_dataset, all_validation_datasets = initialize_data(config=config)
+
+    if not config.torch_distributed_training:
+        train_single(
+            config, train_dataset=train_dataset, all_validation_datasets=all_validation_datasets
+        )
     else:
         world_size = torch.cuda.device_count()
         torch.multiprocessing.spawn(
@@ -86,19 +107,29 @@ def dist_run(
     cleanup_distributed()
 
 
-def train_single(config, rank=0, world_size=1, train_dataset=None):
+def train_single(config, rank=0, world_size=1, train_dataset=None, all_validation_datasets=None):
+    device_count = get_device_count(config)
     if train_dataset is None:
         train_dataset = get_train_dataset(
-            config.td.dataset, config=config, rank=rank, world_size=world_size
+            config.td.dataset,
+            config=config,
+            rank=rank,
+            world_size=world_size,
+            device_count=device_count,
         )
         train_dataset.load_indices()
+
     statistics = (
         train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
     )
 
-    all_validation_datasets = get_all_val_datasets(config=config, rank=rank, world_size=world_size)
-    for d in all_validation_datasets:
-        d.initialize_data()
+    if all_validation_datasets is None:
+        all_validation_datasets = get_all_val_datasets(
+            config=config, rank=rank, world_size=world_size, device_count=device_count
+        )
+        for d in all_validation_datasets:
+            d.initialize_data()
+
     all_print_datasets = scenarios.all_print(config.td)
 
     if config.use_jax:
@@ -154,8 +185,10 @@ def get_train_dataset(
     config: TrainingConfig,
     rank: int,
     world_size: int,
+    device_count: int,
     item_fn=None,
 ):
+    device_count = get_device_count(config)
     if dataset_type == "synthetic":
         train_dataset = SyntheticDataset(
             description="train",
@@ -166,6 +199,7 @@ def get_train_dataset(
             config=config,
             rank=rank,
             world_size=world_size,
+            device_count=device_count,
             item_fn=item_fn,
         )
     elif dataset_type == "calculator":
@@ -179,14 +213,15 @@ def get_train_dataset(
             config=config,
             rank=rank,
             world_size=world_size,
+            device_count=device_count,
             item_fn=item_fn,
         )
     else:
-        raise ValueError("Bad dataset type")
+        raise ValueError("Wrong dataset type")
     return train_dataset
 
 
-def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
+def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int, device_count: int):
     all_val_datasets = []
     for all_scenarios in scenarios.all_validation(config.td):
         description = "validation_" + str.join("/", [scenario.name for scenario in all_scenarios])
@@ -201,6 +236,7 @@ def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int):
                 config=config,
                 rank=rank,
                 world_size=world_size,
+                device_count=device_count,
             )
         )
     return all_val_datasets

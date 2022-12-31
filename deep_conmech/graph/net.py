@@ -246,7 +246,7 @@ class LinkProcessorLayer(MessagePassing):
 
     def aggregate(self, new_edge_latents, index):  # weighted_edge_latents
         _ = index
-        # TODO: now assuming special ordering (empirically tested), test and use scatter_sum instead
+        # TODO: now assuming special ordering (tested empirically), test and use scatter_sum instead
         latent_dim = new_edge_latents.shape[-1]
         result = new_edge_latents.reshape(-1, CLOSEST_COUNT * latent_dim)
         return result
@@ -462,32 +462,20 @@ class CustomGraphNet(nn.Module):
     def solve(self, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
         # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
 
-        t_start = time.time()
-
         scene.reduced.exact_acceleration = Calculator.solve(
             scene=scene.reduced,
             energy_functions=energy_functions,
             initial_a=scene.reduced.exact_acceleration,
         )
-        
-        print("1", time.time()-t_start)
-        t_start = time.time()
-
-        self.eval()
 
         layers_list = [
             scene.get_features_data(layer_number=layer_number).to(self.device)
             for layer_number, _ in enumerate(scene.all_layers)
         ]
 
-        print("2", time.time()-t_start)
-        t_start = time.time()
-
+        self.eval()
         net_result = self(layer_list=layers_list)
         net_displacement = thh.to_np_double(net_result)
-
-        print("3", time.time()-t_start)
-        t_start = time.time()
 
         # base = scene.moved_base
         # position = scene.position
@@ -501,18 +489,5 @@ class CustomGraphNet(nn.Module):
 
         acceleration_from_displacement = scene.from_displacement(new_displacement)
         scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-
-        print("4", time.time()-t_start)
-        t_start = time.time()
-        ###
-        # displacement_new = scene.to_displacement(acceleration_from_displacement)
-        # reduced_displacement_new = scene.lift_data(displacement_new)
-        # lifted_acceleration = scene.reduced.from_displacement(reduced_displacement_new)
-
-        # alpha = 0.9
-        # scene.reduced.lifted_acceleration = (
-        #     alpha * scene.reduced.exact_acceleration + (1 - alpha) * lifted_acceleration
-        # )
-        ###
 
         return acceleration_from_displacement

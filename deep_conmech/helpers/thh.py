@@ -7,11 +7,11 @@ import torch
 import torch.utils
 
 
-def convert_cuda_tensor_to_jax(x):
+def convert_tensor_to_jax(x):
     return jax.dlpack.from_dlpack(torch.utils.dlpack.to_dlpack(x))
 
 
-def convert_cuda_tensor_to_jax(x):
+def convert_tensor_to_jax(x):
     return jax.dlpack.from_dlpack(torch.utils.dlpack.to_dlpack(x))
 
 

@@ -78,13 +78,13 @@ class TrainingData:
 
 @dataclass
 class TrainingConfig(Config):
-    use_jax: bool = True #False
+    use_jax: bool = True
 
     td: TrainingData = TrainingData()
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    distributed_training = False and not use_jax
+    torch_distributed_training = False and not use_jax
     dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
