@@ -5,7 +5,6 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.plotting import plotter_2d, plotter_common
 from deep_conmech.data import base_dataset
-from conmech.helpers.interpolation_helpers import approximate_internal
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
 from deep_conmech.training_config import TrainingConfig, TrainingData
 
@@ -103,7 +102,7 @@ def get_dataset(output_catalog):
         batch_size=3,
         dataset_size=2,
         final_time=0.1,
-        save_at_minutes=0,
+        save_at_epochs=1,
         validate_at_epochs=1,
     )
     config = TrainingConfig(

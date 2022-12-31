@@ -14,7 +14,7 @@ def test_smoke_train_and_plot():
         batch_size=2,
         dataset_size=4,
         final_time=0.1,
-        save_at_minutes=0,
+        save_at_epochs=1,
         validate_at_epochs=1,
     )
     config = TrainingConfig(

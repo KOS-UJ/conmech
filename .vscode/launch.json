@@ -24,6 +24,17 @@
             // "sudo": true
         },
         {
+            "name": "Visualize graph",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/deep_conmech/run_model.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--mode=visualize"
+            ],
+            "justMyCode": false,
+        },
+        {
             "name": "Examples temperature 3D",
             "type": "python",
             "request": "launch",

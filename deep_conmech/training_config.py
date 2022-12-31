@@ -44,10 +44,9 @@ class TrainingData:
     velocity_in_random_factor: float = displacement_in_random_factor * 100.0
     # 0.005 * velocity_random_scale
 
-    save_at_minutes: int = 5
     raport_at_examples: int = 256 * 64
-    validate_at_minutes: int = 15  # 0 # 10 100
-    validate_at_epochs: int = 2  # 5
+    save_at_epochs: int = 1
+    validate_at_epochs: int = 3
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 4  # 8  # 1  # 16  # 32  # 16  # 32 # 256
@@ -84,7 +83,7 @@ class TrainingConfig(Config):
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
-    torch_distributed_training = False and not use_jax
+    torch_distributed_training = True and not use_jax
     dataloader_workers = 4
     synthetic_generation_workers = 4
     scenario_generation_workers = 2

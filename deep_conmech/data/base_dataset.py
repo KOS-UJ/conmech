@@ -42,11 +42,11 @@ def get_print_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
     )
 
 
-def get_valid_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
+def get_valid_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset=dataset,
-        rank=rank,
-        world_size=world_size,
+        rank=dataset.rank,
+        world_size=dataset.world_size,
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=False,
@@ -54,21 +54,16 @@ def get_valid_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
     )
 
 
-def get_train_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
+def get_train_dataloader(dataset: "BaseDataset"):
     return get_dataloader(
         dataset=dataset,
-        rank=rank,
-        world_size=world_size,
+        rank=dataset.rank,
+        world_size=dataset.world_size,
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
         shuffle=True,  # False
         load_data=True,
     )
-
-
-def get_all_dataloader(dataset: "BaseDataset", rank: int, world_size: int):
-    return get_dataloader(dataset, world_size, rank, len(dataset), num_workers=0, shuffle=False)
-
 
 def get_dataloader(
     dataset,
@@ -122,7 +117,7 @@ class BaseDataset:
         self.dimension = dimension
         self.use_jax = use_jax
         self.description = description
-        self.data_count = data_count
+        self.data_count = 20 # data_count
         self.solve_function = solve_function
         self.load_data_to_ram = load_data_to_ram
         self.randomize = randomize
@@ -430,14 +425,11 @@ class BaseDataset:
 
         if self.item_fn:
             raise ArgumentError
-        return [
-            get_list(index + i * len(self)) for i in range(self.device_count)
-        ]
+        return [get_list(index + i * len(self)) for i in range(self.device_count)]
 
     @property
     def _len_jax(self):
         return self.data_count // self.device_count
-
 
     def _getitem_torch(self, index: int):
         # self.load_data()

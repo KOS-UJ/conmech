@@ -27,6 +27,7 @@ if __name__ == "__main__":
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
 
+import netron
 import numpy as np
 import torch
 import torch.distributed as dist
@@ -34,11 +35,12 @@ import torch.multiprocessing
 
 from conmech.helpers import cmh
 from conmech.scenarios import scenarios
+from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from deep_conmech.graph.model import GraphModelDynamic
-from deep_conmech.graph.model_jax import GraphModelDynamicJax
-from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.graph.model_torch import GraphModelDynamicTorch
+from deep_conmech.graph.model_jax import GraphModelDynamicJax, save_tf_model
+from deep_conmech.graph.net_torch import CustomGraphNet
 from deep_conmech.graph.net_jax import CustomGraphNetJax
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
@@ -67,14 +69,12 @@ def get_device_count(config):
 def initialize_data(config: TrainingConfig):
     device_count = get_device_count(config)
     all_validation_datasets = get_all_val_datasets(
-        config=config, rank=0, world_size=1, device_count=1 # validating on a single GPU
+        config=config, rank=0, world_size=1, device_count=device_count  # 1
     )
     for datasets in all_validation_datasets:
         datasets.initialize_data()
 
-    train_dataset = get_train_dataset(
-        config.td.dataset, config=config, rank=0, world_size=1, device_count=device_count
-    )
+    train_dataset = get_train_dataset(config.td.dataset, config=config, device_count=device_count)
     train_dataset.initialize_data()
 
     return train_dataset, all_validation_datasets
@@ -138,16 +138,16 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
             all_validation_datasets=all_validation_datasets,
             print_scenarios=all_print_datasets,
             config=config,
-            rank=rank,
-            world_size=world_size,
         )
     else:
         net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
         if config.load_newest_train:
             checkpoint_path = get_newest_checkpoint_path(config)
-            net = GraphModelDynamic.load_checkpointed_net(net=net, rank=rank, path=checkpoint_path)
+            net = GraphModelDynamicTorch.load_checkpointed_net(
+                net=net, rank=rank, path=checkpoint_path
+            )
 
-        model = GraphModelDynamic(
+        model = GraphModelDynamicTorch(
             train_dataset=train_dataset,
             all_validation_datasets=all_validation_datasets,
             print_scenarios=all_print_datasets,
@@ -161,6 +161,30 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
     model.train()
 
 
+def visualize(config: TrainingConfig):
+    checkpoint_path = get_newest_checkpoint_path(config)
+    dataset = get_train_dataset(config.td.dataset, config=config)
+    dataset.initialize_data()
+
+    if config.use_jax:
+        model_path = "log/jax_model.tflite"
+        state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
+        save_tf_model(model_path, state, dataset)
+    else:
+        # Only weights
+        model_path = checkpoint_path
+
+        model_path = "log/torch_model.onnx"
+        net = CustomGraphNet(statistics=None, td=config.td)
+        net = GraphModelDynamicTorch.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
+
+        # hstack is currently not supported
+        # https://pytorch.org/docs/stable/onnx_supported_aten_ops.html
+        # GraphModelDynamicTorch.save_onnx_model(model_path, net, dataset)
+
+    netron.start(model_path)
+
+
 def plot(config: TrainingConfig):
     if config.td.use_dataset_statistics:
         train_dataset = get_train_dataset(config.td.dataset, config=config)
@@ -171,21 +195,21 @@ def plot(config: TrainingConfig):
 
     if config.use_jax:
         checkpoint_path = get_newest_checkpoint_path(config)
-        state = GraphModelDynamicJax.load_checkpointed_net(net=0, rank=0, path=checkpoint_path)
+        state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
         GraphModelDynamicJax.plot_all_scenarios(state, all_print_scenaros, config)
     else:
         net = CustomGraphNet(statistics=statistics, td=config.td).to(0)
         checkpoint_path = get_newest_checkpoint_path(config)
-        net = GraphModelDynamic.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
-        GraphModelDynamic.plot_all_scenarios(net, all_print_scenaros, config)
+        net = GraphModelDynamicTorch.load_checkpointed_net(net=net, rank=0, path=checkpoint_path)
+        GraphModelDynamicTorch.plot_all_scenarios(net, all_print_scenaros, config)
 
 
 def get_train_dataset(
     dataset_type,
     config: TrainingConfig,
-    rank: int,
-    world_size: int,
-    device_count: int,
+    rank: int = 0,
+    world_size: int = 1,
+    device_count: int = 1,
     item_fn=None,
 ):
     device_count = get_device_count(config)
@@ -279,6 +303,8 @@ def main(args: Namespace):
         train(config)
     if args.mode == "plot":
         plot(config)
+    if args.mode == "visualize":
+        visualize(config)
 
 
 if __name__ == "__main__":
@@ -287,7 +313,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["train", "plot", "profile"],
+        choices=["train", "plot", "profile", "visualize"],
         default="train",
         help="Running mode of aplication",
     )

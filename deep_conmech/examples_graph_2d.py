@@ -1,6 +1,6 @@
 from conmech.scenarios import scenarios
 from conmech.simulations import simulation_runner
-from deep_conmech.graph.model import GraphModelDynamic
+from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -14,7 +14,7 @@ def main(mesh_density=40, final_time=5, plot_animation=True):
         simulate_dirty_data=True,
         plot_animation=plot_animation,
         config=config,
-        get_scene_function=GraphModelDynamic.get_scene_function,
+        get_scene_function=GraphModelDynamicTorch.get_scene_function,
     )
 
 

@@ -1,6 +1,6 @@
 import copy
-from ctypes import ArgumentError
 import time
+from ctypes import ArgumentError
 from typing import List, Optional, Tuple
 
 import jax.numpy as jnp
@@ -427,16 +427,17 @@ class CustomGraphNet(nn.Module):
         return node_latents
 
     def forward(self, layer_list: List[Data]):  # TODO: node_latens_dense are now ignored
-        if isinstance(layer_list[0].x, Tuple):
-            layer_list = [DotDict(l.x) for l in layer_list]
+        if isinstance(layer_list[0], dict):
+            # for ONNX
+            layer_list = [DotDict(l) for l in layer_list]
 
         layer_dense = layer_list[0]
-        node_latents_dense = self.node_encoder_dense(layer_dense["x"])
+        node_latents_dense = self.node_encoder_dense(layer_dense.x)
 
         edge_latents_dense = self.edge_encoder_dense(layer_dense.edge_attr)
 
         layer_sparse = layer_list[1]
-        node_latents_sparse = self.node_encoder_sparse(layer_sparse["x"])
+        node_latents_sparse = self.node_encoder_sparse(layer_sparse.x)
         edge_latents_sparse = self.edge_encoder_sparse(layer_sparse.edge_attr)
 
         multilayer_edge_latents = self.edge_encoder_multilayer(layer_sparse.edge_attr_to_down)

@@ -12,16 +12,20 @@ class LossRaport:
 
     _count: int = 0
 
+    @property
+    def count(self):
+        return self._count
+
     def add(self, loss: "LossRaport", normalize=True):
         self_vars = vars(self)
         loss_vars = vars(loss)
 
-        total_count = self._count + loss._count
+        total_count = self._count + loss.count
         for (key, value) in self_vars.items():
             if value is not None:
                 if normalize:
                     p1 = value * float(self._count) / total_count
-                    p2 = loss_vars[key] * float(loss._count) / total_count
+                    p2 = loss_vars[key] * float(loss.count) / total_count
                     self_vars[key] = p1 + p2
                 else:
                     self_vars[key] += loss_vars[key]

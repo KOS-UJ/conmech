@@ -16,7 +16,7 @@ from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_raport import LossRaport
-from deep_conmech.graph.net import CustomGraphNet
+from deep_conmech.graph.net_torch import CustomGraphNet
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
@@ -42,7 +42,7 @@ def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
     )
 
 
-class GraphModelDynamic:
+class GraphModelDynamicTorch:
     def __init__(
         self,
         train_dataset,
@@ -84,7 +84,7 @@ class GraphModelDynamic:
 
         print("UNUSED PARAMETERS")
         if config.torch_distributed_training:
-            self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)  # TODO: Add this for JAX
+            self.ddp_net = nn.SyncBatchNorm.convert_sync_batchnorm(net)  # TODO: Add this to JAX
             self.ddp_net = DistributedDataParallel(
                 self.ddp_net, device_ids=[rank], find_unused_parameters=True
             )
@@ -95,10 +95,13 @@ class GraphModelDynamic:
             self.ddp_net.parameters(),
             lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
         )
-        lr_lambda = lambda epoch: max(
-            self.config.td.learning_rate_decay**epoch,
-            self.config.td.final_learning_rate / self.config.td.initial_learning_rate,
-        )
+
+        def lr_lambda(epoch):
+            return max(
+                self.config.td.learning_rate_decay**epoch,
+                self.config.td.final_learning_rate / self.config.td.initial_learning_rate,
+            )
+
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lr_lambda)
         self.logger = Logger(dataset=self.train_dataset, config=config)
         self.epoch = 0
@@ -123,21 +126,17 @@ class GraphModelDynamic:
     def train(self):
         # epoch_tqdm = tqdm(range(config.EPOCHS), desc="EPOCH")
         # for epoch in epoch_tqdm:
-        start_time = time.time()
-        last_save_time = start_time
+        # start_time = time.time()
+        # last_save_time = start_time
         if self.is_main:
             print("----TRAINING----")
 
-        train_dataloader = base_dataset.get_train_dataloader(
-            self.train_dataset, world_size=self.world_size, rank=self.rank
-        )
+        train_dataloader = base_dataset.get_train_dataloader(self.train_dataset)
         all_valid_dataloaders = [
-            base_dataset.get_valid_dataloader(dataset, world_size=self.world_size, rank=self.rank)
-            for dataset in self.all_validation_datasets
+            base_dataset.get_valid_dataloader(dataset) for dataset in self.all_validation_datasets
         ]
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             # self.train_dataset.reset()
-            # for _ in range(2):
             self.epoch += 1
 
             _ = self.iterate_dataset(
@@ -153,22 +152,21 @@ class GraphModelDynamic:
             self.optional_barrier()
 
             if self.is_main:
-                current_time = time.time()
-                elapsed_time = current_time - last_save_time
-                if elapsed_time > self.config.td.save_at_minutes * 60:
+                # elapsed_save_time = time.time() - last_save_time
+                # if elapsed_save_time > self.config.td.save_at_minutes * 60:
+                if self.is_at_skip(self.config.td.save_at_epochs):
                     # print(f"--Training time: {(elapsed_time / 60):.4f} min")
                     self.save_checkpoint()
-                    last_save_time = time.time()
+                    # last_save_time = time.time()
 
             self.optional_barrier()
             if self.is_at_skip(self.config.td.validate_at_epochs):
-                # if elapsed_time > self.config.td.validate_at_minutes * 60:
                 for dataloader in all_valid_dataloaders:
                     _ = self.iterate_dataset(
                         dataloader=dataloader,
                         train=False,
                         step_function=self.test_step,
-                        tqdm_description=f"Validation: {self.epoch}",
+                        tqdm_description="VAL:",
                         raport_description=dataloader.dataset.description,
                     )
                 # if self.is_at_skip(self.config.td.validate_scenarios_at_epochs):
@@ -204,7 +202,7 @@ class GraphModelDynamic:
     @staticmethod
     def load_checkpointed_net(net, rank: int, path: str):
         print("----LOADING NET----")
-        checkpoint = GraphModelDynamic.get_checkpoint(rank=rank, path=path)
+        checkpoint = GraphModelDynamicTorch.get_checkpoint(rank=rank, path=path)
         # consume_prefix_in_state_dict_if_present()
         net.load_state_dict(checkpoint["net"])
         net.eval()
@@ -212,7 +210,7 @@ class GraphModelDynamic:
 
     def load_checkpoint(self, path: str):
         print("----LOADING CHECKPOINT----")
-        checkpoint = GraphModelDynamic.get_checkpoint(rank=self.rank, path=path)
+        checkpoint = GraphModelDynamicTorch.get_checkpoint(rank=self.rank, path=path)
 
         self.epoch = checkpoint["epoch"]
         self.examples_seen = checkpoint["examples_seen"]
@@ -257,7 +255,7 @@ class GraphModelDynamic:
                     compare_with_base_scene=config.compare_with_base_scene,
                     plot_animation=True,
                 ),
-                get_scene_function=GraphModelDynamic.get_scene_function,
+                get_scene_function=GraphModelDynamicTorch.get_scene_function,
             )
             print("---")
         print(f"Plotting time: {int((time.time() - start_time) / 60)} min")
@@ -334,7 +332,7 @@ class GraphModelDynamic:
 
             mean_loss_raport.add(loss_raport)
             if train:
-                self.examples_seen += loss_raport._count * self.world_size
+                self.examples_seen += loss_raport.count * self.world_size
 
             loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main):.4f}"
             if batch_id == len(batch_tqdm) - 1:  # or self.examples_seen % rae == 0:
@@ -352,7 +350,7 @@ class GraphModelDynamic:
             profiler.stop()
         gc.enable()
 
-        return mean_loss_raport  # , all_acceleration
+        return mean_loss_raport
 
     def should_raport_training(self, batch_id: int, batches_count: int):
         return (
@@ -372,6 +370,8 @@ class GraphModelDynamic:
                 value,
                 self.examples_seen,
             )
+        # TODO: add
+        # self.logger.writer.add_graph(self) #args
 
     def validate_all_scenarios_raport(self):
         print("----VALIDATING SCENARIOS----")
@@ -385,7 +385,7 @@ class GraphModelDynamic:
                 scenario=scenario,
                 config=self.config,
                 run_config=simulation_runner.RunScenarioConfig(),
-                get_scene_function=GraphModelDynamic.get_scene_function,
+                get_scene_function=GraphModelDynamicTorch.get_scene_function,
             )
             all_energy_values += energy_values / len(self.print_scenarios)
 
@@ -418,3 +418,31 @@ class GraphModelDynamic:
         )
 
         return displacement_loss, loss_raport
+
+    @staticmethod
+    def get_sample_onnx_args(dataset):
+        dataloader = base_dataset.get_train_dataloader(dataset)
+        sample_batch_data = next(iter(dataloader))
+
+        layer_list = sample_batch_data[0]
+
+        def get_dict(layer):
+            d = vars(layer)["_store"]
+            return cmh.DotDict(d)
+
+        layer_list = [get_dict(layer) for layer in layer_list]
+        return layer_list
+
+    @staticmethod
+    def save_onnx_model(model_path, net, dataset):
+        layer_list = GraphModelDynamicTorch.get_sample_onnx_args(dataset)
+        # model = lambda : net(layer_list)
+        torch.onnx.export(
+            net,
+            {"layer_list": layer_list},
+            model_path,
+            verbose=True,
+            # input_names=input_names,
+            # output_names=output_names,
+            # export_params=True,
+        )
