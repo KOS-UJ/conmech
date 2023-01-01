@@ -183,34 +183,13 @@ class BoundariesFactory:
         return other_boundaries
 
     @staticmethod
-    def identify_boundaries_and_reorder_nodes(
-        unordered_nodes: np.ndarray,
-        unordered_elements: np.ndarray,
-        boundaries_description: BoundariesDescription,
-    ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
-
-        is_dirichlet = boundaries_description["dirichlet"]
-        is_contact = boundaries_description["contact"]
-        is_dirichlet_numba = None if is_dirichlet is None else numba.njit(is_dirichlet)
-        is_contact_numba = None if is_contact is None else numba.njit(is_contact)
-
-        (
-            initial_nodes,
-            elements,
-            boundary_nodes_count,
-            contact_nodes_count,
-            dirichlet_nodes_count,
-        ) = reorder_boundary_nodes(
-            nodes=unordered_nodes,
-            elements=unordered_elements,
-            is_dirichlet_numba=is_dirichlet_numba,
-            is_contact_numba=is_contact_numba,
-        )
-
-        nodes_count = len(initial_nodes)
-        neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
-        boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
-
+    def specify_boundary_surfaces(
+        initial_nodes,
+        boundary_surfaces,
+        boundaries_description,
+        is_contact_numba,
+        is_dirichlet_numba,
+    ):
         if is_contact_numba is None:
             # is_contact_numba is None - assuming all contact
             contact_boundary_surfaces = boundary_surfaces
@@ -242,6 +221,54 @@ class BoundariesFactory:
             other_boundaries = BoundariesFactory.get_other_boundaries(
                 initial_nodes, boundaries_description, boundary_surfaces, boundary_surface_centers
             )
+        return (
+            dirichlet_boundary_surfaces,
+            contact_boundary_surfaces,
+            neumann_boundary_surfaces,
+            other_boundaries,
+        )
+
+    @staticmethod
+    def identify_boundaries_and_reorder_nodes(
+        unordered_nodes: np.ndarray,
+        unordered_elements: np.ndarray,
+        boundaries_description: BoundariesDescription,
+    ) -> Tuple[np.ndarray, np.ndarray, Boundaries]:
+        def get_numba_version(fun):
+            return None if fun is None else numba.njit(fun)
+
+        is_dirichlet_numba = get_numba_version(boundaries_description["dirichlet"])
+        is_contact_numba = get_numba_version(boundaries_description["contact"])
+
+        (
+            initial_nodes,
+            elements,
+            boundary_nodes_count,
+            contact_nodes_count,
+            dirichlet_nodes_count,
+        ) = reorder_boundary_nodes(
+            nodes=unordered_nodes,
+            elements=unordered_elements,
+            is_dirichlet_numba=is_dirichlet_numba,
+            is_contact_numba=is_contact_numba,
+        )
+
+        nodes_count = len(initial_nodes)
+        neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
+        boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
+
+        (
+            dirichlet_boundary_surfaces,
+            contact_boundary_surfaces,
+            neumann_boundary_surfaces,
+            other_boundaries,
+        ) = BoundariesFactory.specify_boundary_surfaces(
+            initial_nodes,
+            boundary_surfaces,
+            boundaries_description,
+            is_contact_numba,
+            is_dirichlet_numba,
+        )
 
         # dirichlet_indices=slice(contact_nodes_count + neumann_nodes_count, boundary_nodes_count)
         dirichlet_indices = slice(nodes_count - dirichlet_nodes_count, nodes_count)

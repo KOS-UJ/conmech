@@ -10,7 +10,8 @@ torch-scatter==2.0.9
 torch-sparse==0.6.14
 torch-cluster==1.6.0
 torch-spline-conv==1.2.1
-tensorboard==2.8.0
 
+tensorboard==2.8.0
+netron==6.3.7
 # TF dataset saving
 #tensorflow>=2.8.0
