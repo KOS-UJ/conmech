@@ -11,7 +11,7 @@ torch-sparse==0.6.15
 torch-cluster==1.6.0
 torch-spline-conv==1.2.1
 
-tensorboard==2.8.0
+tensorflow==2.10.0
+
+tensorboard==2.10.0
 netron==6.3.7
-# TF dataset saving
-#tensorflow>=2.8.0
