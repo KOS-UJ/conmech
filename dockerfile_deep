@@ -15,7 +15,7 @@ RUN rm requirements.txt
 
 RUN apt-get install -y g++
 COPY requirements-deep.txt ./
-RUN pip install torch
+RUN pip install torch==1.11
 RUN pip install -r requirements-deep.txt
 RUN rm requirements-deep.txt
 

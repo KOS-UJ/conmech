@@ -19,11 +19,6 @@ jobs:
           url=${{ github.repositoryUrl }}
           git remote add origin ${url/git:/https:}
           git pull origin ${{ github.sha }}
-      - name: Fix for problematic requirements
-        shell: bash
-        run: |
-          pip install --upgrade tensorboard
-          pip install torch-scatter torch-cluster torch-spline-conv --upgrade --force-reinstall -f https://data.pyg.org/whl/torch-1.11.0+cpu.html
       - name: Install requirements
         shell: bash
         run: |
