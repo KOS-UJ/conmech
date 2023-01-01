@@ -65,6 +65,7 @@ def get_train_dataloader(dataset: "BaseDataset"):
         load_data=True,
     )
 
+
 def get_dataloader(
     dataset,
     rank: int,
@@ -117,7 +118,7 @@ class BaseDataset:
         self.dimension = dimension
         self.use_jax = use_jax
         self.description = description
-        self.data_count = 20 # data_count
+        self.data_count = data_count
         self.solve_function = solve_function
         self.load_data_to_ram = load_data_to_ram
         self.randomize = randomize

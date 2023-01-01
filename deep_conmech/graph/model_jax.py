@@ -148,7 +148,7 @@ class GraphModelDynamicJax:
                         raport_description=dataloader.dataset.description,
                         devices=validation_devices,
                     )
-                
+
                 # TODO: Check if needed, add assert
                 print("----REREPLICATING TRAIN STATE----")
                 train_states = rereplicate_states(train_states, train_devices)
@@ -252,9 +252,9 @@ class GraphModelDynamicJax:
 
         for batch_id, batch_data in enumerate(batch_tqdm):
             states, loss_raport = self.calculate_loss(
-                    states, batch_data=batch_data, devices=devices, train=train
-                )
-            
+                states, batch_data=batch_data, devices=devices, train=train
+            )
+
             # TODO: Check / assert state consistency across GPUs
             # TODO: Check if data are randomized
             mean_loss_raport.add(loss_raport)
@@ -295,7 +295,7 @@ class GraphModelDynamicJax:
                 value,
                 self.examples_seen,
             )
-        # self.logger.writer.add_graph(self)
+        # self.logger.writer.add_graph(selFf)
 
     def validate_all_scenarios_raport(self):
         print("----VALIDATING SCENARIOS----")

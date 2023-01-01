@@ -7,6 +7,7 @@ import numpy as np
 
 class State:
     def __init__(self, body):
+        # independent_nodes_count - > nodes_count
         self.body = body
         self.displacement: np.ndarray = np.zeros((self.body.nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.initial_nodes)

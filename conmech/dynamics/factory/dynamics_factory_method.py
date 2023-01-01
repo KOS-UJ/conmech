@@ -58,6 +58,7 @@ def get_dynamics(
     elements: np.ndarray,
     nodes: np.ndarray,
     body_prop: StaticBodyProperties,
+    independent_indices: slice,
 ):
     dimension = len(elements[0]) - 1
     if dimension == 2:
@@ -80,11 +81,13 @@ def get_dynamics(
         dx_dict, elements_count=len(nodes), nodes_count=len(elements)
     )
 
-    # edges_features_matrix[0] = edges_features_matrix[0].tocsr()
-    # for i in range(1, len(edges_features_matrix)):
-    #     edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
-    #         independent_indices, independent_indices
-    #     ]
+    # Volumeie calculated also for Dirichletnodes, then their influence is removed in lhs for jax
+    edges_features_matrix[0] = edges_features_matrix[0].tocsr()
+    # Remove Dirichlet nodes
+    for i in range(1, len(edges_features_matrix)):
+        edges_features_matrix[i] = edges_features_matrix[i].tocsr()[
+            independent_indices, independent_indices
+        ]
 
     result.volume_at_nodes = edges_features_matrix[0]
     U = edges_features_matrix[1]

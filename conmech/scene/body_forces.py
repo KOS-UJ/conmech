@@ -109,11 +109,6 @@ class BodyForces(Dynamics):
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces)  # [self.independent_indices, :])
 
-    # def get_integrated_forces_column(self):
-    #     integrated_forces = self.get_integrated_inner_forces()
-    #     + self.get_integrated_outer_forces()
-    #     return nph.stack_column(integrated_forces[:, :])
-
     def get_integrated_forces_vector_np(self):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 
@@ -123,8 +118,9 @@ class BodyForces(Dynamics):
             normalized_inner_forces=self.normalized_inner_forces,
             integrated_outer_forces=self.get_normalized_integrated_outer_forces(),
         )
-        return nph.stack_column(integrated_forces)  # [self.independent_indices, :])
-        # return neumann_surfaces * self.outer_forces
+        return nph.stack_column(
+            integrated_forces[self.independent_indices, :]
+        )  # Skipping Dirichlet nodes
 
     def get_all_normalized_rhs_jax(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_jax(temperature)
@@ -136,7 +132,8 @@ class BodyForces(Dynamics):
             dimension=self.dimension,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            free_x_free=self.solver_cache.free_x_free,
+            free_x_free_inverted=self.solver_cache.free_x_free_inverted,
+            # free_x_free=self.solver_cache.free_x_free,
             contact_x_free=self.solver_cache.contact_x_free,
         )
         return normalized_rhs_boundary, normalized_rhs_free

@@ -289,11 +289,7 @@ class Static(ProblemSolver):
         :return: state
         """
         state = State(self.body)
-        state.displacement = initial_displacement(
-            self.body.initial_nodes[: self.body.nodes_count]
-        )
-
-        solution = state.displacement.reshape(2, -1)
+        state.displacement = initial_displacement(self.body.initial_nodes[: self.body.nodes_count])
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
         self.run(state, n_steps=1, verbose=verbose, **kwargs)

@@ -176,6 +176,7 @@ class Dynamics(BodyPosition):
                 elements=self.elements,
                 nodes=self.moved_nodes,
                 body_prop=self.body_prop,
+                independent_indices=slice(self.nodes_count),  # self.independent_indices,
             )
 
         self.matrices = cmh.profile(fun_dyn, baypass=True)
@@ -184,73 +185,67 @@ class Dynamics(BodyPosition):
             self.matrices.acceleration_operator
         )
 
-        if not self.with_temperature:
-            return
+        if self.with_temperature:
+            i = self.independent_indices
 
-        i = self.independent_indices
+            self.solver_cache.lhs_temperature_sparse_jax = jxh.to_jax_sparse(
+                (1 / self.time_step) * self.matrices.acceleration_operator[i, i]
+                + self.matrices.thermal_conductivity[i, i]
+            )
 
-        self.solver_cache.lhs_temperature_sparse_jax = jxh.to_jax_sparse(
-            (1 / self.time_step) * self.matrices.acceleration_operator[i, i]
-            + self.matrices.thermal_conductivity[i, i]
-        )
+        if self.with_lhs:
+            print("Creating LHS...")
+            self.solver_cache.lhs_sparse = (
+                self.matrices.acceleration_operator
+                + (self.matrices.viscosity + self.matrices.elasticity * self.time_step)
+                * self.time_step
+            )
 
-        if not self.with_lhs:
-            return
+            self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
+            # Calculating Jacobi preconditioner
+            # TODO: Check SSOR / Incomplete Cholesky
+            self.solver_cache.lhs_preconditioner_jax = jxh.to_jax_sparse(
+                jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse)
+            )
 
-        self.solver_cache.lhs_sparse = (
-            self.matrices.acceleration_operator
-            + (self.matrices.viscosity + self.matrices.elasticity * self.time_step) * self.time_step
-        )
+        if self.with_schur:
+            print("Creating Schur matrices...")
+            # lhs_dense = self.solver_cache.lhs_sparse.todense()
+            (
+                self.solver_cache.contact_x_contact,
+                self.solver_cache.free_x_contact,
+                self.solver_cache.contact_x_free,
+                self.solver_cache.free_x_free,
+                self.solver_cache.lhs_boundary,
+                self.solver_cache.free_x_free_inverted,
+            ) = SchurComplement.calculate_schur_complement_matrices_jax(
+                matrix=self.solver_cache.lhs_sparse,
+                dimension=self.dimension,
+                contact_indices=self.contact_indices,
+                free_indices=self.free_indices,  ###
+            )
 
-        self.solver_cache.lhs_sparse_jax = jxh.to_jax_sparse(self.solver_cache.lhs_sparse)
-        # Calculating Jacobi preconditioner
-        # TODO: Check SSOR / Incomplete Cholesky
-        self.solver_cache.lhs_preconditioner_jax = jxh.to_jax_sparse(
-            jxh.to_inverse_diagonal(self.solver_cache.lhs_sparse)
-        )
+            free_x_free_inverted = jax.scipy.linalg.inv(self.solver_cache.free_x_free.todense())
+            self.solver_cache.lhs_boundary = (
+                self.solver_cache.contact_x_contact.todense()
+                - self.solver_cache.contact_x_free.todense()
+                @ free_x_free_inverted
+                @ self.solver_cache.free_x_contact.todense()
+            )
 
-        if not self.with_schur:
-            return
-
-        print("Creating Schur matrices...")
-        # lhs_dense = self.solver_cache.lhs_sparse.todense()
-        (
-            self.solver_cache.contact_x_contact,
-            self.solver_cache.free_x_contact,
-            self.solver_cache.contact_x_free,
-            self.solver_cache.free_x_free,
-            self.solver_cache.lhs_boundary,
-            self.solver_cache.free_x_free_inverted,
-        ) = SchurComplement.calculate_schur_complement_matrices_jax(
-            matrix=self.solver_cache.lhs_sparse,
-            dimension=self.dimension,
-            contact_indices=self.contact_indices,
-            free_indices=self.free_indices,
-        )
-
-        free_x_free_inverted = jax.scipy.linalg.inv(self.solver_cache.free_x_free.todense())
-        self.solver_cache.lhs_boundary = (
-            self.solver_cache.contact_x_contact.todense()
-            - self.solver_cache.contact_x_free.todense()
-            @ free_x_free_inverted
-            @ self.solver_cache.free_x_contact.todense()
-        )
-
-        if not self.with_temperature:
-            return
-
-        (
-            self.solver_cache.temperature_boundary,
-            self.solver_cache.temperature_free_x_contact,
-            self.solver_cache.temperature_contact_x_free,
-            self.solver_cache.temperature_free_x_free,
-            self.solver_cache.temperature_free_x_free_inv,
-        ) = SchurComplement.calculate_schur_complement_matrices_np(
-            matrix=self.solver_cache.lhs_temperature,
-            dimension=1,
-            contact_indices=self.contact_indices,
-            free_indices=self.free_indices,
-        )
+            if self.with_temperature:
+                (
+                    self.solver_cache.temperature_boundary,
+                    self.solver_cache.temperature_free_x_contact,
+                    self.solver_cache.temperature_contact_x_free,
+                    self.solver_cache.temperature_free_x_free,
+                    self.solver_cache.temperature_free_x_free_inv,
+                ) = SchurComplement.calculate_schur_complement_matrices_np(
+                    matrix=self.solver_cache.lhs_temperature,
+                    dimension=1,
+                    contact_indices=self.contact_indices,
+                    free_indices=self.free_indices,
+                )
 
     @property
     def volume_at_nodes(self):

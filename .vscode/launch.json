@@ -20,7 +20,7 @@
             "args": [
                 "--mode=plot"
             ],
-            "justMyCode": false,
+            "justMyCode": false
             // "sudo": true
         },
         {
@@ -32,7 +32,7 @@
             "args": [
                 "--mode=visualize"
             ],
-            "justMyCode": false,
+            "justMyCode": false
         },
         {
             "name": "Examples temperature 3D",

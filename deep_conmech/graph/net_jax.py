@@ -55,13 +55,16 @@ class ForwardNet(nn.Module):
 
 
 class MessagePassingJax(nn.Module):
-    def propagate(self, node_latents, edge_latents, edge_index, receivers_count):
-        # senders, receivers = edge_index
-        senders = edge_index[0]
-        receivers = edge_index[1]
+    def propagate(
+        self, node_latents_from, node_latents_to, edge_latents, edge_index, receivers_count
+    ):
+        senders, receivers = edge_index
+        node_latents_senders = node_latents_from.at[senders].get()
+        node_latents_receivers = node_latents_to.at[receivers].get()
 
-        node_latents_j = node_latents.at[senders].get()
-        edge_inputs = jnp.hstack((node_latents_j, edge_latents))
+        edge_inputs = self.get_edge_inputs(
+            node_latents_senders, node_latents_receivers, edge_latents
+        )
 
         new_edge_latents = self.message(edge_inputs=edge_inputs)
 
@@ -70,26 +73,25 @@ class MessagePassingJax(nn.Module):
         )
 
         new_node_latents = self.update(
-            node_latents=node_latents,
+            node_latents_to=node_latents_to,
             aggregated_edge_latents=aggregated_edge_latents,
         )
         return new_node_latents, edge_latents  # new_edge_latents
+
+    def get_edge_inputs(self, node_latents_senders, node_latents_receivers, edge_latents):
+        _ = node_latents_senders, node_latents_receivers
+        return edge_latents
 
     def message(self, edge_inputs):
         return edge_inputs
 
     def aggregate(self, new_edge_latents, receivers, receivers_count):
-        # alpha = self.attention(new_edge_latents, index)
+        _ = receivers, receivers_count
+        return new_edge_latents
 
-        # TODO: check if sorted is needed, add degree normalizarion: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
-        aggregated_edge_latents = jax.ops.segment_sum(
-            new_edge_latents, receivers, num_segments=receivers_count
-        )
-        return aggregated_edge_latents
-
-    def update(self, node_latents, aggregated_edge_latents):
+    def update(self, node_latents_to, aggregated_edge_latents):
         _ = aggregated_edge_latents
-        return node_latents
+        return node_latents_to
 
 
 class ProcessorLayer(MessagePassingJax):
@@ -99,9 +101,17 @@ class ProcessorLayer(MessagePassingJax):
     @nn.compact
     def __call__(self, node_latents, edge_latents, edge_index, receivers_count):
         new_node_latents, new_edge_latents = self.propagate(
-            node_latents, edge_latents, edge_index, receivers_count
+            node_latents_from=node_latents,
+            node_latents_to=node_latents,
+            edge_latents=edge_latents,
+            edge_index=edge_index,
+            receivers_count=receivers_count,
         )
         return new_node_latents, new_edge_latents
+
+    def get_edge_inputs(self, node_latents_senders, node_latents_receivers, edge_latents):
+        edge_inputs = jnp.hstack((node_latents_senders, edge_latents, node_latents_receivers))
+        return edge_inputs
 
     def message(self, edge_inputs):
         new_edge_latents = ForwardNet(
@@ -109,9 +119,17 @@ class ProcessorLayer(MessagePassingJax):
         )(edge_inputs, train=True)
         return new_edge_latents
 
-    def update(self, node_latents, aggregated_edge_latents):
-        node_inputs = jnp.hstack((node_latents, aggregated_edge_latents))
-        new_node_latents = node_latents + ForwardNet(
+    def aggregate(self, new_edge_latents, receivers, receivers_count):
+        # alpha = self.attention(new_edge_latents, index)
+        # TODO: check if sorted is needed, add degree normalizarion: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
+        aggregated_edge_latents = jax.ops.segment_sum(
+            new_edge_latents, receivers, num_segments=receivers_count
+        )
+        return aggregated_edge_latents
+
+    def update(self, node_latents_to, aggregated_edge_latents):
+        node_inputs = jnp.hstack((node_latents_to, aggregated_edge_latents))
+        new_node_latents = node_latents_to + ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
         )(node_inputs, train=True)
         return new_node_latents
@@ -122,11 +140,21 @@ class LinkProcessorLayer(MessagePassingJax):
     internal_layer_count: int
 
     @nn.compact
-    def __call__(self, node_latents_sparse, edge_latents_to_dense, edge_index_to_dense):
-        new_node_latents_jax, _ = self.propagate(
-            node_latents_sparse, edge_latents_to_dense, edge_index_to_dense, receivers_count=None
+    def __call__(
+        self, node_latents_sparse, node_latents_dense, edge_latents_to_dense, edge_index_to_dense
+    ):
+        new_node_latents, _ = self.propagate(
+            node_latents_from=node_latents_sparse,
+            node_latents_to=node_latents_dense,
+            edge_latents=edge_latents_to_dense,
+            edge_index=edge_index_to_dense,
+            receivers_count=None,
         )
-        return new_node_latents_jax
+        return new_node_latents
+
+    def get_edge_inputs(self, node_latents_senders, node_latents_receivers, edge_latents):
+        edge_inputs = jnp.hstack((node_latents_senders, edge_latents, node_latents_receivers))
+        return edge_inputs
 
     def message(self, edge_inputs):
         new_edge_latents = ForwardNet(
@@ -141,11 +169,12 @@ class LinkProcessorLayer(MessagePassingJax):
         result = new_edge_latents.reshape(-1, CLOSEST_COUNT * latent_dim)
         return result
 
-    def update(self, node_latents, aggregated_edge_latents):
-        new_node_latents = ForwardNet(  # node_latents +
+    def update(self, node_latents_to, aggregated_edge_latents):
+        _ = node_latents_to
+        linked_node_latents = ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
         )(aggregated_edge_latents, train=True)
-        return new_node_latents
+        return linked_node_latents  # jnp.hstack((node_latents_to, linked_node_latents))
 
 
 class GraphNetArguments(NamedTuple):
@@ -169,20 +198,29 @@ class CustomGraphNetJax(nn.Module):
         message_passes = 8
         dim = 3
 
-        def propagate_messages(node_latents, edge_latents, edge_index, receivers_count):
+        def propagate_messages(
+            latent_dimension, node_latents, edge_latents, edge_index, receivers_count
+        ):
             for _ in range(message_passes):
                 node_latents, edge_latents = ProcessorLayer(
                     latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
                 )(node_latents, edge_latents, edge_index, receivers_count)
             return node_latents
 
-        def move_to_dense(node_latents_sparse, edge_latents_to_dense, edge_index_to_dense):
+        def move_to_dense(
+            latent_dimension,
+            node_latents_sparse,
+            node_latents_dense,
+            edge_latents_to_dense,
+            edge_index_to_dense,
+        ):
             updated_node_latents_dense = LinkProcessorLayer(
                 latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
             )(
-                node_latents_sparse,
-                edge_latents_to_dense,
-                edge_index_to_dense,
+                node_latents_sparse=node_latents_sparse,
+                node_latents_dense=node_latents_dense,
+                edge_latents_to_dense=edge_latents_to_dense,
+                edge_index_to_dense=edge_index_to_dense,
             )
             return updated_node_latents_dense
 
@@ -207,22 +245,26 @@ class CustomGraphNetJax(nn.Module):
         )(args.dense_edge_attr, train=True)
 
         updated_node_latents_sparse = node_latents_sparse + propagate_messages(
-            node_latents_sparse,
-            edge_latents_sparse,
-            args.sparse_edge_index,
+            latent_dimension=latent_dimension,
+            node_latents=node_latents_sparse,
+            edge_latents=edge_latents_sparse,
+            edge_index=args.sparse_edge_index,
             receivers_count=node_latents_sparse.shape[0],
         )
 
         updated_node_latents_dense = move_to_dense(
+            latent_dimension=latent_dimension,
             node_latents_sparse=updated_node_latents_sparse,
+            node_latents_dense=node_latents_dense,
             edge_latents_to_dense=edge_latents_to_dense,
             edge_index_to_dense=args.multilayer_edge_index,
         )
 
         updated_node_latents_dense = updated_node_latents_dense + propagate_messages(
-            updated_node_latents_dense,
-            edge_latents_dense,
-            args.dense_edge_index,
+            latent_dimension=latent_dimension,
+            node_latents=updated_node_latents_dense,
+            edge_latents=edge_latents_dense,
+            edge_index=args.dense_edge_index,
             receivers_count=updated_node_latents_dense.shape[0],
         )
 

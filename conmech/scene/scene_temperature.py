@@ -97,8 +97,8 @@ class SceneTemperature(Scene):
             dimension=1,
             contact_indices=self.contact_indices,
             free_indices=self.free_indices,
-            # free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
-            free_x_free=self.solver_cache.temperature_free_x_free,
+            free_x_free_inverted=self.solver_cache.temperature_free_x_free_inv,
+            # free_x_free=self.solver_cache.temperature_free_x_free,
             contact_x_free=self.solver_cache.temperature_contact_x_free,
         )
         return normalized_t_rhs_boundary, normalized_t_rhs_free

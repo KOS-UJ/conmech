@@ -2,6 +2,8 @@
 psutil==5.9.0
 pandas==1.4.1
 
+flax==0.6.3
+
 torch==1.11.0
 torch-geometric==2.0.4
 torch-scatter==2.0.9
