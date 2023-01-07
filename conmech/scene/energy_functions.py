@@ -367,14 +367,15 @@ class EnergyFunctions:
         #     fun=self.energy_obstacle_colliding_jax, condition="wolfe"
         # )
 
-    def get_manual_modes(self):
+    @staticmethod
+    def get_manual_modes():
         return ["non-colliding", "colliding"]
 
     def set_automatic_mode(self):
         self.mode = "automatic"
 
     def set_manual_mode(self, mode):
-        if mode in self.get_manual_modes():
+        if mode in EnergyFunctions.get_manual_modes():
             self.mode = mode
             return
         raise ArgumentError

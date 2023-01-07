@@ -25,32 +25,7 @@ from optimization.lbfgs import minimize_lbfgs
 class Calculator:
     @staticmethod
     def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:
-        # result = scipy.optimize.minimize(
-        #     function,
-        #     initial_vector,
-        #     method="L-BFGS-B",
-        # )
-        # return result.x
-
         x0 = jnp.asarray(initial_vector)
-
-        #  set(p.dtype for p in jax.tree_util.tree_leaves(args)
-        #        if isinstance(p, jnp.ndarray))
-        # solver = jaxopt.LBFGS(fun=function, condition="wolfe")#, implicit_diff =False)
-        # solver = jaxopt.LBFGS(fun=jax.value_and_grad(function),
-        #       value_and_grad=True, condition="wolfe")
-        # maxls=1000, use_gamma=False, jit=True,
-        # increase_factor=10,
-        # decrease_factor=0.1,
-        # maxiter=10000, tol=1e-6)
-        # solve = jax.jit(lambda x, args: solver.run(x, args=args), static_argnums=(1,))
-        # result, state = cmh.profile(
-        #      lambda: solver.run(x0, args=args), #solve(x0, args=args), #solver.run(x0, args=args),
-        #     baypass=False,
-        # )
-
-        # #print(f"Linesearch succeeded: {not bool(state.failed_linesearch)}")
-        # return np.asarray(result)
 
         state = cmh.profile(
             lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
@@ -68,102 +43,7 @@ class Calculator:
                 else:
                     cmh.Console.print_fail(f"Status: {state.status}")
 
-        # if not state.converged and state.status != 5:
-        #     raise ArgumentError("Error not due to line search")
-        # # if state.failed:
-        # #    print("Optimization failed")
-        # # if state.overrun:
-        # #     print(
-        # # f"Optimization overrun: xdiff_max: {state.xdiff_max}, xdiff_mean: {state.xdiff_mean}"
-        # #     )
         return np.asarray(state.x_k)
-
-        # # custom: f_0, g_0 = jax.value_and_grad(function)(x0, args)
-        # state = minimize_bfgs(fun=function, args=args, x0=x0)
-        # success = state.converged & jnp.logical_not(state.failed)
-        # return np.array(state.x_k)
-
-        # state = cmh.profile(
-        #     lambda: jax.scipy.optimize.minimize(
-        #         function,
-        #         x0,
-        #         args=(args,),
-        #         method="bfgs",
-        #     ),
-        #     baypass=True,
-        # )
-
-        # print(f"Converged: {state.success}, status: {state.status}")
-        # # if not state.success:
-        # #     raise ArgumentError("Not convergd")
-        # return np.array(state.x)
-
-        # def least_squares(w, data):
-        #     X, y = data
-        #     residuals = jnp.dot(X, w) - y
-        #     return jnp.mean(residuals ** 2)
-
-        # l1reg = 1.0
-        # pg = jaxopt.ProximalGradient(fun=least_squares, prox=prox_lasso)
-        # #pg_sol = pg.run(w_init, hyperparams_prox=l1reg, data=(X, y)).params
-
-        # jac = jax.jit(jax.grad(function))
-        # result = cmh.profile(
-        #     lambda: scipy.optimize.minimize(
-        #         function,
-        #         x0,
-        #         jac=jac,
-        #         args=(args,),
-        #         method="L-BFGS-B",
-        #     ),
-        #     baypass=True,
-        # )
-        # return result.x
-
-        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x)
-        # hes_jax = jax.jit(lambda x: hvp(function, x, x))
-        # hes_at_x0 = hes_jax(x0)  # jnp.zeros_like(x0)
-        # q, _ = jax.scipy.sparse.linalg.cg(A=hes_jax, b=x0)
-
-        # state = cmh.profile(
-        #     lambda: minimize_lbfgs(
-        #         fun=function,
-        #         args=args,
-        #         x0=x0,
-        #         hes=None,  # hes,  # None,
-        #         xtol_max=0.1,  # 0.1 * scale,
-        #         xtol_mean=0.1,  # 0.001 * scale,
-        #         max_iter=500,
-        #     ),
-        #     baypass=True,
-        # )
-
-        # hes_jax = jax.hessian(function)
-        # hes = hes_jax(x0)  # jnp.zeros_like(x0)
-
-        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x), v))(x)
-        # hes = jax.jit(lambda x: hvp(function, x, x))
-
-        # jac_jax = jax.jit(jax.jacfwd(function)).lower(x0).compile()
-        # jacobian_fast = lambda x: np.array(jac_jax(jnp.asarray(x)), dtype=np.float64)
-
-        # hes_jax = jax.jit(jax.hessian(function)).lower(x0).compile()
-        # hessian_fast = lambda x: np.array(hes_jax(jnp.asarray(x)), dtype=np.float64)
-
-        # jax.scipy.optimize.minimize(
-
-        # result = cmh.profile(
-        #     lambda: scipy.optimize.minimize(
-        #         function_fast,
-        #         initial_vector,
-        #         method="L-BFGS-B",
-        #         jac=jacobian_fast,
-        #         # hess=hessian_fast,
-        #         options={"disp": False},
-        #     ),
-        #     baypass=False,
-        # )
-        # return np.asarray(result.x)
 
     @staticmethod
     def solve(

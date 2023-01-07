@@ -302,7 +302,7 @@ if __name__ == "__main__":
         "--mode",
         type=str,
         choices=["train", "plot", "profile", "visualize"],
-        default="train",
+        default="plot",
         help="Running mode of aplication",
     )
     parser.add_argument(

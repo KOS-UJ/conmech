@@ -1,7 +1,6 @@
 import copy
 import os
 import subprocess
-import sys
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
@@ -237,7 +236,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
         print("Prepared")
-        for mode in energy_functions.get_manual_modes():
+        for mode in EnergyFunctions.get_manual_modes():
             energy_functions.set_manual_mode(mode)
             _ = solve_function(
                 scene=scene,

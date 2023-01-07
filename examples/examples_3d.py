@@ -18,7 +18,6 @@ from conmech.scenarios.scenarios import (
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
-from deep_conmech.data.scenario_dataset import ScenariosDataset
 
 
 def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100

@@ -1,4 +1,3 @@
-import time
 from typing import List
 
 import jax
@@ -32,13 +31,7 @@ def get_indices_from_graph_sizes_numba(graph_sizes: List[int]):
 
 
 def prepare_node_data(data: np.ndarray, nodes_count, add_norm=False):
-    # if approximate:
-    #     approximated_data = self.approximate_boundary_or_all_from_base(
-    #         layer_number=layer_number, base_values=data
-    #     )
-    # else:
     approximated_data = jnp.array(data)
-    # mesh = self.all_layers[layer_number].mesh
     result = complete_mesh_boundary_data_with_zeros(data=approximated_data, nodes_count=nodes_count)
     if add_norm:
         result = jxh.append_euclidean_norm(result)
@@ -48,38 +41,8 @@ def prepare_node_data(data: np.ndarray, nodes_count, add_norm=False):
 def get_edges_column(data_from, data_to, directional_edges):
     print("get_edges_column")
     column = data_to[directional_edges[:, 1]] - data_from[directional_edges[:, 0]]
-    # column = complete_mesh_boundary_data_with_zeros(colums), edgess_count)
+
     return jnp.hstack((column, nph.euclidean_norm(column, keepdims=True)))
-
-
-def get_multilayer_edges_column_old(data_from, data_to, directional_edges):
-    print("get_multilayer_edges_column")
-    column = data_from[directional_edges[:, 0]] - data_to[directional_edges[:, 1]]
-    return jnp.hstack((column, nph.euclidean_norm(column, keepdims=True)))
-
-
-# @numba.njit
-# def get_edges_column(data_from, data_to, directional_edges):
-#     dim = data_from.shape[1]
-#     result = np.empty((len(directional_edges), dim + 1), dtype=np.float64)
-#     for i, edge in enumerate(directional_edges):
-#         edge = directional_edges[i]
-#         result[i, :dim] = data_to[edge[1]] - data_from[edge[0]]
-
-#     result[:, dim] = nph.euclidean_norm_numba(result[:, :dim])
-#     return result
-
-
-# @numba.njit
-# def get_multileyer_edges_column(data_from, data_to, directional_edges):
-#     dim = data_from.shape[1]
-#     result = np.empty((len(directional_edges), dim + 1), dtype=np.float64)
-#     for i, edge in enumerate(directional_edges):
-#         edge = directional_edges[i]
-#         result[i, :dim] = data_from[edge[0]] - data_to[edge[1]]
-
-#     result[:, dim] = nph.euclidean_norm_numba(result[:, :dim])
-#     return result
 
 
 class SceneInput(SceneRandomized):
