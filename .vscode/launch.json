@@ -47,6 +47,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/examples/examples_3d.py",
             "justMyCode": false
+        },
+        {
+            "name": "Examples 2D",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/examples_2d.py",
+            "justMyCode": false
         }
     ]
 }

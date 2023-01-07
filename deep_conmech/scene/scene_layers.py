@@ -3,21 +3,34 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import List, Optional
 
+import numba
 import numpy as np
 
-from conmech.helpers import lnh
+from conmech.helpers import interpolation_helpers, lnh
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
-from conmech.helpers import interpolation_helpers
 from deep_conmech.training_config import (
     CLOSEST_BOUNDARY_COUNT,
     CLOSEST_COUNT,
     MESH_LAYERS_PROPORTION,
 )
+
+
+@numba.njit
+def get_multilayer_edges_numba(closest_nodes):
+    neighbours_count = closest_nodes.shape[1]
+    edges_count = closest_nodes.shape[0] * neighbours_count
+    edges = np.zeros((edges_count, 2), dtype=np.int64)
+    index = 0
+    for i, neighbours in enumerate(closest_nodes):
+        for _, j in enumerate(neighbours):
+            edges[index] = [j, i]
+            index += 1
+    return edges
 
 
 @dataclass
@@ -28,6 +41,7 @@ class MeshLayerLinkData:
     closest_boundary_nodes: np.ndarray
     closest_weights_boundary: np.ndarray
     closest_distances_boundary: np.ndarray
+    edges_index: np.ndarray
 
 
 @dataclass
@@ -124,6 +138,7 @@ class SceneLayers(Scene):
             closest_count=CLOSEST_BOUNDARY_COUNT,
             with_weights=with_weights,
         )
+        edges_index = get_multilayer_edges_numba(closest_nodes)
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,
             closest_distances=closest_distances,
@@ -131,6 +146,7 @@ class SceneLayers(Scene):
             closest_boundary_nodes=closest_boundary_nodes,
             closest_distances_boundary=closest_distances_boundary,
             closest_weights_boundary=closest_weights_boundary,
+            edges_index=edges_index,
         )
 
     @property

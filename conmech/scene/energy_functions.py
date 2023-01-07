@@ -2,7 +2,6 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import NamedTuple
 
-import jax
 import jax.numpy as jnp
 
 # import jaxopt
@@ -195,6 +194,7 @@ def _compute_component_energy(
 def _compute_displacement_energy(
     displacement, dx_big_jax, element_initial_volume, body_prop, use_green_strain
 ):
+    print("compute_displacement_energy")
     return _compute_component_energy(
         component=displacement,
         dx_big_jax=dx_big_jax,
@@ -208,6 +208,7 @@ def _compute_displacement_energy(
 def _compute_velocity_energy(
     velocity, dx_big_jax, element_initial_volume, body_prop, use_green_strain
 ):
+    print("compute_velocity_energy")
     return _compute_component_energy(
         component=velocity,
         dx_big_jax=dx_big_jax,
@@ -253,10 +254,10 @@ def _energy_vector(value_vector, lhs, rhs):
     return value[0]
 
 
-def _energy_obstacle(
+def _energy_obstacle_free(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    # print("energy_obstacle")
+    print("energy_obstacle")
     dimension = args.base_displacement.shape[1]
     main_energy0 = _energy_vector(
         value_vector=nph.stack_column(acceleration_vector),
@@ -274,10 +275,10 @@ def _energy_obstacle(
 def _energy_obstacle_colliding(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    # print("energy_obstacle_colliding")
+    print("energy_obstacle_colliding")
     # TODO: Repeat if collision
     dimension = args.base_displacement.shape[1]
-    main_energy = _energy_obstacle(
+    main_energy = _energy_obstacle_free(
         acceleration_vector=acceleration_vector,
         args=args,
         static_args=static_args,
@@ -302,7 +303,7 @@ def _energy_obstacle_colliding(
 
 # hes_energy_obstacle_colliding_new = jax.jit(
 #     lambda x, args: (lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x, args), v))(x))(
-#         energy_obstacle_colliding_jax, x, x
+#         energy_obstacle_colliding, x, x
 #     )
 # )
 
@@ -316,23 +317,19 @@ class EnergyFunctions:
             use_constant_contact_integral=use_constant_contact_integral,
         )
 
-        def energy_obstacle(acceleration_vector, args):
-            return _energy_obstacle(
+        self.energy_obstacle_free = lambda acceleration_vector, args: _energy_obstacle_free(
+            acceleration_vector=acceleration_vector,
+            args=args,
+            static_args=static_args,
+        )
+
+        self.energy_obstacle_colliding = (
+            lambda acceleration_vector, args: _energy_obstacle_colliding(
                 acceleration_vector=acceleration_vector,
                 args=args,
                 static_args=static_args,
             )
-
-        self.energy_obstacle_jax = jax.jit(energy_obstacle)
-
-        def energy_obstacle_colliding(acceleration_vector, args):
-            return _energy_obstacle_colliding(
-                acceleration_vector=acceleration_vector,
-                args=args,
-                static_args=static_args,
-            )
-
-        self.energy_obstacle_colliding_jax = jax.jit(energy_obstacle_colliding)
+        )
 
         def compute_displacement_energy(
             displacement, dx_big_jax, element_initial_volume, body_prop
@@ -345,7 +342,7 @@ class EnergyFunctions:
                 use_green_strain=static_args.use_green_strain,
             )
 
-        self.compute_displacement_energy_jax = jax.jit(compute_displacement_energy)
+        self.compute_displacement_energy = compute_displacement_energy
 
         def compute_velocity_energy(velocity, dx_big_jax, element_initial_volume, body_prop):
             return _compute_velocity_energy(
@@ -356,7 +353,9 @@ class EnergyFunctions:
                 use_green_strain=static_args.use_green_strain,
             )
 
-        self.compute_velocity_energy_jax = jax.jit(compute_velocity_energy)
+        self.compute_velocity_energy = compute_velocity_energy
+
+        self.mode = "automatic"
 
         # self.solver = jaxopt.ScipyMinimize(method="L-BFGS-B", fun=self.energy_obstacle_jax)
         # self.solver_colliding = jaxopt.ScipyMinimize(
@@ -368,10 +367,31 @@ class EnergyFunctions:
         #     fun=self.energy_obstacle_colliding_jax, condition="wolfe"
         # )
 
+    def get_manual_modes(self):
+        return ["non-colliding", "colliding"]
+
+    def set_automatic_mode(self):
+        self.mode = "automatic"
+
+    def set_manual_mode(self, mode):
+        if mode in self.get_manual_modes():
+            self.mode = mode
+            return
+        raise ArgumentError
+
     def get_energy_function(self, scene):
-        if not scene.is_colliding():
-            return self.energy_obstacle_jax
-        return self.energy_obstacle_colliding_jax
+        if self.mode == "automatic":
+            if not scene.is_colliding():
+                return self.energy_obstacle_free
+            return self.energy_obstacle_colliding
+
+        print("Manual mode")
+        if self.mode == "non-colliding":
+            return self.energy_obstacle_free
+        if self.mode == "colliding":
+            return self.energy_obstacle_colliding
+
+        raise ArgumentError
 
     # def get_solver(self, scene):
     #     if not scene.is_colliding():

@@ -376,7 +376,6 @@ class BaseDataset:
             current_time=current_time,
             scene=scene,
             path=path,
-            base_scene=None,
             draw_detailed=True,
             extension=extension,
         )

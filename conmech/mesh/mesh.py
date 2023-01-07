@@ -83,6 +83,7 @@ def mesh_normalization_decorator(func: Callable):
     return inner
 
 
+# pylint: disable=R0904
 class Mesh:
     def __init__(
         self,
@@ -129,7 +130,8 @@ class Mesh:
             boundaries_description=boundaries_description,
         )
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
-        self.edges = get_edges_list_numba(edges_matrix)
+        self.edges = get_edges_list_numba(edges_matrix)  # TODO: remove
+        self.directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
 
     def _normalize_shift(self, vectors):
         _ = self

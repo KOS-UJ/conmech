@@ -515,8 +515,9 @@ def set_render():
         bpy.context.scene.render.ffmpeg.constant_rate_factor = "LOSSLESS"
 
 
-def render_animation():
+def render_result():
     if not output_video:
+        print("Rendering images...")
         scene = bpy.context.scene
         fp = scene.render.filepath
         scene.render.image_settings.file_format = "PNG"  # set output format to .png
@@ -531,6 +532,7 @@ def render_animation():
 
         scene.render.filepath = fp
     else:
+        print("Rendering animation...")
         bpy.ops.render.render(animation=True)
 
 
@@ -561,6 +563,6 @@ if __name__ == "__main__":
 
     if render:
         print("---RENDERING---")
-        render_animation()
+        render_result()
     print(f"TIME: {time() - start}")
     print("---DONE---")

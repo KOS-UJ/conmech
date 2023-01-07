@@ -72,10 +72,8 @@ def plot_frame(
     axs,
     scene: Scene,
     current_time,
-    base_scene: Optional[Scene] = None,
     t_scale: Optional[List] = None,
 ):
-    _ = base_scene
     for axes in axs:
         plot_subframe(
             axes=axes,

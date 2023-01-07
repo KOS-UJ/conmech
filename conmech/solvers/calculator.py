@@ -1,5 +1,5 @@
-from ctypes import ArgumentError
 import os
+from ctypes import ArgumentError
 from typing import Optional
 
 import jax
@@ -11,36 +11,18 @@ import jax.scipy.optimize
 # import jaxopt
 import numpy as np
 
-# from jax._src.scipy.optimize.bfgs import minimize_bfgs
-
 from conmech.helpers import cmh, jxh, nph
+from conmech.helpers.config import USE_LINEAR_SOLVER
 from conmech.scene.body_forces import energy
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from optimization.lbfgs import minimize_lbfgs
 
-
-class Console:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
-    @staticmethod
-    def print_warning(text):
-        print(f"{Console.WARNING}{text}{Console.ENDC}")
+# from jax._src.scipy.optimize.bfgs import minimize_bfgs
 
 
 class Calculator:
-
-    MAX_K = 0
-
     @staticmethod
     def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:
         # result = scipy.optimize.minimize(
@@ -71,19 +53,20 @@ class Calculator:
         # return np.asarray(result)
 
         state = cmh.profile(
-            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),  # TODO: jit this(?)
+            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
             baypass=True,
         )
-
-        if Calculator.MAX_K < state.k:
-            Calculator.MAX_K = state.k
 
         if "JAX_ENABLE_X64" in os.environ and os.environ["JAX_ENABLE_X64"]:
             assert state.converged
         else:
-            text = f"Converged: {state.converged}, status: {state.status}"
             if not state.converged:
-                Console.print_warning(text)
+                if state.status == 5:
+                    cmh.Console.print_warning("Linesearch error")
+                elif state.status == 1:
+                    cmh.Console.print_fail("Maxiter error")
+                else:
+                    cmh.Console.print_fail(f"Status: {state.status}")
 
         # if not state.converged and state.status != 5:
         #     raise ArgumentError("Error not due to line search")
@@ -184,14 +167,17 @@ class Calculator:
 
     @staticmethod
     def solve(
-        scene: Scene, energy_functions: EnergyFunctions, initial_a: Optional[np.ndarray] = None
+        scene: Scene,
+        energy_functions: EnergyFunctions,
+        initial_a: Optional[np.ndarray] = None,
+        initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         normalized_a = Calculator.solve_acceleration_normalized(
             scene, energy_functions, initial_a=initial_a
         )
         normalized_cleaned_a = scene.clean_acceleration(normalized_a)
         cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
-        return cleaned_a
+        return cleaned_a, initial_t
 
     @staticmethod
     def solve_with_temperature(
@@ -242,11 +228,12 @@ class Calculator:
         temperature=None,
         initial_a: Optional[np.ndarray] = None,
     ) -> np.ndarray:
+        if USE_LINEAR_SOLVER:
+            return Calculator.solve_acceleration_normalized_function(
+                scene=scene, temperature=temperature, initial_a=initial_a
+            )
         # TODO: #62 repeat with optimization if collision in this round
         # if not scene.is_colliding():
-        #     return Calculator.solve_acceleration_normalized_function(
-        #         scene=scene, temperature=temperature, initial_a=initial_a
-        #     )
         return Calculator.solve_acceleration_normalized_optimization_jax(
             scene=scene,
             energy_functions=energy_functions,

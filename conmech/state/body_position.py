@@ -2,10 +2,12 @@ import copy
 from ctypes import ArgumentError
 from typing import Optional
 
+import jax
+import jax.numpy as jnp
 import numba
 import numpy as np
 
-from conmech.helpers import lnh, nph
+from conmech.helpers import jxh, lnh, nph
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
@@ -46,6 +48,64 @@ def get_boundary_surfaces_normals(moved_nodes, boundary_surfaces, boundary_inter
         nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
     )
     return unoriented_normals * external_orientation
+
+
+def _get_unoriented_normals_2d_jax(faces_nodes):
+    tail_nodes, head_nodes = faces_nodes[:, 0], faces_nodes[:, 1]
+
+    unoriented_normals = jxh.get_tangential_2d(jxh.normalize_euclidean(head_nodes - tail_nodes))
+    return tail_nodes, unoriented_normals
+
+
+def _get_unoriented_normals_3d_jax(faces_nodes):
+    tail_nodes, head_nodes1, head_nodes2 = [faces_nodes[:, i, :] for i in range(3)]
+
+    unoriented_normals = jxh.normalize_euclidean(
+        jnp.cross(head_nodes1 - tail_nodes, head_nodes2 - tail_nodes)
+    )
+    return tail_nodes, unoriented_normals
+
+
+def _get_boundary_surfaces_normals_jax(
+    moved_nodes, boundary_surfaces, boundary_internal_indices, dimension
+):
+    faces_nodes = moved_nodes[boundary_surfaces]
+
+    if dimension == 2:
+        tail_nodes, unoriented_normals = _get_unoriented_normals_2d_jax(faces_nodes)
+    elif dimension == 3:
+        tail_nodes, unoriented_normals = _get_unoriented_normals_3d_jax(faces_nodes)
+
+    internal_nodes = moved_nodes[boundary_internal_indices]
+    external_orientation = (-1) * jnp.sign(
+        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
+    )
+    return unoriented_normals * external_orientation
+
+
+def get_boundary_normals_jax(
+    moved_nodes, boundary_surfaces, boundary_internal_indices, boundary_nodes_count, dimension
+):
+    print("get_boundary_normals_jax")
+    boundary_surfaces_normals = _get_boundary_surfaces_normals_jax(
+        moved_nodes, boundary_surfaces, boundary_internal_indices, dimension
+    )
+    boundary_normals = jnp.mean(
+        jnp.array(
+            [
+                jax.ops.segment_sum(
+                    boundary_surfaces_normals,
+                    boundary_surfaces[:, i],
+                    num_segments=boundary_nodes_count,
+                )
+                for i in range(dimension)
+            ]
+        ),
+        axis=0,
+    )
+
+    boundary_normals = jxh.normalize_euclidean(boundary_normals)
+    return boundary_normals
 
 
 @numba.njit
@@ -217,12 +277,28 @@ class BodyPosition(Mesh):
         return self.normalized_nodes - self.normalized_initial_nodes
 
     def get_boundary_normals(self):
-        boundary_surfaces_normals = get_boundary_surfaces_normals(
-            self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
+        # t1 = time.time()
+        # boundary_surfaces_normals = get_boundary_surfaces_normals(
+        #     self.moved_nodes, self.boundary_surfaces, self.boundary_internal_indices
+        # )
+        # r = get_boundary_nodes_normals_numba(
+        #     self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals
+        # )
+        # print("B2:", time.time() - t1)
+        # t1 = time.time()
+
+        result_jax = jax.jit(
+            get_boundary_normals_jax, static_argnames=["boundary_nodes_count", "dimension"]
+        )(
+            moved_nodes=self.moved_nodes,
+            boundary_surfaces=self.boundary_surfaces,
+            boundary_internal_indices=self.boundary_internal_indices,
+            boundary_nodes_count=self.boundary_nodes_count,
+            dimension=self.dimension,
         )
-        return get_boundary_nodes_normals_numba(
-            self.boundary_surfaces, self.boundary_nodes_count, boundary_surfaces_normals
-        )
+
+        # print("B3:", time.time() - t1)
+        return result_jax
 
     def get_surface_per_boundary_node(self):
         return get_surface_per_boundary_node_numba(

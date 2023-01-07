@@ -2,9 +2,29 @@
 jax helpers
 """
 import jax.experimental.sparse
+import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 import scipy.sparse
+
+
+def euclidean_norm(vector, keepdims=False):
+    data = (vector**2).sum(axis=-1, keepdims=keepdims)
+    return jnp.sqrt(data)
+
+
+def normalize_euclidean(data):
+    norm = euclidean_norm(data)
+    reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
+    return data / reshaped_norm
+
+
+def get_tangential_2d(normal):
+    return jnp.array((normal[..., 1], -normal[..., 0])).T
+
+
+def append_euclidean_norm(data):
+    return jnp.hstack((data, euclidean_norm(data, keepdims=True)))
 
 
 def to_inverse_diagonal(martix):

@@ -62,7 +62,6 @@ def plot_frame(
     scene: Scene,
     current_time: float,
     draw_detailed: bool = True,
-    base_scene: Optional[Scene] = None,
     t_scale: Optional[np.ndarray] = None,
 ):
     axes = axs
@@ -75,8 +74,6 @@ def plot_frame(
         draw_main_temperature(axes=axes, scene=scene, cbar_settings=cbar_settings)
     else:
         draw_main_displaced(scene, axes=axes)
-    if base_scene is not None:
-        draw_base_displaced(base_scene, axes=axes)
 
     draw_parameters(current_time, scene, scale, axes=axes)
     # draw_angles(scene, axes)

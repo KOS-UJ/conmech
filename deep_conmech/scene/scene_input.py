@@ -1,15 +1,19 @@
+import time
 from typing import List
 
+import jax
+import jax.numpy as jnp
 import numba
 import numpy as np
 import torch
 
-from conmech.helpers import nph
+from conmech.helpers import jxh, nph
 from conmech.mesh.mesh import Mesh, mesh_normalization_decorator
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.scene import complete_mesh_boundary_data_with_zeros
 from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData
@@ -27,45 +31,55 @@ def get_indices_from_graph_sizes_numba(graph_sizes: List[int]):
     return index
 
 
-def get_multilayer_edges_data_new(
-    edges,
-    initial_nodes_sparse,
-    initial_nodes_dense,
-    displacement_old_sparse,
-    displacement_old_dense,
-    velocity_old_sparse,
-    velocity_old_dense,
-    forces_sparse,
-    forces_dense,
-):
-    def get_column(data_sparse, data_dense):
-        column = data_sparse[edges[:, 0]] - data_dense[edges[:, 1]]
-        return np.hstack((column, nph.euclidean_norm(column, keepdims=True)))
-
-    return np.hstack(
-        (
-            get_column(initial_nodes_sparse, initial_nodes_dense),
-            # get_column(
-            #     displacement_old_sparse,
-            #     displacement_old_dense,
-            # ),
-            # get_column(velocity_old_sparse, velocity_old_dense),
-            get_column(forces_sparse, forces_dense),
-        )
-    )
+def prepare_node_data(data: np.ndarray, nodes_count, add_norm=False):
+    # if approximate:
+    #     approximated_data = self.approximate_boundary_or_all_from_base(
+    #         layer_number=layer_number, base_values=data
+    #     )
+    # else:
+    approximated_data = jnp.array(data)
+    # mesh = self.all_layers[layer_number].mesh
+    result = complete_mesh_boundary_data_with_zeros(data=approximated_data, nodes_count=nodes_count)
+    if add_norm:
+        result = jxh.append_euclidean_norm(result)
+    return result
 
 
-@numba.njit
-def get_multilayer_edges_numba(closest_nodes):
-    neighbours_count = closest_nodes.shape[1]
-    edges_count = closest_nodes.shape[0] * neighbours_count
-    edges = np.zeros((edges_count, 2), dtype=np.int64)
-    index = 0
-    for i, neighbours in enumerate(closest_nodes):
-        for _, j in enumerate(neighbours):
-            edges[index] = [j, i]
-            index += 1
-    return edges
+def get_edges_column(data_from, data_to, directional_edges):
+    print("get_edges_column")
+    column = data_to[directional_edges[:, 1]] - data_from[directional_edges[:, 0]]
+    # column = complete_mesh_boundary_data_with_zeros(colums), edgess_count)
+    return jnp.hstack((column, nph.euclidean_norm(column, keepdims=True)))
+
+
+def get_multilayer_edges_column_old(data_from, data_to, directional_edges):
+    print("get_multilayer_edges_column")
+    column = data_from[directional_edges[:, 0]] - data_to[directional_edges[:, 1]]
+    return jnp.hstack((column, nph.euclidean_norm(column, keepdims=True)))
+
+
+# @numba.njit
+# def get_edges_column(data_from, data_to, directional_edges):
+#     dim = data_from.shape[1]
+#     result = np.empty((len(directional_edges), dim + 1), dtype=np.float64)
+#     for i, edge in enumerate(directional_edges):
+#         edge = directional_edges[i]
+#         result[i, :dim] = data_to[edge[1]] - data_from[edge[0]]
+
+#     result[:, dim] = nph.euclidean_norm_numba(result[:, :dim])
+#     return result
+
+
+# @numba.njit
+# def get_multileyer_edges_column(data_from, data_to, directional_edges):
+#     dim = data_from.shape[1]
+#     result = np.empty((len(directional_edges), dim + 1), dtype=np.float64)
+#     for i, edge in enumerate(directional_edges):
+#         edge = directional_edges[i]
+#         result[i, :dim] = data_from[edge[0]] - data_to[edge[1]]
+
+#     result[:, dim] = nph.euclidean_norm_numba(result[:, :dim])
+#     return result
 
 
 class SceneInput(SceneRandomized):
@@ -84,49 +98,40 @@ class SceneInput(SceneRandomized):
             schedule=schedule,
             create_in_subprocess=create_in_subprocess,
         )
-
-    @mesh_normalization_decorator
-    def prepare_node_data(self, scene, data: np.ndarray, add_norm=False):
-        # if approximate:
-        #     approximated_data = self.approximate_boundary_or_all_from_base(
-        #         layer_number=layer_number, base_values=data
-        #     )
-        # else:
-        approximated_data = data
-        # mesh = self.all_layers[layer_number].mesh
-        result = self.complete_mesh_boundary_data_with_zeros(mesh=scene, data=approximated_data)
-        if add_norm:
-            result = nph.append_euclidean_norm(result)
-        return result
+        self.cached_nodes_column = None
+        self.cached_reduced_nodes_column = None
+        self.cached_nodes_multilayer_column = None
 
     @mesh_normalization_decorator
     def get_edges_data(self, directional_edges, reduced=False):
         scene = self.reduced if reduced else self
 
         def get_column(data):
-            column = data[directional_edges[:, 1]] - data[directional_edges[:, 0]]
-            return np.hstack((column, nph.euclidean_norm(column, keepdims=True)))
-
-        initial_nodes = scene.input_initial_nodes
-        forces = self.prepare_node_data(scene=scene, data=scene.input_forces)
+            data_jax = jnp.array(data)
+            return jax.jit(get_edges_column)(
+                data_from=data_jax,
+                data_to=data_jax,
+                directional_edges=directional_edges,
+            )
 
         if reduced:
-            displacement_old = self.prepare_node_data(
-                scene=scene, data=scene.input_displacement_old
-            )
-            velocity_old = self.prepare_node_data(scene=scene, data=scene.input_velocity_old)
-            return np.hstack(
+            if self.cached_reduced_nodes_column is None:
+                self.cached_reduced_nodes_column = get_column(scene.input_initial_nodes)
+
+            return jnp.hstack(
                 (
-                    get_column(initial_nodes),
-                    get_column(displacement_old),
-                    get_column(velocity_old),
-                    get_column(forces),
+                    self.cached_reduced_nodes_column,  # get_column(scene.input_initial_nodes),
+                    get_column(scene.input_displacement_old),
+                    get_column(scene.input_velocity_old),
+                    get_column(scene.input_forces),
                 )
             )
-        return np.hstack(
+        if self.cached_nodes_column is None:
+            self.cached_nodes_column = get_column(scene.input_initial_nodes)
+        return jnp.hstack(
             (
-                get_column(initial_nodes),
-                get_column(forces),
+                scene.cached_nodes_column,  # get_column(scene.input_initial_nodes),
+                get_column(scene.input_forces),
             )
         )
 
@@ -138,12 +143,19 @@ class SceneInput(SceneRandomized):
         # velocity_old_dense = self.input_velocity_old
 
         def get_column(data_sparse, data_dense):
-            column = data_sparse[directional_edges[:, 0]] - data_dense[directional_edges[:, 1]]
-            return np.hstack((column, nph.euclidean_norm(column, keepdims=True)))
+            return jax.jit(get_edges_column)(
+                data_from=jnp.array(data_sparse),
+                data_to=jnp.array(data_dense),
+                directional_edges=directional_edges,
+            )
 
+        if self.cached_nodes_multilayer_column is None:
+            self.cached_nodes_multilayer_column = get_column(
+                self.reduced.input_forces, self.input_forces
+            )
         return np.hstack(
             (
-                get_column(self.reduced.input_initial_nodes, self.input_initial_nodes),
+                self.cached_nodes_multilayer_column,  # get_column(self.reduced.input_initial_nodes, self.input_initial_nodes),
                 # get_column(
                 #     displacement_old_sparse,
                 #     displacement_old_dense,
@@ -157,11 +169,15 @@ class SceneInput(SceneRandomized):
     def get_nodes_data(self, reduced):
         scene = self.reduced if reduced else self
 
-        boundary_normals = self.prepare_node_data(
-            scene=scene,
-            data=scene.get_normalized_boundary_normals(),
-            add_norm=True,
-        )
+        def prepare_nodes(data):
+            return jax.jit(prepare_node_data, static_argnames=["add_norm", "nodes_count"])(
+                data=data,
+                add_norm=True,
+                nodes_count=scene.nodes_count,
+            )
+
+        boundary_normals = prepare_nodes(scene.get_normalized_boundary_normals())
+
         # boundary_friction = self.prepare_node_data(
         #     data=self.get_friction_input(),
         #     layer_number=layer_number,
@@ -175,17 +191,11 @@ class SceneInput(SceneRandomized):
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
         if reduced:
-            acceleration = self.prepare_node_data(
-                scene=scene,
-                data=scene.normalized_exact_acceleration,  # scene.exact_acceleration
-                add_norm=True,
-            )
-            new_displacement = self.prepare_node_data(
-                scene=scene,
-                data=scene.norm_exact_new_displacement,
-                add_norm=True,
-            )
-            return np.hstack(
+            acceleration = prepare_nodes(
+                scene.normalized_exact_acceleration
+            )  # scene.exact_acceleration
+            new_displacement = prepare_nodes(scene.norm_exact_new_displacement)
+            return jnp.hstack(
                 (
                     acceleration,
                     new_displacement,
@@ -201,7 +211,7 @@ class SceneInput(SceneRandomized):
             # input_forces = self.prepare_node_data(
             #     layer_number=layer_number, data=self.input_forces, add_norm=True
             # )
-            return np.hstack(
+            return jnp.hstack(
                 # TODO: Add previous accelerations
                 (
                     # linear_acceleration,
@@ -217,11 +227,10 @@ class SceneInput(SceneRandomized):
     @mesh_normalization_decorator
     def get_multilayer_edges_with_data(self, link: MeshLayerLinkData):
         closest_nodes = torch.tensor(link.closest_nodes)
-        edges_index_np = get_multilayer_edges_numba(link.closest_nodes)
         edges_data = thh.to_torch_set_precision(
-            self.get_multilayer_edges_data(directional_edges=edges_index_np)
+            self.get_multilayer_edges_data(directional_edges=link.edges_index)
         )
-        edges_index = thh.get_contiguous_torch(edges_index_np)
+        edges_index = thh.get_contiguous_torch(link.edges_index)
         # distances_link = link.closest_distances
         # closest_nodes_count = link.closest_distances.shape[1]
         # distance_norm_index = self.dimension
@@ -245,13 +254,12 @@ class SceneInput(SceneRandomized):
         reduced = layer_number > 0
         layer_data = self.all_layers[layer_number]
         mesh = layer_data.mesh
-        layer_directional_edges = np.vstack((mesh.edges, np.flip(mesh.edges, axis=1)))
 
         data = MeshLayerData(
             edge_number=torch.tensor([mesh.edges_number]),
             layer_number=torch.tensor([layer_number]),
             pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
-            x=thh.to_torch_set_precision(self.get_nodes_data(reduced=reduced)),
+            x=thh.convert_jax_to_tensor(self.get_nodes_data(reduced=reduced)),
             # pin_memory=True,
             # num_workers=1
         )
@@ -268,9 +276,9 @@ class SceneInput(SceneRandomized):
                 data.closest_nodes_to_down,
             ) = self.get_multilayer_edges_with_data(link=layer_data.to_base)
 
-        data.edge_index = thh.get_contiguous_torch(layer_directional_edges)
-        data.edge_attr = thh.to_torch_set_precision(
-            self.get_edges_data(layer_directional_edges, reduced=reduced)
+        data.edge_index = thh.get_contiguous_torch(mesh.directional_edges)
+        data.edge_attr = thh.convert_jax_to_tensor(
+            self.get_edges_data(mesh.directional_edges, reduced=reduced)
         )
 
         _ = """

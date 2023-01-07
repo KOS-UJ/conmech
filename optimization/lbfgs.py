@@ -1,4 +1,5 @@
 """The Limited-Memory Broyden-Fletcher-Goldfarb-Shanno minimization algorithm."""
+import os
 from functools import partial
 from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Union
 
@@ -75,6 +76,7 @@ def _zoom(
     dphi_hi,
     g_0,
     pass_through,
+    maxiter_zoom,
 ):
     """
     Implementation of zoom. Algorithm 3.6 from Wright and Nocedal, 'Numerical
@@ -206,7 +208,7 @@ def _zoom(
         state = state._replace(j=state.j + 1)
         # Choose higher cutoff for maxiter than Scipy as Jax takes longer to find
         # the same value - possibly floating point issues?
-        state = state._replace(failed=state.failed | state.j >= 30)
+        state = state._replace(failed=state.failed | state.j >= maxiter_zoom)  # custom change
         return state
 
     state = lax.while_loop(
@@ -268,7 +270,8 @@ def custom_line_search_jax(
     gfk=None,
     c1=1e-4,  # 1e-4,
     c2=0.9,  # 0.2 (Solver time : 1332.60), #0.99 not working, #0.5 (Solver time : 1127.87), #0.9 (Solver time : 1159.39),
-    maxiter=20,  # 200  Solver time : 1204.75
+    maxiter_main=20,  # 200  Solver time : 1204.75
+    maxiter_zoom=30,
 ):
     """Inexact line search that satisfies strong Wolfe conditions.
 
@@ -359,6 +362,7 @@ def custom_line_search_jax(
             dphi_i,
             gfk,
             ~star_to_zoom1,
+            maxiter_zoom,
         )
 
         state = state._replace(nfev=state.nfev + zoom1.nfev, ngev=state.ngev + zoom1.ngev)
@@ -375,6 +379,7 @@ def custom_line_search_jax(
             state.dphi_i1,
             gfk,
             ~star_to_zoom2,
+            maxiter_zoom,
         )
 
         state = state._replace(nfev=state.nfev + zoom2.nfev, ngev=state.ngev + zoom2.ngev)
@@ -416,14 +421,14 @@ def custom_line_search_jax(
         return state
 
     state = lax.while_loop(
-        lambda state: (~state.done) & (state.i <= maxiter) & (~state.failed), body, state
+        lambda state: (~state.done) & (state.i <= maxiter_main) & (~state.failed), body, state
     )
 
     status = jnp.where(
         state.failed,
         jnp.array(1),  # zoom failed
         jnp.where(
-            state.i > maxiter,
+            state.i > maxiter_main,
             jnp.array(3),  # maxiter reached
             jnp.array(0),  # passed (should be)
         ),
@@ -500,30 +505,38 @@ class LBFGSResults(NamedTuple):
     # hes: float
     # xtol_max: float
     # xtol_mean: float
-    # max_iter: float
+    maxiter_main_ls: float
+    maxiter_zoom_ls: float
+    ###
     maxiter: float
     norm: float
     ftol: float
     gtol: float
     maxfun: float
     maxgrad: float
-    maxls: float
+    # maxls: float
     xtol: float
+
+
+def get_backend():
+    key = "OPTIMIZATION_BACKEND"
+    return os.environ[key] if key in os.environ else None
 
 
 def minimize_lbfgs(
     fun: Callable,
     args,
     x0: Array,
-    maxiter: Optional[float] = None,  # 500
     norm=jnp.inf,
     maxcor: int = 10,
     ftol: float = 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
-    maxls: int = 20,
     xtol: float = 1e-03,
+    maxiter: Optional[float] = 200,  # None
+    maxiter_main_ls: int = 20,
+    maxiter_zoom_ls: int = 30,
 ):
     # print("Minimize")
     """
@@ -556,8 +569,8 @@ def minimize_lbfgs(
     dtype = jnp.dtype(x0)
 
     # ensure there is at least one termination condition
-    if (maxiter is None) and (maxfun is None) and (maxgrad is None):
-        maxiter = d * 200
+    # if (maxiter is None) and (maxfun is None) and (maxgrad is None):
+    #     maxiter = d * 200
 
     # set others to inf, such that >= is supported
     if maxiter is None:
@@ -569,7 +582,7 @@ def minimize_lbfgs(
 
     # initial evaluation
     # f_0, g_0 = jax.value_and_grad(fun)(x0)
-    f_0, g_0 = jax.value_and_grad(fun)(x0, args)
+    f_0, g_0 = jax.value_and_grad(jax.jit(fun, backend=get_backend()))(x0, args)
 
     state_initial = LBFGSResults(
         converged=False,
@@ -599,7 +612,8 @@ def minimize_lbfgs(
         gtol=gtol,
         maxfun=maxfun,
         maxgrad=maxgrad,
-        maxls=maxls,
+        maxiter_main_ls=maxiter_main_ls,
+        maxiter_zoom_ls=maxiter_zoom_ls,
         xtol=xtol,
     )
 
@@ -650,12 +664,12 @@ def _update_history_scalars(history, new):
     return jnp.roll(history, -1, axis=0).at[-1].set(new)
 
 
-@jax.jit
+@partial(jax.jit, backend=get_backend())
 def cond_fun_jax(state: LBFGSResults):
     return (~state.converged) & (~state.failed)
 
 
-@jax.jit
+@partial(jax.jit, backend=get_backend())
 def body_fun_jax(state: LBFGSResults):
     # find search direction
     p_k = _two_loop_recursion(state)
@@ -668,7 +682,8 @@ def body_fun_jax(state: LBFGSResults):
         pk=p_k,
         old_fval=state.f_k,
         gfk=state.g_k,
-        maxiter=state.maxls,
+        maxiter_main=state.maxiter_main_ls,
+        maxiter_zoom=state.maxiter_zoom_ls,
     )
 
     # evaluate at next iterate
@@ -683,11 +698,11 @@ def body_fun_jax(state: LBFGSResults):
 
     # replacements for next iteration
     status = 0
+    status = jnp.where(ls_results.failed, 5, status)
     # status = jnp.where(state.f_k - f_kp1 < state.ftol, 4, status)
     # status = jnp.where(state.ngev >= state.maxgrad, 3, status)  # type: ignore
     # status = jnp.where(state.nfev >= state.maxfun, 2, status)  # type: ignore
-    # status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
-    status = jnp.where(ls_results.failed, 5, status)
+    status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
 
     # Added custom stopping criterion
     norm = jnp.inf  # state.norm ###

@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import jax
 import jax.numpy as jnp
 import numba
 import numpy as np
@@ -8,7 +9,7 @@ from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import lnh, nph
 from conmech.helpers.lnh import get_in_base
-from conmech.mesh.mesh import Mesh, mesh_normalization_decorator
+from conmech.mesh.mesh import mesh_normalization_decorator
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -33,6 +34,11 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
     return boundary_obstacle_indices
 
 
+def complete_mesh_boundary_data_with_zeros(data: np.ndarray, nodes_count):
+    return jnp.pad(data, ((0, nodes_count - len(data)), (0, 0)), "constant")
+
+
+# pylint: disable=R0904
 class Scene(BodyForces):
     def __init__(
         self,
@@ -116,14 +122,14 @@ class Scene(BodyForces):
             base_displacement=base_displacement,
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
-            base_energy_displacement=energy_functions.compute_displacement_energy_jax(
+            base_energy_displacement=jax.jit(energy_functions.compute_displacement_energy)(
                 displacement=base_displacement,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=body_prop,
             ),
             base_velocity=velocity,
-            base_energy_velocity=energy_functions.compute_velocity_energy_jax(
+            base_energy_velocity=jax.jit(energy_functions.compute_velocity_energy)(
                 velocity=velocity,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
@@ -237,13 +243,6 @@ class Scene(BodyForces):
             use_nonconvex_friction_law=self.use_nonconvex_friction_law,
         )
 
-    @staticmethod
-    def complete_mesh_boundary_data_with_zeros(mesh: Mesh, data: np.ndarray):
-        return np.pad(data, ((0, mesh.nodes_count - len(data)), (0, 0)), "constant")
-
-    def complete_boundary_data_with_zeros(self, data: np.ndarray):
-        return Scene.complete_mesh_boundary_data_with_zeros(self, data)
-
     @property
     def has_no_obstacles(self):
         return self.linear_obstacles.size == 0 and len(self.mesh_obstacles) == 0
@@ -251,7 +250,9 @@ class Scene(BodyForces):
     def _get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
             return np.zeros((self.nodes_count, 1), dtype=np.int64)
-        return self.complete_boundary_data_with_zeros((self.get_penetration_scalar() > 0) * 1)
+        return complete_mesh_boundary_data_with_zeros(
+            data=(self.get_penetration_scalar() > 0) * 1, nodes_count=self.nodes_count
+        )
 
     def is_colliding(self):
         return np.any(self._get_colliding_nodes_indicator())

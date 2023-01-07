@@ -5,9 +5,17 @@ import meshzoo
 import numpy as np
 import pygmsh
 
-from conmech.helpers import nph
+from conmech.helpers import nph, cmh
 from conmech.mesh import mesh_builders_helpers
 from conmech.properties.mesh_properties import MeshProperties
+
+
+def read_mesh(path):
+    with cmh.HiddenPrints():
+        mesh = meshio.read(path)
+    if mesh is None:
+        raise ArgumentError
+    return mesh
 
 
 def get_meshzoo_cube(mesh_prop: MeshProperties):
@@ -70,7 +78,7 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
 
 
 def get_relative_ideal_edge_length(mesh_id):
-    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}.ply")
+    mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}.ply")
     nodes = mesh.points
     diag_of_bbox = nph.euclidean_norm_numba(np.max(nodes, axis=0) - np.min(nodes, axis=0))
 
@@ -94,7 +102,7 @@ def get_pygmsh_bunny(mesh_prop):
 
     # relative_ideal_edge_length = get_relative_ideal_edge_length(mesh_id)
 
-    mesh = meshio.read(f"models/bunny/bun_zipper_res{mesh_id}_.msh")
+    mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}_.msh")
     # scale = 2.0  # 1.0 3.0
     # mesh_builders_helpers.normalize(
     nodes, elements = mesh.points, mesh.cells_dict["tetra"].astype("long")
@@ -106,7 +114,7 @@ def get_pygmsh_bunny(mesh_prop):
 
 
 def get_pygmsh_armadillo():
-    mesh = meshio.read("models/armadillo/armadillo.msh")
+    mesh = read_mesh("models/armadillo/armadillo.msh")
     scale = 3.0  # 1.0
     nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype(
         "long"

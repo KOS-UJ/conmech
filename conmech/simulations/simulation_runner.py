@@ -1,6 +1,7 @@
 import copy
 import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
@@ -14,7 +15,6 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.solvers.calculator import Calculator
 
 
 def run_examples(
@@ -47,7 +47,6 @@ def run_examples(
 class RunScenarioConfig:
     catalog: Optional[str] = None
     simulate_dirty_data: bool = False
-    compare_with_base_scene: bool = False
     plot_animation: bool = False
     save_all: bool = False
 
@@ -106,11 +105,6 @@ def run_scenario(
         lambda: _get_scene_function(randomize=run_config.simulate_dirty_data), baypass=True
     )
 
-    if run_config.compare_with_base_scene:
-        base_scene = _get_scene_function(randomize=False)
-    else:
-        base_scene = None
-
     # np.save("./pt-jax/bunny_boundary_nodes2.npy", scene.boundary_nodes)
     # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
 
@@ -128,20 +122,14 @@ def run_scenario(
             cmh.create_folders(f"{final_catalog}/scenarios_reduced")
         scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
         scenes_path_reduced = f"{final_catalog}/scenarios_reduced/{scenario.name}_DATA.scenes"
-        if run_config.compare_with_base_scene:
-            cmh.create_folders(f"{final_catalog}/scenarios_calculator")
-            calculator_scenes_path = (
-                f"{final_catalog}/scenarios_calculator/{scenario.name}_DATA.scenes"
-            )
     else:
         final_catalog = ""
         scenes_path = ""
         scenes_path_reduced = ""
-        calculator_scenes_path = ""
 
     step = [0]  # TODO: #65 Clean
 
-    def operation_save(scene: Scene, base_scene: Optional[Scene] = None):
+    def operation_save(scene: Scene):
         plot_index = step[0] % ts == 0
         if run_config.save_all or plot_index:
             save_scene(scene=scene, scenes_path=scenes_path, save_animation=save_animation)
@@ -151,12 +139,6 @@ def run_scenario(
                     scenes_path=scenes_path_reduced,
                     save_animation=save_animation,
                 )
-            if base_scene is not None:
-                save_scene(
-                    scene=base_scene,
-                    scenes_path=calculator_scenes_path,
-                    save_animation=save_animation,
-                )
         if plot_index:
             plot_scenes_count[0] += 1
         step[0] += 1
@@ -164,11 +146,9 @@ def run_scenario(
     def fun_sim():
         return simulate(
             scene=scene,
-            base_scene=base_scene,
             solve_function=solve_function,
             scenario=scenario,
             simulate_dirty_data=run_config.simulate_dirty_data,
-            compare_with_base_scene=run_config.compare_with_base_scene,
             config=config,
             operation=operation_save if save_files else None,
         )
@@ -230,7 +210,7 @@ def plot_scenario_animation(
     )
 
 
-def prepare(scenario, scene: Scene, base_scene: Scene, current_time, with_temperature):
+def prepare(scenario, scene: Scene, current_time, with_temperature):
     forces = scenario.get_forces_by_function(scene, current_time)
     if with_temperature:
         heat = scenario.get_heat_by_function(scene, current_time)
@@ -238,84 +218,87 @@ def prepare(scenario, scene: Scene, base_scene: Scene, current_time, with_temper
     else:
         scene.prepare(forces)
 
-    if base_scene is not None:
-        base_forces = scenario.get_forces_by_function(base_scene, current_time)
-        base_scene.prepare(base_forces)
 
-
-def simulate(
-    scene,
-    base_scene,
-    solve_function,
-    scenario: Scenario,
-    simulate_dirty_data: bool,
-    compare_with_base_scene: bool,
-    config: Config,
-    operation: Optional[Callable] = None,
-) -> Tuple[Scene, float]:
-    with_temperature = isinstance(scene, SceneTemperature)
-
-    solver_time = 0.0
-    calculator_time = 0.0
-    all_time = time.time()
-
-    time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
+def print_mesh_data(scene):
     print(f"Mesh type: {scene.mesh_prop.mesh_type}")
     print(f"Nodes count: {scene.nodes_count}")
     print(f"Elements count: {scene.elements_count}")
+    print()
 
+
+def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
     energy_functions = EnergyFunctions(
         scene.use_green_strain,
         scene.use_nonconvex_friction_law,
         scene.use_constant_contact_integral,
     )
 
-    acceleration = None
-    temperature = None
-    base_a = None
+    print("Precompiling...")
+    with cmh.HiddenPrints():
+        prepare(scenario, scene, 0, with_temperature)
+        print("Prepared")
+        for mode in energy_functions.get_manual_modes():
+            energy_functions.set_manual_mode(mode)
+            _ = solve_function(
+                scene=scene,
+                energy_functions=energy_functions,
+                initial_a=None,
+                initial_t=None,
+            )
+
+        if hasattr(scene, "reduced"):
+            scene.reduced.exact_acceleration = None
+            scene.reduced.lifted_acceleration = None
+
+        energy_functions.set_automatic_mode()
+    return energy_functions
+
+
+def simulate(
+    scene,
+    solve_function,
+    scenario: Scenario,
+    simulate_dirty_data: bool,
+    config: Config,
+    operation: Optional[Callable] = None,
+) -> Tuple[Scene, float]:
+    with_temperature = isinstance(scene, SceneTemperature)
+
+    print_mesh_data(scene)
+    energy_functions = prepare_energy_functions(scenario, scene, solve_function, with_temperature)
+
+    acceleration, temperature = (None,) * 2
+    solver_time, all_time = 0.0, time.time()
+    time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
     energy_values = np.zeros(len(time_tqdm))
+
     for time_step in time_tqdm:
         current_time = (time_step) * scene.time_step
 
-        prepare(scenario, scene, base_scene, current_time, with_temperature)
+        prepare(scenario, scene, current_time, with_temperature)
 
         if operation is not None:
-            operation(scene, base_scene)  # (current_time, scene, base_scene, a, base_a)
+            operation(scene)  # (current_time, scene, a, base_a)
 
         start_time = time.time()
-        if with_temperature:
-            acceleration, temperature = solve_function(
-                scene,
-                energy_functions=energy_functions,
-                initial_a=acceleration,
-                initial_t=temperature,
-            )
-        else:
-            acceleration = solve_function(scene, energy_functions, initial_a=acceleration)
-
+        acceleration, temperature = solve_function(
+            scene=scene,
+            energy_functions=energy_functions,
+            initial_a=acceleration,
+            initial_t=temperature,
+        )
         solver_time += time.time() - start_time
 
         if simulate_dirty_data:
             scene.make_dirty()
 
-        if compare_with_base_scene:
-            start_time = time.time()
-            # TODO #65: save in setting
-            base_a = Calculator.solve(scene=base_scene, energy_functions=energy_functions)
-            calculator_time += time.time() - start_time
-
         scene.iterate_self(acceleration, temperature=temperature)
         scene.exact_acceleration = acceleration
-
-        if compare_with_base_scene:
-            base_scene.iterate_self(base_a)
 
         # setting.remesh_self() # TODO #65
 
     all_time = time.time() - all_time
-    comparison_str = f" | Calculator time: {calculator_time}" if compare_with_base_scene else ""
-    print(f"    All time: {all_time} | Solver time : {solver_time}{comparison_str}")
-    print(f"MAX_K: {Calculator.MAX_K}")
+    print(f"    All time: {all_time} | Solver time : {solver_time}")
     return scene, energy_values
 
 
@@ -323,7 +306,6 @@ def plot_setting(
     current_time,
     scene,
     path,
-    base_scene,
     draw_detailed,
     extension,
 ):
@@ -336,7 +318,6 @@ def plot_setting(
             scene=scene,
             current_time=current_time,
             draw_detailed=draw_detailed,
-            base_scene=base_scene,
         )
         plotter_common.plt_save(path, extension)
     else:

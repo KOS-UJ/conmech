@@ -77,7 +77,7 @@ class TrainingData:
 
 @dataclass
 class TrainingConfig(Config):
-    use_jax: bool = True
+    use_jax: bool = False
 
     td: TrainingData = TrainingData()
     device: str = "cuda"  # "cpu" if TEST else "cuda"
@@ -100,7 +100,6 @@ class TrainingConfig(Config):
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False
 
-    compare_with_base_scene = False
     max_epoch_number: Optional[int] = None
     datasets_main_path: str = "datasets"
     log_catalog: str = "log"

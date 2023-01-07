@@ -130,10 +130,6 @@ def generate_uniform_circle(rows, columns, low, high):
     return radius * normalized_result
 
 
-def append_euclidean_norm(data):
-    return np.hstack((data, euclidean_norm(data, keepdims=True)))
-
-
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)

@@ -18,6 +18,7 @@ from conmech.scenarios.scenarios import (
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
+from deep_conmech.data.scenario_dataset import ScenariosDataset
 
 
 def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
@@ -28,6 +29,16 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
         Obstacle(np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop),
     ]
     basic_scenarios = [
+        Scenario(
+            name="cube_throw",
+            mesh_prop=MeshProperties(
+                dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
+            ),
+            body_prop=default_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=obstacles[3],
+        ),
         Scenario(
             name="ball_roll",
             mesh_prop=MeshProperties(
@@ -56,16 +67,6 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
             ),
-        ),
-        Scenario(
-            name="cube_throw",
-            mesh_prop=MeshProperties(
-                dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
-            ),
-            body_prop=default_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=f_rotate_3d,
-            obstacle=obstacles[3],
         ),
         Scenario(
             name="twist_roll",
@@ -97,7 +98,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[8],  # 32],
+                mesh_density=[16],  # 32
             ),
             body_prop=TimeDependentBodyProperties(
                 mu=8,
@@ -159,7 +160,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
     ]
 
     simulation_runner.run_examples(
-        all_scenarios=[*basic_scenarios],  # *advanced_scenarios,
+        all_scenarios=[*advanced_scenarios],
         file=__file__,
         plot_animation=plot_animation,
         config=Config(shell=False),

@@ -18,7 +18,7 @@
         "--notes='FIXME,XXX,###'",
         "--max-args=8",
         "--max-attributes=16",
-        "--max-public-methods=45",
+        "--max-public-methods=32",
         "--max-locals=25",
         "--max-attributes=16",
         "--generated-members=torch.*"

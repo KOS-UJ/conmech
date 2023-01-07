@@ -459,36 +459,3 @@ class CustomGraphNet(nn.Module):
         net_output_dense = self.decoder_dense(updated_node_latents_dense)
 
         return net_output_dense
-
-    def solve(self, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
-        # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
-
-        scene.reduced.exact_acceleration = Calculator.solve(
-            scene=scene.reduced,
-            energy_functions=energy_functions,
-            initial_a=scene.reduced.exact_acceleration,
-        )
-
-        layers_list = [
-            scene.get_features_data(layer_number=layer_number).to(self.device)
-            for layer_number, _ in enumerate(scene.all_layers)
-        ]
-
-        self.eval()
-        net_result = self(layer_list=layers_list)
-        net_displacement = thh.to_np_double(net_result)
-
-        # base = scene.moved_base
-        # position = scene.position
-        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-        base = scene.reduced.get_rotation(reduced_displacement_new)
-        position = np.mean(reduced_displacement_new, axis=0)
-
-        new_displacement = scene.get_displacement(
-            base=base, position=position, base_displacement=net_displacement
-        )
-
-        acceleration_from_displacement = scene.from_displacement(new_displacement)
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-
-        return acceleration_from_displacement

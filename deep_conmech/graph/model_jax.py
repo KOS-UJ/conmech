@@ -208,20 +208,14 @@ class GraphModelDynamicJax:
 
         apply_net = get_apply_net(state)
 
-        def solve_function(scene, energy_functions, initial_a):
-            return solve(
-                apply_net, scene, energy_functions, initial_a
-            )  # (net.solve, Calculator.solve),
-
         for scenario in print_scenarios:
             simulation_runner.run_scenario(
-                solve_function=solve_function,  # (net.solve, Calculator.solve),
+                solve_function=partial(solve, apply_net=apply_net),
                 scenario=scenario,
                 config=config,
                 run_config=simulation_runner.RunScenarioConfig(
                     catalog="GRAPH PLOT",
                     simulate_dirty_data=False,
-                    compare_with_base_scene=config.compare_with_base_scene,
                     plot_animation=True,
                 ),
                 get_scene_function=GraphModelDynamicJax.get_scene_function,
@@ -413,26 +407,61 @@ def convert_to_jax(layer_list, target_data=None):
 
 
 # TODO: all in Jax?
-def solve(apply_net, scene: SceneInput, energy_functions: EnergyFunctions, initial_a):
+def solve(
+    apply_net,
+    scene: SceneInput,
+    energy_functions: EnergyFunctions,
+    initial_a,
+    initial_t,
+):
     # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
+    _ = initial_a, initial_t
 
-    scene.reduced.exact_acceleration = Calculator.solve(
+    print()
+    t1 = time.perf_counter()
+    # y = jax.device_put(np.arange(5), device=jax.devices("cpu")[0])
+    scene.reduced.exact_acceleration, _ = Calculator.solve(
         scene=scene.reduced,
         energy_functions=energy_functions,
         initial_a=scene.reduced.exact_acceleration,
     )
+    scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-    layers_list = [
-        scene.get_features_data(layer_number=layer_number)
-        for layer_number, _ in enumerate(scene.all_layers)
-    ]
+    # return scene.exact_acceleration, None
+
+    device_number = 0  # using GPU 0
+
+    print("T1: ", time.perf_counter() - t1)
+    t1 = time.perf_counter()
+
+    layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
+    print("T2: ", time.perf_counter() - t1)
+    t1 = time.perf_counter()
+
+    layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
+    layers_list = [layers_list_0, layers_list_1]
+
+    # return scene.exact_acceleration, None
+
+    # layers_list = [
+    #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
+    #     for layer_number, _ in enumerate(scene.all_layers)
+    # ]
+
+    print("T3: ", time.perf_counter() - t1)
+    t1 = time.perf_counter()
 
     args = prepare_input(convert_to_jax(layers_list))
-    local_devices = jax.local_devices()
-    args = jax.device_put(args, local_devices[0])  # using GPU 0
+    args = jax.device_put(args, jax.local_devices()[device_number])
+
+    print("T4: ", time.perf_counter() - t1)
+    t1 = time.time()
 
     net_result = apply_net(args)
     net_displacement = np.array(net_result)
+
+    print("T5: ", time.perf_counter() - t1)
+    t1 = time.perf_counter()
 
     # base = scene.moved_base
     # position = scene.position
@@ -445,9 +474,10 @@ def solve(apply_net, scene: SceneInput, energy_functions: EnergyFunctions, initi
     )
 
     acceleration_from_displacement = scene.from_displacement(new_displacement)
-    scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-    return acceleration_from_displacement
+    print("T6: ", time.perf_counter() - t1)
+
+    return acceleration_from_displacement, None
 
 
 def prepare_input(layer_list):

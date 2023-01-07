@@ -1,22 +1,7 @@
-import argparse
-import os
-
-import jax
+from conmech.helpers.config import set_jax
 
 if __name__ == "__main__":
-    jax_64 = False  # True
-
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
-    # os.environ["JAX_PLATFORM_NAME"] = "cpu"
-    # os.environ["JAX_DISABLE_JIT"] = "1"
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-
-    if jax_64:
-        os.environ["JAX_ENABLE_X64"] = "1"
-        print("JAX 64 BIT MODE")
-    else:
-        print("JAX 32 BIT MODE")
-
+    set_jax()
 
 # import lovely_jax as lj
 # import lovely_tensors as lt
@@ -24,9 +9,12 @@ if __name__ == "__main__":
 # lt.monkey_patch()
 # lj.monkey_patch()
 
+import argparse
+import os
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
 
+import jax
 import netron
 import numpy as np
 import torch
@@ -38,10 +26,10 @@ from conmech.scenarios import scenarios
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.graph.model_jax import GraphModelDynamicJax, save_tf_model
-from deep_conmech.graph.net_torch import CustomGraphNet
+from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.graph.net_jax import CustomGraphNetJax
+from deep_conmech.graph.net_torch import CustomGraphNet
 from deep_conmech.helpers import dch
 from deep_conmech.training_config import TrainingConfig
 

@@ -14,9 +14,9 @@ class Boundaries:
             self.boundaries[key] = value
 
         self.boundary_internal_indices = boundary_internal_indices
+        self.boundary_surfaces = self._construct_boundary_surfaces()
 
-    @property
-    def boundary_surfaces(self):
+    def _construct_boundary_surfaces(self):
         return np.unique(
             np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
             axis=1,

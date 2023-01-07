@@ -3,7 +3,7 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.scene.body_forces import energy
-from conmech.scene.scene import Scene
+from conmech.scene.scene import Scene, complete_mesh_boundary_data_with_zeros
 from conmech.solvers import SchurComplement
 
 
@@ -114,7 +114,9 @@ class SceneTemperature(Scene):
         A += (1 / self.time_step) * U @ self.t_old
 
         obstacle_heat_integral = jnp.array(self.get_obstacle_heat_integral())
-        A += self.complete_boundary_data_with_zeros(obstacle_heat_integral)
+        A += complete_mesh_boundary_data_with_zeros(
+            data=obstacle_heat_integral, nodes_count=self.nodes_count
+        )
         return A
 
     # TODO: #65 Check why without new data !!!

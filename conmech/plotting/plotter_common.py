@@ -118,7 +118,6 @@ class AnimationArgs:
     all_indices: List[int]
     scenes_file: BufferedReader
     base_all_indices: Optional[List[int]]
-    base_scenes_file: Optional[BufferedReader]
     animation_tqdm: tqdm.tqdm
 
 
@@ -134,21 +133,12 @@ def make_animation(get_axs, plot_frame, t_scale):
             data_file=args.scenes_file,
         )
 
-        if args.base_scenes_file is not None:
-            base_scene = pkh.load_byte_index(
-                byte_index=byte_index,
-                data_file=args.base_scenes_file,
-            )
-        else:
-            base_scene = None
-
         plot_frame(
             axs=axs,
             fig=args.fig,
             scene=scene,
             current_time=step * args.time_skip,
             t_scale=t_scale,
-            base_scene=base_scene,
         )
         return args.fig
 
@@ -182,12 +172,7 @@ def plot_animation(
         if plot_config.all_calc_scenes_path is None
         else pkh.get_all_indices(plot_config.all_calc_scenes_path)
     )
-    base_scenes_file = (
-        None
-        if plot_config.all_calc_scenes_path is None
-        else pkh.open_file_read(plot_config.all_calc_scenes_path)
-    )
-    with scenes_file:  # TODO:, base_scenes_file:
+    with scenes_file:
         args = AnimationArgs(
             fig=fig,
             time_skip=plot_config.time_skip,
@@ -195,7 +180,6 @@ def plot_animation(
             all_indices=all_indices,
             scenes_file=scenes_file,
             base_all_indices=base_all_indices,
-            base_scenes_file=base_scenes_file,
             animation_tqdm=animation_tqdm,
         )
         ani = animation.FuncAnimation(

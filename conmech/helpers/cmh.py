@@ -4,6 +4,7 @@ conmech helpers
 import cProfile
 import os
 import shutil
+import sys
 import time
 from pstats import Stats
 from typing import Callable, Iterable
@@ -94,3 +95,35 @@ class DotDict(dict):
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+
+class Console:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+    @staticmethod
+    def print_warning(text):
+        print(f"{Console.WARNING}{text}{Console.ENDC}")
+
+    @staticmethod
+    def print_fail(text):
+        print(f"{Console.FAIL}{text}{Console.ENDC}")
+
+
+class HiddenPrints:
+    def __init__(self):
+        self._original_stdout = sys.stdout
+
+    def __enter__(self):
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
