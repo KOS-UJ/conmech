@@ -12,7 +12,8 @@ import jax.scipy.optimize
 import numpy as np
 
 from conmech.helpers import cmh, jxh, nph
-from conmech.helpers.config import USE_LINEAR_SOLVER
+from conmech.helpers.config import USE_LHS_PRECONDITIONER, USE_LINEAR_SOLVER, VERBOSE
+from conmech.helpers.tmh import Timer
 from conmech.scene.body_forces import energy
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
@@ -24,18 +25,22 @@ from optimization.lbfgs import minimize_lbfgs
 
 class Calculator:
     @staticmethod
-    def minimize_jax(function, initial_vector: np.ndarray, args) -> np.ndarray:
+    def minimize_jax(function, initial_vector: np.ndarray, args, hes_inv) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
 
+        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x), v))(x)
+        # hes = jax.jit(lambda x, args: hvp(lambda x: function(x, args), x, x))
+        # .lower(x0, args).compile()
+
         state = cmh.profile(
-            lambda: minimize_lbfgs(fun=function, args=args, x0=x0),
+            lambda: minimize_lbfgs(fun=function, hes_inv=hes_inv, args=args, x0=x0),
             baypass=True,
         )
 
         if "JAX_ENABLE_X64" in os.environ and os.environ["JAX_ENABLE_X64"]:
             assert state.converged
         else:
-            if not state.converged:
+            if VERBOSE and not state.converged:
                 if state.status == 5:
                     cmh.Console.print_warning("Linesearch error")
                 elif state.status == 1:
@@ -43,7 +48,8 @@ class Calculator:
                 else:
                     cmh.Console.print_fail(f"Status: {state.status}")
 
-        return np.asarray(state.x_k)
+        # Validate https://github.com/google/jax/issues/6898
+        return np.asarray(state.x_k)  # , state
 
     @staticmethod
     def solve(
@@ -51,12 +57,15 @@ class Calculator:
         energy_functions: EnergyFunctions,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
+        timer: Timer = Timer(),
     ) -> np.ndarray:
-        normalized_a = Calculator.solve_acceleration_normalized(
-            scene, energy_functions, initial_a=initial_a
-        )
+        with timer["calc_optimize"]:
+            normalized_a = Calculator.solve_acceleration_normalized(
+                scene, energy_functions, initial_a=initial_a
+            )
         normalized_cleaned_a = scene.clean_acceleration(normalized_a)
-        cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
+        with timer["calc_denormalize"]:
+            cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
         return cleaned_a, initial_t
 
     @staticmethod
@@ -65,7 +74,9 @@ class Calculator:
         energy_functions: EnergyFunctions,
         initial_a: Optional[np.ndarray] = None,
         initial_t: Optional[np.ndarray] = None,
+        timer: Timer = Timer(),
     ):
+        _ = timer
         uzawa = False
         max_iter = 10
         i = 0
@@ -129,9 +140,10 @@ class Calculator:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         # if not scene.is_colliding():
-        #     return Calculator.solve_temperature_normalized_function(
-        #         scene, normalized_acceleration, initial_t
-        #     )
+        if USE_LINEAR_SOLVER:
+            return Calculator.solve_temperature_normalized_function(
+                scene, normalized_acceleration, initial_t
+            )
         return Calculator.solve_temperature_normalized_optimization(
             scene, normalized_acceleration, initial_t
         )
@@ -142,8 +154,13 @@ class Calculator:
     ):
         _ = initial_t
         normalized_rhs = scene.get_normalized_t_rhs_jax(normalized_acceleration)
-        t_vector = np.linalg.solve(scene.solver_cache.lhs_temperature, normalized_rhs)
-        return t_vector
+        matrix = scene.solver_cache.lhs_temperature_sparse_jax
+        vector = normalized_rhs
+        initial_point = initial_t
+
+        solver = jax.jit(jax.scipy.sparse.linalg.cg)
+        t_vector, _ = solver(A=matrix, b=vector, x0=initial_point)
+        return np.array(t_vector)
 
     @staticmethod
     def solve_acceleration_normalized_function(scene, temperature=None, initial_a=None):
@@ -189,12 +206,14 @@ class Calculator:
             lambda: scene.get_energy_obstacle_args_for_jax(energy_functions, temperature),
             baypass=True,
         )
+        hes_inv = None if not USE_LHS_PRECONDITIONER else scene.solver_cache.lhs_preconditioner_jax
         normalized_a_vector_np = cmh.profile(
             lambda: Calculator.minimize_jax(
                 function=energy_functions.get_energy_function(scene),
                 # solver= energy_functions.get_solver(scene),
                 initial_vector=initial_a_vector,
                 args=args,
+                hes_inv=hes_inv,
             ),
             baypass=True,
         )
@@ -223,7 +242,9 @@ class Calculator:
             )
         )
 
-        normalized_t_vector = Calculator.minimize_jax(cost_function, initial_t_vector, None)
+        normalized_t_vector = Calculator.minimize_jax(
+            function=cost_function, initial_vector=initial_t_vector, args=None, hes_inv=None
+        )
         result = nph.unstack(normalized_t_vector, 1)
         return result
 
@@ -241,7 +262,7 @@ class Calculator:
             normalized_t_rhs_free,
         ) = scene.get_normalized_energy_temperature_np(normalized_a)
         boundary_t_vector_np = Calculator.minimize_jax(
-            cost_function, initial_t_boundary_vector, None
+            cost_function, initial_t_boundary_vector, args=None, hes_inv=None
         )
 
         boundary_t_vector = boundary_t_vector_np.reshape(-1, 1)

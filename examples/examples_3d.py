@@ -1,6 +1,9 @@
+from conmech.helpers.config import Config, set_jax
+
+set_jax()
+
 import numpy as np
 
-from conmech.helpers.config import Config
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -119,7 +122,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[32],
+                mesh_density=[16],  # 8
             ),
             body_prop=TimeDependentBodyProperties(
                 mu=12,
@@ -167,7 +170,4 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
 
 
 if __name__ == "__main__":
-    # with jax.disable_jit()
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # "-1"
-    # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     main()

@@ -502,7 +502,7 @@ class LBFGSResults(NamedTuple):
     ###
     fun: Callable
     args: dict
-    # hes: float
+    hes_inv: float
     # xtol_max: float
     # xtol_mean: float
     maxiter_main_ls: float
@@ -525,6 +525,7 @@ def get_backend():
 
 def minimize_lbfgs(
     fun: Callable,
+    hes_inv,
     args,
     x0: Array,
     norm=jnp.inf,
@@ -534,7 +535,7 @@ def minimize_lbfgs(
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
     xtol: float = 1e-03,
-    maxiter: Optional[float] = 200,  # None
+    maxiter: Optional[float] = None,  # 200,  # None
     maxiter_main_ls: int = 20,
     maxiter_zoom_ls: int = 30,
 ):
@@ -581,7 +582,6 @@ def minimize_lbfgs(
         maxgrad = jnp.inf
 
     # initial evaluation
-    # f_0, g_0 = jax.value_and_grad(fun)(x0)
     f_0, g_0 = jax.value_and_grad(jax.jit(fun, backend=get_backend()))(x0, args)
 
     state_initial = LBFGSResults(
@@ -593,16 +593,22 @@ def minimize_lbfgs(
         x_k=x0,
         f_k=f_0,
         g_k=g_0,
-        s_history=jnp.zeros((maxcor, d), dtype=dtype),
-        y_history=jnp.zeros((maxcor, d), dtype=dtype),
-        rho_history=jnp.zeros((maxcor,), dtype=dtype),
+        s_history=jnp.zeros(
+            (maxcor, d), dtype=dtype
+        ),  # if opti_state is None else opti_state.s_history,
+        y_history=jnp.zeros(
+            (maxcor, d), dtype=dtype
+        ),  # if opti_state is None else opti_state.y_history,
+        rho_history=jnp.zeros(
+            (maxcor,), dtype=dtype
+        ),  # if opti_state is None else opti_state.rho_history,
         gamma=1.0,
         status=0,
         ls_status=0,
         ###
         fun=jax.tree_util.Partial(fun),
         args=args,
-        # hes=None if hes is None else jax.tree_util.Partial(hes),
+        hes_inv=hes_inv,  # jax.tree_util.Partial(opti_state),  # if hes is None else jax.tree_util.Partial(hes),
         # xtol_max=xtol_max,
         # xtol_mean=xtol_mean,
         # max_iter=max_iter,
@@ -635,23 +641,22 @@ def _two_loop_recursion(state: LBFGSResults):
         return _q, _a_his
 
     q, a_his = lax.fori_loop(0, curr_size, body_fun1, (q, a_his))
-    q = state.gamma * q
 
-    # Added Hessian preconditioning
-    # if hes is None:
-    #     q = state.gamma * q
-    # else:
-    #     A = lambda x: hes(x, state.args)
-    #     q, _ = jax.scipy.sparse.linalg.cg(A=A, b=q)  # , M=M)
+    # Added custom Hessian preconditioning
+    if state.hes_inv is None:
+        r = state.gamma * q
+        # r = q
+    else:
+        r = state.hes_inv @ q
 
-    def body_fun2(j, _q):
+    def body_fun2(j, _r):
         i = his_size - curr_size + j
-        b_i = state.rho_history[i] * jnp.real(_dot(state.y_history[i], _q))
-        _q = _q + (a_his[i] - b_i) * state.s_history[i]
-        return _q
+        b_i = state.rho_history[i] * jnp.real(_dot(state.y_history[i], _r))
+        _r = _r + (a_his[i] - b_i) * state.s_history[i]
+        return _r
 
-    q = lax.fori_loop(0, curr_size, body_fun2, q)
-    return q
+    r = lax.fori_loop(0, curr_size, body_fun2, r)
+    return r
 
 
 def _update_history_vectors(history, new):

@@ -22,6 +22,7 @@ def build_mesh(
     initial_nodes, elements = build_initial_mesh(
         mesh_prop=mesh_prop, create_in_subprocess=create_in_subprocess
     )
+    assert initial_nodes.shape[1] == mesh_prop.dimension
     nodes = initial_nodes
     # nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
     return nodes, elements

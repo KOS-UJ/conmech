@@ -10,6 +10,9 @@ USE_NONCONVEX_FRICTION_LAW = False
 USE_CONSTANT_CONTACT_INTEGRAL = False
 
 OPTIMIZATION_BACKEND = None  # "gpu" "cpu" None
+USE_LHS_PRECONDITIONER = False
+
+VERBOSE = False
 
 
 def set_jax():
@@ -19,6 +22,7 @@ def set_jax():
     # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # "-1"
     # os.environ["JAX_PLATFORM_NAME"] = "cpu"
     # os.environ["JAX_DISABLE_JIT"] = "1"
+    # os.environ["JAX_DEBUG_NANS"] = "1"
 
     # os.environ['OPTIMIZATION_BACKEND'] = "cpu"
 

@@ -1,14 +1,12 @@
 import copy
 import os
 import subprocess
-import time
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 
-import numpy as np
-
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
+from conmech.helpers.tmh import Timer
 from conmech.plotting import plotter_2d, plotter_3d, plotter_common
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
@@ -153,7 +151,7 @@ def run_scenario(
         )
 
     # cmh.profile(fun_sim)
-    setting, energy_values = fun_sim()
+    setting = fun_sim()
 
     if run_config.plot_animation:
         plot_blender()
@@ -172,7 +170,7 @@ def run_scenario(
         #     else None,
         # )
 
-    return setting, scenes_path, energy_values
+    return setting, scenes_path
 
 
 def plot_blender():
@@ -220,8 +218,10 @@ def prepare(scenario, scene: Scene, current_time, with_temperature):
 
 def print_mesh_data(scene):
     print(f"Mesh type: {scene.mesh_prop.mesh_type}")
-    print(f"Nodes count: {scene.nodes_count}")
-    print(f"Elements count: {scene.elements_count}")
+    print(
+        f" Elements: {scene.elements_count}\
+ | Boundary surfaces: {scene.boundary_surfaces_count} | Nodes: {scene.nodes_count}"
+    )
     print()
 
 
@@ -267,38 +267,45 @@ def simulate(
     energy_functions = prepare_energy_functions(scenario, scene, solve_function, with_temperature)
 
     acceleration, temperature = (None,) * 2
-    solver_time, all_time = 0.0, time.time()
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
-    energy_values = np.zeros(len(time_tqdm))
+    steps = len(time_tqdm)
+    timer = Timer()
 
     for time_step in time_tqdm:
         current_time = (time_step) * scene.time_step
 
-        prepare(scenario, scene, current_time, with_temperature)
+        with timer["all_prepare"]:
+            prepare(scenario, scene, current_time, with_temperature)
 
-        if operation is not None:
-            operation(scene)  # (current_time, scene, a, base_a)
+        with timer["all_operation"]:
+            if operation is not None:
+                operation(scene)  # (current_time, scene, a, base_a)
 
-        start_time = time.time()
-        acceleration, temperature = solve_function(
-            scene=scene,
-            energy_functions=energy_functions,
-            initial_a=acceleration,
-            initial_t=temperature,
-        )
-        solver_time += time.time() - start_time
+        with timer["all_solver"]:
+            acceleration, temperature = solve_function(
+                scene=scene,
+                energy_functions=energy_functions,
+                initial_a=acceleration,
+                initial_t=temperature,
+                timer=timer,
+            )
 
         if simulate_dirty_data:
             scene.make_dirty()
 
-        scene.iterate_self(acceleration, temperature=temperature)
-        scene.exact_acceleration = acceleration
+        with timer["all_iterate"]:
+            scene.iterate_self(acceleration, temperature=temperature)
+            scene.exact_acceleration = acceleration
 
-        # setting.remesh_self() # TODO #65
+    for key in timer:
+        all_time = timer.dt[key].sum()
+        print(f" {key}: {all_time:.2f}s | {(steps/all_time):.2f}it/s")
 
-    all_time = time.time() - all_time
-    print(f"    All time: {all_time} | Solver time : {solver_time}")
-    return scene, energy_values
+    print("Saving timings")
+    fig = timer.dt["all_solver"].plot.hist(bins=100).get_figure()
+    fig.savefig(f"log/timing-{cmh.get_timestamp(config)}.png")
+
+    return scene
 
 
 def plot_setting(

@@ -1,13 +1,12 @@
 from typing import List, Optional
 
 import jax
-import jax.numpy as jnp
 import numba
 import numpy as np
 
 from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
-from conmech.helpers import lnh, nph
+from conmech.helpers import jxh, lnh, nph
 from conmech.helpers.lnh import get_in_base
 from conmech.mesh.mesh import mesh_normalization_decorator
 from conmech.properties.body_properties import TimeDependentBodyProperties
@@ -32,10 +31,6 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
         boundary_obstacle_indices[i] = distances.argmin()
 
     return boundary_obstacle_indices
-
-
-def complete_mesh_boundary_data_with_zeros(data: np.ndarray, nodes_count):
-    return jnp.pad(data, ((0, nodes_count - len(data)), (0, 0)), "constant")
 
 
 # pylint: disable=R0904
@@ -65,6 +60,7 @@ class Scene(BodyForces):
         self.mesh_obstacles: List[BodyPosition] = []
         self.energy_functions = None
         self.lifted_acceleration = None
+        self.opti_state = None
         self.clear()
 
     def prepare(self, inner_forces):
@@ -96,44 +92,33 @@ class Scene(BodyForces):
             )
 
     def get_energy_obstacle_args_for_jax(self, energy_functions, temperature=None):
-        _ = temperature
-
-        displacement = self.normalized_displacement_old
-        velocity = self.normalized_velocity_old
-
-        base_displacement = displacement + self.time_step * velocity
-        body_prop = self.body_prop.get_tuple()
-
-        rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax()
-        if temperature is not None:
-            rhs_acceleration += jnp.array(self.matrices.thermal_expansion.T @ temperature)
-
+        args, rhs_acceleration = self._get_initial_energy_obstacle_args_for_jax(temperature)
         args = EnergyObstacleArguments(
             lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
             rhs_acceleration=rhs_acceleration,
-            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
-            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
-            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
-            penetration=jnp.asarray(self.get_penetration_scalar()),
-            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
-            body_prop=body_prop,
-            obstacle_prop=self.obstacle_prop,
-            time_step=self.time_step,
-            base_displacement=base_displacement,
+            boundary_velocity_old=args.boundary_velocity_old,
+            boundary_normals=args.boundary_normals,
+            boundary_obstacle_normals=args.boundary_obstacle_normals,
+            penetration=args.penetration,
+            surface_per_boundary_node=args.surface_per_boundary_node,
+            body_prop=args.body_prop,
+            obstacle_prop=args.obstacle_prop,
+            time_step=args.time_step,
+            base_displacement=args.base_displacement,
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
             base_energy_displacement=jax.jit(energy_functions.compute_displacement_energy)(
-                displacement=base_displacement,
+                displacement=args.base_displacement,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
-                body_prop=body_prop,
+                body_prop=args.body_prop,
             ),
-            base_velocity=velocity,
+            base_velocity=args.base_velocity,
             base_energy_velocity=jax.jit(energy_functions.compute_velocity_energy)(
-                velocity=velocity,
+                velocity=args.base_velocity,
                 dx_big_jax=self.matrices.dx_big_jax,
                 element_initial_volume=self.matrices.element_initial_volume,
-                body_prop=body_prop,
+                body_prop=args.body_prop,
             ),
         )
         return args
@@ -250,7 +235,7 @@ class Scene(BodyForces):
     def _get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
             return np.zeros((self.nodes_count, 1), dtype=np.int64)
-        return complete_mesh_boundary_data_with_zeros(
+        return jxh.complete_data_with_zeros(
             data=(self.get_penetration_scalar() > 0) * 1, nodes_count=self.nodes_count
         )
 

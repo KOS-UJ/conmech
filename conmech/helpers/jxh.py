@@ -48,3 +48,7 @@ def to_jax_sparse(matrix):
 
 def to_dense_np(array):
     return np.array(array.todense(), dtype=np.float64)
+
+
+def complete_data_with_zeros(data: np.ndarray, nodes_count):
+    return jnp.pad(data, ((0, nodes_count - len(data)), (0, 0)), "constant")

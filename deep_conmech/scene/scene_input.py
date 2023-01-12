@@ -12,7 +12,6 @@ from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scene.scene import complete_mesh_boundary_data_with_zeros
 from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData
@@ -32,7 +31,7 @@ def get_indices_from_graph_sizes_numba(graph_sizes: List[int]):
 
 def prepare_node_data(data: np.ndarray, nodes_count, add_norm=False):
     approximated_data = jnp.array(data)
-    result = complete_mesh_boundary_data_with_zeros(data=approximated_data, nodes_count=nodes_count)
+    result = jxh.complete_data_with_zeros(data=approximated_data, nodes_count=nodes_count)
     if add_norm:
         result = jxh.append_euclidean_norm(result)
     return result

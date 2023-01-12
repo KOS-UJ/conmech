@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from conmech.helpers import nph
+from conmech.helpers import jxh
 from conmech.mesh import mesh
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.mesh_properties import MeshProperties
@@ -31,7 +31,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
     boundary_normals = setting.get_boundary_normals()
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(boundary_normals),
+        jxh.euclidean_norm(boundary_normals),
         np.ones(len(boundary_normals)),
     )
 
@@ -44,7 +44,7 @@ def test_boundary_nodes_data_3d():
     )
     setting = BodyPosition(
         mesh_prop=MeshProperties(
-            dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
+            dimension=3, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
         ),
         schedule=Schedule(1),
         boundaries_description=boundaries_description,
@@ -54,7 +54,7 @@ def test_boundary_nodes_data_3d():
     np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
     boundary_normals = setting.get_boundary_normals()
     np.testing.assert_allclose(
-        nph.euclidean_norm_numba(boundary_normals),
+        jxh.euclidean_norm(boundary_normals),
         np.ones(len(boundary_normals)),
     )
 

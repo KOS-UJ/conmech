@@ -45,7 +45,7 @@ def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
         mesh_prop=MeshProperties(
-            dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]
+            dimension=3, mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]
         ),
     )
 

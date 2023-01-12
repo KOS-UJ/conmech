@@ -26,6 +26,7 @@ from conmech.scenarios import scenarios
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
+from deep_conmech.graph import pca
 from deep_conmech.graph.model_jax import GraphModelDynamicJax, save_tf_model
 from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.graph.net_jax import CustomGraphNetJax
@@ -66,6 +67,11 @@ def initialize_data(config: TrainingConfig):
     train_dataset.initialize_data()
 
     return train_dataset, all_validation_datasets
+
+
+def pca(config: TrainingConfig):
+    train_dataset, _ = initialize_data(config=config)
+    pca.run(train_dataset)
 
 
 def train(config: TrainingConfig):
@@ -293,6 +299,8 @@ def main(args: Namespace):
         plot(config)
     if args.mode == "visualize":
         visualize(config)
+    if args.mode == "pca":
+        pca()
 
 
 if __name__ == "__main__":

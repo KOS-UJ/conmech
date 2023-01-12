@@ -19,6 +19,7 @@ from jax.experimental import jax2tf
 from torch_geometric.data.batch import Data
 
 from conmech.helpers import cmh
+from conmech.helpers.tmh import Timer
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.simulations import simulation_runner
@@ -413,69 +414,56 @@ def solve(
     energy_functions: EnergyFunctions,
     initial_a,
     initial_t,
+    timer=Timer(),
 ):
     # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
     _ = initial_a, initial_t
 
-    print()
-    t1 = time.perf_counter()
-    # y = jax.device_put(np.arange(5), device=jax.devices("cpu")[0])
-    scene.reduced.exact_acceleration, _ = Calculator.solve(
-        scene=scene.reduced,
-        energy_functions=energy_functions,
-        initial_a=scene.reduced.exact_acceleration,
-    )
-    scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+    with timer["jax_calculator"]:
+        scene.reduced.exact_acceleration, _ = Calculator.solve(
+            scene=scene.reduced,
+            energy_functions=energy_functions,
+            initial_a=scene.reduced.exact_acceleration,
+            timer=timer,
+        )
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
     # return scene.exact_acceleration, None
 
     device_number = 0  # using GPU 0
 
-    print("T1: ", time.perf_counter() - t1)
-    t1 = time.perf_counter()
+    with timer["jax_features_constructon"]:
+        layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
+        layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
+        layers_list = [layers_list_0, layers_list_1]
 
-    layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
-    print("T2: ", time.perf_counter() - t1)
-    t1 = time.perf_counter()
+        # return scene.exact_acceleration, None
 
-    layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
-    layers_list = [layers_list_0, layers_list_1]
+        # layers_list = [
+        #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
+        #     for layer_number, _ in enumerate(scene.all_layers)
+        # ]
 
-    # return scene.exact_acceleration, None
+    with timer["jax_data_movement"]:
+        args = prepare_input(convert_to_jax(layers_list))
+        args = jax.device_put(args, jax.local_devices()[device_number])
 
-    # layers_list = [
-    #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
-    #     for layer_number, _ in enumerate(scene.all_layers)
-    # ]
+    with timer["jax_net"]:
+        net_result = apply_net(args)
+        net_displacement = np.array(net_result)
 
-    print("T3: ", time.perf_counter() - t1)
-    t1 = time.perf_counter()
+    with timer["jax_translation"]:
+        # base = scene.moved_base
+        # position = scene.position
+        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+        base = scene.reduced.get_rotation(reduced_displacement_new)
+        position = np.mean(reduced_displacement_new, axis=0)
 
-    args = prepare_input(convert_to_jax(layers_list))
-    args = jax.device_put(args, jax.local_devices()[device_number])
+        new_displacement = scene.get_displacement(
+            base=base, position=position, base_displacement=net_displacement
+        )
 
-    print("T4: ", time.perf_counter() - t1)
-    t1 = time.time()
-
-    net_result = apply_net(args)
-    net_displacement = np.array(net_result)
-
-    print("T5: ", time.perf_counter() - t1)
-    t1 = time.perf_counter()
-
-    # base = scene.moved_base
-    # position = scene.position
-    reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-    base = scene.reduced.get_rotation(reduced_displacement_new)
-    position = np.mean(reduced_displacement_new, axis=0)
-
-    new_displacement = scene.get_displacement(
-        base=base, position=position, base_displacement=net_displacement
-    )
-
-    acceleration_from_displacement = scene.from_displacement(new_displacement)
-
-    print("T6: ", time.perf_counter() - t1)
+        acceleration_from_displacement = scene.from_displacement(new_displacement)
 
     return acceleration_from_displacement, None
 

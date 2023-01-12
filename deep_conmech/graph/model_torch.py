@@ -449,7 +449,7 @@ class GraphModelDynamicTorch:
         )
 
 
-def solve(net, scene: SceneInput, energy_functions: EnergyFunctions, initial_a, initial_t):
+def solve(net, scene: SceneInput, energy_functions: EnergyFunctions, initial_a, initial_t, timer):
     _ = initial_a, initial_t
     # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
 

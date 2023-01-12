@@ -258,9 +258,8 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
     K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
 
-    all_scenarios = [
-        *advanced_scenarios
-    ]  # *advanced_scenarios, *other_scenarios , *C_temp_scenarios, *K_temp_scenarios]
+    all_scenarios = [*advanced_scenarios]
+    # all_scenarios = [*C_temp_scenarios, *K_temp_scenarios, *advanced_scenarios, *other_scenarios]
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,

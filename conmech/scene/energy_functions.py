@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from conmech.dynamics.dynamics import _get_deform_grad
-from conmech.helpers import nph
+from conmech.helpers import jxh, nph
 
 
 def _get_penetration_positive(displacement_step, normals, penetration):
@@ -20,7 +20,7 @@ def _obstacle_resistance_potential_normal(penetration_norm, hardness, time_step)
     return hardness * 0.5 * (penetration_norm**2) * ((1.0 / time_step) ** 2)
 
 
-def _obstacle_resistance_normal(penetration_norm, hardness):
+def _obstacle_resistance_normal_scalar(penetration_norm, hardness):
     return hardness * penetration_norm
 
 
@@ -34,14 +34,18 @@ def _obstacle_resistance_potential_tangential(
     return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
 
 
-def _obstacle_resistance_tangential(
+def _obstacle_resistance_tangential_vector(
     penetration_norm, tangential_velocity, friction, use_nonconvex_friction_law
 ):
     if use_nonconvex_friction_law:
         raise ArgumentError()
 
-    friction_law = tangential_velocity / nph.euclidean_norm(tangential_velocity, keepdims=True)
-    return (penetration_norm > 0) * friction * friction_law
+    epsilon = 0.0  # 1e-10
+    friction_law = tangential_velocity / (
+        epsilon + nph.euclidean_norm(tangential_velocity, keepdims=True)
+    )
+    result = (penetration_norm > 0) * friction * friction_law
+    return jnp.nan_to_num(result)  # otherwise Nans in division
 
 
 class EnergyObstacleArguments(NamedTuple):
@@ -70,11 +74,8 @@ class StaticEnergyArguments(NamedTuple):
 
 
 def _get_constant_boundary_integral(
-    acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
+    args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
-    boundary_nodes_count = args.boundary_velocity_old.shape[0]
-    boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
-
     boundary_v_new = args.boundary_velocity_old
     boundary_displacement_step = args.time_step * boundary_v_new
 
@@ -85,26 +86,25 @@ def _get_constant_boundary_integral(
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
-    resistance_normal = _obstacle_resistance_normal(
+    resistance_normal_scalar = _obstacle_resistance_normal_scalar(
         penetration_norm=penetration_norm, hardness=args.obstacle_prop.hardness
     )
-    resistance_tangential = _obstacle_resistance_tangential(
-        penetration_norm=args.penetration,
+    resistance_normal = args.boundary_normals * resistance_normal_scalar
+
+    resistance_tangential = _obstacle_resistance_tangential_vector(
+        penetration_norm=penetration_norm,
         tangential_velocity=velocity_tangential,
         friction=args.obstacle_prop.friction,
         use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
 
-    normal_a, tangential_a = nph.get_normal_tangential(boundary_a, args.boundary_normals)
-    resistance_normal_a = resistance_normal * normal_a
-    resistance_tangential_a = nph.elementwise_dot(
-        resistance_tangential, tangential_a, keepdims=True
+    rhs_boundary_contact = args.surface_per_boundary_node * (
+        resistance_normal + resistance_tangential
     )
-
-    boundary_integral = (
-        args.surface_per_boundary_node * (resistance_normal_a + resistance_tangential_a)
-    ).sum()
-    return boundary_integral
+    rhs_contact = jxh.complete_data_with_zeros(
+        rhs_boundary_contact, nodes_count=len(args.base_displacement)
+    )
+    return rhs_contact
 
 
 def _get_actual_boundary_integral(
@@ -139,21 +139,6 @@ def _get_actual_boundary_integral(
         args.surface_per_boundary_node * (resistance_normal + resistance_tangential)
     ).sum()
     return boundary_integral
-
-
-def _get_boundary_integral(acceleration, args: EnergyObstacleArguments, static_args: bool):
-    if static_args.use_constant_contact_integral:
-        return _get_constant_boundary_integral(
-            acceleration=acceleration,
-            args=args,
-            use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
-        )
-
-    return _get_actual_boundary_integral(
-        acceleration=acceleration,
-        args=args,
-        use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
-    )
 
 
 def _get_strain_lin(deform_grad):
@@ -259,6 +244,7 @@ def _energy_obstacle_free(
 ):
     print("energy_obstacle")
     dimension = args.base_displacement.shape[1]
+
     main_energy0 = _energy_vector(
         value_vector=nph.stack_column(acceleration_vector),
         lhs=args.lhs_acceleration_jax,
@@ -277,19 +263,22 @@ def _energy_obstacle_colliding(
 ):
     print("energy_obstacle_colliding")
     # TODO: Repeat if collision
-    dimension = args.base_displacement.shape[1]
     main_energy = _energy_obstacle_free(
         acceleration_vector=acceleration_vector,
         args=args,
         static_args=static_args,
     )
-    acceleration = nph.unstack(acceleration_vector, dim=dimension)
-    boundary_integral = _get_boundary_integral(
-        acceleration=acceleration,
-        args=args,
-        static_args=static_args,
-    )
-    return main_energy + boundary_integral
+    if not static_args.use_constant_contact_integral:
+        dimension = args.base_displacement.shape[1]
+        acceleration = nph.unstack(acceleration_vector, dim=dimension)
+        boundary_integral = _get_actual_boundary_integral(
+            acceleration=acceleration,
+            args=args,
+            use_nonconvex_friction_law=static_args.use_nonconvex_friction_law,
+        )
+        return main_energy + boundary_integral
+
+    return main_energy
 
 
 # @partial(jax.jit, static_argnums=(2,))

@@ -10,6 +10,10 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
+from conmech.scene.energy_functions import (
+    EnergyObstacleArguments,
+    _get_constant_boundary_integral,
+)
 from conmech.solvers.optimization.schur_complement import SchurComplement
 from conmech.state.body_position import get_surface_per_boundary_node_numba
 
@@ -112,15 +116,69 @@ class BodyForces(Dynamics):
     def get_integrated_forces_vector_np(self):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 
-    def get_normalized_integrated_forces_column_for_jax(self):
+    def get_normalized_integrated_forces_column_for_jax(self, args):
         integrated_forces = get_integrated_forces_jax_int(
             volume_at_nodes_jax=self.matrices.volume_at_nodes_jax,
             normalized_inner_forces=self.normalized_inner_forces,
             integrated_outer_forces=self.get_normalized_integrated_outer_forces(),
         )
+
+        if self.use_constant_contact_integral:
+            rhs_contact = jax.jit(
+                _get_constant_boundary_integral, static_argnames="use_nonconvex_friction_law"
+            )(
+                args=args,
+                use_nonconvex_friction_law=self.use_nonconvex_friction_law,
+            )
+            integrated_forces = integrated_forces - rhs_contact
+
         return nph.stack_column(
             integrated_forces[self.independent_indices, :]
         )  # Skipping Dirichlet nodes
+
+    @property
+    def norm_boundary_velocity_old(self):
+        pass
+
+    def get_normalized_boundary_normals(self):
+        pass
+
+    def get_norm_boundary_obstacle_normals(self):
+        pass
+
+    def get_penetration_scalar(self):
+        pass
+
+    @property
+    def obstacle_prop(self):
+        pass
+
+    def _get_initial_energy_obstacle_args_for_jax(self, temperature=None):
+        base_velocity = self.normalized_velocity_old
+        base_displacement = self.normalized_displacement_old + self.time_step * base_velocity
+
+        args = EnergyObstacleArguments(
+            lhs_acceleration_jax=None,
+            rhs_acceleration=None,
+            boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
+            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            penetration=jnp.asarray(self.get_penetration_scalar()),
+            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
+            body_prop=self.body_prop.get_tuple(),
+            obstacle_prop=self.obstacle_prop,
+            time_step=self.time_step,
+            base_displacement=base_displacement,
+            element_initial_volume=None,
+            dx_big_jax=None,
+            base_energy_displacement=None,
+            base_velocity=base_velocity,
+            base_energy_velocity=None,
+        )
+        rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax(args)
+        if temperature is not None:
+            rhs_acceleration += jnp.array(self.matrices.thermal_expansion.T @ temperature)
+        return args, rhs_acceleration
 
     def get_all_normalized_rhs_jax(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_jax(temperature)
@@ -155,7 +213,7 @@ class BodyForces(Dynamics):
         _ = temperature
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_normalized_integrated_forces_column_for_jax()
+        _, f_vector = self._get_initial_energy_obstacle_args_for_jax(temperature=temperature)
         rhs = (
             f_vector
             - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)

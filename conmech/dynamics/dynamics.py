@@ -11,7 +11,7 @@ from jax import lax
 
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
-from conmech.helpers.config import USE_LINEAR_SOLVER
+from conmech.helpers.config import USE_LHS_PRECONDITIONER, USE_LINEAR_SOLVER
 from conmech.helpers.lnh import complete_base
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
@@ -194,7 +194,7 @@ class Dynamics(BodyPosition):
                 + self.matrices.thermal_conductivity[i, i]
             )
 
-        if self.with_lhs or USE_LINEAR_SOLVER:
+        if self.with_lhs or USE_LINEAR_SOLVER or USE_LHS_PRECONDITIONER:
             print("Creating LHS...")
             self.solver_cache.lhs_sparse = (
                 self.matrices.acceleration_operator
