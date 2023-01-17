@@ -1,7 +1,7 @@
 import copy
-from ctypes import ArgumentError
 import os
 import subprocess
+from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
 
@@ -243,7 +243,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
                     initial_a=None,
                     initial_t=None,
                 )
-            except Exception:
+            except AssertionError:
                 pass
 
         if hasattr(scene, "reduced"):

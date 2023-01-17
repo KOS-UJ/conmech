@@ -55,8 +55,7 @@ def get_scenes():
     scenes = []
     scenes_file = open_file_read(all_arrays_path)
     with scenes_file:
-        for step in range(len(all_indices)):
-            byte_index = all_indices[step]
+        for byte_index in all_indices:
             scene = load_byte_index(
                 byte_index=byte_index,
                 data_file=scenes_file,

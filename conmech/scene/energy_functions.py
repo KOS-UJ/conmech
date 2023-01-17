@@ -1,12 +1,8 @@
 from ctypes import ArgumentError
 from dataclasses import dataclass
-from functools import partial
 from typing import NamedTuple
 
-import jax
 import jax.numpy as jnp
-
-# import jaxopt
 import numpy as np
 
 from conmech.dynamics.dynamics import _get_deform_grad
@@ -350,22 +346,23 @@ class EnergyFunctions:
 
         self.energy_obstacle_free = self._energy_obstacle_free
         self.energy_obstacle_colliding = self._energy_obstacle_colliding
-        return
+
         projection = pca.load_pca()
+        _ = projection
 
-        def p_to(x):
-            return pca.project_to_latent(projection, x.reshape(-1, 1)).reshape(-1)
+        # def p_to(x):
+        #     return pca.project_to_latent(projection, x.reshape(-1, 1)).reshape(-1)
 
-        def p_from(l):
-            return pca.project_from_latent(projection, l.reshape(-1, 1)).reshape(-1)
+        # def p_from(l):
+        #     return pca.project_from_latent(projection, l.reshape(-1, 1)).reshape(-1)
 
         # @partial(jax.jit, static_argnames="args")
-        self.energy_obstacle_free = lambda l, args: self._energy_obstacle_free(
-            p_from(p_to(l)), args
-        )
-        self.energy_obstacle_colliding = lambda l, args: self._energy_obstacle_colliding(
-            p_from(p_to(l)), args
-        )
+        # self.energy_obstacle_free = lambda l, args: self._energy_obstacle_free(
+        #     p_from(p_to(l)), args
+        # )
+        # self.energy_obstacle_colliding = lambda l, args: self._energy_obstacle_colliding(
+        #     p_from(p_to(l)), args
+        # )
 
     @staticmethod
     def get_manual_modes():
