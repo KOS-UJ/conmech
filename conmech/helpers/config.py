@@ -16,7 +16,7 @@ VERBOSE = False
 
 
 def set_jax():
-    jax_64 = False
+    jax_64 = True
 
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # "-1"
@@ -40,6 +40,7 @@ class Config:
     run_timestamp: float = int(time.time() * timestamp_skip)
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
+    animation_backend: str = "matplotlib"  # blender matplotlib
     print_skip: float = 0.1  # 0.01
 
     plot_tests: bool = False

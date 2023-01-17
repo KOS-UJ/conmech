@@ -100,6 +100,37 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
+                mesh_density=[16],  # 8 32
+            ),
+            body_prop=TimeDependentBodyProperties(
+                mu=8,
+                lambda_=8,
+                theta=8,
+                zeta=8,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=6),
+            forces_function=np.array([0.0, 0.0, -1.0]),
+            obstacle=Obstacle(  # 0.3
+                geometry=None,  # np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                properties=ObstacleProperties(hardness=100.0, friction=5.0),
+                all_mesh=[
+                    MeshProperties(
+                        dimension=3,
+                        mesh_type=M_BUNNY_3D,
+                        scale=[1],
+                        mesh_density=[16],
+                        initial_position=[0, 0, -1],
+                    )
+                ],
+            ),
+        ),
+        Scenario(
+            name="bunny_fall",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
                 mesh_density=[16],  # 32
             ),
             body_prop=TimeDependentBodyProperties(

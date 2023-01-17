@@ -15,7 +15,7 @@ from conmech.scene.energy_functions import (
     _get_constant_boundary_integral,
 )
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from conmech.state.body_position import get_surface_per_boundary_node_numba
+from conmech.state.body_position import get_surface_per_boundary_node_jax
 
 
 def energy(value, solver_cache, rhs):
@@ -100,10 +100,12 @@ class BodyForces(Dynamics):
         return self.normalized_inner_forces
 
     def get_normalized_integrated_outer_forces(self):
-        neumann_surfaces = get_surface_per_boundary_node_numba(
+        neumann_surfaces = jax.jit(
+            get_surface_per_boundary_node_jax, static_argnames=["considered_nodes_count"]
+        )(
+            moved_nodes=self.moved_nodes,  # normalized
             boundary_surfaces=self.neumann_boundary,
             considered_nodes_count=self.nodes_count,
-            moved_nodes=self.moved_nodes,  # normalized
         )
         return neumann_surfaces * self.normalized_outer_forces
 
@@ -136,23 +138,6 @@ class BodyForces(Dynamics):
             integrated_forces[self.independent_indices, :]
         )  # Skipping Dirichlet nodes
 
-    @property
-    def norm_boundary_velocity_old(self):
-        pass
-
-    def get_normalized_boundary_normals(self):
-        pass
-
-    def get_norm_boundary_obstacle_normals(self):
-        pass
-
-    def get_penetration_scalar(self):
-        pass
-
-    @property
-    def obstacle_prop(self):
-        pass
-
     def _get_initial_energy_obstacle_args_for_jax(self, temperature=None):
         base_velocity = self.normalized_velocity_old
         base_displacement = self.normalized_displacement_old + self.time_step * base_velocity
@@ -161,10 +146,10 @@ class BodyForces(Dynamics):
             lhs_acceleration_jax=None,
             rhs_acceleration=None,
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
-            boundary_normals=jnp.asarray(self.get_normalized_boundary_normals()),
+            boundary_normals=self.get_normalized_boundary_normals_jax(),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
             penetration=jnp.asarray(self.get_penetration_scalar()),
-            surface_per_boundary_node=jnp.asarray(self.get_surface_per_boundary_node()),
+            surface_per_boundary_node=self.get_surface_per_boundary_node_jax(),
             body_prop=self.body_prop.get_tuple(),
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,

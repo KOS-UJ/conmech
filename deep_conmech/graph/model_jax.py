@@ -449,8 +449,7 @@ def solve(
         args = jax.device_put(args, jax.local_devices()[device_number])
 
     with timer["jax_net"]:
-        net_result = apply_net(args)
-        net_displacement = np.array(net_result)
+        net_displacement = apply_net(args)
 
     with timer["jax_translation"]:
         # base = scene.moved_base
@@ -464,6 +463,7 @@ def solve(
         )
 
         acceleration_from_displacement = scene.from_displacement(new_displacement)
+        acceleration_from_displacement = np.array(acceleration_from_displacement)
 
     return acceleration_from_displacement, None
 

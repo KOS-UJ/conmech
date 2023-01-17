@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 import numpy as np
 
-from conmech.helpers import nph, jxh
+from conmech.helpers import jxh, nph
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
@@ -113,11 +113,11 @@ class SceneTemperature(Scene):
 
     # TODO: #65 Check why without new data !!!
     def get_obstacle_heat_integral(self):
-        surface_per_boundary_node = self.get_surface_per_boundary_node()
+        surface_per_boundary_node = self.get_surface_per_boundary_node_jax()
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         return integrate(
-            nodes_normals=self.get_boundary_normals(),
+            nodes_normals=self.get_boundary_normals_jax(),
             obstacle_normals=self.get_boundary_obstacle_normals(),
             velocity=self.boundary_velocity_old,
             initial_penetration=self.get_penetration_scalar(),

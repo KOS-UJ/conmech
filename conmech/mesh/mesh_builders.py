@@ -24,7 +24,7 @@ def build_mesh(
     )
     assert initial_nodes.shape[1] == mesh_prop.dimension
     nodes = initial_nodes
-    # nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
+    nodes = translate_nodes(nodes=initial_nodes, mesh_prop=mesh_prop)
     return nodes, elements
 
 

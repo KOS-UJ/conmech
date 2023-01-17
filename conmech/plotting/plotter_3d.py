@@ -206,26 +206,30 @@ def plot_obstacles(axes, scene: Scene, color):
     if scene.has_no_obstacles:
         return
     alpha = 0.3
-    node = scene.linear_obstacle_nodes[0]
-    normal = scene.get_obstacle_normals()[0]
+    for mesh in scene.mesh_obstacles:
+        plot_mesh(nodes=mesh.initial_nodes, mesh=mesh, color="tab:blue", axes=axes)
 
-    # a plane is a*x+b*y+c*z+d=0
-    # z = (-d-axes-by) / c
-    # [a,b,c] is the normal. Thus, we have to calculate
-    # d and we're set
-    d = -node.dot(normal)
+    if len(scene.linear_obstacle_nodes > 0):
+        node = scene.linear_obstacle_nodes[0]
+        normal = scene.get_obstacle_normals()[0]
 
-    x_rng = np.arange(-1.2, 11.2, 0.2)
-    y_rng = np.arange(-1.2, 3.2, 0.2)
+        # a plane is a*x+b*y+c*z+d=0
+        # z = (-d-axes-by) / c
+        # [a,b,c] is the normal. Thus, we have to calculate
+        # d and we're set
+        d = -node.dot(normal)
 
-    X, Y = np.meshgrid(x_rng, y_rng)
-    Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
-    mask = (Z > -1.2) * (Z < 3.2)
+        x_rng = np.arange(-1.2, 11.2, 0.2)
+        y_rng = np.arange(-1.2, 3.2, 0.2)
 
-    axes.plot_surface(X * mask, Y * mask, Z * mask, color=color, alpha=alpha)
-    # axes.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
+        X, Y = np.meshgrid(x_rng, y_rng)
+        Z = (-normal[0] * X - normal[1] * Y - d) / normal[2]
+        mask = (Z > -1.2) * (Z < 3.2)
 
-    axes.quiver(*node, *normal, color=color, alpha=alpha)
+        axes.plot_surface(X * mask, Y * mask, Z * mask, color=color, alpha=alpha)
+        # axes.plot_surface(X[:,col], Y[:,col], Z[:,col], color=color, alpha=alpha)
+
+        axes.quiver(*node, *normal, color=color, alpha=alpha)
 
 
 def plot_animation(
@@ -235,7 +239,6 @@ def plot_animation(
     index_skip: int,
     plot_scenes_count: int,
     all_scenes_path: str,
-    all_calc_scenes_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -249,6 +252,5 @@ def plot_animation(
             index_skip=index_skip,
             plot_scenes_count=plot_scenes_count,
             all_scenes_path=all_scenes_path,
-            all_calc_scenes_path=all_calc_scenes_path,
         ),
     )

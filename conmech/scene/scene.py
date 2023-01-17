@@ -141,7 +141,7 @@ class Scene(BodyForces):
     def get_obstacle_normals(self):
         all_normals = []
         all_normals.extend(list(self.linear_obstacle_normals))
-        all_normals.extend([m.get_boundary_normals() for m in self.mesh_obstacles])
+        all_normals.extend([m.get_boundary_normals_jax() for m in self.mesh_obstacles])
         return np.vstack(all_normals)
 
     @property
@@ -177,10 +177,16 @@ class Scene(BodyForces):
     def normalized_boundary_nodes(self):
         return self.normalized_nodes[self.boundary_indices]
 
+    # def get_penetration_scalar(self):
+    #     return (-1) * nph.elementwise_dot(
+    #         (self.normalized_boundary_nodes - self.norm_boundary_obstacle_nodes),
+    #         self.get_norm_boundary_obstacle_normals(),
+    #     ).reshape(-1, 1)
+
     def get_penetration_scalar(self):
         return (-1) * nph.elementwise_dot(
-            (self.normalized_boundary_nodes - self.norm_boundary_obstacle_nodes),
-            self.get_norm_boundary_obstacle_normals(),
+            (self.boundary_nodes - self.boundary_obstacle_nodes),
+            self.get_boundary_obstacle_normals(),
         ).reshape(-1, 1)
 
     def get_penetration_positive(self):
@@ -194,11 +200,11 @@ class Scene(BodyForces):
         return self.normalize_rotate(self.__get_boundary_penetration())
 
     def __get_boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
+        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals_jax())
 
     def __get_normalized_boundary_v_tangential(self):
         return nph.get_tangential_numba(
-            self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
+            self.norm_boundary_velocity_old, np.array(self.get_normalized_boundary_normals_jax())
         )
 
     def __get_friction_vector(self):
@@ -323,7 +329,7 @@ class Scene(BodyForces):
     def get_centered_nodes(self, displacement):
         nodes = self.centered_initial_nodes + displacement
         centered_nodes = lnh.get_in_base(
-            (nodes - np.mean(nodes, axis=0)), self.get_rotation(displacement)
+            (nodes - nodes.mean(axis=0)), self.get_rotation(displacement)
         )
         return centered_nodes
 

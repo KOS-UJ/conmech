@@ -4,7 +4,6 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
-import numba
 import numpy as np
 
 from conmech.helpers import jxh, lnh, nph
@@ -47,55 +46,73 @@ def _get_boundary_surfaces_normals_jax(
     return unoriented_normals * external_orientation
 
 
-def get_boundary_normals_jax(
-    moved_nodes, boundary_surfaces, boundary_internal_indices, boundary_nodes_count, dimension
-):
-    print("get_boundary_normals_jax")
-    boundary_surfaces_normals = _get_boundary_surfaces_normals_jax(
-        moved_nodes, boundary_surfaces, boundary_internal_indices, dimension
-    )
-    boundary_normals = jnp.mean(
+def _aggrergate_boundary_surfaces_jax(data, boundary_surfaces, considered_nodes_count, agg_fun):
+    return agg_fun(
         jnp.array(
             [
                 jax.ops.segment_sum(
-                    boundary_surfaces_normals,
-                    boundary_surfaces[:, i],
-                    num_segments=boundary_nodes_count,
+                    data=data,
+                    segment_ids=boundary_surfaces[:, i],
+                    num_segments=considered_nodes_count,
                 )
-                for i in range(dimension)
+                for i in range(boundary_surfaces.shape[1])
             ]
         ),
         axis=0,
     )
 
+
+def _get_boundary_normals_jax(
+    moved_nodes, boundary_surfaces, boundary_internal_indices, considered_nodes_count
+):
+    print("get_boundary_normals_jax")
+    dimension = moved_nodes.shape[1]
+    boundary_surfaces_normals = _get_boundary_surfaces_normals_jax(
+        moved_nodes, boundary_surfaces, boundary_internal_indices, dimension
+    )
+    boundary_normals = _aggrergate_boundary_surfaces_jax(
+        data=boundary_surfaces_normals,
+        boundary_surfaces=boundary_surfaces,
+        considered_nodes_count=considered_nodes_count,
+        agg_fun=jnp.mean,
+    )
     boundary_normals = jxh.normalize_euclidean(boundary_normals)
     return boundary_normals
 
 
-@numba.njit
-def get_surface_per_boundary_node_numba(boundary_surfaces, considered_nodes_count, moved_nodes):
-    surface_per_boundary_node = np.zeros((considered_nodes_count, 1), dtype=np.float64)
+def _get_element_volume_part_jax(moved_nodes, boundary_surfaces):
+    print("get_element_volume_part_jax")
 
-    for boundary_surface in boundary_surfaces:
-        face_nodes = moved_nodes[boundary_surface]
-        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
+    moved_boundary_nodes = moved_nodes[boundary_surfaces]
+    dimension = moved_nodes.shape[1]
+    nodes_count = boundary_surfaces.shape[1]
 
-    return surface_per_boundary_node
-
-
-@numba.njit
-def element_volume_part_numba(face_nodes):
-    dim = face_nodes.shape[1]
-    nodes_count = face_nodes.shape[0]
-    if dim == 2:
-        volume = nph.euclidean_norm_numba(face_nodes[0] - face_nodes[1])
-    elif dim == 3:
-        volume = 0.5 * nph.euclidean_norm_numba(
-            np.cross(face_nodes[1] - face_nodes[0], face_nodes[2] - face_nodes[0])
+    if dimension == 2:
+        volume = jxh.euclidean_norm(moved_boundary_nodes[:, 1, :] - moved_boundary_nodes[:, 0, :])
+    elif dimension == 3:
+        volume = 0.5 * jxh.euclidean_norm(
+            jnp.cross(
+                moved_boundary_nodes[:, 1, :] - moved_boundary_nodes[:, 0, :],
+                moved_boundary_nodes[:, 2, :] - moved_boundary_nodes[:, 0, :],
+            ),
+            keepdims=True,
         )
     else:
         raise ArgumentError
     return volume / nodes_count
+
+
+def get_surface_per_boundary_node_jax(moved_nodes, boundary_surfaces, considered_nodes_count):
+    print("get_surface_per_boundary_node_jax")
+    element_volume_part = _get_element_volume_part_jax(moved_nodes, boundary_surfaces)
+
+    surface_per_boundary_node = _aggrergate_boundary_surfaces_jax(
+        data=element_volume_part,
+        boundary_surfaces=boundary_surfaces,
+        considered_nodes_count=considered_nodes_count,
+        agg_fun=jnp.sum,
+    )
+    return surface_per_boundary_node
 
 
 class BodyPosition(Mesh):
@@ -191,8 +208,8 @@ class BodyPosition(Mesh):
     def normalized_boundary_nodes(self):
         return self.normalized_nodes[self.boundary_indices]
 
-    def get_normalized_boundary_normals(self):
-        return self.normalize_rotate(self.get_boundary_normals())
+    def get_normalized_boundary_normals_jax(self):
+        return self.normalize_rotate(self.get_boundary_normals_jax())
 
     @property
     def mean_moved_nodes(self):
@@ -222,22 +239,21 @@ class BodyPosition(Mesh):
     def normalized_displacement_old(self):
         return self.normalized_nodes - self.normalized_initial_nodes
 
-    def get_boundary_normals(self):
-        return jax.jit(
-            get_boundary_normals_jax, static_argnames=["boundary_nodes_count", "dimension"]
-        )(
+    def get_boundary_normals_jax(self):
+        return jax.jit(_get_boundary_normals_jax, static_argnames=["considered_nodes_count"])(
             moved_nodes=self.moved_nodes,
             boundary_surfaces=self.boundary_surfaces,
             boundary_internal_indices=self.boundary_internal_indices,
-            boundary_nodes_count=self.boundary_nodes_count,
-            dimension=self.dimension,
+            considered_nodes_count=self.boundary_nodes_count,
         )
 
-    def get_surface_per_boundary_node(self):
-        return get_surface_per_boundary_node_numba(
+    def get_surface_per_boundary_node_jax(self):
+        return jax.jit(
+            get_surface_per_boundary_node_jax, static_argnames=["considered_nodes_count"]
+        )(
+            moved_nodes=self.moved_nodes,
             boundary_surfaces=self.boundary_surfaces,
             considered_nodes_count=self.boundary_nodes_count,
-            moved_nodes=self.moved_nodes,
         )
 
     @property

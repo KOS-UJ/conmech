@@ -152,7 +152,6 @@ class PlotAnimationConfig:
     index_skip: int
     plot_scenes_count: int
     all_scenes_path: str
-    all_calc_scenes_path: Optional[str]
 
 
 def plot_animation(
@@ -167,11 +166,6 @@ def plot_animation(
 
     all_indices = pkh.get_all_indices(plot_config.all_scenes_path)
     scenes_file = pkh.open_file_read(plot_config.all_scenes_path)
-    base_all_indices = (
-        None
-        if plot_config.all_calc_scenes_path is None
-        else pkh.get_all_indices(plot_config.all_calc_scenes_path)
-    )
     with scenes_file:
         args = AnimationArgs(
             fig=fig,
@@ -179,7 +173,7 @@ def plot_animation(
             index_skip=plot_config.index_skip,
             all_indices=all_indices,
             scenes_file=scenes_file,
-            base_all_indices=base_all_indices,
+            base_all_indices=None,
             animation_tqdm=animation_tqdm,
         )
         ani = animation.FuncAnimation(

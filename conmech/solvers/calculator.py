@@ -21,16 +21,13 @@ from conmech.scene.scene_temperature import SceneTemperature
 from optimization.lbfgs import minimize_lbfgs
 
 # from jax._src.scipy.optimize.bfgs import minimize_bfgs
+# import tensorflow_probability as tfp
 
 
 class Calculator:
     @staticmethod
     def minimize_jax(function, initial_vector: np.ndarray, args, hes_inv) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
-
-        # hvp = lambda f, x, v: jax.grad(lambda x: jnp.vdot(jax.grad(f)(x), v))(x)
-        # hes = jax.jit(lambda x, args: hvp(lambda x: function(x, args), x, x))
-        # .lower(x0, args).compile()
 
         state = cmh.profile(
             lambda: minimize_lbfgs(fun=function, hes_inv=hes_inv, args=args, x0=x0),
@@ -47,7 +44,6 @@ class Calculator:
                     cmh.Console.print_fail("Maxiter error")
                 else:
                     cmh.Console.print_fail(f"Status: {state.status}")
-
         # Validate https://github.com/google/jax/issues/6898
         return np.asarray(state.x_k)  # , state
 
@@ -61,7 +57,7 @@ class Calculator:
     ) -> np.ndarray:
         with timer["calc_optimize"]:
             normalized_a = Calculator.solve_acceleration_normalized(
-                scene, energy_functions, initial_a=initial_a
+                scene, energy_functions, initial_a=initial_a, timer=timer
             )
         normalized_cleaned_a = scene.clean_acceleration(normalized_a)
         with timer["calc_denormalize"]:
@@ -118,6 +114,7 @@ class Calculator:
         energy_functions: EnergyFunctions,
         temperature=None,
         initial_a: Optional[np.ndarray] = None,
+        timer: Timer = Timer(),
     ) -> np.ndarray:
         if USE_LINEAR_SOLVER:
             return Calculator.solve_acceleration_normalized_function(
@@ -130,6 +127,7 @@ class Calculator:
             energy_functions=energy_functions,
             temperature=temperature,
             initial_a=initial_a,
+            timer=timer,
         )
 
     @staticmethod
@@ -195,28 +193,34 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized_optimization_jax(
-        scene, energy_functions: EnergyFunctions, temperature=None, initial_a=None
+        scene,
+        energy_functions: EnergyFunctions,
+        temperature=None,
+        initial_a=None,
+        timer: Timer = Timer(),
     ):
         if initial_a is None:
             initial_a_vector = np.zeros(scene.nodes_count * scene.dimension)
         else:
             initial_a_vector = nph.stack(initial_a)
 
-        args = cmh.profile(
-            lambda: scene.get_energy_obstacle_args_for_jax(energy_functions, temperature),
-            baypass=True,
-        )
+        with timer["__get_energy_obstacle_args"]:
+            args = cmh.profile(
+                lambda: scene.get_energy_obstacle_args_for_jax(energy_functions, temperature),
+                baypass=True,
+            )
         hes_inv = None if not USE_LHS_PRECONDITIONER else scene.solver_cache.lhs_preconditioner_jax
-        normalized_a_vector_np = cmh.profile(
-            lambda: Calculator.minimize_jax(
-                function=energy_functions.get_energy_function(scene),
-                # solver= energy_functions.get_solver(scene),
-                initial_vector=initial_a_vector,
-                args=args,
-                hes_inv=hes_inv,
-            ),
-            baypass=True,
-        )
+        with timer["__minimize_jax"]:
+            normalized_a_vector_np = cmh.profile(
+                lambda: Calculator.minimize_jax(
+                    function=energy_functions.get_energy_function(scene),
+                    # solver= energy_functions.get_solver(scene),
+                    initial_vector=initial_a_vector,
+                    args=args,
+                    hes_inv=hes_inv,
+                ),
+                baypass=True,
+            )
 
         normalized_a_vector = normalized_a_vector_np.reshape(-1, 1)
         return nph.unstack(normalized_a_vector, scene.dimension)

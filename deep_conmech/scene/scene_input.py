@@ -138,7 +138,7 @@ class SceneInput(SceneRandomized):
                 nodes_count=scene.nodes_count,
             )
 
-        boundary_normals = prepare_nodes(scene.get_normalized_boundary_normals())
+        boundary_normals = prepare_nodes(scene.get_normalized_boundary_normals_jax())
 
         # boundary_friction = self.prepare_node_data(
         #     data=self.get_friction_input(),

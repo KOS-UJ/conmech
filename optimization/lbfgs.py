@@ -11,6 +11,8 @@ from jax._src.scipy.optimize.line_search import line_search
 
 _dot = partial(jnp.dot, precision=lax.Precision.HIGHEST)
 
+bits = 64
+
 
 def _cubicmin(a, fa, fpa, b, fb, c, fc):
     C = fpa
@@ -66,7 +68,7 @@ class _ZoomState(NamedTuple):
 
 def _zoom(
     restricted_func_and_grad,
-    wolfe_one,
+    wolfe_one_neg,
     wolfe_two,
     a_lo,
     phi_lo,
@@ -116,7 +118,7 @@ def _zoom(
 
         # This will cause the line search to stop, and since the Wolfe conditions
         # are not satisfied the minimization should stop too.
-        threshold = jnp.where((jnp.finfo(dalpha).bits < 64), 1e-5, 1e-10)
+        threshold = jnp.where((bits < 64), 1e-5, 1e-10)  # jnp.finfo(dalpha).bits
         state = state._replace(failed=state.failed | (dalpha <= threshold))
 
         # Cubmin is sometimes nan, though in this case the bounds check will fail.
@@ -146,7 +148,7 @@ def _zoom(
         g_j = g_j.astype(state.g_star.dtype)
         state = state._replace(nfev=state.nfev + 1, ngev=state.ngev + 1)
 
-        hi_to_j = wolfe_one(a_j, phi_j) | (phi_j >= state.phi_lo)
+        hi_to_j = wolfe_one_neg(a_j, phi_j) | (phi_j >= state.phi_lo)
         star_to_j = wolfe_two(dphi_j) & (~hi_to_j)
         hi_to_lo = (dphi_j * (state.a_hi - state.a_lo) >= 0.0) & (~hi_to_j) & (~star_to_j)
         lo_to_j = (~hi_to_j) & (~star_to_j)
@@ -307,9 +309,25 @@ def custom_line_search_jax(
     else:
         start_value = 1
 
-    def wolfe_one(a_i, phi_i):
-        # actually negation of W1
+    # Hager Zhang:
+    # https://www.math.lsu.edu/~hozhang/papers/cg_descent.pdf
+    # def wolfe_approx_one(dphi_i):
+    #     delta = 0.1
+    #     return (2 * delta - 1) * dphi_0 >= dphi_i
+
+    # def wolfe_approx_fun(phi_i):
+    #     eps = 1e-6
+    #     return phi_i <= (1 + eps) * jnp.abs(phi_0)
+
+    # def _wolfe_one(a_i, phi_i):
+    #     return phi_i <= phi_0 + c1 * a_i * dphi_0  # numerical problems
+
+    # def wolfe_one_neg_hz(a_i, phi_i, dphi_i):
+    #     return ~(_wolfe_one(a_i, phi_i) | (wolfe_approx_fun(phi_i) & wolfe_approx_one(dphi_i)))
+
+    def wolfe_one_neg(a_i, phi_i):
         return phi_i > phi_0 + c1 * a_i * dphi_0
+        # return ~(_wolfe_one(a_i, phi_i) | (wolfe_approx_fun(phi_i) & wolfe_approx_one(dphi_i)))
 
     def wolfe_two(dphi_i):
         # return jnp.abs(dphi_i) <= -c2 * dphi_0
@@ -346,13 +364,13 @@ def custom_line_search_jax(
         phi_i, dphi_i, g_i = restricted_func_and_grad(a_i)
         state = state._replace(nfev=state.nfev + 1, ngev=state.ngev + 1)
 
-        star_to_zoom1 = wolfe_one(a_i, phi_i) | ((phi_i >= state.phi_i1) & (state.i > 1))
+        star_to_zoom1 = wolfe_one_neg(a_i, phi_i) | ((phi_i >= state.phi_i1) & (state.i > 1))
         star_to_i = wolfe_two(dphi_i) & (~star_to_zoom1)
         star_to_zoom2 = (dphi_i >= 0.0) & (~star_to_zoom1) & (~star_to_i)
 
         zoom1 = _zoom(
             restricted_func_and_grad,
-            wolfe_one,
+            wolfe_one_neg,
             wolfe_two,
             state.a_i1,
             state.phi_i1,
@@ -369,7 +387,7 @@ def custom_line_search_jax(
 
         zoom2 = _zoom(
             restricted_func_and_grad,
-            wolfe_one,
+            wolfe_one_neg,
             wolfe_two,
             a_i,
             phi_i,
@@ -437,7 +455,7 @@ def custom_line_search_jax(
     # direction of zero in <64 bit mode - avoid with a floor on minimum step size.
     alpha_k = state.a_star
     alpha_k = jnp.where(
-        (jnp.finfo(alpha_k).bits != 64) & (jnp.abs(alpha_k) < 1e-8),
+        (bits != 64) & (jnp.abs(alpha_k) < 1e-8),  # jnp.finfo(alpha_k).bits
         jnp.sign(alpha_k) * 1e-8,
         alpha_k,
     )
@@ -496,6 +514,7 @@ class LBFGSResults(NamedTuple):
     s_history: Array
     y_history: Array
     rho_history: Array
+    history_position: int
     gamma: Union[float, Array]
     status: Union[int, Array]
     ls_status: Union[int, Array]
@@ -516,6 +535,24 @@ class LBFGSResults(NamedTuple):
     maxgrad: float
     # maxls: float
     xtol: float
+
+    # Added custom rolling buffer
+    def get_s_history(self, i):
+        return self.s_history[(i + self.history_position) % len(self.s_history)]
+
+    def get_y_history(self, i):
+        return self.y_history[(i + self.history_position) % len(self.y_history)]
+
+    def get_rho_history(self, i):
+        return self.rho_history[(i + self.history_position) % len(self.rho_history)]
+
+    def get_updated_history_position(self, history):
+        # return 0
+        return (self.history_position + 1) % len(history)
+
+    def get_updated_history(self, history, new):
+        # return jnp.roll(history, -1, axis=0).at[-1, ...].set(new)
+        return history.at[self.history_position, ...].set(new)
 
 
 def get_backend():
@@ -599,6 +636,7 @@ def minimize_lbfgs(
         y_history=jnp.zeros(
             (maxcor, d), dtype=dtype
         ),  # if opti_state is None else opti_state.y_history,
+        history_position=-1,  # opti_state...
         rho_history=jnp.zeros(
             (maxcor,), dtype=dtype
         ),  # if opti_state is None else opti_state.rho_history,
@@ -635,9 +673,9 @@ def _two_loop_recursion(state: LBFGSResults):
     def body_fun1(j, carry):
         i = his_size - 1 - j
         _q, _a_his = carry
-        a_i = state.rho_history[i] * jnp.real(_dot(jnp.conj(state.s_history[i]), _q))
+        a_i = state.get_rho_history(i) * jnp.real(_dot(jnp.conj(state.get_s_history(i)), _q))
         _a_his = _a_his.at[i].set(a_i)
-        _q = _q - a_i * jnp.conj(state.y_history[i])
+        _q = _q - a_i * jnp.conj(state.get_y_history(i))
         return _q, _a_his
 
     q, a_his = lax.fori_loop(0, curr_size, body_fun1, (q, a_his))
@@ -651,22 +689,12 @@ def _two_loop_recursion(state: LBFGSResults):
 
     def body_fun2(j, _r):
         i = his_size - curr_size + j
-        b_i = state.rho_history[i] * jnp.real(_dot(state.y_history[i], _r))
-        _r = _r + (a_his[i] - b_i) * state.s_history[i]
+        b_i = state.get_rho_history(i) * jnp.real(_dot(state.get_y_history(i), _r))
+        _r = _r + (a_his[i] - b_i) * state.get_s_history(i)
         return _r
 
     r = lax.fori_loop(0, curr_size, body_fun2, r)
     return r
-
-
-def _update_history_vectors(history, new):
-    # TODO(Jakob-Unfried) use rolling buffer instead? See #6053
-    return jnp.roll(history, -1, axis=0).at[-1, :].set(new)
-
-
-def _update_history_scalars(history, new):
-    # TODO(Jakob-Unfried) use rolling buffer instead? See #6053
-    return jnp.roll(history, -1, axis=0).at[-1].set(new)
 
 
 @partial(jax.jit, backend=get_backend())
@@ -724,9 +752,10 @@ def body_fun_jax(state: LBFGSResults):
         x_k=x_kp1.astype(state.x_k.dtype),
         f_k=f_kp1.astype(state.f_k.dtype),
         g_k=g_kp1.astype(state.g_k.dtype),
-        s_history=_update_history_vectors(history=state.s_history, new=s_k),
-        y_history=_update_history_vectors(history=state.y_history, new=y_k),
-        rho_history=_update_history_scalars(history=state.rho_history, new=rho_k),
+        s_history=state.get_updated_history(history=state.s_history, new=s_k),
+        y_history=state.get_updated_history(history=state.y_history, new=y_k),
+        rho_history=state.get_updated_history(history=state.rho_history, new=rho_k),
+        history_position=state.get_updated_history_position(history=state.s_history),
         gamma=gamma,
         status=jnp.where(converged, 0, status),
         ls_status=ls_results.status,

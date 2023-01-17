@@ -80,12 +80,21 @@ def profile(function: Callable, baypass: bool = False):
     print("Profiling...")  # {function.__name__}...")
     pr = cProfile.Profile()
     pr.enable()
-
     result = function()
-
     pr.disable()
     stats = Stats(pr)
     stats.sort_stats("tottime").print_stats(20)  # "cumtime"
+
+    # python -m scalene --cli --html --outfile output.html examples/examples_3d.py
+    # from scalene import scalene_profiler
+    # scalene_profiler.start()
+    # result = function()
+    # scalene_profiler.stop()
+
+    # import jax
+    # with jax.profiler.trace("./log", create_perfetto_link=False):
+    #     result = function()
+
     return result
 
 

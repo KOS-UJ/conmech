@@ -1,4 +1,5 @@
 import copy
+from ctypes import ArgumentError
 import os
 import subprocess
 from dataclasses import dataclass
@@ -154,26 +155,25 @@ def run_scenario(
     setting = fun_sim()
 
     if run_config.plot_animation:
-        plot_blender()
-
-        # animation_path = f"{final_catalog}/{scenario.name}.gif"
-        # plot_scenario_animation(
-        #     scenario,
-        #     config,
-        #     animation_path,
-        #     time_skip,
-        #     index_skip,
-        #     plot_scenes_count[0],
-        #     all_scenes_path=scenes_path,
-        #     all_calc_scenes_path=calculator_scenes_path
-        #     if run_config.compare_with_base_scene
-        #     else None,
-        # )
+        if config.animation_backend == "blender":
+            plot_using_blender()
+        elif config.animation_backend == "matplotlib":
+            plot_scenario_animation(
+                scenario=scenario,
+                config=config,
+                animation_path=f"{final_catalog}/{scenario.name}.gif",
+                time_skip=time_skip,
+                index_skip=ts if run_config.save_all else 1,
+                plot_scenes_count=plot_scenes_count[0],
+                all_scenes_path=scenes_path,
+            )
+        else:
+            raise ArgumentError
 
     return setting, scenes_path
 
 
-def plot_blender():
+def plot_using_blender():
     path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
     args = " --background --python ~/Desktop/conmech/blender/load.py"
     print("Plotting using Blender...")
@@ -189,7 +189,6 @@ def plot_scenario_animation(
     index_skip: int,
     plot_scenes_count: int,
     all_scenes_path: str,
-    all_calc_scenes_path: Optional[str],
 ):
     t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_scenes_count, all_scenes_path)
     plot_function = (
@@ -202,7 +201,6 @@ def plot_scenario_animation(
         index_skip=index_skip,
         plot_scenes_count=plot_scenes_count,
         all_scenes_path=all_scenes_path,
-        all_calc_scenes_path=all_calc_scenes_path,
         t_scale=t_scale,
     )
 
@@ -238,12 +236,15 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
         print("Prepared")
         for mode in EnergyFunctions.get_manual_modes():
             energy_functions.set_manual_mode(mode)
-            _ = solve_function(
-                scene=scene,
-                energy_functions=energy_functions,
-                initial_a=None,
-                initial_t=None,
-            )
+            try:
+                _ = solve_function(
+                    scene=scene,
+                    energy_functions=energy_functions,
+                    initial_a=None,
+                    initial_t=None,
+                )
+            except Exception:
+                pass
 
         if hasattr(scene, "reduced"):
             scene.reduced.exact_acceleration = None

@@ -37,7 +37,6 @@ def plot_animation(
     index_skip: int,
     plot_scenes_count: int,
     all_scenes_path: str,
-    all_calc_scenes_path: Optional[str],
     t_scale: Optional[np.ndarray] = None,
 ):
     animate = make_animation(get_axs, plot_frame, t_scale)
@@ -51,7 +50,6 @@ def plot_animation(
             index_skip=index_skip,
             plot_scenes_count=plot_scenes_count,
             all_scenes_path=all_scenes_path,
-            all_calc_scenes_path=all_calc_scenes_path,
         ),
     )
 
@@ -208,7 +206,7 @@ def draw_main_obstacles(scene: Scene, axes):
 def draw_normalized_obstacles(scene: Scene, position, axes):
     draw_obstacles(
         scene.normalized_obstacle_nodes,
-        scene.get_norm_obstacle_normals(),
+        np.array(scene.get_norm_obstacle_normals()),
         position,
         "blue",
         axes,
@@ -219,7 +217,7 @@ def draw_obstacle_resistance_normalized(scene: Scene, position, axes):
     draw_moved_body("P", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        scene.get_normalized_boundary_penetration(),
+        np.array(scene.get_normalized_boundary_penetration()),
         axes,
     )
 
@@ -228,7 +226,7 @@ def draw_boundary_normals(scene: Scene, position, axes):
     draw_moved_body("N", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        scene.get_normalized_boundary_normals(),
+        np.array(scene.get_normalized_boundary_normals_jax()),
         axes,
     )
 
@@ -237,27 +235,27 @@ def draw_boundary_v_tangential(scene: Scene, position, axes):
     draw_moved_body("V_TNG", scene, position, axes)
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        scene.get_friction_input(),
+        np.array(scene.get_friction_input()),
         axes,
     )
 
 
 def draw_boundary_resistance_normal(scene: Scene, position, axes):
     draw_moved_body("RES_N", scene, position, axes)
-    data = scene.get_normalized_boundary_normals() * scene.get_resistance_normal() / 100
+    data = scene.get_normalized_boundary_normals_jax() * scene.get_resistance_normal() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        data,
+        np.array(data),
         axes,
     )
 
 
 def draw_boundary_resistance_tangential(scene: Scene, position, axes):
     draw_moved_body("RES_T", scene, position, axes)
-    data = scene.get_normalized_boundary_normals() * scene.get_resistance_tangential() / 100
+    data = scene.get_normalized_boundary_normals_jax() * scene.get_resistance_tangential() / 100
     plot_arrows(
         scene.normalized_boundary_nodes + position,
-        data,
+        np.array(data),
         axes,
     )
 
