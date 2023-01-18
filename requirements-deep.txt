@@ -1,6 +1,5 @@
 # deep conmech
 psutil==5.9.0
-pandas==1.4.1
 
 flax==0.6.0
 

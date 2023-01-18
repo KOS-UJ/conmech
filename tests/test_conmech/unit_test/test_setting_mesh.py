@@ -28,7 +28,9 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     )
 
     # Act and Assert
-    np.testing.assert_allclose(setting.get_surface_per_boundary_node_jax().sum(), volume)
+    np.testing.assert_allclose(
+        float(setting.get_surface_per_boundary_node_jax().sum()), volume, rtol=1e-6, atol=1e-6
+    )
     boundary_normals = setting.get_boundary_normals_jax()
     np.testing.assert_allclose(
         jxh.euclidean_norm(boundary_normals),

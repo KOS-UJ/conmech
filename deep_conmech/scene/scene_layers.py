@@ -72,8 +72,8 @@ class SceneLayers(Scene):
         self.all_layers: List[AllMeshLayerLinkData] = []
         self.set_reduced()
 
-    def project_sparse_nodes(self, from_base, sparse_mesh):
-        sparse_mesh.initial_nodes = interpolation_helpers.approximate_internal(
+    def project_sparse_nodes(self, from_base, sparse_scene):
+        sparse_scene.mesh.initial_nodes = interpolation_helpers.approximate_internal(
             base_values=self.initial_nodes,
             closest_nodes=from_base.closest_nodes,
             closest_weights=from_base.closest_weights,
@@ -94,7 +94,7 @@ class SceneLayers(Scene):
             np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // MESH_LAYERS_PROPORTION
         )
 
-        sparse_mesh = Scene(
+        sparse_scene = Scene(
             mesh_prop=layer_mesh_prop,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
@@ -102,14 +102,14 @@ class SceneLayers(Scene):
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )
-        sparse_mesh.lifted_acceleration = np.zeros_like(sparse_mesh.initial_nodes)
+        sparse_scene.lifted_acceleration = np.zeros_like(sparse_scene.initial_nodes)
 
-        from_base = self.get_link(from_mesh=self, to_mesh=sparse_mesh, with_weights=True)
-        self.project_sparse_nodes(from_base, sparse_mesh)
-        to_base = self.get_link(from_mesh=sparse_mesh, to_mesh=self, with_weights=False)
+        from_base = self.get_link(from_mesh=self, to_mesh=sparse_scene, with_weights=True)
+        self.project_sparse_nodes(from_base, sparse_scene)
+        to_base = self.get_link(from_mesh=sparse_scene, to_mesh=self, with_weights=False)
 
         mesh_layer_data = AllMeshLayerLinkData(
-            mesh=sparse_mesh,
+            mesh=sparse_scene,
             from_base=from_base,
             to_base=to_base,
         )

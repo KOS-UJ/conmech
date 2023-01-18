@@ -1,6 +1,6 @@
 import copy
 from ctypes import ArgumentError
-from typing import Optional
+from typing import Callable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -112,30 +112,183 @@ def get_surface_per_boundary_node_jax(moved_nodes, boundary_surfaces, considered
         considered_nodes_count=considered_nodes_count,
         agg_fun=jnp.sum,
     )
-    return surface_per_boundary_node
+    return nph.stack_column(surface_per_boundary_node)
 
 
-class BodyPosition(Mesh):
+def mesh_normalization_decorator(func: Callable):
+    def inner(self, *args, **kwargs):
+        saved_normalize = self.normalize
+        self.normalize = True
+        if hasattr(self, "reduced"):
+            self.reduced.normalize = True
+        returned_value = func(self, *args, **kwargs)
+        self.normalize = saved_normalize
+        if hasattr(self, "reduced"):
+            self.reduced.normalize = saved_normalize
+        return returned_value
+
+    return inner
+
+
+# pylint: disable=R0904
+class BodyPosition:
     def __init__(
         self,
         mesh_prop: MeshProperties,
         schedule: Schedule,
         boundaries_description: Optional[BoundariesDescription] = None,
+        normalize: bool = False,
         create_in_subprocess: bool = False,
     ):
         if boundaries_description is None:
             boundaries_description = BoundariesDescription(contact=None, dirichlet=None)
-        super().__init__(
+
+        self.mesh = Mesh(
             mesh_prop=mesh_prop,
             boundaries_description=boundaries_description,
             create_in_subprocess=create_in_subprocess,
         )
+        self.normalize = normalize
 
         self.schedule = schedule
         self.__displacement_old = np.zeros_like(self.initial_nodes)
         self.__velocity_old = np.zeros_like(self.initial_nodes)
         self.exact_acceleration = np.zeros_like(self.initial_nodes)
         self.moved_base = None
+
+    def _normalize_shift(self, vectors):
+        _ = self
+        if not self.normalize:
+            return vectors
+        return vectors - np.mean(vectors, axis=0)
+
+    @property
+    def boundaries(self):
+        return self.mesh.boundaries
+
+    @property
+    def edges(self):
+        return self.mesh.edges
+
+    @property
+    def elements(self):
+        return self.mesh.elements
+
+    @property
+    def mesh_prop(self):
+        return self.mesh.mesh_prop
+
+    @property
+    def initial_nodes(self):
+        return self.mesh.initial_nodes
+
+    @property
+    def normalized_initial_nodes(self):
+        return self._normalize_shift(self.initial_nodes)
+
+    @property
+    def input_initial_nodes(self):
+        return self.normalized_initial_nodes
+
+    @property
+    def boundary_surfaces(self):
+        return self.mesh.boundary_surfaces
+
+    @property
+    def contact_boundary(self):
+        return self.mesh.contact_boundary
+
+    @property
+    def neumann_boundary(self):
+        return self.mesh.neumann_boundary
+
+    @property
+    def dirichlet_boundary(self):
+        return self.mesh.dirichlet_boundary
+
+    @property
+    def boundary_internal_indices(self):
+        return self.mesh.boundary_internal_indices
+
+    @property
+    def boundary_nodes_count(self):
+        return self.mesh.boundary_nodes_count
+
+    @property
+    def contact_nodes_count(self):
+        return self.mesh.contact_nodes_count
+
+    @property
+    def dirichlet_nodes_count(self):
+        return self.mesh.dirichlet_nodes_count
+
+    @property
+    def neumann_nodes_count(self):
+        return self.mesh.neumann_nodes_count
+
+    @property
+    def independent_nodes_count(self):
+        return self.mesh.independent_nodes_count
+
+    @property
+    def free_nodes_count(self):
+        return self.mesh.free_nodes_count
+
+    @property
+    def boundary_indices(self):
+        return self.mesh.boundary_indices
+
+    @property
+    def initial_boundary_nodes(self):
+        return self.mesh.initial_boundary_nodes
+
+    @property
+    def contact_indices(self):
+        return self.mesh.contact_indices
+
+    @property
+    def neumann_indices(self):
+        return self.mesh.neumann_indices
+
+    @property
+    def dirichlet_indices(self):
+        return self.mesh.dirichlet_indices
+
+    @property
+    def independent_indices(self):
+        return self.mesh.independent_indices
+
+    @property
+    def free_indices(self):
+        return self.mesh.free_indices
+
+    @property
+    def dimension(self):
+        return self.mesh.dimension
+
+    @property
+    def nodes_count(self):
+        return self.mesh.nodes_count
+
+    @property
+    def elements_count(self):
+        return self.mesh.elements_count
+
+    @property
+    def boundary_surfaces_count(self):
+        return self.mesh.boundary_surfaces_count
+
+    @property
+    def inner_nodes_count(self):
+        return self.mesh.inner_nodes_count
+
+    @property
+    def edges_number(self):
+        return self.mesh.edges_number
+
+    @property
+    def centered_initial_nodes(self):
+        return self.mesh.centered_initial_nodes
 
     @property
     def displacement_old(self):

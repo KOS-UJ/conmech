@@ -1,15 +1,7 @@
-from typing import Callable
-
 import numba
 import numpy as np
 
 from conmech.helpers import cmh
-from conmech.helpers.config import (
-    NORMALIZE,
-    USE_CONSTANT_CONTACT_INTEGRAL,
-    USE_GREEN_STRAIN,
-    USE_NONCONVEX_FRICTION_LAW,
-)
 from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries import Boundaries
 from conmech.mesh.boundaries_description import BoundariesDescription
@@ -68,21 +60,6 @@ def remove_unconnected_nodes_numba(nodes, elements):
     return nodes, elements
 
 
-def mesh_normalization_decorator(func: Callable):
-    def inner(self, *args, **kwargs):
-        saved_normalize = self.normalize
-        self.mesh_prop.normalize = True
-        if hasattr(self, "reduced"):
-            self.reduced.mesh_prop.normalize = True
-        returned_value = func(self, *args, **kwargs)
-        self.mesh_prop.normalize = saved_normalize
-        if hasattr(self, "reduced"):
-            self.reduced.mesh_prop.normalize = saved_normalize
-        return returned_value
-
-    return inner
-
-
 # pylint: disable=R0904
 class Mesh:
     def __init__(
@@ -132,44 +109,6 @@ class Mesh:
         edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)  # TODO: remove
         self.directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
-
-    def _normalize_shift(self, vectors):
-        _ = self
-        if not self.normalize:
-            return vectors
-        return vectors - np.mean(vectors, axis=0)
-
-    @property
-    def normalize(self):
-        if hasattr(self.mesh_prop, "normalize"):
-            return self.mesh_prop.normalize
-        return NORMALIZE
-
-    @property
-    def use_green_strain(self):
-        if hasattr(self.mesh_prop, "use_green_strain"):
-            return self.mesh_prop.use_green_strain
-        return USE_GREEN_STRAIN
-
-    @property
-    def use_nonconvex_friction_law(self):
-        if hasattr(self.mesh_prop, "use_nonconvex_friction_law"):
-            return self.mesh_prop.use_nonconvex_friction_law
-        return USE_NONCONVEX_FRICTION_LAW
-
-    @property
-    def use_constant_contact_integral(self):
-        if hasattr(self.mesh_prop, "use_constant_contact_integral"):
-            return self.mesh_prop.use_constant_contact_integral
-        return USE_CONSTANT_CONTACT_INTEGRAL
-
-    @property
-    def normalized_initial_nodes(self):
-        return self._normalize_shift(self.initial_nodes)
-
-    @property
-    def input_initial_nodes(self):
-        return self.normalized_initial_nodes
 
     @property
     def boundary_surfaces(self):

@@ -7,11 +7,11 @@ import numpy as np
 import torch
 
 from conmech.helpers import jxh, nph
-from conmech.mesh.mesh import Mesh, mesh_normalization_decorator
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.state.body_position import mesh_normalization_decorator
 from deep_conmech.data.data_classes import MeshLayerData, TargetData
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_layers import MeshLayerLinkData
@@ -215,19 +215,19 @@ class SceneInput(SceneRandomized):
         # Do not use "index", "batch" in any name (PyG stacks values to create single graph; batch - adds one, index adds nodes count (?))
         reduced = layer_number > 0
         layer_data = self.all_layers[layer_number]
-        mesh = layer_data.mesh
+        scene = layer_data.mesh
 
         data = MeshLayerData(
-            edge_number=torch.tensor([mesh.edges_number]),
+            edge_number=torch.tensor([scene.edges_number]),
             layer_number=torch.tensor([layer_number]),
-            pos=thh.to_torch_set_precision(mesh.normalized_initial_nodes),
+            pos=thh.to_torch_set_precision(scene.normalized_initial_nodes),
             x=thh.convert_jax_to_tensor(self.get_nodes_data(reduced=reduced)),
             # pin_memory=True,
             # num_workers=1
         )
 
         if reduced:
-            data.layer_nodes_count = torch.tensor([mesh.nodes_count])
+            data.layer_nodes_count = torch.tensor([scene.nodes_count])
             data.down_layer_nodes_count = torch.tensor(
                 [self.all_layers[layer_number - 1].mesh.nodes_count]
             )
@@ -238,9 +238,9 @@ class SceneInput(SceneRandomized):
                 data.closest_nodes_to_down,
             ) = self.get_multilayer_edges_with_data(link=layer_data.to_base)
 
-        data.edge_index = thh.get_contiguous_torch(mesh.directional_edges)
+        data.edge_index = thh.get_contiguous_torch(scene.mesh.directional_edges)
         data.edge_attr = thh.convert_jax_to_tensor(
-            self.get_edges_data(mesh.directional_edges, reduced=reduced)
+            self.get_edges_data(scene.mesh.directional_edges, reduced=reduced)
         )
 
         _ = """

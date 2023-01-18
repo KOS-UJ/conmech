@@ -6,6 +6,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics, DynamicsConfiguration
 from conmech.helpers import nph
+from conmech.helpers.config import SimulationConfig
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -53,6 +54,7 @@ class BodyForces(Dynamics):
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
+        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -60,6 +62,7 @@ class BodyForces(Dynamics):
             schedule=schedule,
             dynamics_config=dynamics_config,
             boundaries_description=boundaries_description,
+            simulation_config=simulation_config,
         )
 
         self.inner_forces = None
@@ -121,12 +124,12 @@ class BodyForces(Dynamics):
             integrated_outer_forces=self.get_normalized_integrated_outer_forces(),
         )
 
-        if self.use_constant_contact_integral:
+        if self.simulation_config.use_constant_contact_integral:
             rhs_contact = jax.jit(
                 _get_constant_boundary_integral, static_argnames="use_nonconvex_friction_law"
             )(
                 args=args,
-                use_nonconvex_friction_law=self.use_nonconvex_friction_law,
+                use_nonconvex_friction_law=self.simulation_config.use_nonconvex_friction_law,
             )
             integrated_forces = integrated_forces - rhs_contact
 

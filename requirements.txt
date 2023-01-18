@@ -12,3 +12,4 @@ networkx==2.6.3
 jax==0.3.14
 jaxlib==0.3.14
 dmsh==0.2.20
+pandas==1.4.1

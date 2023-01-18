@@ -1,7 +1,7 @@
-from conmech.helpers.config import set_jax
+from conmech.helpers.config import set_env
 
 if __name__ == "__main__":
-    set_jax()
+    set_env()
 
 # import lovely_jax as lj
 # import lovely_tensors as lt
@@ -21,12 +21,11 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing
 
-from conmech.helpers import cmh
+from conmech.helpers import cmh, pca
 from conmech.scenarios import scenarios
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
-from conmech.helpers import pca
 from deep_conmech.graph.model_jax import GraphModelDynamicJax, save_tf_model
 from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.graph.net_jax import CustomGraphNetJax

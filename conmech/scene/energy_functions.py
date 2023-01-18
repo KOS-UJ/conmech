@@ -7,6 +7,7 @@ import numpy as np
 
 from conmech.dynamics.dynamics import _get_deform_grad
 from conmech.helpers import jxh, nph, pca
+from conmech.helpers.config import SimulationConfig
 
 
 def _get_penetration_positive(displacement_step, normals, penetration):
@@ -141,14 +142,14 @@ def _get_actual_boundary_integral(
 
 def _get_strain_lin(deform_grad):
     dimension = deform_grad.shape[1]
-    identity = jnp.eye(dimension)
+    identity = jnp.eye(dimension, dtype=deform_grad.dtype)
     deform_grad_t = deform_grad.transpose((0, 2, 1))
     return 0.5 * (deform_grad + deform_grad_t) - identity
 
 
 def _get_strain_green(deform_grad):
     dimension = deform_grad.shape[1]
-    identity = jnp.eye(dimension)
+    identity = jnp.eye(dimension, dtype=deform_grad.dtype)
     deform_grad_t = deform_grad.transpose((0, 2, 1))
     return 0.5 * (deform_grad_t @ deform_grad - identity)
 
@@ -297,11 +298,11 @@ def _energy_obstacle_colliding(
 
 @dataclass
 class EnergyFunctions:
-    def __init__(self, use_green_strain, use_nonconvex_friction_law, use_constant_contact_integral):
+    def __init__(self, simulation_config: SimulationConfig):
         static_args = StaticEnergyArguments(
-            use_green_strain=use_green_strain,
-            use_nonconvex_friction_law=use_nonconvex_friction_law,
-            use_constant_contact_integral=use_constant_contact_integral,
+            use_green_strain=simulation_config.use_green_strain,
+            use_nonconvex_friction_law=simulation_config.use_nonconvex_friction_law,
+            use_constant_contact_integral=simulation_config.use_constant_contact_integral,
         )
 
         self._energy_obstacle_free = lambda acceleration_vector, args: _energy_obstacle_free(
@@ -346,6 +347,13 @@ class EnergyFunctions:
 
         self.energy_obstacle_free = self._energy_obstacle_free
         self.energy_obstacle_colliding = self._energy_obstacle_colliding
+
+        # self.energy_obstacle_free = lambda vector, args: jnp.float64(
+        #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
+        # )
+        # self.energy_obstacle_colliding = lambda vector, args: jnp.float64(
+        #     self._energy_obstacle_colliding(jnp.array(vector, dtype=jnp.float32), args)
+        # )
 
         projection = pca.load_pca()
         _ = projection

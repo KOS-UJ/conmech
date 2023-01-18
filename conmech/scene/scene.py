@@ -8,8 +8,8 @@ import numpy as np
 from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import jxh, lnh, nph
+from conmech.helpers.config import SimulationConfig
 from conmech.helpers.lnh import get_in_base
-from conmech.mesh.mesh import mesh_normalization_decorator
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -21,7 +21,7 @@ from conmech.scene.energy_functions import (
     _obstacle_resistance_potential_tangential,
 )
 from conmech.solvers.optimization.schur_complement import SchurComplement
-from conmech.state.body_position import BodyPosition
+from conmech.state.body_position import BodyPosition, mesh_normalization_decorator
 
 
 @numba.njit
@@ -45,6 +45,7 @@ class Scene(BodyForces):
         schedule: Schedule,
         create_in_subprocess: bool,
         with_schur: bool = False,
+        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             mesh_prop=mesh_prop,
@@ -55,6 +56,7 @@ class Scene(BodyForces):
                 with_lhs=False,
                 with_schur=with_schur,
             ),
+            simulation_config=simulation_config,
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None
@@ -233,7 +235,7 @@ class Scene(BodyForces):
             self.__get_boundary_v_tangential(),
             friction=self.obstacle_prop.friction,
             time_step=self.time_step,
-            use_nonconvex_friction_law=self.use_nonconvex_friction_law,
+            use_nonconvex_friction_law=self.simulation_config.use_nonconvex_friction_law,
         )
 
     @property

@@ -11,7 +11,7 @@ from jax import lax
 
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices, get_dynamics
 from conmech.helpers import cmh, jxh
-from conmech.helpers.config import USE_LHS_PRECONDITIONER, USE_LINEAR_SOLVER
+from conmech.helpers.config import SimulationConfig
 from conmech.helpers.lnh import complete_base
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
@@ -81,17 +81,14 @@ class DynamicsConfiguration:
 def _get_jac(value, dx_big_jax):
     dimension = value.shape[1]
     result0 = (
-        (dx_big_jax @ jnp.tile(value, (dimension, 1)))
-        .reshape(dimension, -1, dimension)
-        .swapaxes(0, 1)
-        .transpose((0, 2, 1))
+        (dx_big_jax @ value).reshape(dimension, -1, dimension).swapaxes(0, 1).transpose((0, 2, 1))
     )
     return result0
 
 
 def _get_deform_grad(value, dx_big_jax):
     dimension = value.shape[1]
-    identity = jnp.eye(dimension)
+    identity = jnp.eye(dimension, dtype=value.dtype)
     return _get_jac(value, dx_big_jax) + identity
 
 
@@ -133,14 +130,17 @@ class Dynamics(BodyPosition):
         schedule: Schedule,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
+        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
             boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
+            normalize=simulation_config.normalize,
         )
         self.body_prop = body_prop
+        self.simulation_config = simulation_config
         self.with_lhs = dynamics_config.with_lhs
         self.with_schur = dynamics_config.with_schur
 
@@ -167,7 +167,7 @@ class Dynamics(BodyPosition):
     #     # self.reinitialize_matrices()  ###!!!
 
     def remesh(self, boundaries_description, create_in_subprocess):
-        super().remesh(boundaries_description, create_in_subprocess)
+        self.mesh.remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 
     def reinitialize_matrices(self):
@@ -194,7 +194,11 @@ class Dynamics(BodyPosition):
                 + self.matrices.thermal_conductivity[i, i]
             )
 
-        if self.with_lhs or USE_LINEAR_SOLVER or USE_LHS_PRECONDITIONER:
+        if (
+            self.with_lhs
+            or self.simulation_config.use_linear_solver
+            or self.simulation_config.use_lhs_preconditioner
+        ):
             print("Creating LHS...")
             self.solver_cache.lhs_sparse = (
                 self.matrices.acceleration_operator

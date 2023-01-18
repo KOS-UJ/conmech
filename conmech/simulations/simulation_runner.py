@@ -224,11 +224,7 @@ def print_mesh_data(scene):
 
 
 def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
-    energy_functions = EnergyFunctions(
-        scene.use_green_strain,
-        scene.use_nonconvex_friction_law,
-        scene.use_constant_contact_integral,
-    )
+    energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
 
     print("Precompiling...")
     with cmh.HiddenPrints():

@@ -12,7 +12,6 @@ import jax.scipy.optimize
 import numpy as np
 
 from conmech.helpers import cmh, jxh, nph
-from conmech.helpers.config import USE_LHS_PRECONDITIONER, USE_LINEAR_SOLVER, VERBOSE
 from conmech.helpers.tmh import Timer
 from conmech.scene.body_forces import energy
 from conmech.scene.energy_functions import EnergyFunctions
@@ -29,6 +28,38 @@ class Calculator:
     def minimize_jax(function, initial_vector: np.ndarray, args, hes_inv) -> np.ndarray:
         x0 = jnp.asarray(initial_vector)
 
+        # dtype = np.float32
+
+        # def change_bcoo_dtype(bcoo, dtype):
+        #     return jax.experimental.sparse.BCOO(
+        #         (jnp.array(bcoo.data, dtype=dtype), bcoo.indices), shape=bcoo.shape
+        #     ).sort_indices()
+
+        # x0_32 = jnp.asarray(initial_vector, dtype=dtype)
+        # args_32 = EnergyObstacleArguments(
+        #     lhs_acceleration_jax=change_bcoo_dtype(bcoo=args.lhs_acceleration_jax, dtype=dtype),
+        #     rhs_acceleration=jnp.array(args.rhs_acceleration, dtype=dtype),
+        #     boundary_velocity_old=jnp.array(args.boundary_velocity_old, dtype=dtype),
+        #     boundary_normals=jnp.array(args.boundary_normals, dtype=dtype),
+        #     boundary_obstacle_normals=jnp.array(args.boundary_obstacle_normals, dtype=dtype),
+        #     penetration=jnp.array(args.penetration, dtype=dtype),
+        #     surface_per_boundary_node=jnp.array(args.surface_per_boundary_node, dtype=dtype),
+        #     body_prop=args.body_prop,
+        #     obstacle_prop=args.obstacle_prop,
+        #     time_step=args.time_step,
+        #     element_initial_volume=np.array(args.element_initial_volume, dtype=dtype),
+        #     dx_big_jax=change_bcoo_dtype(bcoo=args.dx_big_jax, dtype=dtype),
+        #     base_displacement=jnp.array(args.base_displacement, dtype=dtype),
+        #     base_velocity=jnp.array(args.base_velocity, dtype=dtype),
+        #     base_energy_displacement=jnp.array(args.base_energy_displacement, dtype=dtype),
+        #     base_energy_velocity=jnp.array(args.base_energy_velocity, dtype=dtype),
+        # )
+
+        # state = cmh.profile(
+        #     lambda: minimize_lbfgs(fun=function, hes_inv=hes_inv, args=args_32, x0=x0),
+        #     baypass=True,
+        # )
+
         state = cmh.profile(
             lambda: minimize_lbfgs(fun=function, hes_inv=hes_inv, args=args, x0=x0),
             baypass=True,
@@ -37,7 +68,7 @@ class Calculator:
         if "JAX_ENABLE_X64" in os.environ and os.environ["JAX_ENABLE_X64"]:
             assert state.converged
         else:
-            if VERBOSE and not state.converged:
+            if "VERBOSE" in os.environ and os.environ["VERBOSE"] and not state.converged:
                 if state.status == 5:
                     cmh.Console.print_warning("Linesearch error")
                 elif state.status == 1:
@@ -116,7 +147,7 @@ class Calculator:
         initial_a: Optional[np.ndarray] = None,
         timer: Timer = Timer(),
     ) -> np.ndarray:
-        if USE_LINEAR_SOLVER:
+        if scene.simulation_config.use_linear_solver:
             return Calculator.solve_acceleration_normalized_function(
                 scene=scene, temperature=temperature, initial_a=initial_a
             )
@@ -138,7 +169,7 @@ class Calculator:
     ) -> np.ndarray:
         # TODO: #62 repeat with optimization if collision in this round
         # if not scene.is_colliding():
-        if USE_LINEAR_SOLVER:
+        if scene.simulation_config.use_linear_solver:
             return Calculator.solve_temperature_normalized_function(
                 scene, normalized_acceleration, initial_t
             )
@@ -193,7 +224,7 @@ class Calculator:
 
     @staticmethod
     def solve_acceleration_normalized_optimization_jax(
-        scene,
+        scene: Scene,
         energy_functions: EnergyFunctions,
         temperature=None,
         initial_a=None,
@@ -209,7 +240,11 @@ class Calculator:
                 lambda: scene.get_energy_obstacle_args_for_jax(energy_functions, temperature),
                 baypass=True,
             )
-        hes_inv = None if not USE_LHS_PRECONDITIONER else scene.solver_cache.lhs_preconditioner_jax
+        hes_inv = (
+            None
+            if not scene.simulation_config.use_lhs_preconditioner
+            else scene.solver_cache.lhs_preconditioner_jax
+        )
         with timer["__minimize_jax"]:
             normalized_a_vector_np = cmh.profile(
                 lambda: Calculator.minimize_jax(

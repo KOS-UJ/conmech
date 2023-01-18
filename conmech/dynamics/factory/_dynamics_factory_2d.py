@@ -165,8 +165,7 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         dx_x = scipy.sparse.coo_matrix((data[0], (row, col)), shape=shape)
         dx_y = scipy.sparse.coo_matrix((data[1], (row, col)), shape=shape)
 
-        Z = scipy.sparse.csr_matrix(shape)
-        dx = scipy.sparse.bmat([[dx_x, Z], [Z, dx_y]], format="csr")
+        dx = scipy.sparse.bmat([[dx_x], [dx_y]], format="csr")
         return dx
 
     def calculate_constitutive_matrices(self, W, mu, lambda_):
