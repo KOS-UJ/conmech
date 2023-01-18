@@ -60,6 +60,13 @@
             "justMyCode": false
         },
         {
+            "name": "mesh_test",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/mesh_test.py",
+            "justMyCode": false
+        },
+        {
             "name": "Examples 2D",
             "type": "python",
             "request": "launch",

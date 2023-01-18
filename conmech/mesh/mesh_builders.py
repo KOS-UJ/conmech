@@ -91,6 +91,9 @@ def build_initial_mesh(
 
         return mph.run_process(inner_function) if create_in_subprocess else inner_function()
 
+    if "slide" in mesh_prop.mesh_type:
+        return mesh_builders_3d.get_pygmsh_slide(mesh_prop)
+
     raise NotImplementedError(f"Mesh type not implemented: {mesh_prop.mesh_type}")
 
 

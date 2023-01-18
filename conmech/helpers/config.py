@@ -39,7 +39,7 @@ class Config:
     run_timestamp: float = int(time.time() * timestamp_skip)
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
-    animation_backend: str = "blender"  # blender matplotlib
+    animation_backend: str = "matplotlib"  # blender matplotlib
     print_skip: float = 0.1  # 0.01
     plot_tests: bool = False
     output_catalog: str = "output"

@@ -5,7 +5,7 @@ import meshzoo
 import numpy as np
 import pygmsh
 
-from conmech.helpers import nph, cmh
+from conmech.helpers import cmh, nph
 from conmech.mesh import mesh_builders_helpers
 from conmech.properties.mesh_properties import MeshProperties
 
@@ -16,6 +16,19 @@ def read_mesh(path):
     if mesh is None:
         raise ArgumentError
     return mesh
+
+
+def get_relative_ideal_edge_length(mesh_id):
+    mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}.ply")
+    nodes = mesh.points
+    diag_of_bbox = nph.euclidean_norm_numba(np.max(nodes, axis=0) - np.min(nodes, axis=0))
+
+    surfaces = mesh.cells_dict["triangle"]
+    edges = np.array([[[s[0], s[1]], [s[1], s[2]], [s[2], s[0]]] for s in surfaces]).reshape(-1, 2)
+    edge_nodes = nodes[edges]
+    edge_lengths = nph.euclidean_norm_numba(edge_nodes[:, 0] - edge_nodes[:, 1])
+    mean_length = np.mean(edge_lengths)
+    return mean_length / diag_of_bbox
 
 
 def get_meshzoo_cube(mesh_prop: MeshProperties):
@@ -77,17 +90,33 @@ def get_pygmsh_twist(mesh_prop: MeshProperties):
     return nodes, elements
 
 
-def get_relative_ideal_edge_length(mesh_id):
-    mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}.ply")
-    nodes = mesh.points
-    diag_of_bbox = nph.euclidean_norm_numba(np.max(nodes, axis=0) - np.min(nodes, axis=0))
+def get_pygmsh_slide(mesh_prop):
+    with pygmsh.geo.Geometry() as geom:
+        if "left" in mesh_prop.mesh_type:
+            poly = geom.add_polygon(
+                [
+                    [0.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0],
+                    [1.0, 1.0, 0.6],
+                    [0.0, 1.0, 0.6],
+                ]
+            )
+        elif "right" in mesh_prop.mesh_type:
+            poly = geom.add_polygon(
+                [
+                    [0.0, 0.0, 0.6],
+                    [1.0, 0.0, 0.6],
+                    [1.0, 1.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                ]
+            )
+        else:
+            raise ArgumentError
+        geom.extrude(poly, [0.0, 0.0, 0.2], num_layers=3)
 
-    surfaces = mesh.cells_dict["triangle"]
-    edges = np.array([[[s[0], s[1]], [s[1], s[2]], [s[2], s[0]]] for s in surfaces]).reshape(-1, 2)
-    edge_nodes = nodes[edges]
-    edge_lengths = nph.euclidean_norm_numba(edge_nodes[:, 0] - edge_nodes[:, 1])
-    mean_length = np.mean(edge_lengths)
-    return mean_length / diag_of_bbox
+        geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
+        nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, dimension=3)
+    return nodes, elements
 
 
 def get_pygmsh_bunny(mesh_prop):
