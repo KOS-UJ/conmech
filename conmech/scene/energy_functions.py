@@ -345,32 +345,33 @@ class EnergyFunctions:
 
         self.mode = "automatic"
 
-        self.energy_obstacle_free = self._energy_obstacle_free
-        self.energy_obstacle_colliding = self._energy_obstacle_colliding
+        if not simulation_config.pca:
+            self.energy_obstacle_free = self._energy_obstacle_free
+            self.energy_obstacle_colliding = self._energy_obstacle_colliding
 
-        # self.energy_obstacle_free = lambda vector, args: jnp.float64(
-        #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
-        # )
-        # self.energy_obstacle_colliding = lambda vector, args: jnp.float64(
-        #     self._energy_obstacle_colliding(jnp.array(vector, dtype=jnp.float32), args)
-        # )
+            # self.energy_obstacle_free = lambda vector, args: jnp.float64(
+            #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
+            # )
+            # self.energy_obstacle_colliding = lambda vector, args: jnp.float64(
+            #     self._energy_obstacle_colliding(jnp.array(vector, dtype=jnp.float32), args)
+            # )
 
-        projection = pca.load_pca()
-        _ = projection
+        else:
+            projection = pca.load_pca()
 
-        # def p_to(x):
-        #     return pca.project_to_latent(projection, x.reshape(-1, 1)).reshape(-1)
+            def p_to(vector):
+                return pca.project_to_latent(projection, vector.reshape(-1, 1)).reshape(-1)
 
-        # def p_from(l):
-        #     return pca.project_from_latent(projection, l.reshape(-1, 1)).reshape(-1)
+            def p_from(vector):
+                return pca.project_from_latent(projection, vector.reshape(-1, 1)).reshape(-1)
 
-        # @partial(jax.jit, static_argnames="args")
-        # self.energy_obstacle_free = lambda l, args: self._energy_obstacle_free(
-        #     p_from(p_to(l)), args
-        # )
-        # self.energy_obstacle_colliding = lambda l, args: self._energy_obstacle_colliding(
-        #     p_from(p_to(l)), args
-        # )
+            # @partial(jax.jit, static_argnames="args")
+            self.energy_obstacle_free = lambda vector, args: self._energy_obstacle_free(
+                p_from(p_to(vector)), args
+            )
+            self.energy_obstacle_colliding = lambda vector, args: self._energy_obstacle_colliding(
+                p_from(p_to(vector)), args
+            )
 
     @staticmethod
     def get_manual_modes():

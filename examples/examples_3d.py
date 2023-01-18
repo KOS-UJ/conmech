@@ -100,88 +100,43 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[16],  # 8 32
+                mesh_density=[16],  # 32
             ),
             body_prop=TimeDependentBodyProperties(
-                mu=4,
-                lambda_=4,
+                mu=8,
+                lambda_=8,
                 theta=8,
                 zeta=8,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=10),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, 0.0, -1.0]),
             obstacle=Obstacle(  # 0.3
-                geometry=None,  # np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-                properties=ObstacleProperties(hardness=100.0, friction=0.0),
-                all_mesh=[
-                    MeshProperties(
-                        dimension=3,
-                        mesh_type="slide_left",
-                        scale=[1],
-                        mesh_density=[16],
-                        initial_position=[0, 0, -0.2],
-                    ),
-                    MeshProperties(
-                        dimension=3,
-                        mesh_type="slide_right",
-                        scale=[1],
-                        mesh_density=[16],
-                        initial_position=[0, -1, -1.0],
-                    ),
-                    MeshProperties(
-                        dimension=3,
-                        mesh_type="slide_left",
-                        scale=[1],
-                        mesh_density=[16],
-                        initial_position=[0, 0, -1.8],
-                    ),
-                ],
+                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                ObstacleProperties(hardness=100.0, friction=5.0),
             ),
         ),
-        # Scenario(
-        #     name="bunny_fall",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_BUNNY_3D,
-        #         scale=[1],
-        #         mesh_density=[16],  # 32
-        #     ),
-        #     body_prop=TimeDependentBodyProperties(
-        #         mu=8,
-        #         lambda_=8,
-        #         theta=8,
-        #         zeta=8,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(  # 0.3
-        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-        #         ObstacleProperties(hardness=100.0, friction=5.0),
-        #     ),
-        # ),
-        # Scenario(
-        #     name="bunny_roll",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_BUNNY_3D,
-        #         scale=[1],
-        #         mesh_density=[16],  # 8
-        #     ),
-        #     body_prop=TimeDependentBodyProperties(
-        #         mu=12,
-        #         lambda_=12,
-        #         theta=16,
-        #         zeta=16,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=f_rotate_3d,
-        #     obstacle=Obstacle(
-        #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
-        #     ),
-        # )
+        Scenario(
+            name="bunny_roll",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[16],  # 8
+            ),
+            body_prop=TimeDependentBodyProperties(
+                mu=12,
+                lambda_=12,
+                theta=16,
+                zeta=16,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=f_rotate_3d,
+            obstacle=Obstacle(
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
+            ),
+        )
         # Scenario(
         #     name="armadillo_roll",
         #     mesh_prop=MeshProperties(

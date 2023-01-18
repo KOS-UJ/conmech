@@ -659,6 +659,56 @@ def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg
     )
 
 
+def bunny_obstacles(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+    _, _, _ = scale, tag, arg
+    return Scenario(
+        name="bunny_fall",
+        mesh_prop=MeshProperties(
+            dimension=3,
+            mesh_type=M_BUNNY_3D,
+            scale=[1],
+            mesh_density=[mesh_density],
+        ),
+        body_prop=default_body_prop_3d,
+        schedule=Schedule(final_time=final_time),
+        forces_function=np.array([0.0, 0.0, -1.0]),
+        obstacle=Obstacle(
+            geometry=None,
+            properties=ObstacleProperties(hardness=100.0, friction=0.0),
+            all_mesh=[
+                MeshProperties(
+                    dimension=3,
+                    mesh_type="slide_left",
+                    scale=[1],
+                    mesh_density=[16],
+                    initial_position=[0, 0, -0.2],
+                ),
+                MeshProperties(
+                    dimension=3,
+                    mesh_type="slide_right",
+                    scale=[1],
+                    mesh_density=[16],
+                    initial_position=[0, -1, -1.0],
+                ),
+                MeshProperties(
+                    dimension=3,
+                    mesh_type="slide_left",
+                    scale=[1],
+                    mesh_density=[16],
+                    initial_position=[0, 0, -1.8],
+                ),
+                MeshProperties(
+                    dimension=3,
+                    mesh_type="slide_right",
+                    scale=[1],
+                    mesh_density=[16],
+                    initial_position=[0, -1, -2.6],
+                ),
+            ],
+        ),
+    )
+
+
 def get_train_data(**args):
     tag = "_train"
     return [
@@ -718,8 +768,9 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        args["final_time"] = 6.0  # 12.0
+        args["final_time"] = 10.0  # 12.0
         return [
+            bunny_obstacles(**args),
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),
             bunny_swing_3d(**args),
