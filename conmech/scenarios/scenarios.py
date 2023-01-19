@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union
 import numpy as np
 
 from conmech.helpers import cmh
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.body_properties import (
     TimeDependentBodyProperties,
     TimeDependentTemperatureBodyProperties,
@@ -30,6 +30,7 @@ class Scenario:
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
         forces_function_parameter: Optional[float] = None,
+        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         self.name = name
         self.mesh_prop = mesh_prop
@@ -42,6 +43,7 @@ class Scenario:
         self.mesh_obstacles = None if obstacle.all_mesh is None else obstacle.all_mesh
         self.forces_function = forces_function
         self.forces_function_parameter = forces_function_parameter
+        self.simulation_config = simulation_config
 
     @staticmethod
     def get_by_function(function, setting, current_time):
@@ -87,6 +89,7 @@ class Scenario:
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
             create_in_subprocess=create_in_subprocess,
+            simulation_config=self.simulation_config,
         )
         scene.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return scene
@@ -114,6 +117,7 @@ class TemperatureScenario(Scenario):
         forces_function: Union[Callable, np.ndarray],
         obstacle: Obstacle,
         heat_function: Union[Callable, np.ndarray],
+        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             name=name,
@@ -122,6 +126,7 @@ class TemperatureScenario(Scenario):
             schedule=schedule,
             forces_function=forces_function,
             obstacle=obstacle,
+            simulation_config=simulation_config,
         )
         self.heat_function = heat_function
 
@@ -144,6 +149,7 @@ class TemperatureScenario(Scenario):
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
             create_in_subprocess=create_in_subprocess,
+            simulation_config=self.simulation_config,
         )
         setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return setting

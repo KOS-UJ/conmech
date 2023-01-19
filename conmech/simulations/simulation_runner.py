@@ -54,12 +54,18 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     scene_copy.prepare_to_save()
 
     arrays_path = scenes_path + "_data"
-    nodes = scene.boundary_nodes
-    elements = scene.boundaries.boundary_surfaces
-    arrays = (nodes, elements)
+    arrays = (scene.boundary_nodes, scene.boundaries.boundary_surfaces)
     if isinstance(scene, SceneTemperature):
-        temperatue = scene.t_old
-        arrays += (temperatue,)
+        arrays += (scene.t_old,)
+    else:
+        arrays += (None,)
+
+    if len(scene.mesh_obstacles) > 0: # TODO: Mesh obstacles and temperature - create dataclass
+        obs = scene.mesh_obstacles[0]
+        arrays += (obs.boundary_nodes, obs.boundaries.boundary_surfaces)
+    else:
+        arrays += (None, None)
+    
     scenes_file, indices_file = pkh.open_files_append(arrays_path)
     with scenes_file, indices_file:
         pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
@@ -155,9 +161,9 @@ def run_scenario(
     setting = fun_sim()
 
     if run_config.plot_animation:
-        if config.animation_backend == "blender":
+        if "blender" in config.animation_backend:
             plot_using_blender()
-        elif config.animation_backend == "matplotlib":
+        if "matplotlib" in config.animation_backend:
             plot_scenario_animation(
                 scenario=scenario,
                 config=config,
@@ -167,17 +173,15 @@ def run_scenario(
                 plot_scenes_count=plot_scenes_count[0],
                 all_scenes_path=scenes_path,
             )
-        else:
-            raise ArgumentError
 
     return setting, scenes_path
 
 
 def plot_using_blender():
     path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
-    args = " --background --python ~/Desktop/conmech/blender/load.py"
+    args = " --background --python ~/Desktop/conmech/blender/load.py --render"
     print("Plotting using Blender...")
-    subprocess.call(path + args, shell=True, stdout=subprocess.DEVNULL)
+    subprocess.call(path + args, shell=True) #, stdout=subprocess.DEVNULL)
     print("Blender done")
 
 
@@ -225,7 +229,7 @@ def print_mesh_data(scene):
 
 def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
     energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
-
+    return energy_functions
     print("Precompiling...")
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
@@ -234,7 +238,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
             energy_functions.set_manual_mode(mode)
             try:
                 _ = solve_function(
-                    scene=scene,
+                    scene=scene.copy(),
                     energy_functions=energy_functions,
                     initial_a=None,
                     initial_t=None,
@@ -242,9 +246,9 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
             except AssertionError:
                 pass
 
-        if hasattr(scene, "reduced"):
-            scene.reduced.exact_acceleration = None
-            scene.reduced.lifted_acceleration = None
+        # if hasattr(scene, "reduced"):
+        #     scene.reduced.exact_acceleration = None
+        #     scene.reduced.lifted_acceleration = None
 
         energy_functions.set_automatic_mode()
     return energy_functions

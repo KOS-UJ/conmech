@@ -43,20 +43,20 @@ class Scene(BodyForces):
         body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
-        create_in_subprocess: bool,
+        simulation_config: SimulationConfig,
         with_schur: bool = False,
-        simulation_config: SimulationConfig = SimulationConfig(),
+        create_in_subprocess: bool = False,
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
+            simulation_config=simulation_config,
             dynamics_config=DynamicsConfiguration(
                 create_in_subprocess=create_in_subprocess,
                 with_lhs=False,
                 with_schur=with_schur,
             ),
-            simulation_config=simulation_config,
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None

@@ -128,16 +128,16 @@ class Dynamics(BodyPosition):
         mesh_prop: MeshProperties,
         body_prop: StaticBodyProperties,
         schedule: Schedule,
+        simulation_config: SimulationConfig,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
-        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
+            normalize=simulation_config.normalize,
             boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
-            normalize=simulation_config.normalize,
         )
         self.body_prop = body_prop
         self.simulation_config = simulation_config

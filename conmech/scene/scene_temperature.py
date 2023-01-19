@@ -2,6 +2,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from conmech.helpers import jxh, nph
+from conmech.helpers.config import SimulationConfig
 from conmech.scene.body_forces import energy
 from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
@@ -41,6 +42,7 @@ class SceneTemperature(Scene):
         body_prop,
         obstacle_prop,
         schedule,
+        simulation_config: SimulationConfig,
         create_in_subprocess,
     ):
         super().__init__(
@@ -49,6 +51,7 @@ class SceneTemperature(Scene):
             obstacle_prop=obstacle_prop,
             schedule=schedule,
             create_in_subprocess=create_in_subprocess,
+            simulation_config=simulation_config,
         )
         self.t_old = np.zeros((self.nodes_count, 1))
         self.heat = None

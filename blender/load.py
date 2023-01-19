@@ -10,6 +10,7 @@ import builtins as __builtin__
 import io
 import os
 import pickle
+import sys
 from ctypes import ArgumentError
 from io import BufferedReader
 from random import random, uniform
@@ -22,17 +23,22 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
+args = sys.argv[1:]
 input_path = "/home/michal/Desktop/conmech/output"
 dense = True
 
 load_mesh = True
 load_world = True
-render = True
+render = "--render" in args
 draw_obstacle = True
 
 cycles = True  # False
 output_video = True  # True
 output_path = "/home/michal/Desktop/conmech/output"
+hidden_render_prints = True
+
+print("Args: ", args)
+print("Render: ", render)
 
 
 def get_tqdm(iterable, desc=None, position=None) -> tqdm:
@@ -56,11 +62,11 @@ all_arrays_name = os.path.basename(all_arrays_path).split("DATA")[0]
 
 print(f"FILE: {all_arrays_name}")
 # raise ArgumentError(file_name)
+# exit()
 
 
-def load_data():
-    simulation, temperature = load_simulation()
-    with_temperature = temperature is not None
+def load_mesh_animation(simulation):
+    with_temperature = simulation[0][2] is not None
 
     initial_nodes, initial_elements = simulation[0][:2]
     mesh, object = create_mesh(initial_nodes, initial_elements, with_temperature)
@@ -111,6 +117,8 @@ def load_data():
         return
 
     print("WITH TEMPERATURE")
+    temperature = np.array([s[2] for s in simulation])
+    print(temperature)
     max_t = np.max(temperature)
     min_t = np.min(temperature)
     print(f"MAX_TEMP: {max_t}")
@@ -201,7 +209,6 @@ def load_byte_index(byte_index: int, data_file: BufferedReader):
 def load_simulation():
     all_indices = get_all_indices(all_arrays_path)
     simulation = []
-    temperature = None
     scenes_file = open_file_read(all_arrays_path)
     with scenes_file:
         for step in range(len(all_indices)):
@@ -211,15 +218,7 @@ def load_simulation():
                 data_file=scenes_file,
             )
             simulation.append(arrays)
-            with_temperature = len(arrays) > 2
-            if with_temperature:
-                if temperature is None:
-                    temperature = []
-                temperature.append(arrays[2])
-
-    if with_temperature:
-        temperature = np.array(temperature)[..., 0]
-    return simulation, temperature
+    return simulation
 
 
 def clear_scene():
@@ -251,8 +250,8 @@ def get_object_name(with_temperature=None):
     return "CustomObjectTemperature" if with_temperature else "CustomObject"
 
 
-def create_mesh(nodes, elements, with_temperature):
-    mesh = bpy.data.meshes.new(name="CustomMesh")
+def create_mesh(nodes, elements, with_temperature, name="CustomMesh"):
+    mesh = bpy.data.meshes.new(name=name)
     mesh.from_pydata(nodes, [], elements)
     mesh.update(calc_edges=True)
     mesh.validate()
@@ -316,6 +315,14 @@ def add_obstacle():
 
     color = (111, 76, 91)
     set_object_color(obj, color, 0.4)
+
+
+def add_mesh_obstacles(simulation):
+    initial_nodes, initial_elements = simulation[0][3:5]
+    print(initial_nodes.min(axis=0), initial_nodes.max(axis=0))
+    mesh, object = create_mesh(
+        initial_nodes, initial_elements, with_temperature=False, name="CustomObstacle"
+    )
 
 
 def add_background():
@@ -555,11 +562,13 @@ if __name__ == "__main__":
     if load_mesh:
         print("---LOADING MESH---")
         clear_scene()
-        load_data()
+        simulation = load_simulation()
+        load_mesh_animation(simulation)
 
     if load_world:
         print("---LOADING WORLD---")
         set_scene_and_render()
+        add_mesh_obstacles(simulation)
 
     if render:
         print("---RENDERING---")

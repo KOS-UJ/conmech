@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import numpy as np
 
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.body_properties import TimeDependentTemperatureBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
@@ -126,7 +126,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
+def main(mesh_density=32, final_time=0.1, plot_animation=True, shell=False):
     config = Config(shell=shell)
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
@@ -135,9 +135,15 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
         scale=[1],
         mesh_density=[mesh_density],
     )
-    mesh_prop.normalize = False
-    mesh_prop.use_green_strain = False
-    mesh_prop.use_nonconvex_friction_law = True
+    simulation_config = SimulationConfig(
+        normalize=False,
+        use_linear_solver=False,
+        use_green_strain=False,
+        use_nonconvex_friction_law=True,
+        use_constant_contact_integral=False,
+        use_lhs_preconditioner=False,
+        pca=False,
+    )
 
     forces_function = lambda *_: np.array([-0.7, 0, -2])
     obstacle_geometry = np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]])
@@ -169,6 +175,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 TemperatureObstacleProperties(hardness=200.0, friction=0.1, heat=0.2),
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
         TemperatureScenario(
             name="temperature_3d_bunny_push_friction",

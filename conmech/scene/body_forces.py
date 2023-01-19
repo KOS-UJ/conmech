@@ -52,17 +52,17 @@ class BodyForces(Dynamics):
         mesh_prop: MeshProperties,
         body_prop: TimeDependentBodyProperties,
         schedule: Schedule,
+        simulation_config: SimulationConfig,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
-        simulation_config: SimulationConfig = SimulationConfig(),
     ):
         super().__init__(
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
+            simulation_config=simulation_config,
             dynamics_config=dynamics_config,
             boundaries_description=boundaries_description,
-            simulation_config=simulation_config,
         )
 
         self.inner_forces = None

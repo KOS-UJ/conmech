@@ -136,8 +136,8 @@ class BodyPosition:
         self,
         mesh_prop: MeshProperties,
         schedule: Schedule,
-        boundaries_description: Optional[BoundariesDescription] = None,
         normalize: bool = False,
+        boundaries_description: Optional[BoundariesDescription] = None,
         create_in_subprocess: bool = False,
     ):
         if boundaries_description is None:
