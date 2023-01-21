@@ -15,6 +15,21 @@ from tqdm import tqdm
 from conmech.helpers.config import Config
 
 
+def get_from_os(name):
+    return name in os.environ and int(os.environ[name])
+
+
+def print_jax_configuration():
+    if get_from_os("JAX_ENABLE_X64"):
+        print("JAX 64 BIT MODE")
+    else:
+        print("JAX 32 BIT MODE")
+
+    name = "JAX_PLATFORM_NAME"
+    if name in os.environ:
+        print(os.environ[name])
+
+
 def get_used_memory_gb():
     return psutil.Process(os.getpid()).memory_info().rss / 1024**3  # (b -> kb -> mb -> gb)
 

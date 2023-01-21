@@ -10,7 +10,6 @@ from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import jxh, lnh, nph
 from conmech.helpers.config import SimulationConfig
 from conmech.helpers.lnh import get_in_base
-from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties

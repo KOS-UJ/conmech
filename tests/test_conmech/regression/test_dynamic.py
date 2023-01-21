@@ -3,6 +3,7 @@ Created at 21.08.2019
 """
 
 from dataclasses import dataclass
+import os
 
 import numpy as np
 import pytest

@@ -15,7 +15,7 @@ def generate_test_suits():
         np.array([[[0.7, 1.0]], [[0.0, 0.1]]]), scenarios.default_temp_obstacle_prop
     )
     scenario = TemperatureScenario(
-        name=f"polygon_temp",
+        name="polygon_temp",
         mesh_prop=MeshProperties(
             dimension=2, mesh_type=scenarios.M_POLYGON, scale=[1], mesh_density=[3]
         ),

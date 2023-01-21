@@ -31,7 +31,7 @@ class Scenario:
         obstacle: Obstacle,
         forces_function_parameter: Optional[float] = None,
         simulation_config: SimulationConfig = SimulationConfig(),
-    ):
+    ):  # pylint: disable=too-many-arguments
         self.name = name
         self.mesh_prop = mesh_prop
         self.body_prop = body_prop
@@ -118,7 +118,7 @@ class TemperatureScenario(Scenario):
         obstacle: Obstacle,
         heat_function: Union[Callable, np.ndarray],
         simulation_config: SimulationConfig = SimulationConfig(),
-    ):
+    ):  # pylint: disable=too-many-arguments
         super().__init__(
             name=name,
             mesh_prop=mesh_prop,

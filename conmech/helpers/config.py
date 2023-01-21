@@ -3,22 +3,34 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 
+# def set_env(test=False):
+#     if "ENV_READY" not in os.environ or not os.environ["ENV_READY"]:
+#         return
+#     if not test:
+#         # os.environ["JAX_ENABLE_X64"] = "1"
+#         os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+#         # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # "-1"
+#         # os.environ["JAX_PLATFORM_NAME"] = "cpu"
+#         # os.environ["JAX_DISABLE_JIT"] = "1"
+#         # os.environ["JAX_DEBUG_NANS"] = "1"
 
-def set_env():
-    # os.environ["JAX_ENABLE_X64"] = "1"
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # "-1"
-    # os.environ["JAX_PLATFORM_NAME"] = "cpu"
-    # os.environ["JAX_DISABLE_JIT"] = "1"
-    # os.environ["JAX_DEBUG_NANS"] = "1"
+#         # os.environ['OPTIMIZATION_BACKEND'] = "cpu" # "gpu" "cpu" None
 
-    # os.environ['OPTIMIZATION_BACKEND'] = "cpu" # "gpu" "cpu" None
-    os.environ["VERBOSE"] = "0"
+#         # import lovely_jax as lj
+#         # import lovely_tensors as lt
+#         # lt.monkey_patch()
+#         # lj.monkey_patch()
+#     else:
+#         os.environ["JAX_ENABLE_X64"] = "0"
+#         os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+#         os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#         os.environ["JAX_PLATFORM_NAME"] = "cpu"
+#         os.environ["JAX_DISABLE_JIT"] = "0"
+#         os.environ["JAX_DEBUG_NANS"] = "0"
 
-    if "JAX_ENABLE_X64" in os.environ and os.environ["JAX_ENABLE_X64"]:
-        print("JAX 64 BIT MODE")
-    else:
-        print("JAX 32 BIT MODE")
+#         os.environ["OPTIMIZATION_BACKEND"] = "cpu"
+
+#     os.environ["ENV_READY"] = "1"
 
 
 @dataclass
@@ -38,6 +50,7 @@ class Config:
     timestamp_skip: int = 10000
     run_timestamp: float = int(time.time() * timestamp_skip)
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
+    verbose: bool = True
 
     animation_backend: str = "matplotlib blender"  # blender matplotlib
     blender_output: bool = True

@@ -1,4 +1,5 @@
 {
+    "version": "0.2.0",
     "configurations": [
         {
             "name": "Train graph",
@@ -60,18 +61,25 @@
             "justMyCode": false
         },
         {
+            "name": "Examples 2D",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/examples_2d.py",
+            "justMyCode": false
+        },
+        {
+            "name": "test_examples_3d",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/test_examples_3d.py",
+            "justMyCode": false
+        },
+        {
             "name": "mesh_test",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/examples/mesh_test.py",
             "justMyCode": false
         },
-        {
-            "name": "Examples 2D",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/examples/examples_2d.py",
-            "justMyCode": false
-        }
     ]
 }

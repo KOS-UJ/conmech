@@ -1,4 +1,5 @@
 """The Limited-Memory Broyden-Fletcher-Goldfarb-Shanno minimization algorithm."""
+# pylint: skip-file
 import os
 from functools import partial
 from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Union

@@ -1,13 +1,6 @@
-from conmech.helpers.config import set_env
-
-if __name__ == "__main__":
-    set_env()
-
-# import lovely_jax as lj
-# import lovely_tensors as lt
-
-# lt.monkey_patch()
-# lj.monkey_patch()
+# from conmech.helpers.config import SET_ENV
+# if name == "__main__":
+#     SET_ENV()
 
 import argparse
 import os
@@ -274,6 +267,7 @@ def get_newest_checkpoint_path(config: TrainingConfig):
 
 
 def main(args: Namespace):
+    cmh.print_jax_configuration()
     print(f"MODE: {args.mode}, PID: {os.getpid()}")
     # dch.cuda_launch_blocking()
     # torch.autograd.set_detect_anomaly(True)

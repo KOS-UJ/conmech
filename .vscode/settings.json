@@ -25,7 +25,9 @@
     ],
     // Pytest
     "python.testing.pytestArgs": [
-        "tests"
+        "tests",
+        "--capture=no",
+        "--durations=10"
     ],
     "python.testing.pytestEnabled": true
 }

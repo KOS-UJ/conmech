@@ -121,10 +121,10 @@ def get_pygmsh_slide(mesh_prop):
 
 def get_pygmsh_bunny(mesh_prop):
     if mesh_prop.mesh_density_x == 32:
-        mesh_id = 2  # 3
+        mesh_id = 2
     elif mesh_prop.mesh_density_x == 16:
-        mesh_id = 3  # 4
-    elif mesh_prop.mesh_density_x == 8:
+        mesh_id = 3
+    elif mesh_prop.mesh_density_x in [8, 4]:
         mesh_id = 4
     else:
         raise ArgumentError

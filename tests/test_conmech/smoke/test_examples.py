@@ -14,9 +14,11 @@ from examples.examples_3d import main as examples_3d
 from examples.examples_temperature_2d import main as examples_temperature_2d
 from examples.examples_temperature_3d import main as examples_temperature_3d
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
+from examples.temperature_2023 import main as temperature_2023
 
 default_args = dict(show=False, save=False)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
+default_args_temp = dict(mesh_density=8, final_time=0.02, plot_animation=False)
 
 test_suits = {
     "static": lambda: static(**default_args),
@@ -29,9 +31,8 @@ test_suits = {
     "examples_2d": lambda: examples_2d(**default_args_deep),
     "examples_3d": lambda: examples_3d(**default_args_deep),
     "examples_temperature_2d": lambda: examples_temperature_2d(**default_args_deep),
-    "examples_temperature_3d": lambda: examples_temperature_3d(
-        mesh_density=16, final_time=0.05, plot_animation=False
-    ),
+    "examples_temperature_3d": lambda: examples_temperature_3d(**default_args_temp),
+    "temperature_2023": lambda: temperature_2023(**default_args_temp),
 }
 
 

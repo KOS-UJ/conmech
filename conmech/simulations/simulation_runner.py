@@ -1,15 +1,12 @@
 import copy
 import os
-import subprocess
-from ctypes import ArgumentError
 from dataclasses import dataclass
-import sys
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.helpers.tmh import Timer
-from conmech.plotting import plotter_2d, plotter_3d, plotter_common
+from conmech.plotting import plotter_functions
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
@@ -61,12 +58,12 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     else:
         arrays += (None,)
 
-    if len(scene.mesh_obstacles) > 0: # TODO: Mesh obstacles and temperature - create dataclass
+    if len(scene.mesh_obstacles) > 0:  # TODO: Mesh obstacles and temperature - create dataclass
         obs = scene.mesh_obstacles[0]
         arrays += (obs.boundary_nodes, obs.boundaries.boundary_surfaces)
     else:
         arrays += (None, None)
-    
+
     scenes_file, indices_file = pkh.open_files_append(arrays_path)
     with scenes_file, indices_file:
         pkh.append_data(data=arrays, data_path=arrays_path, lock=None)
@@ -163,9 +160,9 @@ def run_scenario(
 
     if run_config.plot_animation:
         if "blender" in config.animation_backend:
-            plot_using_blender(config)
+            plotter_functions.plot_using_blender(output=config.blender_output)
         if "matplotlib" in config.animation_backend:
-            plot_scenario_animation(
+            plotter_functions.plot_scenario_animation(
                 scenario=scenario,
                 config=config,
                 animation_path=f"{final_catalog}/{scenario.name}.gif",
@@ -176,39 +173,6 @@ def run_scenario(
             )
 
     return setting, scenes_path
-
-
-def plot_using_blender(config: Config):
-    path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
-    args = " --background --python ~/Desktop/conmech/blender/load.py --render"
-    print("Plotting using Blender...")
-    stdout = sys.stdout if config.blender_output else subprocess.DEVNULL
-    subprocess.call(path + args, shell=True, stdout=stdout)
-    print("Blender done")
-
-
-def plot_scenario_animation(
-    scenario: Scenario,
-    config: Config,
-    animation_path: str,
-    time_skip: float,
-    index_skip: int,
-    plot_scenes_count: int,
-    all_scenes_path: str,
-):
-    t_scale = plotter_common.get_t_scale(scenario, index_skip, plot_scenes_count, all_scenes_path)
-    plot_function = (
-        plotter_2d.plot_animation if scenario.dimension == 2 else plotter_3d.plot_animation
-    )
-    plot_function(
-        save_path=animation_path,
-        config=config,
-        time_skip=time_skip,
-        index_skip=index_skip,
-        plot_scenes_count=plot_scenes_count,
-        all_scenes_path=all_scenes_path,
-        t_scale=t_scale,
-    )
 
 
 def prepare(scenario, scene: Scene, current_time, with_temperature):
@@ -237,7 +201,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature, 
     print("Precompiling...")
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
-        scene_copy = copy.deepcopy(scene) # copy to not change initial vectors
+        scene_copy = copy.deepcopy(scene)  # copy to not change initial vectors
         for mode in EnergyFunctions.get_manual_modes():
             energy_functions.set_manual_mode(mode)
             try:
@@ -265,7 +229,9 @@ def simulate(
     with_temperature = isinstance(scene, SceneTemperature)
 
     print_mesh_data(scene)
-    energy_functions = prepare_energy_functions(scenario, scene, solve_function, with_temperature, precompile=True)
+    energy_functions = prepare_energy_functions(
+        scenario, scene, solve_function, with_temperature, precompile=True
+    )
 
     acceleration, temperature = (None,) * 2
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)
@@ -302,33 +268,8 @@ def simulate(
         all_time = timer.dt[key].sum()
         print(f" {key}: {all_time:.2f}s | {(steps/all_time):.2f}it/s")
 
-    print("Saving timings")
-    fig = timer.dt["all_solver"].plot.hist(bins=100).get_figure()
-    fig.savefig(f"log/timing-{cmh.get_timestamp(config)}.png")
+    # print("Saving timings")
+    # fig = timer.dt["all_solver"].plot.hist(bins=100).get_figure()
+    # fig.savefig(f"log/timing-{cmh.get_timestamp(config)}.png")
 
     return scene
-
-
-def plot_setting(
-    current_time,
-    scene,
-    path,
-    draw_detailed,
-    extension,
-):
-    if scene.dimension == 2:
-        fig = plotter_2d.get_fig()
-        axs = plotter_2d.get_axs(fig)
-        plotter_2d.plot_frame(
-            fig=fig,
-            axs=axs,
-            scene=scene,
-            current_time=current_time,
-            draw_detailed=draw_detailed,
-        )
-        plotter_common.plt_save(path, extension)
-    else:
-        fig = plotter_3d.get_fig()
-        axs = plotter_3d.get_axs(fig)
-        plotter_3d.plot_frame(fig=fig, axs=axs, scene=scene, current_time=current_time)
-        plotter_common.plt_save(path, extension)

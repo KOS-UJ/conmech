@@ -16,6 +16,7 @@ from conmech.dynamics.statement import (
     TemperatureStatement,
     Variables,
 )
+from conmech.helpers.config import SimulationConfig
 from conmech.properties.body_properties import (
     BodyProperties,
     StaticBodyProperties,
@@ -70,12 +71,21 @@ class ProblemSolver:
             ),
             body_prop=body_properties,
             schedule=Schedule(time_step=time_step, final_time=0.0),
-            boundaries_description=setup.boundaries,
+            simulation_config=SimulationConfig(
+                use_normalization=False,
+                use_linear_solver=False,
+                use_green_strain=False,
+                use_nonconvex_friction_law=False,
+                use_constant_contact_integral=False,
+                use_lhs_preconditioner=False,
+                use_pca=False,
+            ),
             dynamics_config=DynamicsConfiguration(
                 create_in_subprocess=False,
                 with_lhs=False,
                 with_schur=False,
             ),
+            boundaries_description=setup.boundaries,
         )
         self.body.set_permanent_forces_by_functions(
             inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces

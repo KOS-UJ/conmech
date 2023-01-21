@@ -10,6 +10,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
+from conmech.plotting.plotter_functions import plot_setting
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.simulations import simulation_runner
@@ -372,7 +373,7 @@ class BaseDataset:
         cmh.create_folders(catalog)
         extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
-        simulation_runner.plot_setting(
+        plot_setting(
             current_time=current_time,
             scene=scene,
             path=path,

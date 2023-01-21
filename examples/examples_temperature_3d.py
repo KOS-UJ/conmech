@@ -1,7 +1,3 @@
-from conmech.helpers.config import Config, set_env
-
-set_env()
-
 import argparse
 from argparse import ArgumentParser
 
@@ -26,9 +22,19 @@ from conmech.scenarios.scenarios import (
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
+simulation_config = SimulationConfig(
+    use_normalization=False,
+    use_linear_solver=False,
+    use_green_strain=False,
+    use_nonconvex_friction_law=False,
+    use_constant_contact_integral=False,
+    use_lhs_preconditioner=False,
+    use_pca=False,
+)
 
-def get_C_temp_scenarios(mesh_density, final_time):
-    C_temp_body_prop = [
+
+def get_constitutive_temp_scenarios(mesh_density, final_time):
+    constitutive_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
             thermal_expansion_coeff=np.array([[0.5, 0, 0], [0, 0.5, 0], [0, 0, 1.5]]),
@@ -64,13 +70,14 @@ def get_C_temp_scenarios(mesh_density, final_time):
             forces_function=np.array([0, 0, 0]),
             obstacle=obstacle,
             heat_function=np.array([2]),
+            simulation_config=simulation_config,
         )
-        for i, temp_body_prop in enumerate(C_temp_body_prop)
+        for i, temp_body_prop in enumerate(constitutive_temp_body_prop)
     ]
 
 
-def get_K_temp_scenarios(mesh_density, final_time):
-    K_temp_body_prop = [
+def get_expansion_temp_scenarios(mesh_density, final_time):
+    expansion_temp_body_prop = [
         default_temp_body_prop,
         get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
@@ -88,7 +95,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
                 [[0.1, -0.1, 0.0], [-0.1, 0.1, 0.0], [0.0, 0.0, 0.1]]
             ),
         ),
-        # not allowed in physical law
+        # not allowed by physical law
         get_temp_body_prop(
             thermal_expansion_coeff=default_thermal_expansion_coefficients,
             thermal_conductivity_coeff=np.array(
@@ -103,6 +110,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
         mesh_prop: MeshProperties,
         t: float,
     ):
+        _ = moved_node, t
         x_scaled = initial_node[0] / mesh_prop.scale_x
         y_scaled = initial_node[1] / mesh_prop.scale_y
         z_scaled = initial_node[2] / mesh_prop.scale_z
@@ -125,13 +133,13 @@ def get_K_temp_scenarios(mesh_density, final_time):
             forces_function=np.array([0, 0, 0]),
             obstacle=obstacle,
             heat_function=h_corner,
+            simulation_config=simulation_config,
         )
-        for i, temp_body_prop in enumerate(K_temp_body_prop)
+        for i, temp_body_prop in enumerate(expansion_temp_body_prop)
     ]
 
 
-# def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
-def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
+def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     config = Config(shell=shell)
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
@@ -140,18 +148,6 @@ def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
         scale=[1],
         mesh_density=[mesh_density],
     )
-    simulation_config = SimulationConfig(
-        use_normalization=False,
-        use_linear_solver=False,
-        use_green_strain=False,
-        use_nonconvex_friction_law=True,
-        use_constant_contact_integral=False,
-        use_lhs_preconditioner=False,
-        use_pca=False,
-    )
-
-    forces_function = lambda *_: np.array([-0.7, 0, -2])
-    obstacle_geometry = np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.76]]])  # 1.8
 
     thermal_expansion_coefficients = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     thermal_conductivity_coefficients = np.array(
@@ -170,88 +166,39 @@ def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
     all_scenarios = []
     advanced_scenarios = [
         TemperatureScenario(
-            name="temperature_3d_bunny_push_base",
-            mesh_prop=mesh_prop,
-            body_prop=temp_body_prop,
+            name="temperature_3d_bunny_throw",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_BUNNY_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
-            forces_function=forces_function,
+            forces_function=f_rotate_3d,
             obstacle=Obstacle(
-                obstacle_geometry,
-                TemperatureObstacleProperties(hardness=200.0, friction=0.1, heat=0.2),
+                np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
             ),
             heat_function=np.array([0]),
             simulation_config=simulation_config,
         ),
         TemperatureScenario(
-            name="temperature_3d_bunny_push_friction",
-            mesh_prop=mesh_prop,
-            body_prop=temp_body_prop,
+            name="temperature_3d_cube_throw",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_CUBE_3D,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=default_temp_body_prop,
             schedule=Schedule(final_time=final_time),
-            forces_function=forces_function,
+            forces_function=f_rotate_3d,
             obstacle=Obstacle(
-                obstacle_geometry,
-                TemperatureObstacleProperties(hardness=200.0, friction=1.0, heat=0.2),
+                np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
-        TemperatureScenario(
-            name="temperature_3d_bunny_push_heat",
-            mesh_prop=mesh_prop,
-            body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=forces_function,
-            obstacle=Obstacle(
-                obstacle_geometry,
-                TemperatureObstacleProperties(hardness=200.0, friction=0.1, heat=0.6),
-            ),
-            heat_function=np.array([0]),
-        ),
-        TemperatureScenario(
-            name="temperature_3d_bunny_push_soft",
-            mesh_prop=mesh_prop,
-            body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
-            forces_function=forces_function,
-            obstacle=Obstacle(
-                obstacle_geometry,
-                TemperatureObstacleProperties(hardness=50.0, friction=0.1, heat=0.2),
-            ),
-            heat_function=np.array([0]),
-        ),
-        # TemperatureScenario(
-        #     name="temperature_3d_bunny_throw",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_BUNNY_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=default_temp_body_prop,
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=f_rotate_3d,
-        #     obstacle= Obstacle(
-        #         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
-        #     ),
-        #     heat_function=np.array([0]),
-        # ),
-        # TemperatureScenario(
-        #     name="temperature_3d_cube_throw",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_CUBE_3D,
-        #         scale=[1],
-        #         mesh_density=[mesh_density],
-        #     ),
-        #     body_prop=default_temp_body_prop,
-        #     schedule=Schedule(final_time=final_time),
-        #     forces_function=f_rotate_3d,
-        #     obstacle= Obstacle(
-        #         np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
-        #     ),
-        #     heat_function=np.array([0]),
-        # ),
-    ]
-    other_scenarios = [
         TemperatureScenario(
             name="temperature_3d_bunny_push_base",
             mesh_prop=mesh_prop,
@@ -263,15 +210,18 @@ def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
                 TemperatureObstacleProperties(hardness=800.0, friction=0.0, heat=0.0),
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
     ]
 
-    # mesh_density = 5
-    C_temp_scenarios = get_C_temp_scenarios(mesh_density, final_time)
-    K_temp_scenarios = get_K_temp_scenarios(mesh_density, final_time)
+    constitutive_temp_scenarios = get_constitutive_temp_scenarios(mesh_density, final_time)
+    expansion_temp_scenarios = get_expansion_temp_scenarios(mesh_density, final_time)
 
-    all_scenarios = [*advanced_scenarios]
-    # all_scenarios = [*C_temp_scenarios, *K_temp_scenarios, *advanced_scenarios, *other_scenarios]
+    all_scenarios = [
+        *advanced_scenarios,
+        *constitutive_temp_scenarios,
+        *expansion_temp_scenarios,
+    ]
     simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,
@@ -281,8 +231,6 @@ def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
 
 
 if __name__ == "__main__":
-    # simulation_runner.plot_blender()
-    # exit()
     parser = ArgumentParser()
     parser.add_argument(
         "--shell", action=argparse.BooleanOptionalAction, default=False
