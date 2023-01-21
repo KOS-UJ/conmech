@@ -1,3 +1,7 @@
+from conmech.helpers.config import Config, set_env
+
+set_env()
+
 import argparse
 from argparse import ArgumentParser
 
@@ -126,7 +130,8 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=32, final_time=0.1, plot_animation=True, shell=False):
+# def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
+def main(mesh_density=16, final_time=2.0, plot_animation=True, shell=False):
     config = Config(shell=shell)
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
@@ -136,17 +141,17 @@ def main(mesh_density=32, final_time=0.1, plot_animation=True, shell=False):
         mesh_density=[mesh_density],
     )
     simulation_config = SimulationConfig(
-        normalize=False,
+        use_normalization=False,
         use_linear_solver=False,
         use_green_strain=False,
         use_nonconvex_friction_law=True,
         use_constant_contact_integral=False,
         use_lhs_preconditioner=False,
-        pca=False,
+        use_pca=False,
     )
 
     forces_function = lambda *_: np.array([-0.7, 0, -2])
-    obstacle_geometry = np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.8]]])
+    obstacle_geometry = np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.76]]])  # 1.8
 
     thermal_expansion_coefficients = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     thermal_conductivity_coefficients = np.array(

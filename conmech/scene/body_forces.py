@@ -36,8 +36,7 @@ def energy_vector_lhs(value_vector, lhs, rhs):
     return value[0]
 
 
-@jax.jit
-def get_integrated_forces_jax_int(
+def get_integrated_forces_jax(
     volume_at_nodes_jax, normalized_inner_forces, integrated_outer_forces
 ):
     integrated_inner_forces = volume_at_nodes_jax @ jnp.array(normalized_inner_forces)
@@ -118,7 +117,7 @@ class BodyForces(Dynamics):
         return np.array(self.get_integrated_forces_column_np().reshape(-1), dtype=np.float64)
 
     def get_normalized_integrated_forces_column_for_jax(self, args):
-        integrated_forces = get_integrated_forces_jax_int(
+        integrated_forces = jax.jit(get_integrated_forces_jax)(
             volume_at_nodes_jax=self.matrices.volume_at_nodes_jax,
             normalized_inner_forces=self.normalized_inner_forces,
             integrated_outer_forces=self.get_normalized_integrated_outer_forces(),

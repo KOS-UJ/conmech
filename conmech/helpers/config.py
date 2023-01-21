@@ -23,13 +23,13 @@ def set_env():
 
 @dataclass
 class SimulationConfig:
-    normalize: bool = False
+    use_normalization: bool = False
     use_linear_solver: bool = False
     use_green_strain: bool = True
     use_nonconvex_friction_law: bool = False
     use_constant_contact_integral: bool = False
     use_lhs_preconditioner: bool = False
-    pca: bool = False
+    use_pca: bool = False
 
 
 @dataclass
@@ -40,6 +40,7 @@ class Config:
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
 
     animation_backend: str = "matplotlib blender"  # blender matplotlib
+    blender_output: bool = True
     print_skip: float = 0.1  # 0.01
     plot_tests: bool = False
     output_catalog: str = "output"

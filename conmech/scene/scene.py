@@ -10,6 +10,7 @@ from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import jxh, lnh, nph
 from conmech.helpers.config import SimulationConfig
 from conmech.helpers.lnh import get_in_base
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -64,7 +65,6 @@ class Scene(BodyForces):
         self.mesh_obstacles: List[BodyPosition] = []
         self.energy_functions = None
         self.lifted_acceleration = None
-        self.opti_state = None
         self.clear()
 
     def prepare(self, inner_forces):
@@ -103,14 +103,14 @@ class Scene(BodyForces):
             boundary_velocity_old=args.boundary_velocity_old,
             boundary_normals=args.boundary_normals,
             boundary_obstacle_normals=args.boundary_obstacle_normals,
-            penetration=args.penetration,
+            initial_penetration=args.initial_penetration,
             surface_per_boundary_node=args.surface_per_boundary_node,
             body_prop=args.body_prop,
             obstacle_prop=args.obstacle_prop,
             time_step=args.time_step,
-            base_displacement=args.base_displacement,
             element_initial_volume=self.matrices.element_initial_volume,
             dx_big_jax=self.matrices.dx_big_jax,
+            base_displacement=args.base_displacement,
             base_energy_displacement=jax.jit(energy_functions.compute_displacement_energy)(
                 displacement=args.base_displacement,
                 dx_big_jax=self.matrices.dx_big_jax,
@@ -180,12 +180,6 @@ class Scene(BodyForces):
     @property
     def normalized_boundary_nodes(self):
         return self.normalized_nodes[self.boundary_indices]
-
-    # def get_penetration_scalar(self):
-    #     return (-1) * nph.elementwise_dot(
-    #         (self.normalized_boundary_nodes - self.norm_boundary_obstacle_nodes),
-    #         self.get_norm_boundary_obstacle_normals(),
-    #     ).reshape(-1, 1)
 
     def get_penetration_scalar(self):
         return (-1) * nph.elementwise_dot(
@@ -356,14 +350,14 @@ class Scene(BodyForces):
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=self.get_normalized_boundary_normals_jax(),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
-            penetration=jnp.asarray(self.get_penetration_scalar()),
+            initial_penetration=jnp.asarray(self.get_penetration_scalar()),
             surface_per_boundary_node=self.get_surface_per_boundary_node_jax(),
             body_prop=self.body_prop.get_tuple(),
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
-            base_displacement=base_displacement,
             element_initial_volume=None,
             dx_big_jax=None,
+            base_displacement=base_displacement,
             base_energy_displacement=None,
             base_velocity=base_velocity,
             base_energy_velocity=None,
@@ -389,21 +383,7 @@ class Scene(BodyForces):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_rhs_np(self, temperature=None):
-        _ = temperature
-        displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
-        velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column_np()
-        rhs = (
-            f_vector
-            - (self.matrices.viscosity + self.matrices.elasticity * self.time_step)
-            @ velocity_old_vector
-            - self.matrices.elasticity @ displacement_old_vector
-        )
-        return rhs
-
     def get_normalized_rhs_jax(self, temperature=None):
-        _ = temperature
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
         _, f_vector = self._get_initial_energy_obstacle_args_for_jax(temperature=temperature)

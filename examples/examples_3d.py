@@ -23,7 +23,7 @@ from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
+def main(mesh_density=16, final_time=2, plot_animation=True):  # 8 20 100
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -100,7 +100,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 dimension=3,
                 mesh_type=M_BUNNY_3D,
                 scale=[1],
-                mesh_density=[16],  # 32
+                mesh_density=[mesh_density],  # 32
             ),
             body_prop=TimeDependentBodyProperties(
                 mu=8,
@@ -109,7 +109,7 @@ def main(mesh_density=8, final_time=2, plot_animation=True):  # 8 20 100
                 zeta=8,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=0.2),
+            schedule=Schedule(final_time=final_time),
             forces_function=np.array([0.0, 0.0, -1.0]),
             obstacle=Obstacle(
                 # np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),

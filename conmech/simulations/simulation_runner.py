@@ -3,6 +3,7 @@ import os
 import subprocess
 from ctypes import ArgumentError
 from dataclasses import dataclass
+import sys
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
@@ -162,7 +163,7 @@ def run_scenario(
 
     if run_config.plot_animation:
         if "blender" in config.animation_backend:
-            plot_using_blender()
+            plot_using_blender(config)
         if "matplotlib" in config.animation_backend:
             plot_scenario_animation(
                 scenario=scenario,
@@ -177,11 +178,12 @@ def run_scenario(
     return setting, scenes_path
 
 
-def plot_using_blender():
+def plot_using_blender(config: Config):
     path = "~/Desktop/Blender/blender-3.2.0-linux-x64/blender"
     args = " --background --python ~/Desktop/conmech/blender/load.py --render"
     print("Plotting using Blender...")
-    subprocess.call(path + args, shell=True) #, stdout=subprocess.DEVNULL)
+    stdout = sys.stdout if config.blender_output else subprocess.DEVNULL
+    subprocess.call(path + args, shell=True, stdout=stdout)
     print("Blender done")
 
 
@@ -227,28 +229,26 @@ def print_mesh_data(scene):
     print()
 
 
-def prepare_energy_functions(scenario, scene, solve_function, with_temperature):
+def prepare_energy_functions(scenario, scene, solve_function, with_temperature, precompile):
     energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
-    return energy_functions
+    if not precompile:
+        return energy_functions
+
     print("Precompiling...")
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
-        print("Prepared")
+        scene_copy = copy.deepcopy(scene) # copy to not change initial vectors
         for mode in EnergyFunctions.get_manual_modes():
             energy_functions.set_manual_mode(mode)
             try:
                 _ = solve_function(
-                    scene=scene.copy(),
+                    scene=scene_copy,
                     energy_functions=energy_functions,
                     initial_a=None,
                     initial_t=None,
                 )
             except AssertionError:
                 pass
-
-        # if hasattr(scene, "reduced"):
-        #     scene.reduced.exact_acceleration = None
-        #     scene.reduced.lifted_acceleration = None
 
         energy_functions.set_automatic_mode()
     return energy_functions
@@ -265,7 +265,7 @@ def simulate(
     with_temperature = isinstance(scene, SceneTemperature)
 
     print_mesh_data(scene)
-    energy_functions = prepare_energy_functions(scenario, scene, solve_function, with_temperature)
+    energy_functions = prepare_energy_functions(scenario, scene, solve_function, with_temperature, precompile=True)
 
     acceleration, temperature = (None,) * 2
     time_tqdm = scenario.get_tqdm(desc="Simulating", config=config)

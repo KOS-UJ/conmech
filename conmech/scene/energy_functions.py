@@ -10,8 +10,10 @@ from conmech.helpers import jxh, nph, pca
 from conmech.helpers.config import SimulationConfig
 
 
-def _get_penetration_positive(displacement_step, normals, penetration):
-    projection = nph.elementwise_dot(displacement_step, normals, keepdims=True) + penetration
+def _get_penetration_positive(displacement_step, normals, initial_penetration):
+    projection = (
+        nph.elementwise_dot(displacement_step, normals, keepdims=True) + initial_penetration
+    )
     return (projection > 0) * projection
 
 
@@ -53,7 +55,7 @@ class EnergyObstacleArguments(NamedTuple):
     boundary_velocity_old: np.ndarray
     boundary_normals: np.ndarray
     boundary_obstacle_normals: np.ndarray
-    penetration: np.ndarray
+    initial_penetration: np.ndarray
     surface_per_boundary_node: np.ndarray
     body_prop: np.ndarray
     obstacle_prop: np.ndarray
@@ -61,8 +63,8 @@ class EnergyObstacleArguments(NamedTuple):
     element_initial_volume: np.ndarray
     dx_big_jax: np.ndarray
     base_displacement: np.ndarray
-    base_velocity: np.ndarray
     base_energy_displacement: np.ndarray
+    base_velocity: np.ndarray
     base_energy_velocity: np.ndarray
 
 
@@ -81,7 +83,7 @@ def _get_constant_boundary_integral(
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
         normals=args.boundary_normals,
-        penetration=args.penetration,
+        initial_penetration=args.initial_penetration,
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
@@ -118,7 +120,7 @@ def _get_actual_boundary_integral(
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
         normals=args.boundary_normals,
-        penetration=args.penetration,
+        initial_penetration=args.initial_penetration,
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
@@ -128,7 +130,7 @@ def _get_actual_boundary_integral(
         time_step=args.time_step,
     )
     resistance_tangential = _obstacle_resistance_potential_tangential(
-        penetration_norm=args.penetration,
+        penetration_norm=penetration_norm,
         tangential_velocity=velocity_tangential,
         friction=args.obstacle_prop.friction,
         time_step=args.time_step,
@@ -345,7 +347,7 @@ class EnergyFunctions:
 
         self.mode = "automatic"
 
-        if not simulation_config.pca:
+        if not simulation_config.use_pca:
             self.energy_obstacle_free = self._energy_obstacle_free
             self.energy_obstacle_colliding = self._energy_obstacle_colliding
 

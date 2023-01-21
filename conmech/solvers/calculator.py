@@ -181,7 +181,6 @@ class Calculator:
     def solve_temperature_normalized_function(
         scene: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
-        _ = initial_t
         normalized_rhs = scene.get_normalized_t_rhs_jax(normalized_acceleration)
         matrix = scene.solver_cache.lhs_temperature_sparse_jax
         vector = normalized_rhs
@@ -199,7 +198,10 @@ class Calculator:
         vector = scene.get_normalized_rhs_jax(temperature)
         initial_point = jnp.array(nph.stack_column(initial_a)) if initial_a is not None else None
 
-        preconditioner = scene.solver_cache.lhs_preconditioner_jax
+        if scene.simulation_config.use_lhs_preconditioner:
+            preconditioner = scene.solver_cache.lhs_preconditioner_jax
+        else:
+            preconditioner = None
 
         # A is symetric and positive definite
         # A_ = A.get().todense()

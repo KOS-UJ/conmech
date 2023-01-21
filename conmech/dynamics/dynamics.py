@@ -135,7 +135,7 @@ class Dynamics(BodyPosition):
         super().__init__(
             mesh_prop=mesh_prop,
             schedule=schedule,
-            normalize=simulation_config.normalize,
+            normalize=simulation_config.use_normalization,
             boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
         )

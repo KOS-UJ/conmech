@@ -1,9 +1,11 @@
+import jax
 import jax.numpy as jnp
 import numpy as np
 
 from conmech.helpers import jxh, nph
 from conmech.helpers.config import SimulationConfig
 from conmech.scene.body_forces import energy
+from conmech.scene.energy_functions import _get_penetration_positive
 from conmech.scene.scene import Scene
 from conmech.solvers import SchurComplement
 
@@ -16,21 +18,23 @@ def obstacle_heat(
     return (penetration > 0) * heat_coeff * nph.euclidean_norm(tangential_velocity, keepdims=True)
 
 
-def integrate(
-    nodes_normals,
+def integrate_boundary_temperature(
     obstacle_normals,
-    velocity,
+    boundary_velocity_new,
     initial_penetration,
     nodes_volume,
     heat_coeff,
+    time_step,
 ):
-    _ = nodes_normals
-    penetration = initial_penetration
-    # get_penetration_norm(displacement_step, normals=nodes_normals, penetration)
-    # v_tangential = nph.get_tangential(velocity, nodes_normals)
+    boundary_displacement_step = time_step * boundary_velocity_new
+    penetration_norm = _get_penetration_positive(
+        displacement_step=boundary_displacement_step,
+        normals=obstacle_normals,
+        initial_penetration=initial_penetration,
+    )
 
-    v_tangential = nph.get_tangential(velocity, obstacle_normals)
-    heat = obstacle_heat(penetration, v_tangential, heat_coeff)
+    v_tangential = nph.get_tangential(boundary_velocity_new, obstacle_normals)  # nodes_normals
+    heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
 
@@ -103,27 +107,29 @@ class SceneTemperature(Scene):
     def get_normalized_t_rhs_jax(self, normalized_acceleration):  # TODO: jax.jit
         U = self.matrices.acceleration_operator[self.independent_indices, self.independent_indices]
 
-        v = jnp.array(self.normalized_velocity_old + normalized_acceleration * self.time_step)
-        v_vector = nph.stack_column(v)
+        velocity_new = jnp.array(
+            self.normalized_velocity_old + normalized_acceleration * self.time_step
+        )
+        boundary_velocity_new = velocity_new[self.boundary_indices]
+        velocity_new_vector = nph.stack_column(velocity_new)
 
         A = nph.stack_column(self.matrices.volume_at_nodes @ self.heat)
-        A += (-1) * self.matrices.thermal_expansion @ v_vector
+        A += (-1) * self.matrices.thermal_expansion @ velocity_new_vector
         A += (1 / self.time_step) * U @ self.t_old
 
-        obstacle_heat_integral = jnp.array(self.get_obstacle_heat_integral())
+        obstacle_heat_integral = jnp.array(self.get_obstacle_heat_integral(boundary_velocity_new))
         A += jxh.complete_data_with_zeros(data=obstacle_heat_integral, nodes_count=self.nodes_count)
         return A
 
-    # TODO: #65 Check why without new data !!!
-    def get_obstacle_heat_integral(self):
+    def get_obstacle_heat_integral(self, boundary_velocity_new):
         surface_per_boundary_node = self.get_surface_per_boundary_node_jax()
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
-        return integrate(
-            nodes_normals=self.get_boundary_normals_jax(),
+        return jax.jit(integrate_boundary_temperature)(
             obstacle_normals=self.get_boundary_obstacle_normals(),
-            velocity=self.boundary_velocity_old,
+            boundary_velocity_new=boundary_velocity_new,
             initial_penetration=self.get_penetration_scalar(),
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
+            time_step=self.time_step,
         )

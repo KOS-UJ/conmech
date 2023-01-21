@@ -117,8 +117,7 @@ def load_mesh_animation(simulation):
         return
 
     print("WITH TEMPERATURE")
-    temperature = np.array([s[2] for s in simulation])
-    print(temperature)
+    temperature = np.array([s[2] for s in simulation])[..., 0]
     max_t = np.max(temperature)
     min_t = np.min(temperature)
     print(f"MAX_TEMP: {max_t}")
@@ -319,6 +318,8 @@ def add_obstacle():
 
 def add_mesh_obstacles(simulation):
     initial_nodes, initial_elements = simulation[0][3:5]
+    if initial_nodes is None or initial_elements is None:
+        return
     print(initial_nodes.min(axis=0), initial_nodes.max(axis=0))
     mesh, object = create_mesh(
         initial_nodes, initial_elements, with_temperature=False, name="CustomObstacle"
