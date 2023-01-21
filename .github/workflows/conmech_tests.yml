@@ -25,7 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - run: python -m pip install --upgrade pip
-      - run: pip install pytest, pytest-env pytest-n pytest-xdist
+      - run: pip install pytest pytest-env pytest-xdist
 
       - if: matrix.platform == 'windows-latest'
         run: pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver
