@@ -9,7 +9,6 @@ RUN apt-get install -y git
 RUN apt-get install -y python3-gmsh
 RUN apt-get install -y g++
 
-
 # Setup venv
 ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
@@ -26,10 +25,10 @@ COPY requirements-deep.txt ./
 
 # RUN pip install --user --upgrade pip
 RUN pip install --upgrade pip
-RUN pip install pytest
 RUN pip install -r requirements.txt
 RUN pip install torch==1.11
 RUN pip install -r requirements-deep.txt
+RUN pip install pytest pytest-env pytest-xdist
 
 RUN rm requirements.txt
 RUN rm requirements-deep.txt

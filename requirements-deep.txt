@@ -13,4 +13,4 @@ torch-spline-conv==1.2.1
 tensorflow==2.10.0
 
 tensorboard==2.10.0
-netron==6.3.7
+netron #==6.3.7
