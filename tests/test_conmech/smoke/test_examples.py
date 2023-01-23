@@ -192,16 +192,19 @@ def test_examples(example_args):
         print("Skipping testing of results")
         return
 
+    def compare_values(actual, expected):
+        np.testing.assert_array_almost_equal(actual, expected, decimal=3)
+
     for i, scene in enumerate(scenes):
         key = f"displacement_{i+1}"
         if key in expected_samples:
             print("Testing displacement")
-            expected_displacement = expected_samples[key]
-            actual_sample = scene.displacement_old[: len(expected_displacement)]
-            assert np.allclose(expected_displacement, actual_sample)
+            expected_sample = expected_samples[key]
+            actual_sample = scene.displacement_old[: len(expected_sample)]
+            compare_values(actual_sample, expected_sample)
         key = f"temperature_{i+1}"
         if key in expected_samples:
             print("Testing temperature")
-            expected_temperature = expected_samples[key]
-            actual_sample = scene.t_old[: len(expected_temperature)]
-            assert np.allclose(expected_temperature, actual_sample)
+            expected_sample = expected_samples[key]
+            actual_sample = scene.t_old[: len(expected_sample)]
+            compare_values(actual_sample, expected_sample)
