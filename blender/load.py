@@ -317,13 +317,14 @@ def add_obstacle():
 
 
 def add_mesh_obstacles(simulation):
-    initial_nodes, initial_elements = simulation[0][3:5]
-    if initial_nodes is None or initial_elements is None:
-        return
-    print(initial_nodes.min(axis=0), initial_nodes.max(axis=0))
-    mesh, object = create_mesh(
-        initial_nodes, initial_elements, with_temperature=False, name="CustomObstacle"
-    )
+    for i in range(3, len(simulation[0]), 2):
+        initial_nodes, initial_elements = simulation[0][i : i + 2]
+        if initial_nodes is None or initial_elements is None:
+            return
+        print(initial_nodes.min(axis=0), initial_nodes.max(axis=0))
+        mesh, object = create_mesh(
+            initial_nodes, initial_elements, with_temperature=False, name="CustomObstacle"
+        )
 
 
 def add_background():

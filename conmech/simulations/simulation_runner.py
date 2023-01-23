@@ -21,10 +21,11 @@ def run_examples(
     simulate_dirty_data=False,
     get_scene_function: Optional[Callable] = None,
 ):
+    scenes = []
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
         catalog = os.path.splitext(os.path.basename(file))[0].upper()
-        run_scenario(
+        scene, _ = run_scenario(
             solve_function=scenario.get_solve_function(),
             scenario=scenario,
             config=config,
@@ -35,8 +36,10 @@ def run_examples(
             ),
             get_scene_function=get_scene_function,
         )
+        scenes.append(scene)
         print()
     print("DONE")
+    return scenes
 
 
 @dataclass
@@ -58,11 +61,8 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     else:
         arrays += (None,)
 
-    if len(scene.mesh_obstacles) > 0:  # TODO: Mesh obstacles and temperature - create dataclass
-        obs = scene.mesh_obstacles[0]
+    for obs in scene.mesh_obstacles:  # TODO: Mesh obstacles and temperature - create dataclass
         arrays += (obs.boundary_nodes, obs.boundaries.boundary_surfaces)
-    else:
-        arrays += (None, None)
 
     scenes_file, indices_file = pkh.open_files_append(arrays_path)
     with scenes_file, indices_file:
@@ -156,7 +156,7 @@ def run_scenario(
         )
 
     # cmh.profile(fun_sim)
-    setting = fun_sim()
+    scene = fun_sim()
 
     if run_config.plot_animation:
         if "blender" in config.animation_backend:
@@ -172,7 +172,7 @@ def run_scenario(
                 all_scenes_path=scenes_path,
             )
 
-    return setting, scenes_path
+    return scene, scenes_path
 
 
 def prepare(scenario, scene: Scene, current_time, with_temperature):

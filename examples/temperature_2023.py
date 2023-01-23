@@ -103,7 +103,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
         ),
     ]
 
-    simulation_runner.run_examples(
+    return simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,

@@ -12,6 +12,7 @@ from conmech.scenarios.scenarios import (
     M_CUBE_3D,
     M_TWIST_3D,
     Scenario,
+    bunny_obstacles,
     default_body_prop,
     default_obstacle_prop,
     f_rotate_3d,
@@ -22,6 +23,7 @@ from conmech.state.obstacle import Obstacle
 
 def main():
     all_scenarios = [
+        bunny_obstacles(mesh_density=16, scale=1, final_time=6),
         Scenario(
             name="bunny_fall",
             mesh_prop=MeshProperties(

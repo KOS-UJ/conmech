@@ -27,7 +27,8 @@
     "python.testing.pytestArgs": [
         "tests",
         "--capture=no",
-        "--durations=10"
+        "--durations=10",
+        "--numprocesses=auto"
     ],
     "python.testing.pytestEnabled": true
 }

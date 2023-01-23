@@ -206,7 +206,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             schedule=Schedule(final_time=final_time),
             forces_function=lambda *_: np.array([0, 0, -2]),
             obstacle=Obstacle(
-                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 1.0]]]),
+                np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.0]]]),
                 TemperatureObstacleProperties(hardness=800.0, friction=0.0, heat=0.0),
             ),
             heat_function=np.array([0]),
@@ -222,7 +222,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
         *constitutive_temp_scenarios,
         *expansion_temp_scenarios,
     ]
-    simulation_runner.run_examples(
+    return simulation_runner.run_examples(
         all_scenarios=all_scenarios,
         file=__file__,
         plot_animation=plot_animation,
