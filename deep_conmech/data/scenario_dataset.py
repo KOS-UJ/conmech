@@ -79,9 +79,10 @@ class ScenariosDataset(BaseDataset):
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
+            simulation_config=scenario.simulation_config,
             create_in_subprocess=False,
         )
-        scene.set_randomization(self.config)
+        scene.set_randomization(config)
 
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene

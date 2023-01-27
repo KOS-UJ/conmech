@@ -144,10 +144,12 @@ def get_pygmsh_bunny(mesh_prop):
 
 def get_pygmsh_armadillo():
     mesh = read_mesh("models/armadillo/armadillo.msh")
-    scale = 3.0  # 1.0
+    # scale = 3.0  # 1.0
+    scale = 1.0
     nodes, elements = mesh_builders_helpers.normalize(mesh.points), mesh.cells_dict["tetra"].astype(
         "long"
     )
+    nodes += 0.5
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
     nodes *= scale
     return nodes, elements

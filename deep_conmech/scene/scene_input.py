@@ -7,6 +7,7 @@ import numpy as np
 import torch
 
 from conmech.helpers import jxh, nph
+from conmech.helpers.config import SimulationConfig
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -51,6 +52,7 @@ class SceneInput(SceneRandomized):
         body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
+        simulation_config: SimulationConfig,
         create_in_subprocess: bool,
     ):
         super().__init__(
@@ -58,6 +60,7 @@ class SceneInput(SceneRandomized):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            simulation_config=simulation_config,
             create_in_subprocess=create_in_subprocess,
         )
         self.cached_nodes_column = None

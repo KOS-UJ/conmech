@@ -193,6 +193,7 @@ class GraphModelDynamicJax:
             body_prop=scenario.body_prop,
             obstacle_prop=scenario.obstacle_prop,
             schedule=scenario.schedule,
+            simulation_config=scenario.simulation_config,
             create_in_subprocess=create_in_subprocess,
         )
         if randomize:
@@ -416,56 +417,56 @@ def solve(
     initial_t,
     timer=Timer(),
 ):
-    # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
-    _ = initial_a, initial_t
+    return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
+    # _ = initial_a, initial_t
 
-    with timer["jax_calculator"]:
-        scene.reduced.exact_acceleration, _ = Calculator.solve(
-            scene=scene.reduced,
-            energy_functions=energy_functions,
-            initial_a=scene.reduced.exact_acceleration,
-            timer=timer,
-        )
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+    # with timer["jax_calculator"]:
+    #     scene.reduced.exact_acceleration, _ = Calculator.solve(
+    #         scene=scene.reduced,
+    #         energy_functions=energy_functions,
+    #         initial_a=scene.reduced.exact_acceleration,
+    #         timer=timer,
+    #     )
+    #     scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-    # return scene.exact_acceleration, None
+    # # return scene.exact_acceleration, None
 
-    device_number = 0  # using GPU 0
+    # device_number = 0  # using GPU 0
 
-    with timer["jax_features_constructon"]:
-        layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
-        layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
-        layers_list = [layers_list_0, layers_list_1]
+    # with timer["jax_features_constructon"]:
+    #     layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
+    #     layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
+    #     layers_list = [layers_list_0, layers_list_1]
 
-        # return scene.exact_acceleration, None
+    #     # return scene.exact_acceleration, None
 
-        # layers_list = [
-        #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
-        #     for layer_number, _ in enumerate(scene.all_layers)
-        # ]
+    #     # layers_list = [
+    #     #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
+    #     #     for layer_number, _ in enumerate(scene.all_layers)
+    #     # ]
 
-    with timer["jax_data_movement"]:
-        args = prepare_input(convert_to_jax(layers_list))
-        args = jax.device_put(args, jax.local_devices()[device_number])
+    # with timer["jax_data_movement"]:
+    #     args = prepare_input(convert_to_jax(layers_list))
+    #     args = jax.device_put(args, jax.local_devices()[device_number])
 
-    with timer["jax_net"]:
-        net_displacement = apply_net(args)
+    # with timer["jax_net"]:
+    #     net_displacement = apply_net(args)
 
-    with timer["jax_translation"]:
-        # base = scene.moved_base
-        # position = scene.position
-        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-        base = scene.reduced.get_rotation(reduced_displacement_new)
-        position = np.mean(reduced_displacement_new, axis=0)
+    # with timer["jax_translation"]:
+    #     # base = scene.moved_base
+    #     # position = scene.position
+    #     reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+    #     base = scene.reduced.get_rotation(reduced_displacement_new)
+    #     position = np.mean(reduced_displacement_new, axis=0)
 
-        new_displacement = scene.get_displacement(
-            base=base, position=position, base_displacement=net_displacement
-        )
+    #     new_displacement = scene.get_displacement(
+    #         base=base, position=position, base_displacement=net_displacement
+    #     )
 
-        acceleration_from_displacement = scene.from_displacement(new_displacement)
-        acceleration_from_displacement = np.array(acceleration_from_displacement)
+    #     acceleration_from_displacement = scene.from_displacement(new_displacement)
+    #     acceleration_from_displacement = np.array(acceleration_from_displacement)
 
-    return acceleration_from_displacement, None
+    # return acceleration_from_displacement, None
 
 
 def prepare_input(layer_list):

@@ -7,6 +7,7 @@ import numba
 import numpy as np
 
 from conmech.helpers import interpolation_helpers, lnh
+from conmech.helpers.config import SimulationConfig
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -58,6 +59,7 @@ class SceneLayers(Scene):
         body_prop: TimeDependentBodyProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
+        simulation_config: SimulationConfig,
         create_in_subprocess: bool,
     ):
         super().__init__(
@@ -65,6 +67,7 @@ class SceneLayers(Scene):
             body_prop=body_prop,
             obstacle_prop=obstacle_prop,
             schedule=schedule,
+            simulation_config=simulation_config,
             create_in_subprocess=create_in_subprocess,
             with_schur=False,
         )
@@ -99,6 +102,7 @@ class SceneLayers(Scene):
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
             schedule=self.schedule,
+            simulation_config=self.simulation_config,
             create_in_subprocess=self.create_in_subprocess,
             with_schur=False,
         )

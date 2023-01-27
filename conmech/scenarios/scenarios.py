@@ -668,7 +668,7 @@ def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg
 def bunny_obstacles(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
     _, _, _ = scale, tag, arg
     return Scenario(
-        name="bunny_fall",
+        name="bunny_obstacles",
         mesh_prop=MeshProperties(
             dimension=3,
             mesh_type=M_BUNNY_3D,
@@ -774,9 +774,9 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        args["final_time"] = 10.0  # 12.0
+        args["final_time"] = 1.5  # 10.0
         return [
-            bunny_obstacles(**args),
+            # bunny_obstacles(**args),
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),
             bunny_swing_3d(**args),

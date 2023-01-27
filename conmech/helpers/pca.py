@@ -4,6 +4,7 @@ from io import BufferedReader
 
 import jax
 import jax.numpy as jnp
+from tqdm import tqdm
 
 from conmech.helpers import nph
 
@@ -95,7 +96,7 @@ def load_pca(file_path="./output/PCA"):
     return projection
 
 
-def get_data(scenes):
+def get_data_scenes(scenes):
     data_list = []
     count = len(scenes)
     for scene in scenes:
@@ -107,18 +108,32 @@ def get_data(scenes):
     return data, u_stack, u
 
 
-def run():
-    scenes = get_scenes()
-    data, u_stack, u = get_data(scenes)
+def get_data_dataset(dataloader):
+    data_list = []
+    count = 1000
+    for _ in tqdm(range(count)):
+        sample = next(iter(dataloader))
+        target = sample[0][1]
+
+        u = jnp.array(target.reduced_normalized_lifted_acceleration)
+        u_stack = nph.stack_column(u)
+        data_list.append(u_stack)
+
+    data = jnp.array(data_list).reshape(count, -1)
+    return data, u_stack, u
+
+
+def run(dataloader):
+    # scenes = get_scenes()
+    # data, sample_u_stack, sample_u = get_data_scenes(scenes)
+    data, sample_u_stack, sample_u = get_data_dataset(dataloader)
 
     original_projection = get_projection(data)
     save_pca(original_projection)
+
     projection = load_pca()
-
-    latent = project_to_latent(projection, u_stack)
-
+    latent = project_to_latent(projection, sample_u_stack)
     u_reprojected_stack = project_from_latent(projection, latent)
     u_reprojected = nph.unstack(u_reprojected_stack, dim=3)
-
-    print("Error max: ", jnp.abs(u_reprojected - u).max())
+    print("Error max: ", jnp.abs(u_reprojected - sample_u).max())
     return 0
