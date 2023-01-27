@@ -69,7 +69,7 @@ def load_mesh_animation(simulation):
     with_temperature = simulation[0][2] is not None
 
     initial_nodes, initial_elements = simulation[0][:2]
-    mesh, object = create_mesh(initial_nodes, initial_elements, with_temperature)
+    mesh, mesh_object = create_mesh(initial_nodes, initial_elements, with_temperature)
 
     # obj = bpy.context.active_object
     # mesh = obj.data
@@ -256,11 +256,11 @@ def create_mesh(nodes, elements, with_temperature, name="CustomMesh"):
     mesh.validate()
 
     object_name = get_object_name(with_temperature)
-    object = bpy.data.objects.new(object_name, mesh)
-    bpy.context.collection.objects.link(object)
+    mesh_object = bpy.data.objects.new(object_name, mesh)
+    bpy.context.collection.objects.link(mesh_object)
     # bpy.context.scene.collection.objects.link(scene.camera)
 
-    return mesh, object
+    return mesh, mesh_object
 
 
 ######################################################################
@@ -322,7 +322,7 @@ def add_mesh_obstacles(simulation):
         if initial_nodes is None or initial_elements is None:
             return
         print(initial_nodes.min(axis=0), initial_nodes.max(axis=0))
-        mesh, object = create_mesh(
+        mesh, mesh_object = create_mesh(
             initial_nodes, initial_elements, with_temperature=False, name="CustomObstacle"
         )
 

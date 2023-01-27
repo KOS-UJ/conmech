@@ -26,17 +26,17 @@ def _obstacle_resistance_normal_scalar(penetration_norm, hardness):
 
 
 def _obstacle_resistance_potential_tangential(
-    penetration_norm, tangential_velocity, friction, time_step, use_nonconvex_friction_law
+    initial_penetration, tangential_velocity, friction, time_step, use_nonconvex_friction_law
 ):
     if use_nonconvex_friction_law:
         friction_law = jnp.log(nph.euclidean_norm(tangential_velocity, keepdims=True) + 1.0)
     else:
         friction_law = nph.euclidean_norm(tangential_velocity, keepdims=True)
-    return (penetration_norm > 0) * friction * friction_law * (1.0 / time_step)
+    return (initial_penetration > 0) * friction * friction_law * (1.0 / time_step)
 
 
 def _obstacle_resistance_tangential_vector(
-    penetration_norm, tangential_velocity, friction, use_nonconvex_friction_law
+    initial_penetration, tangential_velocity, friction, use_nonconvex_friction_law
 ):
     if use_nonconvex_friction_law:
         raise ArgumentError()
@@ -45,8 +45,8 @@ def _obstacle_resistance_tangential_vector(
     friction_law = tangential_velocity / (
         epsilon + nph.euclidean_norm(tangential_velocity, keepdims=True)
     )
-    result = (penetration_norm > 0) * friction * friction_law
-    return jnp.nan_to_num(result)  # otherwise Nans in division
+    result = (initial_penetration > 0) * friction * friction_law
+    return result  # TODO: Check this: jnp.nan_to_num(result)  # otherwise Nans in division
 
 
 class EnergyObstacleArguments(NamedTuple):
@@ -93,7 +93,7 @@ def _get_constant_boundary_integral(
     resistance_normal = args.boundary_normals * resistance_normal_scalar
 
     resistance_tangential = _obstacle_resistance_tangential_vector(
-        penetration_norm=penetration_norm,
+        initial_penetration=args.initial_penetration,  # penetration_norm,
         tangential_velocity=velocity_tangential,
         friction=args.obstacle_prop.friction,
         use_nonconvex_friction_law=use_nonconvex_friction_law,
@@ -129,8 +129,9 @@ def _get_actual_boundary_integral(
         hardness=args.obstacle_prop.hardness,
         time_step=args.time_step,
     )
+    # 64bit does not converge with penetration_norm instead of initial_penetration
     resistance_tangential = _obstacle_resistance_potential_tangential(
-        penetration_norm=penetration_norm,
+        initial_penetration=args.initial_penetration,
         tangential_velocity=velocity_tangential,
         friction=args.obstacle_prop.friction,
         time_step=args.time_step,

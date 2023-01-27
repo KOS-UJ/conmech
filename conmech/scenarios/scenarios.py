@@ -774,7 +774,7 @@ def all_validation(td):
 def all_print(td):
     args = get_args(td)
     if td.dimension == 3:
-        args["final_time"] = 1.5  # 10.0
+        args["final_time"] = 2.0  # 10.0
         return [
             # bunny_obstacles(**args),
             bunny_fall_3d(**args),

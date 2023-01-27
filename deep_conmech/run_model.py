@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing
+from dotenv import load_dotenv
 
 from conmech.helpers import cmh, pca
 from conmech.scenarios import scenarios
@@ -185,6 +186,13 @@ def plot(config: TrainingConfig):
         GraphModelDynamicTorch.plot_all_scenarios(net, all_print_scenaros, config)
 
 
+def run_pca(config: TrainingConfig):
+    dataset = get_train_dataset(config.td.dataset, config=config)
+    dataset.initialize_data()
+    dataloader = base_dataset.get_train_dataloader(dataset)
+    pca.run(dataloader)
+
+
 def get_train_dataset(
     dataset_type,
     config: TrainingConfig,
@@ -288,7 +296,7 @@ def main(args: Namespace):
     if args.mode == "visualize":
         visualize(config)
     if args.mode == "pca":
-        pca.run()
+        run_pca(config)
 
 
 if __name__ == "__main__":
@@ -306,4 +314,5 @@ if __name__ == "__main__":
     )  # Python 3.9+
     args = parser.parse_args()
     # with jax.disable_jit():
+    load_dotenv()
     main(args)
