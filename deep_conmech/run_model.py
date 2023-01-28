@@ -16,7 +16,10 @@ import torch.multiprocessing
 from dotenv import load_dotenv
 
 from conmech.helpers import cmh, pca
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.scenarios import scenarios
+from conmech.scenarios.scenarios import bunny_fall_3d
+from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
@@ -112,7 +115,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
         for d in all_validation_datasets:
             d.initialize_data()
 
-    all_print_datasets = scenarios.all_print(config.td)
+    all_print_datasets = scenarios.all_print(config.td, config.sc)
 
     if config.use_jax:
         model = GraphModelDynamicJax(
@@ -190,6 +193,39 @@ def run_pca(config: TrainingConfig):
     dataset = get_train_dataset(config.td.dataset, config=config)
     dataset.initialize_data()
     dataloader = base_dataset.get_train_dataloader(dataset)
+
+    simulation_config=SimulationConfig(
+        use_normalization=False,
+        use_linear_solver=False,
+        use_green_strain=True,
+        use_nonconvex_friction_law=False,
+        use_constant_contact_integral=False,
+        use_lhs_preconditioner=False,
+        use_pca=False,
+    )
+    final_time = 0.5
+    all_scenarios = [
+        scenarios.bunny_fall_3d(
+            mesh_density=32,
+            scale=1,
+            final_time=final_time,
+            simulation_config=simulation_config,
+        ),
+        scenarios.bunny_rotate_3d(
+            mesh_density=32,
+            scale=1,
+            final_time=final_time,
+            simulation_config=simulation_config,
+        ),
+    ]
+
+    simulation_runner.run_examples(
+        all_scenarios=all_scenarios,
+        file=__file__,
+        plot_animation=True,
+        config=Config(shell=False),
+    )
+
     pca.run(dataloader)
 
 
@@ -219,7 +255,7 @@ def get_train_dataset(
         train_dataset = CalculatorDataset(
             description="train",
             use_jax=config.use_jax,
-            all_scenarios=scenarios.all_train(config.td),
+            all_scenarios=scenarios.all_train(config.td, config.sc),
             load_data_to_ram=config.load_training_data_to_ram,
             with_scenes_file=config.with_train_scenes_file,
             randomize=True,
@@ -281,6 +317,16 @@ def main(args: Namespace):
     # torch.autograd.set_detect_anomaly(True)
     # print(numba.cuda.gpus)
     config = TrainingConfig(shell=args.shell)
+    config.sc = SimulationConfig(
+        use_normalization=False,
+        use_linear_solver=False,
+        use_green_strain=True,
+        use_nonconvex_friction_law=False,
+        use_constant_contact_integral=False,
+        use_lhs_preconditioner=False,
+        use_pca=False,
+    )
+
     # dch.set_torch_sharing_strategy()
     dch.set_memory_limit(config=config)
     print(f"Use JAX: {config.use_jax}")

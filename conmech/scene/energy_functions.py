@@ -66,6 +66,7 @@ class EnergyObstacleArguments(NamedTuple):
     base_energy_displacement: np.ndarray
     base_velocity: np.ndarray
     base_energy_velocity: np.ndarray
+    displacement_old: np.ndarray
 
 
 class StaticEnergyArguments(NamedTuple):
@@ -298,6 +299,8 @@ def _energy_obstacle_colliding(
 #     )
 # )
 
+RANGE_FACTOR = 0.0001
+
 
 @dataclass
 class EnergyFunctions:
@@ -348,9 +351,26 @@ class EnergyFunctions:
 
         self.mode = "automatic"
 
+        def to_displacement(function):
+            return lambda displacement, args: function(
+                nph.displacement_to_acceleration(displacement, args),
+                args,
+            ) * (1 / (args.time_step**2))
+
         if not simulation_config.use_pca:
-            self.energy_obstacle_free = self._energy_obstacle_free
-            self.energy_obstacle_colliding = self._energy_obstacle_colliding
+
+            def to_displacement_by_factor(function):
+                return lambda disp_by_factor, args: to_displacement(function)(
+                    disp_by_factor * (args.time_step**2), args
+                )
+
+            self.energy_obstacle_free = to_displacement_by_factor(self._energy_obstacle_free)
+            self.energy_obstacle_colliding = to_displacement_by_factor(
+                self._energy_obstacle_colliding
+            )
+
+            # self.energy_obstacle_free = self._energy_obstacle_free
+            # self.energy_obstacle_colliding = self._energy_obstacle_colliding
 
             # self.energy_obstacle_free = lambda vector, args: jnp.float64(
             #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
@@ -362,18 +382,19 @@ class EnergyFunctions:
         else:
             projection = pca.load_pca()
 
-            def p_to(vector):
-                return pca.project_to_latent(projection, vector.reshape(-1, 1)).reshape(-1)
+            def to_displacement_by_factor_pca(function):
+                return lambda disp_by_factor, args: to_displacement(function)(
+                   (pca.p_from_vector(
+                        projection,
+                        pca.p_to_vector(projection, disp_by_factor - nph.stack_column(args.displacement_old).reshape(-1)),
+                    ) + nph.stack_column(args.displacement_old).reshape(-1))
+                    * (args.time_step**2),
+                    args,
+                )
 
-            def p_from(vector):
-                return pca.project_from_latent(projection, vector.reshape(-1, 1)).reshape(-1)
-
-            # @partial(jax.jit, static_argnames="args")
-            self.energy_obstacle_free = lambda vector, args: self._energy_obstacle_free(
-                p_from(p_to(vector)), args
-            )
-            self.energy_obstacle_colliding = lambda vector, args: self._energy_obstacle_colliding(
-                p_from(p_to(vector)), args
+            self.energy_obstacle_free = to_displacement_by_factor_pca(self._energy_obstacle_free)
+            self.energy_obstacle_colliding = to_displacement_by_factor_pca(
+                self._energy_obstacle_colliding
             )
 
     @staticmethod

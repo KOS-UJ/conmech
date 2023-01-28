@@ -29,8 +29,8 @@ class Scenario:
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
+        simulation_config: SimulationConfig,
         forces_function_parameter: Optional[float] = None,
-        simulation_config: SimulationConfig = SimulationConfig(),
     ):  # pylint: disable=too-many-arguments
         self.name = name
         self.mesh_prop = mesh_prop
@@ -117,7 +117,7 @@ class TemperatureScenario(Scenario):
         forces_function: Union[Callable, np.ndarray],
         obstacle: Obstacle,
         heat_function: Union[Callable, np.ndarray],
-        simulation_config: SimulationConfig = SimulationConfig(),
+        simulation_config: SimulationConfig,
     ):  # pylint: disable=too-many-arguments
         super().__init__(
             name=name,
@@ -607,7 +607,14 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1
     )
 
 
-def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=0.7):
+def bunny_fall_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=0.7,
+):
     _ = tag
     _ = scale
     _ = mesh_density
@@ -617,7 +624,7 @@ def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=
             dimension=3,
             mesh_type=M_BUNNY_3D,
             scale=[1],
-            mesh_density=[32],
+            mesh_density=[mesh_density],
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
@@ -626,10 +633,18 @@ def bunny_fall_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=
             np.array([[[0.0, arg, 1.0]], [[1.0, 1.0, 0.0]]]),
             ObstacleProperties(hardness=100.0, friction=5.0),
         ),
+        simulation_config=simulation_config,
     )
 
 
-def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def bunny_rotate_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _ = tag
     _ = scale
     return Scenario(
@@ -645,10 +660,18 @@ def bunny_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", ar
         forces_function=f_rotate_3d,
         obstacle=bottom_obstacle_3d,
         forces_function_parameter=arg,
+        simulation_config=simulation_config,
     )
 
 
-def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def bunny_swing_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _, _, _ = scale, tag, arg
     return Scenario(
         name="bunny_swing",
@@ -662,10 +685,18 @@ def bunny_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg
         schedule=Schedule(final_time=final_time),
         forces_function=f_swing_3d,
         obstacle=bottom_obstacle_3d,
+        simulation_config=simulation_config,
     )
 
 
-def bunny_obstacles(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def bunny_obstacles(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _, _, _ = scale, tag, arg
     return Scenario(
         name="bunny_obstacles",
@@ -712,6 +743,7 @@ def bunny_obstacles(mesh_density: int, scale: int, final_time: float, tag="", ar
                 ),
             ],
         ),
+        simulation_config=simulation_config,
     )
 
 
@@ -735,16 +767,17 @@ def get_valid_data(**args):
     ]
 
 
-def get_args(td):
+def get_args(td, sc):
     return dict(
         mesh_density=td.mesh_density,
         scale=td.train_scale,
         final_time=td.final_time,
+        simulation_config=sc,
     )
 
 
-def all_train(td):
-    args = get_args(td)
+def all_train(td, sc):
+    args = get_args(td, sc)
     if td.dimension == 3:
         # val = all_validation(td)
         # return  [item for sublist in val for item in sublist]
@@ -756,8 +789,8 @@ def all_train(td):
     return get_train_data(**args)
 
 
-def all_validation(td):
-    args = get_args(td)
+def all_validationalidation(td, sc):
+    args = get_args(td, sc)
     if td.dimension == 3:
         args["final_time"] = 8.0
         return [
@@ -771,8 +804,8 @@ def all_validation(td):
     return get_valid_data(**args)
 
 
-def all_print(td):
-    args = get_args(td)
+def all_print(td, sc):
+    args = get_args(td, sc)
     if td.dimension == 3:
         args["final_time"] = 2.0  # 10.0
         return [

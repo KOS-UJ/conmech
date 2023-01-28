@@ -75,7 +75,7 @@
             "justMyCode": false
         },
         {
-            "name": "mesh_test",
+            "name": "test_mesh",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/examples/mesh_test.py",

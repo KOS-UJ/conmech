@@ -572,7 +572,7 @@ def minimize_lbfgs(
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
-    xtol: float = 1e-03,
+    xtol: float = None,
     maxiter: Optional[float] = None,  # 200,  # None
     maxiter_main_ls: int = 20,
     maxiter_zoom_ls: int = 30,

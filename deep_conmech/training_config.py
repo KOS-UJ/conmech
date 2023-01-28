@@ -4,7 +4,7 @@ from typing import Optional
 import psutil
 from torch import nn
 
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 
 TEST = False  # False
 DIMENSION = 3
@@ -80,6 +80,7 @@ class TrainingConfig(Config):
     use_jax: bool = True
 
     td: TrainingData = TrainingData()
+
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 

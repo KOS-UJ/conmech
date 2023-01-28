@@ -24,6 +24,48 @@ from conmech.solvers.algorithms.lbfgs import minimize_lbfgs
 
 class Calculator:
     @staticmethod
+    def minimize_jax(
+        function, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
+    ) -> np.ndarray:
+        assert cmh.get_from_os("ENV_READY")
+
+        # state1 = minimize_lbfgs(
+        #     fun=function, hes_inv=hes_inv, args=args, x0=jnp.asarray(initial_vector)
+        # )
+
+        range_factor = args.time_step**2
+
+        disp_by_factor_0 = (
+            nph.acceleration_to_displacement(jnp.asarray(initial_vector), args) / range_factor
+        )
+
+        state = cmh.profile(
+            lambda: minimize_lbfgs(
+                fun=function,
+                hes_inv=hes_inv,
+                args=args,
+                x0=disp_by_factor_0,
+                xtol=1e-03,
+            ),
+            baypass=True,
+        )
+
+        if False:  # cmh.get_from_os("JAX_ENABLE_X64"):
+            assert state.converged
+        else:
+            if verbose and not state.converged:
+                if state.status == 5:
+                    cmh.Console.print_warning("Linesearch error")
+                elif state.status == 1:
+                    cmh.Console.print_fail("Maxiter error")
+                else:
+                    cmh.Console.print_fail(f"Status: {state.status}")
+        # Validate https://github.com/google/jax/issues/6898
+        # return np.asarray(state.x_k)  # , state
+        disp_by_factor = state.x_k
+        return nph.displacement_to_acceleration(np.asarray(disp_by_factor * range_factor), args)
+
+    @staticmethod
     def solve_temperature_normalized_function(
         scene: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):
@@ -71,31 +113,6 @@ class Calculator:
         normalized_cleaned_a = scene.clean_acceleration(normalized_a)
         cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
         return cleaned_a
-
-    @staticmethod
-    def minimize_jax(
-        function, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
-    ) -> np.ndarray:
-        assert cmh.get_from_os("ENV_READY")
-        x0 = jnp.asarray(initial_vector)
-
-        state = cmh.profile(
-            lambda: minimize_lbfgs(fun=function, hes_inv=hes_inv, args=args, x0=x0),
-            baypass=True,
-        )
-
-        if cmh.get_from_os("JAX_ENABLE_X64"):
-            assert state.converged
-        else:
-            if verbose and not state.converged:
-                if state.status == 5:
-                    cmh.Console.print_warning("Linesearch error")
-                elif state.status == 1:
-                    cmh.Console.print_fail("Maxiter error")
-                else:
-                    cmh.Console.print_fail(f"Status: {state.status}")
-        # Validate https://github.com/google/jax/issues/6898
-        return np.asarray(state.x_k)  # , state
 
     @staticmethod
     def solve(

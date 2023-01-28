@@ -123,6 +123,7 @@ class Scene(BodyForces):
                 element_initial_volume=self.matrices.element_initial_volume,
                 body_prop=args.body_prop,
             ),
+            displacement_old=args.displacement_old,
         )
         return args
 
@@ -323,6 +324,12 @@ class Scene(BodyForces):
         )
         return new_normalized_nodes - self.normalized_initial_nodes
 
+    def get_last_displacement_step(self):
+        return self.displacement_old - self.time_step * self.velocity_old
+
+    def displacement_from_step(self, displacement_step):
+        return self.displacement_old + displacement_step
+
     def get_centered_nodes(self, displacement):
         nodes = self.centered_initial_nodes + displacement
         centered_nodes = lnh.get_in_base(
@@ -360,6 +367,7 @@ class Scene(BodyForces):
             base_energy_displacement=None,
             base_velocity=base_velocity,
             base_energy_velocity=None,
+            displacement_old=self.displacement_old,
         )
         rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax(args)
         if temperature is not None:

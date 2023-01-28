@@ -108,8 +108,8 @@ def load_mesh_animation(simulation):
             fc.keyframe_points.foreach_set("co", [x for co in zip(frames, samples) for x in co])
             fc.update()
 
-    object.select_set(True)
-    bpy.context.view_layer.objects.active = object
+    mesh_object.select_set(True)
+    bpy.context.view_layer.objects.active = mesh_object
     # bpy.ops.paint.vertex_paint_toggle()
 
     if not with_temperature:

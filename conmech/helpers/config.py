@@ -34,13 +34,13 @@ from datetime import datetime
 
 @dataclass
 class SimulationConfig:
-    use_normalization: bool = False
-    use_linear_solver: bool = False
-    use_green_strain: bool = True
-    use_nonconvex_friction_law: bool = False
-    use_constant_contact_integral: bool = False
-    use_lhs_preconditioner: bool = False
-    use_pca: bool = False
+    use_normalization: bool
+    use_linear_solver: bool
+    use_green_strain: bool
+    use_nonconvex_friction_law: bool
+    use_constant_contact_integral: bool
+    use_lhs_preconditioner: bool
+    use_pca: bool
 
 
 @dataclass
@@ -52,7 +52,7 @@ class Config:
     verbose: bool = True
 
     animation_backend: str = "blender"  # "matplotlib blender"  # blender matplotlib
-    blender_output: bool = True
+    blender_output: bool = False
     print_skip: float = 0.1  # 0.01
     plot_tests: bool = False
     output_catalog: str = "output"

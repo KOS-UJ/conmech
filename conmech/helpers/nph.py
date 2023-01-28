@@ -151,3 +151,9 @@ def length(p_1, p_2):
 #     rotated_vectors[:, 1] = vectors[:, 0] * s + vectors[:, 1] * c
 #
 #     return rotated_vectors
+
+def displacement_to_acceleration(displacement_vector, args):
+    return (displacement_vector - stack_column(args.base_displacement).reshape(-1)) / (args.time_step**2)
+
+def acceleration_to_displacement(acceleration_vector, args):
+    return acceleration_vector * (args.time_step**2) + stack_column(args.base_displacement).reshape(-1)

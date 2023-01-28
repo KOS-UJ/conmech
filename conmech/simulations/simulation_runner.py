@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 from dataclasses import dataclass
 from typing import Callable, Optional, Tuple
@@ -11,6 +12,8 @@ from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+
+# plotter_functions.plot_using_blender()
 
 
 def run_examples(
@@ -54,6 +57,16 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     scene_copy = copy.copy(scene)
     scene_copy.prepare_to_save()
 
+    # Three.js
+    json_str = json.dumps({
+        "name": "bunnyTets",
+        "verts": list(scene.boundary_nodes.reshape(-1)),
+        "tetSurfaceTriIds": [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)],
+    })
+    with open("output/mesh00.json", "w") as file:
+        file.write(json_str)
+
+    # Blender
     arrays_path = scenes_path + "_data"
     arrays = (scene.boundary_nodes, scene.boundaries.boundary_surfaces)
     if isinstance(scene, SceneTemperature):
