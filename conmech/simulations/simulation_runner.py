@@ -53,18 +53,50 @@ class RunScenarioConfig:
     save_all: bool = False
 
 
+def save_three(scene, step, label):
+    # Three.js
+    file_path = f"./three/three_simulation_{label}.json"
+    file_path_tmp = f"./three/three_simulation_{label}_tmp.json"
+    skip = 1
+
+    def remove(path):
+        if os.path.exists(path):
+            os.remove(path)
+
+    # if step == 0:
+    #     remove(file_path)
+    #     remove(file_path_tmp)
+
+    if step % skip != 0:
+        return
+
+    new_nodes = list(scene.boundary_nodes.reshape(-1))
+    new_surfaces = [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)]
+    if step == 0:
+        json_dict = {
+            "skip": skip,
+            "count": 1,
+            "nodes": [new_nodes],
+            "boundary_surfaces": [new_surfaces],
+        }
+    else:
+        with open(file_path, "r", encoding="utf-8") as file:
+            json_str = file.read()
+        json_dict = json.loads(json_str)
+        json_dict["count"] += 1
+        json_dict["nodes"].append(new_nodes)
+        json_dict["boundary_surfaces"].append(new_surfaces)
+
+    json_str = json.dumps(json_dict)
+    with open(file_path_tmp, "w", encoding="utf-8") as file:
+        file.write(json_str)
+    remove(file_path)
+    os.rename(file_path_tmp, file_path)
+
+
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     scene_copy = copy.copy(scene)
     scene_copy.prepare_to_save()
-
-    # Three.js
-    json_str = json.dumps({
-        "name": "bunnyTets",
-        "verts": list(scene.boundary_nodes.reshape(-1)),
-        "tetSurfaceTriIds": [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)],
-    })
-    with open("output/mesh00.json", "w") as file:
-        file.write(json_str)
 
     # Blender
     arrays_path = scenes_path + "_data"
@@ -129,9 +161,11 @@ def run_scenario(
     with_reduced = hasattr(scene, "reduced")
     save_files = run_config.plot_animation or run_config.save_all
     save_animation = run_config.plot_animation
+    start_time = config.current_time
+    timestamp = cmh.get_timestamp(config)
 
     if save_files:
-        final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
+        final_catalog = f"{config.output_catalog}/{start_time} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
         if with_reduced:
             cmh.create_folders(f"{final_catalog}/scenarios_reduced")
@@ -146,6 +180,7 @@ def run_scenario(
 
     def operation_save(scene: Scene):
         plot_index = step[0] % ts == 0
+        save_three(scene=scene, step=step[0], label=f"{start_time}_{timestamp}")
         if run_config.save_all or plot_index:
             save_scene(scene=scene, scenes_path=scenes_path, save_animation=save_animation)
             if with_reduced:

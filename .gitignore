@@ -14,9 +14,9 @@ meta/*
 # conmech input/output
 log/*
 datasets/*
-datasetsOLD/*
 blender/output/*
 output/*
+three/*.json
 
 *.mp4
 *.jpeg
