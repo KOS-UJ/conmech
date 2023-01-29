@@ -55,12 +55,12 @@ def main():
         #     simulation_config=simulation_config,
         # ),
         # bunny_fall_3d(mesh_density=32, scale=1, final_time=2),
-        bunny_fall_3d(
-            mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
-        ),
-        bunny_rotate_3d(
-            mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
-        ),
+        # bunny_fall_3d(
+        #     mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
+        # ),
+        # bunny_rotate_3d(
+        #     mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
+        # ),
         # Scenario(
         #     name="bunny_fall",
         #     mesh_prop=MeshProperties(
@@ -137,37 +137,37 @@ def main():
         #         np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
         #     ),
         # )
-        # Scenario(
-        #     name="armadillo_fall",
-        #     mesh_prop=MeshProperties(
-        #         dimension=3,
-        #         mesh_type=M_ARMADILLO_3D,
-        #         scale=[1],
-        #         mesh_density=[16],
-        #     ),
-        #     body_prop=TimeDependentBodyProperties(
-        #         # mu=12,
-        #         # lambda_=12,
-        #         # theta=8,
-        #         # zeta=8,
-        #         mu=8,
-        #         lambda_=8,
-        #         theta=4,
-        #         zeta=4,
-        #         # mu=12,
-        #         # lambda_=12,
-        #         # theta=12,
-        #         # zeta=12,
-        #         mass_density=1.0,
-        #     ),
-        #     schedule=Schedule(final_time=3, time_step=0.001),
-        #     forces_function=np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(  # 0.3
-        #         np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
-        #         ObstacleProperties(hardness=100.0, friction=0.1),  # 5.0),
-        #     ),
-        #     simulation_config=simulation_config,
-        # ),
+        Scenario(
+            name="armadillo_fall",
+            mesh_prop=MeshProperties(
+                dimension=3,
+                mesh_type=M_ARMADILLO_3D,
+                scale=[1],
+                mesh_density=[16],
+            ),
+            body_prop=TimeDependentBodyProperties(
+                # mu=12,
+                # lambda_=12,
+                # theta=8,
+                # zeta=8,
+                mu=8,
+                lambda_=8,
+                theta=4,
+                zeta=4,
+                # mu=12,
+                # lambda_=12,
+                # theta=12,
+                # zeta=12,
+                mass_density=1.0,
+            ),
+            schedule=Schedule(final_time=2, time_step=0.01),
+            forces_function=np.array([0.0, 0.0, -1.0]),
+            obstacle=Obstacle(  # 0.3
+                np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
+                ObstacleProperties(hardness=100.0, friction=0.1),  # 5.0),
+            ),
+            simulation_config=simulation_config,
+        ),
     ]
 
     simulation_runner.run_examples(

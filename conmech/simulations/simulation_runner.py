@@ -2,6 +2,7 @@ import copy
 import json
 import os
 from dataclasses import dataclass
+from glob import glob
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
@@ -55,9 +56,10 @@ class RunScenarioConfig:
 
 def save_three(scene, step, label):
     # Three.js
-    file_path = f"./three/three_simulation_{label}.json"
-    file_path_tmp = f"./three/three_simulation_{label}_tmp.json"
-    skip = 1
+    folder = "./three"
+    file_path = f"{folder}/{label}.json"
+    file_path_tmp = f"{folder}/{label}_TMP.json"
+    skip = 5
 
     def remove(path):
         if os.path.exists(path):
@@ -85,13 +87,28 @@ def save_three(scene, step, label):
         json_dict = json.loads(json_str)
         json_dict["count"] += 1
         json_dict["nodes"].append(new_nodes)
-        json_dict["boundary_surfaces"].append(new_surfaces)
 
-    json_str = json.dumps(json_dict)
     with open(file_path_tmp, "w", encoding="utf-8") as file:
-        file.write(json_str)
+        json.dump(json_dict, file)
     remove(file_path)
     os.rename(file_path_tmp, file_path)
+
+    if step == 0:
+        list_path = f"{folder}/list.json"
+        remove(list_path)
+        all_files = glob(f"{folder}/*.json")
+        all_files.sort()
+
+        file_list = []
+        for file in all_files:
+            file_name = os.path.basename(file)
+            if "_TMP" not in file_name:
+                file_list.append(file_name)
+            else:
+                remove(file)
+
+        with open(list_path, "w", encoding="utf-8") as file:
+            json.dump({"files": file_list}, file)
 
 
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):

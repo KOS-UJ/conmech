@@ -547,7 +547,14 @@ bottom_obstacle_3d = Obstacle(
 )
 
 
-def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def ball_rotate_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _ = tag
     return Scenario(
         name="ball_rotate",
@@ -559,10 +566,18 @@ def ball_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
         forces_function_parameter=arg,
+        simulation_config=simulation_config,
     )
 
 
-def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def ball_swing_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _ = tag
     _ = arg
     return Scenario(
@@ -574,10 +589,18 @@ def ball_swing_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=
         schedule=Schedule(final_time=final_time),
         forces_function=f_swing_3d,
         obstacle=bottom_obstacle_3d,
+        simulation_config=simulation_config,
     )
 
 
-def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def cube_rotate_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _ = tag
     return Scenario(
         name="cube_rotate",
@@ -589,10 +612,18 @@ def cube_rotate_3d(mesh_density: int, scale: int, final_time: float, tag="", arg
         forces_function=f_rotate_3d,  # np.array([0.0, 0.0, -0.5]),
         obstacle=bottom_obstacle_3d,
         forces_function_parameter=arg,
+        simulation_config=simulation_config,
     )
 
 
-def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1.0):
+def cube_move_3d(
+    mesh_density: int,
+    scale: int,
+    final_time: float,
+    simulation_config: SimulationConfig,
+    tag="",
+    arg=1.0,
+):
     _ = tag
     _ = arg
     return Scenario(
@@ -604,6 +635,7 @@ def cube_move_3d(mesh_density: int, scale: int, final_time: float, tag="", arg=1
         schedule=Schedule(final_time=final_time),
         forces_function=np.array([0.0, 0.5, 0.0]),
         obstacle=bottom_obstacle_3d,
+        simulation_config=simulation_config,
     )
 
 
@@ -789,7 +821,7 @@ def all_train(td, sc):
     return get_train_data(**args)
 
 
-def all_validationalidation(td, sc):
+def all_validation(td, sc):
     args = get_args(td, sc)
     if td.dimension == 3:
         args["final_time"] = 8.0

@@ -108,4 +108,4 @@ class TrainingConfig(Config):
 
     load_training_data_to_ram: bool = False
     load_validation_data_to_ram: bool = False
-    profile_training: bool = True
+    profile_training: bool = False

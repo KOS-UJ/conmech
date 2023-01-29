@@ -39,13 +39,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <button id="buttonRun" onclick="run()" class="button"></button>
     <button onclick="speed()" class="button">Change speed</button>
     <button onclick="reload()" class="button">Reload</button>
-    <br><br>
-    <span id="simulationPath"></span>&nbsp;&nbsp;
+    <select id="fileSelector" onchange="fileSelected(this.selectedIndex)" class="button"></select>&nbsp;&nbsp;
+    <span id="loadedProgress"></span>
     <br><br>
     <span id="numNodes">0</span> nodes&nbsp;&nbsp;
     <span id="animationSpeed"></span> speed&nbsp;&nbsp;
-    <span id="loadedProgress"></span>
-    <span id="frames"></span>&nbsp;&nbsp;
+    <span id="count"></span>&nbsp;&nbsp;
+    <span id="skip"></span>&nbsp;&nbsp;
     <span id="animationProgress"></span>&nbsp;&nbsp;
     <span id="error"></span>
 
@@ -61,13 +61,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
     <script type="module">
 
-        // ------------------------------------------------------
-        var simulationPath = 'three_simulation_01.29-01.22.54_16749518158501.json';
+        window.onerror = (errorMsg, url, lineNumber) => {
+            alert("Error occured: " + errorMsg);
+            return false;
+        }
+
+        // ------------------------------------------------------------------
+
         var paused = false;
         var loadedProgress = 0;
         var animationFrameFloat = 0.0;
         var animationSpeed = 1.0;
 
+        var scene;
+        var gRenderer;
+        var gCamera;
+        var gCameraControl;
+        var gMouseDown = false;
+
+        var meshes;
+        var animationSkip;
+        var animationCount;
+
+        const fileLoader = new THREE.FileLoader();
         const speedStep = 0.5;
         const maxSpeed = 2;
 
@@ -77,25 +93,35 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         setRunButton();
         setHtml("animationSpeed", animationSpeed);
-        setHtml("simulationPath", simulationPath);
+
+        var fileSelector = document.getElementById('fileSelector');
+        var fileNames = (await loadFileAsync('./list.json')).files;
+
+        for (const fileName of fileNames) {
+            var opt = document.createElement('option');
+            opt.value = fileName;
+            opt.innerHTML = fileName;
+            fileSelector.appendChild(opt);
+        }
+
+        window.fileSelected = async (selectedIndex) => {
+            await loadDataAsync();
+        }
+        window.reload = () => {
+            location.reload();
+        }
+        window.run = () => {
+            paused = !paused;
+            setRunButton();
+        }
+        window.speed = () => {
+            animationSpeed = (animationSpeed % maxSpeed) + speedStep;
+            setHtml("animationSpeed", animationSpeed);
+        }
+
 
         function setHtml(label, value) {
             document.getElementById(label).innerHTML = value;
-        }
-
-        function reload() {
-            location.reload();
-        }
-        function onWindowResize() {
-
-            gCamera.aspect = window.innerWidth / window.innerHeight;
-            gCamera.updateProjectionMatrix();
-            gRenderer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        function run() {
-            paused = !paused;
-            setRunButton();
         }
 
         function setRunButton() {
@@ -105,27 +131,35 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             else
                 button.innerHTML = "Pause";
         }
-        function speed() {
-            animationSpeed = (animationSpeed % maxSpeed) + speedStep;
-            setHtml("animationSpeed", animationSpeed);
+
+        function onWindowResize() {
+            gCamera.aspect = window.innerWidth / window.innerHeight;
+            gCamera.updateProjectionMatrix();
+            gRenderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        window.run = run
-        window.reload = reload
-        window.speed = speed
 
-        var scene;
-        var gRenderer;
-        var gCamera;
-        var gCameraControl;
-        var gMouseDown = false;
+        async function loadFileAsync(filePath) {
+            var meshes = await fileLoader.setResponseType('json').loadAsync(
+                filePath,
+                function (xhr) {
+                    loadedProgress = parseInt(xhr.loaded / xhr.total * 100);
+                    setHtml("loadedProgress", `${loadedProgress}% loaded`);
+                },
+                function (err) {
+                    document.getElementById("error").innerHTML = 'Error loading meshes';
+                }
+            );
+            document.getElementById("loadedProgress").innerHTML = '';
+            return meshes;
+        }
 
         // ------------------------------------------------------------------
         class Body {
-            constructor(id) {
+            constructor() {
                 // physics
-                var nodes = meshes.nodes[id]
-                var boundary_surfaces = meshes.boundary_surfaces[id]
+                var nodes = meshes.nodes[0]
+                var boundary_surfaces = meshes.boundary_surfaces[0]
 
                 this.numNodes = nodes.length / 3;
                 this.pos = new Float32Array(nodes);
@@ -138,50 +172,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 var material = new THREE.MeshPhongMaterial({ color: 0xd9dbdc, side: THREE.DoubleSide });
                 material.flatShading = true;
                 this.surfaceMesh = new THREE.Mesh(geometry, material);
+                this.surfaceMesh.name = "mesh";
                 this.surfaceMesh.geometry.computeVertexNormals();
                 this.surfaceMesh.userData = this;
-                // this.surfaceMesh.layers.enable(1);
-                // scene.add(this.surfaceMesh);
-
-                this.volIdOrder = [[1, 3, 2], [0, 2, 3], [0, 3, 1], [0, 1, 2]];
+                this.surfaceMesh.layers.enable(1);
 
                 // console.log(JSON.stringify(tetMesh.verts));
             }
 
-        }
+            updateMesh(step) {
+                var nodes = meshes.nodes[step]
 
-        // ------------------------------------------------------------------
-        async function initPhysicsAsync() {
-            var body = new Body(0);
-            body.surfaceMesh.name = "mesh";
-            scene.add(body.surfaceMesh);
-            setHtml("numNodes", body.numNodes);
-        }
-        // ------------------------------------------------------------------
-        async function simulateAsync() {
-            if (paused)
-                return;
+                // this.pos = new Float32Array(nodes);
+                for (var i = 0; i < this.pos.length; i++)
+                    this.pos[i] = nodes[i];
 
-            animationFrameFloat += animationSpeed;
-            if (animationFrame() > animationCount) {
-                animationFrameFloat = 0;
+                // this.surfaceMesh.geometry.computeVertexNormals();
+                this.surfaceMesh.geometry.attributes.position.needsUpdate = true;
+                // this.surfaceMesh.geometry.computeBoundingSphere();
             }
-
-            if (animationFrame() % animationSkip != 0) {
-                return;
-            }
-
-
-            loadedProgress = parseInt(animationFrame() / animationCount * 100);
-            // setHtml("animationProgress", `${loadedProgress}% frame`);
-            var id = (animationFrame() % (animationCount * animationSkip)) / animationSkip;
-            var body = new Body(id);
-
-            var selectedObject = scene.getObjectByName("mesh");
-            scene.remove(selectedObject);
-
-            body.surfaceMesh.name = "mesh";
-            scene.add(body.surfaceMesh);
         }
 
         // ------------------------------------------
@@ -231,7 +240,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             // ground.rotation.x = - Math.PI / 2; // rotates X/Y to X/Z
             ground.position.set(0, 0, 0);
             ground.receiveShadow = true;
-            scene.add(ground);
+            // scene.add(ground);
 
             var helper = new THREE.GridHelper(20, 20);
             helper.material.opacity = 1.0;
@@ -265,46 +274,72 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         // make browser to call us repeatedly -----------------------------------
 
-        async function updateAsync() {
-            await simulateAsync();
-            gRenderer.render(scene, gCamera);
-            requestAnimationFrame(updateAsync);
-        }
-
         // python -m http.server
 
         // setting up the reader
 
-        const loader = new THREE.FileLoader();
-
-        async function getMeshesAsync() {
-            var meshes = await loader.setResponseType('json').loadAsync(
-                simulationPath,
-                // function (data) {
-                // },
-                function (xhr) {
-                    loadedProgress = parseInt(xhr.loaded / xhr.total * 100);
-                    setHtml("loadedProgress", `${loadedProgress}% loaded`);
-
-                    // console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                },
-                function (err) {
-                    document.getElementById("error").innerHTML = 'Error loading meshes';
-                }
-            );
-            document.getElementById("loadedProgress").innerHTML = '';
-            return meshes;
+        async function reloadMeshesAsync() {
+            meshes = await loadFileAsync(fileSelector.value)
+            animationSkip = meshes.skip;
+            animationCount = meshes.count * meshes.skip;
+            setHtml("count", `${animationCount} count`);
+            setHtml("skip", `${animationSkip} skip`);
         }
 
-        var meshes = await getMeshesAsync()
-        var animationSkip = meshes.skip;
-        var animationCount = meshes.count;
-        setHtml("frames", `${animationCount} frames`);
+        // ------------------------------------------------------------------
+        async function initMeshAsync() {
+            var selectedObject = scene.getObjectByName("mesh");
+            scene.remove(selectedObject);
 
+            body = new Body();
+            scene.add(body.surfaceMesh);
+            setHtml("numNodes", body.numNodes);
+        }
+
+        // ------------------------------------------------------------------
+        async function runAnimationAsync() {
+            // if (stop)
+            //     return;
+            await animationStepAsync();
+            gRenderer.render(scene, gCamera);
+            requestAnimationFrame(runAnimationAsync);
+
+        }
+
+        async function animationStepAsync() {
+            if (paused)
+                return;
+
+            animationFrameFloat += animationSpeed;
+            if (animationFrame() > animationCount)
+                animationFrameFloat = 0;
+
+            if (animationFrame() % animationSkip != 0)
+                return;
+
+
+            loadedProgress = parseInt(animationFrame() / animationCount * 100);
+            // setHtml("animationProgress", `${loadedProgress}% frame`);
+            var step = (animationFrame() % animationCount) / animationSkip;
+
+            body.updateMesh(step);
+
+            // var selectedObject = scene.getObjectByName("mesh");
+            // scene.remove(selectedObject);
+            // scene.add(body.surfaceMesh);
+        }
+
+        async function loadDataAsync() {
+            await reloadMeshesAsync();
+            await initMeshAsync();
+        }
+
+        var body;
         initThreeScene();
         onWindowResize();
-        await initPhysicsAsync(meshes);
-        await updateAsync();
+        await loadDataAsync();
+
+        await runAnimationAsync();
 
     </script>
 </body>
