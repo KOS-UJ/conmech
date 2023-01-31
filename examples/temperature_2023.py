@@ -76,6 +76,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 TemperatureObstacleProperties(hardness=200.0, friction=1.0, heat=0.2),
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
         TemperatureScenario(
             name="temperature_3d_bunny_push_heat",
@@ -88,6 +89,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 TemperatureObstacleProperties(hardness=200.0, friction=0.1, heat=0.6),
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
         TemperatureScenario(
             name="temperature_3d_bunny_push_soft",
@@ -100,6 +102,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 TemperatureObstacleProperties(hardness=50.0, friction=0.1, heat=0.2),
             ),
             heat_function=np.array([0]),
+            simulation_config=simulation_config,
         ),
     ]
 

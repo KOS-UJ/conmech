@@ -176,7 +176,7 @@ def plot(config: TrainingConfig):
         statistics = train_dataset.get_statistics(layer_number=0)
     else:
         statistics = None
-    all_print_scenaros = scenarios.all_print(config.td)
+    all_print_scenaros = scenarios.all_print(config.td, config.sc)
 
     if config.use_jax:
         checkpoint_path = get_newest_checkpoint_path(config)
@@ -194,7 +194,7 @@ def run_pca(config: TrainingConfig):
     dataset.initialize_data()
     dataloader = base_dataset.get_train_dataloader(dataset)
 
-    simulation_config=SimulationConfig(
+    simulation_config = SimulationConfig(
         use_normalization=False,
         use_linear_solver=False,
         use_green_strain=True,

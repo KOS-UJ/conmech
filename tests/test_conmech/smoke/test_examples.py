@@ -3,6 +3,7 @@ Created at 24.03.2022
 """
 import numpy as np
 import pytest
+from conmech.helpers.config import SimulationConfig
 
 from examples.example_dynamic import main as dynamic
 from examples.example_piezoelectric_dynamic import main as piezoelectric_dynamic
@@ -16,6 +17,16 @@ from examples.examples_temperature_2d import main as examples_temperature_2d
 from examples.examples_temperature_3d import main as examples_temperature_3d
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.temperature_2023 import main as temperature_2023
+
+simulation_config = SimulationConfig(
+    use_normalization=False,
+    use_linear_solver=False,
+    use_green_strain=True,
+    use_nonconvex_friction_law=False,
+    use_constant_contact_integral=False,
+    use_lhs_preconditioner=False,
+    use_pca=False,
+)
 
 default_args = dict(show=False, save=False)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)

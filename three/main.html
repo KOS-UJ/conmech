@@ -43,6 +43,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <span id="loadedProgress"></span>
     <br><br>
     <span id="numNodes">0</span> nodes&nbsp;&nbsp;
+    <span id="numSurfaces">0</span> surfaces&nbsp;&nbsp;
     <span id="animationSpeed"></span> speed&nbsp;&nbsp;
     <span id="count"></span>&nbsp;&nbsp;
     <span id="skip"></span>&nbsp;&nbsp;
@@ -91,19 +92,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             return parseInt(animationFrameFloat)
         }
 
-        setRunButton();
-        setHtml("animationSpeed", animationSpeed);
-
-        var fileSelector = document.getElementById('fileSelector');
-        var fileNames = (await loadFileAsync('./list.json')).files;
-
-        for (const fileName of fileNames) {
-            var opt = document.createElement('option');
-            opt.value = fileName;
-            opt.innerHTML = fileName;
-            fileSelector.appendChild(opt);
-        }
-
         window.fileSelected = async (selectedIndex) => {
             await loadDataAsync();
         }
@@ -119,6 +107,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             setHtml("animationSpeed", animationSpeed);
         }
 
+        setRunButton();
+        setHtml("animationSpeed", animationSpeed);
+
+        var fileSelector = document.getElementById('fileSelector');
+        var fileNames = (await loadFileAsync('./list.json')).files;
+
+        for (const fileName of fileNames) {
+            var opt = document.createElement('option');
+            opt.value = fileName;
+            opt.innerHTML = fileName;
+            fileSelector.appendChild(opt);
+        }
 
         function setHtml(label, value) {
             document.getElementById(label).innerHTML = value;
@@ -159,9 +159,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             constructor() {
                 // physics
                 var nodes = meshes.nodes[0]
-                var boundary_surfaces = meshes.boundary_surfaces[0]
+                var boundary_surfaces = meshes.boundary_surfaces
 
                 this.numNodes = nodes.length / 3;
+                this.numSurfaces = boundary_surfaces.length / 3;
                 this.pos = new Float32Array(nodes);
 
                 // surface tri mesh
@@ -294,6 +295,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             body = new Body();
             scene.add(body.surfaceMesh);
             setHtml("numNodes", body.numNodes);
+            setHtml("numSurfaces", body.numSurfaces);
         }
 
         // ------------------------------------------------------------------

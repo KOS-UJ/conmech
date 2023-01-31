@@ -72,21 +72,21 @@ def save_three(scene, step, label):
     if step % skip != 0:
         return
 
-    new_nodes = list(scene.boundary_nodes.reshape(-1))
-    new_surfaces = [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)]
+    nodes = list(scene.boundary_nodes.reshape(-1))
+    boundary_surfaces = [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)]
     if step == 0:
         json_dict = {
             "skip": skip,
             "count": 1,
-            "nodes": [new_nodes],
-            "boundary_surfaces": [new_surfaces],
+            "nodes": [nodes],
+            "boundary_surfaces": boundary_surfaces,
         }
     else:
         with open(file_path, "r", encoding="utf-8") as file:
             json_str = file.read()
         json_dict = json.loads(json_str)
         json_dict["count"] += 1
-        json_dict["nodes"].append(new_nodes)
+        json_dict["nodes"].append(nodes)
 
     with open(file_path_tmp, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)
@@ -97,7 +97,7 @@ def save_three(scene, step, label):
         list_path = f"{folder}/list.json"
         remove(list_path)
         all_files = glob(f"{folder}/*.json")
-        all_files.sort()
+        all_files.sort(reverse=True)
 
         file_list = []
         for file in all_files:
@@ -197,7 +197,12 @@ def run_scenario(
 
     def operation_save(scene: Scene):
         plot_index = step[0] % ts == 0
-        save_three(scene=scene, step=step[0], label=f"{start_time}_{timestamp}")
+        if "three" in config.animation_backend:
+            save_three(
+                scene=scene,
+                step=step[0],
+                label=f"{start_time}_{timestamp}_{scene.mesh_prop.mesh_type}",
+            )
         if run_config.save_all or plot_index:
             save_scene(scene=scene, scenes_path=scenes_path, save_animation=save_animation)
             if with_reduced:

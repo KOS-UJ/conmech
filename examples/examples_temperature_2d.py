@@ -1,22 +1,32 @@
 import numpy as np
 
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
-    TemperatureScenario,
-    default_thermal_expansion_coefficients,
-    default_thermal_conductivity_coefficients,
-    default_temp_body_prop,
-    default_temp_obstacle_prop,
-    f_rotate_fast,
-    get_temp_body_prop,
     M_CIRCLE,
     M_POLYGON,
     M_RECTANGLE,
+    TemperatureScenario,
+    default_temp_body_prop,
+    default_temp_obstacle_prop,
+    default_thermal_conductivity_coefficients,
+    default_thermal_expansion_coefficients,
+    f_rotate_fast,
+    get_temp_body_prop,
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
+
+simulation_config = SimulationConfig(
+    use_normalization=False,
+    use_linear_solver=False,
+    use_green_strain=True,
+    use_nonconvex_friction_law=False,
+    use_constant_contact_integral=False,
+    use_lhs_preconditioner=False,
+    use_pca=False,
+)
 
 
 def get_C_temp_scenarios(mesh_density, final_time):
@@ -48,6 +58,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
             forces_function=np.array([0, 0]),
             obstacle=obstacle,
             heat_function=np.array([2]),
+            simulation_config=simulation_config,
         )
         for i, temp_body_prop in enumerate(C_temp_body_prop)
     ]
@@ -100,23 +111,26 @@ def get_K_temp_scenarios(mesh_density, final_time):
             forces_function=np.array([0, 0]),
             obstacle=obstacle,
             heat_function=h_corner,
+            simulation_config=simulation_config,
         )
         for i, temp_body_prop in enumerate(K_temp_body_prop)
     ]
 
 
 def get_polygon_scenarios(mesh_density, final_time):
-    polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
-        name=f"polygon_{i}",
-        mesh_prop=MeshProperties(
-            dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[mesh_density]
-        ),
-        body_prop=default_temp_body_prop,
-        schedule=Schedule(final_time=final_time),
-        forces_function=forces_function,
-        obstacle=Obstacle.get_linear_obstacle(obstacle, default_temp_obstacle_prop),
-        heat_function=np.array([0]),
-    )
+    def polygon_scenario(i, forces_function, obstacle):
+        return TemperatureScenario(
+            name=f"polygon_{i}",
+            mesh_prop=MeshProperties(
+                dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[mesh_density]
+            ),
+            body_prop=default_temp_body_prop,
+            schedule=Schedule(final_time=final_time),
+            forces_function=forces_function,
+            obstacle=Obstacle.get_linear_obstacle(obstacle, default_temp_obstacle_prop),
+            heat_function=np.array([0]),
+            simulation_config=simulation_config,
+        )
 
     return [
         polygon_scenario(i=0, forces_function=f_rotate_fast, obstacle="side"),
@@ -127,23 +141,26 @@ def get_polygon_scenarios(mesh_density, final_time):
 
 def get_friction_scenarios(mesh_density, final_time):
     obstacle = Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), default_temp_obstacle_prop)
-    friction_scenario = lambda i: TemperatureScenario(
-        name="circle_flat_A_roll",
-        mesh_prop=MeshProperties(
-            dimension=2,
-            mesh_type=M_CIRCLE,
-            scale=[1],
-            mesh_density=[mesh_density],
-        ),
-        body_prop=get_temp_body_prop(
-            thermal_expansion_coeff=default_thermal_expansion_coefficients,
-            thermal_conductivity_coeff=np.array([[0.01, 0], [0, 0.01]]),
-        ),
-        schedule=Schedule(final_time=final_time),
-        forces_function=np.array([1.0, -0.5]),
-        obstacle=obstacle,
-        heat_function=np.array([0]),
-    )
+
+    def friction_scenario(i):
+        return TemperatureScenario(
+            name="circle_flat_A_roll",
+            mesh_prop=MeshProperties(
+                dimension=2,
+                mesh_type=M_CIRCLE,
+                scale=[1],
+                mesh_density=[mesh_density],
+            ),
+            body_prop=get_temp_body_prop(
+                thermal_expansion_coeff=default_thermal_expansion_coefficients,
+                thermal_conductivity_coeff=np.array([[0.01, 0], [0, 0.01]]),
+            ),
+            schedule=Schedule(final_time=final_time),
+            forces_function=np.array([1.0, -0.5]),
+            obstacle=obstacle,
+            heat_function=np.array([0]),
+            simulation_config=simulation_config,
+        )
 
     return [
         friction_scenario(i=0),

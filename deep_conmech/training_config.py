@@ -6,10 +6,10 @@ from torch import nn
 
 from conmech.helpers.config import Config, SimulationConfig
 
-TEST = False  # False
+TEST = False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 2
-CLOSEST_COUNT = 3  # 4
+MESH_LAYERS_PROPORTION = 4 # 2
+CLOSEST_COUNT = 3
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 

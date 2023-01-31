@@ -24,27 +24,36 @@ from conmech.solvers.algorithms.lbfgs import minimize_lbfgs
 
 class Calculator:
     @staticmethod
+    def minimize_jax_displacement(
+        function, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
+    ) -> np.ndarray:
+        range_factor = args.time_step**2
+        initial_disp_by_factor = (
+            nph.acceleration_to_displacement(initial_vector, args) / range_factor
+        )
+        disp_by_factor = Calculator.minimize_jax(
+            function=function,
+            initial_vector=initial_disp_by_factor,
+            args=args,
+            hes_inv=hes_inv,
+            verbose=verbose,
+        )
+        return nph.displacement_to_acceleration(np.asarray(disp_by_factor * range_factor), args)
+
+    @staticmethod
     def minimize_jax(
         function, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
     ) -> np.ndarray:
         assert cmh.get_from_os("ENV_READY")
 
-        # state1 = minimize_lbfgs(
-        #     fun=function, hes_inv=hes_inv, args=args, x0=jnp.asarray(initial_vector)
-        # )
-
-        range_factor = args.time_step**2
-
-        disp_by_factor_0 = (
-            nph.acceleration_to_displacement(jnp.asarray(initial_vector), args) / range_factor
-        )
+        x0 = jnp.asarray(initial_vector)
 
         state = cmh.profile(
             lambda: minimize_lbfgs(
                 fun=function,
                 hes_inv=hes_inv,
                 args=args,
-                x0=disp_by_factor_0,
+                x0=x0,
                 xtol=1e-03,
             ),
             baypass=True,
@@ -61,9 +70,7 @@ class Calculator:
                 else:
                     cmh.Console.print_fail(f"Status: {state.status}")
         # Validate https://github.com/google/jax/issues/6898
-        # return np.asarray(state.x_k)  # , state
-        disp_by_factor = state.x_k
-        return nph.displacement_to_acceleration(np.asarray(disp_by_factor * range_factor), args)
+        return np.asarray(state.x_k)  # , state
 
     @staticmethod
     def solve_temperature_normalized_function(
@@ -238,7 +245,7 @@ class Calculator:
         )
         with timer["__minimize_jax"]:
             normalized_a_vector_np = cmh.profile(
-                lambda: Calculator.minimize_jax(
+                lambda: Calculator.minimize_jax_displacement(
                     function=energy_functions.get_energy_function(scene),
                     # solver= energy_functions.get_solver(scene),
                     initial_vector=initial_a_vector,

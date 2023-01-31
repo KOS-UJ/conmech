@@ -393,7 +393,8 @@ def f_rotate_3d(
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
 
-def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
+def polygon_mesh_obstacles(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle(
         geometry=None, properties=default_obstacle_prop, all_mesh=obstacle_mesh_prop
     )
@@ -406,10 +407,12 @@ def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def circle_slope(mesh_density, scale, final_time, tag=""):
+def circle_slope(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"circle_slope{tag}",
@@ -420,10 +423,12 @@ def circle_slope(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def spline_down(mesh_density, scale, final_time, tag=""):
+def spline_down(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("bottom", default_obstacle_prop)
     return Scenario(
         name=f"spline_down{tag}",
@@ -434,10 +439,12 @@ def spline_down(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_down,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def circle_up_left(mesh_density, scale, final_time, tag=""):
+def circle_up_left(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
         name=f"circle_up_left{tag}",
@@ -448,10 +455,12 @@ def circle_up_left(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_up_left,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def polygon_left(mesh_density, scale, final_time, tag=""):
+def polygon_left(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     obstacle.geometry *= scale
     return Scenario(
@@ -463,10 +472,12 @@ def polygon_left(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_accelerate_slow_left,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def polygon_slope(mesh_density, scale, final_time, tag=""):
+def polygon_slope(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"polygon_slope{tag}",
@@ -477,10 +488,12 @@ def polygon_slope(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def circle_rotate(mesh_density, scale, final_time, tag=""):
+def circle_rotate(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
@@ -491,10 +504,12 @@ def circle_rotate(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def polygon_rotate(mesh_density, scale, final_time, tag=""):
+def polygon_rotate(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_rotate{tag}",
@@ -505,10 +520,12 @@ def polygon_rotate(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_rotate,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def polygon_stay(mesh_density, scale, final_time, tag=""):
+def polygon_stay(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_stay{tag}",
@@ -522,10 +539,12 @@ def polygon_stay(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_stay,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 
-def polygon_two(mesh_density, scale, final_time, tag=""):
+def polygon_two(mesh_density, scale, final_time,
+    simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("two", default_obstacle_prop)
     return Scenario(
         name=f"polygon_two{tag}",
@@ -539,6 +558,7 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
         schedule=Schedule(final_time=final_time),
         forces_function=f_slide,
         obstacle=obstacle,
+        simulation_config=simulation_config,
     )
 
 

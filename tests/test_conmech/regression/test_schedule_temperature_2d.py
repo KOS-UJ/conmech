@@ -1,13 +1,23 @@
 import numpy as np
 import pytest
 
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import TemperatureScenario
 from conmech.simulations.simulation_runner import RunScenarioConfig, run_scenario
 from conmech.state.obstacle import Obstacle
+
+simulation_config = SimulationConfig(
+    use_normalization=False,
+    use_linear_solver=False,
+    use_green_strain=True,
+    use_nonconvex_friction_law=False,
+    use_constant_contact_integral=False,
+    use_lhs_preconditioner=False,
+    use_pca=False,
+)
 
 
 def generate_test_suits():
@@ -24,6 +34,7 @@ def generate_test_suits():
         forces_function=np.array([1, -1]),
         obstacle=obstacle,
         heat_function=np.array([0]),
+        simulation_config=simulation_config,
     )
 
     expected_boundary_nodes = np.array(

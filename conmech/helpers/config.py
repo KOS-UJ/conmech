@@ -51,7 +51,7 @@ class Config:
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
     verbose: bool = True
 
-    animation_backend: str = "blender"  # "matplotlib blender"  # blender matplotlib
+    animation_backend: str = "three"  # "matplotlib blender three"
     blender_output: bool = False
     print_skip: float = 0.1  # 0.01
     plot_tests: bool = False

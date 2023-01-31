@@ -1,6 +1,6 @@
 import numpy as np
 
-from conmech.helpers.config import Config
+from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
@@ -18,6 +18,16 @@ from conmech.scenarios.scenarios import (
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
+simulation_config = SimulationConfig(
+    use_normalization=False,
+    use_linear_solver=False,
+    use_green_strain=False,
+    use_nonconvex_friction_law=False,
+    use_constant_contact_integral=False,
+    use_lhs_preconditioner=False,
+    use_pca=False,
+)
+
 
 def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
     basic_scenarios = [
@@ -32,6 +42,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             obstacle=Obstacle(
                 np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop
             ),
+            simulation_config=simulation_config,
         ),
         Scenario(
             name="ball_roll",
@@ -44,6 +55,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             obstacle=Obstacle(
                 np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
             ),
+            simulation_config=simulation_config,
         ),
         Scenario(
             name="ball_throw",
@@ -62,6 +74,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
             ),
+            simulation_config=simulation_config,
         ),
         Scenario(
             name="twist_roll",
@@ -83,6 +96,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1]]]), default_obstacle_prop
             ),
+            simulation_config=simulation_config,
         ),
     ]
 
@@ -109,6 +123,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 ObstacleProperties(hardness=100.0, friction=5.0),
                 all_mesh=None,
             ),
+            simulation_config=simulation_config,
         ),
         Scenario(
             name="bunny_roll",
@@ -130,6 +145,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
             ),
+            simulation_config=simulation_config,
         ),
     ]
 

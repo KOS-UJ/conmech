@@ -110,7 +110,7 @@ class SceneLayers(Scene):
 
         from_base = self.get_link(from_mesh=self, to_mesh=sparse_scene, with_weights=True)
         self.project_sparse_nodes(from_base, sparse_scene)
-        to_base = self.get_link(from_mesh=sparse_scene, to_mesh=self, with_weights=False)
+        to_base = self.get_link(from_mesh=sparse_scene, to_mesh=self, with_weights=True)  ### False
 
         mesh_layer_data = AllMeshLayerLinkData(
             mesh=sparse_scene,
