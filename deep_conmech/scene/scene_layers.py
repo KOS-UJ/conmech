@@ -6,7 +6,7 @@ from typing import List, Optional
 import numba
 import numpy as np
 
-from conmech.helpers import interpolation_helpers, lnh
+from conmech.helpers import cmh, interpolation_helpers, jxh, lnh
 from conmech.helpers.config import SimulationConfig
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import TimeDependentBodyProperties
@@ -108,9 +108,19 @@ class SceneLayers(Scene):
         )
         sparse_scene.lifted_acceleration = np.zeros_like(sparse_scene.initial_nodes)
 
-        from_base = self.get_link(from_mesh=self, to_mesh=sparse_scene, with_weights=True)
-        self.project_sparse_nodes(from_base, sparse_scene)
-        to_base = self.get_link(from_mesh=sparse_scene, to_mesh=self, with_weights=True)  ### False
+        if True: # 0.13 OK 0.12-0.15 # 0.08
+            sparse_scene.mesh.initial_nodes += 0.03 * np.array(
+                jxh.complete_data_with_zeros(
+                    sparse_scene.get_boundary_normals_jax(), sparse_scene.nodes_count
+                )
+            )
+        from_base = self.get_link(
+            from_mesh=self, to_mesh=sparse_scene, with_weights=True, to_dense=False
+        )
+        # self.project_sparse_nodes(from_base, sparse_scene)
+        to_base = self.get_link(
+            from_mesh=sparse_scene, to_mesh=self, with_weights=True, to_dense=True
+        )  ### False
 
         mesh_layer_data = AllMeshLayerLinkData(
             mesh=sparse_scene,
@@ -119,37 +129,49 @@ class SceneLayers(Scene):
         )
         self.all_layers.append(mesh_layer_data)
 
-    def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool):
-        (
-            closest_nodes,
-            closest_distances,
-            closest_weights,
-        ) = interpolation_helpers.get_interlayer_data_numba(
-            base_nodes=from_mesh.initial_nodes,
-            base_elements=from_mesh.elements,
-            interpolated_nodes=to_mesh.initial_nodes,
-            closest_count=CLOSEST_COUNT,
-            with_weights=with_weights,
-        )
-        (
-            closest_boundary_nodes,
-            closest_distances_boundary,
-            closest_weights_boundary,
-        ) = interpolation_helpers.get_interlayer_data_numba(
-            base_nodes=from_mesh.initial_boundary_nodes,
-            base_elements=from_mesh.elements,
-            interpolated_nodes=to_mesh.initial_boundary_nodes,
-            closest_count=CLOSEST_BOUNDARY_COUNT,
-            with_weights=with_weights,
-        )
+    def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool, to_dense: bool):
+        if to_dense:
+            (
+                closest_nodes,
+                closest_distances,
+                closest_weights,
+            ) = interpolation_helpers.get_interlayer_data_NEW(
+                base_nodes=from_mesh.initial_nodes,
+                base_elements=from_mesh.elements,
+                interpolated_nodes=to_mesh.initial_nodes,
+                padding = 0.1
+            )
+        else:
+            (
+                closest_nodes,
+                closest_distances,
+                closest_weights,
+            ) = interpolation_helpers.get_interlayer_data_numba(
+                base_nodes=from_mesh.initial_nodes,
+                base_elements=from_mesh.elements,
+                interpolated_nodes=to_mesh.initial_nodes,
+                closest_count=CLOSEST_COUNT,
+                with_weights=with_weights,
+            )
+        # (
+        #     closest_boundary_nodes,
+        #     closest_distances_boundary,
+        #     closest_weights_boundary,
+        # ) = interpolation_helpers.get_interlayer_data_numba(
+        #     base_nodes=from_mesh.initial_boundary_nodes,
+        #     base_elements=from_mesh.elements,
+        #     interpolated_nodes=to_mesh.initial_boundary_nodes,
+        #     closest_count=CLOSEST_BOUNDARY_COUNT,
+        #     with_weights=with_weights,
+        # )
         edges_index = get_multilayer_edges_numba(closest_nodes)
         return MeshLayerLinkData(
             closest_nodes=closest_nodes,
             closest_distances=closest_distances,
             closest_weights=closest_weights,
-            closest_boundary_nodes=closest_boundary_nodes,
-            closest_distances_boundary=closest_distances_boundary,
-            closest_weights_boundary=closest_weights_boundary,
+            closest_boundary_nodes=None,  # closest_boundary_nodes,
+            closest_distances_boundary=None,  # closest_distances_boundary,
+            closest_weights_boundary=None,  # closest_weights_boundary,
             edges_index=edges_index,
         )
 

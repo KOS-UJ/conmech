@@ -356,9 +356,12 @@ class EnergyFunctions:
                 nph.displacement_to_acceleration(displacement, args),
                 args,
             ) * (1 / (args.time_step**2))
+        
+        self.energy_obstacle_free = self._energy_obstacle_free
+        self.energy_obstacle_colliding = self._energy_obstacle_colliding
+        return
 
         if not simulation_config.use_pca:
-
             def to_displacement_by_factor(function):
                 return lambda disp_by_factor, args: to_displacement(function)(
                     disp_by_factor * (args.time_step**2), args

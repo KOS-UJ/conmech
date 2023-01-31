@@ -1,6 +1,9 @@
 import numpy as np
 
-from conmech.mesh.boundaries_factory import get_boundary_surfaces, extract_unique_indices
+from conmech.mesh.boundaries_factory import (
+    extract_unique_indices,
+    get_boundary_surfaces,
+)
 
 
 def standard_boundary_nodes(nodes, elements):
@@ -62,11 +65,11 @@ def extract_boundary_paths_from_elements(elements):
     return boundary_paths
 
 
-def extract_boundary_path(boundary_edges, start_node=0):
+def extract_boundary_path(boundary_surfaces, start_node=0):
     visited_path = []
 
     def get_neighbours(node):
-        node_edges = boundary_edges[np.any(boundary_edges == node, axis=1)]
+        node_edges = boundary_surfaces[np.any(boundary_surfaces == node, axis=1)]
         node_edges_flatten = node_edges.flatten()
         neighbours = node_edges_flatten[node_edges_flatten != node]
         return neighbours

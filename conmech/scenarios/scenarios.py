@@ -865,7 +865,7 @@ def all_print(td, sc):
             bunny_fall_3d(**args),
             bunny_rotate_3d(**args),
             bunny_swing_3d(**args),
-            ball_rotate_3d(**args),
+            # ball_rotate_3d(**args),
             # ball_swing_3d(**args),
             # cube_rotate_3d(**args),
         ]

@@ -8,8 +8,8 @@ from conmech.helpers.config import Config, SimulationConfig
 
 TEST = False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 4 # 2
-CLOSEST_COUNT = 3
+MESH_LAYERS_PROPORTION = 2  # 4 2
+CLOSEST_COUNT = 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 

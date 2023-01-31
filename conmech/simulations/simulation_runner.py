@@ -5,9 +5,12 @@ from dataclasses import dataclass
 from glob import glob
 from typing import Callable, Optional, Tuple
 
+import numpy as np
+
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.helpers.tmh import Timer
+from conmech.mesh.mesh_builders_3d import get_edges_from_surfaces
 from conmech.plotting import plotter_functions
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
@@ -59,7 +62,7 @@ def save_three(scene, step, label):
     folder = "./three"
     file_path = f"{folder}/{label}.json"
     file_path_tmp = f"{folder}/{label}_TMP.json"
-    skip = 5
+    skip = 1
 
     def remove(path):
         if os.path.exists(path):
@@ -72,14 +75,27 @@ def save_three(scene, step, label):
     if step % skip != 0:
         return
 
-    nodes = list(scene.boundary_nodes.reshape(-1))
-    boundary_surfaces = [int(i) for i in scene.boundaries.boundary_surfaces.reshape(-1)]
+    def get_data(scene, get_edges):
+        boundary_nodes = scene.boundary_nodes
+        nodes = list(boundary_nodes.reshape(-1))
+        if get_edges:
+            boundary_data = get_edges_from_surfaces(scene.boundaries.boundary_surfaces)
+        else:
+            boundary_data = scene.boundaries.boundary_surfaces
+
+        return nodes, [int(i) for i in boundary_data.reshape(-1)]
+
+    nodes, boundary_surfaces = get_data(scene, get_edges=False)
+    if hasattr(scene, "reduced"):
+        nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
     if step == 0:
         json_dict = {
             "skip": skip,
             "count": 1,
             "nodes": [nodes],
             "boundary_surfaces": boundary_surfaces,
+            "nodes_reduced": [nodes_reduced],
+            "boundary_edges_reduced": boundary_edges_reduced,
         }
     else:
         with open(file_path, "r", encoding="utf-8") as file:
@@ -87,6 +103,7 @@ def save_three(scene, step, label):
         json_dict = json.loads(json_str)
         json_dict["count"] += 1
         json_dict["nodes"].append(nodes)
+        json_dict["nodes_reduced"].append(nodes_reduced)
 
     with open(file_path_tmp, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)

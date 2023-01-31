@@ -245,7 +245,7 @@ class Calculator:
         )
         with timer["__minimize_jax"]:
             normalized_a_vector_np = cmh.profile(
-                lambda: Calculator.minimize_jax_displacement(
+                lambda: Calculator.minimize_jax(  # _displacement(
                     function=energy_functions.get_energy_function(scene),
                     # solver= energy_functions.get_solver(scene),
                     initial_vector=initial_a_vector,

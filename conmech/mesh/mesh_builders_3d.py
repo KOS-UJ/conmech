@@ -17,6 +17,9 @@ def read_mesh(path):
         raise ArgumentError
     return mesh
 
+def get_edges_from_surfaces(surfaces):
+    return np.array([[[s[0], s[1]], [s[1], s[2]], [s[2], s[0]]] for s in surfaces]).reshape(-1, 2)
+
 
 def get_relative_ideal_edge_length(mesh_id):
     mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}.ply")
@@ -24,7 +27,7 @@ def get_relative_ideal_edge_length(mesh_id):
     diag_of_bbox = nph.euclidean_norm_numba(np.max(nodes, axis=0) - np.min(nodes, axis=0))
 
     surfaces = mesh.cells_dict["triangle"]
-    edges = np.array([[[s[0], s[1]], [s[1], s[2]], [s[2], s[0]]] for s in surfaces]).reshape(-1, 2)
+    edges = get_edges_from_surfaces(surfaces)
     edge_nodes = nodes[edges]
     edge_lengths = nph.euclidean_norm_numba(edge_nodes[:, 0] - edge_nodes[:, 1])
     mean_length = np.mean(edge_lengths)
@@ -120,6 +123,8 @@ def get_pygmsh_slide(mesh_prop):
 
 
 def get_pygmsh_bunny(mesh_prop):
+    if mesh_prop.mesh_density_x == 64:
+        mesh_id = 1
     if mesh_prop.mesh_density_x == 32:
         mesh_id = 2
     elif mesh_prop.mesh_density_x == 16:

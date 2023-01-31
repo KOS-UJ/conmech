@@ -1,10 +1,13 @@
 import random
 from ctypes import ArgumentError
 
+import jax
+import jax.numpy as jnp
 import numba
 import numpy as np
+from tqdm import tqdm
 
-from conmech.helpers import lnh, nph
+from conmech.helpers import jxh, lnh, nph
 
 
 def decide(scale):
@@ -200,6 +203,191 @@ def get_interlayer_data_numba(
         closest_distances[index, :] = closest_distance_list
 
     return closest_nodes, closest_distances, closest_weights
+
+
+def get_interlayer_data_NEW(
+    base_nodes: np.ndarray,
+    base_elements: np.ndarray,
+    interpolated_nodes: np.ndarray,
+    padding: float,
+):
+    # interpolated_nodes = base_nodes
+    closest_count = 4
+    closest_distances = np.zeros((len(interpolated_nodes), closest_count))
+    closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
+    closest_weights = np.zeros_like(closest_distances)
+
+    weights = np.zeros((len(base_elements), closest_count))
+
+    dim = base_nodes.shape[1]
+    element_nodes_count = base_elements.shape[1]
+
+    element_nodes = base_nodes[base_elements]
+
+    element_centers = np.array(element_nodes.mean(axis=1))
+    element_center_distances = element_nodes - element_centers.reshape(-1, 1, dim).repeat(
+        element_nodes_count, 1
+    )
+    element_ball_radiuses = np.linalg.norm(element_center_distances, axis=2).max(axis=1) + padding
+    mask = np.zeros_like(element_ball_radiuses, dtype=np.bool)
+
+    p4 = element_nodes[:, [3]]
+    P = element_nodes[:, :3] - p4
+    P_T = P.transpose(0, 2, 1)
+
+    element_centers = jnp.array(element_centers)
+    element_centers = jax.device_put(jnp.array(element_centers), jax.devices("cpu")[0])
+    interpolated_nodes = jax.device_put(jnp.array(interpolated_nodes), jax.devices("cpu")[0])
+    # element_ball_radiuses = jnp.array(element_ball_radiuses)
+    # P_T = jnp.array(P_T)
+    # p4 = jnp.array(p4)
+
+    mask_fun = jax.jit(
+        lambda node: jxh.euclidean_norm(element_centers - node) - element_ball_radiuses <= 0
+    )
+    # mask_fun = numba.njit(
+    #     lambda node: nph.euclidean_norm(element_centers - node) - element_ball_radiuses <= 0
+    # )
+
+    for index, node in enumerate(tqdm(interpolated_nodes)):
+        # mask = np.asarray(mask_fun(node))
+        mask = np.linalg.norm(element_centers - node, axis=1) - element_ball_radiuses <= 0
+
+        b = (node - p4[mask]).transpose(0, 2, 1)
+        weights[mask, :3] = np.linalg.solve(P_T[mask], b).reshape(-1, 3)
+        weights[mask, 3] = 1 - weights[mask, :3].sum(1)
+
+        masked_weights = weights[mask]
+        closest_index_mask = np.argmin((-masked_weights).max(axis=1))
+        closest_nodes[index, :] = base_elements[mask][closest_index_mask]
+        closest_weights[index, :] = masked_weights[closest_index_mask]
+
+    return closest_nodes, closest_distances, closest_weights
+
+
+# # @numba.njit
+# def get_interlayer_data_NEW(
+#     base_nodes: np.ndarray,
+#     base_elements: np.ndarray,
+#     interpolated_nodes: np.ndarray,
+# ):
+#     # interpolated_nodes = base_nodes
+#     closest_count = 4
+#     closest_distances = np.zeros((len(interpolated_nodes), closest_count))
+#     closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
+#     closest_weights = np.zeros_like(closest_distances)
+
+#     current_distances = np.zeros(len(interpolated_nodes))
+#     current_distances[:] = 100000
+#     padding = 0.05
+
+#     weights = np.zeros((len(base_elements), closest_count))
+
+#     # dim = base_nodes.shape[1]
+#     # element_nodes_count = base_elements.shape[1]
+
+#     element_nodes = base_nodes[base_elements]
+#     base_nodes_min = element_nodes.min(axis=1)
+#     base_nodes_max = element_nodes.max(axis=1)
+
+#     p4 = element_nodes[:, [3]]
+#     P = element_nodes[:, :3] - p4
+#     P_T = P.transpose(0, 2, 1)
+
+#     for index, node in enumerate(tqdm(interpolated_nodes)):
+#         bound_below = np.all(base_nodes_min - node <= padding, axis=1)
+#         bound_above = np.all(base_nodes_max - node >= -padding, axis=1)
+#         mask = bound_below & bound_above
+#         P_T_range = P_T[mask]
+#         p4_range = p4[mask]
+
+#         b = (node - p4_range).transpose(0, 2, 1)
+#         weights[mask, :3] = np.linalg.solve(P_T_range, b).reshape(-1, 3)
+#         weights[mask, 3] = 1 - weights[mask, :3].sum(1)
+
+#         masked_weights = weights[mask]
+#         closest_index_mask = np.argmin((-masked_weights).max(axis=1))
+#         closest_nodes[index, :] = base_elements[mask][closest_index_mask]
+#         closest_weights[index, :] = masked_weights[closest_index_mask]
+
+#         min_weight = masked_weights[closest_index_mask].min()
+#         if masked_weights[closest_index_mask].min() <= 0:
+#             print(min_weight)
+#         a = 0
+
+#     return closest_nodes, closest_distances, closest_weights
+
+
+# # @numba.njit
+# def get_interlayer_data_NEW2(
+#     base_nodes: np.ndarray,
+#     base_elements: np.ndarray,
+#     interpolated_nodes: np.ndarray,
+# ):
+#     # element_centers = element_nodes.mean(axis=1)
+#     # element_center_distances = element_nodes - element_centers.reshape(-1, 1, dim).repeat(
+#     #     element_nodes_count, 1
+#     # )
+#     # element_ball_radiuses = np.linalg.norm(element_center_distances, axis=2).max(axis=1)
+#     # base_nodes_min = element_nodes.min(axis=1)
+#     # base_nodes_max = element_nodes.max(axis=1)
+
+#     padding = 0.001
+#     weights = np.zeros(4)
+#     for element in tqdm(base_elements):
+#         for index, node in enumerate(interpolated_nodes):
+#             # bound_below = np.all(base_nodes_min - node <= 0.01, axis=1)
+#             # bound_above = np.all(base_nodes_max - node >= -0.01, axis=1)
+#             # elements_in_range = base_elements #[bound_below & bound_above]
+#             # assert len(elements_in_range) > 0
+
+#             # element_distances = (
+#             #     nph.euclidean_norm_numba(element_centers - node) - element_ball_radiuses
+#             # )  # + 0.01
+#             # elements_in_range = base_elements[element_distances <= 0]
+
+#             if current_distances[index] > 0:
+#                 selected_base_nodes = base_nodes[element]
+#                 element_nodes_min = np.min(selected_base_nodes, axis=0)
+#                 element_nodes_max = np.max(selected_base_nodes, axis=0)
+#                 if np.all(element_nodes_min - node <= padding) and np.all(
+#                     element_nodes_max - node >= -padding
+#                 ):
+#                 # if True:
+#                     p4 = selected_base_nodes[3]
+#                     P = selected_base_nodes[:3] - p4
+#                     # weights[:3] = np.linalg.inv(P.T) @ (node - p4)  # np.ascontiguousarray
+#                     weights[:3] = np.linalg.solve(P.T, node - p4)  # np.ascontiguousarray
+#                     weights[3] = 1 - sum(weights[:3])
+#                     d = (-weights).max()
+#                     if d < current_distances[index]:
+#                         current_distances[index] = d
+#                         closest_weights[index, :] = weights
+#     a = 0
+
+
+#     # weights_threshold = 0.1
+#     # for node in tqdm(interpolated_nodes):
+#     #     done = False
+#     #     i = 0
+#     #     while not done and i < len(base_elements):
+#     #         if np.all(base_nodes_min[i] - node <= padding) and np.all(
+#     #             base_nodes_max[i] - node >= -padding
+#     #         ):
+#     #             selected_base_nodes = element_nodes[i]
+#     #             p4 = selected_base_nodes[3]
+#     #             P = selected_base_nodes[:3] - p4
+#     #             weights[:3] = np.linalg.inv(P.T) @ (node - p4)  # np.ascontiguousarray
+#     #             weights[3] = 1 - sum(weights[:3])
+#     #             if np.all(weights >= -weights_threshold):
+#     #                 # closest_weights[index, :] = weights
+#     #                 # closest_nodes[index, :] = closest_node_list
+#     #                 # closest_distances[index, :] = None
+#     #                 done = True
+#     #         i += 1
+#     #    assert done
+
+#     return closest_nodes, closest_distances, closest_weights
 
 
 def approximate_internal(base_values, closest_nodes, closest_weights):

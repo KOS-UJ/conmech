@@ -477,22 +477,26 @@ def solve(
     initial_t,
     timer=Timer(),
 ):
-    # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
     _ = initial_a, initial_t
 
-    scene.reduced.exact_acceleration, _ = Calculator.solve(
-        scene=scene.reduced,
-        energy_functions=energy_functions,
-        initial_a=scene.reduced.exact_acceleration,
-        timer=timer,
-    )
-    scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-    # acceleration
-    # return acceleration, None
-    new_reduced_displacement = scene.reduced.to_displacement(scene.reduced.lifted_acceleration)
-    new_displacement = scene.lower_data(new_reduced_displacement)
-    acceleration_from_displacement = scene.from_displacement(new_displacement)
-    return np.array(acceleration_from_displacement), None
+    with timer["jax_calculator"]:
+        scene.reduced.exact_acceleration, _ = Calculator.solve(
+            scene=scene.reduced,
+            energy_functions=energy_functions,
+            initial_a=scene.reduced.exact_acceleration,
+            timer=timer,
+        )
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+
+    with timer["lower_data"]:
+        new_reduced_displacement = scene.reduced.to_displacement(scene.reduced.lifted_acceleration)
+        moved_reduced_nodes_new = scene.reduced.initial_nodes + new_reduced_displacement
+
+        moved_nodes_new = scene.lower_data(moved_reduced_nodes_new)
+
+        new_displacement = moved_nodes_new - scene.initial_nodes
+        acceleration_from_displacement = scene.from_displacement(new_displacement)
+        return np.array(acceleration_from_displacement), None
 
 
 def prepare_input(layer_list):

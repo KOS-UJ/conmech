@@ -174,22 +174,47 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 material.flatShading = true;
                 this.surfaceMesh = new THREE.Mesh(geometry, material);
                 this.surfaceMesh.name = "mesh";
-                this.surfaceMesh.geometry.computeVertexNormals();
+                // this.surfaceMesh.castShadow = true;
                 this.surfaceMesh.userData = this;
                 this.surfaceMesh.layers.enable(1);
+                this.surfaceMesh.geometry.computeVertexNormals();
+                this.surfaceMesh.visible = true;
+
+                /////
+                this.pos_reduced = new Float32Array(meshes.nodes_reduced[0]);
+
+                var geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
+                geometry.setIndex(meshes.boundary_edges_reduced);
+
+                var material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+                this.tetMesh = new THREE.LineSegments(geometry, material);
+
+                // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
+                // material.flatShading = true;
+                // this.tetMesh = new THREE.Mesh(geometry, material);
+                this.tetMesh.visible = true;
+
+                scene.add(this.tetMesh);
+                /////
 
                 // console.log(JSON.stringify(tetMesh.verts));
             }
 
             updateMesh(step) {
-                var nodes = meshes.nodes[step]
+                var nodes = meshes.nodes[step];
+                var nodes_reduced = meshes.nodes_reduced[step];
 
                 // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.pos.length; i++)
                     this.pos[i] = nodes[i];
 
+                for (var i = 0; i < this.pos_reduced.length; i++)
+                    this.pos_reduced[i] = nodes_reduced[i];
+
                 // this.surfaceMesh.geometry.computeVertexNormals();
                 this.surfaceMesh.geometry.attributes.position.needsUpdate = true;
+                this.tetMesh.geometry.attributes.position.needsUpdate = true;
                 // this.surfaceMesh.geometry.computeBoundingSphere();
             }
         }
