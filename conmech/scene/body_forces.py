@@ -52,6 +52,7 @@ class BodyForces(Dynamics):
         body_prop: TimeDependentBodyProperties,
         schedule: Schedule,
         simulation_config: SimulationConfig,
+        with_edges: bool,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
     ):
@@ -60,6 +61,7 @@ class BodyForces(Dynamics):
             body_prop=body_prop,
             schedule=schedule,
             simulation_config=simulation_config,
+            with_edges=with_edges,
             dynamics_config=dynamics_config,
             boundaries_description=boundaries_description,
         )

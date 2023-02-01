@@ -625,8 +625,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 		function simulate() {
 			if (gPhysicsScene.paused)
 				return;
-
+			
+			const start = performance.now();
 			var sdt = gPhysicsScene.dt / gPhysicsScene.numSubsteps;
+			console.log(`dt ${gPhysicsScene.dt}`);
+			console.log(`sdt ${sdt}`);
 
 			for (var step = 0; step < gPhysicsScene.numSubsteps; step++) {
 
@@ -642,6 +645,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 			}
 			for (var i = 0; i < gPhysicsScene.objects.length; i++)
 				gPhysicsScene.objects[i].endFrame();
+			
+			const end = performance.now();
+			console.log(`Execution time: ${end - start} ms`);
 
 			gGrabber.increaseTime(gPhysicsScene.dt);
 		}

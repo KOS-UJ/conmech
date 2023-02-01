@@ -129,6 +129,7 @@ class Dynamics(BodyPosition):
         body_prop: StaticBodyProperties,
         schedule: Schedule,
         simulation_config: SimulationConfig,
+        with_edges: bool,
         dynamics_config: DynamicsConfiguration,
         boundaries_description: Optional[BoundariesDescription] = None,
     ):
@@ -136,6 +137,7 @@ class Dynamics(BodyPosition):
             mesh_prop=mesh_prop,
             schedule=schedule,
             normalize=simulation_config.use_normalization,
+            with_edges=with_edges,
             boundaries_description=boundaries_description,
             create_in_subprocess=dynamics_config.create_in_subprocess,
         )

@@ -73,6 +73,37 @@ class Calculator:
         return np.asarray(state.x_k)  # , state
 
     @staticmethod
+    def solve_skinning(
+        scene: Scene,
+        energy_functions: EnergyFunctions,
+        initial_a,
+        initial_t,
+        timer=Timer(),
+    ):
+        _ = initial_a, initial_t
+
+        with timer["jax_calculator"]:
+            scene.reduced.exact_acceleration, _ = Calculator.solve(
+                scene=scene.reduced,
+                energy_functions=energy_functions,
+                initial_a=scene.reduced.exact_acceleration,
+                timer=timer,
+            )
+            scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+
+        with timer["lower_data"]:
+            new_reduced_displacement = scene.reduced.to_displacement(scene.reduced.lifted_acceleration)
+            moved_reduced_nodes_new = scene.reduced.initial_nodes + new_reduced_displacement
+
+            moved_nodes_new = scene.lower_data(moved_reduced_nodes_new)
+
+            new_displacement = moved_nodes_new - scene.initial_nodes
+            acceleration_from_displacement = scene.from_displacement(new_displacement)
+            return np.array(acceleration_from_displacement), None
+
+
+
+    @staticmethod
     def solve_temperature_normalized_function(
         scene: SceneTemperature, normalized_acceleration: np.ndarray, initial_t
     ):

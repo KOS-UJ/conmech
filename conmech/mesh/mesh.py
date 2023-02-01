@@ -65,6 +65,7 @@ class Mesh:
     def __init__(
         self,
         mesh_prop: MeshProperties,
+        with_edges: bool,
         boundaries_description: BoundariesDescription,
         create_in_subprocess: bool,
     ):
@@ -77,7 +78,9 @@ class Mesh:
         self.boundaries: Boundaries
 
         def fun_data():
-            self.reinitialize_data(mesh_prop, boundaries_description, create_in_subprocess)
+            self.reinitialize_data(
+                mesh_prop, boundaries_description, with_edges, create_in_subprocess
+            )
 
         cmh.profile(fun_data, baypass=True)
 
@@ -88,6 +91,7 @@ class Mesh:
         self,
         mesh_prop: MeshProperties,
         boundaries_description: BoundariesDescription,
+        with_edges: bool,
         create_in_subprocess,
     ):
         input_nodes, input_elements = mesh_builders.build_mesh(
@@ -106,9 +110,20 @@ class Mesh:
             unordered_elements=unordered_elements,
             boundaries_description=boundaries_description,
         )
-        edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
-        self.edges = get_edges_list_numba(edges_matrix)  # TODO: remove
-        self.directional_edges = np.vstack((self.edges, np.flip(self.edges, axis=1)))
+        self.directional_edges = None
+        if with_edges:
+            edges = np.array(
+                [[[e[i], e[j]] for i, j in np.ndindex((4, 4)) if j > i] for e in self.elements]
+            ).reshape(-1, 2)
+            # edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
+            # self.edges = get_edges_list_numba(edges_matrix)  # TODO: remove
+            self.directional_edges = np.vstack((edges, np.flip(edges, axis=1)))
+
+    @property
+    def edges_number(self):
+        if self.directional_edges is None:
+            raise AttributeError()
+        return len(self.directional_edges) // 2
 
     @property
     def boundary_surfaces(self):
@@ -205,10 +220,6 @@ class Mesh:
     @property
     def inner_nodes_count(self):
         return self.nodes_count - self.boundary_nodes_count
-
-    @property
-    def edges_number(self):
-        return len(self.edges)
 
     @property
     def centered_initial_nodes(self):

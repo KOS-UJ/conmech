@@ -125,7 +125,7 @@ def get_pygmsh_slide(mesh_prop):
 def get_pygmsh_bunny(mesh_prop):
     if mesh_prop.mesh_density_x == 64:
         mesh_id = 1
-    if mesh_prop.mesh_density_x == 32:
+    elif mesh_prop.mesh_density_x == 32:
         mesh_id = 2
     elif mesh_prop.mesh_density_x == 16:
         mesh_id = 3

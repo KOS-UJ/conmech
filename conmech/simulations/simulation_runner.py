@@ -88,6 +88,8 @@ def save_three(scene, step, label):
     nodes, boundary_surfaces = get_data(scene, get_edges=False)
     if hasattr(scene, "reduced"):
         nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
+    else:
+        nodes_reduced, boundary_edges_reduced = nodes, boundary_surfaces
     if step == 0:
         json_dict = {
             "skip": skip,
@@ -285,7 +287,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature, 
     if not precompile:
         return energy_functions
 
-    print("Precompiling...")
+    print("Precompiling...") # TODO: Copy can be expensive
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
         scene_copy = copy.deepcopy(scene)  # copy to not change initial vectors

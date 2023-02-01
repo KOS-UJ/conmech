@@ -356,49 +356,49 @@ class EnergyFunctions:
                 nph.displacement_to_acceleration(displacement, args),
                 args,
             ) * (1 / (args.time_step**2))
-        
+
         self.energy_obstacle_free = self._energy_obstacle_free
         self.energy_obstacle_colliding = self._energy_obstacle_colliding
-        return
+        # return
 
-        if not simulation_config.use_pca:
-            def to_displacement_by_factor(function):
-                return lambda disp_by_factor, args: to_displacement(function)(
-                    disp_by_factor * (args.time_step**2), args
-                )
+        # if not simulation_config.use_pca:
+        #     def to_displacement_by_factor(function):
+        #         return lambda disp_by_factor, args: to_displacement(function)(
+        #             disp_by_factor * (args.time_step**2), args
+        #         )
 
-            self.energy_obstacle_free = to_displacement_by_factor(self._energy_obstacle_free)
-            self.energy_obstacle_colliding = to_displacement_by_factor(
-                self._energy_obstacle_colliding
-            )
+        #     self.energy_obstacle_free = to_displacement_by_factor(self._energy_obstacle_free)
+        #     self.energy_obstacle_colliding = to_displacement_by_factor(
+        #         self._energy_obstacle_colliding
+        #     )
 
-            # self.energy_obstacle_free = self._energy_obstacle_free
-            # self.energy_obstacle_colliding = self._energy_obstacle_colliding
+        #     # self.energy_obstacle_free = self._energy_obstacle_free
+        #     # self.energy_obstacle_colliding = self._energy_obstacle_colliding
 
-            # self.energy_obstacle_free = lambda vector, args: jnp.float64(
-            #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
-            # )
-            # self.energy_obstacle_colliding = lambda vector, args: jnp.float64(
-            #     self._energy_obstacle_colliding(jnp.array(vector, dtype=jnp.float32), args)
-            # )
+        #     # self.energy_obstacle_free = lambda vector, args: jnp.float64(
+        #     #     self._energy_obstacle_free(jnp.array(vector, dtype=jnp.float32), args)
+        #     # )
+        #     # self.energy_obstacle_colliding = lambda vector, args: jnp.float64(
+        #     #     self._energy_obstacle_colliding(jnp.array(vector, dtype=jnp.float32), args)
+        #     # )
 
-        else:
-            projection = pca.load_pca()
+        # else:
+        #     projection = pca.load_pca()
 
-            def to_displacement_by_factor_pca(function):
-                return lambda disp_by_factor, args: to_displacement(function)(
-                   (pca.p_from_vector(
-                        projection,
-                        pca.p_to_vector(projection, disp_by_factor - nph.stack_column(args.displacement_old).reshape(-1)),
-                    ) + nph.stack_column(args.displacement_old).reshape(-1))
-                    * (args.time_step**2),
-                    args,
-                )
+        #     def to_displacement_by_factor_pca(function):
+        #         return lambda disp_by_factor, args: to_displacement(function)(
+        #            (pca.p_from_vector(
+        #                 projection,
+        #                 pca.p_to_vector(projection, disp_by_factor - nph.stack_column(args.displacement_old).reshape(-1)),
+        #             ) + nph.stack_column(args.displacement_old).reshape(-1))
+        #             * (args.time_step**2),
+        #             args,
+        #         )
 
-            self.energy_obstacle_free = to_displacement_by_factor_pca(self._energy_obstacle_free)
-            self.energy_obstacle_colliding = to_displacement_by_factor_pca(
-                self._energy_obstacle_colliding
-            )
+        #     self.energy_obstacle_free = to_displacement_by_factor_pca(self._energy_obstacle_free)
+        #     self.energy_obstacle_colliding = to_displacement_by_factor_pca(
+        #         self._energy_obstacle_colliding
+        #     )
 
     @staticmethod
     def get_manual_modes():

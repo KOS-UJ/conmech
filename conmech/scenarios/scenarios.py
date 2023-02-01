@@ -18,6 +18,7 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
+from deep_conmech.scene.scene_layers import SceneLayers
 
 
 class Scenario:
@@ -75,7 +76,8 @@ class Scenario:
 
     @staticmethod
     def get_solve_function():
-        return Calculator.solve
+        # return Calculator.solve
+        return Calculator.solve_skinning
 
     def get_scene(
         self,
@@ -83,7 +85,15 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        scene = Scene(
+        # scene = Scene(
+        #     mesh_prop=self.mesh_prop,
+        #     body_prop=self.body_prop,
+        #     obstacle_prop=self.obstacle_prop,
+        #     schedule=self.schedule,
+        #     create_in_subprocess=create_in_subprocess,
+        #     simulation_config=self.simulation_config,
+        # )
+        scene = SceneLayers(
             mesh_prop=self.mesh_prop,
             body_prop=self.body_prop,
             obstacle_prop=self.obstacle_prop,
@@ -393,8 +403,9 @@ def f_rotate_3d(
     return np.array([0.0, 0.0, 0.0]) * SCALE_FORCES
 
 
-def polygon_mesh_obstacles(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_mesh_obstacles(
+    mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""
+):
     obstacle = Obstacle(
         geometry=None, properties=default_obstacle_prop, all_mesh=obstacle_mesh_prop
     )
@@ -411,8 +422,7 @@ def polygon_mesh_obstacles(mesh_density, scale, final_time,
     )
 
 
-def circle_slope(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def circle_slope(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"circle_slope{tag}",
@@ -427,8 +437,7 @@ def circle_slope(mesh_density, scale, final_time,
     )
 
 
-def spline_down(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def spline_down(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("bottom", default_obstacle_prop)
     return Scenario(
         name=f"spline_down{tag}",
@@ -443,8 +452,7 @@ def spline_down(mesh_density, scale, final_time,
     )
 
 
-def circle_up_left(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def circle_up_left(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
         name=f"circle_up_left{tag}",
@@ -459,8 +467,7 @@ def circle_up_left(mesh_density, scale, final_time,
     )
 
 
-def polygon_left(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_left(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     obstacle.geometry *= scale
     return Scenario(
@@ -476,8 +483,7 @@ def polygon_left(mesh_density, scale, final_time,
     )
 
 
-def polygon_slope(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_slope(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"polygon_slope{tag}",
@@ -492,8 +498,7 @@ def polygon_slope(mesh_density, scale, final_time,
     )
 
 
-def circle_rotate(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def circle_rotate(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
@@ -508,8 +513,7 @@ def circle_rotate(mesh_density, scale, final_time,
     )
 
 
-def polygon_rotate(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_rotate(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_rotate{tag}",
@@ -524,8 +528,7 @@ def polygon_rotate(mesh_density, scale, final_time,
     )
 
 
-def polygon_stay(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_stay(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_stay{tag}",
@@ -543,8 +546,7 @@ def polygon_stay(mesh_density, scale, final_time,
     )
 
 
-def polygon_two(mesh_density, scale, final_time,
-    simulation_config: SimulationConfig, tag=""):
+def polygon_two(mesh_density, scale, final_time, simulation_config: SimulationConfig, tag=""):
     obstacle = Obstacle.get_linear_obstacle("two", default_obstacle_prop)
     return Scenario(
         name=f"polygon_two{tag}",
@@ -859,7 +861,7 @@ def all_validation(td, sc):
 def all_print(td, sc):
     args = get_args(td, sc)
     if td.dimension == 3:
-        args["final_time"] = 2.0  # 10.0
+        args["final_time"] = 10.0  # 12.0
         return [
             # bunny_obstacles(**args),
             bunny_fall_3d(**args),
