@@ -210,7 +210,7 @@ class SceneInput(SceneRandomized):
         return edges_index, edges_data, closest_nodes
 
     @mesh_normalization_decorator
-    def get_features_data(self, layer_number: int = 0):
+    def get_features_data(self, layer_number: int = 0, to_cpu=False):
         # edge_index_torch, edge_attr = remove_self_loops(
         #    self.contiguous_edges_torch, self.edges_data_torch
         # )
@@ -224,7 +224,7 @@ class SceneInput(SceneRandomized):
             edge_number=torch.tensor([scene.edges_number]),
             layer_number=torch.tensor([layer_number]),
             pos=thh.to_torch_set_precision(scene.normalized_initial_nodes),
-            x=thh.convert_jax_to_tensor(self.get_nodes_data(reduced=reduced)),
+            x=thh.convert_jax_to_tensor_set_precision(self.get_nodes_data(reduced=reduced)),
             # pin_memory=True,
             # num_workers=1
         )
@@ -242,7 +242,7 @@ class SceneInput(SceneRandomized):
             ) = self.get_multilayer_edges_with_data(link=layer_data.to_base)
 
         data.edge_index = thh.get_contiguous_torch(scene.mesh.directional_edges)
-        data.edge_attr = thh.convert_jax_to_tensor(
+        data.edge_attr = thh.convert_jax_to_tensor_set_precision(
             self.get_edges_data(scene.mesh.directional_edges, reduced=reduced)
         )
 
@@ -256,10 +256,15 @@ class SceneInput(SceneRandomized):
         )  # T.OneHotDegree(),
         transform(data)
         """
+        if to_cpu:
+            data.x = data.x.cpu()
+            data.edge_attr = data.edge_attr.cpu()
+
         return data
 
     @mesh_normalization_decorator
-    def get_target_data(self):
+    def get_target_data(self, to_cpu=False):
+        _ = to_cpu
         target_data = TargetData()
         target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
 

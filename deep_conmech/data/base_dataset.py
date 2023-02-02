@@ -269,11 +269,11 @@ class BaseDataset:
     def save_features_and_target(self, scene):
         layers_list = [
             scene.get_features_data(
-                layer_number=layer_number,
+                layer_number=layer_number, to_cpu=True
             )
             for layer_number in range(len(scene.all_layers))
         ]
-        target_data = scene.get_target_data()
+        target_data = scene.get_target_data(to_cpu=True)
 
         graph_data = GraphData(layer_list=layers_list, target_data=target_data, scene=None)
         pkh.append_data(

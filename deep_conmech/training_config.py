@@ -96,7 +96,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = None  # 8
+    dataset_images_count: Optional[float] = 8 # None
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False

@@ -10,8 +10,13 @@ import torch.utils
 def convert_tensor_to_jax(x):
     return jax.dlpack.from_dlpack(torch.utils.dlpack.to_dlpack(x))
 
+
 def convert_jax_to_tensor(x):
-    return torch.utils.dlpack.from_dlpack(jax.dlpack.to_dlpack(x))
+    return set_precision(torch.utils.dlpack.from_dlpack(jax.dlpack.to_dlpack(x)))
+
+
+def convert_jax_to_tensor_set_precision(x):
+    return set_precision(convert_jax_to_tensor(x))
 
 
 def to_torch_set_precision(data: np.ndarray):
