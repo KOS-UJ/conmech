@@ -261,10 +261,12 @@ class SceneInput(SceneRandomized):
     @mesh_normalization_decorator
     def get_target_data(self):
         target_data = TargetData()
+        target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
+
+        target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
         target_data.normalized_exact_acceleration = thh.to_double(
             self.normalized_exact_acceleration
         )
-        target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
         target_data.reduced_norm_lifted_new_displacement = thh.to_double(
             self.reduced.norm_lifted_new_displacement
         )

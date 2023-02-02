@@ -85,8 +85,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         var animationCount;
 
         const fileLoader = new THREE.FileLoader();
-        const speedStep = 0.5;
-        const maxSpeed = 2;
+        const speedSlow = 0.1;
+        const speedNormal = 1.;
 
         function animationFrame() {
             return parseInt(animationFrameFloat)
@@ -103,7 +103,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             setRunButton();
         }
         window.speed = () => {
-            animationSpeed = (animationSpeed % maxSpeed) + speedStep;
+            if (animationSpeed != speedNormal)
+                animationSpeed = speedNormal;
+            else
+                animationSpeed = speedSlow;
+            // animationSpeed = (animationSpeed % maxSpeed) + step;
             setHtml("animationSpeed", animationSpeed);
         }
 
@@ -173,7 +177,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 var material = new THREE.MeshPhongMaterial({ color: 0xd9dbdc, side: THREE.DoubleSide });
                 material.flatShading = true;
                 this.surfaceMesh = new THREE.Mesh(geometry, material);
-                this.surfaceMesh.name = "mesh";
+                this.surfaceMesh.name = "surfaceMesh";
                 // this.surfaceMesh.castShadow = true;
                 this.surfaceMesh.userData = this;
                 this.surfaceMesh.layers.enable(1);
@@ -189,13 +193,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
                 var material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
                 this.tetMesh = new THREE.LineSegments(geometry, material);
+                this.tetMesh.name = "tetMesh";
 
                 // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
                 // material.flatShading = true;
                 // this.tetMesh = new THREE.Mesh(geometry, material);
                 this.tetMesh.visible = true;
-
-                scene.add(this.tetMesh);
                 /////
 
                 // console.log(JSON.stringify(tetMesh.verts));
@@ -314,11 +317,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         // ------------------------------------------------------------------
         async function initMeshAsync() {
-            var selectedObject = scene.getObjectByName("mesh");
+            var selectedObject = scene.getObjectByName("surfaceMesh");
+            scene.remove(selectedObject);
+            var selectedObject = scene.getObjectByName("tetMesh");
             scene.remove(selectedObject);
 
             body = new Body();
             scene.add(body.surfaceMesh);
+            scene.add(body.tetMesh);
+
             setHtml("numNodes", body.numNodes);
             setHtml("numSurfaces", body.numSurfaces);
         }

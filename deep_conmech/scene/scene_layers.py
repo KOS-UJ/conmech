@@ -110,13 +110,13 @@ class SceneLayers(Scene):
         )
         reduced_scene.lifted_acceleration = np.zeros_like(reduced_scene.initial_nodes)
 
-        # if True: # 0.13 OK 0.12-0.15 # 0.08
-        #     reduced_scene.mesh.initial_nodes += 0.03 * np.array(
-        #         jxh.complete_data_with_zeros(
-        #             reduced_scene.get_boundary_normals_jax(), reduced_scene.nodes_count
-        #         )
-        #     )
-        #     from_base= None
+        if False:  # 0.13 OK 0.12-0.15 # 0.08
+            reduced_scene.mesh.initial_nodes += 0.03 * np.array(
+                jxh.complete_data_with_zeros(
+                    reduced_scene.get_boundary_normals_jax(), reduced_scene.nodes_count
+                )
+            )
+            from_base = None
         from_base = self.get_link(
             from_mesh=self, to_mesh=reduced_scene, with_weights=True, to_dense=False
         )
@@ -133,29 +133,29 @@ class SceneLayers(Scene):
         self.all_layers.append(mesh_layer_data)
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool, to_dense: bool):
-        #     if to_dense:
-        #         (
-        #             closest_nodes,
-        #             closest_distances,
-        #             closest_weights,
-        #         ) = interpolation_helpers.get_interlayer_data_NEW(
-        #             base_nodes=from_mesh.initial_nodes,
-        #             base_elements=from_mesh.elements,
-        #             interpolated_nodes=to_mesh.initial_nodes,
-        #             padding = 0.1
-        #         )
-        #     else:
-        (
-            closest_nodes,
-            closest_distances,
-            closest_weights,
-        ) = interpolation_helpers.get_interlayer_data_numba(
-            base_nodes=from_mesh.initial_nodes,
-            base_elements=from_mesh.elements,
-            interpolated_nodes=to_mesh.initial_nodes,
-            closest_count=CLOSEST_COUNT,
-            with_weights=with_weights,
-        )
+        if False:  # to_dense:
+            (
+                closest_nodes,
+                closest_distances,
+                closest_weights,
+            ) = interpolation_helpers.get_interlayer_data_NEW(
+                base_nodes=from_mesh.initial_nodes,
+                base_elements=from_mesh.elements,
+                interpolated_nodes=to_mesh.initial_nodes,
+                # padding = 0.1
+            )
+        else:
+            (
+                closest_nodes,
+                closest_distances,
+                closest_weights,
+            ) = interpolation_helpers.get_interlayer_data_numba(
+                base_nodes=from_mesh.initial_nodes,
+                base_elements=from_mesh.elements,
+                interpolated_nodes=to_mesh.initial_nodes,
+                closest_count=CLOSEST_COUNT,
+                with_weights=with_weights,
+            )
         # (
         #     closest_boundary_nodes,
         #     closest_distances_boundary,

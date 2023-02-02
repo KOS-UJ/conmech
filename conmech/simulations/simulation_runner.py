@@ -287,7 +287,7 @@ def prepare_energy_functions(scenario, scene, solve_function, with_temperature, 
     if not precompile:
         return energy_functions
 
-    print("Precompiling...") # TODO: Copy can be expensive
+    print("Precompiling...")  # TODO: Copy can be expensive
     with cmh.HiddenPrints():
         prepare(scenario, scene, 0, with_temperature)
         scene_copy = copy.deepcopy(scene)  # copy to not change initial vectors

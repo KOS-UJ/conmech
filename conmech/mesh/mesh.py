@@ -112,11 +112,11 @@ class Mesh:
         )
         self.directional_edges = None
         if with_edges:
-            edges = np.array(
-                [[[e[i], e[j]] for i, j in np.ndindex((4, 4)) if j > i] for e in self.elements]
-            ).reshape(-1, 2)
-            # edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
-            # self.edges = get_edges_list_numba(edges_matrix)  # TODO: remove
+            # edges = np.array(
+            #     [[[e[i], e[j]] for i, j in np.ndindex((4, 4)) if j > i] for e in self.elements]
+            # ).reshape(-1, 2)
+            edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
+            edges = get_edges_list_numba(edges_matrix)  # TODO: remove
             self.directional_edges = np.vstack((edges, np.flip(edges, axis=1)))
 
     @property
