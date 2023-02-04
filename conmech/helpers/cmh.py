@@ -59,6 +59,11 @@ def get_all_contents(directory):
     return os.listdir(directory)
 
 
+def clear_file(path):
+    if os.path.exists(path):
+        os.remove(path)
+
+
 def clear_folder(directory):
     if not os.path.exists(directory):
         return

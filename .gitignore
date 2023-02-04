@@ -16,7 +16,7 @@ log/*
 datasets/*
 blender/output/*
 output/*
-three/*.json
+three/**/*.json
 
 *.mp4
 *.jpeg
@@ -24,6 +24,7 @@ three/*.json
 *.png
 *.pdf
 *.pt
+*.txt
 
 events.*
 

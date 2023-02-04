@@ -57,23 +57,19 @@ class RunScenarioConfig:
     save_all: bool = False
 
 
-def save_three(scene, step, label):
+def save_three(scene, step, label, folder):
     # Three.js
-    folder = "./three"
-    file_path = f"{folder}/{label}.json"
-    file_path_tmp = f"{folder}/{label}_TMP.json"
-    skip = 1
+    skip = 5
+    if step % skip != 0:
+        return
 
-    def remove(path):
-        if os.path.exists(path):
-            os.remove(path)
-
+    simulation_folder = f"{folder}/{label}"
+    cmh.create_folder(simulation_folder)
     # if step == 0:
     #     remove(file_path)
     #     remove(file_path_tmp)
 
-    if step % skip != 0:
-        return
+    file_path = f"{simulation_folder}/{step}.json"
 
     def get_data(scene, get_edges):
         boundary_nodes = scene.boundary_nodes
@@ -93,41 +89,33 @@ def save_three(scene, step, label):
     if step == 0:
         json_dict = {
             "skip": skip,
-            "count": 1,
-            "nodes": [nodes],
+            "step": step,
+            "nodes": nodes,
             "boundary_surfaces": boundary_surfaces,
-            "nodes_reduced": [nodes_reduced],
+            "nodes_reduced": nodes_reduced,
             "boundary_edges_reduced": boundary_edges_reduced,
         }
     else:
-        with open(file_path, "r", encoding="utf-8") as file:
-            json_str = file.read()
-        json_dict = json.loads(json_str)
-        json_dict["count"] += 1
-        json_dict["nodes"].append(nodes)
-        json_dict["nodes_reduced"].append(nodes_reduced)
+        json_dict = {
+            "skip": skip,
+            "step": step,
+            "nodes": nodes,
+            "nodes_reduced": nodes_reduced,
+        }
 
-    with open(file_path_tmp, "w", encoding="utf-8") as file:
+    with open(file_path, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)
-    remove(file_path)
-    os.rename(file_path_tmp, file_path)
 
     if step == 0:
         list_path = f"{folder}/list.json"
-        remove(list_path)
-        all_files = glob(f"{folder}/*.json")
-        all_files.sort(reverse=True)
+        cmh.clear_file(list_path)
+        # all_folders = os.walk(f"{folder}/*.json")
+        # all_folders.sort(reverse=True)
 
-        file_list = []
-        for file in all_files:
-            file_name = os.path.basename(file)
-            if "_TMP" not in file_name:
-                file_list.append(file_name)
-            else:
-                remove(file)
-
+        # folder_list = [os.path.basename(folder) for folder in all_folders]
+        simulations_list = [label]
         with open(list_path, "w", encoding="utf-8") as file:
-            json.dump({"files": file_list}, file)
+            json.dump({"simulations": simulations_list}, file)
 
 
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
@@ -221,6 +209,7 @@ def run_scenario(
                 scene=scene,
                 step=step[0],
                 label=f"{start_time}_{timestamp}_{scene.mesh_prop.mesh_type}",
+                folder="./three",
             )
         if run_config.save_all or plot_index:
             save_scene(scene=scene, scenes_path=scenes_path, save_animation=save_animation)

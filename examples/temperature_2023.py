@@ -31,6 +31,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
         use_lhs_preconditioner=False,
         use_pca=False,
     )
+    schedule = Schedule(final_time=final_time, time_step=0.01)
 
     def forces_function(*_):
         return np.array([-0.7, 0, -2])
@@ -56,7 +57,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_push_base",
             mesh_prop=mesh_prop,
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=forces_function,
             obstacle=Obstacle(
                 obstacle_geometry,
@@ -69,7 +70,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_push_friction",
             mesh_prop=mesh_prop,
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=forces_function,
             obstacle=Obstacle(
                 obstacle_geometry,
@@ -82,7 +83,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_push_heat",
             mesh_prop=mesh_prop,
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=forces_function,
             obstacle=Obstacle(
                 obstacle_geometry,
@@ -95,7 +96,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_push_soft",
             mesh_prop=mesh_prop,
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=forces_function,
             obstacle=Obstacle(
                 obstacle_geometry,

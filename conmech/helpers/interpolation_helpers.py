@@ -1,13 +1,12 @@
 import random
 from ctypes import ArgumentError
 
-import jax
-import jax.numpy as jnp
 import numba
 import numpy as np
 from tqdm import tqdm
 
-from conmech.helpers import jxh, lnh, nph
+from conmech.helpers import lnh, nph
+from conmech.helpers.spatial_hashing import initialize_hasher_numba, query_hasher_numba
 from conmech.helpers.tmh import Timer
 
 
@@ -162,6 +161,12 @@ def get_top_indices(array, indices_count):
     return result
 
 
+def approximate_internal(base_values, closest_nodes, closest_weights):
+    return (base_values[closest_nodes] * closest_weights.reshape(*closest_weights.shape, 1)).sum(
+        axis=1
+    )
+
+
 # @numba.njit
 def get_interlayer_data_numba(
     base_nodes: np.ndarray,
@@ -205,19 +210,22 @@ def get_interlayer_data_numba(
 
     return closest_nodes, closest_distances, closest_weights
 
+
 @numba.njit()  # parallel=True)  # parallel=True)#, fastmath=True)
-def iterate(
+def find_closest_nodes_numba(
     closest_nodes,
     closest_weights,
     interpolated_nodes,
     base_elements,
     element_centers,
     element_ball_radiuses_squared,
-    P_T,
-    p4,
+    element_nodes_matrices_T,
+    normalizing_element_nodes_T,
 ):
     N = len(interpolated_nodes)
-    T = len(p4)
+    T = len(base_elements)
+
+    cell_starts, cell_entries, spacing = initialize_hasher_numba(element_centers)
     for i in numba.prange(N):
         node = interpolated_nodes[i]
         closest_index_mask = -1
@@ -233,7 +241,12 @@ def iterate(
             if outside_mask[j]:
                 continue
 
-            weights[:3] = np.linalg.solve(P_T[j], node - p4[j])
+        # centers_in_range = query_hasher_numba(node, max_dist=0.05, cell_starts=cell_starts, cell_entries=cell_entries, spacing=spacing)
+        # for j in centers_in_range:
+    
+            weights[:3] = np.linalg.solve(
+                element_nodes_matrices_T[j], node - normalizing_element_nodes_T[j]
+            )
             weights[3] = 1 - weights[:3].sum()  # weights sum to one
 
             # looking for weights that are closest to boeing positive
@@ -242,90 +255,55 @@ def iterate(
                 closest_smallest_weight = smallest_weight
                 closest_index_mask = j
                 closest_weights[i, :] = weights
-            if smallest_weight >= 0:  # positive weights found, only one element can contain node
+            if (
+                smallest_weight >= 0
+            ):  # positive weights found, only one element can contain node
                 break
 
         closest_nodes[i, :] = base_elements[closest_index_mask]
 
 
-def get_interlayer_data_NEW(
+def get_interlayer_data_skinning(
     base_nodes: np.ndarray,
     base_elements: np.ndarray,
     interpolated_nodes: np.ndarray,
     # padding: float,
 ):
     padding = 0.1
-    closest_count = 4
-    closest_distances = np.zeros((len(interpolated_nodes), closest_count))
-    closest_nodes = np.empty_like(closest_distances, dtype=np.int64)
-    closest_weights = np.empty_like(closest_distances)
-    closest_nodes[:] = -1
-    closest_weights[:] = -1e8
-
-    weights = np.zeros((len(base_elements), closest_count))
-
     dim = base_nodes.shape[1]
+    closest_count = dim + 1
     element_nodes_count = base_elements.shape[1]
-
     element_nodes = base_nodes[base_elements]
 
-    element_centers = np.array(element_nodes.mean(axis=1))
+    closest_distances = np.zeros((len(interpolated_nodes), closest_count))
+    closest_nodes = np.full_like(closest_distances, fill_value=-1, dtype=np.int64)
+    closest_weights = np.full_like(closest_distances, fill_value=-1e8)
+
+    element_centers = element_nodes.mean(axis=1)
     element_center_distances = element_nodes - element_centers.reshape(-1, 1, dim).repeat(
         element_nodes_count, 1
     )
-    element_ball_radiuses = np.linalg.norm(element_center_distances, axis=2).max(axis=1) + padding
-    mask = np.zeros_like(element_ball_radiuses, dtype=np.bool)
+    element_ball_radiuses_squared = (
+        np.linalg.norm(element_center_distances, axis=2).max(axis=1) + padding
+    ) ** 2
 
-    p4 = element_nodes[:, [3]]
-    P = element_nodes[:, :3] - p4
-    P_T = P.transpose(0, 2, 1)
+    element_nodes_matrices_T = (element_nodes[:, :dim] - element_nodes[:, [dim]]).transpose(0, 2, 1)
+    normalizing_element_nodes_T = element_nodes[:, [dim]].reshape(-1, 3)
 
     timer = Timer()
-    with timer["iterate"]:
-        iterate(
-            closest_nodes,
-            closest_weights,
-            interpolated_nodes,
-            base_elements,
-            element_centers,
-            element_ball_radiuses**2,
-            P_T,
-            p4.reshape(-1, 3),
+    with timer["find_closest_nodes_numba"]:
+        find_closest_nodes_numba(
+            closest_nodes=closest_nodes,
+            closest_weights=closest_weights,
+            interpolated_nodes=interpolated_nodes,
+            base_elements=base_elements,
+            element_centers=element_centers,
+            element_ball_radiuses_squared=element_ball_radiuses_squared,
+            element_nodes_matrices_T=element_nodes_matrices_T,
+            normalizing_element_nodes_T=normalizing_element_nodes_T,
         )
+    print(timer.to_dataframe())
+
     assert np.all(closest_nodes >= 0)  # For each node at least one element found
     print("Min weight", closest_weights.min())
-
-    a = 0
-
-    # for i, element in enumerate(tqdm(base_elements)):
-    #     mask = (
-    #         np.linalg.norm(element_centers[i] - interpolated_nodes, axis=1)
-    #         - element_ball_radiuses[i]
-    #         <= 0
-    #     )
-    #     b = (interpolated_nodes - p4[i])[mask]
-
-    #     x = np.linalg.solve(P_T[i], b.T)
-
-    with timer["numpy"]:
-        for index, node in enumerate(tqdm(interpolated_nodes)):
-            # mask = np.asarray(mask_fun(node))
-            mask = np.linalg.norm(element_centers - node, axis=1) - element_ball_radiuses <= 0
-
-            b = (node - p4[mask]).transpose(0, 2, 1)
-            weights[mask, :3] = np.linalg.solve(P_T[mask], b).reshape(-1, 3)
-            weights[mask, 3] = 1 - weights[mask, :3].sum(1)
-
-            masked_weights = weights[mask]
-            closest_index_mask = np.argmin((-masked_weights).max(axis=1))
-            closest_nodes[index, :] = base_elements[mask][closest_index_mask]
-            closest_weights[index, :] = masked_weights[closest_index_mask]
-
-    print(timer.to_dataframe())
     return closest_nodes, closest_distances, closest_weights
-
-
-def approximate_internal(base_values, closest_nodes, closest_weights):
-    return (base_values[closest_nodes] * closest_weights.reshape(*closest_weights.shape, 1)).sum(
-        axis=1
-    )

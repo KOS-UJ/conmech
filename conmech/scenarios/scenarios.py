@@ -19,6 +19,7 @@ from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
 from deep_conmech.scene.scene_layers import SceneLayers
+from deep_conmech.training_config import SKINNING
 
 
 class Scenario:
@@ -76,8 +77,9 @@ class Scenario:
 
     @staticmethod
     def get_solve_function():
-        # return Calculator.solve
-        return Calculator.solve_skinning
+        if SKINNING:
+            return Calculator.solve_skinning
+        return Calculator.solve
 
     def get_scene(
         self,
@@ -85,22 +87,24 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        # scene = Scene(
-        #     mesh_prop=self.mesh_prop,
-        #     body_prop=self.body_prop,
-        #     obstacle_prop=self.obstacle_prop,
-        #     schedule=self.schedule,
-        #     create_in_subprocess=create_in_subprocess,
-        #     simulation_config=self.simulation_config,
-        # )
-        scene = SceneLayers(
-            mesh_prop=self.mesh_prop,
-            body_prop=self.body_prop,
-            obstacle_prop=self.obstacle_prop,
-            schedule=self.schedule,
-            create_in_subprocess=create_in_subprocess,
-            simulation_config=self.simulation_config,
-        )
+        if SKINNING:
+            scene = SceneLayers(
+                mesh_prop=self.mesh_prop,
+                body_prop=self.body_prop,
+                obstacle_prop=self.obstacle_prop,
+                schedule=self.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=self.simulation_config,
+            )
+        else:
+            scene = Scene(
+                mesh_prop=self.mesh_prop,
+                body_prop=self.body_prop,
+                obstacle_prop=self.obstacle_prop,
+                schedule=self.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=self.simulation_config,
+            )
         scene.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
         return scene
 

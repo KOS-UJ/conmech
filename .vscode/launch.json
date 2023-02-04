@@ -1,17 +1,17 @@
 {
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Train graph",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/deep_conmech/run_model.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--mode=train"
-            ],
-            "justMyCode": false
-        },
+        // {
+        //     "name": "Train graph",
+        //     "type": "python",
+        //     "request": "launch",
+        //     "program": "${workspaceFolder}/deep_conmech/run_model.py",
+        //     "console": "integratedTerminal",
+        //     "args": [
+        //         "--mode=train"
+        //     ],
+        //     "justMyCode": false
+        // },
         {
             "name": "Plot graph",
             "type": "python",
@@ -78,7 +78,7 @@
             "name": "test_mesh",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/mesh_test.py",
+            "program": "${workspaceFolder}/examples/test_mesh.py",
             "justMyCode": false
         },
     ]

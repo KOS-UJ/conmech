@@ -137,7 +137,6 @@ class BodyPosition:
         mesh_prop: MeshProperties,
         schedule: Schedule,
         normalize: bool = False,
-        with_edges=False,
         boundaries_description: Optional[BoundariesDescription] = None,
         create_in_subprocess: bool = False,
     ):
@@ -146,7 +145,6 @@ class BodyPosition:
 
         self.mesh = Mesh(
             mesh_prop=mesh_prop,
-            with_edges=with_edges,
             boundaries_description=boundaries_description,
             create_in_subprocess=create_in_subprocess,
         )
@@ -167,6 +165,10 @@ class BodyPosition:
     @property
     def boundaries(self):
         return self.mesh.boundaries
+
+    @property
+    def edges(self):
+        return self.mesh.edges
 
     @property
     def elements(self):

@@ -133,6 +133,7 @@ def get_data_dataset(dataloader):
 
 
 def run(dataloader):
+    _ = dataloader
     scenes = get_scenes()
     data, sample_u_stack, sample_u = get_data_scenes(scenes)
     # data, sample_u_stack, sample_u = get_data_dataset(dataloader)

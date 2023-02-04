@@ -21,6 +21,7 @@ simulation_config = SimulationConfig(
 
 
 def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
+    schedule = Schedule(final_time=final_time, time_step=0.01)
     config = Config(shell=False)
     obstacles = [
         Obstacle(
@@ -57,7 +58,7 @@ def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([0.0, -0.5]),
             obstacle=obstacles[0],
             simulation_config=simulation_config,
@@ -71,7 +72,7 @@ def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([2.0, -0.5]),
             obstacle=obstacles[1],
             simulation_config=simulation_config,
@@ -85,7 +86,7 @@ def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([2.0, -0.5]),
             obstacle=obstacles[2],
             simulation_config=simulation_config,
@@ -99,7 +100,7 @@ def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([2.0, -0.5]),
             obstacle=obstacles[3],
             simulation_config=simulation_config,
@@ -113,7 +114,7 @@ def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
                 mesh_density=[mesh_density],
             ),
             body_prop=scenarios.default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([2.0, -0.5]),
             obstacle=obstacles[4],
             simulation_config=simulation_config,

@@ -8,9 +8,11 @@ from conmech.helpers.config import Config, SimulationConfig
 
 TEST = False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 2  # 4 2
+MESH_LAYERS_PROPORTION = 4  # 2 4 8!
 CLOSEST_COUNT = 3  # 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
+
+SKINNING = True
 
 
 @dataclass
@@ -23,7 +25,7 @@ class TrainingData:
 
     dataset: str = "calculator"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 4  # 4  # 8
-    mesh_density: int = 32  # 16  # 8  # 16 # 64 if dimension == 2 else 16
+    mesh_density: int = 64  # 32
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0
@@ -96,7 +98,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 8 # None
+    dataset_images_count: Optional[float] = 8  # None
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False

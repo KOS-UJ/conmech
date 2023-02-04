@@ -10,32 +10,6 @@ from conmech.properties.mesh_properties import MeshProperties
 
 
 @numba.njit
-def get_edges_matrix(nodes_count: int, elements: np.ndarray):
-    edges_matrix = np.zeros((nodes_count, nodes_count), dtype=np.int32)
-    element_vertices_number = len(elements[0])
-    for element in elements:  # TODO: #65 prange?
-        for i in range(element_vertices_number):
-            for j in range(element_vertices_number):
-                if i != j:
-                    edges_matrix[element[i], element[j]] += 1.0
-    return edges_matrix
-
-
-@numba.njit
-def get_edges_list_numba(edges_matrix):
-    nodes_count = edges_matrix.shape[0]
-    edges = np.array(
-        [
-            (i, j)
-            for i, j in np.ndindex((nodes_count, nodes_count))
-            if j > i and edges_matrix[i, j] > 0
-        ],
-        dtype=np.int64,
-    )
-    return edges
-
-
-@numba.njit
 def remove_unconnected_nodes_numba(nodes, elements):
     nodes_count = len(nodes)
     present_nodes = np.zeros(nodes_count, dtype=numba.boolean)
@@ -65,7 +39,6 @@ class Mesh:
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        with_edges: bool,
         boundaries_description: BoundariesDescription,
         create_in_subprocess: bool,
     ):
@@ -78,9 +51,7 @@ class Mesh:
         self.boundaries: Boundaries
 
         def fun_data():
-            self.reinitialize_data(
-                mesh_prop, boundaries_description, with_edges, create_in_subprocess
-            )
+            self.reinitialize_data(mesh_prop, boundaries_description, create_in_subprocess)
 
         cmh.profile(fun_data, baypass=True)
 
@@ -91,7 +62,6 @@ class Mesh:
         self,
         mesh_prop: MeshProperties,
         boundaries_description: BoundariesDescription,
-        with_edges: bool,
         create_in_subprocess,
     ):
         input_nodes, input_elements = mesh_builders.build_mesh(
@@ -110,14 +80,17 @@ class Mesh:
             unordered_elements=unordered_elements,
             boundaries_description=boundaries_description,
         )
-        self.directional_edges = None
-        if with_edges:
-            # edges = np.array(
-            #     [[[e[i], e[j]] for i, j in np.ndindex((4, 4)) if j > i] for e in self.elements]
-            # ).reshape(-1, 2)
-            edges_matrix = get_edges_matrix(nodes_count=self.nodes_count, elements=self.elements)
-            edges = get_edges_list_numba(edges_matrix)  # TODO: remove
-            self.directional_edges = np.vstack((edges, np.flip(edges, axis=1)))
+        self.directional_edges = self.get_directional_edges()
+
+    def get_directional_edges(self):
+        size = self.elements.shape[1]
+        directional_edges = np.array(
+            list(
+                {(e[i], e[j]) for i, j in np.ndindex((size, size)) if j != i for e in self.elements}
+            ),
+            dtype=np.int64,
+        )  # j > i - non-directional edges
+        return directional_edges
 
     @property
     def edges_number(self):

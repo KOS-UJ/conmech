@@ -44,7 +44,6 @@ class Scene(BodyForces):
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         simulation_config: SimulationConfig,
-        with_edges: bool = False,
         with_schur: bool = False,
         create_in_subprocess: bool = False,
     ):
@@ -58,7 +57,6 @@ class Scene(BodyForces):
                 with_lhs=False,
                 with_schur=with_schur,
             ),
-            with_edges=with_edges,
         )
         self.obstacle_prop = obstacle_prop
         self.closest_obstacle_indices = None

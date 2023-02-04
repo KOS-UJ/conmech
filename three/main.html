@@ -39,7 +39,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <button id="buttonRun" onclick="run()" class="button"></button>
     <button onclick="speed()" class="button">Change speed</button>
     <button onclick="reload()" class="button">Reload</button>
-    <select id="fileSelector" onchange="fileSelected(this.selectedIndex)" class="button"></select>&nbsp;&nbsp;
+    <select id="simulationSelector" onchange="simulationSelected(this.selectedIndex)"
+        class="button"></select>&nbsp;&nbsp;
     <span id="loadedProgress"></span>
     <br><br>
     <span id="numNodes">0</span> nodes&nbsp;&nbsp;
@@ -92,7 +93,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             return parseInt(animationFrameFloat)
         }
 
-        window.fileSelected = async (selectedIndex) => {
+        window.simulationSelected = async (selectedIndex) => {
             await loadDataAsync();
         }
         window.reload = () => {
@@ -114,14 +115,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         setRunButton();
         setHtml("animationSpeed", animationSpeed);
 
-        var fileSelector = document.getElementById('fileSelector');
-        var fileNames = (await loadFileAsync('./list.json')).files;
+        var simulationSelector = document.getElementById('simulationSelector');
+        var simulationNames = (await loadFileAsync('./list.json')).simulations;
 
-        for (const fileName of fileNames) {
+        for (const simulationName of simulationNames) {
             var opt = document.createElement('option');
-            opt.value = fileName;
-            opt.innerHTML = fileName;
-            fileSelector.appendChild(opt);
+            opt.value = simulationName;
+            opt.innerHTML = simulationName;
+            simulationSelector.appendChild(opt);
         }
 
         function setHtml(label, value) {
@@ -143,27 +144,28 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         }
 
 
-        async function loadFileAsync(filePath) {
-            var meshes = await fileLoader.setResponseType('json').loadAsync(
+        async function loadFileAsync(filePath, i = 0, animationCount = 1) {
+            var fileContent = await fileLoader.setResponseType('json').loadAsync(
                 filePath,
                 function (xhr) {
-                    loadedProgress = parseInt(xhr.loaded / xhr.total * 100);
+                    loadedProgress = parseInt(((i + 1) / animationCount) * 100); // + xhr.loaded / xhr.total
                     setHtml("loadedProgress", `${loadedProgress}% loaded`);
                 },
                 function (err) {
                     document.getElementById("error").innerHTML = 'Error loading meshes';
                 }
             );
-            document.getElementById("loadedProgress").innerHTML = '';
-            return meshes;
+            // document.getElementById("loadedProgress").innerHTML = '';
+            return fileContent;
         }
 
         // ------------------------------------------------------------------
         class Body {
             constructor() {
                 // physics
-                var nodes = meshes.nodes[0]
-                var boundary_surfaces = meshes.boundary_surfaces
+                var initial_scene = meshes[0]
+                var nodes = initial_scene.nodes
+                var boundary_surfaces = initial_scene.boundary_surfaces
 
                 this.numNodes = nodes.length / 3;
                 this.numSurfaces = boundary_surfaces.length / 3;
@@ -185,13 +187,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.surfaceMesh.visible = true;
 
                 /////
-                this.pos_reduced = new Float32Array(meshes.nodes_reduced[0]);
+                this.pos_reduced = new Float32Array(initial_scene.nodes_reduced);
 
                 var geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
-                geometry.setIndex(meshes.boundary_edges_reduced);
+                geometry.setIndex(initial_scene.boundary_edges_reduced);
 
-                var material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+                var material = new THREE.LineBasicMaterial({ color: 0xff00ff, linewidth: 2 });
                 this.tetMesh = new THREE.LineSegments(geometry, material);
                 this.tetMesh.name = "tetMesh";
 
@@ -205,8 +207,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             }
 
             updateMesh(step) {
-                var nodes = meshes.nodes[step];
-                var nodes_reduced = meshes.nodes_reduced[step];
+                var nodes = meshes[step].nodes;
+                var nodes_reduced = meshes[step].nodes_reduced;
 
                 // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.pos.length; i++)
@@ -308,9 +310,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         // setting up the reader
 
         async function reloadMeshesAsync() {
-            meshes = await loadFileAsync(fileSelector.value)
-            animationSkip = meshes.skip;
-            animationCount = meshes.count * meshes.skip;
+            var simulationName = simulationSelector.value
+            meshes = [await loadFileAsync(`${simulationName}/0.json`)]
+            var count = 20
+
+            animationSkip = 5 // meshes.skip;
+            animationCount = count * animationSkip;// meshes.count * meshes.skip;
+
+            for (var i = animationSkip; i < animationCount; i += animationSkip) {
+                meshes.push(await loadFileAsync(`${simulationName}/${i}.json`, i, animationCount))
+            }
+
             setHtml("count", `${animationCount} count`);
             setHtml("skip", `${animationSkip} skip`);
         }

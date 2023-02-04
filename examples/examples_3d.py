@@ -30,6 +30,7 @@ simulation_config = SimulationConfig(
 
 
 def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
+    schedule = Schedule(final_time=final_time, time_step=0.01)
     basic_scenarios = [
         Scenario(
             name="cube_throw",
@@ -37,7 +38,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=f_rotate_3d,
             obstacle=Obstacle(
                 np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_obstacle_prop
@@ -50,7 +51,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([0.0, 0.0, -0.5]),
             obstacle=Obstacle(
                 np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop
@@ -69,7 +70,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 zeta=4,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=f_rotate_3d,
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop
@@ -91,7 +92,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 zeta=4,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([0.0, 0.0, -1.0]),
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.1]]]), default_obstacle_prop
@@ -116,7 +117,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 zeta=8,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=np.array([0.0, 0.0, -1.0]),
             obstacle=Obstacle(
                 np.array([[[0.0, 0.7, 1.0]], [[1.0, 1.0, 0.0]]]),
@@ -140,7 +141,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
                 zeta=16,
                 mass_density=1.0,
             ),
-            schedule=Schedule(final_time=final_time),
+            schedule=schedule,
             forces_function=f_rotate_3d,
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.3]]]), default_obstacle_prop

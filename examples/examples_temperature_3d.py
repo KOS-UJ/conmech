@@ -66,7 +66,7 @@ def get_constitutive_temp_scenarios(mesh_density, final_time):
                 dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=np.array([0, 0, 0]),
             obstacle=obstacle,
             heat_function=np.array([2]),
@@ -129,7 +129,7 @@ def get_expansion_temp_scenarios(mesh_density, final_time):
                 dimension=3, mesh_type=M_CUBE_3D, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=np.array([0, 0, 0]),
             obstacle=obstacle,
             heat_function=h_corner,
@@ -174,7 +174,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 mesh_density=[mesh_density],
             ),
             body_prop=default_temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=f_rotate_3d,
             obstacle=Obstacle(
                 np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
@@ -191,7 +191,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
                 mesh_density=[mesh_density],
             ),
             body_prop=default_temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=f_rotate_3d,
             obstacle=Obstacle(
                 np.array([[[-1.0, 0.0, 1.0]], [[2.0, 0.0, 0.0]]]), default_temp_obstacle_prop
@@ -203,7 +203,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_push_base",
             mesh_prop=mesh_prop,
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=lambda *_: np.array([0, 0, -2]),
             obstacle=Obstacle(
                 np.array([[[0.0, 0.0, 1.0]], [[0.0, 0.0, 0.0]]]),

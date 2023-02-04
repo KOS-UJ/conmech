@@ -54,7 +54,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
                 dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=np.array([0, 0]),
             obstacle=obstacle,
             heat_function=np.array([2]),
@@ -107,7 +107,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
                 dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=np.array([0, 0]),
             obstacle=obstacle,
             heat_function=h_corner,
@@ -125,7 +125,7 @@ def get_polygon_scenarios(mesh_density, final_time):
                 dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=default_temp_body_prop,
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=forces_function,
             obstacle=Obstacle.get_linear_obstacle(obstacle, default_temp_obstacle_prop),
             heat_function=np.array([0]),
@@ -155,7 +155,7 @@ def get_friction_scenarios(mesh_density, final_time):
                 thermal_expansion_coeff=default_thermal_expansion_coefficients,
                 thermal_conductivity_coeff=np.array([[0.01, 0], [0, 0.01]]),
             ),
-            schedule=Schedule(final_time=final_time),
+            schedule=Schedule(final_time=final_time, time_step=0.01),
             forces_function=np.array([1.0, -0.5]),
             obstacle=obstacle,
             heat_function=np.array([0]),
