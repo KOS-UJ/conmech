@@ -54,10 +54,11 @@ class Calculator:
                 hes_inv=hes_inv,
                 args=args,
                 x0=x0,
-                xtol=1e-03,
+                xtol=1e-03,  # 1e-5 1e-03
             ),
             baypass=True,
         )
+        # print(state.k)
 
         if False:  # cmh.get_from_os("JAX_ENABLE_X64"):
             assert state.converged
@@ -92,7 +93,9 @@ class Calculator:
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         with timer["lower_data"]:
-            new_reduced_displacement = scene.reduced.to_displacement(scene.reduced.lifted_acceleration)
+            new_reduced_displacement = scene.reduced.to_displacement(
+                scene.reduced.lifted_acceleration
+            )
             moved_reduced_nodes_new = scene.reduced.initial_nodes + new_reduced_displacement
 
             moved_nodes_new = scene.lower_data(moved_reduced_nodes_new)
@@ -100,8 +103,6 @@ class Calculator:
             new_displacement = moved_nodes_new - scene.initial_nodes
             acceleration_from_displacement = scene.from_displacement(new_displacement)
             return np.array(acceleration_from_displacement), None
-
-
 
     @staticmethod
     def solve_temperature_normalized_function(

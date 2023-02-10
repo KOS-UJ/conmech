@@ -18,6 +18,8 @@ blender/output/*
 output/*
 three/**/*.json
 
+*.c
+
 *.mp4
 *.jpeg
 *.jpg

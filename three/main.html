@@ -43,8 +43,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         class="button"></select>&nbsp;&nbsp;
     <span id="loadedProgress"></span>
     <br><br>
-    <span id="numNodes">0</span> nodes&nbsp;&nbsp;
-    <span id="numSurfaces">0</span> surfaces&nbsp;&nbsp;
+    <span id="numNodes">0</span> boundary nodes&nbsp;&nbsp;
+    <span id="numSurfaces">0</span> boundary surfaces&nbsp;&nbsp;
     <span id="animationSpeed"></span> speed&nbsp;&nbsp;
     <span id="count"></span>&nbsp;&nbsp;
     <span id="skip"></span>&nbsp;&nbsp;
@@ -116,7 +116,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         setHtml("animationSpeed", animationSpeed);
 
         var simulationSelector = document.getElementById('simulationSelector');
-        var simulationNames = (await loadFileAsync('./list.json')).simulations;
+        var listFile = await loadFileAsync('./list.json');
+        var simulationNames = listFile.simulations;
+        animationCount = listFile.step;
 
         for (const simulationName of simulationNames) {
             var opt = document.createElement('option');
@@ -193,7 +195,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
                 geometry.setIndex(initial_scene.boundary_edges_reduced);
 
-                var material = new THREE.LineBasicMaterial({ color: 0xff00ff, linewidth: 2 });
+                var material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
                 this.tetMesh = new THREE.LineSegments(geometry, material);
                 this.tetMesh.name = "tetMesh";
 
@@ -310,12 +312,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         // setting up the reader
 
         async function reloadMeshesAsync() {
-            var simulationName = simulationSelector.value
-            meshes = [await loadFileAsync(`${simulationName}/0.json`)]
-            var count = 20
+            var simulationName = simulationSelector.value;
+            meshes = [await loadFileAsync(`${simulationName}/0.json`)];
 
-            animationSkip = 5 // meshes.skip;
-            animationCount = count * animationSkip;// meshes.count * meshes.skip;
+            animationSkip = meshes[0].skip;
+            // animationCount = count * animationSkip;// meshes.count * meshes.skip;
 
             for (var i = animationSkip; i < animationCount; i += animationSkip) {
                 meshes.push(await loadFileAsync(`${simulationName}/${i}.json`, i, animationCount))
@@ -364,6 +365,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
             loadedProgress = parseInt(animationFrame() / animationCount * 100);
             // setHtml("animationProgress", `${loadedProgress}% frame`);
+            setHtml("animationProgress", `${animationFrame()} frame`);
             var step = (animationFrame() % animationCount) / animationSkip;
 
             body.updateMesh(step);

@@ -106,7 +106,7 @@ def save_three(scene, step, label, folder):
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)
 
-    if step == 0:
+    if True:  # step == 0:
         list_path = f"{folder}/list.json"
         cmh.clear_file(list_path)
         # all_folders = os.walk(f"{folder}/*.json")
@@ -115,7 +115,7 @@ def save_three(scene, step, label, folder):
         # folder_list = [os.path.basename(folder) for folder in all_folders]
         simulations_list = [label]
         with open(list_path, "w", encoding="utf-8") as file:
-            json.dump({"simulations": simulations_list}, file)
+            json.dump({"simulations": simulations_list, "step": step}, file)
 
 
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
@@ -308,7 +308,7 @@ def simulate(
 
     print_mesh_data(scene)
     energy_functions = prepare_energy_functions(
-        scenario, scene, solve_function, with_temperature, precompile=True
+        scenario, scene, solve_function, with_temperature, precompile=False  # True
     )
 
     acceleration, temperature = (None,) * 2
