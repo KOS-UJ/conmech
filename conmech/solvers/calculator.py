@@ -18,7 +18,6 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.algorithms.lbfgs import minimize_lbfgs_jax
-from conmech.solvers.algorithms.lbfgs_scipy import _minimize_lbfgsb
 
 # from jax._src.scipy.optimize.bfgs import minimize_bfgs
 # import tensorflow_probability as tfp
@@ -98,39 +97,6 @@ class Calculator:
                 cmh.Console.print_fail(f"Status: {state.status}")
         # Validate https://github.com/google/jax/issues/6898
         return np.asarray(state.x_k)  # , state
-
-    @staticmethod
-    def minimize_scipy(
-        scene, energy_functions, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
-    ) -> np.ndarray:
-        _ = hes_inv
-        assert cmh.get_from_os("ENV_READY")
-        x0 = jnp.asarray(initial_vector)
-        grad_mem = np.zeros(shape=(len(x0)), dtype=np.float64)
-
-        energy_function = energy_functions.get_energy_function(scene)
-
-        def scipy_fun(x, args):
-            # _x = jnp.array(x)
-            y, grad = energy_function(x, args)
-            grad_mem[:] = grad  # Copying gradient from GPU to CPU
-            return y, grad_mem
-
-        state = cmh.profile(
-            lambda: _minimize_lbfgsb(  # Float64 required scipy.optimize.minimize
-                scipy_fun,  # jax.jit(jax.value_and_grad(function)),
-                x0,
-                jac=True,
-                args=(args,),
-                method="L-BFGS-B",
-                ftol=1e-5,  # 5,
-                gtol=1e-10,
-            ),
-            baypass=True,
-        )
-        if verbose and not state.success:
-            cmh.Console.print_fail(f"Status: {state.status}")
-        return state.x
 
     @staticmethod
     def minimize_jax_displacement(

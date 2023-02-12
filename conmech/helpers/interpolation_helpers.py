@@ -215,6 +215,8 @@ def get_interlayer_data_numba(
     return closest_nodes, closest_distances, closest_weights
 
 
+# pylint: disable=invalid-name
+# pylint: disable=too-many-arguments
 @numba.njit(fastmath=True, error_model="numpy")  # parallel=True)  # parallel=True)#, fastmath=True)
 def find_closest_nodes_numba(
     closest_nodes,

@@ -115,7 +115,7 @@ default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
 SCALE_MASS = 1.0
 SCALE_COEFF = 1.0
-SCALE_FORCES = 1.0  # 5.0 # 5.0 1.0
+SCALE_FORCES = 5.0  # 5.0 1.0
 
 default_body_prop = TimeDependentBodyProperties(
     mu=4.0 * SCALE_COEFF,

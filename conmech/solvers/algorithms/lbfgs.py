@@ -263,7 +263,6 @@ class _LineSearchResults(NamedTuple):
     status: Union[bool, jnp.ndarray]
 
 
-@jax.jit
 def custom_line_search_jax(
     fun,
     args,
@@ -557,6 +556,12 @@ class LBFGSResults(NamedTuple):
         return history.at[self.history_position, ...].set(new)
 
 
+
+
+def minimize_lbfgs_jax(fun, hes_inv, x0, args):
+    state_initial = get_state_initial(fun=fun, hes_inv=hes_inv, args=args, x0=x0)
+    return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
+
 def get_state_initial(
     fun,
     hes_inv,
@@ -564,7 +569,7 @@ def get_state_initial(
     x0: Array,
     norm=jnp.inf,
     maxcor: int = 10,
-    ftol: float = 1e-04,  # 2.220446049250313e-09,
+    ftol: float = 1e-05,  # 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
@@ -617,7 +622,6 @@ def get_state_initial(
 
     # initial evaluation
     f_0, g_0 = jax.value_and_grad(fun)(x0, args)
-    # f_0, g_0 = jax.value_and_grad(jax.jit(fun, backend=get_backend()))(x0, args)
 
     state_initial = LBFGSResults(
         converged=False,
@@ -659,12 +663,6 @@ def get_state_initial(
         xtol=xtol,
     )
     return state_initial
-
-
-def minimize_lbfgs_jax(fun, hes_inv, x0, args):
-    state_initial = get_state_initial(fun=fun, hes_inv=hes_inv, args=args, x0=x0)
-    return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
-
 
 def _two_loop_recursion(state: LBFGSResults):
     his_size = len(state.rho_history)
