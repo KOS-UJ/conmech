@@ -85,7 +85,7 @@ def save_three(scene, step, label, folder):
     if hasattr(scene, "reduced"):
         nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
     else:
-        nodes_reduced, boundary_edges_reduced = nodes, boundary_surfaces
+        nodes_reduced, boundary_edges_reduced = [], []
     if step == 0:
         json_dict = {
             "skip": skip,

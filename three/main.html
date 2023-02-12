@@ -189,23 +189,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.surfaceMesh.visible = true;
 
                 /////
-                this.pos_reduced = new Float32Array(initial_scene.nodes_reduced);
+                if (initial_scene.nodes_reduced.length == 0) {
+                    this.pos_reduced = null;
+                    this.tetMesh = null;
+                }
+                else {
+                    this.pos_reduced = new Float32Array(initial_scene.nodes_reduced);
 
-                var geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
-                geometry.setIndex(initial_scene.boundary_edges_reduced);
+                    var geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
+                    geometry.setIndex(initial_scene.boundary_edges_reduced);
 
-                var material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
-                this.tetMesh = new THREE.LineSegments(geometry, material);
-                this.tetMesh.name = "tetMesh";
+                    var material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
+                    this.tetMesh = new THREE.LineSegments(geometry, material);
+                    this.tetMesh.name = "tetMesh";
 
-                // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
-                // material.flatShading = true;
-                // this.tetMesh = new THREE.Mesh(geometry, material);
-                this.tetMesh.visible = true;
-                /////
+                    // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
+                    // material.flatShading = true;
+                    // this.tetMesh = new THREE.Mesh(geometry, material);
+                    this.tetMesh.visible = true;
+                    /////
 
-                // console.log(JSON.stringify(tetMesh.verts));
+                    // console.log(JSON.stringify(tetMesh.verts));
+                }
             }
 
             updateMesh(step) {
@@ -215,14 +221,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.pos.length; i++)
                     this.pos[i] = nodes[i];
-
-                for (var i = 0; i < this.pos_reduced.length; i++)
-                    this.pos_reduced[i] = nodes_reduced[i];
-
                 // this.surfaceMesh.geometry.computeVertexNormals();
                 this.surfaceMesh.geometry.attributes.position.needsUpdate = true;
-                this.tetMesh.geometry.attributes.position.needsUpdate = true;
                 // this.surfaceMesh.geometry.computeBoundingSphere();
+                if (this.pos_reduced) {
+                    for (var i = 0; i < this.pos_reduced.length; i++)
+                        this.pos_reduced[i] = nodes_reduced[i];
+                    this.tetMesh.geometry.attributes.position.needsUpdate = true;
+                }
             }
         }
 

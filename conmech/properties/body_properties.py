@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import NamedTuple
 
+import jax.numpy as jnp
 import numpy as np
 
 
@@ -31,11 +32,11 @@ class TimeDependentBodyProperties(StaticBodyProperties):
     # 65: TODO: remove
     def get_tuple(self):
         return TimeDependentBodyPropertiesTuple(
-            mass_density=self.mass_density,
-            mu=self.mu,
-            lambda_=self.lambda_,
-            theta=self.theta,
-            zeta=self.zeta,
+            mass_density=jnp.array(self.mass_density),
+            mu=jnp.array(self.mu),
+            lambda_=jnp.array(self.lambda_),
+            theta=jnp.array(self.theta),
+            zeta=jnp.array(self.zeta),
         )
 
 

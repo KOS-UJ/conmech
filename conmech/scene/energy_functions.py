@@ -2,6 +2,7 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import NamedTuple
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -359,6 +360,12 @@ class EnergyFunctions:
 
         self.energy_obstacle_free = self._energy_obstacle_free
         self.energy_obstacle_colliding = self._energy_obstacle_colliding
+
+        self.opti_free = None
+        self.opti_colliding = None
+        self.opti_free_grad = None
+        self.opti_colliding_grad = None
+
         # return
 
         # if not simulation_config.use_pca:
@@ -416,8 +423,12 @@ class EnergyFunctions:
     def get_energy_function(self, scene):
         if self.mode == "automatic":
             if not scene.is_colliding():
-                return self.energy_obstacle_free
-            return self.energy_obstacle_colliding
+                return self.energy_obstacle_free, self.energy_obstacle_free_grad, self.opti_free
+            return (
+                self.energy_obstacle_colliding,
+                self.energy_obstacle_colliding_grad,
+                self.opti_colliding,
+            )
 
         print("Manual mode")
         if self.mode == "non-colliding":

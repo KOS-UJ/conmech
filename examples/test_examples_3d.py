@@ -54,10 +54,12 @@ def main():
         #     final_time=2,
         #     simulation_config=simulation_config,
         # ),
-        # bunny_fall_3d(mesh_density=64, scale=1, final_time=2, simulation_config=simulation_config),
-        # bunny_fall_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
-        bunny_fall_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),
-        # bunny_rotate_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
+        # bunny_fall_3d(mesh_density=64, scale=1, final_time=10, simulation_config=simulation_config),
+        # bunny_fall_3d(mesh_density=32, scale=1, final_time=10, simulation_config=simulation_config),
+        bunny_fall_3d(mesh_density=16, scale=1, final_time=10, simulation_config=simulation_config),
+        # bunny_fall_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
+        # bunny_rotate_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
+        # bunny_rotate_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_fall_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_fall_3d(
         #     mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca

@@ -97,7 +97,7 @@ class Scene(BodyForces):
     def get_energy_obstacle_args_for_jax(self, energy_functions, temperature=None):
         args, rhs_acceleration = self._get_initial_energy_obstacle_args_for_jax(temperature)
         args = EnergyObstacleArguments(
-            lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,
+            lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,#.todense(),
             rhs_acceleration=rhs_acceleration,
             boundary_velocity_old=args.boundary_velocity_old,
             boundary_normals=args.boundary_normals,
@@ -106,9 +106,9 @@ class Scene(BodyForces):
             surface_per_boundary_node=args.surface_per_boundary_node,
             body_prop=args.body_prop,
             obstacle_prop=args.obstacle_prop,
-            time_step=args.time_step,
-            element_initial_volume=self.matrices.element_initial_volume,
-            dx_big_jax=self.matrices.dx_big_jax,
+            time_step=jnp.array(args.time_step),
+            element_initial_volume=jnp.array(self.matrices.element_initial_volume),
+            dx_big_jax=self.matrices.dx_big_jax,#.todense(),
             base_displacement=args.base_displacement,
             base_energy_displacement=jax.jit(energy_functions.compute_displacement_energy)(
                 displacement=args.base_displacement,
@@ -363,11 +363,11 @@ class Scene(BodyForces):
             time_step=self.time_step,
             element_initial_volume=None,
             dx_big_jax=None,
-            base_displacement=base_displacement,
+            base_displacement=jnp.asarray(base_displacement),
             base_energy_displacement=None,
-            base_velocity=base_velocity,
+            base_velocity=jnp.asarray(base_velocity),
             base_energy_velocity=None,
-            displacement_old=self.displacement_old,
+            displacement_old=jnp.asarray(self.displacement_old),
         )
         rhs_acceleration = self.get_normalized_integrated_forces_column_for_jax(args)
         if temperature is not None:

@@ -110,11 +110,11 @@ class SceneLayers(Scene):
         reduced_scene.lifted_acceleration = np.zeros_like(reduced_scene.initial_nodes)
 
         if SKINNING:
-            reduced_scene.mesh.initial_nodes += 0.03 * np.array(
-                jxh.complete_data_with_zeros(
-                    reduced_scene.get_boundary_normals_jax(), reduced_scene.nodes_count
-                )
-            )# 0.13 OK 0.12-0.15 # 0.08
+        #     reduced_scene.mesh.initial_nodes += 0.03 * np.array(
+        #         jxh.complete_data_with_zeros(
+        #             reduced_scene.get_boundary_normals_jax(), reduced_scene.nodes_count
+        #         )
+        #     )# 0.13 OK 0.12-0.15 # 0.08
             (
                 closest_nodes,
                 closest_distances,

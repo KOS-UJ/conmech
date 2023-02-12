@@ -9,6 +9,7 @@ import jax.scipy.optimize
 
 # import jaxopt
 import numpy as np
+from scipy.optimize._lbfgsb_py import _minimize_lbfgsb
 
 from conmech.helpers import cmh, jxh, nph
 from conmech.helpers.tmh import Timer
@@ -16,7 +17,7 @@ from conmech.scene.body_forces import energy
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.solvers.algorithms.lbfgs import minimize_lbfgs
+from conmech.solvers.algorithms.lbfgs import get_opti_fun, get_state_initial
 
 # from jax._src.scipy.optimize.bfgs import minimize_bfgs
 # import tensorflow_probability as tfp
@@ -42,23 +43,84 @@ class Calculator:
 
     @staticmethod
     def minimize_jax(
-        function, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
+        scene, energy_functions, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
     ) -> np.ndarray:
         assert cmh.get_from_os("ENV_READY")
-
         x0 = jnp.asarray(initial_vector)
 
-        state = cmh.profile(
-            lambda: minimize_lbfgs(
-                fun=function,
+        def initialize(energy, energy_value_and_grad):
+            f0, g0 = energy_value_and_grad(x0, args)
+            return get_state_initial(
+                fun=energy,
+                f_0=f0,
+                g_0=g0,
                 hes_inv=hes_inv,
                 args=args,
                 x0=x0,
-                xtol=1e-03,  # 1e-5 1e-03
-            ),
+                ftol=1e-4,
+            )
+
+        def get_jax_with_grad(function):
+            return jax.jit(jax.value_and_grad(function))  #   # , donate_argnums=(2))
+
+        if energy_functions.opti_free is None:
+            energy_functions.energy_obstacle_free_grad = (
+                get_jax_with_grad(energy_functions.energy_obstacle_free).lower(x0, args).compile()
+            )
+            energy_functions.energy_obstacle_colliding_grad = (
+                get_jax_with_grad(energy_functions.energy_obstacle_colliding)
+                .lower(x0, args)
+                .compile()
+            )
+            energy_functions.opti_free = get_opti_fun(
+                initialize(
+                    energy_functions.energy_obstacle_free,
+                    energy_functions.energy_obstacle_free_grad,
+                )
+            )
+            energy_functions.opti_colliding = get_opti_fun(
+                initialize(
+                    energy_functions.energy_obstacle_colliding,
+                    energy_functions.energy_obstacle_colliding_grad,
+                )
+            )
+
+        energy, energy_value_and_grad, opti_fun = energy_functions.get_energy_function(scene)
+
+        if False:
+            grad_mem = np.zeros(shape=(len(x0)), dtype=np.float64)
+
+            def scipy_fun(x, args):
+                # _x = jnp.array(x)
+                y, grad = energy(x, args)
+                grad_mem[:] = grad  # Copying gradient from GPU to CPU
+                return y, grad_mem
+
+            state = cmh.profile(
+                lambda: _minimize_lbfgsb(  # Float64 required scipy.optimize.minimize
+                    scipy_fun,  # jax.jit(jax.value_and_grad(function)),
+                    x0,
+                    jac=True,
+                    args=(args,),
+                    method="L-BFGS-B",
+                    ftol=1e-5,  # 5,
+                    gtol=1e-10,
+                ),
+                baypass=True,
+            )
+
+            if verbose and not state.success:
+                cmh.Console.print_fail(f"Status: {state.status}")
+
+            return state.x
+
+        # with jax.transfer_guard("log_explicit"): # "disallow"
+
+        state_initial = initialize(energy, energy_value_and_grad)
+        state = cmh.profile(
+            lambda: opti_fun(state_initial),
             baypass=True,
         )
-        # print(state.k)
 
         if False:  # cmh.get_from_os("JAX_ENABLE_X64"):
             assert state.converged
@@ -275,10 +337,12 @@ class Calculator:
             if not scene.simulation_config.use_lhs_preconditioner
             else scene.solver_cache.lhs_preconditioner_jax
         )
+
         with timer["__minimize_jax"]:
             normalized_a_vector_np = cmh.profile(
                 lambda: Calculator.minimize_jax(  # _displacement(
-                    function=energy_functions.get_energy_function(scene),
+                    scene=scene,
+                    energy_functions=energy_functions,
                     # solver= energy_functions.get_solver(scene),
                     initial_vector=initial_a_vector,
                     args=args,

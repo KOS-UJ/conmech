@@ -2,6 +2,7 @@
 # pylint: skip-file
 import os
 from functools import partial
+from time import time
 from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Union
 
 import jax
@@ -561,8 +562,10 @@ def get_backend():
     return os.environ[key] if key in os.environ else None
 
 
-def minimize_lbfgs(
-    fun: Callable,
+def get_state_initial(
+    fun,
+    f_0,
+    g_0,
     hes_inv,
     args,
     x0: Array,
@@ -619,9 +622,6 @@ def minimize_lbfgs(
     if maxgrad is None:
         maxgrad = jnp.inf
 
-    # initial evaluation
-    f_0, g_0 = jax.value_and_grad(jax.jit(fun, backend=get_backend()))(x0, args)
-
     state_initial = LBFGSResults(
         converged=False,
         failed=False,
@@ -661,8 +661,15 @@ def minimize_lbfgs(
         maxiter_zoom_ls=maxiter_zoom_ls,
         xtol=xtol,
     )
+    return state_initial
 
-    return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
+
+def get_opti_fun(state_initial):
+    return jax.jit(opti_fun, backend=get_backend()).lower(state_initial).compile()
+
+
+def opti_fun(state):
+    return lax.while_loop(cond_fun_jax, body_fun_jax, state)
 
 
 def _two_loop_recursion(state: LBFGSResults):
@@ -698,12 +705,10 @@ def _two_loop_recursion(state: LBFGSResults):
     return r
 
 
-@partial(jax.jit, backend=get_backend())
 def cond_fun_jax(state: LBFGSResults):
     return (~state.converged) & (~state.failed)
 
 
-@partial(jax.jit, backend=get_backend())
 def body_fun_jax(state: LBFGSResults):
     # find search direction
     p_k = _two_loop_recursion(state)
@@ -739,9 +744,12 @@ def body_fun_jax(state: LBFGSResults):
     status = jnp.where(state.k >= state.maxiter, 1, status)  # type: ignore
 
     # Added custom stopping criterion
-    norm = jnp.inf  # state.norm ###
+    # norm = 2  # jnp.inf  # state.norm ###
     # converged = jnp.linalg.norm(g_kp1, ord=norm) < state.gtol
-    converged = jnp.linalg.norm(s_k, ord=norm) < state.xtol
+    # converged = jnp.linalg.norm(s_k, ord=norm) < state.xtol
+
+    converged = state.f_k - f_kp1 <= state.ftol
+    # scipy: `(f^k - f^{k+1})/max{|f^k|,|f^{k+1}|,1} <= ftol``.
 
     # TODO(jakevdp): use a fixed-point procedure rather than type-casting?
     state = state._replace(

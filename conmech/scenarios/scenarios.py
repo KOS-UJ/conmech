@@ -173,7 +173,7 @@ default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
 SCALE_MASS = 1.0
 SCALE_COEFF = 1.0
-SCALE_FORCES = 1.0
+SCALE_FORCES = 5.0 # 5.0 1.0
 
 default_body_prop = TimeDependentBodyProperties(
     mu=4.0 * SCALE_COEFF,
@@ -686,7 +686,7 @@ def bunny_fall_3d(
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=np.array([0.0, 0.0, -1.0]),
+        forces_function=SCALE_FORCES * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(  # 0.3
             np.array([[[0.0, arg, 1.0]], [[1.0, 1.0, 0.0]]]),
             ObstacleProperties(hardness=100.0, friction=5.0),
