@@ -2,12 +2,11 @@ from ctypes import ArgumentError
 from dataclasses import dataclass
 from typing import NamedTuple
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 
 from conmech.dynamics.dynamics import _get_deform_grad
-from conmech.helpers import jxh, nph, pca
+from conmech.helpers import jxh, nph
 from conmech.helpers.config import SimulationConfig
 
 
@@ -352,12 +351,6 @@ class EnergyFunctions:
 
         self.mode = "automatic"
 
-        def to_displacement(function):
-            return lambda displacement, args: function(
-                nph.displacement_to_acceleration(displacement, args),
-                args,
-            ) * (1 / (args.time_step**2))
-
         self.energy_obstacle_free = self._energy_obstacle_free
         self.energy_obstacle_colliding = self._energy_obstacle_colliding
 
@@ -365,6 +358,12 @@ class EnergyFunctions:
         self.opti_colliding = None
 
         # return
+
+        # def to_displacement(function):
+        #     return lambda displacement, args: function(
+        #         nph.displacement_to_acceleration(displacement, args),
+        #         args,
+        #     ) * (1 / (args.time_step**2))
 
         # if not simulation_config.use_pca:
         #     def to_displacement_by_factor(function):
@@ -394,7 +393,8 @@ class EnergyFunctions:
         #         return lambda disp_by_factor, args: to_displacement(function)(
         #            (pca.p_from_vector(
         #                 projection,
-        #                 pca.p_to_vector(projection, disp_by_factor - nph.stack_column(args.displacement_old).reshape(-1)),
+        #                 pca.p_to_vector(projection, disp_by_factor\
+        #                       - nph.stack_column(args.displacement_old).reshape(-1)),
         #             ) + nph.stack_column(args.displacement_old).reshape(-1))
         #             * (args.time_step**2),
         #             args,

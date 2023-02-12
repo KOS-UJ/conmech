@@ -97,7 +97,7 @@ class Scene(BodyForces):
     def get_energy_obstacle_args_for_jax(self, energy_functions, temperature=None):
         args, rhs_acceleration = self._get_initial_energy_obstacle_args_for_jax(temperature)
         args = EnergyObstacleArguments(
-            lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,#.todense(),
+            lhs_acceleration_jax=self.solver_cache.lhs_acceleration_jax,  # .todense(),
             rhs_acceleration=rhs_acceleration,
             boundary_velocity_old=args.boundary_velocity_old,
             boundary_normals=args.boundary_normals,
@@ -108,7 +108,7 @@ class Scene(BodyForces):
             obstacle_prop=args.obstacle_prop,
             time_step=jnp.array(args.time_step),
             element_initial_volume=jnp.array(self.matrices.element_initial_volume),
-            dx_big_jax=self.matrices.dx_big_jax,#.todense(),
+            dx_big_jax=self.matrices.dx_big_jax,  # .todense(),
             base_displacement=args.base_displacement,
             base_energy_displacement=jax.jit(energy_functions.compute_displacement_energy)(
                 displacement=args.base_displacement,

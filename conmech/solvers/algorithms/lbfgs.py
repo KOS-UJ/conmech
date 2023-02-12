@@ -557,7 +557,6 @@ class LBFGSResults(NamedTuple):
         return history.at[self.history_position, ...].set(new)
 
 
-
 def get_state_initial(
     fun,
     hes_inv,
@@ -662,7 +661,7 @@ def get_state_initial(
     return state_initial
 
 
-def opti_fun(fun, hes_inv, x0, args):
+def minimize_lbfgs_jax(fun, hes_inv, x0, args):
     state_initial = get_state_initial(fun=fun, hes_inv=hes_inv, args=args, x0=x0)
     return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
 

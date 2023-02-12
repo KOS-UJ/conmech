@@ -33,9 +33,9 @@ from deep_conmech.training_config import TrainingConfig
 def main():
     cmh.print_jax_configuration()
 
-    # mode = 'normal' 
+    # mode = 'normal'
     # mode = 'skinning'
-    mode = 'net'
+    mode = "net"
 
     simulation_config = SimulationConfig(
         use_normalization=False,

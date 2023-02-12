@@ -1,5 +1,3 @@
-import time
-
 import jax
 import jax.numpy as jnp
 import numba

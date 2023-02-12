@@ -1,3 +1,4 @@
+# pylint: disable
 import time
 
 import numpy as np

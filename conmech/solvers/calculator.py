@@ -17,7 +17,7 @@ from conmech.scene.body_forces import energy
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.solvers.algorithms.lbfgs import opti_fun
+from conmech.solvers.algorithms.lbfgs import minimize_lbfgs_jax
 from conmech.solvers.algorithms.lbfgs_scipy import _minimize_lbfgsb
 
 # from jax._src.scipy.optimize.bfgs import minimize_bfgs
@@ -29,25 +29,25 @@ def get_backend():
     return os.environ[key] if key in os.environ else None
 
 
-def get_opti_fun(fun, hes_inv):
+def get_optimization_function(fun, hes_inv):
     def opti_with_fun(x0, args):
-        return opti_fun(fun, hes_inv, x0, args)
+        return minimize_lbfgs_jax(fun, hes_inv, x0, args)
 
     return jax.jit(opti_with_fun, backend=get_backend())
 
 
-def _get_compiled_opti_fun(fun, hes_inv, sample_x0, sample_args):
-    return get_opti_fun(fun, hes_inv).lower(sample_x0, sample_args).compile()
+def _get_compiled_optimization_function(fun, hes_inv, sample_x0, sample_args):
+    return get_optimization_function(fun, hes_inv).lower(sample_x0, sample_args).compile()
 
 
 def set_compiled_optimization_functions(energy_functions, hes_inv, x0, args):
-    energy_functions.opti_free = _get_compiled_opti_fun(
+    energy_functions.opti_free = _get_compiled_optimization_function(
         fun=energy_functions.energy_obstacle_free,
         hes_inv=hes_inv,
         sample_x0=x0,
         sample_args=args,
     )
-    energy_functions.opti_colliding = _get_compiled_opti_fun(
+    energy_functions.opti_colliding = _get_compiled_optimization_function(
         fun=energy_functions.energy_obstacle_colliding,
         hes_inv=hes_inv,
         sample_x0=x0,
@@ -77,7 +77,7 @@ class Calculator:
         x0 = jnp.asarray(initial_vector)
 
         if function is not None:
-            opti_fun = get_opti_fun(fun=function, hes_inv=hes_inv)
+            opti_fun = get_optimization_function(fun=function, hes_inv=hes_inv)
         else:
             opti_fun = set_and_get_opti_fun(energy_functions, scene, hes_inv, x0, args)
 
@@ -86,16 +86,16 @@ class Calculator:
             baypass=True,
         )
 
-        if False:  # cmh.get_from_os("JAX_ENABLE_X64"):
-            assert state.converged
-        else:
-            if verbose and not state.converged:
-                if state.status == 5:
-                    cmh.Console.print_warning("Linesearch error")
-                elif state.status == 1:
-                    cmh.Console.print_fail("Maxiter error")
-                else:
-                    cmh.Console.print_fail(f"Status: {state.status}")
+        # if cmh.get_from_os("JAX_ENABLE_X64"):
+        #     assert state.converged
+
+        if verbose and not state.converged:
+            if state.status == 5:
+                cmh.Console.print_warning("Linesearch error")
+            elif state.status == 1:
+                cmh.Console.print_fail("Maxiter error")
+            else:
+                cmh.Console.print_fail(f"Status: {state.status}")
         # Validate https://github.com/google/jax/issues/6898
         return np.asarray(state.x_k)  # , state
 
@@ -103,15 +103,16 @@ class Calculator:
     def minimize_scipy(
         scene, energy_functions, initial_vector: np.ndarray, args, hes_inv, verbose: bool = True
     ) -> np.ndarray:
+        _ = hes_inv
         assert cmh.get_from_os("ENV_READY")
         x0 = jnp.asarray(initial_vector)
         grad_mem = np.zeros(shape=(len(x0)), dtype=np.float64)
 
-        energy = energy_functions.get_energy_function(scene)
+        energy_function = energy_functions.get_energy_function(scene)
 
         def scipy_fun(x, args):
             # _x = jnp.array(x)
-            y, grad = energy(x, args)
+            y, grad = energy_function(x, args)
             grad_mem[:] = grad  # Copying gradient from GPU to CPU
             return y, grad_mem
 

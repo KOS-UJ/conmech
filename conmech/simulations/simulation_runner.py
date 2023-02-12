@@ -4,23 +4,18 @@ import os
 from ctypes import ArgumentError
 from dataclasses import dataclass
 from functools import partial
-from glob import glob
 from typing import Callable, Optional, Tuple
-
-import numpy as np
 
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.helpers.tmh import Timer
 from conmech.mesh.mesh_builders_3d import get_edges_from_surfaces
 from conmech.plotting import plotter_functions
-from conmech.scenarios.scenarios import Scenario, TemperatureScenario
+from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
-from conmech.state.obstacle import Obstacle
 from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
 from deep_conmech.run_model import get_newest_checkpoint_path
 from deep_conmech.scene.scene_input import SceneInput
@@ -98,7 +93,7 @@ def create_scene(scenario):
         return scene
 
     scene = cmh.profile(
-        lambda: get_scene(),
+        get_scene,
         baypass=True,
     )
     # np.save("./pt-jax/bunny_boundary_nodes2.npy", scene.boundary_nodes)
@@ -193,16 +188,16 @@ def save_three(scene, step, label, folder):
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)
 
-    if True:  # step == 0:
-        list_path = f"{folder}/list.json"
-        cmh.clear_file(list_path)
-        # all_folders = os.walk(f"{folder}/*.json")
-        # all_folders.sort(reverse=True)
+    # if step == 0:
+    list_path = f"{folder}/list.json"
+    cmh.clear_file(list_path)
+    # all_folders = os.walk(f"{folder}/*.json")
+    # all_folders.sort(reverse=True)
 
-        # folder_list = [os.path.basename(folder) for folder in all_folders]
-        simulations_list = [label]
-        with open(list_path, "w", encoding="utf-8") as file:
-            json.dump({"simulations": simulations_list, "step": step}, file)
+    # folder_list = [os.path.basename(folder) for folder in all_folders]
+    simulations_list = [label]
+    with open(list_path, "w", encoding="utf-8") as file:
+        json.dump({"simulations": simulations_list, "step": step}, file)
 
 
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):

@@ -14,13 +14,7 @@ from conmech.properties.obstacle_properties import (
     TemperatureObstacleProperties,
 )
 from conmech.properties.schedule import Schedule
-from conmech.scene.scene import Scene
-from conmech.scene.scene_temperature import SceneTemperature
-from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
-from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_layers import SceneLayers
-from deep_conmech.training_config import SKINNING
 
 
 class Scenario:

@@ -52,7 +52,9 @@ def save_numba_all(fun, out):
     save_numba_llvm(fun=fun, out=out)
     save_numba_asm(fun=fun, out=out)
 
+
 ###
+
 
 @numba.njit()
 def iterate_test_loop(values):
@@ -110,10 +112,6 @@ with timer["iterate_test_loop"]:
     result_loop = iterate_test_loop(values)
 
 print(timer.to_dataframe())
-
-
-
-
 
 
 out = "output"

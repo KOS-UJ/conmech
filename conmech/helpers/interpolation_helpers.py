@@ -2,16 +2,12 @@ import random
 from ctypes import ArgumentError
 from time import time
 
-import jax.numpy as jnp
 import numba
 import numpy as np
-from tqdm import tqdm
 
 from conmech.helpers import lnh, nph
 from conmech.helpers.spatial_hashing import (
-    custom_hash_numba,
     initialize_hasher_numba,
-    query_hasher_jax,
     query_hasher_numba,
 )
 from conmech.helpers.tmh import Timer
@@ -209,8 +205,8 @@ def get_interlayer_data_numba(
                 #     unnormalized_weights = weights_internal
                 # else:
                 unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
-                weights = unnormalized_weights / np.sum(unnormalized_weights)
-                closest_weights[index, :] = weights
+                node_weights = unnormalized_weights / np.sum(unnormalized_weights)
+                closest_weights[index, :] = node_weights
 
         closest_distance_list = distances[closest_node_list]
         closest_nodes[index, :] = closest_node_list
@@ -243,8 +239,8 @@ def find_closest_nodes_numba(
         node_cell=node_cell,
     )
     ready_nodes_mask[:] = False
-    weights = np.empty(4)
-    max_m = 0
+    node_weights = np.empty(4)
+    # max_m = 0
     for element_id, element in enumerate(base_elements):
         # close_nodes_mask = ((element_centers[element_id] - interpolated_nodes) ** 2).sum(
         #     axis=1
@@ -273,15 +269,15 @@ def find_closest_nodes_numba(
             # TODO: check why loop is slower than masking and why masking doesn't work with parallel
             # if(((element_center - node) ** 2).sum() > element_ball_radius_squared):
 
-            weights[:3] = np.linalg.solve(
+            node_weights[:3] = np.linalg.solve(
                 element_nodes_matrices_T[element_id], node - normalizing_element_nodes_T[element_id]
             )
-            weights[3] = 1 - weights[:3].sum()  # weights sum to one
+            node_weights[3] = 1 - node_weights[:3].sum()  # weights sum to one
 
             # looking for weights that are closest to positive
-            smallest_weight = np.min(weights)
+            smallest_weight = np.min(node_weights)
             if smallest_weight > np.min(closest_weights[node_id, :]):
-                closest_weights[node_id, :] = weights
+                closest_weights[node_id, :] = node_weights
                 closest_nodes[node_id, :] = element
             if smallest_weight >= 0:
                 # positive weights found, only one element can contain node
@@ -317,8 +313,7 @@ def get_interlayer_data_skinning_numba(
     ready_nodes_mask = np.zeros(nodes_count, dtype=np.bool_)
     nodes_query = np.zeros(nodes_count, dtype=np.int64)
 
-    table_size_proportion = 2
-    table_size = table_size_proportion * nodes_count
+    table_size = 2 * nodes_count
     cell_starts = np.zeros(table_size + 1, dtype=np.int64)
     node_cell = np.zeros(nodes_count, dtype=np.int64)
 
@@ -368,7 +363,7 @@ def get_interlayer_data_skinning_cython(
     nodes_count = len(interpolated_nodes)
     elements_count = len(base_elements)
     closest_count = dim + 1
-    element_nodes_count = base_elements.shape[1]
+    # element_nodes_count = base_elements.shape[1]
 
     spacing = 0.05
     table_size = 2 * elements_count
@@ -385,7 +380,7 @@ def get_interlayer_data_skinning_cython(
 
     ready_nodes_mask = np.zeros(nodes_count, dtype=np.bool_)
     nodes_query = np.zeros(nodes_count, dtype=int_type)
-    element_nodes = np.zeros((elements_count, 4, 3))
+    # element_nodes = np.zeros((elements_count, 4, 3))
 
     t = time()
     weights.find_closest_nodes_cython(

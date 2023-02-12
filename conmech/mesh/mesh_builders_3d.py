@@ -17,6 +17,7 @@ def read_mesh(path):
         raise ArgumentError
     return mesh
 
+
 def get_edges_from_surfaces(surfaces):
     return np.array([[[s[0], s[1]], [s[1], s[2]], [s[2], s[0]]] for s in surfaces]).reshape(-1, 2)
 
