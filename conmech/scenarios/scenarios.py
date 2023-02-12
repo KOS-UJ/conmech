@@ -18,6 +18,7 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
+from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import SKINNING
 
@@ -75,39 +76,6 @@ class Scenario:
             desc=f"{desc} {self.name}",
         )
 
-    @staticmethod
-    def get_solve_function():
-        if SKINNING:
-            return Calculator.solve_skinning
-        return Calculator.solve
-
-    def get_scene(
-        self,
-        randomize=False,
-        create_in_subprocess: bool = False,
-    ) -> Scene:
-        _ = randomize
-        if SKINNING:
-            scene = SceneLayers(
-                mesh_prop=self.mesh_prop,
-                body_prop=self.body_prop,
-                obstacle_prop=self.obstacle_prop,
-                schedule=self.schedule,
-                create_in_subprocess=create_in_subprocess,
-                simulation_config=self.simulation_config,
-            )
-        else:
-            scene = Scene(
-                mesh_prop=self.mesh_prop,
-                body_prop=self.body_prop,
-                obstacle_prop=self.obstacle_prop,
-                schedule=self.schedule,
-                create_in_subprocess=create_in_subprocess,
-                simulation_config=self.simulation_config,
-            )
-        scene.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
-        return scene
-
     @property
     def dimension(self):
         return self.mesh_prop.dimension
@@ -133,6 +101,7 @@ class TemperatureScenario(Scenario):
         heat_function: Union[Callable, np.ndarray],
         simulation_config: SimulationConfig,
     ):  # pylint: disable=too-many-arguments
+        simulation_config.mode = "temperature"
         super().__init__(
             name=name,
             mesh_prop=mesh_prop,
@@ -147,33 +116,12 @@ class TemperatureScenario(Scenario):
     def get_heat_by_function(self, setting, current_time):
         return Scenario.get_by_function(self.heat_function, setting, current_time)
 
-    @staticmethod
-    def get_solve_function():
-        return Calculator.solve_with_temperature
-
-    def get_scene(
-        self,
-        randomize=False,
-        create_in_subprocess: bool = False,
-    ) -> SceneTemperature:
-        _ = randomize
-        setting = SceneTemperature(
-            mesh_prop=self.mesh_prop,
-            body_prop=self.body_prop,
-            obstacle_prop=self.obstacle_prop,
-            schedule=self.schedule,
-            create_in_subprocess=create_in_subprocess,
-            simulation_config=self.simulation_config,
-        )
-        setting.normalize_and_set_obstacles(self.linear_obstacles, self.mesh_obstacles)
-        return setting
-
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
 SCALE_MASS = 1.0
 SCALE_COEFF = 1.0
-SCALE_FORCES = 5.0 # 5.0 1.0
+SCALE_FORCES = 1.0  # 5.0 # 5.0 1.0
 
 default_body_prop = TimeDependentBodyProperties(
     mu=4.0 * SCALE_COEFF,

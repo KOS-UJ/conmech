@@ -557,21 +557,15 @@ class LBFGSResults(NamedTuple):
         return history.at[self.history_position, ...].set(new)
 
 
-def get_backend():
-    key = "OPTIMIZATION_BACKEND"
-    return os.environ[key] if key in os.environ else None
-
 
 def get_state_initial(
     fun,
-    f_0,
-    g_0,
     hes_inv,
     args,
     x0: Array,
     norm=jnp.inf,
     maxcor: int = 10,
-    ftol: float = 2.220446049250313e-09,
+    ftol: float = 1e-04,  # 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
@@ -622,6 +616,10 @@ def get_state_initial(
     if maxgrad is None:
         maxgrad = jnp.inf
 
+    # initial evaluation
+    f_0, g_0 = jax.value_and_grad(fun)(x0, args)
+    # f_0, g_0 = jax.value_and_grad(jax.jit(fun, backend=get_backend()))(x0, args)
+
     state_initial = LBFGSResults(
         converged=False,
         failed=False,
@@ -664,12 +662,9 @@ def get_state_initial(
     return state_initial
 
 
-def get_opti_fun(state_initial):
-    return jax.jit(opti_fun, backend=get_backend()).lower(state_initial).compile()
-
-
-def opti_fun(state):
-    return lax.while_loop(cond_fun_jax, body_fun_jax, state)
+def opti_fun(fun, hes_inv, x0, args):
+    state_initial = get_state_initial(fun=fun, hes_inv=hes_inv, args=args, x0=x0)
+    return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
 
 
 def _two_loop_recursion(state: LBFGSResults):

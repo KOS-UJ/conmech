@@ -8,6 +8,7 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
+from conmech.solvers.calculator import Calculator
 
 simulation_config = SimulationConfig(
     use_normalization=False,

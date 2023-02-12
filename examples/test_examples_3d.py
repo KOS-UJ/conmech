@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 
 from conmech.helpers import cmh
@@ -21,11 +23,19 @@ from conmech.scenarios.scenarios import (
     f_rotate_3d,
 )
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
+from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
+from deep_conmech.run_model import get_newest_checkpoint_path
+from deep_conmech.training_config import TrainingConfig
 
 
 def main():
     cmh.print_jax_configuration()
+
+    # mode = 'normal' 
+    # mode = 'skinning'
+    mode = 'net'
 
     simulation_config = SimulationConfig(
         use_normalization=False,
@@ -35,6 +45,7 @@ def main():
         use_constant_contact_integral=False,
         use_lhs_preconditioner=False,
         use_pca=False,
+        mode=mode,
     )
 
     simulation_config_pca = SimulationConfig(
@@ -45,7 +56,11 @@ def main():
         use_constant_contact_integral=False,
         use_lhs_preconditioner=False,
         use_pca=True,
+        mode=mode,
     )
+
+    # all_print_scenaros = scenarios.all_print(config.td, config.sc)
+    # GraphModelDynamicJax.plot_all_scenarios(state, all_print_scenaros, training_config)
 
     all_scenarios = [
         # bunny_obstacles(
@@ -55,8 +70,8 @@ def main():
         #     simulation_config=simulation_config,
         # ),
         # bunny_fall_3d(mesh_density=64, scale=1, final_time=10, simulation_config=simulation_config),
-        # bunny_fall_3d(mesh_density=32, scale=1, final_time=10, simulation_config=simulation_config),
-        bunny_fall_3d(mesh_density=16, scale=1, final_time=10, simulation_config=simulation_config),
+        bunny_fall_3d(mesh_density=32, scale=1, final_time=10, simulation_config=simulation_config),
+        # bunny_fall_3d(mesh_density=16, scale=1, final_time=10, simulation_config=simulation_config),
         # bunny_fall_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_rotate_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_rotate_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),

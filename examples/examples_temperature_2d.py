@@ -3,6 +3,7 @@ import numpy as np
 from conmech.helpers.config import Config, SimulationConfig
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
+from conmech.solvers.calculator import Calculator
 from conmech.scenarios.scenarios import (
     M_CIRCLE,
     M_POLYGON,

@@ -1,10 +1,15 @@
 import time
+
 import numpy as np
 from numpy import array, asarray, float64, zeros
-from . import _lbfgsb
-from ._optimize import MemoizeJac, OptimizeResult, _check_unknown_options, _prepare_scalar_function
-from ._constraints import old_bound_to_new
-
+from scipy.optimize import _lbfgsb
+from scipy.optimize._constraints import old_bound_to_new
+from scipy.optimize._optimize import (
+    MemoizeJac,
+    OptimizeResult,
+    _check_unknown_options,
+    _prepare_scalar_function,
+)
 from scipy.sparse.linalg import LinearOperator
 
 __all__ = ["fmin_l_bfgs_b", "LbfgsInvHessProduct"]

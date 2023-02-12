@@ -41,6 +41,7 @@ class SimulationConfig:
     use_constant_contact_integral: bool
     use_lhs_preconditioner: bool
     use_pca: bool
+    mode: str = "normal"
 
 
 @dataclass

@@ -1,7 +1,9 @@
 import copy
 import json
 import os
+from ctypes import ArgumentError
 from dataclasses import dataclass
+from functools import partial
 from glob import glob
 from typing import Callable, Optional, Tuple
 
@@ -12,12 +14,96 @@ from conmech.helpers.config import Config
 from conmech.helpers.tmh import Timer
 from conmech.mesh.mesh_builders_3d import get_edges_from_surfaces
 from conmech.plotting import plotter_functions
-from conmech.scenarios.scenarios import Scenario
+from conmech.scenarios.scenarios import Scenario, TemperatureScenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
+from conmech.state.obstacle import Obstacle
+from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
+from deep_conmech.run_model import get_newest_checkpoint_path
+from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.scene.scene_layers import SceneLayers
+from deep_conmech.training_config import TrainingConfig
 
 # plotter_functions.plot_using_blender()
+
+
+def get_solve_function(simulation_config):
+    if simulation_config.mode == "normal":
+        return Calculator.solve
+    if simulation_config.mode == "skinning":
+        return Calculator.solve_skinning
+    if simulation_config.mode == "temperature":
+        return Calculator.solve_with_temperature
+    if simulation_config.mode == "net":
+        training_config = TrainingConfig(shell=False)
+        training_config.sc = simulation_config
+        checkpoint_path = get_newest_checkpoint_path(training_config)
+        state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
+        return partial(solve, apply_net=get_apply_net(state))
+
+    raise ArgumentError
+
+
+def create_scene(scenario):
+    print("Creating scene...")
+    create_in_subprocess = False
+
+    def get_scene():
+        if scenario.simulation_config.mode == "normal":
+            scene = Scene(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=scenario.simulation_config,
+            )
+        elif scenario.simulation_config.mode == "skinning":
+            scene = SceneLayers(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=scenario.simulation_config,
+            )
+        elif scenario.simulation_config.mode == "net":
+            randomize = False
+            scene = SceneInput(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                simulation_config=scenario.simulation_config,
+                create_in_subprocess=create_in_subprocess,
+            )
+            if randomize:
+                scene.set_randomization(scenario.simulation_config)
+            else:
+                scene.unset_randomization()
+        elif scenario.simulation_config.mode == "temperature":
+            scene = SceneTemperature(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=scenario.simulation_config,
+            )
+
+        scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+        return scene
+
+    scene = cmh.profile(
+        lambda: get_scene(),
+        baypass=True,
+    )
+    # np.save("./pt-jax/bunny_boundary_nodes2.npy", scene.boundary_nodes)
+    # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
+    return scene
 
 
 def run_examples(
@@ -26,14 +112,15 @@ def run_examples(
     plot_animation,
     config: Config,
     simulate_dirty_data=False,
-    get_scene_function: Optional[Callable] = None,
 ):
+
     scenes = []
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
         catalog = os.path.splitext(os.path.basename(file))[0].upper()
+
         scene, _ = run_scenario(
-            solve_function=scenario.get_solve_function(),
+            solve_function=get_solve_function(scenario.simulation_config),
             scenario=scenario,
             config=config,
             run_config=RunScenarioConfig(
@@ -41,7 +128,7 @@ def run_examples(
                 simulate_dirty_data=simulate_dirty_data,
                 plot_animation=plot_animation,
             ),
-            get_scene_function=get_scene_function,
+            scene=create_scene(scenario),
         )
         scenes.append(scene)
         print()
@@ -148,36 +235,8 @@ def run_scenario(
     scenario: Scenario,
     config: Config,
     run_config: RunScenarioConfig,
-    get_scene_function: Optional[Callable] = None,
+    scene: Scene,
 ) -> Tuple[Scene, str, float]:
-
-    print("Creating scene...")
-    create_in_subprocess = False
-
-    if get_scene_function is None:
-
-        def _get_scene_function(randomize):
-            return scenario.get_scene(
-                randomize=randomize,
-                create_in_subprocess=create_in_subprocess,
-            )
-
-    else:
-
-        def _get_scene_function(randomize):
-            return get_scene_function(
-                config=config,
-                scenario=scenario,
-                randomize=randomize,
-                create_in_subprocess=create_in_subprocess,
-            )
-
-    scene = cmh.profile(
-        lambda: _get_scene_function(randomize=run_config.simulate_dirty_data), baypass=True
-    )
-
-    # np.save("./pt-jax/bunny_boundary_nodes2.npy", scene.boundary_nodes)
-    # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
 
     time_skip = config.print_skip
     ts = int(time_skip / scenario.time_step)

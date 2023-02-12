@@ -5,6 +5,7 @@ from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.solvers.calculator import Calculator
 from conmech.scenarios.scenarios import (
     M_BALL_3D,
     M_BUNNY_3D,

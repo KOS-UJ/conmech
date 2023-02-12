@@ -8,6 +8,7 @@ from conmech.properties.body_properties import TimeDependentTemperatureBodyPrope
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
+from conmech.solvers.calculator import Calculator
 from conmech.scenarios.scenarios import (
     M_BUNNY_3D,
     M_CUBE_3D,

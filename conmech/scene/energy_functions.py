@@ -363,8 +363,6 @@ class EnergyFunctions:
 
         self.opti_free = None
         self.opti_colliding = None
-        self.opti_free_grad = None
-        self.opti_colliding_grad = None
 
         # return
 
@@ -423,18 +421,28 @@ class EnergyFunctions:
     def get_energy_function(self, scene):
         if self.mode == "automatic":
             if not scene.is_colliding():
-                return self.energy_obstacle_free, self.energy_obstacle_free_grad, self.opti_free
-            return (
-                self.energy_obstacle_colliding,
-                self.energy_obstacle_colliding_grad,
-                self.opti_colliding,
-            )
+                return self.energy_obstacle_free
+            return self.energy_obstacle_colliding
 
         print("Manual mode")
         if self.mode == "non-colliding":
             return self.energy_obstacle_free
         if self.mode == "colliding":
             return self.energy_obstacle_colliding
+
+        raise ArgumentError
+
+    def get_optimization_function(self, scene):
+        if self.mode == "automatic":
+            if not scene.is_colliding():
+                return self.opti_free
+            return self.opti_colliding
+
+        print("Manual mode")
+        if self.mode == "non-colliding":
+            return self.opti_free
+        if self.mode == "colliding":
+            return self.opti_colliding
 
         raise ArgumentError
 

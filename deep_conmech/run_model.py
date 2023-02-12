@@ -19,6 +19,7 @@ from conmech.helpers import cmh, pca
 from conmech.helpers.config import Config, SimulationConfig
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import bunny_fall_3d
+from conmech.solvers.calculator import Calculator
 from conmech.simulations import simulation_runner
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset

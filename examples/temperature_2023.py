@@ -11,6 +11,7 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import M_BUNNY_3D, TemperatureScenario
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
+from conmech.solvers.calculator import Calculator
 
 
 def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):

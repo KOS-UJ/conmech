@@ -8,7 +8,7 @@ from conmech.helpers.config import Config, SimulationConfig
 
 TEST = False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 4 # 2 4 8!
+MESH_LAYERS_PROPORTION = 4  # 2 4 8!
 CLOSEST_COUNT = 3  # 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
@@ -25,7 +25,7 @@ class TrainingData:
 
     dataset: str = "calculator"  # synthetic # calculator
     final_time: float = 0.5 if TEST else 4  # 4  # 8
-    mesh_density: int = 64  # 32
+    mesh_density: int = 32  # 64  # 32
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0
