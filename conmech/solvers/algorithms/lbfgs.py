@@ -569,7 +569,7 @@ def get_state_initial(
     x0: Array,
     norm=jnp.inf,
     maxcor: int = 10,
-    ftol: float = 1e-05,  # 2.220446049250313e-09,
+    ftol: float = 1e-08,  # 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,

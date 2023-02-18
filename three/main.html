@@ -254,6 +254,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             spotLight.shadow.mapSize.height = 1024;
             scene.add(spotLight);
 
+            spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.angle = Math.PI / 5;
+            spotLight.penumbra = 0.2;
+            spotLight.position.set(-8, 3, 3);
+            spotLight.castShadow = true;
+            spotLight.shadow.camera.near = 3;
+            spotLight.shadow.camera.far = 10;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            scene.add(spotLight);
+
             var dirLight = new THREE.DirectionalLight(0x55505a, 1);
             dirLight.position.set(0, 3, 0);
             dirLight.castShadow = true;

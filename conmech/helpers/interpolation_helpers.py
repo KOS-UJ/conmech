@@ -6,10 +6,7 @@ import numba
 import numpy as np
 
 from conmech.helpers import lnh, nph
-from conmech.helpers.spatial_hashing import (
-    initialize_hasher_numba,
-    query_hasher_numba,
-)
+from conmech.helpers.spatial_hashing import initialize_hasher_numba, query_hasher_numba
 from conmech.helpers.tmh import Timer
 from cython_modules import weights
 
@@ -401,10 +398,10 @@ def get_interlayer_data_skinning_cython(
     stop = time() - t
 
     # assert np.all(closest_nodes >= 0)  # For each node at least one element found
-    print("Min weight", closest_weights.min())
-    print("Time all ms: ", 1000 * stop)
-    print("Ready ", ready_nodes_mask.sum())
-    print("nodes ", nodes_count)
+    # print("Min weight", closest_weights.min())
+    # print("Time all ms: ", 1000 * stop)
+    # print("Ready ", ready_nodes_mask.sum())
+    # print("nodes ", nodes_count)
     return closest_nodes, closest_distances, closest_weights
 
 

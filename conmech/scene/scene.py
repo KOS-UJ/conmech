@@ -9,6 +9,7 @@ from conmech.dynamics.dynamics import DynamicsConfiguration, SolverMatrices
 from conmech.dynamics.factory.dynamics_factory_method import ConstMatrices
 from conmech.helpers import jxh, lnh, nph
 from conmech.helpers.config import SimulationConfig
+from conmech.helpers.interpolation_helpers import get_interlayer_data_skinning
 from conmech.helpers.lnh import get_in_base
 from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
@@ -159,8 +160,11 @@ class Scene(BodyForces):
     def get_norm_obstacle_normals(self):
         return self.normalize_rotate(self.get_obstacle_normals())
 
-    def get_boundary_obstacle_normals(self):
+    def get_boundary_obstacle_normals_OBS(self):
         return self.get_obstacle_normals()[self.closest_obstacle_indices]
+
+    def get_boundary_obstacle_normals(self):
+        return -1.0 * self.get_boundary_normals_jax()
 
     def get_norm_boundary_obstacle_normals(self):
         return self.normalize_rotate(self.get_boundary_obstacle_normals())
@@ -182,10 +186,31 @@ class Scene(BodyForces):
         return self.normalized_nodes[self.boundary_indices]
 
     def get_penetration_scalar(self):
-        return (-1) * nph.elementwise_dot(
+        collisions = (-1) * nph.elementwise_dot(
             (self.boundary_nodes - self.boundary_obstacle_nodes),
-            self.get_boundary_obstacle_normals(),
+            self.get_boundary_obstacle_normals_OBS(),
         ).reshape(-1, 1)
+        return self.apply_self_collisions(collisions)
+
+    def apply_self_collisions(self, collisions):
+        closest_nodes, closest_distances, closest_weights = get_interlayer_data_skinning(
+            self.moved_nodes, self.elements, self.boundary_nodes
+        )
+        inside_mask = (closest_weights > 0.001).all(axis=1)
+        if inside_mask.any():
+            inside_nodes = nph.elementwise_dot(
+                self.initial_nodes[closest_nodes[inside_mask]],
+                closest_weights[inside_mask].reshape(-1, 4, 1),
+            )
+            boundary_indices = get_closest_obstacle_to_boundary_numba(
+                inside_nodes, self.initial_boundary_nodes
+            )
+            collisions[inside_mask] = (-1) * nph.elementwise_dot(
+                (self.boundary_nodes[boundary_indices] - inside_nodes),
+                self.get_boundary_normals_jax()[boundary_indices],
+            ).reshape(-1, 1)
+        # collisions[inside_mask] = 0.1
+        return collisions
 
     def get_penetration_positive(self):
         penetration = self.get_penetration_scalar()

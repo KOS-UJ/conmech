@@ -393,6 +393,7 @@ class BodyPosition:
         return self.normalized_nodes - self.normalized_initial_nodes
 
     def get_boundary_normals_jax(self):
+        print("GBNJ")
         return jax.jit(_get_boundary_normals_jax, static_argnames=["considered_nodes_count"])(
             moved_nodes=self.moved_nodes,
             boundary_surfaces=self.boundary_surfaces,
