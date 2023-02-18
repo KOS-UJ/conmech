@@ -214,9 +214,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 }
             }
 
-            updateMesh(step) {
-                var nodes = meshes[step].nodes;
-                var nodes_reduced = meshes[step].nodes_reduced;
+            updateMesh(mesh) {
+                var nodes = mesh.nodes;
+                var nodes_reduced = mesh.nodes_reduced;
 
                 // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.pos.length; i++)
@@ -230,6 +230,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     this.tetMesh.geometry.attributes.position.needsUpdate = true;
                 }
             }
+
+            addToScene(scene) {
+                scene.add(this.surfaceMesh);
+                if (this.tetMesh != null) {
+                    scene.add(body.tetMesh);
+                }
+            }
         }
 
         // ------------------------------------------
@@ -237,48 +244,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         function initThreeScene() {
             scene = new THREE.Scene();
 
+            scene.add(new THREE.AxesHelper(0.2));
+
             // Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            // scene.fog = new THREE.Fog(0x000000, 0, 15);
 
-            scene.add(new THREE.AmbientLight(0x505050));
-            scene.fog = new THREE.Fog(0x000000, 0, 15);
+            // var pos = (0.46668502, 0.66293614, 1.12681618);
+            var topLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            topLight.position.set(0, 0, 5);
+            topLight.target.position.set(0, 0, 0);
+            scene.add(topLight);
+            // scene.add(new THREE.DirectionalLightHelper(topLight, 0.1));
 
-            var spotLight = new THREE.SpotLight(0xffffff);
-            spotLight.angle = Math.PI / 5;
-            spotLight.penumbra = 0.2;
-            // spotLight.position.set(2, 3, 3);
-            spotLight.position.set(10, 3, 3);
-            spotLight.castShadow = true;
-            spotLight.shadow.camera.near = 3;
-            spotLight.shadow.camera.far = 10;
-            spotLight.shadow.mapSize.width = 1024;
-            spotLight.shadow.mapSize.height = 1024;
-            scene.add(spotLight);
 
-            spotLight = new THREE.SpotLight(0xffffff);
-            spotLight.angle = Math.PI / 5;
-            spotLight.penumbra = 0.2;
-            spotLight.position.set(-8, 3, 3);
-            spotLight.castShadow = true;
-            spotLight.shadow.camera.near = 3;
-            spotLight.shadow.camera.far = 10;
-            spotLight.shadow.mapSize.width = 1024;
-            spotLight.shadow.mapSize.height = 1024;
-            scene.add(spotLight);
-
-            var dirLight = new THREE.DirectionalLight(0x55505a, 1);
-            dirLight.position.set(0, 3, 0);
-            dirLight.castShadow = true;
-            dirLight.shadow.camera.near = 1;
-            dirLight.shadow.camera.far = 10;
-
-            dirLight.shadow.camera.right = 1;
-            dirLight.shadow.camera.left = - 1;
-            dirLight.shadow.camera.top = 1;
-            dirLight.shadow.camera.bottom = - 1;
-
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            scene.add(dirLight);
+            var bottomLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            bottomLight.position.set(0, 0, -5);
+            bottomLight.target.position.set(0, 0, 0);
+            scene.add(bottomLight);
+            // scene.add(new THREE.DirectionalLightHelper(bottomLight, 0.1));
 
             // Geometry
 
@@ -351,8 +335,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             scene.remove(selectedObject);
 
             body = new Body();
-            scene.add(body.surfaceMesh);
-            scene.add(body.tetMesh);
+            body.addToScene(scene);
 
             setHtml("numNodes", body.numNodes);
             setHtml("numSurfaces", body.numSurfaces);
@@ -385,11 +368,42 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             setHtml("animationProgress", `${animationFrame()} frame`);
             var step = (animationFrame() % animationCount) / animationSkip;
 
-            body.updateMesh(step);
+            var mesh = meshes[step];
+            body.updateMesh(mesh);
+            rehighlightNodes(mesh.highlighted_nodes);
+        }
 
-            // var selectedObject = scene.getObjectByName("mesh");
-            // scene.remove(selectedObject);
-            // scene.add(body.surfaceMesh);
+
+        function rehighlightNodes(nodes) {
+            var radius = 0.015;
+            var segments = 8;
+            var nodesCount = nodes.length / 3;
+
+            var oldBallMesh = scene.getObjectByName("ballMesh");
+            if (oldBallMesh !== undefined) {
+                for (var child in oldBallMesh.children) {
+                    scene.remove(child);
+                }
+                scene.remove(oldBallMesh);
+            }
+
+            if (nodes.length == 0)
+                return;
+
+            var ballMesh = new THREE.Object3D();
+            ballMesh.name = "ballMesh";
+            for (var i = 0; i < nodesCount; i++) {
+                var pos = new THREE.Vector3(nodes[3 * i], nodes[3 * i + 1], nodes[3 * i + 2]);
+
+                var geometry = new THREE.SphereGeometry(radius, segments, segments);
+                var material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+                var ball = new THREE.Mesh(geometry, material); // THREE.InstancedMesh( geometry, material, this.numBalls )
+                ball.position.copy(pos);
+
+                ballMesh.add(ball);
+                // ball.geometry.attributes.position.needsUpdate = true;
+            }
+            scene.add(ballMesh);
         }
 
         async function loadDataAsync() {

@@ -153,9 +153,11 @@ def save_three(scene, step, label, folder):
 
     file_path = f"{simulation_folder}/{step}.json"
 
+    def convert_to_list(array):
+        return list(array.reshape(-1))
+
     def get_data(scene, get_edges):
-        boundary_nodes = scene.boundary_nodes
-        nodes = list(boundary_nodes.reshape(-1))
+        nodes = convert_to_list(scene.boundary_nodes)
         if get_edges:
             boundary_data = get_edges_from_surfaces(scene.boundaries.boundary_surfaces)
         else:
@@ -168,6 +170,8 @@ def save_three(scene, step, label, folder):
         nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
     else:
         nodes_reduced, boundary_edges_reduced = [], []
+
+    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.get_inside_mask()])
     if step == 0:
         json_dict = {
             "skip": skip,
@@ -176,6 +180,7 @@ def save_three(scene, step, label, folder):
             "boundary_surfaces": boundary_surfaces,
             "nodes_reduced": nodes_reduced,
             "boundary_edges_reduced": boundary_edges_reduced,
+            "highlighted_nodes": highlighted_nodes,
         }
     else:
         json_dict = {
@@ -183,6 +188,7 @@ def save_three(scene, step, label, folder):
             "step": step,
             "nodes": nodes,
             "nodes_reduced": nodes_reduced,
+            "highlighted_nodes": highlighted_nodes,
         }
 
     with open(file_path, "w", encoding="utf-8") as file:
