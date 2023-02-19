@@ -158,7 +158,8 @@ class BodyPosition:
         self.boundary_normals = np.zeros_like(self.boundary_nodes)
         self.set_boundary_normals_jax()
 
-    def prepare(self):
+    def prepare(self, inner_forces):
+        _ = inner_forces
         self.set_boundary_normals_jax()
 
     def _normalize_shift(self, vectors):

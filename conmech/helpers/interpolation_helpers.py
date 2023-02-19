@@ -1,6 +1,5 @@
 import random
 from ctypes import ArgumentError
-from time import time
 
 import numba
 import numpy as np
@@ -381,8 +380,8 @@ def get_interlayer_data_skinning_cython(
     nodes_query = np.zeros(nodes_count, dtype=int_type)
     # element_nodes = np.zeros((elements_count, 4, 3))
 
-    assert dim == 3 # Not implemeted for 2D
-    t = time()
+    assert dim == 3  # Not implemeted for 2D
+    # t = time()
     weights.find_closest_nodes_cython(
         closest_nodes=closest_nodes,
         closest_weights=closest_weights,
@@ -396,7 +395,7 @@ def get_interlayer_data_skinning_cython(
         spacing=spacing,
         element_radius_padding=element_radius_padding,
     )
-    stop = time() - t
+    # stop = time() - t
 
     # assert np.all(closest_nodes >= 0)  # For each node at least one element found
     # print("Min weight", closest_weights.min())

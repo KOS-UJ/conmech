@@ -67,9 +67,7 @@ def get_scenes():
 
 
 def get_projection(data, latent_dim=200):
-    projection_mean = 0 * data.mean(
-        axis=0
-    ) # columnwise mean = 0
+    projection_mean = 0 * data.mean(axis=0)  # columnwise mean = 0
     svd = jax.numpy.linalg.svd(data - projection_mean, full_matrices=False)
     # (svd[0] @ jnp.diag(svd[1]) @ svd[2])
     projection_matrix = svd[2][:latent_dim].T

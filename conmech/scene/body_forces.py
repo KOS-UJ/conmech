@@ -74,7 +74,7 @@ class BodyForces(Dynamics):
         self.outer_forces = np.array([outer_forces_function(p) for p in self.moved_nodes])
 
     def prepare(self, inner_forces: np.ndarray):
-        super().prepare()
+        super().prepare(inner_forces)
         self.inner_forces = inner_forces
         self.outer_forces = np.zeros_like(self.initial_nodes)
 
