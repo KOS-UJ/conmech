@@ -3,7 +3,6 @@ import json
 import os
 from ctypes import ArgumentError
 from dataclasses import dataclass
-from functools import partial
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
@@ -17,6 +16,7 @@ from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 
+# from functools import partial
 # from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
 # from deep_conmech.run_model import get_newest_checkpoint_path
 # from deep_conmech.scene.scene_input import SceneInput
