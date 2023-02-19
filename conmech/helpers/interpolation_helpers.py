@@ -7,7 +7,6 @@ import numpy as np
 from conmech.helpers import lnh, nph
 from conmech.helpers.spatial_hashing import initialize_hasher_numba, query_hasher_numba
 from conmech.helpers.tmh import Timer
-from cython_modules import weights
 
 
 def decide(scale):
@@ -343,12 +342,16 @@ def get_interlayer_data_skinning_numba(
     return closest_nodes, closest_distances, closest_weights
 
 
+# pylint: disable=import-outside-toplevel
+# pylint: disable=no-name-in-module
 def get_interlayer_data_skinning_cython(
     base_nodes: np.ndarray,
     base_elements: np.ndarray,
     interpolated_nodes: np.ndarray,
     # padding: float,
 ):
+    from cython_modules import weights
+
     # padding = 0.0
     element_radius_padding = 0.01
 
@@ -417,6 +420,7 @@ def interpolate_nodes(
     #     interpolated_nodes=interpolated_nodes,
     #     # padding: float,
     # )
+
     return get_interlayer_data_skinning_cython(
         base_nodes=base_nodes,
         base_elements=base_elements,
