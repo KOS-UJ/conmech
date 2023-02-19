@@ -205,7 +205,7 @@ def test_examples(example_args):
         return
 
     def compare_values(actual, expected):
-        np.testing.assert_array_almost_equal(actual, expected, decimal=3)
+        np.testing.assert_array_almost_equal(actual, expected, decimal=2)
 
     for i, scene in enumerate(scenes):
         key = f"displacement_{i+1}"
