@@ -16,15 +16,13 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
 from deep_conmech.run_model import get_newest_checkpoint_path
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig
 
-# plotter_functions.plot_using_blender()
 
-
+# pylint: disable=import-outside-toplevel
 def get_solve_function(simulation_config):
     if simulation_config.mode == "normal":
         return Calculator.solve
@@ -32,12 +30,18 @@ def get_solve_function(simulation_config):
         return Calculator.solve_skinning
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
-    if simulation_config.mode == "net":
-        training_config = TrainingConfig(shell=False)
-        training_config.sc = simulation_config
-        checkpoint_path = get_newest_checkpoint_path(training_config)
-        state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
-        return partial(solve, apply_net=get_apply_net(state))
+    # if simulation_config.mode == "net":
+    #     from deep_conmech.graph.model_jax import (
+    #         GraphModelDynamicJax,
+    #         get_apply_net,
+    #         solve,
+    #     )
+
+    #     training_config = TrainingConfig(shell=False)
+    #     training_config.sc = simulation_config
+    #     checkpoint_path = get_newest_checkpoint_path(training_config)
+    #     state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
+    #     return partial(solve, apply_net=get_apply_net(state))
 
     raise ArgumentError
 

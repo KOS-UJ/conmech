@@ -709,6 +709,8 @@ def bunny_obstacles(
     simulation_config: SimulationConfig,
     tag="",
     arg=1.0,
+    scale_forces=1.0,
+
 ):
     _, _, _ = scale, tag, arg
     return Scenario(
@@ -721,7 +723,7 @@ def bunny_obstacles(
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=np.array([0.0, 0.0, -1.0]),
+        forces_function=scale_forces*np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(
             geometry=None,
             properties=ObstacleProperties(hardness=100.0, friction=0.0),

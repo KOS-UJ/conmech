@@ -62,21 +62,22 @@ def main():
     # GraphModelDynamicJax.plot_all_scenarios(state, all_print_scenaros, training_config)
 
     all_scenarios = [
-        # bunny_obstacles(
-        #     mesh_density=64,
-        #     scale=1,
-        #     final_time=2,
-        #     simulation_config=simulation_config,
-        # ),
-        # bunny_fall_3d(mesh_density=64, scale=1, final_time=10, simulation_config=simulation_config),
-        # bunny_fall_3d(mesh_density=32, scale=1, final_time=10, simulation_config=simulation_config),
-        bunny_fall_3d(
-            mesh_density=16,
+        bunny_obstacles(
+            mesh_density=64,
             scale=1,
             final_time=10,
             simulation_config=simulation_config,
             scale_forces=scale_forces,
         ),
+        # bunny_fall_3d(mesh_density=64, scale=1, final_time=10, simulation_config=simulation_config),
+        # bunny_fall_3d(mesh_density=32, scale=1, final_time=10, simulation_config=simulation_config),
+        # bunny_fall_3d(
+        #     mesh_density=16,
+        #     scale=1,
+        #     final_time=10,
+        #     simulation_config=simulation_config,
+        #     scale_forces=scale_forces,
+        # ),
         # bunny_fall_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_rotate_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_rotate_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),
