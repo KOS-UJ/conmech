@@ -16,13 +16,14 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.run_model import get_newest_checkpoint_path
-from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_layers import SceneLayers
-from deep_conmech.training_config import TrainingConfig
+
+# from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
+# from deep_conmech.run_model import get_newest_checkpoint_path
+# from deep_conmech.scene.scene_input import SceneInput
+# from deep_conmech.scene.scene_layers import SceneLayers
+# from deep_conmech.training_config import TrainingConfig
 
 
-# pylint: disable=import-outside-toplevel
 def get_solve_function(simulation_config):
     if simulation_config.mode == "normal":
         return Calculator.solve
@@ -31,11 +32,6 @@ def get_solve_function(simulation_config):
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
     # if simulation_config.mode == "net":
-    #     from deep_conmech.graph.model_jax import (
-    #         GraphModelDynamicJax,
-    #         get_apply_net,
-    #         solve,
-    #     )
 
     #     training_config = TrainingConfig(shell=False)
     #     training_config.sc = simulation_config
@@ -60,29 +56,29 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
-        elif scenario.simulation_config.mode == "skinning":
-            scene = SceneLayers(
-                mesh_prop=scenario.mesh_prop,
-                body_prop=scenario.body_prop,
-                obstacle_prop=scenario.obstacle_prop,
-                schedule=scenario.schedule,
-                create_in_subprocess=create_in_subprocess,
-                simulation_config=scenario.simulation_config,
-            )
-        elif scenario.simulation_config.mode == "net":
-            randomize = False
-            scene = SceneInput(
-                mesh_prop=scenario.mesh_prop,
-                body_prop=scenario.body_prop,
-                obstacle_prop=scenario.obstacle_prop,
-                schedule=scenario.schedule,
-                simulation_config=scenario.simulation_config,
-                create_in_subprocess=create_in_subprocess,
-            )
-            if randomize:
-                scene.set_randomization(scenario.simulation_config)
-            else:
-                scene.unset_randomization()
+        # elif scenario.simulation_config.mode == "skinning":
+        #     scene = SceneLayers(
+        #         mesh_prop=scenario.mesh_prop,
+        #         body_prop=scenario.body_prop,
+        #         obstacle_prop=scenario.obstacle_prop,
+        #         schedule=scenario.schedule,
+        #         create_in_subprocess=create_in_subprocess,
+        #         simulation_config=scenario.simulation_config,
+        #     )
+        # elif scenario.simulation_config.mode == "net":
+        #     randomize = False
+        #     scene = SceneInput(
+        #         mesh_prop=scenario.mesh_prop,
+        #         body_prop=scenario.body_prop,
+        #         obstacle_prop=scenario.obstacle_prop,
+        #         schedule=scenario.schedule,
+        #         simulation_config=scenario.simulation_config,
+        #         create_in_subprocess=create_in_subprocess,
+        #     )
+        #     if randomize:
+        #         scene.set_randomization(scenario.simulation_config)
+        #     else:
+        #         scene.unset_randomization()
         elif scenario.simulation_config.mode == "temperature":
             scene = SceneTemperature(
                 mesh_prop=scenario.mesh_prop,
@@ -92,6 +88,8 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
+        else:
+            raise ArgumentError
 
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
         return scene
