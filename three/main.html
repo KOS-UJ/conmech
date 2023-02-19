@@ -251,14 +251,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             // scene.fog = new THREE.Fog(0x000000, 0, 15);
 
             // var pos = (0.46668502, 0.66293614, 1.12681618);
-            var topLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            var topLight = new THREE.DirectionalLight(0xffffff, 0.4);
             topLight.position.set(0, 0, 5);
             topLight.target.position.set(0, 0, 0);
             scene.add(topLight);
             // scene.add(new THREE.DirectionalLightHelper(topLight, 0.1));
 
 
-            var bottomLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            var bottomLight = new THREE.DirectionalLight(0xffffff, 0.4);
             bottomLight.position.set(0, 0, -5);
             bottomLight.target.position.set(0, 0, 0);
             scene.add(bottomLight);

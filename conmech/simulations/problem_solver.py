@@ -78,6 +78,7 @@ class ProblemSolver:
                 use_nonconvex_friction_law=False,
                 use_constant_contact_integral=False,
                 use_lhs_preconditioner=False,
+                with_self_collisions=False,
                 use_pca=False,
             ),
             dynamics_config=DynamicsConfiguration(

@@ -112,17 +112,17 @@ class SceneLayers(Scene):
         if SKINNING:
             #     reduced_scene.mesh.initial_nodes += 0.03 * np.array(
             #         jxh.complete_data_with_zeros(
-            #             reduced_scene.get_boundary_normals_jax(), reduced_scene.nodes_count
+            #             reduced_scene.boundary_normals, reduced_scene.nodes_count
             #         )
             #     )# 0.13 OK 0.12-0.15 # 0.08
             (
                 closest_nodes,
                 closest_distances,
                 closest_weights,
-            ) = interpolation_helpers.get_interlayer_data_skinning(
+            ) = interpolation_helpers.interpolate_nodes(
                 base_nodes=reduced_scene.initial_nodes,
                 base_elements=reduced_scene.elements,
-                interpolated_nodes=self.initial_nodes,
+                query_nodes=self.initial_nodes,
                 # padding = 0.1
             )
             edges_index = get_multilayer_edges_numba(closest_nodes)

@@ -77,8 +77,8 @@ class SceneTemperature(Scene):
         self.prepare(forces)
         self.heat = heat
 
-    def clear(self):
-        super().clear()
+    def clear_external_factors(self):
+        super().clear_external_factors()
         self.heat = None
 
     def set_temperature_old(self, temperature):
@@ -126,9 +126,9 @@ class SceneTemperature(Scene):
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         return jax.jit(integrate_boundary_temperature)(
-            obstacle_normals=self.get_boundary_obstacle_normals(),
+            obstacle_normals=self.boundary_obstacle_normals,
             boundary_velocity_new=boundary_velocity_new,
-            initial_penetration=self.get_penetration_scalar(),
+            initial_penetration=self.penetration_scalars,
             nodes_volume=surface_per_boundary_node,
             heat_coeff=self.obstacle_prop.heat,
             time_step=self.time_step,

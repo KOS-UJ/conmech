@@ -5,7 +5,6 @@ from conmech.properties.body_properties import TimeDependentBodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.calculator import Calculator
 from conmech.scenarios.scenarios import (
     M_BALL_3D,
     M_BUNNY_3D,
@@ -22,10 +21,11 @@ from conmech.state.obstacle import Obstacle
 simulation_config = SimulationConfig(
     use_normalization=False,
     use_linear_solver=False,
-    use_green_strain=False,
+    use_green_strain=True,
     use_nonconvex_friction_law=False,
     use_constant_contact_integral=False,
     use_lhs_preconditioner=False,
+    with_self_collisions=False,
     use_pca=False,
 )
 

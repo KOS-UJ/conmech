@@ -2,7 +2,6 @@
 # pylint: skip-file
 import os
 from functools import partial
-from time import time
 from typing import Any, Callable, Mapping, NamedTuple, Optional, Tuple, Union
 
 import jax
@@ -556,11 +555,10 @@ class LBFGSResults(NamedTuple):
         return history.at[self.history_position, ...].set(new)
 
 
-
-
 def minimize_lbfgs_jax(fun, hes_inv, x0, args):
     state_initial = get_state_initial(fun=fun, hes_inv=hes_inv, args=args, x0=x0)
     return lax.while_loop(cond_fun_jax, body_fun_jax, state_initial)
+
 
 def get_state_initial(
     fun,
@@ -663,6 +661,7 @@ def get_state_initial(
         xtol=xtol,
     )
     return state_initial
+
 
 def _two_loop_recursion(state: LBFGSResults):
     his_size = len(state.rho_history)

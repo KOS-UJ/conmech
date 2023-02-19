@@ -68,10 +68,10 @@
             "justMyCode": false
         },
         {
-            "name": "test_examples_3d",
+            "name": "draft_examples_3d",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/test_examples_3d.py",
+            "program": "${workspaceFolder}/examples/draft_examples_3d.py",
             "justMyCode": false
         },
         {

@@ -171,7 +171,7 @@ def save_three(scene, step, label, folder):
     else:
         nodes_reduced, boundary_edges_reduced = [], []
 
-    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.get_inside_mask()])
+    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
     if step == 0:
         json_dict = {
             "skip": skip,

@@ -381,6 +381,7 @@ def get_interlayer_data_skinning_cython(
     nodes_query = np.zeros(nodes_count, dtype=int_type)
     # element_nodes = np.zeros((elements_count, 4, 3))
 
+    assert dim == 3 # Not implemeted for 2D
     t = time()
     weights.find_closest_nodes_cython(
         closest_nodes=closest_nodes,
@@ -405,10 +406,10 @@ def get_interlayer_data_skinning_cython(
     return closest_nodes, closest_distances, closest_weights
 
 
-def get_interlayer_data_skinning(
+def interpolate_nodes(
     base_nodes: np.ndarray,
     base_elements: np.ndarray,
-    interpolated_nodes: np.ndarray,
+    query_nodes: np.ndarray,
     # padding: float,
 ):
     # return get_interlayer_data_skinning_numba(
@@ -420,6 +421,6 @@ def get_interlayer_data_skinning(
     return get_interlayer_data_skinning_cython(
         base_nodes=base_nodes,
         base_elements=base_elements,
-        interpolated_nodes=interpolated_nodes,
+        interpolated_nodes=query_nodes,
         # padding: float,
     )

@@ -155,6 +155,11 @@ class BodyPosition:
         self.__velocity_old = np.zeros_like(self.initial_nodes)
         self.exact_acceleration = np.zeros_like(self.initial_nodes)
         self.moved_base = None
+        self.boundary_normals = np.zeros_like(self.boundary_nodes)
+        self.set_boundary_normals_jax()
+
+    def prepare(self):
+        self.set_boundary_normals_jax()
 
     def _normalize_shift(self, vectors):
         _ = self
@@ -362,7 +367,7 @@ class BodyPosition:
         return self.normalized_nodes[self.boundary_indices]
 
     def get_normalized_boundary_normals_jax(self):
-        return self.normalize_rotate(self.get_boundary_normals_jax())
+        return self.normalize_rotate(self.boundary_normals)
 
     @property
     def mean_moved_nodes(self):
@@ -392,9 +397,10 @@ class BodyPosition:
     def normalized_displacement_old(self):
         return self.normalized_nodes - self.normalized_initial_nodes
 
-    def get_boundary_normals_jax(self):
-        print("GBNJ")
-        return jax.jit(_get_boundary_normals_jax, static_argnames=["considered_nodes_count"])(
+    def set_boundary_normals_jax(self):
+        self.boundary_normals[:] = jax.jit(
+            _get_boundary_normals_jax, static_argnames=["considered_nodes_count"]
+        )(
             moved_nodes=self.moved_nodes,
             boundary_surfaces=self.boundary_surfaces,
             boundary_internal_indices=self.boundary_internal_indices,

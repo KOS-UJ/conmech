@@ -8,15 +8,15 @@ from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import Scenario
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
-from conmech.solvers.calculator import Calculator
 
 simulation_config = SimulationConfig(
     use_normalization=False,
     use_linear_solver=False,
-    use_green_strain=False,
+    use_green_strain=True,
     use_nonconvex_friction_law=False,
     use_constant_contact_integral=False,
     use_lhs_preconditioner=False,
+    with_self_collisions=False,
     use_pca=False,
 )
 

@@ -8,7 +8,6 @@ from conmech.properties.body_properties import TimeDependentTemperatureBodyPrope
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.calculator import Calculator
 from conmech.scenarios.scenarios import (
     M_BUNNY_3D,
     M_CUBE_3D,
@@ -21,6 +20,7 @@ from conmech.scenarios.scenarios import (
     get_temp_body_prop,
 )
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
 
 simulation_config = SimulationConfig(
@@ -30,6 +30,7 @@ simulation_config = SimulationConfig(
     use_nonconvex_friction_law=False,
     use_constant_contact_integral=False,
     use_lhs_preconditioner=False,
+    with_self_collisions=False,
     use_pca=False,
 )
 

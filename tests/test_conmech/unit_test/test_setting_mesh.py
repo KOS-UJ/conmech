@@ -16,7 +16,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
-    setting = BodyPosition(
+    scene = BodyPosition(
         mesh_prop=MeshProperties(
             dimension=2,
             mesh_type="meshzoo_rectangle",
@@ -29,12 +29,12 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
 
     # Act and Assert
     np.testing.assert_allclose(
-        float(setting.get_surface_per_boundary_node_jax().sum()), volume, rtol=1e-6, atol=1e-6
+        float(scene.get_surface_per_boundary_node_jax().sum()), volume, rtol=1e-6, atol=1e-6
     )
-    boundary_normals = setting.get_boundary_normals_jax()
+    scene.prepare()
     np.testing.assert_allclose(
-        jxh.euclidean_norm(boundary_normals),
-        np.ones(len(boundary_normals)),
+        jxh.euclidean_norm(scene.boundary_normals),
+        np.ones(len(scene.boundary_normals)),
     )
 
 
@@ -44,7 +44,7 @@ def test_boundary_nodes_data_3d():
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
-    setting = BodyPosition(
+    scene = BodyPosition(
         mesh_prop=MeshProperties(
             dimension=3, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
         ),
@@ -53,11 +53,11 @@ def test_boundary_nodes_data_3d():
     )
 
     # Act and Assert
-    np.testing.assert_allclose(setting.get_surface_per_boundary_node_jax().sum(), volume)
-    boundary_normals = setting.get_boundary_normals_jax()
+    np.testing.assert_allclose(scene.get_surface_per_boundary_node_jax().sum(), volume)
+    scene.prepare()
     np.testing.assert_allclose(
-        jxh.euclidean_norm(boundary_normals),
-        np.ones(len(boundary_normals)),
+        jxh.euclidean_norm(scene.boundary_normals),
+        np.ones(len(scene.boundary_normals)),
     )
 
 
