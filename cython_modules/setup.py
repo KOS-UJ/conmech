@@ -29,10 +29,11 @@ setup(
                     # "cdivision": True,
                 },
                 extra_compile_args=[
-                    "-Ofast",
-                    "-ffast-math",
-                    "-funroll-loops",
-                    "-march=native",
+                    # "-Ofast",
+                    # "-ffast-math",
+                    # "-funroll-loops",
+                    # "-march=native",
+                    #
                     # "-mfpmath=sse",
                     # "-mllvm",
                     # "-force-vector-width=8",
