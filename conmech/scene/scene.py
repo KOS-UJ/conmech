@@ -68,7 +68,7 @@ class Scene(BodyForces):
 
         self.boundary_obstacle_normals = np.zeros_like(self.boundary_nodes)
         self.penetration_scalars = np.zeros((self.boundary_nodes_count, 1))
-        self.self_collisions_mask = np.zeros(self.boundary_nodes_count, dtype=np.bool)
+        self.self_collisions_mask = np.zeros(self.boundary_nodes_count, dtype=bool)
 
         self.clear_external_factors()
 

@@ -307,7 +307,7 @@ def get_interlayer_data_skinning_numba(
     element_nodes_matrices_T = (element_nodes[:, :dim] - element_nodes[:, [dim]]).transpose(0, 2, 1)
     normalizing_element_nodes_T = element_nodes[:, [dim]].reshape(-1, 3)
 
-    ready_nodes_mask = np.zeros(nodes_count, dtype=np.bool_)
+    ready_nodes_mask = np.zeros(nodes_count, dtype=bool)
     nodes_query = np.zeros(nodes_count, dtype=np.int64)
 
     table_size = 2 * nodes_count
@@ -379,7 +379,7 @@ def get_interlayer_data_skinning_cython(
     closest_nodes = np.full_like(closest_distances, fill_value=-1, dtype=int_type)
     closest_weights = np.full_like(closest_distances, fill_value=-1e8, dtype=float_type)
 
-    ready_nodes_mask = np.zeros(nodes_count, dtype=np.bool_)
+    ready_nodes_mask = np.zeros(nodes_count, dtype=bool)
     nodes_query = np.zeros(nodes_count, dtype=int_type)
     # element_nodes = np.zeros((elements_count, 4, 3))
 

@@ -12,8 +12,6 @@ MESH_LAYERS_PROPORTION = 4  # 2 4 8!
 CLOSEST_COUNT = 3  # 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
-SKINNING = False  # True
-
 
 @dataclass
 class TrainingData:
