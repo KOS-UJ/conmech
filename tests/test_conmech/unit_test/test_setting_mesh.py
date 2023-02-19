@@ -31,7 +31,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     np.testing.assert_allclose(
         float(scene.get_surface_per_boundary_node_jax().sum()), volume, rtol=1e-6, atol=1e-6
     )
-    scene.prepare()
+    scene.prepare(None)
     np.testing.assert_allclose(
         jxh.euclidean_norm(scene.boundary_normals),
         np.ones(len(scene.boundary_normals)),
@@ -54,7 +54,7 @@ def test_boundary_nodes_data_3d():
 
     # Act and Assert
     np.testing.assert_allclose(scene.get_surface_per_boundary_node_jax().sum(), volume)
-    scene.prepare()
+    scene.prepare(None)
     np.testing.assert_allclose(
         jxh.euclidean_norm(scene.boundary_normals),
         np.ones(len(scene.boundary_normals)),

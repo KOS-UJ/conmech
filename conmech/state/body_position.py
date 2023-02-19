@@ -158,7 +158,7 @@ class BodyPosition:
         self.boundary_normals = np.zeros_like(self.boundary_nodes)
         self.set_boundary_normals_jax()
 
-    def prepare(self, inner_forces=None):
+    def prepare(self, inner_forces):
         _ = inner_forces
         self.set_boundary_normals_jax()
 

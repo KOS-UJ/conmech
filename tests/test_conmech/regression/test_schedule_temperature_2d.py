@@ -6,7 +6,6 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import TemperatureScenario
-from conmech.simulations.simulation_runner import RunScenarioConfig, run_scenario
 from conmech.state.obstacle import Obstacle
 
 simulation_config = SimulationConfig(
