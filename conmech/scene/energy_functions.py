@@ -46,7 +46,7 @@ def _obstacle_resistance_tangential_vector(
         epsilon + nph.euclidean_norm(tangential_velocity, keepdims=True)
     )
     result = (initial_penetration > 0) * friction * friction_law
-    return result  # TODO: Check this: jnp.nan_to_num(result)  # otherwise Nans in division
+    return jnp.nan_to_num(result)  # TODO: Check this, otherwise Nans in division
 
 
 class EnergyObstacleArguments(NamedTuple):

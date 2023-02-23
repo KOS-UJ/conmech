@@ -121,11 +121,12 @@ class ScenariosDataset(BaseDataset):
                 scenario = assigned_scenarios[int(index / episode_steps)]
                 scene = self.get_scene(scenario=scenario, config=self.config)
                 energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
+                reduced_energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
 
             current_time = ts * scene.time_step
 
             forces = scenario.get_forces_by_function(scene, current_time)
-            scene, acceleration = self.solve_and_prepare_scene(scene, forces, energy_functions)
+            scene, acceleration = self.solve_and_prepare_scene(scene, forces, energy_functions, reduced_energy_functions)
 
             if self.with_scenes_file:
                 self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)

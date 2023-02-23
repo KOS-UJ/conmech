@@ -3,6 +3,7 @@ import json
 import os
 from ctypes import ArgumentError
 from dataclasses import dataclass
+from functools import partial
 from typing import Callable, Optional, Tuple
 
 from conmech.helpers import cmh, pkh
@@ -15,13 +16,11 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-
-# from functools import partial
-# from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
-# from deep_conmech.run_model import get_newest_checkpoint_path
-# from deep_conmech.scene.scene_input import SceneInput
-# from deep_conmech.scene.scene_layers import SceneLayers
-# from deep_conmech.training_config import TrainingConfig
+from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
+from deep_conmech.run_model import get_newest_checkpoint_path
+from deep_conmech.scene.scene_input import SceneInput
+from deep_conmech.scene.scene_layers import SceneLayers
+from deep_conmech.training_config import TrainingConfig
 
 
 def get_solve_function(simulation_config):
@@ -31,13 +30,13 @@ def get_solve_function(simulation_config):
         return Calculator.solve_skinning
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
-    # if simulation_config.mode == "net":
+    if simulation_config.mode == "net":
 
-    #     training_config = TrainingConfig(shell=False)
-    #     training_config.sc = simulation_config
-    #     checkpoint_path = get_newest_checkpoint_path(training_config)
-    #     state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
-    #     return partial(solve, apply_net=get_apply_net(state))
+        training_config = TrainingConfig(shell=False)
+        training_config.sc = simulation_config
+        checkpoint_path = get_newest_checkpoint_path(training_config)
+        state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
+        return partial(solve, apply_net=get_apply_net(state))
 
     raise ArgumentError
 
@@ -56,29 +55,29 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
-        # elif scenario.simulation_config.mode == "skinning":
-        #     scene = SceneLayers(
-        #         mesh_prop=scenario.mesh_prop,
-        #         body_prop=scenario.body_prop,
-        #         obstacle_prop=scenario.obstacle_prop,
-        #         schedule=scenario.schedule,
-        #         create_in_subprocess=create_in_subprocess,
-        #         simulation_config=scenario.simulation_config,
-        #     )
-        # elif scenario.simulation_config.mode == "net":
-        #     randomize = False
-        #     scene = SceneInput(
-        #         mesh_prop=scenario.mesh_prop,
-        #         body_prop=scenario.body_prop,
-        #         obstacle_prop=scenario.obstacle_prop,
-        #         schedule=scenario.schedule,
-        #         simulation_config=scenario.simulation_config,
-        #         create_in_subprocess=create_in_subprocess,
-        #     )
-        #     if randomize:
-        #         scene.set_randomization(scenario.simulation_config)
-        #     else:
-        #         scene.unset_randomization()
+        elif scenario.simulation_config.mode == "skinning":
+            scene = SceneLayers(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                create_in_subprocess=create_in_subprocess,
+                simulation_config=scenario.simulation_config,
+            )
+        elif scenario.simulation_config.mode == "net":
+            randomize = False
+            scene = SceneInput(
+                mesh_prop=scenario.mesh_prop,
+                body_prop=scenario.body_prop,
+                obstacle_prop=scenario.obstacle_prop,
+                schedule=scenario.schedule,
+                simulation_config=scenario.simulation_config,
+                create_in_subprocess=create_in_subprocess,
+            )
+            if randomize:
+                scene.set_randomization(scenario.simulation_config)
+            else:
+                scene.unset_randomization()
         elif scenario.simulation_config.mode == "temperature":
             scene = SceneTemperature(
                 mesh_prop=scenario.mesh_prop,

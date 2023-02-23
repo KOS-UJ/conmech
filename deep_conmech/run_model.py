@@ -19,8 +19,8 @@ from conmech.helpers import cmh, pca
 from conmech.helpers.config import Config, SimulationConfig
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import bunny_fall_3d
-from conmech.solvers.calculator import Calculator
 from conmech.simulations import simulation_runner
+from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
 from deep_conmech.data.calculator_dataset import CalculatorDataset
 from deep_conmech.data.synthetic_dataset import SyntheticDataset
@@ -54,14 +54,15 @@ def get_device_count(config):
 
 def initialize_data(config: TrainingConfig):
     device_count = get_device_count(config)
+
+    train_dataset = get_train_dataset(config.td.dataset, config=config, device_count=device_count)
+    train_dataset.initialize_data()
+
     all_validation_datasets = get_all_val_datasets(
         config=config, rank=0, world_size=1, device_count=device_count  # 1
     )
     for datasets in all_validation_datasets:
         datasets.initialize_data()
-
-    train_dataset = get_train_dataset(config.td.dataset, config=config, device_count=device_count)
-    train_dataset.initialize_data()
 
     return train_dataset, all_validation_datasets
 

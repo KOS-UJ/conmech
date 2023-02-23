@@ -63,9 +63,6 @@ class SceneInput(SceneRandomized):
             simulation_config=simulation_config,
             create_in_subprocess=create_in_subprocess,
         )
-        self.cached_nodes_column = None
-        self.cached_reduced_nodes_column = None
-        self.cached_nodes_multilayer_column = None
 
     @mesh_normalization_decorator
     def get_edges_data(self, directional_edges, reduced=False):
@@ -80,22 +77,17 @@ class SceneInput(SceneRandomized):
             )
 
         if reduced:
-            if self.cached_reduced_nodes_column is None:
-                self.cached_reduced_nodes_column = get_column(scene.input_initial_nodes)
-
             return jnp.hstack(
                 (
-                    self.cached_reduced_nodes_column,  # get_column(scene.input_initial_nodes),
+                    get_column(scene.input_initial_nodes),  # cached
                     get_column(scene.input_displacement_old),
                     get_column(scene.input_velocity_old),
                     get_column(scene.input_forces),
                 )
             )
-        if self.cached_nodes_column is None:
-            self.cached_nodes_column = get_column(scene.input_initial_nodes)
         return jnp.hstack(
             (
-                scene.cached_nodes_column,  # get_column(scene.input_initial_nodes),
+                get_column(scene.input_initial_nodes),
                 get_column(scene.input_forces),
             )
         )
@@ -114,13 +106,9 @@ class SceneInput(SceneRandomized):
                 directional_edges=directional_edges,
             )
 
-        if self.cached_nodes_multilayer_column is None:
-            self.cached_nodes_multilayer_column = get_column(
-                self.reduced.input_forces, self.input_forces
-            )
         return np.hstack(
             (
-                self.cached_nodes_multilayer_column,  # get_column(self.reduced.input_initial_nodes, self.input_initial_nodes),
+                get_column(self.reduced.input_initial_nodes, self.input_initial_nodes),  # cached
                 # get_column(
                 #     displacement_old_sparse,
                 #     displacement_old_dense,

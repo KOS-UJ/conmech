@@ -53,7 +53,7 @@ class Scenario:
             ]
         )
 
-    def get_forces_by_function(self, setting, current_time):
+    def get_forces_by_function(self, scene, current_time):
         if self.forces_function_parameter is not None:
 
             def function(*args):
@@ -61,7 +61,7 @@ class Scenario:
 
         else:
             function = self.forces_function
-        return Scenario.get_by_function(function, setting, current_time)
+        return Scenario.get_by_function(function, scene, current_time)
 
     def get_tqdm(self, desc: str, config: Config):
         return cmh.get_tqdm(
@@ -657,6 +657,7 @@ def bunny_rotate_3d(
     simulation_config: SimulationConfig,
     tag="",
     arg=1.0,
+    scale_forces=5.0,
 ):
     _ = tag
     _ = scale
@@ -670,7 +671,7 @@ def bunny_rotate_3d(
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_rotate_3d,
+        forces_function=lambda *args: f_rotate_3d(*args, scale_forces=scale_forces),
         obstacle=bottom_obstacle_3d,
         forces_function_parameter=arg,
         simulation_config=simulation_config,
@@ -684,6 +685,7 @@ def bunny_swing_3d(
     simulation_config: SimulationConfig,
     tag="",
     arg=1.0,
+    scale_forces=5.0,
 ):
     _, _, _ = scale, tag, arg
     return Scenario(
@@ -696,7 +698,7 @@ def bunny_swing_3d(
         ),
         body_prop=default_body_prop_3d,
         schedule=Schedule(final_time=final_time),
-        forces_function=f_swing_3d,
+        forces_function=lambda *args: f_swing_3d(*args, scale_forces=scale_forces),
         obstacle=bottom_obstacle_3d,
         simulation_config=simulation_config,
     )
@@ -787,6 +789,7 @@ def get_args(td, sc):
         scale=td.train_scale,
         final_time=td.final_time,
         simulation_config=sc,
+        scale_forces=1.0,
     )
 
 

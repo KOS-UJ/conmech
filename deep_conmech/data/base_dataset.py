@@ -382,7 +382,7 @@ class BaseDataset:
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         pass
 
-    def solve_and_prepare_scene(self, scene, forces, energy_functions):
+    def solve_and_prepare_scene(self, scene, forces, energy_functions, reduced_energy_functions):
         scene.prepare(forces)
 
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
@@ -395,7 +395,7 @@ class BaseDataset:
         scene.reduced.exact_acceleration, _ = self.solve_function(
             scene=scene.reduced,
             initial_a=scene.reduced.exact_acceleration,
-            energy_functions=energy_functions,
+            energy_functions=reduced_energy_functions,
         )
         # lifted vs exact !#
         # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
@@ -420,6 +420,16 @@ class BaseDataset:
     def _getitem_jax(self, index: int):
         def get_list(index):
             graph_data = self.get_features_and_targets_data(index)
+
+            # # Sparse
+            # graph_data.layer_list[0].edge_attr[:,-4:] = 0. # forces # shape = 4
+
+            # # Dense
+            # graph_data.layer_list[1].edge_attr[:,-4:] = 0. # forces # shape = 16
+
+            # # Multilayer edges
+            # graph_data.layer_list[1].edge_attr_to_down[:, -4:] = 0. # forces
+
             return [graph_data.layer_list, graph_data.target_data]
 
         if self.item_fn:
