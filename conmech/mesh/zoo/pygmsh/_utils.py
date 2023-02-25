@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.data.interpolation_helpers import interpolate_nodes
+from conmech.mesh.utils import interpolate_nodes
 
 
 def get_random_corner_data():
