@@ -32,6 +32,6 @@ class Circle(RawMesh):
                 [mesh_prop.scale_x / 2.0, mesh_prop.scale_y / 2.0],
                 mesh_prop.scale_x / 2.0,
             )
-        _utils.set_mesh_size(geom, mesh_prop)
-        nodes, elements = _utils.get_nodes_and_elements(geom, 2)
+            _utils.set_mesh_size(geom, mesh_prop)
+            nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)

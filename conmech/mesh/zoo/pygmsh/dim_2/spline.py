@@ -40,6 +40,6 @@ class Spline(RawMesh):
 
             curve_loop = geom.add_curve_loop([s_1, s_2])
             geom.add_plane_surface(curve_loop)
-        _utils.set_mesh_size(geom, mesh_prop)
-        nodes, elements = _utils.get_nodes_and_elements(geom, 2)
+            _utils.set_mesh_size(geom, mesh_prop)
+            nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)
