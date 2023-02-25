@@ -24,7 +24,7 @@ from conmech.mesh.zoo import MeshZOO
 from conmech.properties.mesh_properties import MeshProperties
 
 
-@MeshZOO.register("rectangle", "rectangle_2d", "meshzoo_rectangle_2d")
+@MeshZOO.register("rectangle", "rectangle_2d", "meshzoo_rectangle", "meshzoo_rectangle_2d")
 class Rectangle(RawMesh):
     def __init__(self, mesh_prop: MeshProperties):
         # pylint: disable=no-member

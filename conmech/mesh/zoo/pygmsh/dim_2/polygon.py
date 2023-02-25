@@ -36,6 +36,6 @@ class Polygon(RawMesh):
                     [mesh_prop.scale_x * 0.1 / 1.4, mesh_prop.scale_y * 0.9 / 1.4],
                 ]
             )
-        _utils.set_mesh_size(geom, mesh_prop)
-        nodes, elements = _utils.get_nodes_and_elements(geom, 2)
+            _utils.set_mesh_size(geom, mesh_prop)
+            nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)

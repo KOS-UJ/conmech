@@ -51,5 +51,5 @@ class Twist(RawMesh):
             )
             _utils.set_mesh_size(geom, mesh_prop)
             nodes, elements = _utils.get_nodes_and_elements(geom, 3)
-        nodes = _utils.normalize_nodes(nodes)
+            nodes = _utils.normalize_nodes(nodes)
         super().__init__(nodes, elements)
