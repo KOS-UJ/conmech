@@ -4,7 +4,6 @@ import numpy as np
 
 import deep_conmech.data.interpolation_helpers as interpolation_helpers
 from conmech.helpers import cmh, nph, pkh
-from conmech.mesh.mesh_builders_helpers import get_random_corner_data
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
@@ -13,6 +12,10 @@ from deep_conmech.data import base_dataset
 from deep_conmech.data.base_dataset import BaseDataset
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
+
+
+def get_random_corner_data():
+    return np.random.rand(4).reshape(-1, 1)
 
 
 def generate_mesh_type(config: TrainingConfig):

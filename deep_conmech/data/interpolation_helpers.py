@@ -3,6 +3,7 @@ import random
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.mesh.utils import interpolate_nodes
 
 
 def decide(scale):
@@ -41,18 +42,6 @@ def scale_nodes_to_square(nodes):
     nodes_max = np.max(nodes, axis=0)
     scaled_nodes = (nodes - nodes_min) / (nodes_max - nodes_min)
     return scaled_nodes
-
-
-def interpolate_nodes(scaled_nodes, corner_vectors):
-    input_dim = scaled_nodes.shape[-1]
-    output_dim = corner_vectors.shape[-1]
-    values = np.zeros((scaled_nodes.shape[0], output_dim))
-    for i in range(input_dim):
-        coordinate_i = scaled_nodes[..., [i]]
-        values += (
-            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + input_dim]
-        ) / input_dim
-    return values
 
 
 def get_nodes_interpolation(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):
