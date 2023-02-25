@@ -22,6 +22,8 @@ class Drawer:
         self.deformed_mesh_color = "k"
         self.original_mesh_color = "0.7"
         self.cmap = plt.cm.plasma
+        self.xlabel = None
+        self.ylabel = None
 
     def get_directory(self):
         return f"./output/{self.config.current_time} - DRAWING"
@@ -173,3 +175,7 @@ class Drawer:
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
         fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor")
+        if self.xlabel is not None:
+            plt.xlabel(self.xlabel)
+        if self.ylabel is not None:
+            plt.ylabel(self.ylabel)
