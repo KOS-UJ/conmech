@@ -24,7 +24,7 @@ from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.properties.mesh_properties import MeshProperties
 
 
-@MeshZOO.register("polygon", "polygon_2d", "pygmsh_polygon_2d")
+@MeshZOO.register("polygon", "polygon_2d", "pygmsh_polygon", "pygmsh_polygon_2d")
 class Polygon(RawMesh):
     def __init__(self, mesh_prop: MeshProperties):
         with pygmsh.geo.Geometry() as geom:
