@@ -317,10 +317,12 @@ class Scene(BodyForces):
         return self.denormalize_rotate(acceleration)
 
     @property
+    @mesh_normalization_decorator
     def norm_exact_new_displacement(self):
         return self.to_normalized_displacement(self.exact_acceleration)
 
     @property
+    @mesh_normalization_decorator
     def norm_lifted_new_displacement(self):
         return self.to_normalized_displacement(self.lifted_acceleration)
 

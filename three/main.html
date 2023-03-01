@@ -36,18 +36,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
     <h1>Three.js simulation</h1>
     <h3>Hold Ctrl to move camera</h3>
+    <select id="simulationSelector" onchange="simulationSelected(this.selectedIndex)" class="button"></select>
     <button id="buttonRun" onclick="run()" class="button"></button>
-    <button onclick="speed()" class="button">Change speed</button>
     <button onclick="reload()" class="button">Reload</button>
-    <select id="simulationSelector" onchange="simulationSelected(this.selectedIndex)"
-        class="button"></select>&nbsp;&nbsp;
-    <span id="loadedProgress"></span>
+    <button onclick="speed()" class="button">Change speed</button>
+    <button onclick="toggleNodes()" class="button">Toggle nodes</button>
+    <input type="checkbox" onclick="toggleHiglightNodes()"> Highlight nodes
     <br><br>
     <span id="numNodes">0</span> boundary nodes&nbsp;&nbsp;
     <span id="numSurfaces">0</span> boundary surfaces&nbsp;&nbsp;
     <span id="animationSpeed"></span> speed&nbsp;&nbsp;
+    <span id="nodesMode"></span> mode&nbsp;&nbsp;
     <span id="count"></span>&nbsp;&nbsp;
     <span id="skip"></span>&nbsp;&nbsp;
+    <span id="loadedProgress"></span>
     <span id="animationProgress"></span>&nbsp;&nbsp;
     <span id="error"></span>
 
@@ -71,6 +73,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         // ------------------------------------------------------------------
 
         var paused = false;
+        var highlightNodes = false;
+        var nodesMode = 0;
         var loadedProgress = 0;
         var animationFrameFloat = 0.0;
         var animationSpeed = 1.0;
@@ -84,6 +88,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         var meshes;
         var animationSkip;
         var animationCount;
+        var simulationName;
 
         const fileLoader = new THREE.FileLoader();
         const speedSlow = 0.1;
@@ -94,14 +99,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         }
 
         window.simulationSelected = async (selectedIndex) => {
+            setRunButton(true);
+            simulationName = simulationSelector.value;
+            animationCount = listFile.steps[selectedIndex];
             await loadDataAsync();
+            setRunButton(false);
         }
         window.reload = () => {
             location.reload();
         }
         window.run = () => {
-            paused = !paused;
-            setRunButton();
+            setRunButton(!paused);
         }
         window.speed = () => {
             if (animationSpeed != speedNormal)
@@ -111,16 +119,30 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             // animationSpeed = (animationSpeed % maxSpeed) + step;
             setHtml("animationSpeed", animationSpeed);
         }
+        window.toggleHiglightNodes = async () => {
+            highlightNodes = !highlightNodes;
+            setHtml("nodesMode", nodesMode);
+            await animationStepInnerAsync();
+        }
+        window.toggleNodes = async () => {
+            nodesMode += 1;
+            setHtml("nodesMode", nodesMode);
+            await animationStepInnerAsync();
+        }
 
-        setRunButton();
+
+
+        setRunButton(false);
         setHtml("animationSpeed", animationSpeed);
+        setHtml("nodesMode", nodesMode);
 
         var simulationSelector = document.getElementById('simulationSelector');
         var listFile = await loadFileAsync('./list.json');
-        var simulationNames = listFile.simulations;
-        animationCount = listFile.step;
 
-        for (const simulationName of simulationNames) {
+        simulationName = listFile.simulations[0];
+        animationCount = listFile.steps[0];
+
+        for (const simulationName of listFile.simulations) {
             var opt = document.createElement('option');
             opt.value = simulationName;
             opt.innerHTML = simulationName;
@@ -131,7 +153,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             document.getElementById(label).innerHTML = value;
         }
 
-        function setRunButton() {
+        function setRunButton(new_paused) {
+            paused = new_paused;
             var button = document.getElementById('buttonRun');
             if (paused)
                 button.innerHTML = "Play";
@@ -163,11 +186,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         // ------------------------------------------------------------------
         class Body {
+
+            getNodes(mesh) {
+                nodesMode = nodesMode % mesh.nodes_list.length;
+                setHtml("nodesMode", nodesMode);
+                var nodes = mesh.nodes_list[nodesMode];
+                return nodes;
+            }
+
+
             constructor() {
                 // physics
-                var initial_scene = meshes[0]
-                var nodes = initial_scene.nodes
-                var boundary_surfaces = initial_scene.boundary_surfaces
+                var initialMesh = meshes[0]
+                var nodes = this.getNodes(initialMesh);
+                var boundary_surfaces = initialMesh.boundary_surfaces
 
                 this.numNodes = nodes.length / 3;
                 this.numSurfaces = boundary_surfaces.length / 3;
@@ -189,16 +221,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.surfaceMesh.visible = true;
 
                 /////
-                if (initial_scene.nodes_reduced.length == 0) {
+                if (initialMesh.nodes_reduced.length == 0) {
                     this.pos_reduced = null;
                     this.tetMesh = null;
                 }
                 else {
-                    this.pos_reduced = new Float32Array(initial_scene.nodes_reduced);
+                    this.pos_reduced = new Float32Array(initialMesh.nodes_reduced);
 
                     var geometry = new THREE.BufferGeometry();
                     geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
-                    geometry.setIndex(initial_scene.boundary_edges_reduced);
+                    geometry.setIndex(initialMesh.boundary_edges_reduced);
 
                     var material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
                     this.tetMesh = new THREE.LineSegments(geometry, material);
@@ -215,7 +247,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             }
 
             updateMesh(mesh) {
-                var nodes = mesh.nodes;
+                var nodes = this.getNodes(mesh);
                 var nodes_reduced = mesh.nodes_reduced;
 
                 // this.pos = new Float32Array(nodes);
@@ -313,7 +345,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         // setting up the reader
 
         async function reloadMeshesAsync() {
-            var simulationName = simulationSelector.value;
             meshes = [await loadFileAsync(`${simulationName}/0.json`)];
 
             animationSkip = meshes[0].skip;
@@ -362,22 +393,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             if (animationFrame() % animationSkip != 0)
                 return;
 
-
             loadedProgress = parseInt(animationFrame() / animationCount * 100);
             // setHtml("animationProgress", `${loadedProgress}% frame`);
             setHtml("animationProgress", `${animationFrame()} frame`);
-            var step = (animationFrame() % animationCount) / animationSkip;
-
-            var mesh = meshes[step];
-            body.updateMesh(mesh);
-            rehighlightNodes(mesh.highlighted_nodes);
+            await animationStepInnerAsync();
         }
 
 
-        function rehighlightNodes(nodes) {
-            var radius = 0.015;
-            var segments = 8;
-            var nodesCount = nodes.length / 3;
+        async function animationStepInnerAsync() {
+            var step = parseInt((animationFrame() % animationCount) / animationSkip);
+
+            var mesh = meshes[step];
+            body.updateMesh(mesh);
+            if (highlightNodes)
+                rehighlightNodes(mesh.highlighted_nodes);
+            else
+                clearHighlightNodes();
+        }
+
+        function clearHighlightNodes() {
 
             var oldBallMesh = scene.getObjectByName("ballMesh");
             if (oldBallMesh !== undefined) {
@@ -386,6 +420,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 }
                 scene.remove(oldBallMesh);
             }
+
+
+        }
+
+        function rehighlightNodes(nodes) {
+            var radius = 0.015;
+            var segments = 8;
+            var nodesCount = nodes.length / 3;
+
+            clearHighlightNodes();
 
             if (nodes.length == 0)
                 return;

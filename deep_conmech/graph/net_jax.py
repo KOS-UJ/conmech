@@ -252,6 +252,15 @@ class CustomGraphNetJax(nn.Module):
             receivers_count=node_latents_sparse.shape[0],
         )
 
+        # net_output_sparse = ForwardNet(
+        #     latent_dimension=latent_dimension,
+        #     internal_layer_count=internal_layer_count,
+        #     output_linear_dim=dim,
+        #     layer_norm=False,
+        # )(updated_node_latents_sparse, train=True)
+
+        # return net_output_sparse
+
         updated_node_latents_dense = move_to_dense(
             latent_dimension=latent_dimension,
             node_latents_sparse=updated_node_latents_sparse,

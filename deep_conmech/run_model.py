@@ -294,13 +294,27 @@ def get_all_val_datasets(config: TrainingConfig, rank: int, world_size: int, dev
     return all_val_datasets
 
 
+def get_newest_checkpoint_path_jax(config: TrainingConfig):
+    def get_index_jax(path):
+        return int(path.split("/")[-2].split(" ")[0])
+
+    saved_model_paths = cmh.find_files_by_name(config.output_catalog, "checkpoint_0")
+    if not saved_model_paths:
+        raise ArgumentError("No saved models")
+    
+    newest_index = np.argmax(np.array([get_index_jax(path) for path in saved_model_paths]))
+    path = saved_model_paths[newest_index]
+
+    print(f"Taking saved model {path.split('/')[-2]}")
+    return path
+
+
 def get_newest_checkpoint_path(config: TrainingConfig):
+    if config.use_jax:
+        return get_newest_checkpoint_path_jax(config)
+
     def get_index(path):
         return int(path.split("/")[-1].split(" ")[0])
-
-    if config.use_jax:
-        saved_model_paths = cmh.find_files_by_name(config.output_catalog, "checkpoint_0")
-        return saved_model_paths[-1]
 
     saved_model_paths = cmh.find_files_by_extension(config.output_catalog, "pt")
     if not saved_model_paths:

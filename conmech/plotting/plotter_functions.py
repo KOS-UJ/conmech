@@ -1,10 +1,109 @@
+import json
+import os
 import subprocess
 import sys
 
+from conmech.helpers import cmh
 from conmech.helpers.config import Config
+from conmech.mesh.mesh_builders_3d import get_edges_from_surfaces
 from conmech.plotting import plotter_2d, plotter_3d
 from conmech.plotting.plotter_common import get_t_scale, plt_save
 from conmech.scenarios.scenarios import Scenario
+
+
+def save_three(scene, step, label, folder):
+    # Three.js
+    skip = 5
+    if step % skip != 0:
+        return
+
+    simulation_folder = f"{folder}/{label}"
+    cmh.create_folder(simulation_folder)
+    # if step == 0:
+    #     remove(file_path)
+    #     remove(file_path_tmp)
+
+    file_path = f"{simulation_folder}/{step}.json"
+
+    def convert_to_list(array):
+        return list(array.reshape(-1))
+
+    def get_data(scene, get_edges):
+        nodes = convert_to_list(scene.boundary_nodes)
+        if get_edges:
+            boundary_data = get_edges_from_surfaces(scene.boundaries.boundary_surfaces)
+        else:
+            boundary_data = scene.boundaries.boundary_surfaces
+
+        return nodes, [int(i) for i in boundary_data.reshape(-1)]
+
+    nodes, boundary_surfaces = get_data(scene, get_edges=False)
+    if hasattr(scene, "reduced"):
+        nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
+    else:
+        nodes_reduced, boundary_edges_reduced = [], []
+
+    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
+
+    sn1 = (scene.initial_nodes + scene.norm_exact_new_displacement)[scene.boundary_indices]
+    sn2 = (scene.initial_nodes + scene.to_normalized_displacement(0 * scene.exact_acceleration))[
+        scene.boundary_indices
+    ]
+
+    # sn2 = (
+    #     scene.initial_nodes + scene.to_normalized_displacement_rotated(scene.exact_acceleration)
+    # )[scene.boundary_indices]
+    # sn3 = (
+    #     scene.initial_nodes
+    #     + scene.to_normalized_displacement_rotated_displaced(scene.exact_acceleration)
+    # )[scene.boundary_indices]
+
+    nodes_list = [
+        nodes,
+        convert_to_list(sn1),
+        convert_to_list(sn2),
+    ]  # , convert_to_list(sn2), convert_to_list(sn3)]
+
+    if step == 0:
+        json_dict = {
+            "skip": skip,
+            "step": step,
+            "nodes_list": nodes_list,
+            "boundary_surfaces": boundary_surfaces,
+            "nodes_reduced": nodes_reduced,
+            "boundary_edges_reduced": boundary_edges_reduced,
+            "highlighted_nodes": highlighted_nodes,
+        }
+    else:
+        json_dict = {
+            "skip": skip,
+            "step": step,
+            "nodes_list": nodes_list,
+            "nodes_reduced": nodes_reduced,
+            "highlighted_nodes": highlighted_nodes,
+        }
+
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(json_dict, file)
+
+    # if step == 0:
+    list_path = f"{folder}/list.json"
+    cmh.clear_file(list_path)
+    # all_folders = os.walk(folder)
+    # all_folders.sort(reverse=True)
+    # folder_list = [os.path.basename(folder[0]) for folder in all_folders]
+    folder_list = [f[0] for f in os.walk(folder)][1:]
+    folder_list.sort(reverse=True)
+    simulations_list, step_list = [], []
+    for simulation in folder_list:
+        steps = [int(os.path.splitext(file)[0]) for file in os.listdir(simulation)]
+        if len(steps) > 1:
+            simulations_list.append(os.path.basename(simulation))
+            step_list.append(max(steps))
+
+    # simulations_list = [label]
+    with open(list_path, "w", encoding="utf-8") as file:
+        json.dump({"simulations": simulations_list, "steps": step_list}, file)
 
 
 def plot_using_blender(output: bool = True):

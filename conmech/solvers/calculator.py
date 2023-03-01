@@ -128,23 +128,62 @@ class Calculator:
         with timer["jax_calculator"]:
             scene.reduced.exact_acceleration, _ = Calculator.solve(
                 scene=scene.reduced,
-                energy_functions=energy_functions,
+                energy_functions=energy_functions[0],
                 initial_a=scene.reduced.exact_acceleration,
                 timer=timer,
             )
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         with timer["lower_data"]:
-            new_reduced_displacement = scene.reduced.to_displacement(
+            acceleration_from_displacement = scene.lower_acceleration_from_position(
                 scene.reduced.lifted_acceleration
             )
-            moved_reduced_nodes_new = scene.reduced.initial_nodes + new_reduced_displacement
-
-            moved_nodes_new = scene.lower_data(moved_reduced_nodes_new)
-
-            new_displacement = moved_nodes_new - scene.initial_nodes
-            acceleration_from_displacement = scene.from_displacement(new_displacement)
             return np.array(acceleration_from_displacement), None
+
+    @staticmethod
+    def solve_skinning_backwards(
+        scene: Scene,
+        energy_functions: EnergyFunctions,
+        initial_a,
+        initial_t,
+        timer=Timer(),
+    ):
+        _ = initial_a, initial_t
+
+        with timer["jax_calculator"]:
+            exact_acceleration, _ = Calculator.solve(
+                scene=scene,
+                energy_functions=energy_functions[1],
+                initial_a=scene.exact_acceleration,
+                timer=timer,
+            )
+
+        with timer["lift_data"]:
+            scene.reduced.exact_acceleration = scene.lift_acceleration_from_position(
+                exact_acceleration
+            )
+            scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+
+            return np.array(exact_acceleration), None
+
+    @staticmethod
+    def solve_compare(
+        scene: Scene,
+        energy_functions: EnergyFunctions,
+        initial_a,
+        initial_t,
+        timer=Timer(),
+    ):
+        scene.reduced.exact_acceleration, _ = Calculator.solve(
+            scene=scene.reduced,
+            energy_functions=energy_functions[0],
+            initial_a=scene.reduced.exact_acceleration,
+            timer=timer,
+        )
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        return Calculator.solve(
+            scene=scene, energy_functions=energy_functions[1], initial_a=initial_a
+        )
 
     @staticmethod
     def solve_temperature_normalized_function(

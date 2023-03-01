@@ -4,6 +4,7 @@ from typing import Callable, List, Optional
 import numpy as np
 
 from conmech.helpers import cmh
+from conmech.plotting.plotter_functions import save_three
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
@@ -105,7 +106,7 @@ class ScenariosDataset(BaseDataset):
         tqdm_description = f"Generating data - process {process_id+1}/{num_workers}"
         simulation_data_count = np.sum([s.schedule.episode_steps for s in assigned_scenarios])
         start_index = process_id * simulation_data_count
-        current_index = start_index
+        # current_index = start_index
         step_tqdm = cmh.get_tqdm(
             range(simulation_data_count),
             config=self.config,
@@ -121,24 +122,35 @@ class ScenariosDataset(BaseDataset):
                 scenario = assigned_scenarios[int(index / episode_steps)]
                 scene = self.get_scene(scenario=scenario, config=self.config)
                 energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
-                reduced_energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
+                reduced_energy_functions = EnergyFunctions(
+                    simulation_config=scene.simulation_config
+                )
 
             current_time = ts * scene.time_step
 
             forces = scenario.get_forces_by_function(scene, current_time)
-            scene, acceleration = self.solve_and_prepare_scene(scene, forces, energy_functions, reduced_energy_functions)
+            scene, acceleration = self.solve_and_prepare_scene(
+                scene, forces, energy_functions, reduced_energy_functions
+            )
 
             if self.with_scenes_file:
                 self.safe_save_scene(scene=scene, data_path=self.scenes_data_path)
             else:
                 self.save_features_and_target(scene=scene)
 
-            self.check_and_print(
-                self.data_count, current_index, scene, step_tqdm, tqdm_description, current_time
-            )
-            current_index += 1
+            # self.check_and_print(
+            #     self.data_count, current_index, scene, step_tqdm, tqdm_description, current_time
+            # )
+            # current_index += 1
 
             scene.iterate_self(acceleration)
+
+            save_three(
+                scene=scene,
+                step=index,
+                label=f"{self.config.current_time}_dataset_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
+                folder="./three",
+            )
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

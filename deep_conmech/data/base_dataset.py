@@ -385,26 +385,30 @@ class BaseDataset:
     def solve_and_prepare_scene(self, scene, forces, energy_functions, reduced_energy_functions):
         scene.prepare(forces)
 
-        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
-        #     setting=scene, temperature=None, initial_a=None  # normalized_a
-        # )
-
-        scene.exact_acceleration, _ = self.solve_function(
-            scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
-        )
+        # lifted vs exact !
         scene.reduced.exact_acceleration, _ = self.solve_function(
             scene=scene.reduced,
             initial_a=scene.reduced.exact_acceleration,
             energy_functions=reduced_energy_functions,
         )
-        # lifted vs exact !#
-        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-        # scene.reduced.lifted_acceleration = scene.lift_data(scene.exact_acceleration)  # X
-        displacement_new = scene.to_displacement(scene.exact_acceleration)
-        reduced_displacement_new = scene.lift_data(displacement_new)
-        scene.reduced.lifted_acceleration = scene.reduced.from_displacement(
-            reduced_displacement_new
+
+        # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
+        #     setting=scene, temperature=None, initial_a=None  # normalized_a
+        # )
+        scene.exact_acceleration = scene.lower_acceleration_from_position(
+            scene.reduced.exact_acceleration
         )
+        # scene.lifted_acceleration, _ = self.solve_function(
+        #     scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
+        # )
+
+        scene.lifted_acceleration = scene.exact_acceleration
+
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+
+        # scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
+        #     scene.exact_acceleration
+        # )
 
         return scene, scene.exact_acceleration
 

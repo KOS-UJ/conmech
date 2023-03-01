@@ -174,6 +174,13 @@ def get_interlayer_data_numba(
     with_weights: bool,
     closest_count: int,
 ):
+
+    return interpolate_nodes(
+        base_nodes=base_nodes,
+        base_elements=base_elements,
+        query_nodes=interpolated_nodes
+    )
+
     _ = base_elements
     closest_distances = np.zeros((len(interpolated_nodes), closest_count))
     closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)

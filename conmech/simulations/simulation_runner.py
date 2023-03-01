@@ -9,14 +9,14 @@ from typing import Callable, Optional, Tuple
 from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config
 from conmech.helpers.tmh import Timer
-from conmech.mesh.mesh_builders_3d import get_edges_from_surfaces
 from conmech.plotting import plotter_functions
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.graph.model_jax import GraphModelDynamicJax, get_apply_net, solve
+from deep_conmech.graph import model_jax
+from deep_conmech.graph.model_jax import GraphModelDynamicJax
 from deep_conmech.run_model import get_newest_checkpoint_path
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.scene.scene_layers import SceneLayers
@@ -26,17 +26,20 @@ from deep_conmech.training_config import TrainingConfig
 def get_solve_function(simulation_config):
     if simulation_config.mode == "normal":
         return Calculator.solve
+    if simulation_config.mode == "compare":
+        return Calculator.solve_compare
     if simulation_config.mode == "skinning":
         return Calculator.solve_skinning
+    if simulation_config.mode == "skinning_backwards":
+        return Calculator.solve_skinning_backwards
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
     if simulation_config.mode == "net":
-
         training_config = TrainingConfig(shell=False)
         training_config.sc = simulation_config
         checkpoint_path = get_newest_checkpoint_path(training_config)
         state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
-        return partial(solve, apply_net=get_apply_net(state))
+        return partial(model_jax.solve, apply_net=model_jax.get_apply_net(state))
 
     raise ArgumentError
 
@@ -55,7 +58,7 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
-        elif scenario.simulation_config.mode == "skinning":
+        elif scenario.simulation_config.mode in ["skinning", "skinning_backwards"]:
             scene = SceneLayers(
                 mesh_prop=scenario.mesh_prop,
                 body_prop=scenario.body_prop,
@@ -64,7 +67,7 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
-        elif scenario.simulation_config.mode == "net":
+        elif scenario.simulation_config.mode in ["net", "compare"]:
             randomize = False
             scene = SceneInput(
                 mesh_prop=scenario.mesh_prop,
@@ -140,73 +143,6 @@ class RunScenarioConfig:
     save_all: bool = False
 
 
-def save_three(scene, step, label, folder):
-    # Three.js
-    skip = 5
-    if step % skip != 0:
-        return
-
-    simulation_folder = f"{folder}/{label}"
-    cmh.create_folder(simulation_folder)
-    # if step == 0:
-    #     remove(file_path)
-    #     remove(file_path_tmp)
-
-    file_path = f"{simulation_folder}/{step}.json"
-
-    def convert_to_list(array):
-        return list(array.reshape(-1))
-
-    def get_data(scene, get_edges):
-        nodes = convert_to_list(scene.boundary_nodes)
-        if get_edges:
-            boundary_data = get_edges_from_surfaces(scene.boundaries.boundary_surfaces)
-        else:
-            boundary_data = scene.boundaries.boundary_surfaces
-
-        return nodes, [int(i) for i in boundary_data.reshape(-1)]
-
-    nodes, boundary_surfaces = get_data(scene, get_edges=False)
-    if hasattr(scene, "reduced"):
-        nodes_reduced, boundary_edges_reduced = get_data(scene.reduced, get_edges=True)
-    else:
-        nodes_reduced, boundary_edges_reduced = [], []
-
-    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
-    if step == 0:
-        json_dict = {
-            "skip": skip,
-            "step": step,
-            "nodes": nodes,
-            "boundary_surfaces": boundary_surfaces,
-            "nodes_reduced": nodes_reduced,
-            "boundary_edges_reduced": boundary_edges_reduced,
-            "highlighted_nodes": highlighted_nodes,
-        }
-    else:
-        json_dict = {
-            "skip": skip,
-            "step": step,
-            "nodes": nodes,
-            "nodes_reduced": nodes_reduced,
-            "highlighted_nodes": highlighted_nodes,
-        }
-
-    with open(file_path, "w", encoding="utf-8") as file:
-        json.dump(json_dict, file)
-
-    # if step == 0:
-    list_path = f"{folder}/list.json"
-    cmh.clear_file(list_path)
-    # all_folders = os.walk(f"{folder}/*.json")
-    # all_folders.sort(reverse=True)
-
-    # folder_list = [os.path.basename(folder) for folder in all_folders]
-    simulations_list = [label]
-    with open(list_path, "w", encoding="utf-8") as file:
-        json.dump({"simulations": simulations_list, "step": step}, file)
-
-
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     scene_copy = copy.copy(scene)
     scene_copy.prepare_to_save()
@@ -266,10 +202,10 @@ def run_scenario(
     def operation_save(scene: Scene):
         plot_index = step[0] % ts == 0
         if "three" in config.animation_backend:
-            save_three(
+            plotter_functions.save_three(
                 scene=scene,
                 step=step[0],
-                label=f"{start_time}_{timestamp}_{scene.mesh_prop.mesh_type}",
+                label=f"{start_time}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
                 folder="./three",
             )
         if run_config.save_all or plot_index:
@@ -334,8 +270,10 @@ def print_mesh_data(scene):
 
 def prepare_energy_functions(scenario, scene, solve_function, with_temperature, precompile):
     energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
+    reduced_energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
+
     if not precompile:
-        return energy_functions
+        return [energy_functions, reduced_energy_functions]
 
     print("Precompiling...")  # TODO: Copy can be expensive
     with cmh.HiddenPrints():

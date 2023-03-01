@@ -30,8 +30,10 @@ def main():
     cmh.print_jax_configuration()
 
     # mode = "normal"
-    mode = "skinning"
-    # mode = "net"
+    # mode = "compare"
+    # mode = "skinning"
+    # mode = "skinning_backwards"
+    mode = "net"
 
     simulation_config = SimulationConfig(
         use_normalization=False,
@@ -56,7 +58,7 @@ def main():
         use_pca=True,
         mode=mode,
     )
-    final_time = 2.5
+    final_time = 4  # 2.1
     scale_forces = 5.0
 
     # all_print_scenaros = scenarios.all_print(config.td, config.sc)

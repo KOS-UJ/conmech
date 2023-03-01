@@ -32,6 +32,8 @@ from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
+SCALE = 1e3
+
 
 class ErrorResult:
     value = 0
@@ -91,8 +93,10 @@ class GraphModelDynamicJax:
         ]
 
         train_devices = jax.local_devices()
-        validation_devices_count = self.all_validation_datasets[0].device_count
-        validation_devices = train_devices[:validation_devices_count]
+        validate = len(self.all_validation_datasets) > 0
+        if validate:
+            validation_devices_count = self.all_validation_datasets[0].device_count
+            validation_devices = train_devices[:validation_devices_count]
 
         train_states = initialize_states(
             config=self.config, dataloader=train_dataloader, devices=train_devices
@@ -138,7 +142,7 @@ class GraphModelDynamicJax:
             if self.is_at_skip(self.config.td.save_at_epochs):
                 self.save_checkpoint(states=train_states)
 
-            if self.is_at_skip(self.config.td.validate_at_epochs):
+            if self.is_at_skip(self.config.td.validate_at_epochs) and validate:
                 validation_states = rereplicate_states(train_states, validation_devices)
                 for dataloader in all_valid_dataloaders:
                     _ = self.iterate_dataset(
@@ -257,7 +261,7 @@ class GraphModelDynamicJax:
             if train:
                 self.examples_seen += loss_raport.count  # * self.world_size
 
-            loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main):.4f}"
+            loss_description = f"{tqdm_description} loss: {(mean_loss_raport.main / SCALE):.4f}"
             if batch_id == len(batch_tqdm) - 1:
                 self.save_raport(
                     states=states,
@@ -278,19 +282,24 @@ class GraphModelDynamicJax:
         )
 
     def save_raport(self, states, mean_loss_raport, description: str):
-        state = flax.jax_utils.unreplicate(states)
-        learning_rate = state.opt_state.hyperparams["learning_rate"].item()
         self.logger.writer.add_scalar(
-            f"Loss/{description}/LearningRate",
-            learning_rate,
+            f"Loss/{description}/main",
+            mean_loss_raport.main / SCALE,
             self.examples_seen,
         )
-        for key, value in mean_loss_raport.get_iterator():
-            self.logger.writer.add_scalar(
-                f"Loss/{description}/{key}",
-                value,
-                self.examples_seen,
-            )
+        # state = flax.jax_utils.unreplicate(states)
+        # learning_rate = state.opt_state.hyperparams["learning_rate"].item()
+        # self.logger.writer.add_scalar(
+        #     f"Loss/{description}/LearningRate",
+        #     learning_rate,
+        #     self.examples_seen,
+        # )
+        # for key, value in mean_loss_raport.get_iterator():
+        #     self.logger.writer.add_scalar(
+        #         f"Loss/{description}/{key}",
+        #         value,
+        #         self.examples_seen,
+        #     )
         # self.logger.writer.add_graph(selFf)
 
     def validate_all_scenarios_raport(self):
@@ -330,7 +339,11 @@ class GraphModelDynamicJax:
         ]
         all_target_data = [
             data[d][1].normalized_new_displacement.astype(np.float32) for d in range(devices_count)
-        ]
+        ]  ### NO AS TYPE .astype(np.float32)
+        # all_target_data = [
+        #     data[d][1].reduced_norm_lifted_new_displacement.astype(np.float32)
+        #     for d in range(devices_count)
+        # ]
 
         sharded_targets = jax.device_put_sharded(
             all_target_data, devices
@@ -393,17 +406,22 @@ def rereplicate_states(states, devices):
 
 def convert_to_jax(layer_list, target_data=None):
     for layer in layer_list:
-        layer["x"] = thh.convert_tensor_to_jax(layer["x"])
-        layer.edge_attr = thh.convert_tensor_to_jax(layer.edge_attr)
+        layer["x"] = thh.convert_tensor_to_jax(layer["x"]) * SCALE
+        layer.edge_attr = thh.convert_tensor_to_jax(layer.edge_attr) * SCALE
         layer.edge_index = thh.convert_tensor_to_jax(layer.edge_index)
 
     layer_sparse = layer_list[1]
     layer_sparse.edge_index_to_down = thh.convert_tensor_to_jax(layer_sparse.edge_index_to_down)
-    layer_sparse.edge_attr_to_down = thh.convert_tensor_to_jax(layer_sparse.edge_attr_to_down)
+    layer_sparse.edge_attr_to_down = (
+        thh.convert_tensor_to_jax(layer_sparse.edge_attr_to_down) * SCALE
+    )
     if target_data is None:
         return layer_list
-    target_data.normalized_new_displacement = thh.convert_tensor_to_jax(
-        target_data.normalized_new_displacement
+    target_data.normalized_new_displacement = (
+        thh.convert_tensor_to_jax(target_data.normalized_new_displacement) * SCALE
+    )
+    target_data.reduced_norm_lifted_new_displacement = (
+        thh.convert_tensor_to_jax(target_data.reduced_norm_lifted_new_displacement) * SCALE
     )
     return layer_list, target_data
 
@@ -417,13 +435,12 @@ def solve(
     initial_t,
     timer=Timer(),
 ):
-    # return Calculator.solve(scene=scene, energy_functions=energy_functions, initial_a=initial_a)
     _ = initial_a, initial_t
 
     with timer["jax_calculator"]:
         scene.reduced.exact_acceleration, _ = Calculator.solve(
             scene=scene.reduced,
-            energy_functions=energy_functions,
+            energy_functions=energy_functions[0],
             initial_a=scene.reduced.exact_acceleration,
             timer=timer,
         )
@@ -450,7 +467,8 @@ def solve(
         args = jax.device_put(args, jax.local_devices()[device_number])
 
     with timer["jax_net"]:
-        net_displacement = apply_net(args)
+        net_displacement = apply_net(args) / SCALE
+        # net_displacement = scene.lower_displacement_from_position(net_displacement)
 
     with timer["jax_translation"]:
         # base = scene.moved_base

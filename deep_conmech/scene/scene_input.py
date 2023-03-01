@@ -76,19 +76,20 @@ class SceneInput(SceneRandomized):
                 directional_edges=directional_edges,
             )
 
+        # TODO: Add historical data
         if reduced:
             return jnp.hstack(
                 (
                     get_column(scene.input_initial_nodes),  # cached
-                    get_column(scene.input_displacement_old),
-                    get_column(scene.input_velocity_old),
-                    get_column(scene.input_forces),
+                    # get_column(scene.input_displacement_old),
+                    # get_column(scene.input_velocity_old),
+                    # get_column(scene.input_forces),
                 )
             )
         return jnp.hstack(
             (
                 get_column(scene.input_initial_nodes),
-                get_column(scene.input_forces),
+                # get_column(scene.input_forces),
             )
         )
 
@@ -114,7 +115,7 @@ class SceneInput(SceneRandomized):
                 #     displacement_old_dense,
                 # ),
                 # get_column(velocity_old_sparse, velocity_old_dense),
-                get_column(self.reduced.input_forces, self.input_forces),
+                # get_column(self.reduced.input_forces, self.input_forces),
             )
         )
 
@@ -143,33 +144,46 @@ class SceneInput(SceneRandomized):
         # boundary_volume = self.prepare_node_data(
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
+        # input_forces = prepare_nodes(scene.input_forces)
         if reduced:
-            acceleration = prepare_nodes(
-                scene.normalized_exact_acceleration
-            )  # scene.exact_acceleration
+            # old_displacement = prepare_nodes(
+            #     scene.to_normalized_displacement(0 * scene.exact_acceleration)
+            # )
             new_displacement = prepare_nodes(scene.norm_exact_new_displacement)
             return jnp.hstack(
                 (
-                    acceleration,
+                    # old_displacement,
                     new_displacement,
                     # linear_acceleration,
                     # input_forces,
-                    boundary_normals,
+                    0 * boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
                     # boundary_volume,
                 )
             )
         else:
-            # input_forces = self.prepare_node_data(
-            #     layer_number=layer_number, data=self.input_forces, add_norm=True
-            # )
+            # new_randomized_displacement = self.to_normalized_displacement(0 * self.exact_acceleration) #use old acceleration
+
+            # if self.simulation_config.mode != "net": # TODO: Clean
+            #     def get_random(scale):
+            #         return nph.generate_normal(
+            #             rows=self.nodes_count,
+            #             columns=self.dimension,
+            #             sigma=scale,
+            #         )
+
+            #     randomization = get_random(scale= (scene.time_step**2))
+            #     new_randomized_displacement += randomization
+
             return jnp.hstack(
                 # TODO: Add previous accelerations
                 (
+                    # prepare_nodes(new_randomized_displacement),
+                    # new_displacement,
                     # linear_acceleration,
                     # input_forces,
-                    boundary_normals,
+                    0 * boundary_normals,
                     # boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
@@ -254,18 +268,13 @@ class SceneInput(SceneRandomized):
     def get_target_data(self, to_cpu=False):
         _ = to_cpu
         target_data = TargetData()
-        target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
+        # target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
+        target_data.normalized_new_displacement = thh.to_double(self.norm_lifted_new_displacement)
 
-        target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
-        target_data.normalized_exact_acceleration = thh.to_double(
-            self.normalized_exact_acceleration
-        )
         target_data.reduced_norm_lifted_new_displacement = thh.to_double(
             self.reduced.norm_lifted_new_displacement
         )
-        target_data.reduced_normalized_lifted_acceleration = thh.to_double(
-            self.reduced.normalized_lifted_acceleration
-        )
+        target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
         return target_data
 
     @staticmethod

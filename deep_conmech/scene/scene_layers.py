@@ -144,7 +144,7 @@ class SceneLayers(Scene):
             )
         else:
             from_base = self.get_link(from_mesh=self, to_mesh=reduced_scene, with_weights=True)
-            self.project_sparse_nodes(from_base, reduced_scene)
+            # self.project_sparse_nodes(from_base, reduced_scene)
             to_base = self.get_link(
                 from_mesh=reduced_scene, to_mesh=self, with_weights=True
             )  ### False
@@ -207,6 +207,28 @@ class SceneLayers(Scene):
 
     def lower_data(self, data):
         return self.approximate_boundary_or_all_to_base(layer_number=1, reduced_values=data)
+
+    def lift_acceleration_from_position(self, acceleration):
+        new_displacement = self.to_displacement(acceleration)
+        moved_nodes_new = self.initial_nodes + new_displacement
+
+        moved_reduced_nodes_new = self.lift_data(moved_nodes_new)
+
+        new_reduced_displacement = moved_reduced_nodes_new - self.reduced.initial_nodes
+        reduced_exact_acceleration = self.reduced.from_displacement(new_reduced_displacement)
+        return reduced_exact_acceleration
+
+    def lower_displacement_from_position(self, new_reduced_displacement):
+        moved_reduced_nodes_new = self.reduced.initial_nodes + new_reduced_displacement
+        moved_nodes_new = self.lower_data(moved_reduced_nodes_new)
+        new_displacement = moved_nodes_new - self.initial_nodes
+        return new_displacement
+
+    def lower_acceleration_from_position(self, reduced_acceleration):
+        new_reduced_displacement = self.reduced.to_displacement(reduced_acceleration)
+        new_displacement = self.lower_displacement_from_position(new_reduced_displacement)
+        acceleration_from_displacement = self.from_displacement(new_displacement)
+        return acceleration_from_displacement
 
     def prepare(self, inner_forces: np.ndarray):
         super().prepare(inner_forces)

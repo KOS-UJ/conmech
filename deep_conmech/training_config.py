@@ -9,7 +9,7 @@ from conmech.helpers.config import Config, SimulationConfig
 TEST = False
 DIMENSION = 3
 MESH_LAYERS_PROPORTION = 2  # 2 4 8!
-CLOSEST_COUNT = 3  # 4
+CLOSEST_COUNT = 4  # 3 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
 
@@ -72,7 +72,7 @@ class TrainingData:
     encoder_layers_count: int = 0  # 3
     processor_layers_count: int = 0
     decoder_layers_count: int = 0  # 3
-    message_passes: int = 8  # 10  # 8  # 4 # 3
+    message_passes: int = 4  #  8 10  3
 
 
 @dataclass
@@ -96,7 +96,7 @@ class TrainingConfig(Config):
     )
     loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
 
-    dataset_images_count: Optional[float] = 8  # None
+    dataset_images_count: Optional[float] = None  # 8 None
 
     log_dataset_stats: bool = False
     with_train_scenes_file: bool = False
