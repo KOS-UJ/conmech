@@ -301,7 +301,6 @@ def get_newest_checkpoint_path_jax(config: TrainingConfig):
     saved_model_paths = cmh.find_files_by_name(config.output_catalog, "checkpoint_0")
     if not saved_model_paths:
         raise ArgumentError("No saved models")
-    
     newest_index = np.argmax(np.array([get_index_jax(path) for path in saved_model_paths]))
     path = saved_model_paths[newest_index]
 
@@ -339,7 +338,7 @@ def main(args: Namespace):
         use_linear_solver=False,
         use_green_strain=True,
         use_nonconvex_friction_law=False,
-        use_constant_contact_integral=False,
+        use_constant_contact_integral=False, # True,  # False,
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,

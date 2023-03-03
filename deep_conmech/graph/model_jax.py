@@ -1,7 +1,7 @@
 import gc
 import time
 from functools import partial
-from typing import Callable, List
+from typing import Any, Callable, List
 
 import flax
 import flax.jax_utils
@@ -13,8 +13,8 @@ import optax
 import tensorflow as tf
 import torch
 import torch.utils
-from flax.training import checkpoints
-from flax.training.train_state import TrainState
+from flax.training import checkpoints, train_state
+from jax import lax
 from jax.experimental import jax2tf
 from torch_geometric.data.batch import Data
 
@@ -55,8 +55,8 @@ def get_mean_loss(acceleration, forces, mass_density, boundary_integral):
     )
 
 
-class NetState(TrainState):
-    batch_stats: float
+class TrainState(train_state.TrainState):
+    batch_stats: Any
 
 
 class GraphModelDynamicJax:
@@ -121,6 +121,8 @@ class GraphModelDynamicJax:
 
         while self.config.max_epoch_number is None or self.epoch < self.config.max_epoch_number:
             self.epoch += 1
+
+            train_states = sync_batch_stats(train_states)
 
             def training_fun():
                 return self.iterate_dataset(
@@ -352,9 +354,7 @@ class GraphModelDynamicJax:
         sharded_args = jax.device_put_sharded(all_args, devices)
 
         if train:
-            states, losses = cmh.profile(
-                lambda: apply_model(states, sharded_args, sharded_targets), baypass=True
-            )
+            states, losses = apply_model(states, sharded_args, sharded_targets)
         else:
             losses = apply_model_test(states, sharded_args, sharded_targets)
 
@@ -404,6 +404,11 @@ def rereplicate_states(states, devices):
     return flax.jax_utils.replicate(flax.jax_utils.unreplicate(states), devices)
 
 
+def sync_batch_stats(states):
+    cross_replica_mean = jax.pmap(lambda x: lax.pmean(x, "x"), "x")
+    return states.replace(batch_stats=cross_replica_mean(states.batch_stats))
+
+
 def convert_to_jax(layer_list, target_data=None):
     for layer in layer_list:
         layer["x"] = thh.convert_tensor_to_jax(layer["x"]) * SCALE
@@ -438,13 +443,13 @@ def solve(
     _ = initial_a, initial_t
 
     with timer["jax_calculator"]:
-        scene.reduced.exact_acceleration, _ = Calculator.solve(
+        scene.reduced.lifted_acceleration, _ = Calculator.solve(
             scene=scene.reduced,
             energy_functions=energy_functions[0],
             initial_a=scene.reduced.exact_acceleration,
             timer=timer,
         )
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
 
     # return scene.exact_acceleration, None
 
@@ -471,20 +476,32 @@ def solve(
         # net_displacement = scene.lower_displacement_from_position(net_displacement)
 
     with timer["jax_translation"]:
-        # base = scene.moved_base
-        # position = scene.position
-        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-        base = scene.reduced.get_rotation(reduced_displacement_new)
-        position = np.mean(reduced_displacement_new, axis=0)
+        if True:
+            # base = scene.moved_base
+            # position = scene.position
+            reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+            base = scene.reduced.get_rotation(reduced_displacement_new)
+            position = np.mean(reduced_displacement_new, axis=0)
 
-        new_displacement = scene.get_displacement(
-            base=base, position=position, base_displacement=net_displacement
-        )
+            new_displacement = scene.get_displacement(
+                base=base, position=position, base_displacement=net_displacement
+            )
+            acceleration_from_displacement = scene.from_displacement(new_displacement)
+        else:
+            acceleration_from_displacement = scene.from_normalized_displacement_rotated_displaced(
+                net_displacement
+            )
 
-        acceleration_from_displacement = scene.from_displacement(new_displacement)
-        acceleration_from_displacement = np.array(acceleration_from_displacement)
+            # assert np.abs((net_displacement - scene.to_normalized_displacement_rotated_displaced(
+            #     scene.from_normalized_displacement_rotated_displaced(
+            #     net_displacement)))).max() < 0.1
 
-    return acceleration_from_displacement, None
+            scene.reduced.exact_acceleration = np.array(
+                scene.lift_acceleration_from_position(acceleration_from_displacement)
+            )
+            scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+
+    return np.array(acceleration_from_displacement), None
 
 
 def prepare_input(layer_list):
@@ -517,20 +534,20 @@ def prepare_input(layer_list):
 
 
 def create_train_state(rng, sample_args, learning_rate):
-    params = CustomGraphNetJax().get_params(sample_args, rng)
+    params, batch_stats = CustomGraphNetJax().get_params(sample_args, rng)
     # jax.tree_util.tree_map(lambda x: x.shape, params)  # Checking output shapes
 
     # optimizer = optax.adam(learning_rate=learning_rate)
     optimizer = optax.inject_hyperparams(optax.adam)(learning_rate=learning_rate)
 
     def a_fn(variables, args, train):
-        return CustomGraphNetJax().apply(variables, args, train)
+        return CustomGraphNetJax().apply(variables, args, train, mutable=["batch_stats"])
 
-    return NetState.create(apply_fn=a_fn, params=params, tx=optimizer, batch_stats=None)
+    return TrainState.create(apply_fn=a_fn, params=params, tx=optimizer, batch_stats=batch_stats)
 
 
 def get_apply_net(state):
-    variables = {"params": state["params"]}
+    variables = {"params": state["params"], "batch_stats": state["batch_stats"]}
 
     @jax.jit
     def apply_net(args):
@@ -550,10 +567,18 @@ def RMSE(predicted, exact):
 
 def get_loss_function(states, sharded_args, sharded_targets, train):
     def loss_function(params):
-        variables = {"params": params}
-        sharded_net_result = states.apply_fn(variables, sharded_args, train)
+        variables = {"params": params, "batch_stats": states.batch_stats}
+        sharded_net_result, non_trainable_params = states.apply_fn(variables, sharded_args, train)
         losses = RMSE(sharded_net_result, sharded_targets)
-        return losses
+        new_batch_stats = non_trainable_params["batch_stats"]
+        ###
+        # new_batch_stats = flax.core.frozen_dict.unfreeze(new_batch_stats)
+        # for key in new_batch_stats.keys():
+        #     new_batch_stats[key]['BatchNorm_0']['mean'] = 0.
+        #     new_batch_stats[key]['BatchNorm_0']['var'] = SCALE
+        # new_batch_stats = flax.core.frozen_dict.freeze(new_batch_stats)
+        ###
+        return losses, new_batch_stats
 
     return loss_function
 
@@ -563,19 +588,18 @@ def apply_model_test(states, sharded_args, sharded_targets):
     sharded_args = jax.lax.stop_gradient(sharded_args)
     loss_fn = get_loss_function(states, sharded_args, sharded_targets, train=False)
 
-    losses = loss_fn(states.params)
+    (losses, _) = loss_fn(states.params)
     return losses
 
 
 @partial(jax.pmap, axis_name="models")
 # @partial(jax.jit, static_argnames=("static_args"))
 def apply_model(states, sharded_args, sharded_targets):
-    # TODO: synchronize Batchnorm (when used)
     loss_fn = get_loss_function(states, sharded_args, sharded_targets, train=True)
 
-    losses, grads = jax.value_and_grad(loss_fn)(states.params)
+    (losses, new_batch_stats), grads = jax.value_and_grad(loss_fn, has_aux=True)(states.params)
     grads_pmean = jax.lax.pmean(grads, axis_name="models")
-    states = states.apply_gradients(grads=grads_pmean)
+    states = states.apply_gradients(grads=grads_pmean, batch_stats=new_batch_stats)
     return states, losses
 
 

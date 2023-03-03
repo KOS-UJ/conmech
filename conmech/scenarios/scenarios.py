@@ -796,16 +796,16 @@ def get_args(td, sc):
 def all_train(td, sc):
     args = get_args(td, sc)
     if td.dimension == 3:
-        # data = [
-        #     bunny_fall_3d(
-        #         mesh_density=32,
-        #         scale=1,
-        #         final_time=1.6,
-        #         simulation_config=sc,
-        #         scale_forces=5.0,
-        #     ),
-        # ]
-        # return data
+        data = [
+            bunny_fall_3d(
+                mesh_density=32,
+                scale=1,
+                final_time=1.6,
+                simulation_config=sc,
+                scale_forces=5.0,
+            ),
+        ]
+        return data
         args["final_time"] = 4.0  # 8.0
         data = []
         data.extend([bunny_rotate_3d(**args, arg=a) for a in [-2.0, 2.0]])  # -0.75, 0.75]])
@@ -817,7 +817,28 @@ def all_train(td, sc):
 def all_validation(td, sc):
     args = get_args(td, sc)
     if td.dimension == 3:
-        args["final_time"] = 8.0
+        final_time = 2.0
+        return [
+            [
+                bunny_fall_3d(
+                    mesh_density=32,
+                    scale=1,
+                    final_time=final_time,
+                    simulation_config=sc,
+                    scale_forces=5.0,
+                )
+            ],
+            [
+                bunny_rotate_3d(
+                    mesh_density=32,
+                    scale=1,
+                    final_time=final_time,
+                    simulation_config=sc,
+                    scale_forces=5.0,
+                )
+            ],
+        ]
+        args["final_time"] = 2.0  # 8.0
         return [
             # [bunny_fall_3d(**args)],
             # [bunny_rotate_3d(**args)],

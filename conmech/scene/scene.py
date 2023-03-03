@@ -362,7 +362,6 @@ class Scene(BodyForces):
     @mesh_normalization_decorator
     def to_normalized_displacement_rotated_displaced(self, acceleration):
         displacement_new = self.to_displacement(acceleration)
-
         moved_nodes_new = self.initial_nodes + displacement_new
         new_normalized_nodes = get_in_base(
             (moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
@@ -373,6 +372,16 @@ class Scene(BodyForces):
             self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
         )
         return new_normalized_nodes - self.normalized_initial_nodes
+
+    @mesh_normalization_decorator
+    def from_normalized_displacement_rotated_displaced(self, displacement_new):
+        new_normalized_nodes = displacement_new + self.normalized_initial_nodes
+        moved_nodes_new = self.denormalize_rotate(new_normalized_nodes) + np.mean(
+            self.moved_nodes, axis=0
+        )
+        displacement_new = moved_nodes_new - self.initial_nodes
+        acceleration = self.from_displacement(displacement_new)
+        return acceleration
 
     def get_last_displacement_step(self):
         return self.displacement_old - self.time_step * self.velocity_old

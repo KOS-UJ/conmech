@@ -144,15 +144,14 @@ class SceneInput(SceneRandomized):
         # boundary_volume = self.prepare_node_data(
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
-        # input_forces = prepare_nodes(scene.input_forces)
+        input_forces = prepare_nodes(scene.input_forces)
         if reduced:
-            # old_displacement = prepare_nodes(
-            #     scene.to_normalized_displacement(0 * scene.exact_acceleration)
-            # )
             new_displacement = prepare_nodes(scene.norm_exact_new_displacement)
+            # new_displacement = prepare_nodes(
+            #     scene.to_normalized_displacement_rotated_displaced(scene.lifted_acceleration)
+            # )
             return jnp.hstack(
                 (
-                    # old_displacement,
                     new_displacement,
                     # linear_acceleration,
                     # input_forces,
@@ -270,6 +269,9 @@ class SceneInput(SceneRandomized):
         target_data = TargetData()
         # target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
         target_data.normalized_new_displacement = thh.to_double(self.norm_lifted_new_displacement)
+        # target_data.normalized_new_displacement = thh.to_double(
+        #     self.to_normalized_displacement_rotated_displaced(self.lifted_acceleration)
+        # )
 
         target_data.reduced_norm_lifted_new_displacement = thh.to_double(
             self.reduced.norm_lifted_new_displacement

@@ -26,6 +26,7 @@ class ForwardNet(nn.Module):
     internal_layer_count: int
     output_linear_dim: Optional[int] = None
     layer_norm: bool = True
+    input_batch_norm: bool = False
 
     @nn.compact
     def __call__(self, x, train):
@@ -37,9 +38,9 @@ class ForwardNet(nn.Module):
             return jax.random.uniform(key, shape, dtype, -1) / jnp.sqrt(x.shape[1])  # shape[0]
             # bias gets 64 features after linear layer (64) instead of input featureas (128)
 
-        _ = train
-        # if self.batch_norm:
-        #     x = nn.BatchNorm(use_running_average=not train)(x)
+        # _ = train
+        if self.input_batch_norm:
+            x = nn.BatchNorm(use_running_average=not train, momentum = 0.9, epsilon = 1e-8)(x)
         for _ in range(self.internal_layer_count):
             x = nn.Dense(
                 features=self.latent_dimension, kernel_init=kernel_init, bias_init=bias_init
@@ -192,14 +193,20 @@ class GraphNetArguments(NamedTuple):
 class CustomGraphNetJax(nn.Module):
     @nn.compact
     def __call__(self, args: GraphNetArguments, train: bool):
-        _ = train
         latent_dimension = 64
         internal_layer_count = 1
-        message_passes = 8
+        message_passes_sparse = 12  # 8
+        message_passes_dense = 12 # 0  # 8
         dim = 3
+        input_batch_norm = False  # True
 
         def propagate_messages(
-            latent_dimension, node_latents, edge_latents, edge_index, receivers_count
+            latent_dimension,
+            node_latents,
+            edge_latents,
+            edge_index,
+            receivers_count,
+            message_passes,
         ):
             for _ in range(message_passes):
                 node_latents, edge_latents = ProcessorLayer(
@@ -225,24 +232,34 @@ class CustomGraphNetJax(nn.Module):
             return updated_node_latents_dense
 
         node_latents_sparse = ForwardNet(
-            latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
-        )(args.sparse_x, train=True)
+            latent_dimension=latent_dimension,
+            internal_layer_count=internal_layer_count,
+            input_batch_norm=input_batch_norm,
+        )(args.sparse_x, train=train)
 
         edge_latents_sparse = ForwardNet(
-            latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
-        )(args.sparse_edge_attr, train=True)
+            latent_dimension=latent_dimension,
+            internal_layer_count=internal_layer_count,
+            input_batch_norm=input_batch_norm,
+        )(args.sparse_edge_attr, train=train)
 
         edge_latents_to_dense = ForwardNet(
-            latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
-        )(args.multilayer_edge_attr, train=True)
+            latent_dimension=latent_dimension,
+            internal_layer_count=internal_layer_count,
+            input_batch_norm=input_batch_norm,
+        )(args.multilayer_edge_attr, train=train)
 
         node_latents_dense = ForwardNet(
-            latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
-        )(args.dense_x, train=True)
+            latent_dimension=latent_dimension,
+            internal_layer_count=internal_layer_count,
+            input_batch_norm=input_batch_norm,
+        )(args.dense_x, train=train)
 
         edge_latents_dense = ForwardNet(
-            latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
-        )(args.dense_edge_attr, train=True)
+            latent_dimension=latent_dimension,
+            internal_layer_count=internal_layer_count,
+            input_batch_norm=input_batch_norm,
+        )(args.dense_edge_attr, train=train)
 
         updated_node_latents_sparse = node_latents_sparse + propagate_messages(
             latent_dimension=latent_dimension,
@@ -250,6 +267,7 @@ class CustomGraphNetJax(nn.Module):
             edge_latents=edge_latents_sparse,
             edge_index=args.sparse_edge_index,
             receivers_count=node_latents_sparse.shape[0],
+            message_passes=message_passes_sparse,
         )
 
         # net_output_sparse = ForwardNet(
@@ -275,6 +293,7 @@ class CustomGraphNetJax(nn.Module):
             edge_latents=edge_latents_dense,
             edge_index=args.dense_edge_index,
             receivers_count=updated_node_latents_dense.shape[0],
+            message_passes=message_passes_dense,
         )
 
         net_output_dense = ForwardNet(
@@ -284,9 +303,10 @@ class CustomGraphNetJax(nn.Module):
             layer_norm=False,
         )(updated_node_latents_dense, train=True)
 
-        return net_output_dense
+        batch_dummy = nn.BatchNorm(use_running_average=not train)(net_output_dense)
+        return net_output_dense + 0 * batch_dummy
 
     def get_params(self, sample_args, init_rng):
         rngs_dict = {"params": init_rng}
         variables = self.init(rngs_dict, sample_args, train=False)
-        return variables["params"]  # , variables["batch_stats"]
+        return variables["params"], variables["batch_stats"]

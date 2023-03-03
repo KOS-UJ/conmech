@@ -40,7 +40,7 @@ def main():
         use_linear_solver=False,
         use_green_strain=True,
         use_nonconvex_friction_law=False,
-        use_constant_contact_integral=False,
+        use_constant_contact_integral=False,  # True
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,
