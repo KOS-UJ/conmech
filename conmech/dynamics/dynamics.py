@@ -80,6 +80,7 @@ class Dynamics(BodyPosition):
         self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
+        self.long_memory: np.ndarray
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
         self.piezoelectricity: np.ndarray
@@ -101,6 +102,7 @@ class Dynamics(BodyPosition):
             self.acceleration_operator,
             self.elasticity,
             self.viscosity,
+            self.long_memory,
             self.thermal_expansion,
             self.thermal_conductivity,
             self.piezoelectricity,
