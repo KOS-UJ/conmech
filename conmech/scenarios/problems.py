@@ -122,6 +122,14 @@ class PiezoelectricTimeDependent(TimeDependent, ABC):
         return np.zeros_like(len(x))
 
 
+class LongMemoryQuasistaticProblem(Quasistatic, ABC):
+    long_memory: np.ndarray
+
+    @staticmethod
+    def initial_absement(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
+
+
 class TemperatureDynamic(Dynamic, TemperatureTimeDependent, ABC):
     pass
 

@@ -6,6 +6,7 @@ import numpy as np
 
 @dataclass
 class Variables:
+    absement: Optional[np.ndarray] = None  # https://en.wikipedia.org/wiki/Absement
     displacement: Optional[np.ndarray] = None
     velocity: Optional[np.ndarray] = None
     temperature: Optional[np.ndarray] = None
@@ -72,9 +73,26 @@ class StaticDisplacementStatement(Statement):
         self.right_hand_side = self.body.get_integrated_forces_vector()
 
 
+class QuasistaticLongMemoryStatement(Statement):
+    def __init__(self, body):
+        super().__init__(body, 2)
+
+    def update_left_hand_side(self, var: Variables):
+        assert var.time_step is not None
+
+        self.left_hand_side = self.body.elasticity.copy() + self.body.long_memory * var.time_step
+
+    def update_right_hand_side(self, var: Variables):
+        assert var.absement is not None
+
+        self.right_hand_side = (
+                self.body.get_integrated_forces_vector() - self.body.long_memory @ var.absement.T
+        )
+
+
 class QuasistaticVelocityStatement(Statement):
-    def __init__(self, dynamics):
-        super().__init__(dynamics, 2)
+    def __init__(self, body):
+        super().__init__(body, 2)
 
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
@@ -90,8 +108,8 @@ class QuasistaticVelocityStatement(Statement):
 
 
 class DynamicVelocityStatement(Statement):
-    def __init__(self, dynamics):
-        super().__init__(dynamics, 2)
+    def __init__(self, body):
+        super().__init__(body, 2)
 
     def update_left_hand_side(self, var):
         assert var.time_step is not None
@@ -126,8 +144,8 @@ class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):
 
 
 class TemperatureStatement(Statement):
-    def __init__(self, dynamics):
-        super().__init__(dynamics, 1)
+    def __init__(self, body):
+        super().__init__(body, 1)
 
     def update_left_hand_side(self, var):
         assert var.time_step is not None
@@ -149,12 +167,11 @@ class TemperatureStatement(Statement):
 
         rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
         self.right_hand_side = rhs
-        # self.right_hand_side = self.inner_temperature.F[:, 0] + Q1 - C2Xv - C2Yv  # TODO #50
 
 
 class PiezoelectricStatement(Statement):
-    def __init__(self, dynamics):
-        super().__init__(dynamics, 1)
+    def __init__(self, body):
+        super().__init__(body, 1)
         self.dirichlet_cond_name = "piezo_" + self.dirichlet_cond_name
 
     def update_left_hand_side(self, var):

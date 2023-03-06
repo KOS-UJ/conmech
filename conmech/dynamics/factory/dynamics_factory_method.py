@@ -49,6 +49,12 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
         else None
     )
 
+    long_memory = (  # TODO
+        factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
+        if isinstance(body_prop, TimeDependentBodyProperties)
+        else None
+    )
+
     acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
 
     if isinstance(body_prop, TemperatureBodyProperties):
@@ -73,6 +79,7 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
         acceleration_operator,
         elasticity,
         viscosity,
+        long_memory,
         thermal_expansion,
         thermal_conductivity,
         piezoelectricity,
