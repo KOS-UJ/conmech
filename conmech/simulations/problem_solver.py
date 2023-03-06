@@ -14,20 +14,19 @@ from conmech.dynamics.statement import (
     PiezoelectricStatement,
     DynamicVelocityStatement,
     QuasistaticVelocityWithPiezoelectricStatement,
-    Variables, QuasistaticLongMemoryStatement,
+    Variables, QuasistaticRelaxationStatement,
 )
 from conmech.properties.body_properties import (
-    TimeDependentTemperatureBodyProperties,
     BodyProperties,
-    TimeDependentBodyProperties,
-    StaticBodyProperties,
-    TimeDependentPiezoelectricBodyProperties,
+    ElasticProperties,
+    ViscoelasticProperties, ElasticRelaxationProperties, ViscoelasticPiezoelectricProperties,
+    ViscoelasticTemperatureProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     Dynamic as DynamicProblem,
-    TimeDependent as TimeDependentProblem, LongMemoryQuasistaticProblem,
+    TimeDependent as TimeDependentProblem, RelaxationQuasistaticProblem,
 )
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
@@ -76,9 +75,8 @@ class ProblemSolver:
                 with_schur=False,
             ),
         )
-        self.body.set_permanent_forces_by_functions(
-            inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces
-        )
+        self.body.inner_forces = setup.inner_forces
+        self.body.outer_forces = setup.outer_forces
         self.setup = setup
 
         self.coordinates = None
@@ -101,12 +99,12 @@ class ProblemSolver:
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             if isinstance(self.setup, PiezoelectricQuasistaticProblem):
                 statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
-            elif isinstance(self.setup, QuasistaticProblem):
-                statement = QuasistaticVelocityStatement(self.body)
+            elif isinstance(self.setup, RelaxationQuasistaticProblem):
+                statement = QuasistaticRelaxationStatement(self.body)
             elif isinstance(self.setup, TemperatureDynamicProblem):
                 statement = DynamicVelocityWithTemperatureStatement(self.body)
-            elif isinstance(self.setup, LongMemoryQuasistaticProblem):
-                statement = QuasistaticLongMemoryStatement(self.body)
+            elif isinstance(self.setup, QuasistaticProblem):  # This have to be last
+                statement = QuasistaticVelocityStatement(self.body)
             else:
                 statement = DynamicVelocityStatement(self.body)
             time_step = self.setup.time_step
@@ -210,6 +208,7 @@ class ProblemSolver:
                     temperature=solution_t,
                     electric_potential=solution_t,
                     time_step=self.step_solver.time_step,
+                    time=self.step_solver.current_time,
                 )
             )
             if isinstance(self.step_solver, SchurComplement):
@@ -276,7 +275,7 @@ class Static(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = StaticBodyProperties(
+        body_prop = ElasticProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -305,19 +304,18 @@ class Static(ProblemSolver):
         return state
 
 
-class TimeDependentLongMemory(ProblemSolver):
-    def __init__(self, setup: TimeDependentProblem, solving_method: str):
+class QuasistaticRelaxation(ProblemSolver):
+    def __init__(self, setup: RelaxationQuasistaticProblem, solving_method: str):
         """Solves general Contact Mechanics problem.
 
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = TimeDependentBodyProperties(
+        body_prop = ElasticRelaxationProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
-            theta=setup.th_coef,
-            zeta=setup.ze_coef,
+            relaxation=setup.relaxation,
         )
         super().__init__(setup, body_prop)
 
@@ -379,7 +377,7 @@ class TimeDependent(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = TimeDependentBodyProperties(
+        body_prop = ViscoelasticProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -447,7 +445,7 @@ class TemperatureTimeDependent(ProblemSolver):
         :param solving_method: 'schur', 'optimization', 'direct'
         """
 
-        body_prop = TimeDependentTemperatureBodyProperties(
+        body_prop = ViscoelasticTemperatureProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -541,7 +539,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = TimeDependentPiezoelectricBodyProperties(
+        body_prop = ViscoelasticPiezoelectricProperties(
             mass_density=0.1,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,

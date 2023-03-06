@@ -5,8 +5,8 @@ import numpy as np
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
 from conmech.properties.body_properties import (
-    TimeDependentBodyProperties,
-    TimeDependentTemperatureBodyProperties,
+    ViscoelasticTemperatureProperties,
+    ViscoelasticProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import (
@@ -25,7 +25,7 @@ class Scenario:
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: TimeDependentBodyProperties,
+        body_prop: ViscoelasticProperties,
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
         obstacle: Obstacle,
@@ -102,7 +102,7 @@ class TemperatureScenario(Scenario):
         self,
         name: str,
         mesh_prop: MeshProperties,
-        body_prop: TimeDependentTemperatureBodyProperties,
+        body_prop: ViscoelasticProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
         obstacle: Obstacle,
@@ -146,7 +146,7 @@ class TemperatureScenario(Scenario):
 
 default_schedule = Schedule(time_step=0.01, final_time=4.0)
 
-default_body_prop = TimeDependentBodyProperties(
+default_body_prop = ViscoelasticProperties(
     mu=4.0, lambda_=4.0, theta=4.0, zeta=4.0, mass_density=1.0
 )
 # body_prop = DynamicBodyProperties(mu=0.01, lambda_=0.01, theta=0.01, zeta=0.01, mass_density=0.01)
@@ -157,7 +157,7 @@ default_thermal_expansion_coefficients = np.array(
 default_thermal_conductivity_coefficients = np.array(
     [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
 )
-default_temp_body_prop = TimeDependentTemperatureBodyProperties(
+default_temp_body_prop = ViscoelasticTemperatureProperties(
     mass_density=1.0,
     mu=4.0,
     lambda_=4.0,
@@ -186,7 +186,7 @@ obstacle_mesh_prop = [
 
 
 def get_temp_body_prop(thermal_expansion_coeff, thermal_conductivity_coeff):
-    return TimeDependentTemperatureBodyProperties(
+    return ViscoelasticTemperatureProperties(
         mass_density=1.0,
         mu=4.0,
         lambda_=4.0,

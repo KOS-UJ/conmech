@@ -12,6 +12,7 @@ class Variables:
     temperature: Optional[np.ndarray] = None
     electric_potential: Optional[np.ndarray] = None
     time_step: Optional[float] = None
+    time: Optional[float] = None
 
 
 class Statement:
@@ -70,23 +71,25 @@ class StaticDisplacementStatement(Statement):
         self.left_hand_side = self.body.elasticity.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.get_integrated_forces_vector()
+        self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
 
 
-class QuasistaticLongMemoryStatement(Statement):
+class QuasistaticRelaxationStatement(Statement):
     def __init__(self, body):
         super().__init__(body, 2)
 
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
-        self.left_hand_side = self.body.elasticity.copy() + self.body.long_memory * var.time_step
+        self.left_hand_side = self.body.elasticity.copy() + self.body.relaxation * var.time_step
 
     def update_right_hand_side(self, var: Variables):
         assert var.absement is not None
+        assert var.time is not None
 
         self.right_hand_side = (
-                self.body.get_integrated_forces_vector() - self.body.long_memory @ var.absement.T
+                self.body.get_integrated_forces_vector(t=var.time)
+                - self.body.relaxation @ var.absement.T
         )
 
 
@@ -101,9 +104,11 @@ class QuasistaticVelocityStatement(Statement):
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
+        assert var.time is not None
 
         self.right_hand_side = (
-            self.body.get_integrated_forces_vector() - self.body.elasticity @ var.displacement.T
+            self.body.get_integrated_forces_vector(time=var.time)
+            - self.body.elasticity @ var.displacement.T
         )
 
 
@@ -124,12 +129,13 @@ class DynamicVelocityStatement(Statement):
         assert var.displacement is not None
         assert var.velocity is not None
         assert var.time_step is not None
+        assert var.time is not None
 
         A = -1 * self.body.elasticity @ var.displacement
 
         A += (1 / var.time_step) * self.body.acceleration_operator @ var.velocity
 
-        self.right_hand_side = self.body.get_integrated_forces_vector() + A
+        self.right_hand_side = self.body.get_integrated_forces_vector(time=var.time) + A
 
 
 class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):

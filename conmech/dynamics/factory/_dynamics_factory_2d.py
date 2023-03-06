@@ -109,6 +109,13 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
         return np.block([[A_11, A_12], [A_21, A_22]])
 
+    def get_relaxation_tensor(self, W, coeff):
+        A_11 = coeff[0][0][0] * W[0, 0] + coeff[0][1][1] * W[1, 1]
+        A_12 = coeff[0][1][0] * W[1, 0] + coeff[0][0][1] * W[0, 1]
+        A_21 = coeff[1][1][0] * W[1, 0] + coeff[1][0][1] * W[0, 1]
+        A_22 = coeff[1][0][0] * W[0, 0] + coeff[1][1][1] * W[1, 1]
+        return np.block([[A_11, A_12], [A_21, A_22]])
+
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
         return density * np.block([[U, Z], [Z, U]])

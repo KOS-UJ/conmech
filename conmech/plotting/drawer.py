@@ -7,6 +7,7 @@ Created at 21.08.2019
 
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
@@ -14,6 +15,10 @@ from conmech.helpers.config import Config
 
 class Drawer:
     def __init__(self, state, config: Config):
+        """
+
+        outer_forces_scale: if >0 draw outer forces vectors with length scaled by outer_forces_scale
+        """
         self.state = state
         self.config = config
         self.mesh = state.body.mesh
@@ -21,7 +26,12 @@ class Drawer:
         self.line_width = self.node_size / 2
         self.deformed_mesh_color = "k"
         self.original_mesh_color = "0.7"
+        self.outer_forces_scale = 0
         self.cmap = plt.cm.plasma
+        self.x_min = None
+        self.x_max = None
+        self.y_min = None
+        self.y_max = None
         self.xlabel = None
         self.ylabel = None
 
@@ -40,24 +50,28 @@ class Drawer:
     ):
         fig, axes = fig_axes or plt.subplots()
 
-        x_min = min(
-            min(self.state.body.mesh.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
-        )
-        x_max = max(
-            max(self.state.body.mesh.initial_nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
-        )
-        dx = x_max - x_min
+        if self.x_min is None:
+            self.x_min = min(
+                min(self.state.body.mesh.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
+            )
+        if self.x_max is None:
+            self.x_max = max(
+                max(self.state.body.mesh.initial_nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
+            )
+        dx = self.x_max - self.x_min
         x_margin = dx * 0.2
-        xlim = (x_min - x_margin, x_max + x_margin)
-        y_min = min(
-            min(self.state.body.mesh.initial_nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
-        )
-        y_max = max(
-            max(self.state.body.mesh.initial_nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
-        )
-        dy = y_max - y_min
+        xlim = (self.x_min - x_margin, self.x_max + x_margin)
+        if self.y_min is None:
+            self.y_min = min(
+                min(self.state.body.mesh.initial_nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
+            )
+        if self.y_max is None:
+            self.y_max = max(
+                max(self.state.body.mesh.initial_nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
+            )
+        dy = self.y_max - self.y_min
         y_margin = dy * 0.2
-        ylim = (y_min - y_margin, y_max + y_margin)
+        ylim = (self.y_min - y_margin, self.y_max + y_margin)
 
         axes.fill_between(xlim, [ylim[0], ylim[0]], color="blue", alpha=0.25)
         axes.set_xlim(*xlim)
@@ -93,6 +107,13 @@ class Drawer:
             edges=self.mesh.dirichlet_boundary, nodes=nodes, axes=axes, edge_color="r"
         )
         self.draw_boundary(edges=self.mesh.neumann_boundary, nodes=nodes, axes=axes, edge_color="g")
+
+        if self.outer_forces_scale:
+            neumann_nodes = self.state.body.mesh.neumann_boundary
+            neumann_nodes = list(set(neumann_nodes.flatten()))
+            x = self.state.body.mesh.initial_nodes[neumann_nodes]
+            v = self.state.body.node_outer_forces[neumann_nodes] * self.outer_forces_scale
+            axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1])
 
         # turns on axis, since networkx turn them off
         plt.axis("on")
@@ -171,10 +192,17 @@ class Drawer:
             vmax=v_max,
         )
 
-        # cbar_ax = f.add_axes([0.875, 0.15, 0.025, 0.6])
+        # cbar_ax = fig.add_axes([0.875, 0.15, 0.025, 0.6])
+        # ax_pos = axes.get_position()
+        # cax = fig.add_axes(
+        #     [axes.get_position().x0, axes.get_position().y0 * 0, axes.get_position().width, axes.get_position().height * 0.05])
+
+        # from mpl_toolkits.axes_grid1 import make_axes_locatable
+        # divider = make_axes_locatable(axes)
+        # cax = divider.append_axes("bottom", size="5%", pad=0.15)
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor")
+        fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor", ax=axes)
         if self.xlabel is not None:
             plt.xlabel(self.xlabel)
         if self.ylabel is not None:

@@ -33,10 +33,12 @@ class Solver:
 
         self.statement.update(
             Variables(
+                absement=self.b_vector,
                 displacement=self.u_vector,
                 velocity=self.v_vector,
                 temperature=self.t_vector,
                 time_step=self.time_step,
+                time=self.current_time,
                 electric_potential=self.p_vector,
             )
         )
