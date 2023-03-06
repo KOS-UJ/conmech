@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -37,47 +37,59 @@ class BodyForces(Dynamics):
         )
 
         self.inner_forces = None
+        self._node_inner_forces = None
+        self._inner_forces_time = None
         self.outer_forces = None
-
-    def set_permanent_forces_by_functions(
-        self, inner_forces_function: Callable, outer_forces_function: Callable
-    ):
-        self.inner_forces = np.array([inner_forces_function(p) for p in self.moved_nodes])
-        self.outer_forces = np.array([outer_forces_function(p) for p in self.moved_nodes])
+        self._node_outer_forces = None
+        self._outer_forces_time = None
 
     def prepare(self, inner_forces: np.ndarray):
-        self.inner_forces = inner_forces
-        self.outer_forces = np.zeros_like(self.mesh.initial_nodes)
+        self._node_inner_forces = inner_forces
+        self._node_outer_forces = np.zeros_like(self.mesh.initial_nodes)
+        self._inner_forces_time = 0
+        self._outer_forces_time = 0
 
     def clear(self):
-        self.inner_forces = None
-        self.outer_forces = None
+        self._node_inner_forces = None
+        self._node_outer_forces = None
 
-    @property
-    def normalized_inner_forces(self):
-        return self.normalize_rotate(self.inner_forces)
+    def node_inner_forces(self, time: float):
+        # TODO handle set self.inner_forces
+        if time != self._inner_forces_time:
+            self._node_inner_forces = np.array([self.inner_forces(p, time)
+                                               for p in self.moved_nodes])  # TODO: why moved?
+            self._inner_forces_time = time
+        return self._node_inner_forces
 
-    @property
-    def normalized_outer_forces(self):
-        return self.normalize_rotate(self.outer_forces)
+    def node_outer_forces(self, time: float):
+        # TODO handle set self.inner_forces
+        if time != self._outer_forces_time:
+            self._node_outer_forces = np.array([self.outer_forces(p, time)
+                                               for p in self.moved_nodes])  # TODO: should be only on boundary! + why moved
+            self._outer_forces_time = time
+        return self._node_outer_forces
 
-    def get_integrated_inner_forces(self):
-        return self.volume_at_nodes @ self.normalized_inner_forces
+    def normalized_inner_forces(self, time: float = 0):
+        return self.normalize_rotate(self.node_inner_forces(time))
 
-    def get_integrated_outer_forces(self):
+    def get_integrated_inner_forces(self, time):
+        return self.volume_at_nodes @ self.normalized_inner_forces(time)
+
+    def get_integrated_outer_forces(self, time):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.mesh.neumann_boundary,
             considered_nodes_count=self.mesh.nodes_count,
             moved_nodes=self.moved_nodes,
         )
-        return neumann_surfaces * self.outer_forces
+        return neumann_surfaces * self.node_outer_forces(time)
 
-    def get_integrated_forces_column(self):
-        integrated_forces = self.get_integrated_inner_forces() + self.get_integrated_outer_forces()
+    def get_integrated_forces_column(self, time: float):
+        integrated_forces = self.get_integrated_inner_forces(time) \
+                            + self.get_integrated_outer_forces(time)
         return nph.stack_column(integrated_forces[:, :])
 
-    def get_integrated_forces_vector(self):
-        return self.get_integrated_forces_column().reshape(-1)
+    def get_integrated_forces_vector(self, time: float):
+        return self.get_integrated_forces_column(time).reshape(-1)
 
     def get_all_normalized_rhs_np(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_np(temperature)
@@ -99,7 +111,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column()
+        f_vector = self.get_integrated_forces_column(time=0)
         rhs = (
             f_vector
             - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector

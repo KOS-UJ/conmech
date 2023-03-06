@@ -51,11 +51,11 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
         return np.asarray([0.0])
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x, t=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x, t=None):
         return np.array([0, 0])
 
     @staticmethod

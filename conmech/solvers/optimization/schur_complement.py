@@ -174,20 +174,21 @@ class Quasistatic(SchurComplement):
             Variables(
                 displacement=self.u_vector,
                 time_step=self.time_step,
+                time=self.current_time,
                 electric_potential=self.p_vector,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
-@Solvers.register("quasistatic long memory", "schur", "schur complement", "schur complement method")
+@Solvers.register("quasistatic relaxation", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
     def iterate(self):
         self.statement.update(
             Variables(
+                absement=self.b_vector,
                 displacement=self.u_vector,
                 time_step=self.time_step,
-                electric_potential=self.p_vector,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()
@@ -203,6 +204,7 @@ class Dynamic(SchurComplement):
                 temperature=self.t_vector,
                 electric_potential=self.p_vector,
                 time_step=self.time_step,
+                time=self.current_time,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()

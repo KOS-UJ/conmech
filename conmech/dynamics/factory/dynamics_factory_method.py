@@ -2,11 +2,11 @@ import numpy as np
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.properties.body_properties import (
-    TimeDependentBodyProperties,
-    StaticBodyProperties,
+    ViscoelasticProperties,
+    ElasticProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
-    BodyProperties,
+    BodyProperties, ElasticRelaxationProperties,
 )
 
 
@@ -39,19 +39,19 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
 
     elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
-        if isinstance(body_prop, StaticBodyProperties)
+        if isinstance(body_prop, ElasticProperties)
         else None
     )
 
     viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, TimeDependentBodyProperties)
+        if isinstance(body_prop, ViscoelasticProperties)
         else None
     )
 
-    long_memory = (  # TODO
-        factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, TimeDependentBodyProperties)
+    relaxation = (
+        factory.get_relaxation_tensor(W, body_prop.relaxation)
+        if isinstance(body_prop, ElasticRelaxationProperties)
         else None
     )
 
@@ -79,7 +79,7 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
         acceleration_operator,
         elasticity,
         viscosity,
-        long_memory,
+        relaxation,
         thermal_expansion,
         thermal_conductivity,
         piezoelectricity,

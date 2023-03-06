@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.properties.body_properties import TimeDependentBodyProperties
+from conmech.properties.body_properties import ViscoelasticProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -12,7 +12,7 @@ class SceneRandomized(Scene):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: TimeDependentBodyProperties,
+        body_prop: ViscoelasticProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,
@@ -128,8 +128,8 @@ class SceneRandomized(Scene):
 
     @property
     def input_forces(self):
-        return self.normalized_inner_forces
+        return self.normalized_inner_forces()
 
     @property
     def boundary_forces(self):
-        return self.normalized_inner_forces[self.mesh.boundary_indices]
+        return self.normalized_inner_forces()[self.mesh.boundary_indices]

@@ -6,7 +6,7 @@ import torch
 from torch_geometric.data import Data
 
 from conmech.helpers import nph
-from conmech.properties.body_properties import TimeDependentBodyProperties
+from conmech.properties.body_properties import ViscoelasticProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
@@ -123,7 +123,7 @@ class SceneInput(SceneLayers):
     def __init__(
         self,
         mesh_prop: MeshProperties,
-        body_prop: TimeDependentBodyProperties,
+        body_prop: ViscoelasticProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
         normalize_by_rotation: bool,

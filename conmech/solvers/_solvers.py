@@ -2,13 +2,13 @@ from conmech.scenarios.problems import (
     Problem,
     Static as StaticProblem,
     Quasistatic as QuasistaticProblem,
-    LongMemoryQuasistaticProblem,
+    RelaxationQuasistaticProblem,
     Dynamic as DynamicProblem,
 )
 
 
 class Solvers:
-    solvers = {"static": {}, "quasistatic": {}, "quasistatic long memory": {}, "dynamic": {}}
+    solvers = {"static": {}, "quasistatic": {}, "quasistatic relaxation": {}, "dynamic": {}}
 
     @staticmethod
     def register(dynamism: str, *names):
@@ -30,12 +30,12 @@ class Solvers:
 
     @staticmethod
     def get_by_name(solver_name: str, problem: Problem) -> type:
-        if isinstance(problem, StaticProblem):
+        if isinstance(problem, RelaxationQuasistaticProblem):
+            dynamism_type = "quasistatic relaxation"
+        elif isinstance(problem, StaticProblem):
             dynamism_type = "static"
         elif isinstance(problem, QuasistaticProblem):
             dynamism_type = "quasistatic"
-        elif isinstance(problem, LongMemoryQuasistaticProblem):
-            dynamism_type = "quasistatic long memory"
         elif isinstance(problem, DynamicProblem):
             dynamism_type = "dynamic"
         else:
