@@ -173,6 +173,7 @@ class Calculator:
         initial_a,
         initial_t,
         timer=Timer(),
+        reorient_to_reduced=False,
     ):
         scene.reduced.exact_acceleration, _ = Calculator.solve(
             scene=scene.reduced,
@@ -181,9 +182,13 @@ class Calculator:
             timer=timer,
         )
         scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-        return Calculator.solve(
+
+        exact_acceleration, initial_t = Calculator.solve(
             scene=scene, energy_functions=energy_functions[1], initial_a=initial_a
         )
+        if reorient_to_reduced:
+            exact_acceleration = scene.reorient_to_reduced(exact_acceleration)
+        return exact_acceleration, initial_t
 
     @staticmethod
     def solve_temperature_normalized_function(

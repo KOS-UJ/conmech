@@ -240,6 +240,17 @@ class SceneLayers(Scene):
         super().iterate_self(acceleration, temperature)
         self.update_reduced()
 
+    def reorient_to_reduced(self, exact_acceleration):
+        base_displacement = self.to_displacement(exact_acceleration)
+        reduced_displacement_new = self.reduced.to_displacement(self.reduced.exact_acceleration)
+        base = self.reduced.get_rotation(reduced_displacement_new)
+        position = np.mean(reduced_displacement_new, axis=0)
+
+        new_displacement = self.get_displacement(
+            base=base, position=position, base_displacement=base_displacement
+        )
+        return self.from_displacement(new_displacement)
+
     def recenter_reduced_mesh(self):
         displacement = self.reduced.get_displacement(base=self.moved_base, position=self.position)
         self.reduced.set_displacement_old(displacement)

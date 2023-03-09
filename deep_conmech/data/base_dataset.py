@@ -136,6 +136,7 @@ class BaseDataset:
         self.data_file = None
         self.device_count = device_count
         self.item_fn = item_fn
+        self.statistics = None
 
     @property
     def data_size_id(self):
@@ -292,35 +293,57 @@ class BaseDataset:
             self.save_features_and_target(scene)
         return True
 
-    def get_statistics(self, layer_number):
-        dataloader = get_train_dataloader(self, rank=self.rank, world_size=self.world_size)
+    def get_statistics(self):
+        dataloader = get_train_dataloader(self)
 
-        nodes_data = torch.empty((0, SceneInput.get_nodes_data_up_dim(self.dimension)))
-        edges_data = torch.empty((0, SceneInput.get_dense_edges_data_dim(self.dimension)))
-        target_data = torch.empty((0, self.dimension))
+        nodes_data = None
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
-            sparse_layer = graph_data[0][1]  # layer_number
-            nodes_data = torch.cat((nodes_data, sparse_layer.x))
-            edges_data = torch.cat((edges_data, sparse_layer.edge_attr_to_down))  # edge_attr
-            target_data = torch.cat((target_data, graph_data[1].exact_acceleration))
+            assert len(graph_data) == 1
+            example = graph_data[0]
+            dense_layer = example[0][0]
+            sparse_layer = example[0][1]
+            target_layer = example[1]
 
-        nodes_statistics = FeaturesStatistics(
-            nodes_data, SceneInput.get_nodes_data_description_sparse(self.dimension)
-        )
-        edges_statistics = FeaturesStatistics(
-            edges_data, SceneInput.get_edges_data_description(self.dimension)
-        )
-        target_statistics = FeaturesStatistics(
-            target_data, [f"exact_acceleration_{i}" for i in range(self.dimension)]
-        )
+            if nodes_data is None:
+                sparse_nodes_data = sparse_layer.x
+                sparse_edges_data = sparse_layer.edge_attr
+                multilayer_edges_data = sparse_layer.edge_attr_to_down
+                dense_nodes_data = dense_layer.x
+                dense_edges_data = dense_layer.edge_attr
+                target_data = target_layer.normalized_new_displacement
+
+            else:
+                sparse_nodes_data = torch.cat((sparse_nodes_data, sparse_layer.x))
+                sparse_edges_data = torch.cat((sparse_edges_data, sparse_layer.edge_attr_to_down))
+                multilayer_edges_data = torch.cat(
+                    (multilayer_edges_data, sparse_layer.edge_attr_to_down)
+                )
+                dense_nodes_data = torch.cat((dense_nodes_data, dense_layer.x))
+                dense_edges_data = torch.cat((dense_edges_data, dense_layer.edge_attr))
+                target_data = torch.cat((target_data, target_layer.normalized_new_displacement))
 
         return DatasetStatistics(
-            nodes_statistics=nodes_statistics,
-            edges_statistics=edges_statistics,
-            target_statistics=target_statistics,
+            data=[
+                FeaturesStatistics(
+                    label="sparse_nodes",
+                    data=sparse_nodes_data,
+                    # columns=SceneInput.get_nodes_data_description_sparse(self.dimension)
+                ),
+                FeaturesStatistics(label="sparse_edges", data=sparse_edges_data),
+                FeaturesStatistics(label="multilayer_edges", data=multilayer_edges_data),
+                FeaturesStatistics(label="dense_nodes", data=dense_nodes_data),
+                FeaturesStatistics(label="dense_edges", data=dense_edges_data),
+                FeaturesStatistics(label="target_normalized_new_displacement", data=target_data),
+            ]
         )
+        # edges_statistics = FeaturesStatistics(
+        #     edges_data, #SceneInput.get_edges_data_description(self.dimension)
+        # )
+        # target_statistics = FeaturesStatistics(
+        #     target_data, [f"exact_acceleration_{i}" for i in range(self.dimension)]
+        # )
 
     def get_worker_data_range(self):
         worker_info = get_worker_info()
@@ -409,16 +432,7 @@ class BaseDataset:
         # )
 
         ### Recenter dense
-        net_displacement = scene.to_displacement(scene.exact_acceleration)
-        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-        base = scene.reduced.get_rotation(reduced_displacement_new)
-        position = np.mean(reduced_displacement_new, axis=0)
-
-        new_displacement = scene.get_displacement(
-            base=base, position=position, base_displacement=net_displacement
-        )
-        scene.exact_acceleration = scene.from_displacement(new_displacement)
-        ###
+        scene.exact_acceleration = scene.reorient_to_reduced(scene.exact_acceleration)
 
         return scene, scene.exact_acceleration
 
@@ -435,14 +449,8 @@ class BaseDataset:
         def get_list(index):
             graph_data = self.get_features_and_targets_data(index)
 
-            # # Sparse
-            # graph_data.layer_list[0].edge_attr[:,-4:] = 0. # forces # shape = 4
-
-            # # Dense
-            # graph_data.layer_list[1].edge_attr[:,-4:] = 0. # forces # shape = 16
-
-            # # Multilayer edges
-            # graph_data.layer_list[1].edge_attr_to_down[:, -4:] = 0. # forces
+            if self.statistics is not None:
+                graph_data.layer_list = self.statistics.normalize(graph_data.layer_list)
 
             return [graph_data.layer_list, graph_data.target_data]
 

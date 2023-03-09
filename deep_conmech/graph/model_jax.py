@@ -1,7 +1,7 @@
 import gc
 import time
 from functools import partial
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Optional
 
 import flax
 import flax.jax_utils
@@ -25,6 +25,7 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
+from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net_jax import CustomGraphNetJax, GraphNetArguments
@@ -66,6 +67,7 @@ class GraphModelDynamicJax:
         all_validation_datasets,
         print_scenarios: List[Scenario],
         config: TrainingConfig,
+        statistics: Optional[DatasetStatistics] = None,
     ):
         print("----CREATING MODEL----")
         self.config = config
@@ -73,6 +75,7 @@ class GraphModelDynamicJax:
         self.dim = train_dataset.dimension  # TODO: Check validation datasets
         self.train_dataset = train_dataset
         self.print_scenarios = print_scenarios
+        self.statistics = statistics
         self.train_state = None
 
         self.logger = Logger(dataset=self.train_dataset, config=config)
@@ -216,10 +219,10 @@ class GraphModelDynamicJax:
 
         apply_net = get_apply_net(state)
 
-        for scenario in print_scenarios:
+        for scene in print_scenarios:
             simulation_runner.run_scenario(
                 solve_function=partial(solve, apply_net=apply_net),
-                scenario=scenario,
+                scene=scene,
                 config=config,
                 run_config=simulation_runner.RunScenarioConfig(
                     catalog="GRAPH PLOT",
@@ -410,15 +413,16 @@ def sync_batch_stats(states):
 
 
 def convert_to_jax(layer_list, target_data=None):
+    scale_input = 1.0  # SCALE
     for layer in layer_list:
-        layer["x"] = thh.convert_tensor_to_jax(layer["x"]) * SCALE
-        layer.edge_attr = thh.convert_tensor_to_jax(layer.edge_attr) * SCALE
+        layer["x"] = thh.convert_tensor_to_jax(layer["x"]) * scale_input
+        layer.edge_attr = thh.convert_tensor_to_jax(layer.edge_attr) * scale_input
         layer.edge_index = thh.convert_tensor_to_jax(layer.edge_index)
 
     layer_sparse = layer_list[1]
     layer_sparse.edge_index_to_down = thh.convert_tensor_to_jax(layer_sparse.edge_index_to_down)
     layer_sparse.edge_attr_to_down = (
-        thh.convert_tensor_to_jax(layer_sparse.edge_attr_to_down) * SCALE
+        thh.convert_tensor_to_jax(layer_sparse.edge_attr_to_down) * scale_input
     )
     if target_data is None:
         return layer_list
@@ -434,6 +438,7 @@ def convert_to_jax(layer_list, target_data=None):
 # TODO: all in Jax?
 def solve(
     apply_net,
+    statistics,
     scene: SceneInput,
     energy_functions: EnergyFunctions,
     initial_a,
@@ -460,6 +465,8 @@ def solve(
         layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
         layers_list = [layers_list_0, layers_list_1]
 
+        layers_list = statistics.normalize(layers_list)
+
         # return scene.exact_acceleration, None
 
         # layers_list = [
@@ -479,7 +486,9 @@ def solve(
         if True:
             # base = scene.moved_base
             # position = scene.position
-            reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+            reduced_displacement_new = scene.reduced.to_displacement(
+                scene.reduced.exact_acceleration
+            )
             base = scene.reduced.get_rotation(reduced_displacement_new)
             position = np.mean(reduced_displacement_new, axis=0)
 

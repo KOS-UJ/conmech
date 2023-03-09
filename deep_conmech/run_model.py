@@ -107,17 +107,20 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
         train_dataset.load_indices()
 
     statistics = (
-        train_dataset.get_statistics(layer_number=0) if config.td.use_dataset_statistics else None
+        train_dataset.get_statistics() if config.td.use_dataset_statistics else None
     )
+    if config.td.use_dataset_statistics:
+        train_dataset.statistics = statistics
 
     if all_validation_datasets is None:
         all_validation_datasets = get_all_val_datasets(
             config=config, rank=rank, world_size=world_size, device_count=device_count
         )
-        for d in all_validation_datasets:
-            d.initialize_data()
 
     all_print_datasets = scenarios.all_print(config.td, config.sc)
+    for dataset in all_validation_datasets:
+        if config.td.use_dataset_statistics:
+            dataset.statistics = statistics
 
     if config.use_jax:
         model = GraphModelDynamicJax(
@@ -125,6 +128,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
             all_validation_datasets=all_validation_datasets,
             print_scenarios=all_print_datasets,
             config=config,
+            statistics=None,
         )
     else:
         net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
@@ -175,7 +179,7 @@ def visualize(config: TrainingConfig):
 def plot(config: TrainingConfig):
     if config.td.use_dataset_statistics:
         train_dataset = get_train_dataset(config.td.dataset, config=config)
-        statistics = train_dataset.get_statistics(layer_number=0)
+        statistics = train_dataset.get_statistics()
     else:
         statistics = None
     all_print_scenaros = scenarios.all_print(config.td, config.sc)
@@ -338,7 +342,7 @@ def main(args: Namespace):
         use_linear_solver=False,
         use_green_strain=True,
         use_nonconvex_friction_law=False,
-        use_constant_contact_integral=False, # True,  # False,
+        use_constant_contact_integral=False,  # True,  # False,
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,

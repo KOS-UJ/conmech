@@ -50,6 +50,10 @@ def save_three(scene, step, label, folder):
         scene.boundary_indices
     ]
 
+    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_exact_new_displacement)[
+        scene.reduced.boundary_indices
+    ]
+
     # sn2 = (
     #     scene.initial_nodes + scene.to_normalized_displacement_rotated(scene.exact_acceleration)
     # )[scene.boundary_indices]
@@ -63,6 +67,7 @@ def save_three(scene, step, label, folder):
         convert_to_list(sn1),
         convert_to_list(sn2),
     ]  # , convert_to_list(sn2), convert_to_list(sn3)]
+    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]
 
     if step == 0:
         json_dict = {
@@ -70,7 +75,7 @@ def save_three(scene, step, label, folder):
             "step": step,
             "nodes_list": nodes_list,
             "boundary_surfaces": boundary_surfaces,
-            "nodes_reduced": nodes_reduced,
+            "nodes_reduced_list": nodes_reduced_list,
             "boundary_edges_reduced": boundary_edges_reduced,
             "highlighted_nodes": highlighted_nodes,
         }
@@ -79,7 +84,7 @@ def save_three(scene, step, label, folder):
             "skip": skip,
             "step": step,
             "nodes_list": nodes_list,
-            "nodes_reduced": nodes_reduced,
+            "nodes_reduced_list": nodes_reduced_list,
             "highlighted_nodes": highlighted_nodes,
         }
 

@@ -52,7 +52,7 @@ class TrainingData:
     batch_size: int = 1  # 4  # 8  # 1  # 16  # 32  # 16  # 32 # 256
     dataset_size: int = 32  # 256 * (1 if TEST else 1) #8)  # 2048)
 
-    use_dataset_statistics: bool = False
+    use_dataset_statistics: bool = True
     input_batch_norm: bool = False  # False #True
     internal_batch_norm: bool = False
     layer_norm: bool = False  # True
@@ -98,7 +98,7 @@ class TrainingConfig(Config):
 
     dataset_images_count: Optional[float] = None  # 8 None
 
-    log_dataset_stats: bool = False
+    log_dataset_stats: bool = True
     with_train_scenes_file: bool = False
 
     max_epoch_number: Optional[int] = None

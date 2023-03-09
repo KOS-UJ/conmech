@@ -194,11 +194,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 return nodes;
             }
 
+            getNodesReduced(mesh) {
+                nodesMode = nodesMode % mesh.nodes_reduced_list.length;
+                setHtml("nodesMode", nodesMode);
+                var nodes = mesh.nodes_reduced_list[nodesMode];
+                return nodes;
+            }
+
 
             constructor() {
                 // physics
                 var initialMesh = meshes[0]
                 var nodes = this.getNodes(initialMesh);
+                var nodesReduced = this.getNodes(initialMesh);
                 var boundary_surfaces = initialMesh.boundary_surfaces
 
                 this.numNodes = nodes.length / 3;
@@ -221,12 +229,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.surfaceMesh.visible = true;
 
                 /////
-                if (initialMesh.nodes_reduced.length == 0) {
+                if (nodesReduced.length == 0) {
                     this.pos_reduced = null;
                     this.tetMesh = null;
                 }
                 else {
-                    this.pos_reduced = new Float32Array(initialMesh.nodes_reduced);
+                    this.pos_reduced = new Float32Array(nodesReduced);
 
                     var geometry = new THREE.BufferGeometry();
                     geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
@@ -248,7 +256,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
             updateMesh(mesh) {
                 var nodes = this.getNodes(mesh);
-                var nodes_reduced = mesh.nodes_reduced;
+                var nodes_reduced = this.getNodesReduced(mesh);
 
                 // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.pos.length; i++)

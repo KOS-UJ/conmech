@@ -794,22 +794,35 @@ def get_args(td, sc):
 
 
 def all_train(td, sc):
-    args = get_args(td, sc)
+    # args = get_args(td, sc)
+    args = dict(
+        mesh_density=td.mesh_density,
+        scale=td.train_scale,
+        final_time=td.final_time,
+        simulation_config=sc,
+        # scale_forces=1.0,
+    )
+
     if td.dimension == 3:
-        data = [
-            bunny_fall_3d(
-                mesh_density=32,
-                scale=1,
-                final_time=1.6,
-                simulation_config=sc,
-                scale_forces=5.0,
-            ),
-        ]
-        return data
-        args["final_time"] = 4.0  # 8.0
+        # data = [
+        #     bunny_fall_3d(
+        #         mesh_density=32,
+        #         scale=1,
+        #         final_time=1.6,
+        #         simulation_config=sc,
+        #         scale_forces=5.0,
+        #     ),
+        # ]
+        # return data
+        args["final_time"] = 8.0
         data = []
-        data.extend([bunny_rotate_3d(**args, arg=a) for a in [-2.0, 2.0]])  # -0.75, 0.75]])
-        data.extend([bunny_fall_3d(**args, arg=a) for a in [-0.8, 0.8]])  # , 0
+        data.extend(
+            [
+                bunny_rotate_3d(**args, arg=arg, scale_forces=scale_forces)
+                for (arg, scale_forces) in [(-2.0, 6.0), (1.0, 1.0)]
+            ]
+        )  # -0.75, 0.75]])
+        data.extend([bunny_fall_3d(**args, arg=a, scale_forces=2.0) for a in [-0.8, 0.8]])  # , 0
         return data
     return get_train_data(**args)
 

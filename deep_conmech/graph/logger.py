@@ -24,25 +24,10 @@ class Logger:
     def save_parameters_and_statistics(self):
         print("Saving parameters...")
         self.save_parameters()
-        for layer_number in [1]:
-            if self.config.log_dataset_stats:
-                print(f"Saving statistics (layer {layer_number})...")
-                statistics = self.dataset.get_statistics(layer_number=layer_number)
-                self.save_hist_and_json(
-                    st=statistics.nodes_statistics,
-                    columns=self.config.td.dimension + 1,
-                    name=f"nodes_statistics_layer{layer_number}",
-                )
-                self.save_hist_and_json(
-                    st=statistics.edges_statistics,
-                    columns=self.config.td.dimension + 1,
-                    name=f"edges_statistics_layer{layer_number}",
-                )
-                self.save_hist_and_json(
-                    st=statistics.target_statistics,
-                    columns=self.config.td.dimension + 1,
-                    name=f"target_statistics_layer{layer_number}",
-                )
+        if self.config.log_dataset_stats:
+            statistics = self.dataset.get_statistics()
+            for st in statistics.data:
+                self.save_hist_and_json(st=st)
 
     def save_parameters(self):
         def pretty_json(value):
@@ -56,34 +41,31 @@ class Logger:
         with open(file_path, "w", encoding="utf-8") as file:
             file.write(data_str)
 
-    def save_hist_and_json(self, st: FeaturesStatistics, columns: int, name: str):
-        df = st.pandas_data
-        self.save_hist(df=df, columns=columns, name=name)
-
+    def save_hist_and_json(self, st: FeaturesStatistics):
+        self.save_hist(st)
         # normalized_df = (df - df.mean()) / df.std()
         # self.save_hist(df=normalized_df, name=f"{name}_normalized")
-
         data_str = st.describe().to_json()
-        self.writer.add_text(f"{self.config.current_time}_{name}.txt", data_str, global_step=0)
+        self.writer.add_text(f"{self.config.current_time}_{st.label}.txt", data_str, global_step=0)
 
-    def save_hist(self, df: DataFrame, columns: int, name: str):
+    def save_hist(self, st: FeaturesStatistics):
         # pandas_axs = st.pandas_data.hist(figsize=(20, 10))  # , ec="k")
+        df = st.pandas_data
+        columns = self.config.td.dimension + 1
         scale = 7
         rows = (df.columns.size // columns) + df.columns.size % columns
         fig, axs = plt.subplots(
-            rows, columns, figsize=(columns * scale, rows * scale), sharex="row", sharey="row"
+            rows, columns, figsize=(columns * scale, rows * scale), sharex="all", sharey="row"
         )  # , sharex="col", sharey="row"
+        axs = axs.flatten()
         for i in range(rows * columns):
-            row, col = i // columns, i % columns
             if i < df.columns.size:
-                df.hist(
-                    column=df.columns[i], bins=100, ax=axs[row, col]
-                )  # bins=12 , figsize=(20, 18)
+                df.hist(column=df.columns[i], bins=100, ax=axs[i])  # bins=12 , figsize=(20, 18)
             else:
-                axs[row, col].axis("off")
+                axs[i].axis("off")
 
         fig.tight_layout()
-        fig.savefig(f"{self.current_log_catalog}/hist_{name}.png")
+        fig.savefig(f"{self.current_log_catalog}/hist_{st.label}.png")
 
     @property
     def current_log_catalog(self):

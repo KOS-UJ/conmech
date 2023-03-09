@@ -81,15 +81,15 @@ class SceneInput(SceneRandomized):
             return jnp.hstack(
                 (
                     get_column(scene.input_initial_nodes),  # cached
-                    # get_column(scene.input_displacement_old),
-                    # get_column(scene.input_velocity_old),
-                    # get_column(scene.input_forces),
+                    get_column(scene.input_displacement_old),
+                    get_column(scene.input_velocity_old),
+                    get_column(scene.input_forces),
                 )
             )
         return jnp.hstack(
             (
                 get_column(scene.input_initial_nodes),
-                # get_column(scene.input_forces),
+                get_column(scene.input_forces),
             )
         )
 
@@ -115,7 +115,7 @@ class SceneInput(SceneRandomized):
                 #     displacement_old_dense,
                 # ),
                 # get_column(velocity_old_sparse, velocity_old_dense),
-                # get_column(self.reduced.input_forces, self.input_forces),
+                get_column(self.reduced.input_forces, self.input_forces),
             )
         )
 
@@ -144,7 +144,7 @@ class SceneInput(SceneRandomized):
         # boundary_volume = self.prepare_node_data(
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
-        input_forces = prepare_nodes(scene.input_forces)
+        # input_forces = prepare_nodes(scene.input_forces)
         if reduced:
             new_displacement = prepare_nodes(scene.norm_exact_new_displacement)
             # new_displacement = prepare_nodes(
@@ -246,7 +246,6 @@ class SceneInput(SceneRandomized):
         data.edge_attr = thh.convert_jax_to_tensor_set_precision(
             self.get_edges_data(scene.mesh.directional_edges, reduced=reduced)
         )
-
         _ = """
         transform = T.Compose(
             [

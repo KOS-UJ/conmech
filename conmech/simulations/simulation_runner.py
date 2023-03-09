@@ -17,7 +17,7 @@ from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
 from deep_conmech.graph import model_jax
 from deep_conmech.graph.model_jax import GraphModelDynamicJax
-from deep_conmech.run_model import get_newest_checkpoint_path
+from deep_conmech.run_model import get_newest_checkpoint_path, get_train_dataset
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.scene.scene_layers import SceneLayers
 from deep_conmech.training_config import TrainingConfig
@@ -39,7 +39,15 @@ def get_solve_function(simulation_config):
         training_config.sc = simulation_config
         checkpoint_path = get_newest_checkpoint_path(training_config)
         state = GraphModelDynamicJax.load_checkpointed_net(path=checkpoint_path)
-        return partial(model_jax.solve, apply_net=model_jax.get_apply_net(state))
+
+        statistics = None
+        if training_config.td.use_dataset_statistics:
+            train_dataset = get_train_dataset(training_config.td.dataset, config=training_config)
+            train_dataset.load_indices()
+            statistics = train_dataset.get_statistics()
+        return partial(
+            model_jax.solve, apply_net=model_jax.get_apply_net(state), statistics=statistics
+        )
 
     raise ArgumentError
 

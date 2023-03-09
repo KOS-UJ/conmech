@@ -25,7 +25,7 @@ class ForwardNet(nn.Module):
     latent_dimension: int
     internal_layer_count: int
     output_linear_dim: Optional[int] = None
-    layer_norm: bool = True
+    layer_norm: bool = False
     input_batch_norm: bool = False
 
     @nn.compact
@@ -40,7 +40,7 @@ class ForwardNet(nn.Module):
 
         # _ = train
         if self.input_batch_norm:
-            x = nn.BatchNorm(use_running_average=not train, momentum = 0.9, epsilon = 1e-8)(x)
+            x = nn.BatchNorm(use_running_average=not train, momentum=0.9, epsilon=1e-8)(x)
         for _ in range(self.internal_layer_count):
             x = nn.Dense(
                 features=self.latent_dimension, kernel_init=kernel_init, bias_init=bias_init
@@ -50,8 +50,8 @@ class ForwardNet(nn.Module):
             self.output_linear_dim if self.output_linear_dim else self.latent_dimension
         )
         x = nn.Dense(features=output_linear_dim, kernel_init=kernel_init, bias_init=bias_init)(x)
-        # if self.layer_norm:
-        # x = nn.LayerNorm()(x)
+        if self.layer_norm:
+            x = nn.LayerNorm()(x)
         return x
 
 
@@ -98,6 +98,7 @@ class MessagePassingJax(nn.Module):
 class ProcessorLayer(MessagePassingJax):
     latent_dimension: int
     internal_layer_count: int
+    train: bool
 
     @nn.compact
     def __call__(self, node_latents, edge_latents, edge_index, receivers_count):
@@ -117,7 +118,7 @@ class ProcessorLayer(MessagePassingJax):
     def message(self, edge_inputs):
         new_edge_latents = ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
-        )(edge_inputs, train=True)
+        )(edge_inputs, train=self.train)
         return new_edge_latents
 
     def aggregate(self, new_edge_latents, receivers, receivers_count):
@@ -132,13 +133,14 @@ class ProcessorLayer(MessagePassingJax):
         node_inputs = jnp.hstack((node_latents_to, aggregated_edge_latents))
         new_node_latents = node_latents_to + ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
-        )(node_inputs, train=True)
+        )(node_inputs, train=self.train)
         return new_node_latents
 
 
 class LinkProcessorLayer(MessagePassingJax):
     latent_dimension: int
     internal_layer_count: int
+    train: bool
 
     @nn.compact
     def __call__(
@@ -160,7 +162,7 @@ class LinkProcessorLayer(MessagePassingJax):
     def message(self, edge_inputs):
         new_edge_latents = ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
-        )(edge_inputs, train=True)
+        )(edge_inputs, train=self.train)
         return new_edge_latents
 
     def aggregate(self, new_edge_latents, receivers, receivers_count):
@@ -174,7 +176,7 @@ class LinkProcessorLayer(MessagePassingJax):
         _ = node_latents_to
         linked_node_latents = ForwardNet(
             latent_dimension=self.latent_dimension, internal_layer_count=self.internal_layer_count
-        )(aggregated_edge_latents, train=True)
+        )(aggregated_edge_latents, train=self.train)
         return linked_node_latents  # jnp.hstack((node_latents_to, linked_node_latents))
 
 
@@ -193,12 +195,13 @@ class GraphNetArguments(NamedTuple):
 class CustomGraphNetJax(nn.Module):
     @nn.compact
     def __call__(self, args: GraphNetArguments, train: bool):
-        latent_dimension = 64
+        latent_dimension = 128  # 128 64
         internal_layer_count = 1
-        message_passes_sparse = 12  # 8
-        message_passes_dense = 12 # 0  # 8
+        message_passes_sparse = 8  # 12  # 8
+        message_passes_dense = 8  # 12  # 0  # 8
         dim = 3
         input_batch_norm = False  # True
+        # layer_norm=True
 
         def propagate_messages(
             latent_dimension,
@@ -210,7 +213,9 @@ class CustomGraphNetJax(nn.Module):
         ):
             for _ in range(message_passes):
                 node_latents, edge_latents = ProcessorLayer(
-                    latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
+                    latent_dimension=latent_dimension,
+                    internal_layer_count=internal_layer_count,
+                    train=train,
                 )(node_latents, edge_latents, edge_index, receivers_count)
             return node_latents
 
@@ -222,7 +227,9 @@ class CustomGraphNetJax(nn.Module):
             edge_index_to_dense,
         ):
             updated_node_latents_dense = LinkProcessorLayer(
-                latent_dimension=latent_dimension, internal_layer_count=internal_layer_count
+                latent_dimension=latent_dimension,
+                internal_layer_count=internal_layer_count,
+                train=train,
             )(
                 node_latents_sparse=node_latents_sparse,
                 node_latents_dense=node_latents_dense,
@@ -301,7 +308,7 @@ class CustomGraphNetJax(nn.Module):
             internal_layer_count=internal_layer_count,
             output_linear_dim=dim,
             layer_norm=False,
-        )(updated_node_latents_dense, train=True)
+        )(updated_node_latents_dense, train=train)
 
         batch_dummy = nn.BatchNorm(use_running_average=not train)(net_output_dense)
         return net_output_dense + 0 * batch_dummy
