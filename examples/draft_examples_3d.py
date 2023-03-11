@@ -30,24 +30,12 @@ def main():
     cmh.print_jax_configuration()
 
     # mode = "normal"
-    mode = "compare"
+    # mode = "compare"
     # mode = "skinning"
     # mode = "skinning_backwards"
-    # mode = "net"
+    mode = "net"
 
     simulation_config = SimulationConfig(
-        use_normalization=False,
-        use_linear_solver=False,
-        use_green_strain=True,
-        use_nonconvex_friction_law=False,
-        use_constant_contact_integral=False,  # True
-        use_lhs_preconditioner=False,
-        with_self_collisions=True,
-        use_pca=False,
-        mode=mode,
-    )
-
-    simulation_config_pca = SimulationConfig(
         use_normalization=False,
         use_linear_solver=False,
         use_green_strain=True,
@@ -55,10 +43,24 @@ def main():
         use_constant_contact_integral=False,
         use_lhs_preconditioner=False,
         with_self_collisions=True,
-        use_pca=True,
+        use_pca=False,
+        mesh_layer_proportion=4, #8,
         mode=mode,
     )
-    final_time = 8.0 #2.1
+
+    # simulation_config_pca = SimulationConfig(
+    #     use_normalization=False,
+    #     use_linear_solver=False,
+    #     use_green_strain=True,
+    #     use_nonconvex_friction_law=False,
+    #     use_constant_contact_integral=False,
+    #     use_lhs_preconditioner=False,
+    #     with_self_collisions=True,
+    #     use_pca=True,
+    #     mesh_layer_proportion=8,
+    #     mode=mode,
+    # )
+    final_time = 8.0  # 2.1
     scale_forces = 5.0
 
     # all_print_scenaros = scenarios.all_print(config.td, config.sc)
@@ -79,13 +81,14 @@ def main():
         #     simulation_config=simulation_config,
         #     scale_forces=scale_forces,
         # ),
-        # bunny_fall_3d(
-        #     mesh_density=32,
-        #     scale=1,
-        #     final_time=final_time,
-        #     simulation_config=simulation_config,
-        #     scale_forces=scale_forces,
-        # ),
+        bunny_fall_3d(
+            mesh_density=32, #64,  # 32,
+            scale=1,
+            final_time=final_time,
+            simulation_config=simulation_config,
+            scale_forces=scale_forces,
+            slope = 0.5
+        ),
         # bunny_fall_3d(
         #     mesh_density=16,
         #     scale=1,
@@ -94,9 +97,9 @@ def main():
         #     scale_forces=scale_forces,
         # ),
         # bunny_fall_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
-        bunny_rotate_3d(
-            mesh_density=32, scale=1, final_time=final_time, simulation_config=simulation_config
-        ),
+        # bunny_rotate_3d(
+        #     mesh_density=32, scale=1, final_time=final_time, simulation_config=simulation_config
+        # ),
         # bunny_rotate_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_fall_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
         # bunny_fall_3d(

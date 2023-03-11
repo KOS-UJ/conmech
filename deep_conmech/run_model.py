@@ -29,7 +29,7 @@ from deep_conmech.graph.model_torch import GraphModelDynamicTorch
 from deep_conmech.graph.net_jax import CustomGraphNetJax
 from deep_conmech.graph.net_torch import CustomGraphNet
 from deep_conmech.helpers import dch
-from deep_conmech.training_config import TrainingConfig
+from deep_conmech.training_config import TrainingConfig, TrainingData
 
 
 def setup_distributed(rank: int, world_size: int):
@@ -106,9 +106,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
         )
         train_dataset.load_indices()
 
-    statistics = (
-        train_dataset.get_statistics() if config.td.use_dataset_statistics else None
-    )
+    statistics = train_dataset.get_statistics() if config.td.use_dataset_statistics else None
     if config.td.use_dataset_statistics:
         train_dataset.statistics = statistics
 
@@ -345,6 +343,7 @@ def main(args: Namespace):
         use_constant_contact_integral=False,  # True,  # False,
         use_lhs_preconditioner=False,
         with_self_collisions=True,
+        mesh_layer_proportion=4,
         use_pca=False,
     )
 

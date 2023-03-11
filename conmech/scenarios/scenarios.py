@@ -627,6 +627,7 @@ def bunny_fall_3d(
     tag="",
     arg=0.7,
     scale_forces=1.0,
+    slope=1.0,
 ):
     _ = tag
     _ = scale
@@ -643,7 +644,7 @@ def bunny_fall_3d(
         schedule=Schedule(final_time=final_time),
         forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(  # 0.3
-            np.array([[[0.0, arg, 1.0]], [[1.0, 1.0, 0.0]]]),
+            np.array([[[0.0, arg, 1.0]], [[slope, 1.0, 0.0]]]),
             ObstacleProperties(hardness=100.0, friction=5.0),
         ),
         simulation_config=simulation_config,
@@ -806,7 +807,7 @@ def all_train(td, sc):
     if td.dimension == 3:
         # data = [
         #     bunny_fall_3d(
-        #         mesh_density=32,
+        #         mesh_density=64,
         #         scale=1,
         #         final_time=1.6,
         #         simulation_config=sc,
@@ -814,15 +815,38 @@ def all_train(td, sc):
         #     ),
         # ]
         # return data
-        args["final_time"] = 8.0
+        args["final_time"] = 5.0
         data = []
+        data.extend(
+            [
+                #     Scenario(
+                #     name="bunny_fall",
+                #     mesh_prop=MeshProperties(
+                #         dimension=3,
+                #         mesh_type=M_BUNNY_3D,
+                #         scale=[1],
+                #         mesh_density=[32],
+                #     ),
+                #     body_prop=default_body_prop_3d,
+                #     schedule=Schedule(final_time=5.0),
+                #     forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
+                #     obstacle=Obstacle(
+                #         np.array([[[0.0, arg, 1.0]], [[slope, 1.0, 0.0]]]),
+                #         ObstacleProperties(hardness=100.0, friction=5.0),
+                #     ),
+                #     simulation_config=sc,
+                #  )
+                #  for (scale_forces) in [(-20)]
+                bunny_fall_3d(**args, arg=arg, scale_forces=scale_forces)
+                for (arg, scale_forces) in [(-0.7, 1.0), (0.8, 6.0), (1.2, 2.0), (-0.5, 4.0)]
+            ]
+        )
         data.extend(
             [
                 bunny_rotate_3d(**args, arg=arg, scale_forces=scale_forces)
                 for (arg, scale_forces) in [(-2.0, 6.0), (1.0, 1.0)]
             ]
-        )  # -0.75, 0.75]])
-        data.extend([bunny_fall_3d(**args, arg=a, scale_forces=2.0) for a in [-0.8, 0.8]])  # , 0
+        )
         return data
     return get_train_data(**args)
 

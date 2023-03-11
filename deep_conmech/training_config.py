@@ -8,7 +8,6 @@ from conmech.helpers.config import Config, SimulationConfig
 
 TEST = False
 DIMENSION = 3
-MESH_LAYERS_PROPORTION = 2  # 2 4 8!
 CLOSEST_COUNT = 4  # 3 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
 
@@ -77,10 +76,9 @@ class TrainingData:
 
 @dataclass
 class TrainingConfig(Config):
-    use_jax: bool = True
-
     td: TrainingData = TrainingData()
 
+    use_jax: bool = True
     device: str = "cuda"  # "cpu" if TEST else "cuda"
     #:" + ",".join(map(str, DEVICE_IDS)))  # torch.cuda.is_available()
 
@@ -89,12 +87,12 @@ class TrainingConfig(Config):
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
 
-    total_mempry_gb = psutil.virtual_memory().total / 1024**3
-    total_memory_limit_gb = round(total_mempry_gb * 0.7, 2)
+    total_memory_gb = psutil.virtual_memory().total / 1024**3
+    total_memory_limit_gb = round(total_memory_gb * 0.7, 2)
     synthetic_generation_memory_limit_gb = round(
-        (total_mempry_gb * 0.8) / synthetic_generation_workers, 2
+        (total_memory_gb * 0.8) / synthetic_generation_workers, 2
     )
-    loaded_data_memory_limit_gb = round((total_mempry_gb * 0.8), 2)
+    loaded_data_memory_limit_gb = round((total_memory_gb * 0.8), 2)
 
     dataset_images_count: Optional[float] = None  # 8 None
 

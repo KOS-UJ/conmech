@@ -294,6 +294,9 @@ class BaseDataset:
         return True
 
     def get_statistics(self):
+        saved_device_count = self.device_count
+        self.device_count = 1
+
         dataloader = get_train_dataloader(self)
 
         nodes_data = None
@@ -324,6 +327,7 @@ class BaseDataset:
                 dense_edges_data = torch.cat((dense_edges_data, dense_layer.edge_attr))
                 target_data = torch.cat((target_data, target_layer.normalized_new_displacement))
 
+        self.device_count = saved_device_count
         return DatasetStatistics(
             data=[
                 FeaturesStatistics(
@@ -408,11 +412,11 @@ class BaseDataset:
     def solve_and_prepare_scene(self, scene, forces, energy_functions, reduced_energy_functions):
         scene.prepare(forces)
 
-        scene.reduced.exact_acceleration, _ = self.solve_function(
-            scene=scene.reduced,
-            initial_a=scene.reduced.exact_acceleration,
-            energy_functions=reduced_energy_functions,
-        )
+        # scene.reduced.exact_acceleration, _ = self.solve_function(
+        #     scene=scene.reduced,
+        #     initial_a=scene.reduced.exact_acceleration,
+        #     energy_functions=reduced_energy_functions,
+        # )
 
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
@@ -425,14 +429,14 @@ class BaseDataset:
         )
         scene.exact_acceleration = scene.lifted_acceleration
 
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-        # scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
-        #     scene.exact_acceleration
-        # )
+        scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
+            scene.exact_acceleration
+        )
+        scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
 
-        ### Recenter dense
-        scene.exact_acceleration = scene.reorient_to_reduced(scene.exact_acceleration)
+        # scene.exact_acceleration = scene.reorient_to_reduced(scene.exact_acceleration)
 
         return scene, scene.exact_acceleration
 

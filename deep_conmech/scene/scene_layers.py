@@ -14,11 +14,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
-from deep_conmech.training_config import (
-    CLOSEST_BOUNDARY_COUNT,
-    CLOSEST_COUNT,
-    MESH_LAYERS_PROPORTION,
-)
+from deep_conmech.training_config import CLOSEST_COUNT
 
 
 @numba.njit
@@ -94,7 +90,8 @@ class SceneLayers(Scene):
         self.all_layers.append(base_mesh_layer_data)
 
         layer_mesh_prop.mesh_density = list(
-            np.array(layer_mesh_prop.mesh_density, dtype=np.int32) // MESH_LAYERS_PROPORTION
+            np.array(layer_mesh_prop.mesh_density, dtype=np.int32)
+            // self.simulation_config.mesh_layer_proportion
         )
 
         reduced_scene = Scene(
@@ -109,64 +106,64 @@ class SceneLayers(Scene):
         reduced_scene.lifted_acceleration = np.zeros_like(reduced_scene.initial_nodes)
 
         if self.simulation_config.mode == "skinning":
+            pass
             #     reduced_scene.mesh.initial_nodes += 0.03 * np.array(
             #         jxh.complete_data_with_zeros(
             #             reduced_scene.boundary_normals, reduced_scene.nodes_count
             #         )
             #     )# 0.13 OK 0.12-0.15 # 0.08
-            (
-                closest_nodes,
-                closest_distances,
-                closest_weights,
-            ) = interpolation_helpers.interpolate_nodes(
-                base_nodes=reduced_scene.initial_nodes,
-                base_elements=reduced_scene.elements,
-                query_nodes=self.initial_nodes,
-                # padding = 0.1
-            )
-            edges_index = get_multilayer_edges_numba(closest_nodes)
-            self.all_layers.append(
-                AllMeshLayerLinkData(
-                    mesh=reduced_scene,
-                    to_base=MeshLayerLinkData(
-                        closest_nodes=closest_nodes,
-                        closest_distances=closest_distances,
-                        closest_weights=closest_weights,
-                        closest_boundary_nodes=None,
-                        closest_distances_boundary=None,
-                        closest_weights_boundary=None,
-                        edges_index=edges_index,
-                    ),
-                    from_base=self.get_link(
-                        from_mesh=self, to_mesh=reduced_scene, with_weights=True
-                    ),
-                )
-            )
-        else:
-            from_base = self.get_link(from_mesh=self, to_mesh=reduced_scene, with_weights=True)
-            # self.project_sparse_nodes(from_base, reduced_scene)
-            to_base = self.get_link(
-                from_mesh=reduced_scene, to_mesh=self, with_weights=True
-            )  ### False
+            # (
+            #     closest_nodes,
+            #     closest_distances,
+            #     closest_weights,
+            # ) = interpolation_helpers.interpolate_nodes(
+            #     base_nodes=reduced_scene.initial_nodes,
+            #     base_elements=reduced_scene.elements,
+            #     query_nodes=self.initial_nodes,
+            #     # padding = 0.1
+            # )
+            # edges_index = get_multilayer_edges_numba(closest_nodes)
+            # self.all_layers.append(
+            #     AllMeshLayerLinkData(
+            #         mesh=reduced_scene,
+            #         to_base=MeshLayerLinkData(
+            #             closest_nodes=closest_nodes,
+            #             closest_distances=closest_distances,
+            #             closest_weights=closest_weights,
+            #             closest_boundary_nodes=None,
+            #             closest_distances_boundary=None,
+            #             closest_weights_boundary=None,
+            #             edges_index=edges_index,
+            #         ),
+            #         from_base=self.get_link(
+            #             from_mesh=self, to_mesh=reduced_scene, with_weights=True
+            #         ),
+            #     )
+            # )
 
-            mesh_layer_data = AllMeshLayerLinkData(
-                mesh=reduced_scene,
-                from_base=from_base,
-                to_base=to_base,
-            )
-            self.all_layers.append(mesh_layer_data)
+        from_base = self.get_link(from_mesh=self, to_mesh=reduced_scene, with_weights=True)
+        # self.project_sparse_nodes(from_base, reduced_scene) #TODO: reintroduce
+        to_base = self.get_link(from_mesh=reduced_scene, to_mesh=self, with_weights=True)  ### False
+
+        mesh_layer_data = AllMeshLayerLinkData(
+            mesh=reduced_scene,
+            from_base=from_base,
+            to_base=to_base,
+        )
+        self.all_layers.append(mesh_layer_data)
 
     def get_link(self, from_mesh: Mesh, to_mesh: Mesh, with_weights: bool):
         (
             closest_nodes,
             closest_distances,
             closest_weights,
-        ) = interpolation_helpers.get_interlayer_data_numba(
+        ) = interpolation_helpers.interpolate_nodes(  # get_interlayer_data_numba
             base_nodes=from_mesh.initial_nodes,
             base_elements=from_mesh.elements,
-            interpolated_nodes=to_mesh.initial_nodes,
-            closest_count=CLOSEST_COUNT,
-            with_weights=with_weights,
+            query_nodes=to_mesh.initial_nodes,
+            # closest_count=CLOSEST_COUNT,
+            # with_weights=with_weights,
+            # padding = 0.1
         )
         # (
         #     closest_boundary_nodes,

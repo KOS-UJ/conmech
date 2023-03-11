@@ -7,7 +7,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 
 
 class Obstacle:
-    OBSTACLES = {
+    OBSTACLES = {  # 0 - normals, 1 - nodes
         "front": np.array([[[-1.0, 0.0]], [[2.0, 0.0]]]),
         "bottom": np.array([[[0.0, 1.0]], [[0.0, -2.0]]]),
         "back": np.array([[[1.0, 0.0]], [[-2.0, 0.0]]]),
