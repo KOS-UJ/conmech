@@ -11,9 +11,8 @@ from conmech.plotting.plotter_common import get_t_scale, plt_save
 from conmech.scenarios.scenarios import Scenario
 
 
-def save_three(scene, step, label, folder):
+def save_three(scene, step, label, folder, skip=5):
     # Three.js
-    skip = 5
     if step % skip != 0:
         return
 
@@ -69,24 +68,17 @@ def save_three(scene, step, label, folder):
     ]  # , convert_to_list(sn2), convert_to_list(sn3)]
     nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]
 
+    json_dict = {
+        "skip": skip,
+        "step": step,
+        "nodes_list": nodes_list,
+        "nodes_reduced_list": nodes_reduced_list,
+        "highlighted_nodes": highlighted_nodes,
+        "linear_obstacles": convert_to_list(scene.linear_obstacles),
+    }
     if step == 0:
-        json_dict = {
-            "skip": skip,
-            "step": step,
-            "nodes_list": nodes_list,
-            "boundary_surfaces": boundary_surfaces,
-            "nodes_reduced_list": nodes_reduced_list,
-            "boundary_edges_reduced": boundary_edges_reduced,
-            "highlighted_nodes": highlighted_nodes,
-        }
-    else:
-        json_dict = {
-            "skip": skip,
-            "step": step,
-            "nodes_list": nodes_list,
-            "nodes_reduced_list": nodes_reduced_list,
-            "highlighted_nodes": highlighted_nodes,
-        }
+        json_dict["boundary_surfaces"] = boundary_surfaces
+        json_dict["boundary_edges_reduced"] = boundary_edges_reduced
 
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)

@@ -627,7 +627,6 @@ def bunny_fall_3d(
     tag="",
     arg=0.7,
     scale_forces=1.0,
-    slope=1.0,
 ):
     _ = tag
     _ = scale
@@ -644,7 +643,7 @@ def bunny_fall_3d(
         schedule=Schedule(final_time=final_time),
         forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(  # 0.3
-            np.array([[[0.0, arg, 1.0]], [[slope, 1.0, 0.0]]]),
+            np.array([[[0.0, arg, 1.0]], [[0.0, 0.0, -0.5]]]),
             ObstacleProperties(hardness=100.0, friction=5.0),
         ),
         simulation_config=simulation_config,
@@ -795,60 +794,65 @@ def get_args(td, sc):
 
 
 def all_train(td, sc):
-    # args = get_args(td, sc)
-    args = dict(
-        mesh_density=td.mesh_density,
-        scale=td.train_scale,
-        final_time=td.final_time,
-        simulation_config=sc,
-        # scale_forces=1.0,
-    )
+    # args = dict(
+    #     mesh_density=td.mesh_density,
+    #     scale=td.train_scale,
+    #     final_time=td.final_time,
+    #     simulation_config=sc,
+    # )
+    if td.dimension != 3:
+        return []  # get_train_data(**args)
+    args = []
+    for forces_dim in [0, 1, 2]:
+        for forces_dir in [1.0, -1.0]:
+            for normals_dim_plus in [1]:  # , 2]:
+                for normals_dir in [1]:  # , -1]:
+                    forces = [0.0, 0.0, 0.0]
+                    forces[forces_dim] = forces_dir
 
-    if td.dimension == 3:
-        # data = [
-        #     bunny_fall_3d(
-        #         mesh_density=64,
-        #         scale=1,
-        #         final_time=1.6,
-        #         simulation_config=sc,
-        #         scale_forces=5.0,
-        #     ),
-        # ]
-        # return data
-        args["final_time"] = 5.0
-        data = []
-        data.extend(
-            [
-                #     Scenario(
-                #     name="bunny_fall",
-                #     mesh_prop=MeshProperties(
-                #         dimension=3,
-                #         mesh_type=M_BUNNY_3D,
-                #         scale=[1],
-                #         mesh_density=[32],
-                #     ),
-                #     body_prop=default_body_prop_3d,
-                #     schedule=Schedule(final_time=5.0),
-                #     forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
-                #     obstacle=Obstacle(
-                #         np.array([[[0.0, arg, 1.0]], [[slope, 1.0, 0.0]]]),
-                #         ObstacleProperties(hardness=100.0, friction=5.0),
-                #     ),
-                #     simulation_config=sc,
-                #  )
-                #  for (scale_forces) in [(-20)]
-                bunny_fall_3d(**args, arg=arg, scale_forces=scale_forces)
-                for (arg, scale_forces) in [(-0.7, 1.0), (0.8, 6.0), (1.2, 2.0), (-0.5, 4.0)]
-            ]
-        )
-        data.extend(
-            [
-                bunny_rotate_3d(**args, arg=arg, scale_forces=scale_forces)
-                for (arg, scale_forces) in [(-2.0, 6.0), (1.0, 1.0)]
-            ]
-        )
-        return data
-    return get_train_data(**args)
+                    normals = [0.0, 0.0, 0.0]
+                    normals[forces_dim] = -forces_dir
+                    normals[(forces_dim + normals_dim_plus) % 3] = normals_dir
+                    args.append(
+                        {
+                            "scale_forces": 2.0,
+                            "forces_and_nodes": forces,
+                            "obstacle_normals": normals,
+                        }
+                    )
+    data = []
+    data.extend(
+        [
+            Scenario(
+                name="bunny_train",
+                mesh_prop=MeshProperties(
+                    dimension=3,
+                    mesh_type=M_BUNNY_3D,
+                    scale=[1],
+                    mesh_density=[td.mesh_density],
+                ),
+                body_prop=default_body_prop_3d,
+                schedule=Schedule(final_time=td.final_time),
+                forces_function=arg["scale_forces"]
+                * np.array(arg["forces_and_nodes"]),  # scale_forces * [0.0, 0.0, -1.0]),
+                obstacle=Obstacle(
+                    np.array([[arg["obstacle_normals"]], [arg["forces_and_nodes"]]]),
+                    ObstacleProperties(hardness=100.0, friction=5.0),
+                ),
+                simulation_config=sc,
+            )
+            for arg in args
+            # bunny_fall_3d(**args, arg=arg, scale_forces=scale_forces)
+            # for (arg, scale_forces) in [(-0.7, 1.0), (0.8, 6.0), (1.2, 2.0), (-0.5, 4.0)]
+        ]
+    )
+    # data.extend(
+    #     [
+    #         bunny_rotate_3d(**args, arg=arg, scale_forces=scale_forces)
+    #         for (arg, scale_forces) in [(-2.0, 6.0), (1.0, 1.0)]
+    #     ]
+    # )
+    return data
 
 
 def all_validation(td, sc):

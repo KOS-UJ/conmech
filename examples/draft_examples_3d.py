@@ -44,7 +44,7 @@ def main():
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,
-        mesh_layer_proportion=4, #8,
+        mesh_layer_proportion=4,  # 8,
         mode=mode,
     )
 
@@ -82,12 +82,11 @@ def main():
         #     scale_forces=scale_forces,
         # ),
         bunny_fall_3d(
-            mesh_density=32, #64,  # 32,
+            mesh_density=32,
             scale=1,
             final_time=final_time,
             simulation_config=simulation_config,
             scale_forces=scale_forces,
-            slope = 0.5
         ),
         # bunny_fall_3d(
         #     mesh_density=16,

@@ -6,7 +6,6 @@ from torch import nn
 
 from conmech.helpers.config import Config, SimulationConfig
 
-TEST = False
 DIMENSION = 3
 CLOSEST_COUNT = 4  # 3 4
 CLOSEST_BOUNDARY_COUNT = CLOSEST_COUNT - 1
@@ -21,8 +20,8 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "calculator"  # synthetic # calculator
-    final_time: float = 0.5 if TEST else 4  # 4  # 8
-    mesh_density: int = 32  # 64  # 32
+    final_time: float = 3
+    mesh_density: int = 32
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 
     forces_random_scale: float = 4.0

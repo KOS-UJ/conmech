@@ -138,13 +138,11 @@ def get_pygmsh_bunny(mesh_prop):
     # relative_ideal_edge_length = get_relative_ideal_edge_length(mesh_id)
 
     mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}_.msh")
-    # scale = 2.0  # 1.0 3.0
-    # mesh_builders_helpers.normalize(
     nodes, elements = mesh.points, mesh.cells_dict["tetra"].astype("long")
-    nodes += 0.1
-    nodes *= 6  # 3
+    # nodes += 0.1
+    nodes *= 6
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
-    # nodes *= scale
+    nodes -= np.mean(nodes, axis=0)
     return nodes, elements
 
 

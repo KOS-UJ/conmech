@@ -150,6 +150,7 @@ class ScenariosDataset(BaseDataset):
                 step=index,
                 label=f"{self.config.current_time}_dataset_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
                 folder="./three",
+                skip=20,
             )
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")

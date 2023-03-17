@@ -33,7 +33,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </head>
 
 <body>
-<!-- 
+    <!-- 
     <h1>Three.js simulation</h1>
     <h3>Hold Ctrl to move camera</h3> -->
     <select id="simulationSelector" onchange="simulationSelected(this.selectedIndex)" class="button"></select>
@@ -41,7 +41,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <button onclick="reload()" class="button">Reload</button>
     <button onclick="speed()" class="button">Change speed</button>
     <button onclick="toggleNodes()" class="button">Toggle nodes</button>
-    <input type="checkbox" onclick="toggleHiglightNodes()"> Highlight nodes
+    <input type="checkbox" onclick="toggleHiglightNodes()"> Highlight self-colliding nodes
+    <input type="checkbox" onclick="onShowTets()"> Show reduced
     <br><br>
     <span id="numNodes">0</span> boundary nodes&nbsp;&nbsp;
     <span id="numSurfaces">0</span> boundary surfaces&nbsp;&nbsp;
@@ -78,6 +79,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         var loadedProgress = 0;
         var animationFrameFloat = 0.0;
         var animationSpeed = 1.0;
+        var showReduced = false;
 
         var scene;
         var gRenderer;
@@ -129,7 +131,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             setHtml("nodesMode", nodesMode);
             await animationStepInnerAsync();
         }
-
+        window.onShowTets = async () => {
+            showReduced = !showReduced;
+            await animationStepInnerAsync();
+        }
 
 
         setRunButton(false);
@@ -168,7 +173,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             gRenderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-
         async function loadFileAsync(filePath, i = 0, animationCount = 1) {
             var fileContent = await fileLoader.setResponseType('json').loadAsync(
                 filePath,
@@ -201,10 +205,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 return nodes;
             }
 
-
-            constructor() {
+            constructor(initialMesh) {
                 // physics
-                var initialMesh = meshes[0]
                 var nodes = this.getNodes(initialMesh);
                 var nodesReduced = this.getNodes(initialMesh);
                 var boundary_surfaces = initialMesh.boundary_surfaces
@@ -214,7 +216,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.pos = new Float32Array(nodes);
 
                 // surface tri mesh
-
                 var geometry = new THREE.BufferGeometry();
                 geometry.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
                 geometry.setIndex(boundary_surfaces);
@@ -247,7 +248,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
                     // material.flatShading = true;
                     // this.tetMesh = new THREE.Mesh(geometry, material);
-                    this.tetMesh.visible = true;
+                    this.tetMesh.visible = showReduced;
                     /////
 
                     // console.log(JSON.stringify(tetMesh.verts));
@@ -269,14 +270,53 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         this.pos_reduced[i] = nodes_reduced[i];
                     this.tetMesh.geometry.attributes.position.needsUpdate = true;
                 }
+
+                this.tetMesh.visible = showReduced;
+
             }
 
             addToScene(scene) {
+                scene.remove(scene.getObjectByName("surfaceMesh"));
+                scene.remove(scene.getObjectByName("tetMesh"));
+
                 scene.add(this.surfaceMesh);
                 if (this.tetMesh != null) {
-                    scene.add(body.tetMesh);
+                    scene.add(this.tetMesh);
                 }
             }
+        }
+
+        function addObstacle(scene, mesh) {
+            var obs = mesh.linear_obstacles;
+            const dir = new THREE.Vector3(obs[0], obs[1], obs[2]);
+            dir.normalize();
+            const origin = new THREE.Vector3(obs[3], obs[4], obs[5]);
+
+            var length = 0.5
+            var arrowHelper = new THREE.ArrowHelper(dir, origin, length, 0xff0000);
+
+            // var oldArrowHelper = scene.getObjectByName("arrowHelper")
+            // if (oldArrowHelper != undefined) {
+            //     if (oldArrowHelper.position.equals(arrowHelper.position) & arrowHelper.rotation.equals(arrowHelper.rotation)) {
+            //         return;
+            //     }
+            // }
+
+            scene.remove(scene.getObjectByName("arrowHelper"));
+            scene.remove(scene.getObjectByName("ground"));
+
+            arrowHelper.name = "arrowHelper";
+            // scene.add(arrowHelper);
+
+            var ground = new THREE.Mesh(
+                new THREE.PlaneBufferGeometry(2, 2, 1, 1),
+                new THREE.MeshPhongMaterial({ color: 0x414b54, shininess: 50, side: THREE.DoubleSide })
+            );
+            ground.lookAt(dir);
+            ground.position.set(obs[3], obs[4], obs[5]);
+            ground.receiveShadow = true;
+            ground.name = "ground";
+            scene.add(ground);
         }
 
         // ------------------------------------------
@@ -297,7 +337,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             scene.add(topLight);
             // scene.add(new THREE.DirectionalLightHelper(topLight, 0.1));
 
-
             var bottomLight = new THREE.DirectionalLight(0xffffff, 0.4);
             bottomLight.position.set(0, 0, -5);
             bottomLight.target.position.set(0, 0, 0);
@@ -305,17 +344,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             // scene.add(new THREE.DirectionalLightHelper(bottomLight, 0.1));
 
             // Geometry
-
-            var ground = new THREE.Mesh(
-                new THREE.PlaneBufferGeometry(20, 20, 1, 1),
-                new THREE.MeshPhongMaterial({ color: 0x414b54, shininess: 100 })
-            );
-
-            // ground.rotation.x = - Math.PI / 2; // rotates X/Y to X/Z
-            ground.position.set(0, 0, 0);
-            ground.receiveShadow = true;
-            // scene.add(ground);
-
             var helper = new THREE.GridHelper(20, 20);
             helper.material.opacity = 1.0;
             helper.material.transparent = true;
@@ -368,13 +396,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         // ------------------------------------------------------------------
         async function initMeshAsync() {
-            var selectedObject = scene.getObjectByName("surfaceMesh");
-            scene.remove(selectedObject);
-            var selectedObject = scene.getObjectByName("tetMesh");
-            scene.remove(selectedObject);
 
-            body = new Body();
+            var mesh = meshes[0]
+            body = new Body(mesh);
             body.addToScene(scene);
+            addObstacle(scene, mesh);
 
             setHtml("numNodes", body.numNodes);
             setHtml("numSurfaces", body.numSurfaces);
@@ -413,6 +439,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
             var mesh = meshes[step];
             body.updateMesh(mesh);
+            addObstacle(scene, mesh);
+
             if (highlightNodes)
                 rehighlightNodes(mesh.highlighted_nodes);
             else
@@ -420,7 +448,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         }
 
         function clearHighlightNodes() {
-
             var oldBallMesh = scene.getObjectByName("ballMesh");
             if (oldBallMesh !== undefined) {
                 for (var child in oldBallMesh.children) {
@@ -428,8 +455,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 }
                 scene.remove(oldBallMesh);
             }
-
-
         }
 
         function rehighlightNodes(nodes) {
@@ -467,7 +492,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         initThreeScene();
         onWindowResize();
         await loadDataAsync();
-
         await runAnimationAsync();
 
     </script>
