@@ -2,7 +2,8 @@
 multiprocessing helpers
 """
 import sys
-from multiprocessing import Lock, Process, Queue
+# from multiprocessing import Lock, Process, Queue
+from multiprocess import Lock, Process, Queue
 from typing import Callable, Tuple
 
 

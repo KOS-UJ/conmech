@@ -40,11 +40,11 @@ def main():
         use_linear_solver=False,
         use_green_strain=True,
         use_nonconvex_friction_law=False,
-        use_constant_contact_integral=False,
+        use_constant_contact_integral=True,  # False,
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,
-        mesh_layer_proportion=4,  # 8,
+        mesh_layer_proportion=2,  # 8,
         mode=mode,
     )
 

@@ -41,11 +41,12 @@ class SceneRandomized(SceneLayers):
 
     @property
     def randomized_inputs(self):
-        return (
-            self.velocity_in_random_factor != 0
-            or self.displacement_in_random_factor != 0
-            or self.displacement_to_velocity_noise != 0
-        )
+        return False
+        # return (
+        #     self.velocity_in_random_factor != 0
+        #     or self.displacement_in_random_factor != 0
+        #     or self.displacement_to_velocity_noise != 0
+        # )
 
     def unset_randomization(self):
         self.velocity_in_random_factor = 0
@@ -81,7 +82,7 @@ class SceneRandomized(SceneLayers):
         #     self.velocity_randomization *= scaling
         #     self.displacement_randomization *= scaling
 
-        self.update_reduced()  ###################
+        # self.update_reduced()  ###################
 
     def clean_acceleration(self, normalized_acceleration):
         if normalized_acceleration is None:

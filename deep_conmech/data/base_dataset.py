@@ -11,14 +11,8 @@ from torch_geometric.loader import DataLoader
 
 from conmech.helpers import cmh, mph, pkh
 from conmech.plotting.plotter_functions import plot_setting
-from conmech.scene.energy_functions import EnergyFunctions
-from conmech.scene.scene import Scene
-from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from deep_conmech.data.data_classes import GraphData
 from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
-from deep_conmech.helpers import thh
-from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -297,9 +291,24 @@ class BaseDataset:
         saved_device_count = self.device_count
         self.device_count = 1
 
-        dataloader = get_train_dataloader(self)
+        dataloader = get_dataloader(
+            dataset=self,
+            rank=0,
+            world_size=1,
+            batch_size=1,  # self.config.td.batch_size,
+            num_workers=0,
+            shuffle=True,
+            load_data=True,
+        )
 
-        nodes_data = None
+        sparse_nodes_data = None
+        sparse_edges_data = None
+        multilayer_edges_data = None
+        dense_nodes_data = None
+        dense_edges_data = None
+        target_data = None
+
+        count = 200
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
@@ -309,23 +318,23 @@ class BaseDataset:
             sparse_layer = example[0][1]
             target_layer = example[1]
 
-            if nodes_data is None:
-                sparse_nodes_data = sparse_layer.x
-                sparse_edges_data = sparse_layer.edge_attr
-                multilayer_edges_data = sparse_layer.edge_attr_to_down
-                dense_nodes_data = dense_layer.x
-                dense_edges_data = dense_layer.edge_attr
-                target_data = target_layer.normalized_new_displacement
+            def cat(data, new_data):
+                # new_data = torch.mean(new_data, axis=0, keepdim=True)
+                if data is None:
+                    return new_data
+                return torch.cat((data, new_data))
 
-            else:
-                sparse_nodes_data = torch.cat((sparse_nodes_data, sparse_layer.x))
-                sparse_edges_data = torch.cat((sparse_edges_data, sparse_layer.edge_attr_to_down))
-                multilayer_edges_data = torch.cat(
-                    (multilayer_edges_data, sparse_layer.edge_attr_to_down)
-                )
-                dense_nodes_data = torch.cat((dense_nodes_data, dense_layer.x))
-                dense_edges_data = torch.cat((dense_edges_data, dense_layer.edge_attr))
-                target_data = torch.cat((target_data, target_layer.normalized_new_displacement))
+            sparse_nodes_data = cat(sparse_nodes_data, sparse_layer.x)
+            sparse_edges_data = cat(sparse_edges_data, sparse_layer.edge_attr)
+            multilayer_edges_data = cat(multilayer_edges_data, sparse_layer.edge_attr_to_down)
+
+            dense_nodes_data = cat(dense_nodes_data, dense_layer.x)
+            dense_edges_data = cat(dense_edges_data, dense_layer.edge_attr)
+
+            target_data = cat(target_data, target_layer.normalized_new_displacement)
+            count -= 1
+            if count == 0:
+                break
 
         self.device_count = saved_device_count
         return DatasetStatistics(
@@ -394,7 +403,7 @@ class BaseDataset:
         if relative_index == 1:
             step_tqdm.set_description(tqdm_description)
 
-    def plot_data_scene(self, scene: Scene, filename, catalog, current_time):
+    def plot_data_scene(self, scene, filename, catalog, current_time):
         cmh.create_folders(catalog)
         extension = "png"  # pdf
         path = f"{catalog}/{filename}.{extension}"
@@ -412,11 +421,11 @@ class BaseDataset:
     def solve_and_prepare_scene(self, scene, forces, energy_functions, reduced_energy_functions):
         scene.prepare(forces)
 
-        # scene.reduced.exact_acceleration, _ = self.solve_function(
-        #     scene=scene.reduced,
-        #     initial_a=scene.reduced.exact_acceleration,
-        #     energy_functions=reduced_energy_functions,
-        # )
+        scene.reduced.exact_acceleration, _ = self.solve_function(
+            scene=scene.reduced,
+            initial_a=scene.reduced.exact_acceleration,
+            energy_functions=reduced_energy_functions,
+        )
 
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
@@ -424,17 +433,15 @@ class BaseDataset:
         # scene.lifted_acceleration = scene.lower_acceleration_from_position(
         #     scene.reduced.exact_acceleration
         # )
-        scene.lifted_acceleration, _ = self.solve_function(
+        scene.exact_acceleration, _ = self.solve_function(
             scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
         )
-        scene.exact_acceleration = scene.lifted_acceleration
-
-        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        scene.lifted_acceleration = scene.exact_acceleration
 
         scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
             scene.exact_acceleration
         )
-        scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
+        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         # scene.exact_acceleration = scene.reorient_to_reduced(scene.exact_acceleration)
 

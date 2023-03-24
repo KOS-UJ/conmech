@@ -500,7 +500,6 @@ def solve(
             acceleration_from_displacement = scene.from_normalized_displacement_rotated_displaced(
                 net_displacement
             )
-
             # assert np.abs((net_displacement - scene.to_normalized_displacement_rotated_displaced(
             #     scene.from_normalized_displacement_rotated_displaced(
             #     net_displacement)))).max() < 0.1

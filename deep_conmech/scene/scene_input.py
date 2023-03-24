@@ -144,7 +144,7 @@ class SceneInput(SceneRandomized):
         # boundary_volume = self.prepare_node_data(
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
-        # input_forces = prepare_nodes(scene.input_forces)
+        input_forces = prepare_nodes(scene.input_forces)
         if reduced:
             new_displacement = prepare_nodes(scene.norm_exact_new_displacement)
             # new_displacement = prepare_nodes(
@@ -154,11 +154,11 @@ class SceneInput(SceneRandomized):
                 (
                     new_displacement,
                     # linear_acceleration,
-                    # input_forces,
                     0 * boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
                     # boundary_volume,
+                    input_forces,
                 )
             )
         else:
@@ -181,12 +181,12 @@ class SceneInput(SceneRandomized):
                     # prepare_nodes(new_randomized_displacement),
                     # new_displacement,
                     # linear_acceleration,
-                    # input_forces,
                     0 * boundary_normals,
                     # boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
                     # boundary_volume,
+                    input_forces,
                 )
             )
 

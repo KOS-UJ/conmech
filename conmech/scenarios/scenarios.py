@@ -803,6 +803,9 @@ def all_train(td, sc):
     if td.dimension != 3:
         return []  # get_train_data(**args)
     args = []
+
+    scale_forces_list = [1.5, 2.0, 2.5, 3.0]
+    i = 0
     for forces_dim in [0, 1, 2]:
         for forces_dir in [1.0, -1.0]:
             for normals_dim_plus in [1]:  # , 2]:
@@ -813,9 +816,11 @@ def all_train(td, sc):
                     normals = [0.0, 0.0, 0.0]
                     normals[forces_dim] = -forces_dir
                     normals[(forces_dim + normals_dim_plus) % 3] = normals_dir
+                    scale_forces = scale_forces_list[i % len(scale_forces_list)]
+                    i += 1
                     args.append(
                         {
-                            "scale_forces": 2.0,
+                            "scale_forces": scale_forces,
                             "forces_and_nodes": forces,
                             "obstacle_normals": normals,
                         }
@@ -862,7 +867,7 @@ def all_validation(td, sc):
         return [
             [
                 bunny_fall_3d(
-                    mesh_density=32,
+                    mesh_density=td.mesh_density,
                     scale=1,
                     final_time=final_time,
                     simulation_config=sc,
@@ -871,7 +876,7 @@ def all_validation(td, sc):
             ],
             [
                 bunny_rotate_3d(
-                    mesh_density=32,
+                    mesh_density=td.mesh_density,
                     scale=1,
                     final_time=final_time,
                     simulation_config=sc,

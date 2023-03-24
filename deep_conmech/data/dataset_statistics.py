@@ -16,6 +16,7 @@ class FeaturesStatistics:
 
         self.data_mean = torch.mean(data, axis=0)
         self.data_std = torch.std(data, axis=0)
+        self.data_max_abs = torch.max(torch.abs(data), axis=0).values
 
     def describe(self):
         return self.pandas_data.describe()
@@ -34,7 +35,9 @@ class DatasetStatistics:
             assert self.data[id].label == label
             if value.device != self.data[id].data_std.device:
                 self.data[id].data_std = self.data[id].data_std.to(value.device)
-            return torch.nan_to_num(value / self.data[id].data_std)
+            if value.device != self.data[id].data_max_abs.device:
+                self.data[id].data_max_abs = self.data[id].data_max_abs.to(value.device)
+            return torch.nan_to_num(value / self.data[id].data_max_abs)  # self.data[id].data_std)
 
         layer_list[1].x = test_and_set(layer_list[1].x, 0, "sparse_nodes")
         layer_list[1].edge_attr = test_and_set(layer_list[1].edge_attr, 1, "sparse_edges")
@@ -44,11 +47,18 @@ class DatasetStatistics:
         layer_list[0].x = test_and_set(layer_list[0].x, 3, "dense_nodes")
         layer_list[0].edge_attr = test_and_set(layer_list[0].edge_attr, 4, "dense_edges")
 
-        # Sparse
-        layer_list[0].edge_attr[:, -4:] = 0.0  # forces # shape = 4
+        # Sparse nodes
+        # layer_list[1].x[:, :4] = 0.0 # new_displacement
+        layer_list[1].x[:, -4:] = 0.0  # forces
 
-        # Dense
-        layer_list[1].edge_attr[:, -4:] = 0.0  # forces # shape = 16
+        # Dense nodes
+        layer_list[0].x[:, -4:] = 0.0  # forces
+
+        # Sparse edges
+        layer_list[0].edge_attr[:, -4:] = 0.0  # forces
+
+        # Dense edges
+        layer_list[1].edge_attr[:, -4:] = 0.0  # forces
 
         # Multilayer edges
         layer_list[1].edge_attr_to_down[:, -4:] = 0.0  # forces

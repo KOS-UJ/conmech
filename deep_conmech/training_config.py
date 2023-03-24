@@ -83,6 +83,7 @@ class TrainingConfig(Config):
 
     torch_distributed_training = True and not use_jax
     dataloader_workers = 4
+    generate_data_in_subprocesses = False  # True
     synthetic_generation_workers = 4
     scenario_generation_workers = 2
 

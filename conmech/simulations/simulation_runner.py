@@ -329,10 +329,6 @@ def simulate(
         with timer["all_prepare"]:
             prepare(scenario, scene, current_time, with_temperature)
 
-        with timer["all_operation"]:
-            if operation is not None:
-                operation(scene)  # (current_time, scene, a, base_a)
-
         with timer["all_solver"]:
             acceleration, temperature = solve_function(
                 scene=scene,
@@ -345,9 +341,13 @@ def simulate(
         if simulate_dirty_data:
             scene.make_dirty()
 
+        with timer["all_operation"]:
+            if operation is not None:
+                operation(scene)  # (current_time, scene, a, base_a)
+
         with timer["all_iterate"]:
             scene.iterate_self(acceleration, temperature=temperature)
-            scene.exact_acceleration = acceleration
+            # scene.exact_acceleration = acceleration
 
     for key in timer:
         all_time = timer.dt[key].sum()

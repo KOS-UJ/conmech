@@ -3,14 +3,13 @@ from typing import Callable, List, Optional
 
 import numpy as np
 
-from conmech.helpers import cmh
+from conmech.helpers import cmh, interpolation_helpers, mph
 from conmech.plotting.plotter_functions import save_three
 from conmech.scenarios.scenarios import Scenario
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data.base_dataset import BaseDataset
-from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import TrainingConfig
 
@@ -95,11 +94,13 @@ class ScenariosDataset(BaseDataset):
         print(np.max(scene.initial_nodes, axis=0))
 
     def generate_data(self):
-        self.generate_data_process()
-        # mph.run_process(self.generate_data_process)
-        # done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
-        # if not done:
-        #     print("NOT DONE")
+        if self.config.generate_data_in_subprocesses:
+            # mph.run_process(self.generate_data_process)
+            done = mph.run_processes(self.generate_data_process, num_workers=self.num_workers)
+            if not done:
+                print("NOT DONE")
+        else:
+            self.generate_data_process()
 
     def generate_data_process(self, num_workers: int = 1, process_id: int = 0):
         assigned_scenarios = self.get_assigned_scenarios(num_workers, process_id)
@@ -143,8 +144,6 @@ class ScenariosDataset(BaseDataset):
             # )
             # current_index += 1
 
-            scene.iterate_self(acceleration)
-
             save_three(
                 scene=scene,
                 step=index,
@@ -152,6 +151,8 @@ class ScenariosDataset(BaseDataset):
                 folder="./three",
                 skip=20,
             )
+
+            scene.iterate_self(acceleration)
 
         step_tqdm.set_description(f"{step_tqdm.desc} - done")
         return True

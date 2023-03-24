@@ -52,6 +52,9 @@ def save_three(scene, step, label, folder, skip=5):
     sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_exact_new_displacement)[
         scene.reduced.boundary_indices
     ]
+    sn2r = (scene.reduced.initial_nodes + scene.reduced.norm_lifted_new_displacement)[
+        scene.reduced.boundary_indices
+    ]
 
     # sn2 = (
     #     scene.initial_nodes + scene.to_normalized_displacement_rotated(scene.exact_acceleration)
@@ -65,8 +68,8 @@ def save_three(scene, step, label, folder, skip=5):
         nodes,
         convert_to_list(sn1),
         convert_to_list(sn2),
-    ]  # , convert_to_list(sn2), convert_to_list(sn3)]
-    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]
+    ]
+    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r), convert_to_list(sn2r)]
 
     json_dict = {
         "skip": skip,
