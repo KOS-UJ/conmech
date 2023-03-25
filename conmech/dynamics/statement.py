@@ -88,7 +88,7 @@ class QuasistaticRelaxationStatement(Statement):
         assert var.time is not None
 
         self.right_hand_side = (
-                self.body.get_integrated_forces_vector(t=var.time)
+                self.body.get_integrated_forces_vector(time=var.time)
                 - self.body.relaxation @ var.absement.T
         )
 
