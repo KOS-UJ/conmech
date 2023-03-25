@@ -74,19 +74,15 @@ def main(show: bool = True, save: bool = False):
     r_big = 2.5
     r_small = 1.5
     r = (r_big + r_small) / 2
-    fv = 0.6
+    fv = 1
     left = 0
     right = 5
 
     def outer_forces(x, t):
         if x[1] <= oy:
-            # if x[0] < left + eps:
-            #     return np.array([0, -fv])
-            # if x[0] > right - eps:
-            #     return np.array([0, -fv])
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, -fv])
+            return np.array([0, fv * np.sin(t)])
         return np.array([0.0, 0.0])
 
     setup = QuasistaticSetup(mesh_type="tunnel")
@@ -96,9 +92,10 @@ def main(show: bool = True, save: bool = False):
 
         runner = QuasistaticRelaxation(setup, solving_method="schur")
 
+        n_steps = 65
         states = runner.solve(
-            n_steps=100,
-            output_step=(0, 10, 25, 50, 100),
+            n_steps=n_steps,
+            output_step=range(0, n_steps + 1, 2),
             verbose=False,
             initial_absement=setup.initial_absement,
             initial_displacement=setup.initial_displacement,
@@ -124,9 +121,14 @@ def main(show: bool = True, save: bool = False):
             drawer.x_max = 5
             drawer.y_min = 0
             drawer.y_max = 4.5
-            if i == 0:
-                drawer.outer_forces_scale = 1
-            drawer.draw(show=True, title=f"time: {state.time:.2f}", temp_min=0, temp_max=30, save=False)
+            drawer.outer_forces_scale = 1
+            drawer.draw(
+                show=True,
+                title=f"time: {state.time:.2f}",
+                temp_min=0,
+                temp_max=30,
+                save=False,
+            )
 
 
 @dataclass
