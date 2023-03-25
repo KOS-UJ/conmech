@@ -68,9 +68,6 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
 
 
 def main(show: bool = True, save: bool = False):
-    def outer_forces_0(x):
-        return np.array([-0.2, -0.2])
-
     ox = 2.5
     oy = 2.0
     eps = 0.001
@@ -81,31 +78,20 @@ def main(show: bool = True, save: bool = False):
     left = 0
     right = 5
 
-    def outer_forces_1(x):
+    def outer_forces(x, t):
         if x[1] <= oy:
-            if x[0] < left + eps:
-                return np.array([0, -fv])
-            if x[0] > right - eps:
-                return np.array([0, -fv])
+            # if x[0] < left + eps:
+            #     return np.array([0, -fv])
+            # if x[0] > right - eps:
+            #     return np.array([0, -fv])
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
             return np.array([0, -fv])
         return np.array([0.0, 0.0])
 
-    def outer_forces_2(x):
-        if x[1] <= oy:
-            if x[0] < left + eps:
-                return np.array([fv, 0])
-            if x[0] > right - eps:
-                return np.array([-fv, 0])
-            return np.array([0., 0])
-        if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([ox - x[0], oy - x[1]]) / r_big * fv
-        return np.array([0.0, 0.0])
-
     setup = QuasistaticSetup(mesh_type="tunnel")
 
-    for outer_forces in (outer_forces_0, outer_forces_1, outer_forces_2)[:]:
+    for outer_forces in (outer_forces,)[:]:
         setup.outer_forces = outer_forces
 
         runner = QuasistaticRelaxation(setup, solving_method="schur")
@@ -140,7 +126,7 @@ def main(show: bool = True, save: bool = False):
             drawer.y_max = 4.5
             if i == 0:
                 drawer.outer_forces_scale = 1
-            drawer.draw(show=False, title=f"time: {state.time:.2f}", temp_min=0, temp_max=30, save=True)
+            drawer.draw(show=True, title=f"time: {state.time:.2f}", temp_min=0, temp_max=30, save=False)
 
 
 @dataclass

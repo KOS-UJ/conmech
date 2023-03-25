@@ -189,6 +189,7 @@ class Quasistatic(SchurComplement):
                 absement=self.b_vector,
                 displacement=self.u_vector,
                 time_step=self.time_step,
+                time=self.current_time,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()

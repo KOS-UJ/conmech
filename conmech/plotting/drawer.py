@@ -112,7 +112,8 @@ class Drawer:
             neumann_nodes = self.state.body.mesh.neumann_boundary
             neumann_nodes = list(set(neumann_nodes.flatten()))
             x = self.state.body.mesh.initial_nodes[neumann_nodes]
-            v = self.state.body.node_outer_forces[neumann_nodes] * self.outer_forces_scale
+            v = self.state.body.node_outer_forces(self.state.time)[neumann_nodes] \
+                * self.outer_forces_scale
             axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1])
 
         # turns on axis, since networkx turn them off
