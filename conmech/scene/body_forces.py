@@ -57,7 +57,7 @@ class BodyForces(Dynamics):
         # TODO handle set self.inner_forces
         if time != self._inner_forces_time:
             self._node_inner_forces = np.array([self.inner_forces(p, time)
-                                               for p in self.moved_nodes])  # TODO: why moved?
+                                               for p in self.mesh.initial_nodes])
             self._inner_forces_time = time
         return self._node_inner_forces
 
@@ -65,7 +65,7 @@ class BodyForces(Dynamics):
         # TODO handle set self.inner_forces
         if time != self._outer_forces_time:
             self._node_outer_forces = np.array([self.outer_forces(p, time)
-                                               for p in self.moved_nodes])  # TODO: should be only on boundary! + why moved
+                                               for p in self.mesh.initial_nodes])  # TODO: should be only on boundary!
             self._outer_forces_time = time
         return self._node_outer_forces
 
