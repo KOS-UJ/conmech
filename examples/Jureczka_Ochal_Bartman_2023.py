@@ -173,7 +173,7 @@ def main(show: bool = True, save: bool = False):
                 drawer.node_size = 1
                 drawer.original_mesh_color = "k"
                 drawer.deformed_mesh_color = None
-                drawer.draw(show=show, temp_min=0, temp_max=40, save=save)
+                drawer.draw(show=show, field_min=0, field_max=40, save=save)
             stress = viscoelastic_constitutive_law(
                 state.displacement,
                 state.velocity,
@@ -188,7 +188,7 @@ def main(show: bool = True, save: bool = False):
             drawer.original_mesh_color = None
             drawer.deformed_mesh_color = None
             drawer.cmap = plt.cm.rainbow
-            drawer.draw(show=show, temp_min=0, temp_max=30, save=True)
+            drawer.draw(show=show, field_min=0, field_max=30, save=True)
 
 
 if __name__ == "__main__":
