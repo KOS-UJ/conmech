@@ -202,8 +202,8 @@ def main(steps, setup, show: bool = True, save: bool = False):
         #     state = pickle.load(output)
         #     print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
         Drawer(state=state, config=config).draw(
-            temp_max=np.max(state.temperature),
-            temp_min=np.min(state.temperature),
+            field_max=np.max(state.temperature),
+            field_min=np.min(state.temperature),
             show=True,
             save=False,
         )

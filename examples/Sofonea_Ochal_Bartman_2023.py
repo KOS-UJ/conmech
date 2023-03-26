@@ -41,7 +41,7 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     mu_coef: ... = 400
     la_coef: ... = 400
     time_step: ... = 0.1
-    contact_law: ... = make_slope_contact_law(slope=5)
+    contact_law: ... = make_slope_contact_law(slope=100)
 
     relaxation: ... = np.array(
         [
@@ -82,7 +82,7 @@ def main(show: bool = True, save: bool = False):
         if x[1] <= oy:
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * np.sin(t)])
+            return np.array([0, fv * (2 - t)])
         return np.array([0.0, 0.0])
 
     setup = QuasistaticSetup(mesh_type="tunnel")
@@ -111,7 +111,7 @@ def main(show: bool = True, save: bool = False):
                 state.body.mesh.initial_nodes,
             )
             c = np.linalg.norm(stress, axis=(1, 2))
-            state.temperature = c  # stress[:, 0, 1]
+            state.temperature = stress[:, 1, 1]
             drawer = Drawer(state=state, config=config)
             drawer.node_size = 0
             drawer.original_mesh_color = None
@@ -122,11 +122,13 @@ def main(show: bool = True, save: bool = False):
             drawer.y_min = 0
             drawer.y_max = 4.5
             drawer.outer_forces_scale = 1
+            drawer.normal_stress_scale = 10
+            drawer.field_name = "temperature"  # TODO
             drawer.draw(
                 show=True,
                 title=f"time: {state.time:.2f}",
-                temp_min=0,
-                temp_max=30,
+                field_min=0,
+                field_max=0,
                 save=False,
             )
 

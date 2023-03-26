@@ -116,7 +116,7 @@ def main(show: bool = True, save: bool = False):
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(
-            temp_max=T_max, temp_min=T_min, show=show, save=save
+            field_max=T_max, field_min=T_min, show=show, save=save
         )
 
 

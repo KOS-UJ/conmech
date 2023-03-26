@@ -27,6 +27,9 @@ class Drawer:
         self.deformed_mesh_color = "k"
         self.original_mesh_color = "0.7"
         self.outer_forces_scale = 0
+        self.normal_stress_scale = 0
+        self.field_name = None
+        self.field = None
         self.cmap = plt.cm.plasma
         self.x_min = None
         self.x_max = None
@@ -41,8 +44,8 @@ class Drawer:
     def draw(
         self,
         fig_axes=None,
-        temp_max=None,
-        temp_min=None,
+        field_max=None,
+        field_min=None,
         show=True,
         save=False,
         save_format="png",
@@ -77,12 +80,11 @@ class Drawer:
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)
 
-        if hasattr(self.state, "temperature"):
-            temperature = self.state.temperature[:]
-            self.draw_field(temperature, temp_min, temp_max, axes, fig)
-        if hasattr(self.state, "electric_potential"):
-            electric_potential = self.state.electric_potential[:]
-            self.draw_field(electric_potential, temp_min, temp_max, axes, fig)
+        if self.field_name:
+            self.field = getattr(self.state, self.field_name)
+
+        if self.field is not None:
+            self.draw_field(self.field, field_min, field_max, axes, fig)
 
         if self.original_mesh_color is not None:
             self.draw_mesh(
@@ -116,6 +118,16 @@ class Drawer:
             if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
                 axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
                             angles='xy', scale_units='xy', scale=self.outer_forces_scale)
+
+        if self.normal_stress_scale:
+            contact_nodes = self.state.body.mesh.contact_boundary
+            contact_nodes = list(set(contact_nodes.flatten()))
+            x = self.state.displaced_nodes[contact_nodes]
+            v = np.zeros((len(contact_nodes), 2))  # TODO
+            v[:, 1] = self.field[contact_nodes]
+            if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
+                axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
+                            angles='xy', scale_units='xy', scale=self.normal_stress_scale)
 
         # turns on axis, since networkx turn them off
         plt.axis("on")
