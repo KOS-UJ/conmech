@@ -96,7 +96,7 @@ class Drawer:
             )
 
         nodes = self.state.displaced_nodes
-        if self.original_mesh_color is not None:
+        if self.deformed_mesh_color is not None:
             self.draw_mesh(
                 nodes,
                 axes,
@@ -124,7 +124,7 @@ class Drawer:
             contact_nodes = list(set(contact_nodes.flatten()))
             x = self.state.displaced_nodes[contact_nodes]
             v = np.zeros((len(contact_nodes), 2))  # TODO
-            v[:, 1] = self.field[contact_nodes]
+            v[:, 1] = - self.state.stress_y[contact_nodes]  # TODO
             if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
                 axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
                             angles='xy', scale_units='xy', scale=self.normal_stress_scale)

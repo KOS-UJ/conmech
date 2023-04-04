@@ -22,6 +22,8 @@ import numba
 import numpy as np
 import scipy
 
+from conmech.properties.body_properties import BodyProperties
+
 
 def get_interpolated(u, vertices):
     x = vertices[:, 0].copy()
@@ -107,25 +109,30 @@ def viscoelastic_constitutive_law(u, v, setup, elements, nodes):
     return stress_u + stress_v
 
 
-def elastic_relaxation_constitutive_law(displacement: np.ndarray, absements: List, setup, elements, nodes):  # TODO!
+def elastic_relaxation_constitutive_law(
+        displacement: np.ndarray,
+        absement: np.ndarray,
+        body_prop: BodyProperties,
+        elements,
+        nodes
+):  # TODO!
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])
     grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
     stress_u = np.zeros_like(grad_u)
-    stress_u[:, 0, 0] = 2 * setup.mu_coef * grad_u[:, 0, 0] + setup.la_coef * (
+    stress_u[:, 0, 0] = 2 * body_prop.mu * grad_u[:, 0, 0] + body_prop.lambda_ * (
         grad_u[:, 0, 0] + grad_u[:, 1, 1]
     )
-    stress_u[:, 1, 1] = 2 * setup.mu_coef * grad_u[:, 1, 1] + setup.la_coef * (
+    stress_u[:, 1, 1] = 2 * body_prop.mu * grad_u[:, 1, 1] + body_prop.lambda_ * (
         grad_u[:, 0, 0] + grad_u[:, 1, 1]
     )
-    stress_u[:, 0, 1] = setup.mu_coef * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
+    stress_u[:, 0, 1] = body_prop.mu * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
     stress_u[:, 1, 0] = stress_u[:, 0, 1]
 
-    ze_coef = th_coef = setup.relaxation[1, 1, 1]  # TODO
+    ze_coef = th_coef = body_prop.relaxation[1, 1, 1]  # TODO
 
     stress_b = np.zeros_like(grad_u)
-    absement = absements[-1]
     grad_x = gradient(elements, nodes, absement[:, 0])
     grad_y = gradient(elements, nodes, absement[:, 1])
     grad_v = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)

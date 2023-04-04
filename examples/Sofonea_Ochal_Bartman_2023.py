@@ -29,7 +29,6 @@ from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
 
 from examples.p_slope_contact_law import make_slope_contact_law
-from examples.utils import elastic_relaxation_constitutive_law
 
 eps = 1e-18
 
@@ -37,11 +36,11 @@ eps = 1e-18
 @dataclass
 class QuasistaticSetup(RelaxationQuasistaticProblem):
     grid_height: ... = 1.0
-    elements_number: ... = (2, 5)
-    mu_coef: ... = 400
-    la_coef: ... = 400
+    elements_number: ... = (10, 20)
+    mu_coef: ... = 714.29
+    la_coef: ... = 2857.14
     time_step: ... = 0.1
-    contact_law: ... = make_slope_contact_law(slope=100)
+    contact_law: ... = make_slope_contact_law(slope=200)
 
     relaxation: ... = np.array(
         [
@@ -74,15 +73,13 @@ def main(show: bool = True, save: bool = False):
     r_big = 2.5
     r_small = 1.5
     r = (r_big + r_small) / 2
-    fv = 1
-    left = 0
-    right = 5
+    fv = 0.02
 
     def outer_forces(x, t):
         if x[1] <= oy:
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * (2 - t)])
+            return np.array([0, fv * t**3 * np.sin(t)])
         return np.array([0.0, 0.0])
 
     setup = QuasistaticSetup(mesh_type="tunnel")
@@ -92,7 +89,7 @@ def main(show: bool = True, save: bool = False):
 
         runner = QuasistaticRelaxation(setup, solving_method="schur")
 
-        n_steps = 65
+        n_steps = 48
         states = runner.solve(
             n_steps=n_steps,
             output_step=range(0, n_steps + 1, 2),
@@ -101,34 +98,30 @@ def main(show: bool = True, save: bool = False):
             initial_displacement=setup.initial_displacement,
         )
         config = Config()
-        absements = [state.absement for state in states]
+
+        F_max = -np.inf
+        F_min = np.inf
+        for state in states:
+            F_max = max(F_max, np.max(state.stress_x))
+            F_min = min(F_min, np.min(state.stress_x))
         for i, state in enumerate(states):
-            stress = elastic_relaxation_constitutive_law(
-                state.displacement,
-                absements[:i+1],
-                setup,
-                state.body.mesh.elements,
-                state.body.mesh.initial_nodes,
-            )
-            c = np.linalg.norm(stress, axis=(1, 2))
-            state.temperature = stress[:, 1, 1]
             drawer = Drawer(state=state, config=config)
             drawer.node_size = 0
             drawer.original_mesh_color = None
-            drawer.deformed_mesh_color = None
+            drawer.deformed_mesh_color = "black"
             drawer.cmap = plt.cm.rainbow
             drawer.x_min = 0
             drawer.x_max = 5
-            drawer.y_min = 0
+            drawer.y_min = -1
             drawer.y_max = 4.5
             drawer.outer_forces_scale = 1
             drawer.normal_stress_scale = 10
-            drawer.field_name = "temperature"  # TODO
+            drawer.field_name = None
             drawer.draw(
                 show=True,
                 title=f"time: {state.time:.2f}",
-                field_min=0,
-                field_max=0,
+                field_min=F_min,
+                field_max=F_max,
                 save=False,
             )
 

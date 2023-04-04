@@ -57,5 +57,14 @@ class JOB2023(RawMesh):
                 [diameter + thickness, pillar_height],
             ]
         )
-        nodes, elements = dmsh.generate(geo, 1 / mesh_prop.mesh_density[0])
+
+        foundation = dmsh.Path([[0., 0.], [diameter + 2 * thickness, 0.]])
+
+        dense_y = mesh_prop.mesh_density_y
+        dense_x = mesh_prop.mesh_density_x
+
+        def target_edge_length(x):
+            return dense_y**-1 + dense_x**-1 * foundation.dist(x)
+
+        nodes, elements = dmsh.generate(geo, target_edge_length)
         super().__init__(nodes, elements)

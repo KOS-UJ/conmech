@@ -3,6 +3,7 @@ Created at 18.02.2021
 """
 
 import numpy as np
+from examples.utils import elastic_relaxation_constitutive_law
 
 
 class State:
@@ -12,6 +13,7 @@ class State:
         self.displacement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
         self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
+        self.__stress: np.ndarray = None
         self.time = 0
 
     def set_displacement(
@@ -39,6 +41,26 @@ class State:
                 + self.displacement[:, :2]
             )
         self.time = time
+
+    @property
+    def stress(self):
+        if self.__stress is None:
+            self.__stress = elastic_relaxation_constitutive_law(
+                self.displacement,
+                self.absement,
+                self.body.body_prop,
+                self.body.mesh.elements,
+                self.body.mesh.initial_nodes,
+            )
+        return self.__stress
+
+    @property
+    def stress_x(self):
+        return self.stress[:, 0, 0]
+
+    @property
+    def stress_y(self):
+        return self.stress[:, 1, 1]
 
     def __getitem__(self, item) -> np.ndarray:
         if item in (0, "displacement"):
