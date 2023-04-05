@@ -110,6 +110,10 @@ class Drawer:
         axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)
+        if self.xlabel is not None:
+            axes.set_xlabel(self.xlabel)
+        if self.ylabel is not None:
+            axes.set_ylabel(self.ylabel)
 
     def draw_meshes(self, axes):
         if self.original_mesh_color is not None:
@@ -199,10 +203,11 @@ class Drawer:
                 axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
                             angles='xy', scale_units='xy', scale=self.normal_stress_scale)
 
-    def save_plot(self, format_):
+    def save_plot(self, format_, name=None):
         directory = self.get_directory()
         cmh.create_folders(directory)
-        path = f"{directory}/{cmh.get_timestamp(self.config)}.{format_}"
+        name = name if name else cmh.get_timestamp(self.config)
+        path = f"{directory}/{name}.{format_}"
         plt.savefig(
             path,
             transparent=False,
@@ -257,7 +262,3 @@ class Drawer:
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
         fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor", ax=axes)
-        if self.xlabel is not None:
-            plt.xlabel(self.xlabel)
-        if self.ylabel is not None:
-            plt.ylabel(self.ylabel)

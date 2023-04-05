@@ -38,7 +38,7 @@ oy = 2.0
 r_big = 2.5
 r_small = 1.5
 r = (r_big + r_small) / 2
-fv = 0.02
+fv = 0.1
 
 
 @dataclass
@@ -47,15 +47,16 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     elements_number: ... = (20, 20)
     mu_coef: ... = 714.29
     la_coef: ... = 2857.14
-    time_step: ... = 1/64
+    time_step: ... = 1/128
     contact_law: ... = make_slope_contact_law(slope=27)
 
+    _mu = 40000.
     relaxation: ... = np.array(
         [
-            [[1200.0, 400.0, 400.0], [400.0, 400.0, 400.0], [400.0, 400.0, 400.0]],
-            [[400.0, 400.0, 400.0], [400.0, 400.0, 1200.0], [400.0, 400.0, 400.0]],
+            [[2 * _mu, 0], [_mu, _mu]],
+            [[_mu, _mu], [0, 2 * _mu]],
         ]
-    ) / 0.01
+    )
 
     @staticmethod
     def inner_forces(x, t=None):
@@ -63,10 +64,6 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
 
     @staticmethod
     def outer_forces(x, t=None):
-        if x[1] <= oy:
-            return np.array([0., 0])
-        if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * t ** 3 * np.sin(t)])
         return np.array([0.0, 0.0])
 
     @staticmethod
@@ -79,100 +76,165 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
 
 
 def main(save: bool = False, simulate: bool = True):
-    setup = QuasistaticSetup(mesh_type="tunnel")
-    config = Config()
+    """
 
-    name = "removeme"
-    n_steps = 300
-    output_steps = range(0, n_steps + 1, 2)
+    If not `simulate` but results is not ready: run simulation.
+    If `simulate` simulation will be always run.
+
+    If `save` results will be saved as file.
+    If not `save` results will be shown.
+    """
+    config = Config()
+    setup = QuasistaticSetup(mesh_type="tunnel")
     h = setup.elements_number[0]
 
+    def sin_outer_forces(x, t=None):
+        if x[1] <= oy:
+            return np.array([0., 0])
+        if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
+            return np.array([0, fv * t * np.sin(t)])
+        return np.array([0.0, 0.0])
+
+    def const_outer_forces(x, t=None):
+        if x[1] <= oy:
+            return np.array([0., 0])
+        if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
+            return np.array([0, -1.0])
+        return np.array([0.0, 0.0])
+
+    examples = {
+        "sob_01": {
+            "n_steps": 512,
+            "output_steps": (0, 192, 416, 512),
+            "outer_forces": sin_outer_forces
+        },
+        "sob_02": {
+            "n_steps": 512,
+            "output_steps": range(0, 512, 16),
+            "outer_forces": const_outer_forces
+        }
+    }
+
+    try:
+        for name in examples.keys():
+            steps = examples[name]["output_steps"]
+            with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
+                _ = pickle.load(output)
+
+            for time_step in steps:
+                with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
+                    _ = pickle.load(output)
+    except IOError:
+        simulate = True
+    except EOFError:
+        simulate = True
+
     if simulate:
-        runner = QuasistaticRelaxation(setup, solving_method="schur")
+        for name in examples.keys():
+            setup.outer_forces = examples[name]["outer_forces"]
 
-        states = runner.solve(
-            n_steps=n_steps,
-            output_step=output_steps,
-            verbose=False,
-            initial_absement=setup.initial_absement,
-            initial_displacement=setup.initial_displacement,
-        )
-        f_max = -np.inf
-        f_min = np.inf
-        for state in states:
-            with open(
-                    f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
-                    "wb+",
-            ) as output:
-                pickle.dump(state, output)
-            f_max = max(f_max, np.max(state.stress_x))
-            f_min = min(f_min, np.min(state.stress_x))
-            with open(
-                    f"./output/sob2023/{name}_h_{h}_global",
-                    "wb+",
-            ) as output:
-                pickle.dump([f_min, f_max], output)
+            runner = QuasistaticRelaxation(setup, solving_method="schur")
 
-    steps = (0, output_steps[-1])
-    with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
-        f_limits = pickle.load(output)
-
-    for time_step in steps:
-        with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
-            state = pickle.load(output)
-
-            drawer = Drawer(state=state, config=config)
-            drawer.node_size = 0
-            drawer.original_mesh_color = None
-            drawer.deformed_mesh_color = "black"
-            drawer.cmap = plt.cm.rainbow
-
-            if time_step == 0:
-                drawer.outer_forces_scale = -1
-            else:
-                drawer.outer_forces_scale = 0
-            drawer.normal_stress_scale = 10
-            drawer.field_name = None
-            fig, axes = plt.subplots(1, 2)
-            drawer.x_min = 0
-            drawer.x_max = 5
-            drawer.y_min = -1
-            drawer.y_max = 4.5
-            drawer.draw(
-                fig_axes=(fig, axes[0]),
-                show=False,
-                title=f"time: {state.time:.2f}",
-                field_min=f_limits[0],
-                field_max=f_limits[1],
-                save=False,
+            states = runner.solve(
+                n_steps=examples[name]["n_steps"],
+                output_step=examples[name]["output_steps"],
+                verbose=False,
+                initial_absement=setup.initial_absement,
+                initial_displacement=setup.initial_displacement,
             )
-            drawer.x_min = 3.4
-            drawer.x_max = 5.6
-            drawer.y_min = -1
-            drawer.y_max = 1.5
-            drawer.draw(
-                fig_axes=(fig, axes[1]),
-                show=False,
-                title=f"time: {state.time:.2f}",
-                field_min=f_limits[0],
-                field_max=f_limits[1],
-                save=False,
-            )
-            axes[0].axis("on")
-            axes[1].axis("on")
-            axes[0].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
-            axes[1].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+            f_max = -np.inf
+            f_min = np.inf
+            for state in states:
+                with open(
+                        f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
+                        "wb+",
+                ) as output:
+                    # Workaround
+                    state.body.outer_forces = None
+                    pickle.dump(state, output)
+                f_max = max(f_max, np.max(state.stress_x))
+                f_min = min(f_min, np.min(state.stress_x))
+                with open(
+                        f"./output/sob2023/{name}_h_{h}_global",
+                        "wb+",
+                ) as output:
+                    pickle.dump([f_min, f_max], output)
 
-            zoom_outside(axes[0], [3, -1.5, 6, 2], axes[1], color="gray")
-            axes[0].set_aspect("equal", adjustable="box")
-            axes[1].set_aspect("equal", adjustable="box")
-            fig.suptitle(f"time: {state.time:.2f}")
-            fig.tight_layout(rect=[0, 0, 1, 1.2])
-            plt.subplots_adjust(wspace=0.4, top=1.25)
-            if not save:
-                plt.show()
-            if save:
-                drawer.save_plot("pdf")
+    for name in examples.keys():
+        steps = examples[name]["output_steps"]
+        with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
+            f_limits = pickle.load(output)
+
+        for time_step in steps:
+            with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
+                state = pickle.load(output)
+                # Workaround
+                state.body.outer_forces = examples[name]["outer_forces"]
+
+                drawer = Drawer(state=state, config=config)
+                drawer.node_size = 0
+                drawer.original_mesh_color = None
+                drawer.deformed_mesh_color = "black"
+                drawer.normal_stress_scale = 1
+                drawer.field_name = None
+                drawer.xlabel = "x"
+                drawer.ylabel = "y"
+
+                if time_step == 0:
+                    fig, axes = plt.subplots(1, 1)
+                    axes = (axes,)
+                    axes[0].annotate('$\Gamma_1$', xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
+                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(4.33, 5.00), fontsize=18)
+                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
+                    axes[0].annotate('$\mathbf{f}_2$', xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
+                    axes[0].annotate('$\Gamma_3$', xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
+                    drawer.outer_forces_scale = -1
+                    plt.title("Reference configuration")
+                    # to have nonzero force interface on Neumann boundary.
+                    state.time = 4
+                else:
+                    drawer.outer_forces_scale = 0
+                    fig, axes = plt.subplots(1, 2)
+                    drawer.x_min = 3.4
+                    drawer.x_max = 5.6
+                    drawer.y_min = -1
+                    drawer.y_max = 1.5
+                    drawer.ylabel = None
+                    drawer.draw(
+                        fig_axes=(fig, axes[1]),
+                        show=False,
+                        field_min=f_limits[0],
+                        field_max=f_limits[1],
+                        save=False,
+                    )
+                    drawer.ylabel = "y"
+                    axes[1].axis("on")
+                    axes[1].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+                    axes[1].set_aspect("equal", adjustable="box")
+                    zoom_outside(axes[0], [3, -1.5, 6, 2], axes[1], color="gray")
+
+                    fig.suptitle(f"time: {state.time:.2f}")
+                drawer.x_min = 0
+                drawer.x_max = 5.0
+                drawer.y_min = -0.9
+                drawer.y_max = 4.9
+                drawer.draw(
+                    fig_axes=(fig, axes[0]),
+                    show=False,
+                    field_min=f_limits[0],
+                    field_max=f_limits[1],
+                    save=False,
+                )
+                axes[0].axis("on")
+                axes[0].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
+                axes[0].set_aspect("equal", adjustable="box")
+
+                fig.tight_layout(rect=[0, 0, 1, 1.2])
+                plt.subplots_adjust(wspace=0.4, top=1.25)
+                if not save:
+                    plt.show()
+                if save:
+                    drawer.save_plot("pdf", name=f"{name}_{time_step}")
 
 
 def zoom_outside(
@@ -253,4 +315,4 @@ def zoom_outside(
 
 
 if __name__ == "__main__":
-    main(simulate=False, save=True)
+    main(simulate=True, save=True)
