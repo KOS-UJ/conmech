@@ -4,10 +4,7 @@ Created at 21.10.2022
 import pickle
 from dataclasses import dataclass
 
-import numba
 import numpy as np
-from matplotlib.colors import Normalize
-import scipy.interpolate
 import matplotlib.pyplot as plt
 
 from conmech.helpers.config import Config

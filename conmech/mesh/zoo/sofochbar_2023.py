@@ -30,6 +30,7 @@ class JOB2023(RawMesh):
         diameter = 3.0
         thickness = 1.0
         pillar_height = 2.0
+        eps = 0.01
         width = diameter + 2 * thickness
         geo = dmsh.Circle([width / 2, pillar_height], width / 2)
         geo = geo - dmsh.Circle([width / 2, pillar_height], diameter / 2)
@@ -45,16 +46,16 @@ class JOB2023(RawMesh):
             [
                 [0.0, 0.0],
                 [thickness, 0.0],
-                [thickness, pillar_height],
-                [0.0, pillar_height],
+                [thickness, pillar_height + eps],
+                [0.0, pillar_height + eps],
             ]
         )
         geo = geo + dmsh.Polygon(
             [
                 [diameter + thickness, 0.0],
                 [width, 0.0],
-                [width, pillar_height],
-                [diameter + thickness, pillar_height],
+                [width, pillar_height + eps],
+                [diameter + thickness, pillar_height + eps],
             ]
         )
 
