@@ -51,6 +51,7 @@ class State:
                 self.body.body_prop,
                 self.body.mesh.elements,
                 self.body.mesh.initial_nodes,
+                self.time
             )
         return self.__stress
 

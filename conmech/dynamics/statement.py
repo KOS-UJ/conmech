@@ -81,7 +81,9 @@ class QuasistaticRelaxationStatement(Statement):
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
-        self.left_hand_side = self.body.elasticity.copy() + self.body.relaxation * var.time_step
+        self.left_hand_side = (
+                self.body.elasticity.copy() + self.body.relaxation(var.time) * var.time_step
+        )
 
     def update_right_hand_side(self, var: Variables):
         assert var.absement is not None
@@ -89,7 +91,7 @@ class QuasistaticRelaxationStatement(Statement):
 
         self.right_hand_side = (
                 self.body.get_integrated_forces_vector(time=var.time)
-                - self.body.relaxation @ var.absement.T
+                - self.body.relaxation(var.time) @ var.absement.T
         )
 
 
