@@ -3,7 +3,7 @@ Contact Mechanics Problem setups
 """
 from abc import ABC
 from dataclasses import dataclass
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Optional, Callable
 
 import numpy as np
 
@@ -123,7 +123,7 @@ class PiezoelectricTimeDependent(TimeDependent, ABC):
 
 
 class RelaxationQuasistaticProblem(Quasistatic, ABC):
-    relaxation: np.ndarray
+    relaxation: Callable[[float], np.ndarray]
 
     @staticmethod
     def initial_absement(x: np.ndarray) -> np.ndarray:

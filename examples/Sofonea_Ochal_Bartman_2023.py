@@ -50,13 +50,13 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     time_step: ... = 1/128
     contact_law: ... = make_slope_contact_law(slope=27)
 
-    _mu = 40000.
-    relaxation: ... = np.array(
-        [
-            [[2 * _mu, 0], [_mu, _mu]],
-            [[_mu, _mu], [0, 2 * _mu]],
-        ]
-    )
+    @staticmethod
+    def relaxation(t: float) -> np.ndarray:
+        _mu = 0.
+        return np.array(
+            [[[2 * _mu, 0], [_mu, _mu]],
+             [[_mu, _mu], [0, 2 * _mu]], ]
+        )
 
     @staticmethod
     def inner_forces(x, t=None):
@@ -99,19 +99,35 @@ def main(save: bool = False, simulate: bool = True):
         if x[1] <= oy:
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, -1.0])
+            return np.array([0, -0.5])
         return np.array([0.0, 0.0])
+
+    def const_relaxation(t=None):
+        _mu = 1000.
+        return np.array(
+            [[[2 * _mu, 0], [_mu, _mu]],
+             [[_mu, _mu], [0, 2 * _mu]], ]
+        )
+
+    def linear_relaxation(t=None):
+        _mu = 1000. * t
+        return np.array(
+            [[[2 * _mu, 0], [_mu, _mu]],
+             [[_mu, _mu], [0, 2 * _mu]], ]
+        )
 
     examples = {
         "sob_01": {
             "n_steps": 512,
             "output_steps": (0, 192, 416, 512),
-            "outer_forces": sin_outer_forces
+            "outer_forces": sin_outer_forces,
+            "relaxation": const_relaxation,
         },
         "sob_02": {
             "n_steps": 512,
             "output_steps": range(0, 512, 16),
-            "outer_forces": const_outer_forces
+            "outer_forces": const_outer_forces,
+            "relaxation": linear_relaxation,
         }
     }
 
@@ -132,6 +148,7 @@ def main(save: bool = False, simulate: bool = True):
     if simulate:
         for name in examples.keys():
             setup.outer_forces = examples[name]["outer_forces"]
+            setup.relaxation = examples[name]["relaxation"]
 
             runner = QuasistaticRelaxation(setup, solving_method="schur")
 
@@ -145,20 +162,24 @@ def main(save: bool = False, simulate: bool = True):
             f_max = -np.inf
             f_min = np.inf
             for state in states:
+                f_max = max(f_max, np.max(state.stress_x))
+                f_min = min(f_min, np.min(state.stress_x))
                 with open(
                         f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
                         "wb+",
                 ) as output:
                     # Workaround
+                    relaxation = state.body.body_prop.relaxation
                     state.body.outer_forces = None
+                    state.body.body_prop.relaxation = None
                     pickle.dump(state, output)
-                f_max = max(f_max, np.max(state.stress_x))
-                f_min = min(f_min, np.min(state.stress_x))
-                with open(
-                        f"./output/sob2023/{name}_h_{h}_global",
-                        "wb+",
-                ) as output:
-                    pickle.dump([f_min, f_max], output)
+                    state.body.body_prop.relaxation = relaxation
+
+            with open(
+                    f"./output/sob2023/{name}_h_{h}_global",
+                    "wb+",
+            ) as output:
+                pickle.dump([f_min, f_max], output)
 
     for name in examples.keys():
         steps = examples[name]["output_steps"]
@@ -170,6 +191,7 @@ def main(save: bool = False, simulate: bool = True):
                 state = pickle.load(output)
                 # Workaround
                 state.body.outer_forces = examples[name]["outer_forces"]
+                state.body.body_prop.relaxation = examples[name]["relaxation"]
 
                 drawer = Drawer(state=state, config=config)
                 drawer.node_size = 0

@@ -114,7 +114,8 @@ def elastic_relaxation_constitutive_law(
         absement: np.ndarray,
         body_prop: BodyProperties,
         elements,
-        nodes
+        nodes,
+        time,
 ):  # TODO!
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])
@@ -130,19 +131,15 @@ def elastic_relaxation_constitutive_law(
     stress_u[:, 0, 1] = body_prop.mu * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
     stress_u[:, 1, 0] = stress_u[:, 0, 1]
 
-    ze_coef = th_coef = body_prop.relaxation[1, 1, 1]  # TODO
+    rlx_coef = body_prop.relaxation(time)[1, 0, 1]  # TODO
 
     stress_b = np.zeros_like(grad_u)
     grad_x = gradient(elements, nodes, absement[:, 0])
     grad_y = gradient(elements, nodes, absement[:, 1])
     grad_v = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
-    stress_b[:, 0, 0] += 2 * th_coef * grad_v[:, 0, 0] + ze_coef * (
-        grad_v[:, 0, 0] + grad_v[:, 1, 1]
-    )
-    stress_b[:, 1, 1] += 2 * th_coef * grad_v[:, 1, 1] + ze_coef * (
-        grad_v[:, 0, 0] + grad_v[:, 1, 1]
-    )
-    stress_b[:, 0, 1] += th_coef * (grad_v[:, 0, 1] + grad_v[:, 1, 0])
+    stress_b[:, 0, 0] += 2 * rlx_coef * grad_v[:, 0, 0]
+    stress_b[:, 1, 1] += 2 * rlx_coef * grad_v[:, 1, 1]
+    stress_b[:, 0, 1] += rlx_coef * (grad_v[:, 0, 1] + grad_v[:, 1, 0])
     stress_b[:, 1, 0] += stress_b[:, 0, 1]
     return stress_u + stress_b

@@ -10,14 +10,20 @@ from conmech.properties.body_properties import (
 )
 
 
-def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyProperties):
-    dimension = len(elements[0]) - 1
+def get_factory(dimension: int):
     if dimension == 2:
         factory = DynamicsFactory2D()
     elif dimension == 3:
         factory = DynamicsFactory3D()
     else:
         raise NotImplementedError()
+
+    return factory
+
+
+def get_basic_matrices(elements: np.ndarray, nodes: np.ndarray):
+    dimension = len(elements[0]) - 1
+    factory = get_factory(dimension)
 
     edges_features_matrix, element_initial_volume = factory.get_edges_features_matrix(
         elements, nodes
@@ -36,6 +42,12 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
             for k in range(factory.dimension)
         ]
     )
+    return element_initial_volume, volume_at_nodes, U, V, W
+
+
+def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
+    dimension = len(elements[0]) - 1
+    factory = get_factory(dimension)
 
     elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
@@ -46,12 +58,6 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
     viscosity = (
         factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
         if isinstance(body_prop, ViscoelasticProperties)
-        else None
-    )
-
-    relaxation = (
-        factory.get_relaxation_tensor(W, body_prop.relaxation)
-        if isinstance(body_prop, ElasticRelaxationProperties)
         else None
     )
 
@@ -74,12 +80,9 @@ def get_dynamics(elements: np.ndarray, nodes: np.ndarray, body_prop: BodyPropert
         permittivity = None
 
     return (
-        element_initial_volume,
-        volume_at_nodes,
         acceleration_operator,
         elasticity,
         viscosity,
-        relaxation,
         thermal_expansion,
         thermal_conductivity,
         piezoelectricity,

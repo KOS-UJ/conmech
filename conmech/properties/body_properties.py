@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union, Callable
 
 import numpy as np
 
@@ -22,7 +23,7 @@ class ViscoelasticProperties(ElasticProperties):
 
 @dataclass
 class RelaxationBodyProperties:
-    relaxation: np.ndarray
+    relaxation: Callable[[float], np.ndarray]
 
 
 @dataclass
