@@ -56,7 +56,7 @@ def get_train_dataloader(dataset: "BaseDataset"):
         world_size=dataset.world_size,
         batch_size=dataset.config.td.batch_size,
         num_workers=dataset.config.dataloader_workers,
-        shuffle=True,  # False
+        shuffle=True,
         load_data=True,
     )
 
@@ -426,24 +426,34 @@ class BaseDataset:
             initial_a=scene.reduced.exact_acceleration,
             energy_functions=reduced_energy_functions,
         )
+        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         # scene.linear_acceleration = Calculator.solve_acceleration_normalized_function(
         #     setting=scene, temperature=None, initial_a=None  # normalized_a
         # )
-        # scene.lifted_acceleration = scene.lower_acceleration_from_position(
-        #     scene.reduced.exact_acceleration
-        # )
-        scene.exact_acceleration, _ = self.solve_function(
-            scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
+        scene.exact_acceleration = scene.lower_acceleration_from_position(
+            scene.reduced.exact_acceleration
         )
+        # scene.exact_acceleration, _ = self.solve_function(
+        #     scene=scene, initial_a=scene.exact_acceleration, energy_functions=energy_functions
+        # )
         scene.lifted_acceleration = scene.exact_acceleration
 
-        scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
-            scene.exact_acceleration
-        )
-        # scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
+        # scene.reduced.lifted_acceleration = scene.lift_acceleration_from_position(
+        #     scene.exact_acceleration
+        # )
+        # scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
 
         # scene.exact_acceleration = scene.reorient_to_reduced(scene.exact_acceleration)
+
+        # self.lower_displacement_from_position(
+        #             self.reduced.norm_exact_new_displacement
+        #         )
+        # scene.lower_displacement_from_position(
+        #             scene.reduced.to_displacement(scene.reduced.exact_acceleration)
+        #         )
+
+        # scene.to_displacement(scene.exact_acceleration)
 
         return scene, scene.exact_acceleration
 

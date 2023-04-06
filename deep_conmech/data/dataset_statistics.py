@@ -46,21 +46,23 @@ class DatasetStatistics:
         )
         layer_list[0].x = test_and_set(layer_list[0].x, 3, "dense_nodes")
         layer_list[0].edge_attr = test_and_set(layer_list[0].edge_attr, 4, "dense_edges")
-
+        """
         # Sparse nodes
         # layer_list[1].x[:, :4] = 0.0 # new_displacement
-        layer_list[1].x[:, -4:] = 0.0  # forces
+        layer_list[1].x = torch.clone(layer_list[1].x[:, :-4])  # forces
 
         # Dense nodes
-        layer_list[0].x[:, -4:] = 0.0  # forces
+        layer_list[0].x = torch.clone(layer_list[0].x[:, :-4])  # forces
 
         # Sparse edges
-        layer_list[0].edge_attr[:, -4:] = 0.0  # forces
+        layer_list[0].edge_attr = torch.clone(layer_list[0].edge_attr[:, :-4])  # forces
 
         # Dense edges
-        layer_list[1].edge_attr[:, -4:] = 0.0  # forces
+        layer_list[1].edge_attr = torch.clone(layer_list[1].edge_attr[:, :-4])  # forces
 
         # Multilayer edges
-        layer_list[1].edge_attr_to_down[:, -4:] = 0.0  # forces
-
+        layer_list[1].edge_attr_to_down = torch.clone(
+            layer_list[1].edge_attr_to_down[:, :-4]
+        )  # forces
+        """
         return layer_list

@@ -805,26 +805,28 @@ def all_train(td, sc):
     args = []
 
     scale_forces_list = [1.5, 2.0, 2.5, 3.0]
+    obstacle_distance_scale = 0.7
+    friction = 0.0  # 5.0
     i = 0
     for forces_dim in [0, 1, 2]:
         for forces_dir in [1.0, -1.0]:
-            for normals_dim_plus in [1]:  # , 2]:
-                for normals_dir in [1]:  # , -1]:
-                    forces = [0.0, 0.0, 0.0]
-                    forces[forces_dim] = forces_dir
+            for normals_dim_plus in [1]:  # 0, 1, -1, 2, -2]:
+                forces = [0.0, 0.0, 0.0]
+                forces[forces_dim] = forces_dir
 
-                    normals = [0.0, 0.0, 0.0]
-                    normals[forces_dim] = -forces_dir
-                    normals[(forces_dim + normals_dim_plus) % 3] = normals_dir
-                    scale_forces = scale_forces_list[i % len(scale_forces_list)]
-                    i += 1
-                    args.append(
-                        {
-                            "scale_forces": scale_forces,
-                            "forces_and_nodes": forces,
-                            "obstacle_normals": normals,
-                        }
-                    )
+                normals = [0.0, 0.0, 0.0]
+                normals[forces_dim] = -forces_dir
+                if normals_dim_plus != 0:
+                    normals[(forces_dim + np.abs(normals_dim_plus)) % 3] = np.sign(normals_dim_plus)
+                scale_forces = scale_forces_list[i % len(scale_forces_list)]
+                i += 1
+                args.append(
+                    {
+                        "scale_forces": scale_forces,
+                        "forces_and_nodes": np.array(forces),
+                        "obstacle_normals": normals,
+                    }
+                )
     data = []
     data.extend(
         [
@@ -839,10 +841,15 @@ def all_train(td, sc):
                 body_prop=default_body_prop_3d,
                 schedule=Schedule(final_time=td.final_time),
                 forces_function=arg["scale_forces"]
-                * np.array(arg["forces_and_nodes"]),  # scale_forces * [0.0, 0.0, -1.0]),
+                * arg["forces_and_nodes"],  # scale_forces * [0.0, 0.0, -1.0]),
                 obstacle=Obstacle(
-                    np.array([[arg["obstacle_normals"]], [arg["forces_and_nodes"]]]),
-                    ObstacleProperties(hardness=100.0, friction=5.0),
+                    np.array(
+                        [
+                            [arg["obstacle_normals"]],
+                            [obstacle_distance_scale * arg["forces_and_nodes"]],
+                        ]
+                    ),
+                    ObstacleProperties(hardness=100.0, friction=friction),
                 ),
                 simulation_config=sc,
             )
@@ -861,6 +868,7 @@ def all_train(td, sc):
 
 
 def all_validation(td, sc):
+    return []
     args = get_args(td, sc)
     if td.dimension == 3:
         final_time = 2.0

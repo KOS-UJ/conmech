@@ -343,8 +343,9 @@ def main(args: Namespace):
         use_constant_contact_integral=True,  # True,  # False, ##############
         use_lhs_preconditioner=False,
         with_self_collisions=True,
-        mesh_layer_proportion=2,  # 4
+        mesh_layer_proportion=4,  # 2 4
         use_pca=False,
+        mode="normal",        # mode="skinning" ##############
     )
 
     # dch.set_torch_sharing_strategy()

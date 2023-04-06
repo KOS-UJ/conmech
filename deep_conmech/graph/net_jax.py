@@ -45,7 +45,7 @@ class ForwardNet(nn.Module):
             x = nn.Dense(
                 features=self.latent_dimension, kernel_init=kernel_init, bias_init=bias_init
             )(x)
-            x = nn.relu(x)  # nn.gelu(x)
+            x = nn.relu(x)  #### nn.tanh(x) nn.relu(x) nn.gelu(x)
         output_linear_dim = (
             self.output_linear_dim if self.output_linear_dim else self.latent_dimension
         )

@@ -120,15 +120,17 @@ class Calculator:
         scene: Scene,
         energy_functions: EnergyFunctions,
         initial_a,
-        initial_t,
+        initial_t=None,
         timer=Timer(),
     ):
         _ = initial_a, initial_t
-
+        energy_functions = (
+            energy_functions[0] if hasattr(energy_functions, "__len__") else energy_functions
+        )
         with timer["jax_calculator"]:
             scene.reduced.exact_acceleration, _ = Calculator.solve(
                 scene=scene.reduced,
-                energy_functions=energy_functions[0],
+                energy_functions=energy_functions,
                 initial_a=scene.reduced.exact_acceleration,
                 timer=timer,
             )

@@ -1,4 +1,5 @@
 import copy
+from ctypes import ArgumentError
 from typing import List
 
 import numpy as np
@@ -27,11 +28,18 @@ class CalculatorDataset(ScenariosDataset):
         device_count: int,
         item_fn=None,
     ):
+        if config.sc.mode == "normal":
+            solve_function = Calculator.solve
+        elif config.sc.mode == "skinning":
+            solve_function = Calculator.solve_skinning
+        else:
+            raise ArgumentError()
+
         super().__init__(
             description=f"{description}_calculator",
             use_jax=use_jax,
             all_scenarios=all_scenarios,
-            solve_function=Calculator.solve,  # solve_acceleration_normalized_function,
+            solve_function=solve_function,
             load_data_to_ram=load_data_to_ram,
             with_scenes_file=with_scenes_file,
             randomize=randomize,

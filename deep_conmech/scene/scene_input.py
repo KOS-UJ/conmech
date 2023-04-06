@@ -154,7 +154,7 @@ class SceneInput(SceneRandomized):
                 (
                     new_displacement,
                     # linear_acceleration,
-                    0 * boundary_normals,
+                    boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
                     # boundary_volume,
@@ -162,6 +162,9 @@ class SceneInput(SceneRandomized):
                 )
             )
         else:
+            new_lowered_displacement = self.lower_displacement_from_position(
+                self.reduced.norm_exact_new_displacement
+            )
             # new_randomized_displacement = self.to_normalized_displacement(0 * self.exact_acceleration) #use old acceleration
 
             # if self.simulation_config.mode != "net": # TODO: Clean
@@ -179,9 +182,9 @@ class SceneInput(SceneRandomized):
                 # TODO: Add previous accelerations
                 (
                     # prepare_nodes(new_randomized_displacement),
-                    # new_displacement,
+                    new_lowered_displacement,
                     # linear_acceleration,
-                    0 * boundary_normals,
+                    boundary_normals,
                     # boundary_normals,
                     # boundary_friction,
                     # boundary_normal_response,
@@ -266,6 +269,14 @@ class SceneInput(SceneRandomized):
     def get_target_data(self, to_cpu=False):
         _ = to_cpu
         target_data = TargetData()
+        new_norm_lowered_displacement = self.lower_displacement_from_position(
+            self.reduced.norm_exact_new_displacement
+        )
+        new_lowered_displacement = self.lower_displacement_from_position(
+            self.reduced.to_displacement(self.reduced.exact_acceleration)
+        )
+        lifted_new_displacement = self.to_displacement(self.lifted_acceleration)
+
         # target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
         target_data.normalized_new_displacement = thh.to_double(self.norm_lifted_new_displacement)
         # target_data.normalized_new_displacement = thh.to_double(

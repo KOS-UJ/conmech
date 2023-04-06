@@ -44,7 +44,7 @@ def main():
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         use_pca=False,
-        mesh_layer_proportion=2,  # 8,
+        mesh_layer_proportion=4, # 2 8,
         mode=mode,
     )
 
