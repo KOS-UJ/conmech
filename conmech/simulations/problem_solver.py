@@ -86,6 +86,9 @@ class ProblemSolver:
 
         self.penetration = []
 
+        self.done = 0
+        self.to_do = 1
+
     @property
     def solving_method(self):
         return str(self.step_solver)
@@ -151,12 +154,7 @@ class ProblemSolver:
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
-            solution = self.find_solution(
-                state,
-                self.validator,
-                verbose=verbose,
-                **kwargs,
-            )
+            solution = self.find_solution(state, self.validator, verbose=verbose, **kwargs,)
 
             if self.coordinates == "displacement":
                 state.set_displacement(
@@ -179,6 +177,8 @@ class ProblemSolver:
 
             self.penetration.append((state.time, state.penetration))
             self.step_solver.iterate()
+            self.done += 1
+            print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
         quality = 0
@@ -362,10 +362,9 @@ class QuasistaticRelaxation(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
-        done = 0
+        self.done = 0
+        self.to_do = n_steps
         for n in output_step:
-            done += n
-            print(f"{done / n_steps * 100:.2f}%", end="\r")
             self.run(state, n_steps=n, verbose=verbose, **kwargs)
             results.append(state.copy())
 
@@ -429,10 +428,9 @@ class TimeDependent(ProblemSolver):
 
         output_step = np.diff(output_step)
         results = []
-        done = 0
+        self.done = 0
+        self.to_do = n_steps
         for n in output_step:
-            done += n
-            print(f"{done / n_steps * 100:.2f}%", end="\r")
             self.run(state, n_steps=n, verbose=verbose, **kwargs)
             results.append(state.copy())
 
