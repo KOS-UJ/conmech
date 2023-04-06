@@ -95,7 +95,7 @@ class Optimization(Solver):
         )
 
         while norm >= fixed_point_abs_tol:
-            if method.lower() in (
+            if method.lower() in (  # TODO
                     "quasi secant method",
                     "limited memory quasi secant method",
                     "quasi secant method limited memory",

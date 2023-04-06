@@ -39,15 +39,16 @@ r_big = 2.5
 r_small = 1.5
 r = (r_big + r_small) / 2
 fv = 0.1
+TEST = 1
 
 
 @dataclass
 class QuasistaticSetup(RelaxationQuasistaticProblem):
     grid_height: ... = 1.0
-    elements_number: ... = (20, 20)
+    elements_number: ... = (20 / TEST, 20 / TEST)
     mu_coef: ... = 714.29
     la_coef: ... = 2857.14
-    time_step: ... = 1/128
+    time_step: ... = 1/128 * TEST**2
     contact_law: ... = make_slope_contact_law(slope=27)
 
     @staticmethod
@@ -110,7 +111,12 @@ def main(save: bool = False, simulate: bool = True):
         )
 
     def linear_relaxation(t=None):
-        _mu = 1000. * t
+        if t < 1.5:
+            _mu = 1000. * t
+        elif t < 3.0:
+            _mu = 1000. * (3.0 - t)
+        else:
+            _mu = 0.
         return np.array(
             [[[2 * _mu, 0], [_mu, _mu]],
              [[_mu, _mu], [0, 2 * _mu]], ]
@@ -135,6 +141,9 @@ def main(save: bool = False, simulate: bool = True):
         for name in examples.keys():
             steps = examples[name]["output_steps"]
             with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
+                _ = pickle.load(output)
+
+            with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
                 _ = pickle.load(output)
 
             for time_step in steps:
@@ -171,10 +180,15 @@ def main(save: bool = False, simulate: bool = True):
                     # Workaround
                     relaxation = state.body.body_prop.relaxation
                     state.body.outer_forces = None
+                    state.body.inner_forces = None
                     state.body.body_prop.relaxation = None
                     pickle.dump(state, output)
                     state.body.body_prop.relaxation = relaxation
-
+            with open(
+                    f"./output/sob2023/{name}_h_{h}_penetration",
+                    "wb+",
+            ) as output:
+                pickle.dump(runner.penetration, output)
             with open(
                     f"./output/sob2023/{name}_h_{h}_global",
                     "wb+",
@@ -185,6 +199,39 @@ def main(save: bool = False, simulate: bool = True):
         steps = examples[name]["output_steps"]
         with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
             f_limits = pickle.load(output)
+        with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
+            pnt = np.asarray(pickle.load(output))
+        fig, axes = plt.subplots(3, 1)
+        t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
+        frc = np.empty((examples[name]["n_steps"] + 1, 1))
+        for i, _t in enumerate(t):
+            frc[i, :] = examples[name]["outer_forces"](np.asarray([2.5, 4.5]), _t)[1]
+        rlx = np.empty((examples[name]["n_steps"] + 1, 1))
+        for i, _t in enumerate(t):
+            rlx[i, :] = examples[name]["relaxation"](_t)[1, 0, 1]
+        for ax in axes:
+            ax.set_xlim(0.0, 4.0)
+        axes[0].set_ylim(-0.4, 0.4)
+        axes[1].set_ylim(-100, 1600)
+        axes[2].set_ylim(-0.1, 0.1)
+        axes[0].plot(t, frc, color="black")
+
+        axes[0].axhline(y=[0], color='gray', ls='-', lw=1)
+        axes[1].axhline(y=[0], color='gray', ls='-', lw=1)
+        axes[2].axhline(y=[0], color='gray', ls='-', lw=1)
+        axes[1].plot(t, rlx, color="black")
+        pnt_sig_change = 0
+        old_p = pnt[0, 1]
+        for t, p in pnt[1:, :]:
+            if old_p > 0 and p <= 0:
+                pnt_sig_change = t
+                break
+            old_p = p
+        axes[0].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
+        axes[1].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
+        axes[2].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
+        axes[2].plot(pnt[:, 0], pnt[:, 1], color="black")
+        plt.show()
 
         for time_step in steps:
             with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
@@ -215,7 +262,7 @@ def main(save: bool = False, simulate: bool = True):
                     # to have nonzero force interface on Neumann boundary.
                     state.time = 4
                 else:
-                    drawer.outer_forces_scale = 0
+                    drawer.outer_forces_scale = -1 # TODO
                     fig, axes = plt.subplots(1, 2)
                     drawer.x_min = 3.4
                     drawer.x_max = 5.6

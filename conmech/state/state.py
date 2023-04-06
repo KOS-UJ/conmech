@@ -63,6 +63,13 @@ class State:
     def stress_y(self):
         return self.stress[:, 1, 1]
 
+    @property
+    def penetration(self):
+        """
+        This method assume foundation equals x=0.
+        """
+        return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
+
     def __getitem__(self, item) -> np.ndarray:
         if item in (0, "displacement"):
             return self.displacement

@@ -84,6 +84,8 @@ class ProblemSolver:
         self.second_step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
 
+        self.penetration = []
+
     @property
     def solving_method(self):
         return str(self.step_solver)
@@ -146,7 +148,6 @@ class ProblemSolver:
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
-        :return: state
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
@@ -176,6 +177,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
+            self.penetration.append((state.time, state.penetration))
             self.step_solver.iterate()
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
