@@ -318,6 +318,13 @@ class Scene(BodyForces):
 
     @property
     @mesh_normalization_decorator
+    def reduced_norm_exact_new_displacement(self):
+        return self.to_reduced_normalized_displacement(
+            self.exact_acceleration, self.reduced.exact_acceleration
+        )
+
+    @property
+    @mesh_normalization_decorator
     def norm_exact_new_displacement(self):
         return self.to_normalized_displacement(self.exact_acceleration)
 
@@ -337,27 +344,49 @@ class Scene(BodyForces):
         return acceleration
 
     @mesh_normalization_decorator
-    def to_normalized_displacement(self, acceleration):
-        displacement_new = self.to_displacement(acceleration)
+    def to_reduced_normalized_displacement(self, acceleration, acceleration_reduced):
+        # displacement_new = self.to_displacement(acceleration)
+        # moved_nodes_new = self.initial_nodes + displacement_new
 
-        moved_nodes_new = self.initial_nodes + displacement_new
-        new_normalized_nodes = get_in_base(
-            (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
-            self.get_rotation(displacement_new),
-        )
-        return new_normalized_nodes - self.normalized_initial_nodes
+        displacement_new_reduced = self.reduced.to_displacement(acceleration_reduced)
+        moved_nodes_new_reduced = self.reduced.initial_nodes + displacement_new_reduced
 
-    @mesh_normalization_decorator
-    def to_normalized_displacement_rotated(self, acceleration):
-        displacement_new = self.to_displacement(acceleration)
+        # nodes_mean = np.mean(displacement_new, axis=0)
+        # nodes_rotation = self.get_rotation(moved_nodes_new)
 
-        moved_nodes_new = self.initial_nodes + displacement_new
-        new_normalized_nodes = get_in_base(
-            (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
+        new_normalized_nodes_reduced = get_in_base(
+            (moved_nodes_new_reduced - np.mean(self.moved_nodes, axis=0)),
             self.get_rotation(self.displacement_old),
         )
-        assert np.allclose(new_normalized_nodes, self.normalize_shift_and_rotate(moved_nodes_new))
-        return new_normalized_nodes - self.normalized_initial_nodes
+        # new_normalized_nodes_reduced = get_in_base(
+        #     (moved_nodes_new_reduced - nodes_mean),
+        #     nodes_rotation,
+        # )
+        return new_normalized_nodes_reduced - self.reduced.normalized_initial_nodes
+
+    @mesh_normalization_decorator
+    def to_normalized_displacement(self, acceleration):
+        return self.to_normalized_displacement_rotated_displaced(acceleration)
+        # displacement_new = self.to_displacement(acceleration)
+
+        # moved_nodes_new = self.initial_nodes + displacement_new
+        # new_normalized_nodes = get_in_base(
+        #     (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
+        #     self.get_rotation(displacement_new),
+        # )
+        # return new_normalized_nodes - self.normalized_initial_nodes
+
+    # @mesh_normalization_decorator
+    # def to_normalized_displacement_rotated(self, acceleration):
+    #     displacement_new = self.to_displacement(acceleration)
+
+    #     moved_nodes_new = self.initial_nodes + displacement_new
+    #     new_normalized_nodes = get_in_base(
+    #         (moved_nodes_new - np.mean(moved_nodes_new, axis=0)),
+    #         self.get_rotation(self.displacement_old),
+    #     )
+    #     assert np.allclose(new_normalized_nodes, self.normalize_shift_and_rotate(moved_nodes_new))
+    #     return new_normalized_nodes - self.normalized_initial_nodes
 
     @mesh_normalization_decorator
     def to_normalized_displacement_rotated_displaced(self, acceleration):
@@ -367,21 +396,21 @@ class Scene(BodyForces):
             (moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
             self.get_rotation(self.displacement_old),
         )
-        assert np.allclose(
-            new_normalized_nodes,
-            self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
-        )
+        # assert np.allclose(
+        #     new_normalized_nodes,
+        #     self.normalize_rotate(moved_nodes_new - np.mean(self.moved_nodes, axis=0)),
+        # )
         return new_normalized_nodes - self.normalized_initial_nodes
 
-    @mesh_normalization_decorator
-    def from_normalized_displacement_rotated_displaced(self, displacement_new):
-        new_normalized_nodes = displacement_new + self.normalized_initial_nodes
-        moved_nodes_new = self.denormalize_rotate(new_normalized_nodes) + np.mean(
-            self.moved_nodes, axis=0
-        )
-        displacement_new = moved_nodes_new - self.initial_nodes
-        acceleration = self.from_displacement(displacement_new)
-        return acceleration
+    # @mesh_normalization_decorator
+    # def from_normalized_displacement_rotated_displaced(self, displacement_new):
+    #     new_normalized_nodes = displacement_new + self.normalized_initial_nodes
+    #     moved_nodes_new = self.denormalize_rotate(new_normalized_nodes) + np.mean(
+    #         self.moved_nodes, axis=0
+    #     )
+    #     displacement_new = moved_nodes_new - self.initial_nodes
+    #     acceleration = self.from_displacement(displacement_new)
+    #     return acceleration
 
     def get_last_displacement_step(self):
         return self.displacement_old - self.time_step * self.velocity_old

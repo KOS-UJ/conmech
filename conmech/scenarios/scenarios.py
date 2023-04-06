@@ -356,7 +356,8 @@ def f_rotate_3d(
 ):
     _ = moved_node, mesh_prop
     if apply_time <= np.abs(arg):  # 1.0 0.5: # if (time % 4.0) <= 2.0:
-        scale = initial_node[1] * initial_node[2]
+        shift = 0.5
+        scale = (shift + initial_node[1]) * (shift + initial_node[2])
         return scale * np.array([4.0, 0.0, 0.0]) * scale_forces * np.sign(arg)
     return np.array([0.0, 0.0, 0.0]) * scale_forces
 
@@ -808,8 +809,8 @@ def all_train(td, sc):
     obstacle_distance_scale = 0.7
     friction = 0.0  # 5.0
     i = 0
-    for forces_dim in [0, 1, 2]:
-        for forces_dir in [1.0, -1.0]:
+    for forces_dim in [0]:  # , 1, 2]:
+        for forces_dir in [1.0]:  # , -1.0]:
             for normals_dim_plus in [1]:  # 0, 1, -1, 2, -2]:
                 forces = [0.0, 0.0, 0.0]
                 forces[forces_dim] = forces_dir
@@ -868,7 +869,6 @@ def all_train(td, sc):
 
 
 def all_validation(td, sc):
-    return []
     args = get_args(td, sc)
     if td.dimension == 3:
         final_time = 2.0

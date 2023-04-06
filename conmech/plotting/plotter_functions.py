@@ -45,14 +45,15 @@ def save_three(scene, step, label, folder, skip=5):
     highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
 
     sn1 = (scene.initial_nodes + scene.norm_exact_new_displacement)[scene.boundary_indices]
-    sn2 = (scene.initial_nodes + scene.to_normalized_displacement(0 * scene.exact_acceleration))[
-        scene.boundary_indices
-    ]
+    sn2 = (
+        scene.initial_nodes
+        + scene.lower_displacement_from_position(scene.reduced_norm_exact_new_displacement)
+    )[scene.boundary_indices]
 
-    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_exact_new_displacement)[
+    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_lifted_new_displacement)[
         scene.reduced.boundary_indices
     ]
-    sn2r = (scene.reduced.initial_nodes + scene.reduced.norm_lifted_new_displacement)[
+    sn2r = (scene.reduced.initial_nodes + scene.reduced_norm_exact_new_displacement)[
         scene.reduced.boundary_indices
     ]
 

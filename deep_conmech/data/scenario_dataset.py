@@ -147,7 +147,7 @@ class ScenariosDataset(BaseDataset):
             save_three(
                 scene=scene,
                 step=index,
-                label=f"{self.config.current_time}_dataset_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
+                label=f"{self.config.current_time}_dataset_{self.description}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
                 folder="./three",
                 skip=20,
             )

@@ -195,10 +195,10 @@ class GraphNetArguments(NamedTuple):
 class CustomGraphNetJax(nn.Module):
     @nn.compact
     def __call__(self, args: GraphNetArguments, train: bool):
-        latent_dimension = 128  # 128 64
-        internal_layer_count = 1
-        message_passes_sparse = 8  # 12  # 8
-        message_passes_dense = 8  # 12  # 0  # 8
+        latent_dimension = 64  # 128 64
+        internal_layer_count = 0  # 0 1
+        message_passes_sparse = 8  # 1  # 8  12
+        message_passes_dense = 8  # 1  # 8  12
         dim = 3
         input_batch_norm = False  # True
         # layer_norm=True

@@ -82,7 +82,7 @@ class GraphModelDynamicJax:
         self.epoch = 0
         self.examples_seen = 0
 
-        self.logger.save_parameters_and_statistics()
+        # self.logger.save_parameters_and_statistics() ###
 
     def is_at_skip(self, skip):
         return skip is not None and self.epoch % skip == 0
@@ -455,6 +455,11 @@ def solve(
             timer=timer,
         )
         scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
+
+        scene.exact_acceleration = scene.lower_acceleration_from_position(
+            scene.reduced.exact_acceleration
+        )
+        scene.lifted_acceleration = scene.exact_acceleration
 
     # return scene.exact_acceleration, None
 
