@@ -345,7 +345,7 @@ def main(args: Namespace):
         with_self_collisions=True,
         mesh_layer_proportion=4,  # 2 4
         use_pca=False,
-        mode="normal",        # mode="skinning" ##############
+        mode="normal",        # mode="normal" ##############
     )
 
     # dch.set_torch_sharing_strategy()

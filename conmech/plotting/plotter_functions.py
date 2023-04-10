@@ -44,33 +44,18 @@ def save_three(scene, step, label, folder, skip=5):
 
     highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
 
-    sn1 = (scene.initial_nodes + scene.norm_exact_new_displacement)[scene.boundary_indices]
-    sn2 = (
-        scene.initial_nodes
-        + scene.lower_displacement_from_position(scene.reduced_norm_exact_new_displacement)
-    )[scene.boundary_indices]
+    sn1 = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)[scene.boundary_indices]
 
-    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_lifted_new_displacement)[
+    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement)[
         scene.reduced.boundary_indices
     ]
-    sn2r = (scene.reduced.initial_nodes + scene.reduced_norm_exact_new_displacement)[
-        scene.reduced.boundary_indices
-    ]
-
-    # sn2 = (
-    #     scene.initial_nodes + scene.to_normalized_displacement_rotated(scene.exact_acceleration)
-    # )[scene.boundary_indices]
-    # sn3 = (
-    #     scene.initial_nodes
-    #     + scene.to_normalized_displacement_rotated_displaced(scene.exact_acceleration)
-    # )[scene.boundary_indices]
 
     nodes_list = [
         nodes,
         convert_to_list(sn1),
-        convert_to_list(sn2),
+        # convert_to_list(sn2),
     ]
-    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r), convert_to_list(sn2r)]
+    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]  # , convert_to_list(sn2r)
 
     json_dict = {
         "skip": skip,

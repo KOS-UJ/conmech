@@ -144,9 +144,9 @@ class SceneInput(SceneRandomized):
         # boundary_volume = self.prepare_node_data(
         #     data=self.get_surface_per_boundary_node(), layer_number=layer_number
         # )
-        input_forces = prepare_nodes(scene.input_forces)
+        # input_forces = prepare_nodes(scene.input_forces)
         if reduced:
-            new_displacement = prepare_nodes(self.reduced_norm_exact_new_displacement)
+            new_displacement = prepare_nodes(self.reduced.norm_by_reduced_lifted_new_displacement)
             # new_displacement = prepare_nodes(
             #     scene.to_normalized_displacement_rotated_displaced(scene.lifted_acceleration)
             # )
@@ -162,10 +162,6 @@ class SceneInput(SceneRandomized):
                 )
             )
         else:
-            # new_lowered_displacement = self.lower_displacement_from_position(
-            #     self.reduced_norm_exact_new_displacement
-            # )
-            # new_lowered_displacement = prepare_nodes(self.norm_lifted_new_displacement)
             # new_randomized_displacement = self.to_normalized_displacement(0 * self.exact_acceleration) #use old acceleration
 
             # if self.simulation_config.mode != "net": # TODO: Clean
@@ -269,19 +265,12 @@ class SceneInput(SceneRandomized):
     def get_target_data(self, to_cpu=False):
         _ = to_cpu
         target_data = TargetData()
-        new_norm_lowered_displacement = self.lower_displacement_from_position(
-            self.reduced_norm_exact_new_displacement
-        )
+        # new_norm_lowered_displacement = self.lower_displacement_from_position(
+        #     self.reduced.norm_by_reduced_lifted_new_displacement
+        # ) # rotate and lower
 
-        # target_data.normalized_new_displacement = thh.to_double(self.norm_exact_new_displacement)
-        target_data.normalized_new_displacement = thh.to_double(self.norm_lifted_new_displacement)
-        # target_data.normalized_new_displacement = thh.to_double(
-        #     self.to_normalized_displacement_rotated_displaced(self.lifted_acceleration)
-        # )
+        target_data.normalized_new_displacement = thh.to_double(self.norm_by_reduced_lifted_new_displacement) # lower and rotate
 
-        target_data.reduced_norm_lifted_new_displacement = thh.to_double(
-            self.reduced.norm_lifted_new_displacement
-        )
         target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
         return target_data
 

@@ -345,10 +345,6 @@ class GraphModelDynamicJax:
         all_target_data = [
             data[d][1].normalized_new_displacement.astype(np.float32) for d in range(devices_count)
         ]  ### NO AS TYPE .astype(np.float32)
-        # all_target_data = [
-        #     data[d][1].reduced_norm_lifted_new_displacement.astype(np.float32)
-        #     for d in range(devices_count)
-        # ]
 
         sharded_targets = jax.device_put_sharded(
             all_target_data, devices
@@ -429,9 +425,6 @@ def convert_to_jax(layer_list, target_data=None):
     target_data.normalized_new_displacement = (
         thh.convert_tensor_to_jax(target_data.normalized_new_displacement) * SCALE
     )
-    target_data.reduced_norm_lifted_new_displacement = (
-        thh.convert_tensor_to_jax(target_data.reduced_norm_lifted_new_displacement) * SCALE
-    )
     return layer_list, target_data
 
 
@@ -455,13 +448,6 @@ def solve(
             timer=timer,
         )
         scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
-
-        scene.exact_acceleration = scene.lower_acceleration_from_position(
-            scene.reduced.exact_acceleration
-        )
-        scene.lifted_acceleration = scene.exact_acceleration
-
-    # return scene.exact_acceleration, None
 
     device_number = 0  # using GPU 0
 
@@ -489,14 +475,11 @@ def solve(
 
     with timer["jax_translation"]:
         if True:
-            # base = scene.moved_base
-            # position = scene.position
             reduced_displacement_new = scene.reduced.to_displacement(
                 scene.reduced.exact_acceleration
             )
             base = scene.reduced.get_rotation(reduced_displacement_new)
             position = np.mean(reduced_displacement_new, axis=0)
-
             new_displacement = scene.get_displacement(
                 base=base, position=position, base_displacement=net_displacement
             )
@@ -572,7 +555,6 @@ def get_apply_net(state):
 
 def MSE(predicted, exact):
     return jnp.mean(jnp.linalg.norm(predicted - exact, axis=-1) ** 2)
-
 
 def RMSE(predicted, exact):
     return jnp.sqrt(MSE(predicted, exact))

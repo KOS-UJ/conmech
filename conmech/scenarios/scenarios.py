@@ -809,9 +809,9 @@ def all_train(td, sc):
     obstacle_distance_scale = 0.7
     friction = 0.0  # 5.0
     i = 0
-    for forces_dim in [0]:  # , 1, 2]:
-        for forces_dir in [1.0]:  # , -1.0]:
-            for normals_dim_plus in [1]:  # 0, 1, -1, 2, -2]:
+    for forces_dim in [0, 1, 2]:
+        for forces_dir in [1.0, -1.0]:
+            for normals_dim_plus in [0, 1, -1, 2, -2]:
                 forces = [0.0, 0.0, 0.0]
                 forces[forces_dim] = forces_dir
 
