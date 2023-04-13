@@ -81,12 +81,11 @@ def minimize(loss, x, args, nbundle=None, slinit=1, ngradient=False, maxiter=100
     pwt = 1.0e-08
     sdif = 1.0e-05
     mturn = 3
-    maxit = 100000
     vbar = np.empty_like(x)
     g = np.empty_like(x)
     x1 = np.empty_like(x)
     tildev = np.empty_like(x)
-    fvalues = np.empty(maxit)  # TODO
+    fvalues = np.empty(maxiter)
     f4 = 0.
     m = len(x)
 
@@ -104,7 +103,7 @@ def minimize(loss, x, args, nbundle=None, slinit=1, ngradient=False, maxiter=100
 
         while True:
             niter = niter + 1
-            if niter > maxiter:
+            if niter >= maxiter:
                 outer_break_flag = True
                 break
 
