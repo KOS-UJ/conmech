@@ -126,7 +126,7 @@ class ProcessorLayer(MessagePassingJax):
         # TODO: check if sorted is needed, add degree normalizarion: https://pytorch-geometric.readthedocs.io/en/latest/notes/create_gnn.html
         aggregated_edge_latents = (
             jax.ops.segment_sum(new_edge_latents, receivers, num_segments=receivers_count) / 10.0
-        ) ### segment-mean !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        )  ### segment-mean !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         return aggregated_edge_latents
 
     def update(self, node_latents_to, aggregated_edge_latents):
@@ -197,8 +197,8 @@ class CustomGraphNetJax(nn.Module):
     def __call__(self, args: GraphNetArguments, train: bool):
         latent_dimension = 128  # 128 64
         internal_layer_count = 0  # 0 1
-        message_passes_sparse = 16  # 1 8 12
-        message_passes_dense = 16  # 1 8 12
+        message_passes_sparse = 18  # 1 8 12
+        message_passes_dense = 18  # 1 8 12
         dim = 3
         input_batch_norm = False  # True
         # layer_norm=True

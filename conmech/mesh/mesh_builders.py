@@ -84,7 +84,9 @@ def build_initial_mesh(
                 if "twist" in mesh_prop.mesh_type:
                     return mesh_builders_3d.get_pygmsh_twist(mesh_prop)
                 if "bunny" in mesh_prop.mesh_type:
-                    return mesh_builders_3d.get_pygmsh_bunny(mesh_prop)
+                    return mesh_builders_3d.get_pygmsh_bunny(
+                        mesh_prop, lifted="lifted" in mesh_prop.mesh_type
+                    )
                 if "armadillo" in mesh_prop.mesh_type:
                     return mesh_builders_3d.get_pygmsh_armadillo()
             return mesh_builders_2d.get_pygmsh_elements_and_nodes(mesh_prop)

@@ -7,13 +7,13 @@ import flax
 import flax.jax_utils
 import jax
 import jax.numpy as jnp
-import netron
 import numpy as np
 import optax
+import orbax.checkpoint
 import tensorflow as tf
 import torch
 import torch.utils
-from flax.training import checkpoints, train_state
+from flax.training import train_state
 from jax import lax
 from jax.experimental import jax2tf
 from torch_geometric.data.batch import Data
@@ -79,6 +79,7 @@ class GraphModelDynamicJax:
         self.train_state = None
 
         self.logger = Logger(dataset=self.train_dataset, config=config)
+        self.checkpointer = orbax.checkpoint.PyTreeCheckpointer()
         self.epoch = 0
         self.examples_seen = 0
 
@@ -174,7 +175,7 @@ class GraphModelDynamicJax:
         catalog = f"{self.config.output_catalog}/{self.config.current_time} - JAX GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL"
-        checkpoints.save_checkpoint(ckpt_dir=path, target=state, step=0)
+        self.checkpointer.save(directory=path, item=state)#, step=0)
 
     @staticmethod
     def get_checkpoint(rank: int, path: str):
@@ -183,7 +184,7 @@ class GraphModelDynamicJax:
     @staticmethod
     def load_checkpointed_net(path: str):
         print("----LOADING NET----")
-        state = checkpoints.restore_checkpoint(ckpt_dir=path, target=None)
+        state = orbax.checkpoint.PyTreeCheckpointer().restore(directory=path, target=None)
         return state
 
     def load_checkpoint(self, path: str):
@@ -555,6 +556,7 @@ def get_apply_net(state):
 
 def MSE(predicted, exact):
     return jnp.mean(jnp.linalg.norm(predicted - exact, axis=-1) ** 2)
+
 
 def RMSE(predicted, exact):
     return jnp.sqrt(MSE(predicted, exact))

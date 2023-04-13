@@ -8,7 +8,7 @@ from conmech.properties.body_properties import TimeDependentTemperatureBodyPrope
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
-from conmech.scenarios.scenarios import M_BUNNY_3D, TemperatureScenario
+from conmech.scenarios.scenarios import M_BUNNY_3D_LIFTED, TemperatureScenario
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
@@ -19,7 +19,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
         dimension=3,
-        mesh_type=M_BUNNY_3D,
+        mesh_type=M_BUNNY_3D_LIFTED,
         scale=[1],
         mesh_density=[mesh_density],
     )

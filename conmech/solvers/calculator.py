@@ -348,6 +348,9 @@ class Calculator:
         initial_a=None,
         timer: Timer = Timer(),
     ):
+        energy_functions = (
+            energy_functions[0] if hasattr(energy_functions, "__len__") else energy_functions
+        )
         if initial_a is None:
             initial_a_vector = np.zeros(scene.nodes_count * scene.dimension)
         else:

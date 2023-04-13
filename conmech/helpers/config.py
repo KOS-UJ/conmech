@@ -42,7 +42,7 @@ class SimulationConfig:
     use_lhs_preconditioner: bool
     use_pca: bool
     with_self_collisions: bool
-    mesh_layer_proportion: int
+    mesh_layer_proportion: int = None
     mode: str = "normal"  # "normal" "skinning" "net"
 
 

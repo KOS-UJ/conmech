@@ -88,7 +88,8 @@ class SceneLayers(Scene):
             to_base=None,
         )
         self.all_layers.append(base_mesh_layer_data)
-
+        if self.simulation_config.mesh_layer_proportion is None:
+            raise ValueError()
         layer_mesh_prop.mesh_density = list(
             np.array(layer_mesh_prop.mesh_density, dtype=np.int32)
             // self.simulation_config.mesh_layer_proportion

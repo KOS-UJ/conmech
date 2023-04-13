@@ -7,7 +7,7 @@ from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
     M_BALL_3D,
-    M_BUNNY_3D,
+    M_BUNNY_3D_LIFTED,
     M_CUBE_3D,
     M_TWIST_3D,
     Scenario,
@@ -107,7 +107,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             name="bunny_fall",
             mesh_prop=MeshProperties(
                 dimension=3,
-                mesh_type=M_BUNNY_3D,
+                mesh_type=M_BUNNY_3D_LIFTED,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -131,7 +131,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
             name="bunny_roll",
             mesh_prop=MeshProperties(
                 dimension=3,
-                mesh_type=M_BUNNY_3D,
+                mesh_type=M_BUNNY_3D_LIFTED,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),
@@ -155,7 +155,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
         all_scenarios=[*advanced_scenarios, *basic_scenarios],
         file=__file__,
         plot_animation=plot_animation,
-        config=Config(shell=False),
+        config=Config(shell=False, animation_backend="matplotlib"),
     )
 
 

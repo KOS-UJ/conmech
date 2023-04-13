@@ -9,7 +9,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import TemperatureObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
-    M_BUNNY_3D,
+    M_BUNNY_3D_LIFTED,
     M_CUBE_3D,
     TemperatureScenario,
     default_temp_body_prop,
@@ -146,7 +146,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
         dimension=3,
-        mesh_type=M_BUNNY_3D,
+        mesh_type=M_BUNNY_3D_LIFTED,
         scale=[1],
         mesh_density=[mesh_density],
     )
@@ -171,7 +171,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
             name="temperature_3d_bunny_throw",
             mesh_prop=MeshProperties(
                 dimension=3,
-                mesh_type=M_BUNNY_3D,
+                mesh_type=M_BUNNY_3D_LIFTED,
                 scale=[1],
                 mesh_density=[mesh_density],
             ),

@@ -44,19 +44,24 @@ def save_three(scene, step, label, folder, skip=5):
 
     highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
 
-    sn1 = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)[scene.boundary_indices]
-
-    sn1r = (scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement)[
-        scene.reduced.boundary_indices
+    sn1 = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)[
+        scene.boundary_indices
     ]
+
+    if hasattr(scene, "reduced"):
+        sn1r = (
+            scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement
+        )[scene.reduced.boundary_indices]
 
     nodes_list = [
         nodes,
         convert_to_list(sn1),
         # convert_to_list(sn2),
     ]
-    nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]  # , convert_to_list(sn2r)
-
+    if hasattr(scene, "reduced"):
+        nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]  # , convert_to_list(sn2r)
+    else:
+        nodes_reduced_list = []
     json_dict = {
         "skip": skip,
         "step": step,

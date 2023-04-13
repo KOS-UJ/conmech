@@ -23,7 +23,7 @@ simulation_config = SimulationConfig(
 
 def main(mesh_density=20, final_time=5, plot_animation=True):  # 40
     schedule = Schedule(final_time=final_time, time_step=0.01)
-    config = Config(shell=False)
+    config = Config(shell=False, animation_backend="matplotlib")
     obstacles = [
         Obstacle(
             np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),

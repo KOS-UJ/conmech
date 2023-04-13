@@ -123,7 +123,7 @@ def get_pygmsh_slide(mesh_prop):
     return nodes, elements
 
 
-def get_pygmsh_bunny(mesh_prop):
+def get_pygmsh_bunny(mesh_prop, lifted=False):
     if mesh_prop.mesh_density_x == 64:
         mesh_id = 1
     elif mesh_prop.mesh_density_x == 32:
@@ -139,11 +139,15 @@ def get_pygmsh_bunny(mesh_prop):
 
     mesh = read_mesh(f"models/bunny/bun_zipper_res{mesh_id}_.msh")
     nodes, elements = mesh.points, mesh.cells_dict["tetra"].astype("long")
-    # nodes += 0.1
-    nodes *= 6
+    if lifted:
+        nodes += 0.1
+        nodes *= 6
+    else:
+        nodes *= 6
+        nodes -= np.mean(nodes, axis=0)
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
-    nodes -= np.mean(nodes, axis=0)
     return nodes, elements
+
 
 
 def get_pygmsh_armadillo():

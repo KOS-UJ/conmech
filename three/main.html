@@ -208,7 +208,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             constructor(initialMesh) {
                 // physics
                 var nodes = this.getNodes(initialMesh);
-                var nodesReduced = this.getNodes(initialMesh);
+                var nodesReduced = this.getNodesReduced(initialMesh);
                 var boundary_surfaces = initialMesh.boundary_surfaces
 
                 this.numNodes = nodes.length / 3;
@@ -230,7 +230,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 this.surfaceMesh.visible = true;
 
                 /////
-                if (nodesReduced.length == 0) {
+                if (nodesReduced == undefined) {
                     this.pos_reduced = null;
                     this.tetMesh = null;
                 }
