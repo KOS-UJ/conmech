@@ -83,7 +83,7 @@ class Optimization(Solver):
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
-        maxiter = kwargs.get("maxiter", len(initial_guess) * 1e5)
+        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e5))
         args = (
             self.body.mesh.initial_nodes,
             self.body.mesh.contact_boundary,
