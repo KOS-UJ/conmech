@@ -110,6 +110,13 @@ def main(save: bool = False, simulate: bool = True):
              [[_mu, _mu], [0, 2 * _mu]], ]
         )
 
+    def zero_relaxation(t=None):
+        _mu = 0.
+        return np.array(
+            [[[2 * _mu, 0], [_mu, _mu]],
+             [[_mu, _mu], [0, 2 * _mu]], ]
+        )
+
     def linear_relaxation(t=None):
         if t < 1.5:
             _mu = 1000. * t
@@ -131,10 +138,16 @@ def main(save: bool = False, simulate: bool = True):
         },
         "sob_02": {
             "n_steps": 512,
-            "output_steps": range(0, 512, 16),
-            "outer_forces": const_outer_forces,
-            "relaxation": linear_relaxation,
-        }
+            "output_steps": (0, 192, 416, 512),
+            "outer_forces": sin_outer_forces,
+            "relaxation": zero_relaxation,
+        },
+        # "sob_02": {
+        #     "n_steps": 512,
+        #     "output_steps": range(0, 512, 16),
+        #     "outer_forces": const_outer_forces,
+        #     "relaxation": linear_relaxation,
+        # }
     }
 
     try:
@@ -195,43 +208,12 @@ def main(save: bool = False, simulate: bool = True):
             ) as output:
                 pickle.dump([f_min, f_max], output)
 
+    plots(setup, h, examples)
+
     for name in examples.keys():
         steps = examples[name]["output_steps"]
         with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
             f_limits = pickle.load(output)
-        with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
-            pnt = np.asarray(pickle.load(output))
-        fig, axes = plt.subplots(3, 1)
-        t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
-        frc = np.empty((examples[name]["n_steps"] + 1, 1))
-        for i, _t in enumerate(t):
-            frc[i, :] = examples[name]["outer_forces"](np.asarray([2.5, 4.5]), _t)[1]
-        rlx = np.empty((examples[name]["n_steps"] + 1, 1))
-        for i, _t in enumerate(t):
-            rlx[i, :] = examples[name]["relaxation"](_t)[1, 0, 1]
-        for ax in axes:
-            ax.set_xlim(0.0, 4.0)
-        axes[0].set_ylim(-0.4, 0.4)
-        axes[1].set_ylim(-100, 1600)
-        axes[2].set_ylim(-0.1, 0.1)
-        axes[0].plot(t, frc, color="black")
-
-        axes[0].axhline(y=[0], color='gray', ls='-', lw=1)
-        axes[1].axhline(y=[0], color='gray', ls='-', lw=1)
-        axes[2].axhline(y=[0], color='gray', ls='-', lw=1)
-        axes[1].plot(t, rlx, color="black")
-        pnt_sig_change = 0
-        old_p = pnt[0, 1]
-        for t, p in pnt[1:, :]:
-            if old_p > 0 and p <= 0:
-                pnt_sig_change = t
-                break
-            old_p = p
-        axes[0].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
-        axes[1].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
-        axes[2].axvline(x=[pnt_sig_change], color='gray', ls='-', lw=1)
-        axes[2].plot(pnt[:, 0], pnt[:, 1], color="black")
-        plt.show()
 
         for time_step in steps:
             with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
@@ -262,7 +244,7 @@ def main(save: bool = False, simulate: bool = True):
                     # to have nonzero force interface on Neumann boundary.
                     state.time = 4
                 else:
-                    drawer.outer_forces_scale = -1 # TODO
+                    drawer.outer_forces_scale = 0
                     fig, axes = plt.subplots(1, 2)
                     drawer.x_min = 3.4
                     drawer.x_max = 5.6
@@ -304,6 +286,62 @@ def main(save: bool = False, simulate: bool = True):
                     plt.show()
                 if save:
                     drawer.save_plot("pdf", name=f"{name}_{time_step}")
+
+
+def plots(setup, h, examples):
+    _, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(9, 4))
+    for ax in axes.ravel():
+        ax.set_xlim(0.0, 4.0)
+        ax.grid()
+        # ax.set_box_aspect(1/2.5)
+
+    axes[0, 0].set_ylabel(r"$ \|\| f_2 \|\| $")
+    axes[1, 0].set_ylabel(r"$ u_\nu $")
+    axes[1, 0].set_xlabel("t")
+    axes[1, 1].set_xlabel("t")
+
+
+    for col, name in enumerate(examples.keys()):
+        with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
+            pnt = np.asarray(pickle.load(output))
+        t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
+        frc = np.empty((examples[name]["n_steps"] + 1, 1))
+        for i, _t in enumerate(t):
+            frc[i, :] = examples[name]["outer_forces"](np.asarray([2.5, 4.5]), _t)[1]
+        rlx = np.empty((examples[name]["n_steps"] + 1, 1))
+        for i, _t in enumerate(t):
+            rlx[i, :] = examples[name]["relaxation"](_t)[1, 0, 1]
+
+        pnt_sig_change = 0
+        old_p = pnt[0, 1]
+        for t_, p in pnt[1:, :]:
+            if old_p > 0 >= p:
+                pnt_sig_change = t_
+                break
+            old_p = p
+
+        plot_outer_force(axes[0, col], frc, t, vertical_line=pnt_sig_change)
+        plot_displacement_normal_direction(axes[1, col], pnt, t, vertical_line=pnt_sig_change)
+
+    plt.show()
+
+
+def plot_outer_force(axis, frc, t, vertical_line=None):
+    axis.set_ylim(-0.4, 0.4)
+    axis.plot(t, frc, color="black")
+    axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
+
+    if vertical_line is not None:
+        axis.axvline(x=[vertical_line], color='gray', ls='--', lw=1)
+
+
+def plot_displacement_normal_direction(axis, u_nu, t, vertical_line=None):
+    axis.set_ylim(-0.1, 0.25)
+    axis.plot(u_nu[:, 0], u_nu[:, 1], color="black")
+    axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
+
+    if vertical_line is not None:
+        axis.axvline(x=[vertical_line], color='gray', ls='--', lw=1)
 
 
 def zoom_outside(
@@ -384,4 +422,4 @@ def zoom_outside(
 
 
 if __name__ == "__main__":
-    main(simulate=True, save=True)
+    main(simulate=False, save=True)
