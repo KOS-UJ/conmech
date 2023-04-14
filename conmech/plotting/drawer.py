@@ -188,9 +188,10 @@ class Drawer:
                 v *= -self.outer_forces_scale
                 scale = 1
 
+            pivot = "tip" if any(v[:, 1] < 0) else "tail"  # TODO
             if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
                 axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
-                            angles='xy', scale_units='xy', scale=scale, pivot="tip",)
+                            angles='xy', scale_units='xy', scale=scale, pivot=pivot,)
 
     def draw_stress(self, axes):
         if self.normal_stress_scale:
