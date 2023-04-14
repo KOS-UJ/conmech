@@ -129,16 +129,17 @@ def main(save: bool = False, simulate: bool = True):
              [[_mu, _mu], [0, 2 * _mu]], ]
         )
 
+    output_steps = (0, 192, 352, 416, 512)
     examples = {
         "sob_01": {
             "n_steps": 512,
-            "output_steps": (0, 192, 416, 512),
+            "output_steps": output_steps,
             "outer_forces": sin_outer_forces,
             "relaxation": const_relaxation,
         },
         "sob_02": {
             "n_steps": 512,
-            "output_steps": (0, 192, 416, 512),
+            "output_steps": output_steps,
             "outer_forces": sin_outer_forces,
             "relaxation": zero_relaxation,
         },
@@ -234,17 +235,12 @@ def main(save: bool = False, simulate: bool = True):
                 if time_step == 0:
                     fig, axes = plt.subplots(1, 1)
                     axes = (axes,)
-                    axes[0].annotate('$\Gamma_1$', xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
-                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(4.33, 5.00), fontsize=18)
-                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
-                    axes[0].annotate('$\mathbf{f}_2$', xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
-                    axes[0].annotate('$\Gamma_3$', xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
                     drawer.outer_forces_scale = -1
                     plt.title("Reference configuration")
                     # to have nonzero force interface on Neumann boundary.
                     state.time = 4
                 else:
-                    drawer.outer_forces_scale = 0
+                    drawer.outer_forces_scale = 0.2
                     fig, axes = plt.subplots(1, 2)
                     drawer.x_min = 3.4
                     drawer.x_max = 5.6
@@ -276,6 +272,14 @@ def main(save: bool = False, simulate: bool = True):
                     field_max=f_limits[1],
                     save=False,
                 )
+                if time_step == 0:
+                    axes[0].annotate('$\Gamma_1$', xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
+                    position = (3.66, 4.5)
+                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=position, fontsize=18)
+                    axes[0].add_patch(Rectangle(position, 0.3, 0.3, color="white"))
+                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
+                    axes[0].annotate('$\mathbf{f}_2$', xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
+                    axes[0].annotate('$\Gamma_3$', xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
                 axes[0].axis("on")
                 axes[0].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
                 axes[0].set_aspect("equal", adjustable="box")
@@ -293,13 +297,13 @@ def plots(setup, h, examples):
     for ax in axes.ravel():
         ax.set_xlim(0.0, 4.0)
         ax.grid()
-        # ax.set_box_aspect(1/2.5)
 
-    axes[0, 0].set_ylabel(r"$ \|\| f_2 \|\| $")
+    axes[0, 0].set_ylabel(r"$ f_{2 \, y} $")
     axes[1, 0].set_ylabel(r"$ u_\nu $")
     axes[1, 0].set_xlabel("t")
     axes[1, 1].set_xlabel("t")
-
+    xticks = [step * setup.time_step for step in examples["sob_01"]["output_steps"]]
+    plt.setp(axes, xticks=xticks)
 
     for col, name in enumerate(examples.keys()):
         with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
