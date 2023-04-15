@@ -155,7 +155,7 @@ def main(mesh_density=16, final_time=2, plot_animation=True):  # 100
         all_scenarios=[*advanced_scenarios, *basic_scenarios],
         file=__file__,
         plot_animation=plot_animation,
-        config=Config(shell=False, animation_backend="matplotlib"),
+        config=Config(shell=False, animation_backend="three"),
     )
 
 

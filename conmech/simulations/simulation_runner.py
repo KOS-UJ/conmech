@@ -44,7 +44,8 @@ def get_solve_function(simulation_config):
         if training_config.td.use_dataset_statistics:
             train_dataset = get_train_dataset(training_config.td.dataset, config=training_config)
             train_dataset.load_indices()
-            statistics = train_dataset.get_statistics()
+            # statistics = train_dataset.get_statistics()
+            statistics = None
         return partial(
             model_jax.solve, apply_net=model_jax.get_apply_net(state), statistics=statistics
         )

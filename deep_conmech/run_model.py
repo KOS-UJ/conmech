@@ -6,6 +6,7 @@ import argparse
 import os
 from argparse import ArgumentParser, Namespace
 from ctypes import ArgumentError
+from pathlib import Path
 
 import jax
 import netron
@@ -126,7 +127,7 @@ def train_single(config, rank=0, world_size=1, train_dataset=None, all_validatio
             all_validation_datasets=all_validation_datasets,
             print_scenarios=all_print_datasets,
             config=config,
-            statistics=None,
+            statistics=statistics,
         )
     else:
         net = CustomGraphNet(statistics=statistics, td=config.td).to(rank)
@@ -300,13 +301,13 @@ def get_newest_checkpoint_path_jax(config: TrainingConfig):
     def get_index_jax(path):
         return int(path.split("/")[-2].split(" ")[0])
 
-    saved_model_paths = cmh.find_files_by_name(config.output_catalog, "checkpoint_0")
-    if not saved_model_paths:
+    all_checkpoint_paths = cmh.find_files_by_name(config.output_catalog, "checkpoint")
+    if not all_checkpoint_paths:
         raise ArgumentError("No saved models")
-    newest_index = np.argmax(np.array([get_index_jax(path) for path in saved_model_paths]))
-    path = saved_model_paths[newest_index]
+    newest_index = np.argmax(np.array([get_index_jax(path) for path in all_checkpoint_paths]))
 
-    print(f"Taking saved model {path.split('/')[-2]}")
+    path = str(Path(all_checkpoint_paths[newest_index]).parent.absolute())
+    print(f"Taking saved model {path.split('/')[-1]}")
     return path
 
 
@@ -345,7 +346,7 @@ def main(args: Namespace):
         with_self_collisions=True,
         mesh_layer_proportion=4,  # 2 4
         use_pca=False,
-        mode="normal",        # mode="normal" ##############
+        mode="normal",
     )
 
     # dch.set_torch_sharing_strategy()

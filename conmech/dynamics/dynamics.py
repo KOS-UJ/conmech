@@ -92,7 +92,7 @@ def _get_deform_grad(value, dx_big_jax):
     return _get_jac(value, dx_big_jax) + identity
 
 
-class _GetRotationState(NamedTuple):
+class RotationState(NamedTuple):
     rotation: jnp.ndarray
     norm: float
     iteration: int
@@ -101,8 +101,8 @@ class _GetRotationState(NamedTuple):
 
 @jax.jit
 def _get_rotation_jax(displacement, dx_big):
-    max_iter = 30
-    max_norm = 1e-4
+    max_iter = 100
+    max_norm = 5e-4
     deform_grad = _get_deform_grad(displacement, dx_big)
 
     def body(state):
@@ -110,16 +110,16 @@ def _get_rotation_jax(displacement, dx_big):
         rotation_new = 0.5 * (state.rotation + rotation_inv_T)
         norm = jnp.linalg.norm(state.rotation - rotation_new)
         iteration = state.iteration + 1
-        return _GetRotationState(
+        return RotationState(
             rotation=rotation_new, norm=norm, iteration=iteration, success=iteration < max_iter
         )
 
-    state = _GetRotationState(rotation=deform_grad, norm=0, iteration=0, success=True)
+    state = RotationState(rotation=deform_grad, norm=jnp.inf, iteration=0, success=True)
     state = lax.while_loop(
         lambda state: (state.norm > max_norm) & (state.iteration < max_iter), body, state
     )
     final_rotation = jnp.linalg.inv(np.mean(state.rotation, axis=0))
-    return final_rotation, state.success
+    return final_rotation, state
 
 
 class Dynamics(BodyPosition):
@@ -157,10 +157,11 @@ class Dynamics(BodyPosition):
         self.moved_base = self.get_rotation(self.displacement_old)
 
     def get_rotation(self, displacement):
-        result = _get_rotation_jax(displacement, self.matrices.dx_big_jax)
-        if not result[1]:
+        final_rotation, state = _get_rotation_jax(displacement, self.matrices.dx_big_jax)
+        if not state.success:
             raise Exception("Error calculating rotation")
-        return complete_base(base_seed=np.array(result[0], dtype=np.float64))
+        print(state.iteration, state.norm)
+        return complete_base(base_seed=np.array(final_rotation, dtype=np.float64))
 
     # def iterate_self(self, acceleration, temperature=None):
     #     super().iterate_self(acceleration, temperature)

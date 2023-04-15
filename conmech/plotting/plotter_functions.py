@@ -11,7 +11,7 @@ from conmech.plotting.plotter_common import get_t_scale, plt_save
 from conmech.scenarios.scenarios import Scenario
 
 
-def save_three(scene, step, label, folder, skip=5):
+def save_three(scene, step, label, folder, skip=1):
     # Three.js
     if step % skip != 0:
         return

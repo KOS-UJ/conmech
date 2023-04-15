@@ -2,7 +2,7 @@ import copy
 import random
 from ctypes import ArgumentError
 from functools import partial
-from typing import List, NamedTuple, Optional, Tuple
+from typing import Callable, List, NamedTuple, Optional, Tuple
 
 import jax
 import jax.dlpack
@@ -16,9 +16,22 @@ from conmech.helpers import cmh, lnh, pkh
 from conmech.mesh.mesh import Mesh
 from conmech.scene.energy_functions import EnergyFunctions
 from conmech.solvers.calculator import Calculator
+from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
+
+
+class DataNorm(nn.Module):
+    std_init: Callable
+
+    @nn.compact
+    def __call__(self, x):
+        std = self.variable("batch_stats", "std", self.std_init, x.shape[1])
+        # x_std.value += 0.1 # Could be modified here and will be saved
+        output = x / std.value
+        output = jnp.nan_to_num(output)
+        return output
 
 
 class ForwardNet(nn.Module):
@@ -193,6 +206,8 @@ class GraphNetArguments(NamedTuple):
 
 
 class CustomGraphNetJax(nn.Module):
+    statistics: Optional[DatasetStatistics] = None
+
     @nn.compact
     def __call__(self, args: GraphNetArguments, train: bool):
         latent_dimension = 128  # 128 64
@@ -223,8 +238,8 @@ class CustomGraphNetJax(nn.Module):
             latent_dimension,
             node_latents_sparse,
             node_latents_dense,
-            edge_latents_to_dense,
-            edge_index_to_dense,
+            edge_latents_multilayer,
+            edge_index_multilayer,
         ):
             updated_node_latents_dense = LinkProcessorLayer(
                 latent_dimension=latent_dimension,
@@ -233,40 +248,73 @@ class CustomGraphNetJax(nn.Module):
             )(
                 node_latents_sparse=node_latents_sparse,
                 node_latents_dense=node_latents_dense,
-                edge_latents_to_dense=edge_latents_to_dense,
-                edge_index_to_dense=edge_index_to_dense,
+                edge_latents_to_dense=edge_latents_multilayer,
+                edge_index_to_dense=edge_index_multilayer,
             )
             return updated_node_latents_dense
+
+        node_data_sparse = DataNorm(
+            std_init=lambda _: jnp.array(self.statistics.data[0].data_max_abs)
+        )(args.sparse_x)
+        edge_data_sparse = DataNorm(
+            std_init=lambda _: jnp.array(self.statistics.data[1].data_max_abs)
+        )(args.sparse_edge_attr)
+        edge_data_multilayer = DataNorm(
+            std_init=lambda _: jnp.array(self.statistics.data[2].data_max_abs)
+        )(args.multilayer_edge_attr)
+        node_data_dense = DataNorm(
+            std_init=lambda _: jnp.array(self.statistics.data[3].data_max_abs)
+        )(args.dense_x)
+        edge_data_dense = DataNorm(
+            std_init=lambda _: jnp.array(self.statistics.data[4].data_max_abs)
+        )(args.dense_edge_attr)
+
+        # std = 1.0
+        # node_data_sparse = DataNorm(
+        #     std_init=lambda _: None  # jnp.array([std for _ in range(args.sparse_x.shape[1])])
+        # )(args.sparse_x)
+        # edge_data_sparse = DataNorm(
+        #     std_init=lambda _: jnp.array([std for _ in range(args.sparse_edge_attr.shape[1])])
+        # )(args.sparse_edge_attr)
+        # edge_data_multilayer = DataNorm(
+        #     std_init=lambda _: jnp.array([std for _ in range(args.multilayer_edge_attr.shape[1])])
+        # )(args.multilayer_edge_attr)
+        # node_data_dense = DataNorm(
+        #     std_init=lambda _: jnp.array([std for _ in range(args.dense_x.shape[1])])
+        # )(args.dense_x)
+        # edge_data_dense = DataNorm(
+        #     std_init=lambda _: jnp.array([std for _ in range(args.dense_edge_attr.shape[1])])
+        # )(args.dense_edge_attr)
 
         node_latents_sparse = ForwardNet(
             latent_dimension=latent_dimension,
             internal_layer_count=internal_layer_count,
             input_batch_norm=input_batch_norm,
-        )(args.sparse_x, train=train)
+        )(node_data_sparse, train=train)
 
         edge_latents_sparse = ForwardNet(
             latent_dimension=latent_dimension,
             internal_layer_count=internal_layer_count,
             input_batch_norm=input_batch_norm,
-        )(args.sparse_edge_attr, train=train)
+        )(edge_data_sparse, train=train)
 
-        edge_latents_to_dense = ForwardNet(
+        edge_latents_multilayer = ForwardNet(
             latent_dimension=latent_dimension,
             internal_layer_count=internal_layer_count,
             input_batch_norm=input_batch_norm,
-        )(args.multilayer_edge_attr, train=train)
+        )(edge_data_multilayer, train=train)
 
         node_latents_dense = ForwardNet(
             latent_dimension=latent_dimension,
             internal_layer_count=internal_layer_count,
             input_batch_norm=input_batch_norm,
-        )(args.dense_x, train=train)
+        )(node_data_dense, train=train)
 
         edge_latents_dense = ForwardNet(
             latent_dimension=latent_dimension,
             internal_layer_count=internal_layer_count,
             input_batch_norm=input_batch_norm,
-        )(args.dense_edge_attr, train=train)
+        )(edge_data_dense, train=train)
 
         updated_node_latents_sparse = node_latents_sparse + propagate_messages(
             latent_dimension=latent_dimension,
@@ -290,8 +338,8 @@ class CustomGraphNetJax(nn.Module):
             latent_dimension=latent_dimension,
             node_latents_sparse=updated_node_latents_sparse,
             node_latents_dense=node_latents_dense,
-            edge_latents_to_dense=edge_latents_to_dense,
-            edge_index_to_dense=args.multilayer_edge_index,
+            edge_latents_multilayer=edge_latents_multilayer,
+            edge_index_multilayer=args.multilayer_edge_index,
         )
 
         updated_node_latents_dense = updated_node_latents_dense + propagate_messages(

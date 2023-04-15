@@ -103,7 +103,7 @@ class GraphModelDynamicJax:
             validation_devices = train_devices[:validation_devices_count]
 
         train_states = initialize_states(
-            config=self.config, dataloader=train_dataloader, devices=train_devices
+            config=self.config, dataloader=train_dataloader, devices=train_devices, statistics=self.statistics
         )
 
         ###
@@ -175,7 +175,7 @@ class GraphModelDynamicJax:
         catalog = f"{self.config.output_catalog}/{self.config.current_time} - JAX GRAPH MODELS"
         cmh.create_folders(catalog)
         path = f"{catalog}/{timestamp} - MODEL"
-        self.checkpointer.save(directory=path, item=state)#, step=0)
+        self.checkpointer.save(directory=path, item=state)
 
     @staticmethod
     def get_checkpoint(rank: int, path: str):
@@ -184,7 +184,7 @@ class GraphModelDynamicJax:
     @staticmethod
     def load_checkpointed_net(path: str):
         print("----LOADING NET----")
-        state = orbax.checkpoint.PyTreeCheckpointer().restore(directory=path, target=None)
+        state = orbax.checkpoint.PyTreeCheckpointer().restore(directory=path)
         return state
 
     def load_checkpoint(self, path: str):
@@ -382,10 +382,10 @@ def get_sample_args(dataloader):
     return sample_args
 
 
-def initialize_states(config, dataloader, devices):
+def initialize_states(config, dataloader, devices, statistics):
     sample_args = get_sample_args(dataloader)
     init_state = create_train_state(
-        jax.random.PRNGKey(42), sample_args, config.td.initial_learning_rate
+        jax.random.PRNGKey(42), sample_args, config.td.initial_learning_rate, statistics
     )
 
     states = flax.jax_utils.replicate(init_state, devices=devices)
@@ -456,15 +456,7 @@ def solve(
         layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
         layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
         layers_list = [layers_list_0, layers_list_1]
-
-        layers_list = statistics.normalize(layers_list)
-
-        # return scene.exact_acceleration, None
-
-        # layers_list = [
-        #     scene.get_features_data(layer_number=layer_number) #.to(device_number) ###
-        #     for layer_number, _ in enumerate(scene.all_layers)
-        # ]
+        # layers_list = statistics.normalize(layers_list)
 
     with timer["jax_data_movement"]:
         args = prepare_input(convert_to_jax(layers_list))
@@ -530,8 +522,8 @@ def prepare_input(layer_list):
     return args
 
 
-def create_train_state(rng, sample_args, learning_rate):
-    params, batch_stats = CustomGraphNetJax().get_params(sample_args, rng)
+def create_train_state(rng, sample_args, learning_rate, statistics):
+    params, batch_stats = CustomGraphNetJax(statistics=statistics).get_params(sample_args, rng)
     # jax.tree_util.tree_map(lambda x: x.shape, params)  # Checking output shapes
 
     # optimizer = optax.adam(learning_rate=learning_rate)

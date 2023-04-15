@@ -33,20 +33,21 @@ def main():
     # mode = "compare"
     # mode = "skinning"
     # mode = "skinning_backwards"
-    mode = "net"
+    # mode = "net"
 
-    simulation_config = SimulationConfig(
-        use_normalization=False,
-        use_linear_solver=False,
-        use_green_strain=True,
-        use_nonconvex_friction_law=False,
-        use_constant_contact_integral=True,  # False,
-        use_lhs_preconditioner=False,
-        with_self_collisions=True,
-        use_pca=False,
-        mesh_layer_proportion=4, # 2 8,
-        mode=mode,
-    )
+    def get_simulation_config(mode):
+        return SimulationConfig(
+            use_normalization=False,
+            use_linear_solver=False,
+            use_green_strain=True,
+            use_nonconvex_friction_law=False,
+            use_constant_contact_integral=True,  # False,
+            use_lhs_preconditioner=False,
+            with_self_collisions=True,
+            use_pca=False,
+            mesh_layer_proportion=4,  # 2 8,
+            mode=mode,
+        )
 
     # simulation_config_pca = SimulationConfig(
     #     use_normalization=False,
@@ -74,38 +75,25 @@ def main():
         #     simulation_config=simulation_config,
         #     scale_forces=scale_forces,
         # ),
-        # bunny_fall_3d(
-        #     mesh_density=64,
-        #     scale=1,
-        #     final_time=final_time,
-        #     simulation_config=simulation_config,
-        #     scale_forces=scale_forces,
-        # ),
         bunny_fall_3d(
             mesh_density=32,
             scale=1,
             final_time=final_time,
-            simulation_config=simulation_config,
+            simulation_config=get_simulation_config("net"),
             scale_forces=scale_forces,
         ),
-        # bunny_fall_3d(
-        #     mesh_density=16,
+        bunny_fall_3d(
+            mesh_density=32,
+            scale=1,
+            final_time=final_time,
+            simulation_config=get_simulation_config("skinning"),
+            scale_forces=scale_forces,
+        ),
+        # bunny_rotate_3d(
+        #     mesh_density=32,
         #     scale=1,
-        #     final_time=10,
-        #     simulation_config=simulation_config,
-        #     scale_forces=scale_forces,
-        # ),
-        # bunny_fall_3d(mesh_density=8, scale=1, final_time=2, simulation_config=simulation_config),
-        # bunny_rotate_3d(
-        #     mesh_density=32, scale=1, final_time=final_time, simulation_config=simulation_config
-        # ),
-        # bunny_rotate_3d(mesh_density=16, scale=1, final_time=2, simulation_config=simulation_config),
-        # bunny_fall_3d(mesh_density=32, scale=1, final_time=2, simulation_config=simulation_config),
-        # bunny_fall_3d(
-        #     mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
-        # ),
-        # bunny_rotate_3d(
-        #     mesh_density=32, scale=1, final_time=2.0, simulation_config=simulation_config_pca
+        #     final_time=final_time,
+        #     simulation_config=get_simulation_config("net"),
         # ),
         # Scenario(
         #     name="bunny_fall",

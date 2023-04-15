@@ -42,10 +42,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <button onclick="speed()" class="button">Change speed</button>
     <button onclick="toggleNodes()" class="button">Toggle nodes</button>
     <input type="checkbox" onclick="toggleHiglightNodes()"> Highlight self-colliding nodes
-    <input type="checkbox" onclick="onShowTets()"> Show reduced
+    <input id="showDenseCheckbox" type="checkbox" onclick="onShowDense()"> Show dense
+    <input id="showReducedCheckbox" type="checkbox" onclick="onShowReduced()"> Show reduced
     <br><br>
-    <span id="numNodes">0</span> boundary nodes&nbsp;&nbsp;
-    <span id="numSurfaces">0</span> boundary surfaces&nbsp;&nbsp;
+    <span id="denseNodesCount">0</span> boundary nodes&nbsp;&nbsp;
+    <span id="surfacesCount">0</span> boundary surfaces&nbsp;&nbsp;
     <span id="animationSpeed"></span> speed&nbsp;&nbsp;
     <span id="nodesMode"></span> mode&nbsp;&nbsp;
     <span id="count"></span>&nbsp;&nbsp;
@@ -79,6 +80,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         var loadedProgress = 0;
         var animationFrameFloat = 0.0;
         var animationSpeed = 1.0;
+        var showDense = true;
         var showReduced = false;
 
         var scene;
@@ -131,12 +133,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             setHtml("nodesMode", nodesMode);
             await animationStepInnerAsync();
         }
-        window.onShowTets = async () => {
+        window.onShowDense = async () => {
+            showDense = !showDense;
+            setCheckbox("showDenseCheckbox", showDense);
+            await animationStepInnerAsync();
+        }
+        window.onShowReduced = async () => {
             showReduced = !showReduced;
+            setCheckbox("showReducedCheckbox", showReduced);
             await animationStepInnerAsync();
         }
 
 
+        setCheckbox("showDenseCheckbox", showDense);
+        setCheckbox("showReducedCheckbox", showReduced);
         setRunButton(false);
         setHtml("animationSpeed", animationSpeed);
         setHtml("nodesMode", nodesMode);
@@ -156,6 +166,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         function setHtml(label, value) {
             document.getElementById(label).innerHTML = value;
+        }
+        function setCheckbox(label, value) {
+            document.getElementById(label).checked = value;
         }
 
         function setRunButton(new_paused) {
@@ -184,7 +197,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     document.getElementById("error").innerHTML = 'Error loading meshes';
                 }
             );
-            // document.getElementById("loadedProgress").innerHTML = '';
             return fileContent;
         }
 
@@ -199,10 +211,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             }
 
             getNodesReduced(mesh) {
-                nodesMode = nodesMode % mesh.nodes_reduced_list.length;
-                setHtml("nodesMode", nodesMode);
-                var nodes = mesh.nodes_reduced_list[nodesMode];
-                return nodes;
+                return mesh.nodes_reduced_list[nodesMode];
             }
 
             constructor(initialMesh) {
@@ -211,46 +220,43 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 var nodesReduced = this.getNodesReduced(initialMesh);
                 var boundary_surfaces = initialMesh.boundary_surfaces
 
-                this.numNodes = nodes.length / 3;
-                this.numSurfaces = boundary_surfaces.length / 3;
-                this.pos = new Float32Array(nodes);
+                this.denseNodesCount = nodes.length / 3;
+                this.surfacesCount = boundary_surfaces.length / 3;
+                this.denseNodes = new Float32Array(nodes);
 
                 // surface tri mesh
                 var geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+                geometry.setAttribute('position', new THREE.BufferAttribute(this.denseNodes, 3));
                 geometry.setIndex(boundary_surfaces);
                 var material = new THREE.MeshPhongMaterial({ color: 0xd9dbdc, side: THREE.DoubleSide });
                 material.flatShading = true;
-                this.surfaceMesh = new THREE.Mesh(geometry, material);
-                this.surfaceMesh.name = "surfaceMesh";
+                this.denseMesh = new THREE.Mesh(geometry, material);
+                this.denseMesh.name = "surfaceMesh";
                 // this.surfaceMesh.castShadow = true;
-                this.surfaceMesh.userData = this;
-                this.surfaceMesh.layers.enable(1);
-                this.surfaceMesh.geometry.computeVertexNormals();
-                this.surfaceMesh.visible = true;
+                this.denseMesh.userData = this;
+                this.denseMesh.layers.enable(1);
+                this.denseMesh.geometry.computeVertexNormals();
+                this.denseMesh.visible = showDense;
 
-                /////
                 if (nodesReduced == undefined) {
-                    this.pos_reduced = null;
-                    this.tetMesh = null;
+                    this.sparseNodes = null;
+                    this.sparseMesh = null;
                 }
                 else {
-                    this.pos_reduced = new Float32Array(nodesReduced);
+                    this.sparseNodes = new Float32Array(nodesReduced);
 
                     var geometry = new THREE.BufferGeometry();
-                    geometry.setAttribute('position', new THREE.BufferAttribute(this.pos_reduced, 3));
+                    geometry.setAttribute('position', new THREE.BufferAttribute(this.sparseNodes, 3));
                     geometry.setIndex(initialMesh.boundary_edges_reduced);
 
                     var material = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 });
-                    this.tetMesh = new THREE.LineSegments(geometry, material);
-                    this.tetMesh.name = "tetMesh";
+                    this.sparseMesh = new THREE.LineSegments(geometry, material);
+                    this.sparseMesh.name = "sparseMesh";
 
                     // var material = new THREE.MeshPhongMaterial({ color: 0xff00ff, side: THREE.DoubleSide });
                     // material.flatShading = true;
                     // this.tetMesh = new THREE.Mesh(geometry, material);
-                    this.tetMesh.visible = showReduced;
-                    /////
-
+                    this.sparseMesh.visible = showReduced;
                     // console.log(JSON.stringify(tetMesh.verts));
                 }
             }
@@ -260,28 +266,30 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 var nodes_reduced = this.getNodesReduced(mesh);
 
                 // this.pos = new Float32Array(nodes);
-                for (var i = 0; i < this.pos.length; i++)
-                    this.pos[i] = nodes[i];
+                for (var i = 0; i < this.denseNodes.length; i++)
+                    this.denseNodes[i] = nodes[i];
                 // this.surfaceMesh.geometry.computeVertexNormals();
-                this.surfaceMesh.geometry.attributes.position.needsUpdate = true;
+                this.denseMesh.geometry.attributes.position.needsUpdate = true;
                 // this.surfaceMesh.geometry.computeBoundingSphere();
-                if (this.pos_reduced) {
-                    for (var i = 0; i < this.pos_reduced.length; i++)
-                        this.pos_reduced[i] = nodes_reduced[i];
-                    this.tetMesh.geometry.attributes.position.needsUpdate = true;
-                }
+                this.denseMesh.visible = showDense;
 
-                this.tetMesh.visible = showReduced;
+                if (this.sparseNodes) {
+                    for (var i = 0; i < this.sparseNodes.length; i++)
+                        this.sparseNodes[i] = nodes_reduced[i];
+                    this.sparseMesh.geometry.attributes.position.needsUpdate = true;
+
+                    this.sparseMesh.visible = showReduced;
+                }
 
             }
 
             addToScene(scene) {
                 scene.remove(scene.getObjectByName("surfaceMesh"));
-                scene.remove(scene.getObjectByName("tetMesh"));
+                scene.remove(scene.getObjectByName("sparseMesh"));
 
-                scene.add(this.surfaceMesh);
-                if (this.tetMesh != null) {
-                    scene.add(this.tetMesh);
+                scene.add(this.denseMesh);
+                if (this.sparseMesh != null) {
+                    scene.add(this.sparseMesh);
                 }
             }
         }
@@ -294,13 +302,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
             var length = 0.5
             var arrowHelper = new THREE.ArrowHelper(dir, origin, length, 0xff0000);
-
-            // var oldArrowHelper = scene.getObjectByName("arrowHelper")
-            // if (oldArrowHelper != undefined) {
-            //     if (oldArrowHelper.position.equals(arrowHelper.position) & arrowHelper.rotation.equals(arrowHelper.rotation)) {
-            //         return;
-            //     }
-            // }
 
             scene.remove(scene.getObjectByName("arrowHelper"));
             scene.remove(scene.getObjectByName("ground"));
@@ -374,11 +375,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
         }
 
-        // make browser to call us repeatedly -----------------------------------
-
-        // python -m http.server
-
-        // setting up the reader
 
         async function reloadMeshesAsync() {
             meshes = [await loadFileAsync(`${simulationName}/0.json`)];
@@ -390,11 +386,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 meshes.push(await loadFileAsync(`${simulationName}/${i}.json`, i, animationCount))
             }
 
+            document.getElementById("loadedProgress").innerHTML = '';
             setHtml("count", `${animationCount} count`);
             setHtml("skip", `${animationSkip} skip`);
         }
 
-        // ------------------------------------------------------------------
         async function initMeshAsync() {
 
             var mesh = meshes[0]
@@ -402,11 +398,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             body.addToScene(scene);
             addObstacle(scene, mesh);
 
-            setHtml("numNodes", body.numNodes);
-            setHtml("numSurfaces", body.numSurfaces);
+            setHtml("denseNodesCount", body.denseNodesCount);
+            setHtml("surfacesCount", body.surfacesCount);
         }
 
-        // ------------------------------------------------------------------
         async function runAnimationAsync() {
             // if (stop)
             //     return;

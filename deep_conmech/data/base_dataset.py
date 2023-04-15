@@ -308,7 +308,7 @@ class BaseDataset:
         dense_edges_data = None
         target_data = None
 
-        count = 200
+        count = 200 #
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
@@ -457,8 +457,8 @@ class BaseDataset:
         def get_list(index):
             graph_data = self.get_features_and_targets_data(index)
 
-            if self.statistics is not None:
-                graph_data.layer_list = self.statistics.normalize(graph_data.layer_list)
+            # if self.statistics is not None:
+                # graph_data.layer_list = self.statistics.normalize(graph_data.layer_list)
 
             return [graph_data.layer_list, graph_data.target_data]
 
@@ -468,7 +468,7 @@ class BaseDataset:
 
     @property
     def _len_jax(self):
-        return self.data_count // self.device_count
+        return self.data_count // self.device_count #100
 
     def _getitem_torch(self, index: int):
         # self.load_data()
