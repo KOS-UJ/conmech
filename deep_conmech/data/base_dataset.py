@@ -12,7 +12,10 @@ from torch_geometric.loader import DataLoader
 from conmech.helpers import cmh, mph, pkh
 from conmech.plotting.plotter_functions import plot_setting
 from deep_conmech.data.data_classes import GraphData
-from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.data.dataset_statistics import (
+    FeaturesStatistics,
+    FeaturesStatisticsPandas,
+)
 from deep_conmech.training_config import TrainingConfig
 
 
@@ -295,7 +298,68 @@ class BaseDataset:
             dataset=self,
             rank=0,
             world_size=1,
-            batch_size=1,  # self.config.td.batch_size,
+            batch_size=32,  # 32,  # 1,  # self.config.td.batch_size,
+            num_workers=0,
+            shuffle=True,
+            load_data=True,
+        )
+
+        statistics = {
+            "sparse_nodes": FeaturesStatistics(),
+            "sparse_edges": FeaturesStatistics(),
+            "multilayer_edges": FeaturesStatistics(),
+            "dense_nodes": FeaturesStatistics(),
+            "dense_edges": FeaturesStatistics(),
+            "target_normalized_new_displacement": FeaturesStatistics(),
+        }
+
+        for graph_data in cmh.get_tqdm(
+            dataloader, config=self.config, desc="Calculating dataset mean and max abs"
+        ):
+            assert len(graph_data) == 1
+            (dense_layer, sparse_layer), target_layer = graph_data[0]
+            statistics["sparse_nodes"].set_mean_and_max_abs(sparse_layer.x)
+            statistics["sparse_edges"].set_mean_and_max_abs(sparse_layer.edge_attr)
+            statistics["multilayer_edges"].set_mean_and_max_abs(sparse_layer.edge_attr_to_down)
+            statistics["dense_nodes"].set_mean_and_max_abs(dense_layer.x)
+            statistics["dense_edges"].set_mean_and_max_abs(dense_layer.edge_attr)
+            statistics["target_normalized_new_displacement"].set_mean_and_max_abs(
+                target_layer.normalized_new_displacement
+            )
+
+        for key in statistics.keys():
+            statistics[key].finalaze_mean()
+
+        for graph_data in cmh.get_tqdm(
+            dataloader, config=self.config, desc="Calculating dataset variance"
+        ):
+            assert len(graph_data) == 1
+            (dense_layer, sparse_layer), target_layer = graph_data[0]
+            statistics["sparse_nodes"].set_variance(sparse_layer.x)
+            statistics["sparse_edges"].set_variance(sparse_layer.edge_attr)
+            statistics["multilayer_edges"].set_variance(sparse_layer.edge_attr_to_down)
+            statistics["dense_nodes"].set_variance(dense_layer.x)
+            statistics["dense_edges"].set_variance(dense_layer.edge_attr)
+            statistics["target_normalized_new_displacement"].set_variance(
+                target_layer.normalized_new_displacement
+            )
+
+        for key in statistics.keys():
+            statistics[key].finalize_variance()
+
+        self.device_count = saved_device_count
+
+        return statistics
+
+    def get_statistics_pandas(self):
+        saved_device_count = self.device_count
+        self.device_count = 1
+
+        dataloader = get_dataloader(
+            dataset=self,
+            rank=0,
+            world_size=1,
+            batch_size=32,
             num_workers=0,
             shuffle=True,
             load_data=True,
@@ -308,7 +372,6 @@ class BaseDataset:
         dense_edges_data = None
         target_data = None
 
-        count = 200 #
         for graph_data in cmh.get_tqdm(
             dataloader, config=self.config, desc="Calculating dataset statistics"
         ):
@@ -332,25 +395,28 @@ class BaseDataset:
             dense_edges_data = cat(dense_edges_data, dense_layer.edge_attr)
 
             target_data = cat(target_data, target_layer.normalized_new_displacement)
-            count -= 1
-            if count == 0:
-                break
+            # count -= 1
+            # if count == 0:
+            #     break
 
         self.device_count = saved_device_count
-        return DatasetStatistics(
-            data=[
-                FeaturesStatistics(
-                    label="sparse_nodes",
-                    data=sparse_nodes_data,
-                    # columns=SceneInput.get_nodes_data_description_sparse(self.dimension)
-                ),
-                FeaturesStatistics(label="sparse_edges", data=sparse_edges_data),
-                FeaturesStatistics(label="multilayer_edges", data=multilayer_edges_data),
-                FeaturesStatistics(label="dense_nodes", data=dense_nodes_data),
-                FeaturesStatistics(label="dense_edges", data=dense_edges_data),
-                FeaturesStatistics(label="target_normalized_new_displacement", data=target_data),
-            ]
-        )
+        statistics = {
+            "sparse_nodes": FeaturesStatisticsPandas(
+                label="sparse_nodes",
+                data=sparse_nodes_data,
+                # columns=SceneInput.get_nodes_data_description_sparse(self.dimension)
+            ),
+            "sparse_edges": FeaturesStatisticsPandas(label="sparse_edges", data=sparse_edges_data),
+            "multilayer_edges": FeaturesStatisticsPandas(
+                label="multilayer_edges", data=multilayer_edges_data
+            ),
+            "dense_nodes": FeaturesStatisticsPandas(label="dense_nodes", data=dense_nodes_data),
+            "dense_edges": FeaturesStatisticsPandas(label="dense_edges", data=dense_edges_data),
+            "target_normalized_new_displacement": FeaturesStatisticsPandas(
+                label="target_normalized_new_displacement", data=target_data
+            ),
+        }
+        return statistics
         # edges_statistics = FeaturesStatistics(
         #     edges_data, #SceneInput.get_edges_data_description(self.dimension)
         # )
@@ -456,10 +522,6 @@ class BaseDataset:
     def _getitem_jax(self, index: int):
         def get_list(index):
             graph_data = self.get_features_and_targets_data(index)
-
-            # if self.statistics is not None:
-                # graph_data.layer_list = self.statistics.normalize(graph_data.layer_list)
-
             return [graph_data.layer_list, graph_data.target_data]
 
         if self.item_fn:
@@ -468,7 +530,8 @@ class BaseDataset:
 
     @property
     def _len_jax(self):
-        return self.data_count // self.device_count #100
+        # return 400
+        return self.data_count // self.device_count
 
     def _getitem_torch(self, index: int):
         # self.load_data()

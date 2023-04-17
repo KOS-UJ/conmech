@@ -25,7 +25,7 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.simulations import simulation_runner
 from conmech.solvers.calculator import Calculator
 from deep_conmech.data import base_dataset
-from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.data.dataset_statistics import FeaturesStatistics
 from deep_conmech.graph.logger import Logger
 from deep_conmech.graph.loss_raport import LossRaport
 from deep_conmech.graph.net_jax import CustomGraphNetJax, GraphNetArguments
@@ -67,7 +67,7 @@ class GraphModelDynamicJax:
         all_validation_datasets,
         print_scenarios: List[Scenario],
         config: TrainingConfig,
-        statistics: Optional[DatasetStatistics] = None,
+        statistics: Optional[dict[str, FeaturesStatistics]] = None,
     ):
         print("----CREATING MODEL----")
         self.config = config
@@ -103,7 +103,10 @@ class GraphModelDynamicJax:
             validation_devices = train_devices[:validation_devices_count]
 
         train_states = initialize_states(
-            config=self.config, dataloader=train_dataloader, devices=train_devices, statistics=self.statistics
+            config=self.config,
+            dataloader=train_dataloader,
+            devices=train_devices,
+            statistics=self.statistics,
         )
 
         ###
@@ -185,6 +188,23 @@ class GraphModelDynamicJax:
     def load_checkpointed_net(path: str):
         print("----LOADING NET----")
         state = orbax.checkpoint.PyTreeCheckpointer().restore(directory=path)
+        # max
+        # [0.37203905 0.30245197 0.48489755 0.52844054]
+        # [0.13150394 0.12678379 0.12857574 0.1456219  0.11057796 0.13912192 0.1466246  0.14884117 0.2857042  0.27676922 0.2657091  0.29354805]
+        # [0.1374385  0.15230313 0.13956544 0.18726523]
+        # [0. 0. 0. 0.]
+        # [0.03794624 0.04396379 0.04139753 0.04880848]
+
+        # std
+        # [0.02157343 0.01919927 0.02716865 0.03085904]
+        # [0.04468406 0.04449055 0.0456932  0.01912015 0.00449087 0.00430669
+        # 0.00502397 0.00704404 0.01876167 0.01671793 0.01682504 0.02281432]
+        # [0.03249315 0.03322351 0.03378605 0.02014596]
+        # [0. 0. 0. 0.]
+        # [0.01139805 0.01137772 0.01169406 0.00428111]
+        # for i in range(5):
+        #     print(state['batch_stats'][f'DataNorm_{i}']['std'])
+
         return state
 
     def load_checkpoint(self, path: str):
@@ -432,7 +452,6 @@ def convert_to_jax(layer_list, target_data=None):
 # TODO: all in Jax?
 def solve(
     apply_net,
-    statistics,
     scene: SceneInput,
     energy_functions: EnergyFunctions,
     initial_a,
@@ -456,7 +475,6 @@ def solve(
         layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
         layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
         layers_list = [layers_list_0, layers_list_1]
-        # layers_list = statistics.normalize(layers_list)
 
     with timer["jax_data_movement"]:
         args = prepare_input(convert_to_jax(layers_list))

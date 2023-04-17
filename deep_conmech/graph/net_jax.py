@@ -8,15 +8,9 @@ import jax
 import jax.dlpack
 import jax.numpy as jnp
 import numpy as np
-import torch
 from flax import linen as nn
-from torch_scatter import scatter_sum
 
-from conmech.helpers import cmh, lnh, pkh
-from conmech.mesh.mesh import Mesh
-from conmech.scene.energy_functions import EnergyFunctions
-from conmech.solvers.calculator import Calculator
-from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.data.dataset_statistics import FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
@@ -206,7 +200,7 @@ class GraphNetArguments(NamedTuple):
 
 
 class CustomGraphNetJax(nn.Module):
-    statistics: Optional[DatasetStatistics] = None
+    statistics: Optional[dict[str, FeaturesStatistics]] = None
 
     @nn.compact
     def __call__(self, args: GraphNetArguments, train: bool):
@@ -254,37 +248,20 @@ class CustomGraphNetJax(nn.Module):
             return updated_node_latents_dense
 
         node_data_sparse = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics.data[0].data_max_abs)
+            std_init=lambda _: jnp.array(self.statistics["sparse_nodes"].std)
         )(args.sparse_x)
         edge_data_sparse = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics.data[1].data_max_abs)
+            std_init=lambda _: jnp.array(self.statistics["sparse_edges"].std)
         )(args.sparse_edge_attr)
         edge_data_multilayer = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics.data[2].data_max_abs)
+            std_init=lambda _: jnp.array(self.statistics["multilayer_edges"].std)
         )(args.multilayer_edge_attr)
         node_data_dense = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics.data[3].data_max_abs)
+            std_init=lambda _: jnp.array(self.statistics["dense_nodes"].std)
         )(args.dense_x)
         edge_data_dense = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics.data[4].data_max_abs)
+            std_init=lambda _: jnp.array(self.statistics["dense_edges"].std)
         )(args.dense_edge_attr)
-
-        # std = 1.0
-        # node_data_sparse = DataNorm(
-        #     std_init=lambda _: None  # jnp.array([std for _ in range(args.sparse_x.shape[1])])
-        # )(args.sparse_x)
-        # edge_data_sparse = DataNorm(
-        #     std_init=lambda _: jnp.array([std for _ in range(args.sparse_edge_attr.shape[1])])
-        # )(args.sparse_edge_attr)
-        # edge_data_multilayer = DataNorm(
-        #     std_init=lambda _: jnp.array([std for _ in range(args.multilayer_edge_attr.shape[1])])
-        # )(args.multilayer_edge_attr)
-        # node_data_dense = DataNorm(
-        #     std_init=lambda _: jnp.array([std for _ in range(args.dense_x.shape[1])])
-        # )(args.dense_x)
-        # edge_data_dense = DataNorm(
-        #     std_init=lambda _: jnp.array([std for _ in range(args.dense_edge_attr.shape[1])])
-        # )(args.dense_edge_attr)
 
         node_latents_sparse = ForwardNet(
             latent_dimension=latent_dimension,
@@ -358,8 +335,8 @@ class CustomGraphNetJax(nn.Module):
             layer_norm=False,
         )(updated_node_latents_dense, train=train)
 
-        batch_dummy = nn.BatchNorm(use_running_average=not train)(net_output_dense)
-        return net_output_dense + 0 * batch_dummy
+        # batch_dummy = nn.BatchNorm(use_running_average=not train)(net_output_dense)
+        return net_output_dense  # + 0 * batch_dummy
 
     def get_params(self, sample_args, init_rng):
         rngs_dict = {"params": init_rng}

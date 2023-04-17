@@ -1,24 +1,15 @@
-import copy
-import time
 from ctypes import ArgumentError
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
-import jax.numpy as jnp
-import numpy as np
 import torch
 from torch import nn
-from torch.nn import Parameter
 from torch_geometric.data.batch import Data
 from torch_geometric.nn import MessagePassing
 from torch_geometric.utils import softmax
 from torch_scatter import scatter_sum
 
-from conmech.helpers import cmh, lnh, pkh
 from conmech.helpers.cmh import DotDict
-from conmech.mesh.mesh import Mesh
-from conmech.scene.energy_functions import EnergyFunctions
-from conmech.solvers.calculator import Calculator
-from deep_conmech.data.dataset_statistics import DatasetStatistics, FeaturesStatistics
+from deep_conmech.data.dataset_statistics import FeaturesStatistics
 from deep_conmech.helpers import thh
 from deep_conmech.scene.scene_input import SceneInput
 from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
@@ -309,7 +300,7 @@ class ProcessorLayer(MessagePassing):
 class CustomGraphNet(nn.Module):
     def __init__(
         self,
-        statistics: Optional[DatasetStatistics],
+        statistics: Optional[dict[str, FeaturesStatistics]],
         td: TrainingData,
     ):
         super().__init__()

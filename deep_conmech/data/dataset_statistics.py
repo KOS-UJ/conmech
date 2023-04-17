@@ -1,68 +1,107 @@
 from dataclasses import dataclass
 from typing import List
 
+import numpy as np
 import pandas as pd
 import torch
 
 
-class FeaturesStatistics:
+class FeaturesStatisticsPandas:
     def __init__(self, label, data, columns=None):
         self.label = label
+
         self.pandas_data = pd.DataFrame(data.numpy())
 
         if columns is None:
             columns = [str(i) for i in range(data.shape[1])]
         self.pandas_data.columns = columns
 
-        self.data_mean = torch.mean(data, axis=0)
-        self.data_std = torch.std(data, axis=0)
-        self.data_max_abs = torch.max(torch.abs(data), axis=0).values
+        self.mean = torch.mean(data, axis=0)
+        self.std = torch.std(data, axis=0)
+        self.max_abs = torch.max(torch.abs(data), axis=0).values
 
     def describe(self):
         return self.pandas_data.describe()
 
-    # @property
-    # def columns_count(self):
-    #     return len(self.pandas_data.columns)
+
+def aggregate(old_value, old_size, new_data, batch_value):
+    batch_size = len(new_data)
+    new_size = old_size + batch_size
+    if old_size == 0:
+        assert old_value is None
+        return batch_value
+
+    new_proportion = np.float64(batch_size) / np.float64(new_size)
+
+    # https://gist.github.com/davidbau/00a9b6763a260be8274f6ba22df9a145
+    # Chen-style update
+    delta = batch_value.sub_(old_value).mul_(new_proportion)
+    new_value = old_value + delta
+
+    # comp = (1 - (new_value / old_value).abs()).abs().max()
+    # if comp > 0.7:
+    #     a = 0
+    # print(comp)
+    return new_value
 
 
-@dataclass
-class DatasetStatistics:
-    data: List[FeaturesStatistics]
+def get_mean(old_mean, old_size, new_data):
+    batch_mean = new_data.mean(axis=0, dtype=torch.float64)
+    return aggregate(
+        old_value=old_mean, old_size=old_size, new_data=new_data, batch_value=batch_mean
+    )
 
-    def normalize(self, layer_list):
-        def test_and_set(value, id, label):
-            assert self.data[id].label == label
-            if value.device != self.data[id].data_std.device:
-                self.data[id].data_std = self.data[id].data_std.to(value.device)
-            if value.device != self.data[id].data_max_abs.device:
-                self.data[id].data_max_abs = self.data[id].data_max_abs.to(value.device)
-            return torch.nan_to_num(value / self.data[id].data_max_abs)  # self.data[id].data_std)
 
-        layer_list[1].x = test_and_set(layer_list[1].x, 0, "sparse_nodes")
-        layer_list[1].edge_attr = test_and_set(layer_list[1].edge_attr, 1, "sparse_edges")
-        layer_list[1].edge_attr_to_down = test_and_set(
-            layer_list[1].edge_attr_to_down, 2, "multilayer_edges"
+def get_variance(old_variance, old_size, new_data, true_mean=None):
+    if true_mean is None:
+        batch_mean = new_data.mean(axis=0, dtype=torch.float64)
+        batch_variance = ((new_data - batch_mean) ** 2).sum(axis=0, dtype=torch.float64) / (
+            len(new_data) - 1
+        )  #  unbiased estimator
+    else:
+        batch_variance = ((new_data - true_mean) ** 2).mean(axis=0, dtype=torch.float64)
+    return aggregate(
+        old_value=old_variance,
+        old_size=old_size,
+        new_data=new_data,
+        batch_value=batch_variance,
+    )
+
+
+def get_max_abs(old_max, new_data):
+    new_max = new_data.abs().max(axis=0).values
+    if old_max is None:
+        return new_max
+    return torch.max(new_max, old_max)
+
+
+class FeaturesStatistics:
+    def __init__(self):
+        self.mean = None
+        self.var = None
+        self.std = None
+        self.max_abs = None
+        self.size = 0
+        self._mean_ready = False
+
+    def set_mean_and_max_abs(self, new_data):
+        self.max_abs = get_max_abs(old_max=self.max_abs, new_data=new_data)
+        self.mean = get_mean(old_mean=self.mean, old_size=self.size, new_data=new_data)
+        self.size += len(new_data)
+
+    def finalaze_mean(self):
+        self._mean_ready = True
+        self.size = 0
+
+    def set_variance(self, new_data):
+        assert self._mean_ready
+        self.var = get_variance(
+            old_variance=self.var,
+            old_size=self.size,
+            new_data=new_data,
+            true_mean=self.mean,
         )
-        layer_list[0].x = test_and_set(layer_list[0].x, 3, "dense_nodes")
-        layer_list[0].edge_attr = test_and_set(layer_list[0].edge_attr, 4, "dense_edges")
-        """
-        # Sparse nodes
-        # layer_list[1].x[:, :4] = 0.0 # new_displacement
-        layer_list[1].x = torch.clone(layer_list[1].x[:, :-4])  # forces
+        self.size += len(new_data)
 
-        # Dense nodes
-        layer_list[0].x = torch.clone(layer_list[0].x[:, :-4])  # forces
-
-        # Sparse edges
-        layer_list[0].edge_attr = torch.clone(layer_list[0].edge_attr[:, :-4])  # forces
-
-        # Dense edges
-        layer_list[1].edge_attr = torch.clone(layer_list[1].edge_attr[:, :-4])  # forces
-
-        # Multilayer edges
-        layer_list[1].edge_attr_to_down = torch.clone(
-            layer_list[1].edge_attr_to_down[:, :-4]
-        )  # forces
-        """
-        return layer_list
+    def finalize_variance(self):
+        self.std = self.var.sqrt()
