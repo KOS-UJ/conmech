@@ -209,7 +209,7 @@ def main(save: bool = False, simulate: bool = True):
             ) as output:
                 pickle.dump([f_min, f_max], output)
 
-    plots(setup, h, examples)
+    plots(setup, h, examples, config)
 
     for name in examples.keys():
         steps = examples[name]["output_steps"]
@@ -292,20 +292,23 @@ def main(save: bool = False, simulate: bool = True):
                     drawer.save_plot("pdf", name=f"{name}_{time_step}")
 
 
-def plots(setup, h, examples):
+def plots(setup, h, examples, config):
     _, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(9, 4))
     for ax in axes.ravel():
         ax.set_xlim(0.0, 4.0)
         ax.grid()
 
+    axes[0, 1].set_title("With relaxation")
+    axes[0, 0].set_title("Without relaxation")
     axes[0, 0].set_ylabel(r"$ f_{2 \, y} $")
-    axes[1, 0].set_ylabel(r"$ u_\nu $")
+    axes[1, 0].set_ylabel(r"$ u_\nu^{min} $")
     axes[1, 0].set_xlabel("t")
     axes[1, 1].set_xlabel("t")
     xticks = [step * setup.time_step for step in examples["sob_01"]["output_steps"]]
     plt.setp(axes, xticks=xticks)
 
     for col, name in enumerate(examples.keys()):
+        col = 1 - col
         with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
             pnt = np.asarray(pickle.load(output))
         t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
@@ -327,7 +330,16 @@ def plots(setup, h, examples):
         plot_outer_force(axes[0, col], frc, t, vertical_line=pnt_sig_change)
         plot_displacement_normal_direction(axes[1, col], pnt, t, vertical_line=pnt_sig_change)
 
-    plt.show()
+    format_ = "pdf"
+    path = Drawer.get_output_path(config, format_, name="force_penetration")
+    plt.savefig(
+        path,
+        transparent=False,
+        bbox_inches="tight",
+        format=format_,
+        pad_inches=0.1,
+        dpi=800,
+    )
 
 
 def plot_outer_force(axis, frc, t, vertical_line=None):

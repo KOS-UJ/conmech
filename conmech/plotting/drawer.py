@@ -41,9 +41,6 @@ class Drawer:
         self.xlabel = None
         self.ylabel = None
 
-    def get_directory(self):
-        return f"./output/{self.config.current_time} - DRAWING"
-
     def draw(
         self,
         fig_axes=None,
@@ -204,11 +201,16 @@ class Drawer:
                 axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
                             angles='xy', scale_units='xy', scale=self.normal_stress_scale)
 
-    def save_plot(self, format_, name=None):
-        directory = self.get_directory()
+    @staticmethod
+    def get_output_path(config, format_, name):
+        directory = f"./output/{config.current_time} - DRAWING"
         cmh.create_folders(directory)
-        name = name if name else cmh.get_timestamp(self.config)
+        name = name if name else cmh.get_timestamp(config)
         path = f"{directory}/{name}.{format_}"
+        return path
+
+    def save_plot(self, format_, name=None):
+        path = self.get_output_path(self.config, format_, name)
         plt.savefig(
             path,
             transparent=False,
