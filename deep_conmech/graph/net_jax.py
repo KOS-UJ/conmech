@@ -17,13 +17,15 @@ from deep_conmech.training_config import CLOSEST_COUNT, TrainingData
 
 
 class DataNorm(nn.Module):
+    mean_init: Callable
     std_init: Callable
 
     @nn.compact
     def __call__(self, x):
+        mean = self.variable("batch_stats", "mean", self.mean_init, x.shape[1])
         std = self.variable("batch_stats", "std", self.std_init, x.shape[1])
         # x_std.value += 0.1 # Could be modified here and will be saved
-        output = x / std.value
+        output = (x - mean.value) / std.value
         output = jnp.nan_to_num(output)
         return output
 
@@ -247,21 +249,19 @@ class CustomGraphNetJax(nn.Module):
             )
             return updated_node_latents_dense
 
-        node_data_sparse = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics["sparse_nodes"].std)
-        )(args.sparse_x)
-        edge_data_sparse = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics["sparse_edges"].std)
-        )(args.sparse_edge_attr)
-        edge_data_multilayer = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics["multilayer_edges"].std)
-        )(args.multilayer_edge_attr)
-        node_data_dense = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics["dense_nodes"].std)
-        )(args.dense_x)
-        edge_data_dense = DataNorm(
-            std_init=lambda _: jnp.array(self.statistics["dense_edges"].std)
-        )(args.dense_edge_attr)
+        def get_data_norm(label, data):
+            return DataNorm(
+                mean_init=lambda _: jnp.array(self.statistics[label].mean),
+                std_init=lambda _: jnp.array(self.statistics[label].std)
+            )(data)
+
+
+        node_data_sparse = get_data_norm("sparse_nodes", args.sparse_x)
+        edge_data_sparse = get_data_norm("sparse_edges", args.sparse_edge_attr)
+        edge_data_multilayer = get_data_norm("multilayer_edges", args.multilayer_edge_attr)
+        node_data_dense = get_data_norm("dense_nodes", args.dense_x)
+        edge_data_dense = get_data_norm("dense_edges", args.dense_edge_attr)
+
 
         node_latents_sparse = ForwardNet(
             latent_dimension=latent_dimension,
