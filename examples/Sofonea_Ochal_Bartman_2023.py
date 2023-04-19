@@ -30,7 +30,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
 
-from examples.p_slope_contact_law import make_slope_contact_law
+from examples.p_slope_contact_law import make_const_contact_law
 
 eps = 1e-18
 ox = 2.5
@@ -38,7 +38,7 @@ oy = 2.0
 r_big = 2.5
 r_small = 1.5
 r = (r_big + r_small) / 2
-fv = 0.1
+fv = 0.5
 TEST = 1
 
 
@@ -49,7 +49,7 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     mu_coef: ... = 714.29
     la_coef: ... = 2857.14
     time_step: ... = 1/128 * TEST**2
-    contact_law: ... = make_slope_contact_law(slope=27)
+    contact_law: ... = make_const_contact_law(slope=1)
 
     @staticmethod
     def relaxation(t: float) -> np.ndarray:
@@ -93,14 +93,7 @@ def main(save: bool = False, simulate: bool = True):
         if x[1] <= oy:
             return np.array([0., 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * t * np.sin(t)])
-        return np.array([0.0, 0.0])
-
-    def const_outer_forces(x, t=None):
-        if x[1] <= oy:
-            return np.array([0., 0])
-        if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, -0.5])
+            return np.array([0, fv * np.sin(t)])
         return np.array([0.0, 0.0])
 
     def const_relaxation(t=None):
@@ -117,38 +110,22 @@ def main(save: bool = False, simulate: bool = True):
              [[_mu, _mu], [0, 2 * _mu]], ]
         )
 
-    def linear_relaxation(t=None):
-        if t < 1.5:
-            _mu = 1000. * t
-        elif t < 3.0:
-            _mu = 1000. * (3.0 - t)
-        else:
-            _mu = 0.
-        return np.array(
-            [[[2 * _mu, 0], [_mu, _mu]],
-             [[_mu, _mu], [0, 2 * _mu]], ]
-        )
-
-    output_steps = (0, 192, 352, 416, 512)
+    steps_per_unit = setup.time_step ** -1
+    output_steps = (0, 1.5, 2.75, 4.0, 5.0, 6.0)
+    output_steps = tuple(int(steps * steps_per_unit) for steps in output_steps)
     examples = {
         "sob_01": {
-            "n_steps": 512,
+            "n_steps": output_steps[-1],
             "output_steps": output_steps,
             "outer_forces": sin_outer_forces,
             "relaxation": const_relaxation,
         },
         "sob_02": {
-            "n_steps": 512,
+            "n_steps": output_steps[-1],
             "output_steps": output_steps,
             "outer_forces": sin_outer_forces,
             "relaxation": zero_relaxation,
         },
-        # "sob_02": {
-        #     "n_steps": 512,
-        #     "output_steps": range(0, 512, 16),
-        #     "outer_forces": const_outer_forces,
-        #     "relaxation": linear_relaxation,
-        # }
     }
 
     try:
@@ -181,6 +158,7 @@ def main(save: bool = False, simulate: bool = True):
                 verbose=False,
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
+                tol=1e-12
             )
             f_max = -np.inf
             f_min = np.inf
@@ -240,7 +218,7 @@ def main(save: bool = False, simulate: bool = True):
                     # to have nonzero force interface on Neumann boundary.
                     state.time = 4
                 else:
-                    drawer.outer_forces_scale = 0.2
+                    drawer.outer_forces_scale = 0.5
                     fig, axes = plt.subplots(1, 2)
                     drawer.x_min = 3.4
                     drawer.x_max = 5.6
@@ -295,7 +273,7 @@ def main(save: bool = False, simulate: bool = True):
 def plots(setup, h, examples, config):
     _, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(9, 4))
     for ax in axes.ravel():
-        ax.set_xlim(0.0, 4.0)
+        ax.set_xlim(0.0, 6.0)
         ax.grid()
 
     axes[0, 1].set_title("With relaxation")
@@ -343,7 +321,7 @@ def plots(setup, h, examples, config):
 
 
 def plot_outer_force(axis, frc, t, vertical_line=None):
-    axis.set_ylim(-0.4, 0.4)
+    axis.set_ylim(-0.6, 0.6)
     axis.plot(t, frc, color="black")
     axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
 
@@ -352,7 +330,7 @@ def plot_outer_force(axis, frc, t, vertical_line=None):
 
 
 def plot_displacement_normal_direction(axis, u_nu, t, vertical_line=None):
-    axis.set_ylim(-0.1, 0.25)
+    axis.set_ylim(-0.5, 0.6 )
     axis.plot(u_nu[:, 0], u_nu[:, 1], color="black")
     axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
 
