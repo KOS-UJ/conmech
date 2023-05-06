@@ -43,9 +43,7 @@ def get_solve_function(simulation_config):
         if training_config.td.use_dataset_statistics:
             train_dataset = get_train_dataset(training_config.td.dataset, config=training_config)
             train_dataset.load_indices()
-        return partial(
-            model_jax.solve, apply_net=model_jax.get_apply_net(state)
-        )
+        return partial(model_jax.solve, apply_net=model_jax.get_apply_net(state))
 
     raise ArgumentError
 
@@ -100,6 +98,17 @@ def create_scene(scenario):
             raise ArgumentError
 
         scene.normalize_and_set_obstacles(scenario.linear_obstacles, scenario.mesh_obstacles)
+
+        scene.err_net_disp = 0
+        scene.err_net_red_acc = 0
+        scene.err_net_out = 0
+        scene.err_net_acc = 0
+
+        scene.err_skinning_disp = 0
+        scene.err_skinning_red_acc = 0
+        scene.err_skinning_red2_acc = 0
+        scene.err_skinning_acc = 0
+
         return scene
 
     scene = cmh.profile(

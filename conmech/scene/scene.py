@@ -329,6 +329,10 @@ class Scene(BodyForces):
     @property
     @mesh_normalization_decorator
     def norm_by_reduced_lifted_new_displacement(self):
+        return self.get_norm_by_reduced_lifted_new_displacement(self.exact_acceleration)
+    
+    @mesh_normalization_decorator
+    def get_norm_by_reduced_lifted_new_displacement(self, exact_acceleration):
         def _normalize_current_reduced(moved_nodes):
             if hasattr(self, "reduced"):
                 base_scene = self.reduced
@@ -339,7 +343,7 @@ class Scene(BodyForces):
                 base_scene.get_rotation(base_scene.displacement_old),
             )
 
-        displacement_new = self.to_displacement(self.exact_acceleration)
+        displacement_new = self.to_displacement(exact_acceleration)
         moved_nodes_new = self.initial_nodes + displacement_new
         new_normalized_nodes = _normalize_current_reduced(moved_nodes_new)
         return new_normalized_nodes - self.normalized_initial_nodes

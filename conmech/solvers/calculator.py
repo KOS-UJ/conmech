@@ -125,9 +125,9 @@ class Calculator:
     ):
         _ = initial_a, initial_t
         energy_functions = (
-            energy_functions[0] if hasattr(energy_functions, "__len__") else energy_functions
+            energy_functions[1] if hasattr(energy_functions, "__len__") else energy_functions
         )
-        with timer["jax_calculator"]:
+        with timer["dense_solver"]:
             scene.reduced.exact_acceleration, _ = Calculator.solve(
                 scene=scene.reduced,
                 energy_functions=energy_functions,
@@ -137,25 +137,28 @@ class Calculator:
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         with timer["lower_data"]:
-            acceleration_from_displacement = scene.lower_acceleration_from_position(
+            acceleration_from_displacement = np.array(scene.lower_acceleration_from_position(
                 scene.reduced.lifted_acceleration
-            )
-            return np.array(acceleration_from_displacement), None
+            ))
+
+        return acceleration_from_displacement, None
 
     @staticmethod
     def solve_skinning_backwards(
         scene: Scene,
         energy_functions: EnergyFunctions,
         initial_a,
-        initial_t,
+        initial_t=None,
         timer=Timer(),
     ):
         _ = initial_a, initial_t
-
-        with timer["jax_calculator"]:
+        energy_functions = (
+            energy_functions[0] if hasattr(energy_functions, "__len__") else energy_functions
+        )
+        with timer["reduced_solver"]:
             exact_acceleration, _ = Calculator.solve(
                 scene=scene,
-                energy_functions=energy_functions[1],
+                energy_functions=energy_functions,
                 initial_a=scene.exact_acceleration,
                 timer=timer,
             )

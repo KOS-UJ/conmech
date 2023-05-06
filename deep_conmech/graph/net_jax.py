@@ -252,16 +252,14 @@ class CustomGraphNetJax(nn.Module):
         def get_data_norm(label, data):
             return DataNorm(
                 mean_init=lambda _: jnp.array(self.statistics[label].mean),
-                std_init=lambda _: jnp.array(self.statistics[label].std)
+                std_init=lambda _: jnp.array(self.statistics[label].std),
             )(data)
-
 
         node_data_sparse = get_data_norm("sparse_nodes", args.sparse_x)
         edge_data_sparse = get_data_norm("sparse_edges", args.sparse_edge_attr)
         edge_data_multilayer = get_data_norm("multilayer_edges", args.multilayer_edge_attr)
         node_data_dense = get_data_norm("dense_nodes", args.dense_x)
         edge_data_dense = get_data_norm("dense_edges", args.dense_edge_attr)
-
 
         node_latents_sparse = ForwardNet(
             latent_dimension=latent_dimension,
@@ -335,8 +333,8 @@ class CustomGraphNetJax(nn.Module):
             layer_norm=False,
         )(updated_node_latents_dense, train=train)
 
-        # batch_dummy = nn.BatchNorm(use_running_average=not train)(net_output_dense)
-        return net_output_dense  # + 0 * batch_dummy
+        # net_output_dense = get_data_norm("target_normalized_new_displacement", scaled_net_output_dense)
+        return net_output_dense
 
     def get_params(self, sample_args, init_rng):
         rngs_dict = {"params": init_rng}
