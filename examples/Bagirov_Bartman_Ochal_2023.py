@@ -22,11 +22,11 @@ class JureczkaOchal2019(ContactLaw):
         if u_nu >= 0:
             return 0.0
         if u_nu > -0.5e-3:
-            return 30e9 * u_nu ** 2
+            return 30e3 * u_nu ** 2
         if u_nu > -1e-3:
-            return 10e9 * (u_nu ** 2 + u_nu)
+            return 10e3 * (u_nu ** 2 + u_nu)
         if u_nu > -2e-3:
-            return 5e9 * (u_nu ** 2 + u_nu)
+            return 5e3 * (u_nu ** 2 + u_nu)
         return 0.0
 
     @staticmethod
@@ -57,8 +57,8 @@ mesh_density = 4
 class StaticSetup(Static):
     grid_height: ... = 0.1
     elements_number: ... = (mesh_density, 8 * mesh_density)
-    mu_coef: ... = 5.3e10
-    la_coef: ... = 7.95e10
+    mu_coef: ... = 5.3e4
+    la_coef: ... = 7.95e4
     contact_law: ... = JureczkaOchal2019
 
     @staticmethod
@@ -67,15 +67,15 @@ class StaticSetup(Static):
 
     @staticmethod
     def outer_forces(x, t=None):
-        return np.array([0, 5e6])
+        return np.array([0, 5])
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
-        if u_nu < 0:
-            return 0
-        if u_nu < 0.1:
-            return 8 * u_nu
-        return 0.8
+        # if u_nu < 0:
+        #     return 0
+        # if u_nu < 0.1:
+        #     return 8 * u_nu
+        return 0.0
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
@@ -85,7 +85,7 @@ class StaticSetup(Static):
 def main(show: bool = True, save: bool = False):
     setup = StaticSetup(mesh_type="cross")
 
-    for force in np.arange(20e6, 30e6 + 1, 2e6):
+    for force in np.arange(20, 30 + 1, 2):
         def outer_forces(x, t=None):
             return np.array([0, force])
 
@@ -97,7 +97,7 @@ def main(show: bool = True, save: bool = False):
             verbose=True,
             fixed_point_abs_tol=0.001,
             initial_displacement=setup.initial_displacement,
-            method="BFGS"
+            method="Powell"
         )
         config = Config()
         drawer = Drawer(state=state, config=config)
