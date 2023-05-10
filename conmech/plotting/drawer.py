@@ -76,7 +76,7 @@ class Drawer:
         # plt.axis("on")
         # axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
         #
-        # axes.set_aspect("equal", adjustable="box")
+        axes.set_aspect("equal", adjustable="box")
         if title is not None:
             plt.title(title)
 
