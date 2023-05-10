@@ -28,7 +28,6 @@ def make_contact_law(limit_value, limit):
         @staticmethod
         def potential_tangential_direction(u_tau: np.ndarray) -> float:
             return -0.3 * np.exp(-np.sum(u_tau * u_tau) ** 0.5) + 0.7 * np.sum(u_tau * u_tau) ** 0.5
-            # return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)\
 
         @staticmethod
         def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
@@ -146,6 +145,9 @@ def main(show: bool = True, save: bool = False):
                     f"./output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}",
                     "wb+",
                 ) as output:
+                    state.body.outer_forces = None
+                    state.body.inner_forces = None
+                    state.body.body_prop.relaxation = None
                     pickle.dump(state, output)
 
     for name in names:

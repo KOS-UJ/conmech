@@ -38,18 +38,20 @@ oy = 2.0
 r_big = 2.5
 r_small = 1.5
 r = (r_big + r_small) / 2
-fv = 0.5
+fv = 5
 TEST = 1
+E = 10000
+kappa = 0.4
 
 
 @dataclass
 class QuasistaticSetup(RelaxationQuasistaticProblem):
     grid_height: ... = 1.0
     elements_number: ... = (20 / TEST, 20 / TEST)
-    mu_coef: ... = 714.29
-    la_coef: ... = 2857.14
+    mu_coef: ... = E / (1 + kappa)
+    la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
     time_step: ... = 1/128 * TEST**2
-    contact_law: ... = make_const_contact_law(slope=1)
+    contact_law: ... = make_const_contact_law(slope=10)
 
     @staticmethod
     def relaxation(t: float) -> np.ndarray:
@@ -97,7 +99,7 @@ def main(save: bool = False, simulate: bool = True):
         return np.array([0.0, 0.0])
 
     def const_relaxation(t=None):
-        _mu = 1000.
+        _mu = 10000.
         return np.array(
             [[[2 * _mu, 0], [_mu, _mu]],
              [[_mu, _mu], [0, 2 * _mu]], ]
@@ -158,7 +160,9 @@ def main(save: bool = False, simulate: bool = True):
                 verbose=False,
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
-                tol=1e-12
+                tol=1e-9,
+                fixed_point_abs_tol=1e-9,
+                method="qsm"
             )
             f_max = -np.inf
             f_min = np.inf
@@ -205,7 +209,7 @@ def main(save: bool = False, simulate: bool = True):
                 drawer.node_size = 0
                 drawer.original_mesh_color = None
                 drawer.deformed_mesh_color = "black"
-                drawer.normal_stress_scale = 1
+                drawer.normal_stress_scale = 10
                 drawer.field_name = None
                 drawer.xlabel = "x"
                 drawer.ylabel = "y"
@@ -218,7 +222,7 @@ def main(save: bool = False, simulate: bool = True):
                     # to have nonzero force interface on Neumann boundary.
                     state.time = 4
                 else:
-                    drawer.outer_forces_scale = 0.5
+                    drawer.outer_forces_scale = fv
                     fig, axes = plt.subplots(1, 2)
                     drawer.x_min = 3.4
                     drawer.x_max = 5.6
@@ -321,7 +325,7 @@ def plots(setup, h, examples, config):
 
 
 def plot_outer_force(axis, frc, t, vertical_line=None):
-    axis.set_ylim(-0.6, 0.6)
+    axis.set_ylim(-5.5, 5.5)
     axis.plot(t, frc, color="black")
     axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
 
@@ -330,7 +334,7 @@ def plot_outer_force(axis, frc, t, vertical_line=None):
 
 
 def plot_displacement_normal_direction(axis, u_nu, t, vertical_line=None):
-    axis.set_ylim(-0.5, 0.6 )
+    axis.set_ylim(-0.5, 0.8)
     axis.plot(u_nu[:, 0], u_nu[:, 1], color="black")
     axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
 
@@ -416,4 +420,4 @@ def zoom_outside(
 
 
 if __name__ == "__main__":
-    main(simulate=False, save=True)
+    main(simulate=True, save=True)
