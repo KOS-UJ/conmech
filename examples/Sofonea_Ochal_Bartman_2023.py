@@ -167,6 +167,12 @@ def main(config: Config):
             setup.relaxation = examples[name]["relaxation"]
 
             runner = QuasistaticRelaxation(setup, solving_method="schur")
+            bid = runner.body.mesh.contact_boundary[:, 0]
+            eid = runner.body.mesh.contact_boundary[:, 1]
+            bx = runner.body.mesh.initial_nodes[bid][:, 0]
+            ex = runner.body.mesh.initial_nodes[eid][:, 0]
+            length = np.max(ex - bx)
+            print(length)
 
             states = runner.solve(
                 n_steps=examples[name]["n_steps"],
