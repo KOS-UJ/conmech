@@ -71,8 +71,8 @@ class Drawer:
         # plt.axis("on")
         # axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
         #
-        # axes.set_aspect("equal", adjustable="box")
-        # plt.title(title)
+        axes.set_aspect("equal", adjustable="box")
+        plt.title(title)
 
         if show:
             fig.tight_layout()
