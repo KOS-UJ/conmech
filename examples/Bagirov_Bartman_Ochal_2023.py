@@ -23,15 +23,16 @@ class MMLV99(ContactLaw):
         # if u_nu > -2e-3:
         #     return (5 / 200) * (u_nu ** 2 + u_nu + 2)
         # return (40 / 200)
-        if u_nu >= 0:
+        u_nu = -u_nu
+        if u_nu <= 0:
             return 0.0
-        if u_nu > -0.5e-6:
-            return (30e6) * u_nu ** 2
-        if u_nu > -1e-3:
-            return (10e6) * (u_nu ** 2 + u_nu) - 4995
-        if u_nu > -2e-3:
-            return (5e6) * (u_nu ** 2 + u_nu) + 10
-        return 10030
+        if u_nu < 0.5 * mm:
+            return (30e6 * kN * surface) * u_nu ** 2
+        if u_nu < 1 * mm:
+            return (10e6 * kN * surface) * (u_nu ** 2 + u_nu) - 4995 * surface * 1000
+        if u_nu < 2 * mm:
+            return (5e6 * kN * surface) * (u_nu ** 2 + u_nu) + 10 * surface * 1000
+        return 10030 * surface * 1000
 
     @staticmethod
     def potential_tangential_direction(u_tau: np.ndarray) -> float:
@@ -52,14 +53,19 @@ class MMLV99(ContactLaw):
 
 
 mesh_density = 4
+kN = 1000
+mm = 0.001
+E = 1.378e8 * kN
+kappa = 0.3
+surface = 5 * mm * 80 * mm * 8
 
 
 @dataclass()
 class StaticSetup(Static):
-    grid_height: ... = 0.01
+    grid_height: ... = 10 * mm
     elements_number: ... = (mesh_density, 8 * mesh_density)
-    mu_coef: ... = (1.378e8) / (2 * (1 + 0.3))
-    la_coef: ... = ((1.378e8) * 0.3) / ((1 + 0.3) * (1 - 2 * 0.3))
+    mu_coef: ... = (E) / (2 * (1 + kappa))
+    la_coef: ... = ((E) * kappa) / ((1 + kappa) * (1 - 2 * kappa))
     contact_law: ... = MMLV99
 
     @staticmethod
@@ -83,12 +89,11 @@ def main(save: bool = False):
     setup = StaticSetup(mesh_type="cross")
 
     for method in ("Powell", "BFGS", "qsm")[2:]:
-        for force in np.arange(80000, 200000 + 1, 10000):
+        for force in np.arange(20e3 * kN, 30e3 * kN + 1, 1e3 * kN):
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
                     return np.array([0, force])
                 return np.array([0, 0])
-
 
             setup.outer_forces = outer_forces
 
@@ -107,4 +112,11 @@ def main(save: bool = False):
 
 
 if __name__ == "__main__":
+    from matplotlib import pyplot as plt
+    X = np.linspace(0, -3 * mm, 1000)
+    Y = np.empty(1000)
+    for i in range(1000):
+        Y[i] = MMLV99.potential_normal_direction(X[i])
+    plt.plot(X, Y)
+    plt.show()
     main(save=True)
