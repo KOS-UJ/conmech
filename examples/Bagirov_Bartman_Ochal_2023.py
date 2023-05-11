@@ -9,30 +9,45 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, Static
 from conmech.simulations.problem_solver import Static as StaticProblemSolver
+mesh_density = 4
+kN = 1000
+mm = 0.001
+E = 1.378e8 * kN
+kappa = 0.3
+surface = 5 * mm * 80 * mm
+k0 = (30e6 * kN * surface)
+k10 = (10e6 * kN * surface)
+k11 = (10e3 * kN * surface)
+k20 = (5e6 * kN * surface)
+k21 = (5e3 * kN * surface)
+
+
+def normal_direction(u_nu: float) -> float:
+    u_nu = -u_nu
+    if u_nu <= 0:
+        return 0.0
+    if u_nu < 0.5 * mm:
+        return k0 * u_nu * 2
+    if u_nu < 1 * mm:
+        return k10 * (u_nu * 2) + k11
+    if u_nu < 2 * mm:
+        return k20 * (u_nu * 2) + k21
+    return 0
 
 
 class MMLV99(ContactLaw):
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
-        # if u_nu >= 0:
-        #     return 0.0
-        # if u_nu > -0.5e-3:
-        #     return (30 / 200) * u_nu ** 2
-        # if u_nu > -1e-3:
-        #     return (10 / 200) * (u_nu ** 2 + u_nu)
-        # if u_nu > -2e-3:
-        #     return (5 / 200) * (u_nu ** 2 + u_nu + 2)
-        # return (40 / 200)
         u_nu = -u_nu
         if u_nu <= 0:
             return 0.0
         if u_nu < 0.5 * mm:
-            return (30e6 * kN * surface) * u_nu ** 2
+            return k0 * u_nu ** 2
         if u_nu < 1 * mm:
-            return (10e6 * kN * surface) * (u_nu ** 2 + u_nu) - 4995 * surface * 1000
+            return k10 * u_nu ** 2 + k11 * u_nu
         if u_nu < 2 * mm:
-            return (5e6 * kN * surface) * (u_nu ** 2 + u_nu) + 10 * surface * 1000
-        return 10030 * surface * 1000
+            return k20 * u_nu ** 2 + k21 * u_nu + 4.0
+        return 16
 
     @staticmethod
     def potential_tangential_direction(u_tau: np.ndarray) -> float:
@@ -52,20 +67,12 @@ class MMLV99(ContactLaw):
         return 0
 
 
-mesh_density = 4
-kN = 1000
-mm = 0.001
-E = 1.378e8 * kN
-kappa = 0.3
-surface = 5 * mm * 80 * mm * 8
-
-
 @dataclass()
 class StaticSetup(Static):
     grid_height: ... = 10 * mm
     elements_number: ... = (mesh_density, 8 * mesh_density)
-    mu_coef: ... = (E) / (2 * (1 + kappa))
-    la_coef: ... = ((E) * kappa) / ((1 + kappa) * (1 - 2 * kappa))
+    mu_coef: ... = (E * surface) / (2 * (1 + kappa))
+    la_coef: ... = ((E * surface) * kappa) / ((1 + kappa) * (1 - 2 * kappa))
     contact_law: ... = MMLV99
 
     @staticmethod
@@ -89,7 +96,7 @@ def main(save: bool = False):
     setup = StaticSetup(mesh_type="cross")
 
     for method in ("Powell", "BFGS", "qsm")[2:]:
-        for force in np.arange(20e3 * kN, 30e3 * kN + 1, 1e3 * kN):
+        for force in np.arange(25e3 * kN, 26e3 * kN + 1, 1e3 * kN) * surface:
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
                     return np.array([0, force])
