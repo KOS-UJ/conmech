@@ -46,7 +46,7 @@ class MMLV99(ContactLaw):
         if u_nu < 1 * mm:
             return k10 * u_nu ** 2 + k11 * u_nu
         if u_nu < 2 * mm:
-            return k20 * u_nu ** 2 + k21 * u_nu + 4.0
+            return k20 * u_nu ** 2 + k21 * u_nu + 4
         return 16
 
     @staticmethod
@@ -95,7 +95,7 @@ class StaticSetup(Static):
 def main(save: bool = False):
     setup = StaticSetup(mesh_type="cross")
 
-    for method in ("Powell", "BFGS", "qsm")[2:]:
+    for method in ("Powell", "BFGS", "CG", "qsm"):
         for force in np.arange(25e3 * kN, 26e3 * kN + 1, 1e3 * kN) * surface:
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
