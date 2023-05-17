@@ -19,7 +19,7 @@ def obstacle_heat(
 
 
 def integrate_boundary_temperature(
-    obstacle_normals,
+    boundary_obstacle_normals,
     boundary_velocity_new,
     initial_penetration,
     nodes_volume,
@@ -29,11 +29,11 @@ def integrate_boundary_temperature(
     boundary_displacement_step = time_step * boundary_velocity_new
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=obstacle_normals,
+        normals=boundary_obstacle_normals,
         initial_penetration=initial_penetration,
     )
 
-    v_tangential = nph.get_tangential(boundary_velocity_new, obstacle_normals)  # nodes_normals
+    v_tangential = nph.get_tangential(boundary_velocity_new, boundary_obstacle_normals)  # nodes_normals
     heat = obstacle_heat(penetration_norm, v_tangential, heat_coeff)
     result = nodes_volume * heat
     return result
@@ -126,7 +126,7 @@ class SceneTemperature(Scene):
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         return jax.jit(integrate_boundary_temperature)(
-            obstacle_normals=self.boundary_obstacle_normals,
+            boundary_obstacle_normals=self.boundary_obstacle_normals, # TODO: Check this (*-1 ?)
             boundary_velocity_new=boundary_velocity_new,
             initial_penetration=self.penetration_scalars,
             nodes_volume=surface_per_boundary_node,

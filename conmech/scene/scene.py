@@ -68,6 +68,8 @@ class Scene(BodyForces):
 
         self.boundary_obstacle_normals = np.zeros_like(self.boundary_nodes)
         self.penetration_scalars = np.zeros((self.boundary_nodes_count, 1))
+        self.boundary_obstacle_normals_self = np.zeros_like(self.boundary_nodes)
+        self.penetration_scalars_self = np.zeros((self.boundary_nodes_count, 1))
         self.self_collisions_mask = np.zeros(self.boundary_nodes_count, dtype=bool)
 
         self.clear_external_factors()
@@ -76,7 +78,7 @@ class Scene(BodyForces):
         super().prepare(inner_forces)
         if not self.has_no_obstacles:
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
-                self.boundary_nodes, self.obstacle_nodes
+                boundary_nodes=self.boundary_nodes, obstacle_nodes=self.obstacle_nodes #, boundary_normals=self.boundary_normals, boundary_obstacle_normals= self.get_obstacle_normals()
             )
             self.set_boundary_obstacle_normals_and_penetration_scalars()
 
@@ -109,7 +111,9 @@ class Scene(BodyForces):
             boundary_velocity_old=args.boundary_velocity_old,
             boundary_normals=args.boundary_normals,
             boundary_obstacle_normals=args.boundary_obstacle_normals,
+            boundary_obstacle_normals_self=args.boundary_obstacle_normals_self,
             initial_penetration=args.initial_penetration,
+            initial_penetration_self=args.initial_penetration_self,
             surface_per_boundary_node=args.surface_per_boundary_node,
             body_prop=args.body_prop,
             obstacle_prop=args.obstacle_prop,
@@ -194,7 +198,10 @@ class Scene(BodyForces):
             self.apply_self_colisions()
 
     def apply_self_colisions(self):
-        scalar = 10
+        self.boundary_obstacle_normals_self = np.zeros_like(self.boundary_nodes)
+        self.penetration_scalars_self = np.zeros((self.boundary_nodes_count, 1))
+
+        scalar = 1 #8 #5 #2 10
 
         closest_indices, _, closest_weights = interpolate_nodes(
             base_nodes=self.moved_nodes,
@@ -207,7 +214,7 @@ class Scene(BodyForces):
             closest_boundary_indices = self.get_inside_data(
                 closest_indices, closest_weights, self.self_collisions_mask
             )
-            self.penetration_scalars[self.self_collisions_mask] = (
+            self.penetration_scalars_self[self.self_collisions_mask] = (
                 scalar
                 * (-1)
                 * nph.elementwise_dot(
@@ -218,12 +225,17 @@ class Scene(BodyForces):
                     self.boundary_normals[closest_boundary_indices],
                 ).reshape(-1, 1)
             )
-            self.boundary_obstacle_normals[self.self_collisions_mask] = self.boundary_normals[
+            # print(self.penetration_scalars_self.min(), self.penetration_scalars_self.max())
+
+            self.boundary_obstacle_normals_self[self.self_collisions_mask] = self.boundary_normals[
                 closest_boundary_indices
             ]
 
     def get_norm_boundary_obstacle_normals(self):
         return self.normalize_rotate(self.boundary_obstacle_normals)
+    
+    def get_norm_boundary_obstacle_normals_self(self):
+        return self.normalize_rotate(self.boundary_obstacle_normals_self)
 
     def get_inside_data(self, closest_indices, closest_weights, self_collisions_mask):
         initial_inside_nodes = nph.elementwise_dot(
@@ -437,7 +449,9 @@ class Scene(BodyForces):
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=self.get_normalized_boundary_normals_jax(),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
+            boundary_obstacle_normals_self=jnp.asarray(self.get_norm_boundary_obstacle_normals_self()),
             initial_penetration=jnp.asarray(self.penetration_scalars),
+            initial_penetration_self=jnp.asarray(self.penetration_scalars_self),
             surface_per_boundary_node=self.get_surface_per_boundary_node_jax(),
             body_prop=self.body_prop.get_tuple(),
             obstacle_prop=self.obstacle_prop,

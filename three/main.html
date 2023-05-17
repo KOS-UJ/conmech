@@ -214,6 +214,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 return mesh.nodes_reduced_list[nodesMode];
             }
 
+            getHighlightedNodes(mesh) {
+                return mesh.highlighted_nodes_list[nodesMode];
+            }
+
             constructor(initialMesh) {
                 // physics
                 var nodes = this.getNodes(initialMesh);
@@ -265,7 +269,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 var nodes = this.getNodes(mesh);
                 var nodes_reduced = this.getNodesReduced(mesh);
 
-                // this.pos = new Float32Array(nodes);
                 for (var i = 0; i < this.denseNodes.length; i++)
                     this.denseNodes[i] = nodes[i];
                 // this.surfaceMesh.geometry.computeVertexNormals();
@@ -318,7 +321,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             ground.receiveShadow = true;
             ground.name = "ground";
             scene.add(ground);
+
+            if (mesh.mesh_obstacles_nodes != undefined) {
+                for (var i = 0; i < mesh.mesh_obstacles_nodes.length; i += 1) {
+                    var obstacle_nodes = new Float32Array(mesh.mesh_obstacles_nodes[i]);
+                    var obstacle_boundary_surfaces = mesh.mesh_obstacles_boundary_surfaces[i];
+
+                    var geometry = new THREE.BufferGeometry();
+                    geometry.setAttribute('position', new THREE.BufferAttribute(obstacle_nodes, 3));
+                    geometry.setIndex(obstacle_boundary_surfaces);
+                    var material = new THREE.MeshPhongMaterial({ color: 0xd9dbdc, side: THREE.DoubleSide });
+                    material.flatShading = true;
+                    var obstacleMesh = new THREE.Mesh(geometry, material);
+                    obstacleMesh.name = 'obstacleMesh${i}';
+                    // this.surfaceMesh.castShadow = true;
+                    obstacleMesh.userData = this;
+                    obstacleMesh.layers.enable(1);
+                    obstacleMesh.geometry.computeVertexNormals();
+                    obstacleMesh.visible = showDense;
+                    scene.add(obstacleMesh);
+                }
+            }
         }
+
 
         // ------------------------------------------
 
@@ -437,7 +462,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             addObstacle(scene, mesh);
 
             if (highlightNodes)
-                rehighlightNodes(mesh.highlighted_nodes);
+                rehighlightNodes(body.getHighlightedNodes(mesh));
             else
                 clearHighlightNodes();
         }

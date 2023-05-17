@@ -82,7 +82,6 @@ def _get_boundary_normals_jax(
 
 def _get_element_volume_part_jax(moved_nodes, boundary_surfaces):
     print("get_element_volume_part_jax")
-
     moved_boundary_nodes = moved_nodes[boundary_surfaces]
     dimension = moved_nodes.shape[1]
     nodes_count = boundary_surfaces.shape[1]

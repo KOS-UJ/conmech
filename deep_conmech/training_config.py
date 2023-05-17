@@ -44,7 +44,7 @@ class TrainingData:
 
     raport_at_examples: int = 256 * 64
     save_at_epochs: int = 1
-    validate_at_epochs: int = 3
+    validate_at_epochs: int = 1 # 3
     validate_scenarios_at_epochs: Optional[int] = None  # 30  # None 3
 
     batch_size: int = 1  # 4  # 8  # 1  # 16  # 32  # 16  # 32 # 256

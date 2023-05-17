@@ -716,6 +716,23 @@ def bunny_obstacles(
     scale_forces=1.0,
 ):
     _, _, _ = scale, tag, arg
+    obstacle_meshes = []
+    for i in [1]: #range(1,5):
+        obstacle_meshes.append(MeshProperties(
+            dimension=3,
+            mesh_type="slide_left",
+            scale=[1],
+            mesh_density=[16],
+            initial_position=[0, 0, -i],
+        ))
+        obstacle_meshes.append(MeshProperties(
+            dimension=3,
+            mesh_type="slide_right",
+            scale=[1],
+            mesh_density=[16],
+            initial_position=[0, -2, -(i+1)],
+        ))
+
     return Scenario(
         name="bunny_obstacles",
         mesh_prop=MeshProperties(
@@ -729,37 +746,8 @@ def bunny_obstacles(
         forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(
             geometry=None,
-            properties=ObstacleProperties(hardness=100.0, friction=0.0),
-            all_mesh=[
-                MeshProperties(
-                    dimension=3,
-                    mesh_type="slide_left",
-                    scale=[1],
-                    mesh_density=[16],
-                    initial_position=[0, 0, -0.2],
-                ),
-                MeshProperties(
-                    dimension=3,
-                    mesh_type="slide_right",
-                    scale=[1],
-                    mesh_density=[16],
-                    initial_position=[0, -1, -1.0],
-                ),
-                MeshProperties(
-                    dimension=3,
-                    mesh_type="slide_left",
-                    scale=[1],
-                    mesh_density=[16],
-                    initial_position=[0, 0, -1.8],
-                ),
-                MeshProperties(
-                    dimension=3,
-                    mesh_type="slide_right",
-                    scale=[1],
-                    mesh_density=[16],
-                    initial_position=[0, -1, -2.6],
-                ),
-            ],
+            properties=ObstacleProperties(hardness=1000.0, friction=3.0),
+            all_mesh=obstacle_meshes
         ),
         simulation_config=simulation_config,
     )
@@ -807,7 +795,7 @@ def all_train(td, sc):
     args = []
 
     scale_forces_list = [1.5, 2.0, 2.5, 3.0]
-    obstacle_distance_scale = 0.7
+    obstacle_distance_scale = 1.2 #0.7
     friction = 0.0  # 5.0
     i = 0
     for forces_dim in [0, 1, 2]:
@@ -815,6 +803,7 @@ def all_train(td, sc):
             for normals_dim_plus in [0, 1, -1, 2, -2]:
                 forces = [0.0, 0.0, 0.0]
                 forces[forces_dim] = forces_dir
+                forces = np.array(forces)
 
                 normals = [0.0, 0.0, 0.0]
                 normals[forces_dim] = -forces_dir
@@ -825,15 +814,16 @@ def all_train(td, sc):
                 args.append(
                     {
                         "scale_forces": scale_forces,
-                        "forces_and_nodes": np.array(forces),
+                        "forces_and_nodes": forces,
                         "obstacle_normals": normals,
+                        "name": f"bunny_train_scale_forces:{scale_forces}_forces_and_nodes:{forces}_obstacle_normals:{normals}"
                     }
                 )
     data = []
     data.extend(
         [
             Scenario(
-                name="bunny_train",
+                name=arg['name'],
                 mesh_prop=MeshProperties(
                     dimension=3,
                     mesh_type=M_BUNNY_3D,

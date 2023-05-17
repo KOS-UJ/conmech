@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 from ctypes import ArgumentError
 from dataclasses import dataclass
@@ -26,15 +25,15 @@ from deep_conmech.training_config import TrainingConfig
 def get_solve_function(simulation_config):
     if simulation_config.mode == "normal":
         return Calculator.solve
-    if simulation_config.mode == "compare":
-        return Calculator.solve_compare
+    if simulation_config.mode == "compare_reduced":
+        return Calculator.solve_compare_reduced
     if simulation_config.mode == "skinning":
         return Calculator.solve_skinning
     if simulation_config.mode == "skinning_backwards":
         return Calculator.solve_skinning_backwards
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
-    if simulation_config.mode == "net":
+    if "net" in simulation_config.mode:
         training_config = TrainingConfig(shell=False)
         training_config.sc = simulation_config
         checkpoint_path = get_newest_checkpoint_path(training_config)
@@ -43,6 +42,9 @@ def get_solve_function(simulation_config):
         if training_config.td.use_dataset_statistics:
             train_dataset = get_train_dataset(training_config.td.dataset, config=training_config)
             train_dataset.load_indices()
+
+        if "compare" in simulation_config.mode:
+            return partial(model_jax.solve_compare, apply_net=model_jax.get_apply_net(state))
         return partial(model_jax.solve, apply_net=model_jax.get_apply_net(state))
 
     raise ArgumentError
@@ -71,7 +73,7 @@ def create_scene(scenario):
                 create_in_subprocess=create_in_subprocess,
                 simulation_config=scenario.simulation_config,
             )
-        elif scenario.simulation_config.mode in ["net", "compare"]:
+        elif scenario.simulation_config.mode in ["net", "compare_net", "compare_reduced"]:
             randomize = False
             scene = SceneInput(
                 mesh_prop=scenario.mesh_prop,
@@ -198,7 +200,6 @@ def run_scenario(
     save_files = run_config.plot_animation or run_config.save_all
     save_animation = run_config.plot_animation
     start_time = config.current_time
-    timestamp = cmh.get_timestamp(config)
 
     if save_files:
         final_catalog = f"{config.output_catalog}/{start_time} - {run_config.catalog}"

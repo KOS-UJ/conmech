@@ -341,7 +341,7 @@ def main(args: Namespace):
         use_linear_solver=False,
         use_green_strain=True,
         use_nonconvex_friction_law=False,
-        use_constant_contact_integral=True,  # True,  # False, ##############
+        use_constant_contact_integral=False,  # True,  # False, ##############
         use_lhs_preconditioner=False,
         with_self_collisions=True,
         mesh_layer_proportion=4,  # 2 4

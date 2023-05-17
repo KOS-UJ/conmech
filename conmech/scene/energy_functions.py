@@ -55,7 +55,9 @@ class EnergyObstacleArguments(NamedTuple):
     boundary_velocity_old: np.ndarray
     boundary_normals: np.ndarray
     boundary_obstacle_normals: np.ndarray
+    boundary_obstacle_normals_self: np.ndarray
     initial_penetration: np.ndarray
+    initial_penetration_self: np.ndarray
     surface_per_boundary_node: np.ndarray
     body_prop: np.ndarray
     obstacle_prop: np.ndarray
@@ -75,9 +77,10 @@ class StaticEnergyArguments(NamedTuple):
     use_constant_contact_integral: bool
 
 
-def _get_constant_boundary_integral(
+def _get_constant_boundary_integral( #TODO: Add self colisions
     args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
+    raise NotImplementedError()
     boundary_v_new = args.boundary_velocity_old
     boundary_displacement_step = args.time_step * boundary_v_new
 
@@ -112,6 +115,7 @@ def _get_constant_boundary_integral(
 def _get_actual_boundary_integral(
     acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
+    print("ACTUAL INTEGRAL")
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
@@ -120,14 +124,24 @@ def _get_actual_boundary_integral(
 
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=args.boundary_normals,
+        normals=(-1) * args.boundary_obstacle_normals,
         initial_penetration=args.initial_penetration,
+    )
+    penetration_norm_self = _get_penetration_positive(
+        displacement_step=boundary_displacement_step,
+        normals=(-1) * args.boundary_obstacle_normals_self,
+        initial_penetration=args.initial_penetration_self,
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
     resistance_normal = _obstacle_resistance_potential_normal(
         penetration_norm=penetration_norm,
         hardness=args.obstacle_prop.hardness,
+        time_step=args.time_step,
+    )
+    resistance_normal_self = _obstacle_resistance_potential_normal(
+        penetration_norm=penetration_norm_self,
+        hardness=10 * args.obstacle_prop.hardness,
         time_step=args.time_step,
     )
     # 64bit does not converge with penetration_norm instead of initial_penetration
@@ -139,7 +153,7 @@ def _get_actual_boundary_integral(
         use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
     boundary_integral = (
-        args.surface_per_boundary_node * (resistance_normal + resistance_tangential)
+        args.surface_per_boundary_node * (resistance_normal + resistance_normal_self + resistance_tangential)
     ).sum()
     return boundary_integral
 
@@ -166,6 +180,7 @@ def _compute_component_energy(
     prop_2,
     use_green_strain,
 ):
+    print("compute_component_energy")
     f_w = _get_deform_grad(component, dx_big_jax)
     if use_green_strain:
         eps_w = _get_strain_green(deform_grad=f_w)
@@ -182,7 +197,6 @@ def _compute_component_energy(
 def _compute_displacement_energy(
     displacement, dx_big_jax, element_initial_volume, body_prop, use_green_strain
 ):
-    print("compute_displacement_energy")
     return _compute_component_energy(
         component=displacement,
         dx_big_jax=dx_big_jax,
@@ -196,7 +210,6 @@ def _compute_displacement_energy(
 def _compute_velocity_energy(
     velocity, dx_big_jax, element_initial_volume, body_prop, use_green_strain
 ):
-    print("compute_velocity_energy")
     return _compute_component_energy(
         component=velocity,
         dx_big_jax=dx_big_jax,
@@ -264,7 +277,6 @@ def _energy_obstacle_free(
 def _energy_obstacle_colliding(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    print("energy_obstacle_colliding")
     # TODO: Repeat if collision
     main_energy = _energy_obstacle_free(
         acceleration_vector=acceleration_vector,

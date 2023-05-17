@@ -68,18 +68,18 @@
             "justMyCode": false
         },
         {
-            "name": "draft_examples_3d",
+            "name": "Draft examples 3D",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/examples/draft_examples_3d.py",
             "justMyCode": false
         },
         {
-            "name": "test_mesh",
+            "name": "Compare examples 3D",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/test_mesh.py",
+            "program": "${workspaceFolder}/examples/compare_examples_3d.py",
             "justMyCode": false
-        },
+        }
     ]
 }

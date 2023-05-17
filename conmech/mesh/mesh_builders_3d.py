@@ -99,24 +99,24 @@ def get_pygmsh_slide(mesh_prop):
         if "left" in mesh_prop.mesh_type:
             poly = geom.add_polygon(
                 [
-                    [0.0, 0.0, 0.0],
-                    [1.0, 0.0, 0.0],
-                    [1.0, 1.0, 0.6],
-                    [0.0, 1.0, 0.6],
+                    [-4.0, -1.0, -0.6],
+                    [4.0, -1.0, -0.6],
+                    [4.0, 1.0, 0.6],
+                    [-4.0, 1.0, 0.6],
                 ]
             )
         elif "right" in mesh_prop.mesh_type:
             poly = geom.add_polygon(
                 [
-                    [0.0, 0.0, 0.6],
-                    [1.0, 0.0, 0.6],
-                    [1.0, 1.0, 0.0],
-                    [0.0, 1.0, 0.0],
+                    [-4.0, -1.0, 0.6],
+                    [4.0, -1.0, 0.6],
+                    [4.0, 1.0, -0.6],
+                    [-4.0, 1.0, -0.6],
                 ]
             )
         else:
             raise ArgumentError
-        geom.extrude(poly, [0.0, 0.0, 0.2], num_layers=3)
+        geom.extrude(poly, [0.0, 0.0, 0.4], num_layers=3)
 
         geom.set_mesh_size_callback(mesh_builders_helpers.get_mesh_size_callback(mesh_prop))
         nodes, elements = mesh_builders_helpers.get_nodes_and_elements(geom, dimension=3)
@@ -147,7 +147,6 @@ def get_pygmsh_bunny(mesh_prop, lifted=False):
         nodes -= np.mean(nodes, axis=0)
     nodes[:, [1, 2]] = nodes[:, [2, 1]]
     return nodes, elements
-
 
 
 def get_pygmsh_armadillo():

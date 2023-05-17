@@ -31,72 +31,44 @@ from deep_conmech.training_config import TrainingConfig
 def main():
     cmh.print_jax_configuration()
 
-    # mode = "normal"
+    mode = "normal"
     # mode = "compare"
     # mode = "skinning"
     # mode = "skinning_backwards"
     # mode = "net"
 
-    def get_simulation_config(mode):
+    def get_simulation_config(mode, use_pca=False):
         return SimulationConfig(
             use_normalization=False,
             use_linear_solver=False,
             use_green_strain=True,
             use_nonconvex_friction_law=False,
-            use_constant_contact_integral=True,  # False,
+            use_constant_contact_integral=False,
             use_lhs_preconditioner=False,
             with_self_collisions=True,
-            use_pca=False,
-            mesh_layer_proportion=4,  # 2 8,
+            use_pca=use_pca,
+            mesh_layer_proportion=4,
             mode=mode,
         )
 
-    # simulation_config_pca = SimulationConfig(
-    #     use_normalization=False,
-    #     use_linear_solver=False,
-    #     use_green_strain=True,
-    #     use_nonconvex_friction_law=False,
-    #     use_constant_contact_integral=False,
-    #     use_lhs_preconditioner=False,
-    #     with_self_collisions=True,
-    #     use_pca=True,
-    #     mesh_layer_proportion=8,
-    #     mode=mode,
-    # )
-    final_time = 2.5  # 8.0  # 2.1
+    final_time = 3.0 #2.5  # 8.0  # 2.1
     scale_forces = 5.0
 
     # all_print_scenaros = scenarios.all_print(config.td, config.sc)
     # GraphModelDynamicJax.plot_all_scenarios(state, all_print_scenaros, training_config)
 
-    config = TrainingConfig(shell=False)
-    config.sc = SimulationConfig(
-        use_normalization=False,
-        use_linear_solver=False,
-        use_green_strain=True,
-        use_nonconvex_friction_law=False,
-        use_constant_contact_integral=True,  # True,  # False, ##############
-        use_lhs_preconditioner=False,
-        with_self_collisions=True,
-        mesh_layer_proportion=4,  # 2 4
-        use_pca=False,
-        mode="net",
-    )
-
     all_scenarios = [
-        # all_train(config.td, config.sc)[0]
         bunny_fall_3d(
-            mesh_density=32,
+            mesh_density=16,
             scale=1,
             final_time=final_time,
-            simulation_config=get_simulation_config("net"),  # "net" "skinning" "normal"
-            scale_forces=scale_forces,
-        ),
+            simulation_config=get_simulation_config(mode),
+            scale_forces=scale_forces),
         # bunny_obstacles(
-        #     mesh_density=64,
+        #     mesh_density=32,
         #     scale=1,
         #     final_time=final_time,
-        #     simulation_config=simulation_config,
+        #     simulation_config=get_simulation_config(mode),
         #     scale_forces=scale_forces,
         # ),
         # bunny_rotate_3d(
@@ -198,11 +170,11 @@ def main():
         #     ),
         #     schedule=Schedule(final_time=10, time_step=0.01),
         #     forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
-        #     obstacle=Obstacle(  # 0.3
+        #     obstacle=Obstacle(
         #         np.array([[[0.7, 0.0, 1.0]], [[1.0, 1.0, 0.0]]]),
-        #         ObstacleProperties(hardness=100.0, friction=0.1),  # 5.0),
+        #         ObstacleProperties(hardness=100.0, friction=0.1),
         #     ),
-        #     simulation_config=simulation_config,
+        #     simulation_config=get_simulation_config(mode),
         # ),
     ]
 

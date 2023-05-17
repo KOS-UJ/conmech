@@ -121,6 +121,7 @@ class ScenariosDataset(BaseDataset):
             ts = (index % episode_steps) + 1
             if ts == 1:
                 scenario = assigned_scenarios[int(index / episode_steps)]
+                print(f"Scenario {scenario.name}")
                 scene = self.get_scene(scenario=scenario, config=self.config)
                 energy_functions = EnergyFunctions(simulation_config=scene.simulation_config)
                 reduced_energy_functions = EnergyFunctions(

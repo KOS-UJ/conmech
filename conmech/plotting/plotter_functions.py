@@ -26,15 +26,17 @@ def save_three(scene, step, label, folder, skip=1):
 
     def convert_to_list(array):
         return list(array.reshape(-1))
+    
+    def convert_to_int_list(array):
+        return [int(i) for i in array.reshape(-1)]
 
     def get_data(scene, get_edges):
-        nodes = convert_to_list(scene.boundary_nodes)
         if get_edges:
             boundary_data = get_edges_from_surfaces(scene.boundaries.boundary_surfaces)
         else:
             boundary_data = scene.boundaries.boundary_surfaces
 
-        return nodes, [int(i) for i in boundary_data.reshape(-1)]
+        return scene.boundary_nodes, convert_to_int_list(boundary_data)
 
     nodes, boundary_surfaces = get_data(scene, get_edges=False)
     if hasattr(scene, "reduced"):
@@ -42,24 +44,18 @@ def save_three(scene, step, label, folder, skip=1):
     else:
         nodes_reduced, boundary_edges_reduced = [], []
 
-    highlighted_nodes = convert_to_list(scene.boundary_nodes[scene.self_collisions_mask])
-
-    sn1 = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)[
+    normalized_nodes = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)[
         scene.boundary_indices
     ]
+    highlighted_nodes_list = [convert_to_list(nodes[scene.self_collisions_mask]), convert_to_list(normalized_nodes[scene.self_collisions_mask])]
+
+    nodes_list = [convert_to_list(nodes), convert_to_list(normalized_nodes)]
 
     if hasattr(scene, "reduced"):
-        sn1r = (
+        normalized_nodes_reduced = (
             scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement
         )[scene.reduced.boundary_indices]
-
-    nodes_list = [
-        nodes,
-        convert_to_list(sn1),
-        # convert_to_list(sn2),
-    ]
-    if hasattr(scene, "reduced"):
-        nodes_reduced_list = [nodes_reduced, convert_to_list(sn1r)]  # , convert_to_list(sn2r)
+        nodes_reduced_list = [convert_to_list(nodes_reduced), convert_to_list(normalized_nodes_reduced)]
     else:
         nodes_reduced_list = []
     json_dict = {
@@ -67,12 +63,19 @@ def save_three(scene, step, label, folder, skip=1):
         "step": step,
         "nodes_list": nodes_list,
         "nodes_reduced_list": nodes_reduced_list,
-        "highlighted_nodes": highlighted_nodes,
+        "highlighted_nodes_list": highlighted_nodes_list,
         "linear_obstacles": convert_to_list(scene.linear_obstacles),
     }
     if step == 0:
         json_dict["boundary_surfaces"] = boundary_surfaces
         json_dict["boundary_edges_reduced"] = boundary_edges_reduced
+        json_dict["mesh_obstacles_nodes"] = [
+            convert_to_list(mesh.initial_nodes) for mesh in scene.mesh_obstacles
+        ]
+        json_dict["mesh_obstacles_boundary_surfaces"] = [
+            convert_to_int_list(mesh.boundary_surfaces)
+            for mesh in scene.mesh_obstacles
+        ]
 
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(json_dict, file)

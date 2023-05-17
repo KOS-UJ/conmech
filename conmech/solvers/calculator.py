@@ -137,9 +137,9 @@ class Calculator:
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         with timer["lower_data"]:
-            acceleration_from_displacement = np.array(scene.lower_acceleration_from_position(
-                scene.reduced.lifted_acceleration
-            ))
+            acceleration_from_displacement = np.array(
+                scene.lower_acceleration_from_position(scene.reduced.lifted_acceleration)
+            )
 
         return acceleration_from_displacement, None
 
@@ -172,7 +172,7 @@ class Calculator:
             return np.array(exact_acceleration), None
 
     @staticmethod
-    def solve_compare(
+    def solve_compare_reduced(
         scene: Scene,
         energy_functions: EnergyFunctions,
         initial_a,

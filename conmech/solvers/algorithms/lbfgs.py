@@ -567,11 +567,11 @@ def get_state_initial(
     x0: Array,
     norm=jnp.inf,
     maxcor: int = 10,
-    ftol: float =  1e-09,  # 2.220446049250313e-09,
+    ftol: float = 1e-08, #1e-09,  # 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
-    xtol: float = None,
+    xtol: float = 1e-05, #None,
     maxiter: Optional[float] = None,  # 200,  # None
     maxiter_main_ls: int = 20,
     maxiter_zoom_ls: int = 30,
@@ -740,6 +740,11 @@ def body_fun_jax(state: LBFGSResults):
     # converged = jnp.linalg.norm(s_k, ord=norm) < state.xtol
 
     converged = state.f_k - f_kp1 <= state.ftol
+    # converged = jnp.linalg.norm(g_kp1, ord=norm) < state.gtol
+    # converged = jnp.where(state.f_k - f_kp1 > state.ftol, False, status)
+    # converged = jnp.where(jnp.linalg.norm(g_kp1, ord=norm) /> state.gtol, False, status)
+    # converged = jnp.where(jnp.linalg.norm(s_k, ord=norm) > state.xtol, False, status)
+
     # scipy: `(f^k - f^{k+1})/max{|f^k|,|f^{k+1}|,1} <= ftol``.
 
     # TODO(jakevdp): use a fixed-point procedure rather than type-casting?

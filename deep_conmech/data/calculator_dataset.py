@@ -28,7 +28,7 @@ class CalculatorDataset(ScenariosDataset):
         device_count: int,
         item_fn=None,
     ):
-        if config.sc.mode in ["normal", "net"]:
+        if config.sc.mode in ["normal", "net", "compare_net"]:
             solve_function = Calculator.solve
         elif config.sc.mode == "skinning":
             solve_function = Calculator.solve_skinning
