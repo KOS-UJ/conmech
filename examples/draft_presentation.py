@@ -21,36 +21,34 @@ simulation_config = SimulationConfig(
     with_self_collisions=False,
     use_pca=False,
 )
-name="linear_16"
+name = "linear_16"
 simulation_config.use_green_strain = False
 simulation_config.use_linear_solver = True
 simulation_config.use_constant_contact_integral = True
 
-animation_backend = "three" # None
-
-
+animation_backend = "three"  # None
 
 
 def main(mesh_density=16, final_time=3, plot_animation=True):  # 100
     schedule = Schedule(final_time=final_time, time_step=0.01)
-    body_prop=TimeDependentBodyProperties(
-                mu=8,
-                lambda_=8,
-                theta=8,
-                zeta=8,
-                mass_density=1.0,
-            )
-    obstacle=Obstacle(
-                np.array([[[0.0, 0.7, 1.0]], [[0.0, 0.0, -1.0]]]),
-                ObstacleProperties(hardness=100.0, friction=5.0),
-                all_mesh=None,
-            )
-    mesh_prop=MeshProperties(
-                dimension=3,
-                mesh_type=M_BUNNY_3D,
-                scale=[1],
-                mesh_density=[mesh_density],
-            )
+    body_prop = TimeDependentBodyProperties(
+        mu=8,
+        lambda_=8,
+        theta=8,
+        zeta=8,
+        mass_density=1.0,
+    )
+    obstacle = Obstacle(
+        np.array([[[0.0, 0.7, 1.0]], [[0.0, 0.0, -1.0]]]),
+        ObstacleProperties(hardness=100.0, friction=5.0),
+        all_mesh=None,
+    )
+    mesh_prop = MeshProperties(
+        dimension=3,
+        mesh_type=M_BUNNY_3D,
+        scale=[1],
+        mesh_density=[mesh_density],
+    )
 
     advanced_scenarios = [
         Scenario(
@@ -58,7 +56,7 @@ def main(mesh_density=16, final_time=3, plot_animation=True):  # 100
             mesh_prop=mesh_prop,
             body_prop=body_prop,
             schedule=schedule,
-            forces_function=np.array([0.0, 0.0, -1.0]), #f_rotate_3d
+            forces_function=np.array([0.0, 0.0, -1.0]),  # f_rotate_3d
             obstacle=obstacle,
             simulation_config=simulation_config,
         ),
@@ -68,7 +66,7 @@ def main(mesh_density=16, final_time=3, plot_animation=True):  # 100
         all_scenarios=advanced_scenarios,
         file=__file__,
         plot_animation=plot_animation,
-        config=Config(shell=False, animation_backend=animation_backend)
+        config=Config(shell=False, animation_backend=animation_backend),
     )
 
 

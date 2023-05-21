@@ -25,7 +25,7 @@ from conmech.state.obstacle import Obstacle
 simulation_config = SimulationConfig(
     use_normalization=False,
     use_linear_solver=False,
-    use_green_strain=True, #False,
+    use_green_strain=True,  # False,
     use_nonconvex_friction_law=False,
     use_constant_contact_integral=False,
     use_lhs_preconditioner=False,

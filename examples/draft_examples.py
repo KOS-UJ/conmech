@@ -51,7 +51,7 @@ def main():
             mode=mode,
         )
 
-    final_time = 3.0 #2.5  # 8.0  # 2.1
+    final_time = 3.0  # 2.5  # 8.0  # 2.1
     scale_forces = 5.0
 
     # all_print_scenaros = scenarios.all_print(config.td, config.sc)
@@ -63,7 +63,8 @@ def main():
             scale=1,
             final_time=final_time,
             simulation_config=get_simulation_config(mode),
-            scale_forces=scale_forces),
+            scale_forces=scale_forces,
+        ),
         # bunny_obstacles(
         #     mesh_density=32,
         #     scale=1,

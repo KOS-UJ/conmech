@@ -174,47 +174,47 @@ def get_interlayer_data_numba(
     with_weights: bool,
     closest_count: int,
 ):
+    _ = with_weights
+    _ = closest_count
 
     return interpolate_nodes(
-        base_nodes=base_nodes,
-        base_elements=base_elements,
-        query_nodes=interpolated_nodes
+        base_nodes=base_nodes, base_elements=base_elements, query_nodes=interpolated_nodes
     )
 
-    _ = base_elements
-    closest_distances = np.zeros((len(interpolated_nodes), closest_count))
-    closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
-    closest_weights = np.zeros_like(closest_distances) if with_weights else None
+    # _ = base_elements
+    # closest_distances = np.zeros((len(interpolated_nodes), closest_count))
+    # closest_nodes = np.zeros_like(closest_distances, dtype=np.int64)
+    # closest_weights = np.zeros_like(closest_distances) if with_weights else None
 
-    # if with_weights:
-    #     base_element_nodes = base_nodes[base_elements]
-    #     base_nodes_min = base_element_nodes.min(axis=1)
-    #     base_nodes_max = base_element_nodes.max(axis=1)
-    for index, node in enumerate(interpolated_nodes):
-        distances = nph.euclidean_norm_numba(base_nodes - node)
-        closest_node_list = get_top_indices(distances, closest_count)
-        if closest_weights is not None:
-            closest_node_list = get_top_indices(distances, closest_count)
-            selected_base_nodes = base_nodes[closest_node_list]
+    # # if with_weights:
+    # #     base_element_nodes = base_nodes[base_elements]
+    # #     base_nodes_min = base_element_nodes.min(axis=1)
+    # #     base_nodes_max = base_element_nodes.max(axis=1)
+    # for index, node in enumerate(interpolated_nodes):
+    #     distances = nph.euclidean_norm_numba(base_nodes - node)
+    #     closest_node_list = get_top_indices(distances, closest_count)
+    #     if closest_weights is not None:
+    #         closest_node_list = get_top_indices(distances, closest_count)
+    #         selected_base_nodes = base_nodes[closest_node_list]
 
-            if np.all(selected_base_nodes[0] == node):
-                closest_weights[index, 0] = 1
-            else:
-                # Moore-Penrose pseudo-inverse
-                # weights_internal = np.ascontiguousarray(node) @
-                #  np.linalg.pinv(selected_base_nodes)
-                # if np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
-                #     unnormalized_weights = weights_internal
-                # else:
-                unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
-                node_weights = unnormalized_weights / np.sum(unnormalized_weights)
-                closest_weights[index, :] = node_weights
+    #         if np.all(selected_base_nodes[0] == node):
+    #             closest_weights[index, 0] = 1
+    #         else:
+    #             # Moore-Penrose pseudo-inverse
+    #             # weights_internal = np.ascontiguousarray(node) @
+    #             #  np.linalg.pinv(selected_base_nodes)
+    #             # if np.min(weights_internal) > 0 and np.abs(np.sum(weights_internal) - 1) < 0.003:
+    #             #     unnormalized_weights = weights_internal
+    #             # else:
+    #             unnormalized_weights = 1.0 / (distances[closest_node_list] ** 2)
+    #             node_weights = unnormalized_weights / np.sum(unnormalized_weights)
+    #             closest_weights[index, :] = node_weights
 
-        closest_distance_list = distances[closest_node_list]
-        closest_nodes[index, :] = closest_node_list
-        closest_distances[index, :] = closest_distance_list
+    #     closest_distance_list = distances[closest_node_list]
+    #     closest_nodes[index, :] = closest_node_list
+    #     closest_distances[index, :] = closest_distance_list
 
-    return closest_nodes, closest_distances, closest_weights
+    # return closest_nodes, closest_distances, closest_weights
 
 
 # pylint: disable=invalid-name

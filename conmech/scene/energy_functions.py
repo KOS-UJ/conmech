@@ -86,7 +86,7 @@ def _get_constant_boundary_integral(
 
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=(-1) * args.boundary_obstacle_normals,#args.boundary_normals,
+        normals=(-1) * args.boundary_obstacle_normals,  # args.boundary_normals,
         initial_penetration=args.initial_penetration,
     )
     penetration_norm_self = _get_penetration_positive(
@@ -132,13 +132,20 @@ def _get_actual_boundary_integral(
     boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
     boundary_displacement_step = args.time_step * boundary_v_new
 
-    rhs_boundary_contact = _get_boundary_integral(boundary_displacement_step=boundary_displacement_step,
-            boundary_v_new=boundary_v_new, args=args, use_nonconvex_friction_law=use_nonconvex_friction_law)
+    rhs_boundary_contact = _get_boundary_integral(
+        boundary_displacement_step=boundary_displacement_step,
+        boundary_v_new=boundary_v_new,
+        args=args,
+        use_nonconvex_friction_law=use_nonconvex_friction_law,
+    )
     return rhs_boundary_contact.sum()
 
 
 def _get_boundary_integral(
-        boundary_displacement_step, boundary_v_new, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
+    boundary_displacement_step,
+    boundary_v_new,
+    args: EnergyObstacleArguments,
+    use_nonconvex_friction_law: bool,
 ):
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
@@ -170,11 +177,10 @@ def _get_boundary_integral(
         time_step=args.time_step,
         use_nonconvex_friction_law=use_nonconvex_friction_law,
     )
-    boundary_integral = (
-        args.surface_per_boundary_node * (resistance_normal + resistance_normal_self + resistance_tangential)
+    boundary_integral = args.surface_per_boundary_node * (
+        resistance_normal + resistance_normal_self + resistance_tangential
     )
     return boundary_integral
-
 
 
 def _get_strain_lin(deform_grad):

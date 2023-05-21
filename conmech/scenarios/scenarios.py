@@ -717,21 +717,25 @@ def bunny_obstacles(
 ):
     _, _, _ = scale, tag, arg
     obstacle_meshes = []
-    for i in [1]: #range(1,5):
-        obstacle_meshes.append(MeshProperties(
-            dimension=3,
-            mesh_type="slide_left",
-            scale=[1],
-            mesh_density=[16],
-            initial_position=[0, 0, -i],
-        ))
-        obstacle_meshes.append(MeshProperties(
-            dimension=3,
-            mesh_type="slide_right",
-            scale=[1],
-            mesh_density=[16],
-            initial_position=[0, -2, -(i+1)],
-        ))
+    for i in [1]:  # range(1,5):
+        obstacle_meshes.append(
+            MeshProperties(
+                dimension=3,
+                mesh_type="slide_left",
+                scale=[1],
+                mesh_density=[16],
+                initial_position=[0, 0, -i],
+            )
+        )
+        obstacle_meshes.append(
+            MeshProperties(
+                dimension=3,
+                mesh_type="slide_right",
+                scale=[1],
+                mesh_density=[16],
+                initial_position=[0, -2, -(i + 1)],
+            )
+        )
 
     return Scenario(
         name="bunny_obstacles",
@@ -747,7 +751,7 @@ def bunny_obstacles(
         obstacle=Obstacle(
             geometry=None,
             properties=ObstacleProperties(hardness=1000.0, friction=3.0),
-            all_mesh=obstacle_meshes
+            all_mesh=obstacle_meshes,
         ),
         simulation_config=simulation_config,
     )
@@ -788,7 +792,9 @@ def all_train(td, sc):
         return []  # get_train_data(**args)
     args = []
 
-    # scenario bunny_train_scale_forces:2.0_forces_and_nodes:[-1.  0.  0.]_obstacle_normals:[1.0, 0.0, -1]
+    # scenario bunny_train_scale_forces:2.0_
+    # forces_and_nodes:[-1.  0.  0.]_obstacle_normals:[1.0, 0.0, -1]
+
     # args.append(
     #     {
     #         "scale_forces": 2.0,
@@ -797,10 +803,10 @@ def all_train(td, sc):
     #         "name": "bunny_train_scale_forces"
     #     }
     # )
-    
+
     scale_forces_list = [1.5, 2.0, 2.5, 3.0]
-    obstacle_distance_scale = 1.1 #1.2 #0.7
-    hardness=100.0
+    obstacle_distance_scale = 1.1  # 1.2 #0.7
+    hardness = 100.0
     friction = 0.0  # 0.0 (5.0)
     i = 0
     for forces_dim in [0, 1, 2]:
@@ -816,19 +822,20 @@ def all_train(td, sc):
                     normals[(forces_dim + np.abs(normals_dim_plus)) % 3] = np.sign(normals_dim_plus)
                 scale_forces = scale_forces_list[i % len(scale_forces_list)]
                 i += 1
+                name = f"bunny_train_scale_forces:{scale_forces}_forces_and_nodes:{forces}_obstacle_normals:{normals}"
                 args.append(
                     {
                         "scale_forces": scale_forces,
                         "forces_and_nodes": forces,
                         "obstacle_normals": normals,
-                        "name": f"bunny_train_scale_forces:{scale_forces}_forces_and_nodes:{forces}_obstacle_normals:{normals}"
+                        "name": name,
                     }
                 )
     data = []
     data.extend(
         [
             Scenario(
-                name=arg['name'],
+                name=arg["name"],
                 mesh_prop=MeshProperties(
                     dimension=3,
                     mesh_type=M_BUNNY_3D,

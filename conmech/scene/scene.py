@@ -78,7 +78,9 @@ class Scene(BodyForces):
         super().prepare(inner_forces)
         if not self.has_no_obstacles:
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
-                boundary_nodes=self.boundary_nodes, obstacle_nodes=self.obstacle_nodes #, boundary_normals=self.boundary_normals, boundary_obstacle_normals= self.get_obstacle_normals()
+                boundary_nodes=self.boundary_nodes,
+                obstacle_nodes=self.obstacle_nodes,
+                # , boundary_normals=self.boundary_normals, boundary_obstacle_normals= self.get_obstacle_normals()
             )
             self.set_boundary_obstacle_normals_and_penetration_scalars()
 
@@ -201,7 +203,7 @@ class Scene(BodyForces):
         self.boundary_obstacle_normals_self = np.zeros_like(self.boundary_nodes)
         self.penetration_scalars_self = np.zeros((self.boundary_nodes_count, 1))
 
-        scalar = 1 #8 #5 #2 10
+        scalar = 1  # 8 #5 #2 10
 
         closest_indices, _, closest_weights = interpolate_nodes(
             base_nodes=self.moved_nodes,
@@ -233,7 +235,7 @@ class Scene(BodyForces):
 
     def get_norm_boundary_obstacle_normals(self):
         return self.normalize_rotate(self.boundary_obstacle_normals)
-    
+
     def get_norm_boundary_obstacle_normals_self(self):
         return self.normalize_rotate(self.boundary_obstacle_normals_self)
 
@@ -342,7 +344,7 @@ class Scene(BodyForces):
     @mesh_normalization_decorator
     def norm_by_reduced_lifted_new_displacement(self):
         return self.get_norm_by_reduced_lifted_new_displacement(self.exact_acceleration)
-    
+
     @mesh_normalization_decorator
     def get_norm_by_reduced_lifted_new_displacement(self, exact_acceleration):
         def _normalize_current_reduced(moved_nodes):
@@ -449,7 +451,9 @@ class Scene(BodyForces):
             boundary_velocity_old=jnp.asarray(self.norm_boundary_velocity_old),
             boundary_normals=self.get_normalized_boundary_normals_jax(),
             boundary_obstacle_normals=jnp.asarray(self.get_norm_boundary_obstacle_normals()),
-            boundary_obstacle_normals_self=jnp.asarray(self.get_norm_boundary_obstacle_normals_self()),
+            boundary_obstacle_normals_self=jnp.asarray(
+                self.get_norm_boundary_obstacle_normals_self()
+            ),
             initial_penetration=jnp.asarray(self.penetration_scalars),
             initial_penetration_self=jnp.asarray(self.penetration_scalars_self),
             surface_per_boundary_node=self.get_surface_per_boundary_node_jax(),

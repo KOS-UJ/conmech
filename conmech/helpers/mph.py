@@ -2,9 +2,10 @@
 multiprocessing helpers
 """
 import sys
+from typing import Callable, Tuple
+
 # from multiprocessing import Lock, Process, Queue
 from multiprocess import Lock, Process, Queue
-from typing import Callable, Tuple
 
 
 def get_lock():

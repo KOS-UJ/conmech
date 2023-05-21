@@ -26,7 +26,7 @@ def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
         use_normalization=False,
         use_linear_solver=False,
         use_green_strain=False,
-        use_nonconvex_friction_law=True, #TODO: Check
+        use_nonconvex_friction_law=True,  # TODO: Check
         use_constant_contact_integral=False,
         use_lhs_preconditioner=False,
         with_self_collisions=False,

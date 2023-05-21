@@ -567,11 +567,11 @@ def get_state_initial(
     x0: Array,
     norm=jnp.inf,
     maxcor: int = 10,
-    ftol: float = 1e-08, #1e-09,  # 2.220446049250313e-09,
+    ftol: float = 1e-08,  # 1e-09,  # 2.220446049250313e-09,
     gtol: float = 1e-05,
     maxfun: Optional[float] = None,
     maxgrad: Optional[float] = None,
-    xtol: float = 1e-05, #None,
+    xtol: float = 1e-05,  # None,
     maxiter: Optional[float] = None,  # 200,  # None
     maxiter_main_ls: int = 20,
     maxiter_zoom_ls: int = 30,

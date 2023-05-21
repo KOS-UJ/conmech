@@ -269,7 +269,9 @@ class SceneInput(SceneRandomized):
         #     self.reduced.norm_by_reduced_lifted_new_displacement
         # ) # rotate and lower
 
-        target_data.normalized_new_displacement = thh.to_double(self.norm_by_reduced_lifted_new_displacement) # lower and rotate
+        target_data.normalized_new_displacement = thh.to_double(
+            self.norm_by_reduced_lifted_new_displacement
+        )  # lower and rotate
 
         target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
         return target_data

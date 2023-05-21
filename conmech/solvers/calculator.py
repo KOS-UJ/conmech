@@ -75,8 +75,8 @@ class Calculator:
         assert cmh.get_from_os("ENV_READY")
         x0 = jnp.asarray(initial_vector)
 
-        if function is not None: # TODO: Refactor
-            opti_fun = function #get_optimization_function(fun=function, hes_inv=hes_inv)
+        if function is not None:  # TODO: Refactor
+            opti_fun = function  # get_optimization_function(fun=function, hes_inv=hes_inv)
         else:
             opti_fun = set_and_get_opti_fun(energy_functions, scene, hes_inv, x0, args)
 
@@ -288,7 +288,9 @@ class Calculator:
             normalized_a = Calculator.solve_acceleration_normalized(
                 scene, energy_functions, temperature, initial_a
             )
-            temperature = Calculator.solve_temperature_normalized(scene, energy_functions, normalized_a, initial_t)
+            temperature = Calculator.solve_temperature_normalized(
+                scene, energy_functions, normalized_a, initial_t
+            )
             i += 1
             if i >= max_iter:
                 raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
@@ -405,16 +407,17 @@ class Calculator:
         normalized_t_rhs = scene.get_normalized_t_rhs_jax(normalized_a)
 
         if energy_functions.temperature_cost_function is None:
-            fun = lambda x, normalized_t_rhs: energy(
+
+            def fun(x, normalized_t_rhs):
+                return energy(
                     nph.unstack(x, 1),
                     scene.solver_cache.lhs_temperature_sparse_jax,
                     normalized_t_rhs,
                 )
-            energy_functions.temperature_cost_function = _get_compiled_optimization_function(fun=fun, hes_inv=None, sample_x0=initial_t_vector, sample_args=normalized_t_rhs)
-  
-            # jax.jit(
-                # 
-            # ).lower(initial_t_vector, normalized_t_rhs).compile()
+
+            energy_functions.temperature_cost_function = _get_compiled_optimization_function(
+                fun=fun, hes_inv=None, sample_x0=initial_t_vector, sample_args=normalized_t_rhs
+            )
 
         normalized_t_vector = Calculator.minimize_jax(
             initial_vector=initial_t_vector,
