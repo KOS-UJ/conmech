@@ -39,7 +39,7 @@ def prepare_node_data(data: np.ndarray, nodes_count, add_norm=False):
 
 
 def get_edges_column(data_from, data_to, directional_edges):
-    print("get_edges_column")
+    # print("get_edges_column")
     column = data_to[directional_edges[:, 1]] - data_from[directional_edges[:, 0]]
 
     return jnp.hstack((column, nph.euclidean_norm(column, keepdims=True)))

@@ -71,14 +71,14 @@
             "name": "Draft examples 3D",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/draft_examples_3d.py",
+            "program": "${workspaceFolder}/examples/draft_examples.py",
             "justMyCode": false
         },
         {
             "name": "Compare examples 3D",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/compare_examples_3d.py",
+            "program": "${workspaceFolder}/examples/compare_examples.py",
             "justMyCode": false
         }
     ]

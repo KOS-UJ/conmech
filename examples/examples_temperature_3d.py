@@ -20,13 +20,12 @@ from conmech.scenarios.scenarios import (
     get_temp_body_prop,
 )
 from conmech.simulations import simulation_runner
-from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
 
 simulation_config = SimulationConfig(
     use_normalization=False,
     use_linear_solver=False,
-    use_green_strain=False,
+    use_green_strain=True, #False,
     use_nonconvex_friction_law=False,
     use_constant_contact_integral=False,
     use_lhs_preconditioner=False,
@@ -142,7 +141,7 @@ def get_expansion_temp_scenarios(mesh_density, final_time):
 
 
 def main(mesh_density=32, final_time=2.5, plot_animation=True, shell=False):
-    config = Config(shell=shell)
+    config = Config(shell=shell, animation_backend="matplotlib")
     config.print_skip = 0.05
     mesh_prop = MeshProperties(
         dimension=3,

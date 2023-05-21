@@ -216,12 +216,14 @@ def run_scenario(
     step = [0]  # TODO: #65 Clean
 
     def operation_save(scene: Scene):
+        if config.animation_backend is None:
+            return
         plot_index = step[0] % ts == 0
         if "three" in config.animation_backend:
             plotter_functions.save_three(
                 scene=scene,
                 step=step[0],
-                label=f"{start_time}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
+                label=f"{start_time}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}_{scenario.name}",  # timestamp
                 folder="./three",
             )
         if run_config.save_all or plot_index:
@@ -249,7 +251,7 @@ def run_scenario(
     # cmh.profile(fun_sim)
     scene = fun_sim()
 
-    if run_config.plot_animation:
+    if run_config.plot_animation and config.animation_backend is not None:
         if "blender" in config.animation_backend:
             plotter_functions.plot_using_blender(output=config.blender_output)
         if "matplotlib" in config.animation_backend:
@@ -351,7 +353,7 @@ def simulate(
 
         with timer["all_operation"]:
             if operation is not None:
-                operation(scene)  # (current_time, scene, a, base_a)
+                operation(scene=scene)  # (current_time, scene, a, base_a)
 
         with timer["all_iterate"]:
             scene.iterate_self(acceleration, temperature=temperature)

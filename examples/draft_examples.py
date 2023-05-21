@@ -31,11 +31,11 @@ from deep_conmech.training_config import TrainingConfig
 def main():
     cmh.print_jax_configuration()
 
-    mode = "normal"
+    # mode = "normal"
     # mode = "compare"
     # mode = "skinning"
     # mode = "skinning_backwards"
-    # mode = "net"
+    mode = "net"
 
     def get_simulation_config(mode, use_pca=False):
         return SimulationConfig(
@@ -59,7 +59,7 @@ def main():
 
     all_scenarios = [
         bunny_fall_3d(
-            mesh_density=16,
+            mesh_density=32,
             scale=1,
             final_time=final_time,
             simulation_config=get_simulation_config(mode),

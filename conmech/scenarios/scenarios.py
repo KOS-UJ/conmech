@@ -784,22 +784,27 @@ def get_args(td, sc):
 
 
 def all_train(td, sc):
-    # args = dict(
-    #     mesh_density=td.mesh_density,
-    #     scale=td.train_scale,
-    #     final_time=td.final_time,
-    #     simulation_config=sc,
-    # )
     if td.dimension != 3:
         return []  # get_train_data(**args)
     args = []
 
+    # scenario bunny_train_scale_forces:2.0_forces_and_nodes:[-1.  0.  0.]_obstacle_normals:[1.0, 0.0, -1]
+    # args.append(
+    #     {
+    #         "scale_forces": 2.0,
+    #         "forces_and_nodes": np.array([-1.0, 0.0, 0.0]),
+    #         "obstacle_normals": np.array([1.0, 0.0, -1.0]),
+    #         "name": "bunny_train_scale_forces"
+    #     }
+    # )
+    
     scale_forces_list = [1.5, 2.0, 2.5, 3.0]
-    obstacle_distance_scale = 1.2 #0.7
-    friction = 0.0  # 5.0
+    obstacle_distance_scale = 1.1 #1.2 #0.7
+    hardness=100.0
+    friction = 0.0  # 0.0 (5.0)
     i = 0
     for forces_dim in [0, 1, 2]:
-        for forces_dir in [1.0, -1.0]:
+        for forces_dir in [-1.0, 1.0]:
             for normals_dim_plus in [0, 1, -1, 2, -2]:
                 forces = [0.0, 0.0, 0.0]
                 forces[forces_dim] = forces_dir
@@ -841,7 +846,7 @@ def all_train(td, sc):
                             [obstacle_distance_scale * arg["forces_and_nodes"]],
                         ]
                     ),
-                    ObstacleProperties(hardness=100.0, friction=friction),
+                    ObstacleProperties(hardness=hardness, friction=friction),
                 ),
                 simulation_config=sc,
             )

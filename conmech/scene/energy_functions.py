@@ -77,17 +77,22 @@ class StaticEnergyArguments(NamedTuple):
     use_constant_contact_integral: bool
 
 
-def _get_constant_boundary_integral( #TODO: Add self colisions
+def _get_constant_boundary_integral(
     args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
-    raise NotImplementedError()
+    # print("Constant integral")
     boundary_v_new = args.boundary_velocity_old
     boundary_displacement_step = args.time_step * boundary_v_new
 
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=args.boundary_normals,
+        normals=(-1) * args.boundary_obstacle_normals,#args.boundary_normals,
         initial_penetration=args.initial_penetration,
+    )
+    penetration_norm_self = _get_penetration_positive(
+        displacement_step=boundary_displacement_step,
+        normals=(-1) * args.boundary_obstacle_normals_self,
+        initial_penetration=args.initial_penetration_self,
     )
     velocity_tangential = nph.get_tangential(boundary_v_new, args.boundary_normals)
 
@@ -96,6 +101,11 @@ def _get_constant_boundary_integral( #TODO: Add self colisions
     )
     resistance_normal = args.boundary_normals * resistance_normal_scalar
 
+    resistance_normal_self = _obstacle_resistance_potential_normal(
+        penetration_norm=penetration_norm_self,
+        hardness=10 * args.obstacle_prop.hardness,
+        time_step=args.time_step,
+    )
     resistance_tangential = _obstacle_resistance_tangential_vector(
         initial_penetration=args.initial_penetration,  # penetration_norm,
         tangential_velocity=velocity_tangential,
@@ -104,7 +114,7 @@ def _get_constant_boundary_integral( #TODO: Add self colisions
     )
 
     rhs_boundary_contact = args.surface_per_boundary_node * (
-        resistance_normal + resistance_tangential
+        resistance_normal + resistance_normal_self + resistance_tangential
     )
     rhs_contact = jxh.complete_data_with_zeros(
         rhs_boundary_contact, nodes_count=len(args.base_displacement)
@@ -115,13 +125,21 @@ def _get_constant_boundary_integral( #TODO: Add self colisions
 def _get_actual_boundary_integral(
     acceleration, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
 ):
-    print("ACTUAL INTEGRAL")
+    # print("Actual integral")
     boundary_nodes_count = args.boundary_velocity_old.shape[0]
     boundary_a = acceleration[:boundary_nodes_count, :]  # TODO: boundary slice
 
     boundary_v_new = args.boundary_velocity_old + args.time_step * boundary_a
     boundary_displacement_step = args.time_step * boundary_v_new
 
+    rhs_boundary_contact = _get_boundary_integral(boundary_displacement_step=boundary_displacement_step,
+            boundary_v_new=boundary_v_new, args=args, use_nonconvex_friction_law=use_nonconvex_friction_law)
+    return rhs_boundary_contact.sum()
+
+
+def _get_boundary_integral(
+        boundary_displacement_step, boundary_v_new, args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
+):
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
         normals=(-1) * args.boundary_obstacle_normals,
@@ -154,8 +172,9 @@ def _get_actual_boundary_integral(
     )
     boundary_integral = (
         args.surface_per_boundary_node * (resistance_normal + resistance_normal_self + resistance_tangential)
-    ).sum()
+    )
     return boundary_integral
+
 
 
 def _get_strain_lin(deform_grad):
@@ -180,7 +199,7 @@ def _compute_component_energy(
     prop_2,
     use_green_strain,
 ):
-    print("compute_component_energy")
+    # print("compute_component_energy")
     f_w = _get_deform_grad(component, dx_big_jax)
     if use_green_strain:
         eps_w = _get_strain_green(deform_grad=f_w)
@@ -258,7 +277,7 @@ def _energy_vector(value_vector, lhs, rhs):
 def _energy_obstacle_free(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    print("energy_obstacle")
+    # print("energy_obstacle")
     dimension = args.base_displacement.shape[1]
 
     main_energy0 = _energy_vector(
@@ -368,6 +387,8 @@ class EnergyFunctions:
 
         self.opti_free = None
         self.opti_colliding = None
+
+        self.temperature_cost_function = None
 
         # return
 

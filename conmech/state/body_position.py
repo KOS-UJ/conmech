@@ -65,7 +65,7 @@ def _aggrergate_boundary_surfaces_jax(data, boundary_surfaces, considered_nodes_
 def _get_boundary_normals_jax(
     moved_nodes, boundary_surfaces, boundary_internal_indices, considered_nodes_count
 ):
-    print("get_boundary_normals_jax")
+    # print("get_boundary_normals_jax")
     dimension = moved_nodes.shape[1]
     boundary_surfaces_normals = _get_boundary_surfaces_normals_jax(
         moved_nodes, boundary_surfaces, boundary_internal_indices, dimension
@@ -81,7 +81,7 @@ def _get_boundary_normals_jax(
 
 
 def _get_element_volume_part_jax(moved_nodes, boundary_surfaces):
-    print("get_element_volume_part_jax")
+    # print("get_element_volume_part_jax")
     moved_boundary_nodes = moved_nodes[boundary_surfaces]
     dimension = moved_nodes.shape[1]
     nodes_count = boundary_surfaces.shape[1]
@@ -102,7 +102,7 @@ def _get_element_volume_part_jax(moved_nodes, boundary_surfaces):
 
 
 def get_surface_per_boundary_node_jax(moved_nodes, boundary_surfaces, considered_nodes_count):
-    print("get_surface_per_boundary_node_jax")
+    # print("get_surface_per_boundary_node_jax")
     element_volume_part = _get_element_volume_part_jax(moved_nodes, boundary_surfaces)
 
     surface_per_boundary_node = _aggrergate_boundary_surfaces_jax(

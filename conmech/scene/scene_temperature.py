@@ -29,7 +29,7 @@ def integrate_boundary_temperature(
     boundary_displacement_step = time_step * boundary_velocity_new
     penetration_norm = _get_penetration_positive(
         displacement_step=boundary_displacement_step,
-        normals=boundary_obstacle_normals,
+        normals=(-1) * boundary_obstacle_normals, # # TODO: Check this / boundary_obstacle_normals,
         initial_penetration=initial_penetration,
     )
 
@@ -126,7 +126,7 @@ class SceneTemperature(Scene):
         if self.has_no_obstacles:
             return np.zeros_like(surface_per_boundary_node)
         return jax.jit(integrate_boundary_temperature)(
-            boundary_obstacle_normals=self.boundary_obstacle_normals, # TODO: Check this (*-1 ?)
+            boundary_obstacle_normals=self.boundary_obstacle_normals,
             boundary_velocity_new=boundary_velocity_new,
             initial_penetration=self.penetration_scalars,
             nodes_volume=surface_per_boundary_node,

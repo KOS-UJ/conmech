@@ -20,7 +20,7 @@ class TrainingData:
     print_scale: int = 1
 
     dataset: str = "calculator"  # synthetic # calculator
-    final_time: float = 2  # 3
+    final_time: float = 3 # 2
     mesh_density: int = 32
     adaptive_training_mesh_scale: Optional[float] = 0.0  # 0.8  # 0.1
 

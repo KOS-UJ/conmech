@@ -75,8 +75,8 @@ class Calculator:
         assert cmh.get_from_os("ENV_READY")
         x0 = jnp.asarray(initial_vector)
 
-        if function is not None:
-            opti_fun = get_optimization_function(fun=function, hes_inv=hes_inv)
+        if function is not None: # TODO: Refactor
+            opti_fun = function #get_optimization_function(fun=function, hes_inv=hes_inv)
         else:
             opti_fun = set_and_get_opti_fun(energy_functions, scene, hes_inv, x0, args)
 
@@ -276,6 +276,9 @@ class Calculator:
         normalized_a = None
         temperature = scene.t_old
         last_normalized_a, normalized_a, last_t = np.empty(0), np.empty(0), np.empty(0)
+        energy_functions = (
+            energy_functions[0] if hasattr(energy_functions, "__len__") else energy_functions
+        )
         while (
             i < 2
             or not np.allclose(last_normalized_a, normalized_a)
@@ -285,7 +288,7 @@ class Calculator:
             normalized_a = Calculator.solve_acceleration_normalized(
                 scene, energy_functions, temperature, initial_a
             )
-            temperature = Calculator.solve_temperature_normalized(scene, normalized_a, initial_t)
+            temperature = Calculator.solve_temperature_normalized(scene, energy_functions, normalized_a, initial_t)
             i += 1
             if i >= max_iter:
                 raise ArgumentError(f"Uzawa algorithm: maximum of {max_iter} iterations exceeded")
@@ -330,6 +333,7 @@ class Calculator:
     @staticmethod
     def solve_temperature_normalized(
         scene: SceneTemperature,
+        energy_functions: EnergyFunctions,
         normalized_acceleration: np.ndarray,
         initial_t: Optional[np.ndarray] = None,
     ) -> np.ndarray:
@@ -340,7 +344,7 @@ class Calculator:
                 scene, normalized_acceleration, initial_t
             )
         return Calculator.solve_temperature_normalized_optimization(
-            scene, normalized_acceleration, initial_t
+            scene, energy_functions, normalized_acceleration, initial_t
         )
 
     @staticmethod
@@ -389,6 +393,7 @@ class Calculator:
     @staticmethod
     def solve_temperature_normalized_optimization(
         scene: SceneTemperature,
+        energy_functions: EnergyFunctions,
         normalized_a: np.ndarray,
         initial_t: Optional[np.ndarray] = None,
     ):
@@ -399,19 +404,23 @@ class Calculator:
 
         normalized_t_rhs = scene.get_normalized_t_rhs_jax(normalized_a)
 
-        cost_function = jax.jit(
-            lambda x, args: energy(
-                nph.unstack(x, 1),
-                scene.solver_cache.lhs_temperature_sparse_jax,
-                normalized_t_rhs,
-            )
-        )
+        if energy_functions.temperature_cost_function is None:
+            fun = lambda x, normalized_t_rhs: energy(
+                    nph.unstack(x, 1),
+                    scene.solver_cache.lhs_temperature_sparse_jax,
+                    normalized_t_rhs,
+                )
+            energy_functions.temperature_cost_function = _get_compiled_optimization_function(fun=fun, hes_inv=None, sample_x0=initial_t_vector, sample_args=normalized_t_rhs)
+  
+            # jax.jit(
+                # 
+            # ).lower(initial_t_vector, normalized_t_rhs).compile()
 
         normalized_t_vector = Calculator.minimize_jax(
             initial_vector=initial_t_vector,
-            args=None,
+            args=normalized_t_rhs,
             hes_inv=None,
-            function=cost_function,
+            function=energy_functions.temperature_cost_function,
         )
         result = nph.unstack(normalized_t_vector, 1)
         return result
