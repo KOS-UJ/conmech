@@ -307,7 +307,7 @@ def get_newest_checkpoint_path_jax(config: TrainingConfig):
     newest_index = np.argmax(np.array([get_index_jax(path) for path in all_checkpoint_paths]))
 
     path = str(Path(all_checkpoint_paths[newest_index]).parent.absolute())
-    print(f"Taking saved model {path.split('/')[-1]}")
+    print(f"============================ Taking saved model {path.split('/')[-1]}")
     return path
 
 

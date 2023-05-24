@@ -76,6 +76,7 @@ class StaticEnergyArguments(NamedTuple):
     use_nonconvex_friction_law: bool
     use_constant_contact_integral: bool
 
+SELF_COLLISION_SCALAR = 10
 
 def _get_constant_boundary_integral(
     args: EnergyObstacleArguments, use_nonconvex_friction_law: bool
@@ -103,7 +104,7 @@ def _get_constant_boundary_integral(
 
     resistance_normal_self = _obstacle_resistance_potential_normal(
         penetration_norm=penetration_norm_self,
-        hardness=10 * args.obstacle_prop.hardness,
+        hardness=SELF_COLLISION_SCALAR * args.obstacle_prop.hardness,
         time_step=args.time_step,
     )
     resistance_tangential = _obstacle_resistance_tangential_vector(
@@ -166,7 +167,7 @@ def _get_boundary_integral(
     )
     resistance_normal_self = _obstacle_resistance_potential_normal(
         penetration_norm=penetration_norm_self,
-        hardness=10 * args.obstacle_prop.hardness,
+        hardness=SELF_COLLISION_SCALAR * args.obstacle_prop.hardness,
         time_step=args.time_step,
     )
     # 64bit does not converge with penetration_norm instead of initial_penetration
@@ -283,7 +284,6 @@ def _energy_vector(value_vector, lhs, rhs):
 def _energy_obstacle_free(
     acceleration_vector, args: EnergyObstacleArguments, static_args: StaticEnergyArguments
 ):
-    # print("energy_obstacle")
     dimension = args.base_displacement.shape[1]
 
     main_energy0 = _energy_vector(

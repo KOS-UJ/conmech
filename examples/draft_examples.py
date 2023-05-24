@@ -25,7 +25,9 @@ from conmech.scenarios.scenarios import (
 )
 from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
+from deep_conmech.run_model import get_newest_checkpoint_path
 from deep_conmech.training_config import TrainingConfig
+from examples.compare_examples import compare_latest
 
 
 def main():
@@ -184,8 +186,12 @@ def main():
         file=__file__,
         plot_animation=True,
         config=Config(shell=False),
+        save_all=True ##########
     )
 
 
 if __name__ == "__main__":
     main()
+    training_config = TrainingConfig(shell=False)
+    checkpoint_path = get_newest_checkpoint_path(training_config)
+    compare_latest(checkpoint_path.split('/')[-1])

@@ -28,7 +28,7 @@ def get_data(scene, get_edges):
     return scene.boundary_nodes, convert_to_int_list(boundary_data)
 
 
-def save_three(scene, step, label, folder, skip=1):
+def save_three(scene, step, label, folder, skip=10): #1
     # Three.js
     if step % skip != 0:
         return

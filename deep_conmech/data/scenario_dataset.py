@@ -145,10 +145,11 @@ class ScenariosDataset(BaseDataset):
             # )
             # current_index += 1
 
+            label = get_label(self.config, scenario)
             save_three(
                 scene=scene,
                 step=index,
-                label=f"{self.config.current_time}_dataset_{self.description}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
+                label=label, #f"{self.config.current_time}_dataset_{self.description}_{scene.simulation_config.mode}_{scene.mesh_prop.mesh_type}",  # timestamp
                 folder="./three",
                 skip=20,
             )

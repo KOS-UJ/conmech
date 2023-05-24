@@ -6,16 +6,7 @@ import jax
 import jax.numpy as jnp
 from tqdm import tqdm
 
-from conmech.helpers import nph
-
-
-def find_files_by_extension(directory, extension):
-    files = []
-    for dirpath, _, filenames in os.walk(directory):
-        for filename in [f for f in filenames if f.endswith(f".{extension}")]:
-            path = os.path.join(dirpath, filename)
-            files.append(path)
-    return files
+from conmech.helpers import cmh, nph
 
 
 def get_all_indices(data_path):
@@ -44,7 +35,7 @@ def load_byte_index(byte_index: int, data_file: BufferedReader):
 
 def get_scenes():
     input_path = "/home/michal/Desktop/conmech/output"
-    scene_files = find_files_by_extension(input_path, "scenes")  # scenes_data
+    scene_files = cmh.find_files_by_extension(input_path, "scenes")  # scenes_data
     path_id = "/scenarios/"
     scene_files = [f for f in scene_files if path_id in f]
 

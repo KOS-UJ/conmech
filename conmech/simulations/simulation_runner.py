@@ -121,6 +121,10 @@ def create_scene(scenario):
     # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
     return scene
 
+def get_label(config, scenario):
+    # os.path.splitext(os.path.basename(file))[0].upper()
+    # timestamp = cmh.get_timestamp(config)
+    return f"{config.current_time}_{scenario.simulation_config.mode}_{scenario.mesh_prop.mesh_type}_{scenario.name}"
 
 def run_examples(
     all_scenarios,
@@ -128,12 +132,13 @@ def run_examples(
     plot_animation,
     config: Config,
     simulate_dirty_data=False,
+    save_all=False
 ):
 
     scenes = []
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
-        catalog = os.path.splitext(os.path.basename(file))[0].upper()
+        catalog = get_label(config, scenario)
 
         scene, _ = run_scenario(
             solve_function=get_solve_function(scenario.simulation_config),
@@ -141,6 +146,7 @@ def run_examples(
             config=config,
             run_config=RunScenarioConfig(
                 catalog=catalog,
+                save_all=save_all,
                 simulate_dirty_data=simulate_dirty_data,
                 plot_animation=plot_animation,
             ),
@@ -161,9 +167,6 @@ class RunScenarioConfig:
 
 
 def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
-    scene_copy = copy.copy(scene)
-    scene_copy.prepare_to_save()
-
     # Blender
     arrays_path = scenes_path + "_data"
     arrays = (scene.boundary_nodes, scene.boundaries.boundary_surfaces)
@@ -181,8 +184,14 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
 
     if save_animation:
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
-        with scenes_file, indices_file:
-            pkh.append_data(data=scene_copy, data_path=scenes_path, lock=None)
+        with scenes_file, indices_file:           
+            # scene_copy = copy.copy(scene)
+            # scene_copy.prepare_to_save()
+            # data = scene_copy
+            
+            normalized_nodes = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)
+            data = {'displacement_old': scene.displacement_old, 'exact_acceleration': scene.exact_acceleration, 'normalized_nodes': normalized_nodes}
+            pkh.append_data(data=data, data_path=scenes_path, lock=None)
 
 
 def run_scenario(
@@ -202,7 +211,7 @@ def run_scenario(
     start_time = config.current_time
 
     if save_files:
-        final_catalog = f"{config.output_catalog}/{start_time} - {run_config.catalog}"
+        final_catalog = f"{config.output_catalog}/{run_config.catalog}" #start_time} - {
         cmh.create_folders(f"{final_catalog}/scenarios")
         if with_reduced:
             cmh.create_folders(f"{final_catalog}/scenarios_reduced")
@@ -357,7 +366,7 @@ def simulate(
 
         with timer["all_iterate"]:
             scene.iterate_self(acceleration, temperature=temperature)
-            # scene.exact_acceleration = acceleration
+            scene.exact_acceleration = acceleration
 
     for key in timer:
         all_time = timer.dt[key].sum()

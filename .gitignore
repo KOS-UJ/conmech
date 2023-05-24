@@ -15,7 +15,7 @@ meta/*
 log/*
 datasets/*
 blender/output/*
-output/*
+output**/*
 three/**/*.json
 
 *.c

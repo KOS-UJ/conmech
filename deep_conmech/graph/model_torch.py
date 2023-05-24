@@ -93,7 +93,7 @@ class GraphModelDynamicTorch:
         else:
             self.ddp_net = net
 
-        self.optimizer = torch.optim.Adam(
+        self.optimizer = torch.optim.AdamW(
             self.ddp_net.parameters(),
             lr=self.config.td.initial_learning_rate,  # weight_decay=5e-4
         )
