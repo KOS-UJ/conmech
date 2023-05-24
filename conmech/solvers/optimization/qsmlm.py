@@ -38,6 +38,9 @@ def gradient(x):
     raise NotImplementedError()
 
 
+fast_math = False
+
+
 # ======================================================================
 # Without scaling
 # ======================================================================
@@ -69,6 +72,7 @@ def gradient(x):
 # ============================================================
 
 
+@numba.njit(fastmath=fast_math)
 def minimize(loss, x, args, nbundle=None, slinit=1, ngradient=False, maxiter=1000):
     """
     Find minimum of `loss` function.
@@ -177,7 +181,7 @@ def minimize(loss, x, args, nbundle=None, slinit=1, ngradient=False, maxiter=100
     return x
 
 
-@numba.njit()
+@numba.njit(inline="always", fastmath=fast_math)
 def wolfe(tildev: np.ndarray, v: np.ndarray, vbar: np.ndarray):
     """
     Solves quadratic programming problem, to find descent direction,
@@ -203,7 +207,7 @@ def wolfe(tildev: np.ndarray, v: np.ndarray, vbar: np.ndarray):
     return clambda  # TODO
 
 
-@numba.njit()
+@numba.njit(inline="always", fastmath=fast_math)
 def dgrad(loss, x, args, sl, g, f4, ndg, pwt, ngradient):
     """
     Calculates subgradients or discrete gradients
@@ -227,7 +231,7 @@ def dgrad(loss, x, args, sl, g, f4, ndg, pwt, ngradient):
     return dg
 
 
-@numba.njit()
+@numba.njit(inline="always", fastmath=fast_math)
 def dgrad2(loss, x1, args, r2, pwt):
     """
     Calculates discrete gradients: Step 5, Algorithm 1
@@ -246,7 +250,7 @@ def dgrad2(loss, x1, args, r2, pwt):
     return v
 
 
-@numba.njit()
+@numba.njit(inline="always", fastmath=fast_math)
 def armijo(loss, x, args, g, f1, f4, sl, r):
     """
     Line search (Armijo-type), Step 5 Algorithm 2.
