@@ -14,12 +14,6 @@ from conmech.scene.energy_functions import EnergyFunctions
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
 from conmech.solvers.calculator import Calculator
-from deep_conmech.graph import model_jax
-from deep_conmech.graph.model_jax import GraphModelDynamicJax
-from deep_conmech.run_model import get_newest_checkpoint_path, get_train_dataset
-from deep_conmech.scene.scene_input import SceneInput
-from deep_conmech.scene.scene_layers import SceneLayers
-from deep_conmech.training_config import TrainingConfig
 
 
 def get_solve_function(simulation_config):
@@ -34,6 +28,11 @@ def get_solve_function(simulation_config):
     if simulation_config.mode == "temperature":
         return Calculator.solve_with_temperature
     if "net" in simulation_config.mode:
+        from deep_conmech.graph import model_jax
+        from deep_conmech.graph.model_jax import GraphModelDynamicJax
+        from deep_conmech.run_model import get_newest_checkpoint_path, get_train_dataset
+        from deep_conmech.training_config import TrainingConfig
+
         training_config = TrainingConfig(shell=False)
         training_config.sc = simulation_config
         checkpoint_path = get_newest_checkpoint_path(training_config)
@@ -65,6 +64,7 @@ def create_scene(scenario):
                 simulation_config=scenario.simulation_config,
             )
         elif scenario.simulation_config.mode in ["skinning", "skinning_backwards"]:
+            from deep_conmech.scene.scene_layers import SceneLayers
             scene = SceneLayers(
                 mesh_prop=scenario.mesh_prop,
                 body_prop=scenario.body_prop,
@@ -74,6 +74,7 @@ def create_scene(scenario):
                 simulation_config=scenario.simulation_config,
             )
         elif scenario.simulation_config.mode in ["net", "compare_net", "compare_reduced"]:
+            from deep_conmech.scene.scene_input import SceneInput
             randomize = False
             scene = SceneInput(
                 mesh_prop=scenario.mesh_prop,
@@ -180,18 +181,16 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
     if save_animation:
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
         with scenes_file, indices_file:
-            # scene_copy = copy.copy(scene)
-            # scene_copy.prepare_to_save()
-            # data = scene_copy
+            scene_copy = copy.copy(scene)
+            scene_copy.prepare_to_save()
+            data = scene_copy
             
-            normalized_nodes = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)
-            data = {'displacement_old': scene.displacement_old, 'exact_acceleration': scene.exact_acceleration,
-                     'normalized_nodes': normalized_nodes, 'lifted_acceleration': scene.lifted_acceleration,
-                     "norm_lifted_new_displacement": scene.norm_lifted_new_displacement,
-                     "recentered_norm_lifted_new_displacement": scene.recentered_norm_lifted_new_displacement,
-                     "norm_reduced": scene.get_norm_by_reduced_lifted_new_displacement(scene.exact_acceleration)}
-            # print()
-            # print("NORM:", np.linalg.norm(scene.norm_lifted_new_displacement))
+            # normalized_nodes = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)
+            # data = {'displacement_old': scene.displacement_old, 'exact_acceleration': scene.exact_acceleration,
+            #          'normalized_nodes': normalized_nodes, 'lifted_acceleration': scene.lifted_acceleration,
+            #          "norm_lifted_new_displacement": scene.norm_lifted_new_displacement,
+            #          "recentered_norm_lifted_new_displacement": scene.recentered_norm_lifted_new_displacement,
+            #          "norm_reduced": scene.get_norm_by_reduced_lifted_new_displacement(scene.exact_acceleration)}
 
             pkh.append_data(data=data, data_path=scenes_path, lock=None)
 

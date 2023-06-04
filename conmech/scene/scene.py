@@ -76,6 +76,7 @@ class Scene(BodyForces):
         self.self_collisions_mask = np.zeros(self.boundary_nodes_count, dtype=bool)
 
         self.clear_external_factors()
+        assert not self.is_colliding()
 
     def prepare(self, inner_forces):
         super().prepare(inner_forces)

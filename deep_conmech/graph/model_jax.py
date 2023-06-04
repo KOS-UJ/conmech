@@ -486,116 +486,12 @@ def solve(
 
     with timer["jax_translation"]:
         scene.recentered_norm_lifted_new_displacement  = scene.recenter_by_reduced(new_displacement=scene.norm_lifted_new_displacement, reduced_exact_acceleration=scene.reduced.exact_acceleration)
-        # reduced_displacement_new = scene.reduce d.to_displacement(scene.reduced.exact_acceleration)
-        # base = scene.reduced.get_rotation(reduced_displacement_new)
-        # position = np.mean(reduced_displacement_new, axis=0)
-        # net_by_reduced_displacement = scene.get_displacement(
-        #     base=base, position=position, base_displacement=norm_by_reduced_net_displacement
-        # )
         scene.lifted_acceleration = np.array(
             scene.from_displacement(scene.recentered_norm_lifted_new_displacement)
         )
 
     if dense_path is None:
         return scene.lifted_acceleration, None
-    return scene.exact_acceleration, None
-
-
-# TODO: all in Jax?
-def solve_compare(
-    apply_net,
-    scene: SceneInput,
-    energy_functions: EnergyFunctions,
-    initial_a,
-    initial_t,
-    timer=Timer(),
-):
-    _ = initial_a, initial_t
-
-    dense_path = cmh.get_base_for_comarison()
-    with timer["jax_calculator"]:
-        
-        scene.exact_acceleration, scene.reduced.exact_acceleration = cmh.get_exact_acceleration(scene=scene, path=dense_path)
-
-        scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
-
-
-        # scene.exact_acceleration, _ = Calculator.solve_skinning_backwards(
-        #     scene=scene,
-        #     energy_functions=energy_functions[0],
-        #     initial_a=scene.reduced.exact_acceleration,
-        #     timer=timer,
-        # )
-        scene.lifted_acceleration = scene.exact_acceleration
-
-        # scene.reduced.lifted_acceleration, _ = Calculator.solve(
-        #     scene=scene.reduced,
-        #     energy_functions=energy_functions[1],  # 0],
-        #     initial_a=scene.reduced.exact_acceleration,
-        #     timer=timer,
-        # )
-        # scene.reduced.exact_acceleration = scene.reduced.lifted_acceleration
-
-    ###
-    exact_displacement = scene.to_displacement(scene.exact_acceleration)
-    skinning_acceleration = np.array(
-        scene.lower_acceleration_from_position(scene.reduced.lifted_acceleration)
-    )
-    skinning_displacement = scene.to_displacement(skinning_acceleration)
-    ###
-
-    device_number = 0  # using GPU 0
-
-    with timer["jax_features_constructon"]:
-        layers_list_0 = cmh.profile(lambda: scene.get_features_data(layer_number=0), baypass=True)
-        layers_list_1 = cmh.profile(lambda: scene.get_features_data(layer_number=1), baypass=True)
-        layers_list = [layers_list_0, layers_list_1]
-
-    with timer["jax_data_movement"]:
-        args = prepare_input(convert_to_jax(layers_list))
-        args = jax.device_put(args, jax.local_devices()[device_number])
-
-    with timer["jax_net"]:
-        norm_by_reduced_net_displacement = apply_net(args) / SCALE
-
-    with timer["jax_translation"]:
-        reduced_displacement_new = scene.reduced.to_displacement(scene.reduced.exact_acceleration)
-        base = scene.reduced.get_rotation(reduced_displacement_new)
-        position = np.mean(reduced_displacement_new, axis=0)
-        net_by_reduced_displacement = scene.get_displacement(
-            base=base, position=position, base_displacement=norm_by_reduced_net_displacement
-        )
-        net_by_reduced_acceleration_from_displacement = np.array(
-            scene.from_displacement(net_by_reduced_displacement)
-        )
-
-    skinning_displacement_from_reduced = scene.get_displacement(
-        base=base, position=position, base_displacement=skinning_displacement
-    )
-    skinning_acceleration_from_reduced = np.array(
-        scene.from_displacement(skinning_displacement_from_reduced)
-    )
-
-    print()
-
-    def get_norm(x):
-        return jnp.sqrt(jnp.mean(
-            jnp.linalg.norm(
-                x,
-                axis=-1,
-            )
-            ** 2
-        ))
-
-    scene.err_net_disp += get_norm(norm_by_reduced_net_displacement - scene.norm_by_reduced_lifted_new_displacement)
-    # scene.err_net_disp += get_norm(net_by_reduced_displacement - exact_displacement)
-    # scene.err_skinning_disp += get_norm(skinning_displacement - exact_displacement)
-    scene.err_skinning_disp += get_norm(
-        scene.get_norm_by_reduced_lifted_new_displacement(skinning_acceleration)
-        - scene.norm_by_reduced_lifted_new_displacement
-    )
-
-    print(f"disp: net:{scene.err_net_disp:.8f} / skinning:{scene.err_skinning_disp:.8f}")
     return scene.exact_acceleration, None
 
 

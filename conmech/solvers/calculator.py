@@ -201,8 +201,6 @@ class Calculator:
         scene.norm_lifted_new_displacement = scene.get_norm_by_reduced_lifted_new_displacement(scene.lifted_acceleration)
         scene.recentered_norm_lifted_new_displacement = scene.recenter_by_reduced(new_displacement=scene.norm_lifted_new_displacement, reduced_exact_acceleration=scene.reduced.exact_acceleration)
 
-        print("NORM MAIN:", np.linalg.norm(scene.norm_lifted_new_displacement))
-        print("NORM RECENTERED:", np.linalg.norm(scene.recentered_norm_lifted_new_displacement))
         return np.array(exact_acceleration), None
 
     @staticmethod

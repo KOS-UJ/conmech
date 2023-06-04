@@ -74,11 +74,6 @@ def compare_latest(label=None):
         errors_skinning = []
         errors_net = []
         for index in tqdm(range(simulation_len)):
-            # print()
-            # print("NORMAL:", np.linalg.norm(normal[index][key]))
-            # print("SKINNING:", np.linalg.norm(skinning[index][key]))
-            # print("DIFF:", np.linalg.norm(skinning[index][key]- normal[index][key]))
-            # print("ERR: ", get_error(skinning, normal, index, 'recentered_norm_lifted_new_displacement', 'recentered_norm_lifted_new_displacement'))
             errors_skinning.append(get_error(skinning, normal, index, key))
             errors_net.append(get_error(net, normal, index, key))
                 
