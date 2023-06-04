@@ -8,6 +8,7 @@ import torch.utils
 
 
 def convert_tensor_to_jax(x):
+    # return jax.numpy.array(x)
     return jax.dlpack.from_dlpack(torch.utils.dlpack.to_dlpack(x))
 
 

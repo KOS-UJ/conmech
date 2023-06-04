@@ -646,7 +646,7 @@ def bunny_fall_3d(
         forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(  # 0.3
             np.array([[[0.0, arg, 1.0]], [[0.0, 0.0, -0.5]]]),
-            ObstacleProperties(hardness=100.0, friction=5.0),
+            ObstacleProperties(hardness=100.0, friction=2.0), # 5.0
         ),
         simulation_config=simulation_config,
     )
@@ -750,7 +750,7 @@ def bunny_obstacles(
         forces_function=scale_forces * np.array([0.0, 0.0, -1.0]),
         obstacle=Obstacle(
             geometry=None,
-            properties=ObstacleProperties(hardness=1000.0, friction=3.0),
+            properties=ObstacleProperties(hardness=100.0, friction=2.0), # 100 5.0 # 1000
             all_mesh=obstacle_meshes,
         ),
         simulation_config=simulation_config,
@@ -807,7 +807,7 @@ def all_train(td, sc):
     scale_forces_list = [1.5, 2.0, 2.5, 3.0]
     obstacle_distance_scale = 1.1  # 1.2 #0.7
     hardness = 100.0
-    friction = 0.0  # 0.0 (5.0)
+    friction = 2.0  # 0.0 (5.0)
     i = 0
     for forces_dim in [0, 1, 2]:
         for forces_dir in [-1.0, 1.0]:
@@ -874,13 +874,12 @@ def all_train(td, sc):
 def all_validation(td, sc):
     args = get_args(td, sc)
     if td.dimension == 3:
-        final_time = 2.0
         return [
             [
                 bunny_fall_3d(
                     mesh_density=td.mesh_density,
                     scale=1,
-                    final_time=final_time,
+                    final_time=2.0,
                     simulation_config=sc,
                     scale_forces=5.0,
                 )
@@ -889,7 +888,16 @@ def all_validation(td, sc):
                 bunny_rotate_3d(
                     mesh_density=td.mesh_density,
                     scale=1,
-                    final_time=final_time,
+                    final_time=2.0,
+                    simulation_config=sc,
+                    scale_forces=5.0,
+                )
+            ],
+            [
+                bunny_obstacles(
+                    mesh_density=td.mesh_density,
+                    scale=1,
+                    final_time=8.0,
                     simulation_config=sc,
                     scale_forces=5.0,
                 )

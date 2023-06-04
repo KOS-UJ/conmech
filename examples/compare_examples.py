@@ -11,6 +11,7 @@ from conmech.helpers import cmh, pkh
 from conmech.helpers.config import Config, SimulationConfig
 from conmech.scenarios.scenarios import bunny_fall_3d
 from conmech.simulations import simulation_runner
+from deep_conmech.graph.model_jax import RMSE
 
 
 def main():
@@ -49,43 +50,8 @@ def main():
 
 
 
-##############
-
-def get_all_indices(data_path):
-    all_indices = []
-    try:
-        with open(f"{data_path}_indices", "rb") as file:
-            try:
-                while True:
-                    all_indices.append(pickle.load(file))
-            except EOFError:
-                pass
-    except IOError:
-        pass
-    return all_indices
-
-def load_simulation(simulation_path):
-    all_indices = get_all_indices(simulation_path)
-    simulation = []
-    with open(simulation_path, "rb") as scenes_file:
-        for byte_index in all_indices:
-            scenes_file.seek(byte_index)
-            data = pickle.load(scenes_file)
-            simulation.append(data)
-    return simulation
-
-
-def get_simulation(scene_files, label):
-    labels = [s for s in scene_files if label in s]
-    # assert len(labels) == 1
-    labels.sort()
-    label=labels[-1]
-    print(label)
-    return load_simulation(label)
-
-
 def get_error(simulation_1, simulation_2, index, key):
-        return np.linalg.norm(simulation_1[index][key] - simulation_2[index][key])
+    return RMSE(simulation_1[index][key], simulation_2[index][key])
 
 def compare_latest(label=None):
     current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
@@ -99,44 +65,51 @@ def compare_latest(label=None):
     scene_files = [f for f in all_scene_files if path_id in f]
     # all_arrays_path = max(scene_files, key=os.path.getctime)
 
-    normal = get_simulation(scene_files, 'normal')
-    skinning = get_simulation(scene_files, 'skinning')
-    net = get_simulation(scene_files, 'net')
+    normal = cmh.get_simulation(scene_files, 'skinning_backwards')
+    skinning = cmh.get_simulation(scene_files, 'skinning')
+    net = cmh.get_simulation(scene_files, 'net')
 
     simulation_len = min(len(normal), len(skinning), len(net))
-    for key in ['displacement_old', 'exact_acceleration', 'normalized_nodes']:
+    for key in ['norm_lifted_new_displacement', 'recentered_norm_lifted_new_displacement']: #, 'displacement_old', 'exact_acceleration', 'normalized_nodes', 'lifted_acceleration']: 
         errors_skinning = []
-        errors_net= []
+        errors_net = []
         for index in tqdm(range(simulation_len)):
+            # print()
+            # print("NORMAL:", np.linalg.norm(normal[index][key]))
+            # print("SKINNING:", np.linalg.norm(skinning[index][key]))
+            # print("DIFF:", np.linalg.norm(skinning[index][key]- normal[index][key]))
+            # print("ERR: ", get_error(skinning, normal, index, 'recentered_norm_lifted_new_displacement', 'recentered_norm_lifted_new_displacement'))
             errors_skinning.append(get_error(skinning, normal, index, key))
             errors_net.append(get_error(net, normal, index, key))
                 
-        errors_df = pd.DataFrame(np.array([errors_skinning, errors_net]).T, columns=['skinning', 'net'])
+        print("Error net: ", np.mean(errors_net))
+        print("Error skinning: ", np.mean(errors_skinning))
+        all_errorrs = np.array([errors_skinning, errors_net])
+        errors_df = pd.DataFrame(all_errorrs.T, columns=['skinning', 'net'])
         plot = errors_df.plot()
         fig = plot.get_figure()
-        fig.savefig(f"output/{current_time}_{label}_dense:{dense}_errors_{key}.png")
-        print(errors_df)
+        fig.savefig(f"output/{current_time}_{label}_dense:{dense}_{key}.png")
 
     ####
 
-    dense = False
-    path_id = "/scenarios/" if dense else "/scenarios_reduced/"
-    scene_files = [f for f in scene_files if path_id in f]
+    # dense = False
+    # path_id = "/scenarios/" if dense else "/scenarios_reduced/"
+    # scene_files = [f for f in scene_files if path_id in f]
 
-    skinning = get_simulation(all_scene_files, 'skinning')
-    net = get_simulation(all_scene_files, 'net')
+    # skinning = cmh.get_simulation(all_scene_files, 'skinning')
+    # net = cmh.get_simulation(all_scene_files, 'net')
 
-    simulation_len = min(len(normal), len(skinning), len(net))
-    for key in ['displacement_old', 'exact_acceleration', 'normalized_nodes']:
-        errors_reduced = []
-        for index in tqdm(range(simulation_len)):
-            errors_reduced.append(get_error(skinning, net, index, key))
+    # simulation_len = min(len(normal), len(skinning), len(net))
+    # for key in ['displacement_old', 'exact_acceleration', 'normalized_nodes']:
+    #     errors_reduced = []
+    #     for index in tqdm(range(simulation_len)):
+    #         errors_reduced.append(get_error(skinning, net, index, key))
                 
-        errors_df = pd.DataFrame(np.array([errors_reduced]).T, columns=['reduced'])
-        plot = errors_df.plot()
-        fig = plot.get_figure()
-        fig.savefig(f"output/{current_time}_{label}_dense:{dense}_errors_{key}.png")
-        print(errors_df)
+    #     errors_df = pd.DataFrame(np.array([errors_reduced]).T, columns=['reduced'])
+    #     plot = errors_df.plot()
+    #     fig = plot.get_figure()
+    #     fig.savefig(f"output/{current_time}_{label}_dense:{dense}_errors_{key}.png")
+    #     print(errors_df)
 
 
 

@@ -1,6 +1,7 @@
 from functools import partial
 
 import numpy as np
+from dotenv import load_dotenv
 
 from conmech.helpers import cmh
 from conmech.helpers.config import Config, SimulationConfig
@@ -31,14 +32,23 @@ from examples.compare_examples import compare_latest
 
 
 def main():
+    load_dotenv()
     cmh.print_jax_configuration()
-
+    
     # mode = "normal"
-    # mode = "compare"
+    # mode = "compare_net"
     # mode = "skinning"
     # mode = "skinning_backwards"
-    mode = "net"
 
+    for mode in ["skinning", "net"]: # "skinning_backwards",  # Do not use normal
+        run_simulation(mode)
+
+    training_config = TrainingConfig(shell=False)
+    checkpoint_path = get_newest_checkpoint_path(training_config)
+    compare_latest(checkpoint_path.split('/')[-1])
+    input("Press Enter to continue...")
+
+def run_simulation(mode):
     def get_simulation_config(mode, use_pca=False):
         return SimulationConfig(
             use_normalization=False,
@@ -53,32 +63,33 @@ def main():
             mode=mode,
         )
 
-    final_time = 3.0  # 2.5  # 8.0  # 2.1
+    final_time = 1.2 #8
     scale_forces = 5.0
 
     # all_print_scenaros = scenarios.all_print(config.td, config.sc)
     # GraphModelDynamicJax.plot_all_scenarios(state, all_print_scenaros, training_config)
 
     all_scenarios = [
-        bunny_fall_3d(
-            mesh_density=32,
-            scale=1,
-            final_time=final_time,
-            simulation_config=get_simulation_config(mode),
-            scale_forces=scale_forces,
-        ),
-        # bunny_obstacles(
+        # bunny_fall_3d(
         #     mesh_density=32,
         #     scale=1,
         #     final_time=final_time,
         #     simulation_config=get_simulation_config(mode),
         #     scale_forces=scale_forces,
         # ),
+        bunny_obstacles(
+            mesh_density=32,
+            scale=1,
+            final_time=final_time,
+            simulation_config=get_simulation_config(mode),
+            scale_forces=scale_forces,
+        ),
         # bunny_rotate_3d(
         #     mesh_density=32,
         #     scale=1,
         #     final_time=final_time,
-        #     simulation_config=get_simulation_config("net"),
+        #     simulation_config=get_simulation_config(mode),
+        #     scale_forces=scale_forces,
         # ),
         # Scenario(
         #     name="bunny_fall",
@@ -192,6 +203,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    training_config = TrainingConfig(shell=False)
-    checkpoint_path = get_newest_checkpoint_path(training_config)
-    compare_latest(checkpoint_path.split('/')[-1])

@@ -145,7 +145,7 @@ class ScenariosDataset(BaseDataset):
             # )
             # current_index += 1
 
-            label = get_label(self.config, scenario)
+            label = cmh.get_run_label(self.config, scenario)
             save_three(
                 scene=scene,
                 step=index,

@@ -274,6 +274,25 @@ class SceneInput(SceneRandomized):
         )  # lower and rotate
 
         target_data.last_displacement_step = thh.to_double(self.get_last_displacement_step())
+        ###
+        
+        # reduced_exact_acceleration = self.lift_acceleration_from_position(
+        #     self.lifted_acceleration
+        # )
+        # lifted_acceleration = np.array(
+        #     self.lower_acceleration_from_position(reduced_exact_acceleration)
+        # )
+
+        # norm_lifted_new_displacement = self.get_norm_by_reduced_lifted_new_displacement(lifted_acceleration)
+
+        skinning_acceleration = np.array(
+                self.lower_acceleration_from_position(self.reduced.lifted_acceleration)
+            )
+        target_data.normalized_new_displacement_skinning = thh.to_double(self.get_norm_by_reduced_lifted_new_displacement(skinning_acceleration))
+
+        print("NORM MAIN:", np.linalg.norm(target_data.normalized_new_displacement))
+        print("NORM SKINNING:", np.linalg.norm(target_data.normalized_new_displacement_skinning))
+        print("NORM DIFF:", np.linalg.norm(target_data.normalized_new_displacement - target_data.normalized_new_displacement_skinning))
         return target_data
 
     @staticmethod

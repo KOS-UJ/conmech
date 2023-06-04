@@ -54,7 +54,7 @@ def save_three(scene, step, label, folder, skip=10): #1
 
     if hasattr(scene, "reduced"):
         normalized_nodes_reduced = (
-            scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement
+            scene.reduced.initial_nodes + scene.reduced.norm_by_reduced_lifted_new_displacement ##3 TODO: reduced has no reduced
         )[scene.reduced.boundary_indices]
         nodes_reduced_list = [
             convert_to_list(nodes_reduced),

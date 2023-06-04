@@ -530,7 +530,8 @@ class BaseDataset:
 
     @property
     def _len_jax(self):
-        # return 400
+        # if not 'validation' in self.main_directory:
+        #     return 50
         return self.data_count // self.device_count
 
     def _getitem_torch(self, index: int):

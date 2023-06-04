@@ -126,24 +126,51 @@ class Calculator:
         timer=Timer(),
     ):
         _ = initial_a, initial_t
-        energy_functions = (
-            energy_functions[1] if hasattr(energy_functions, "__len__") else energy_functions
-        )
+        # energy_functions = (
+        #     energy_functions[1] if hasattr(energy_functions, "__len__") else energy_functions
+        # )
+
+        dense_path = cmh.get_base_for_comarison()
+
         with timer["dense_solver"]:
-            scene.reduced.exact_acceleration, _ = Calculator.solve(
-                scene=scene.reduced,
-                energy_functions=energy_functions,
-                initial_a=scene.reduced.exact_acceleration,
-                timer=timer,
-            )
+            if dense_path is None:
+                # scene.reduced.exact_acceleration, _ = Calculator.solve(
+                #     scene=scene.reduced,
+                #     energy_functions=energy_functions[1],
+                #     initial_a=scene.reduced.exact_acceleration,
+                #     timer=timer,
+                # )
+                scene.exact_acceleration, _ = Calculator.solve(
+                    scene=scene,
+                    energy_functions=energy_functions[0],
+                    initial_a=scene.exact_acceleration,
+                    timer=timer,
+                )
+                scene.reduced.exact_acceleration = scene.lift_acceleration_from_position(
+                    scene.exact_acceleration
+                )
+            else:
+                scene.exact_acceleration, scene.reduced.exact_acceleration = cmh.get_exact_acceleration(scene=scene, path=dense_path)
+
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
         with timer["lower_data"]:
-            acceleration_from_displacement = np.array(
+            scene.lifted_acceleration = np.array(
                 scene.lower_acceleration_from_position(scene.reduced.lifted_acceleration)
             )
 
-        return acceleration_from_displacement, None
+            scene.norm_lifted_new_displacement = scene.get_norm_by_reduced_lifted_new_displacement(scene.lifted_acceleration)            
+            scene.recentered_norm_lifted_new_displacement = scene.recenter_by_reduced(new_displacement=scene.norm_lifted_new_displacement, reduced_exact_acceleration=scene.reduced.exact_acceleration)
+
+            # norm_exact_new_displacement = scene.get_norm_by_reduced_lifted_new_displacement(scene.exact_acceleration)
+            # print("NORM MAIN:", np.linalg.norm(norm_exact_new_displacement))
+            # print("NORM SKINNING:", np.linalg.norm(scene.norm_lifted_new_displacement))
+            # print("NORM DIFF:", np.linalg.norm(norm_exact_new_displacement - scene.norm_lifted_new_displacement))
+            
+        return scene.exact_acceleration, None
+        # if dense_path is None:
+        #     return scene.lifted_acceleration, None
+        # return scene.exact_acceleration, None
 
     @staticmethod
     def solve_skinning_backwards(
@@ -164,14 +191,19 @@ class Calculator:
                 initial_a=scene.exact_acceleration,
                 timer=timer,
             )
-
+            scene.lifted_acceleration = exact_acceleration
         with timer["lift_data"]:
             scene.reduced.exact_acceleration = scene.lift_acceleration_from_position(
                 exact_acceleration
             )
             scene.reduced.lifted_acceleration = scene.reduced.exact_acceleration
 
-            return np.array(exact_acceleration), None
+        scene.norm_lifted_new_displacement = scene.get_norm_by_reduced_lifted_new_displacement(scene.lifted_acceleration)
+        scene.recentered_norm_lifted_new_displacement = scene.recenter_by_reduced(new_displacement=scene.norm_lifted_new_displacement, reduced_exact_acceleration=scene.reduced.exact_acceleration)
+
+        print("NORM MAIN:", np.linalg.norm(scene.norm_lifted_new_displacement))
+        print("NORM RECENTERED:", np.linalg.norm(scene.recentered_norm_lifted_new_displacement))
+        return np.array(exact_acceleration), None
 
     @staticmethod
     def solve_compare_reduced(

@@ -51,9 +51,9 @@ class TrainingData:
     dataset_size: int = 32  # 256 * (1 if TEST else 1) #8)  # 2048)
 
     use_dataset_statistics: bool = True
-    input_batch_norm: bool = False  # False #True
+    input_batch_norm: bool = False
     internal_batch_norm: bool = False
-    layer_norm: bool = False  # True
+    layer_norm: bool = False # TODO: Test
 
     dropout_rate: Optional[float] = 0.5  # None  # 0.0  # 0.1 # 0.2  0.05
     skip_connections: bool = True

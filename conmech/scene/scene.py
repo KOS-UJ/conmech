@@ -65,6 +65,9 @@ class Scene(BodyForces):
         self.mesh_obstacles: List[BodyPosition] = []
         self.energy_functions = None
         self.lifted_acceleration = None
+        self.step = 0
+        self.norm_lifted_new_displacement = None
+        self.recentered_norm_lifted_new_displacement = None
 
         self.boundary_obstacle_normals = np.zeros_like(self.boundary_nodes)
         self.penetration_scalars = np.zeros((self.boundary_nodes_count, 1))
@@ -351,7 +354,7 @@ class Scene(BodyForces):
             if hasattr(self, "reduced"):
                 base_scene = self.reduced
             else:
-                base_scene = self
+                base_scene = self # TODO: Add warning
             return get_in_base(
                 (moved_nodes - np.mean(base_scene.moved_nodes, axis=0)),
                 base_scene.get_rotation(base_scene.displacement_old),

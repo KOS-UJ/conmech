@@ -3,9 +3,11 @@ conmech helpers
 """
 import cProfile
 import os
+import pickle
 import shutil
 import sys
 import time
+from glob import glob
 from pstats import Stats
 from typing import Callable, Iterable
 
@@ -92,6 +94,61 @@ def find_files_by_name(directory, name):
             files.append(path)
     return files
 
+
+def get_base_for_comarison():
+    all_paths = glob("output/*skinning_backwards*/**/*.scenes", recursive=True)
+    assert len(all_paths) == 1
+    return all_paths[0]
+
+
+def get_run_label(config, scenario):
+    return f"{config.current_time}_{scenario.simulation_config.mode}_{scenario.mesh_prop.mesh_type}_{scenario.name}"
+
+
+def get_all_indices(data_path):
+    all_indices = []
+    try:
+        with open(f"{data_path}_indices", "rb") as file:
+            try:
+                while True:
+                    all_indices.append(pickle.load(file))
+            except EOFError:
+                pass
+    except IOError:
+        pass
+    return all_indices
+
+def load_simulation(simulation_path):
+    all_indices = get_all_indices(simulation_path)
+    simulation = []
+    with open(simulation_path, "rb") as scenes_file:
+        for byte_index in all_indices:
+            scenes_file.seek(byte_index)
+            data = pickle.load(scenes_file)
+            simulation.append(data)
+    return simulation
+
+
+def get_simulation(scene_files, label):
+    labels = [s for s in scene_files if label in s]
+    # assert len(labels) == 1
+    labels.sort()
+    label=labels[-1]
+    print(label)
+    return load_simulation(label)
+
+def get_exact_acceleration(scene, path):
+    normal = load_simulation(path)
+    exact_acceleration = normal[scene.step]['exact_acceleration']
+    scene.step+=1 # TODO: Move to iterate self
+
+    reduced_exact_acceleration = scene.lift_acceleration_from_position(
+        exact_acceleration
+    )
+    return exact_acceleration, reduced_exact_acceleration
+
+
+####
 
 def profile(function: Callable, baypass: bool = False):
     if baypass:

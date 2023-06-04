@@ -121,11 +121,6 @@ def create_scene(scenario):
     # np.save("./pt-jax/contact_boundary2.npy", scene.boundaries.contact_boundary)
     return scene
 
-def get_label(config, scenario):
-    # os.path.splitext(os.path.basename(file))[0].upper()
-    # timestamp = cmh.get_timestamp(config)
-    return f"{config.current_time}_{scenario.simulation_config.mode}_{scenario.mesh_prop.mesh_type}_{scenario.name}"
-
 def run_examples(
     all_scenarios,
     file,
@@ -138,7 +133,7 @@ def run_examples(
     scenes = []
     for i, scenario in enumerate(all_scenarios):
         print(f"-----EXAMPLE {i + 1}/{len(all_scenarios)}-----")
-        catalog = get_label(config, scenario)
+        catalog = cmh.get_run_label(config, scenario)
 
         scene, _ = run_scenario(
             solve_function=get_solve_function(scenario.simulation_config),
@@ -184,13 +179,20 @@ def save_scene(scene: Scene, scenes_path: str, save_animation: bool):
 
     if save_animation:
         scenes_file, indices_file = pkh.open_files_append(scenes_path)
-        with scenes_file, indices_file:           
+        with scenes_file, indices_file:
             # scene_copy = copy.copy(scene)
             # scene_copy.prepare_to_save()
             # data = scene_copy
             
             normalized_nodes = (scene.initial_nodes + scene.norm_by_reduced_lifted_new_displacement)
-            data = {'displacement_old': scene.displacement_old, 'exact_acceleration': scene.exact_acceleration, 'normalized_nodes': normalized_nodes}
+            data = {'displacement_old': scene.displacement_old, 'exact_acceleration': scene.exact_acceleration,
+                     'normalized_nodes': normalized_nodes, 'lifted_acceleration': scene.lifted_acceleration,
+                     "norm_lifted_new_displacement": scene.norm_lifted_new_displacement,
+                     "recentered_norm_lifted_new_displacement": scene.recentered_norm_lifted_new_displacement,
+                     "norm_reduced": scene.get_norm_by_reduced_lifted_new_displacement(scene.exact_acceleration)}
+            # print()
+            # print("NORM:", np.linalg.norm(scene.norm_lifted_new_displacement))
+
             pkh.append_data(data=data, data_path=scenes_path, lock=None)
 
 
@@ -349,7 +351,7 @@ def simulate(
             prepare(scenario, scene, current_time, with_temperature)
 
         with timer["all_solver"]:
-            acceleration, temperature = solve_function(
+            scene.exact_acceleration, temperature = solve_function(
                 scene=scene,
                 energy_functions=energy_functions,
                 initial_a=acceleration,
@@ -365,8 +367,7 @@ def simulate(
                 operation(scene=scene)  # (current_time, scene, a, base_a)
 
         with timer["all_iterate"]:
-            scene.iterate_self(acceleration, temperature=temperature)
-            scene.exact_acceleration = acceleration
+            scene.iterate_self(scene.exact_acceleration, temperature=temperature)
 
     for key in timer:
         all_time = timer.dt[key].sum()
