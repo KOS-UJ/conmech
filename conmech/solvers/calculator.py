@@ -7,7 +7,6 @@ import scipy.optimize
 from conmech.helpers import nph
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
-from deep_conmech.scene.scene_randomized import SceneRandomized
 
 
 class Calculator:
@@ -47,7 +46,7 @@ class Calculator:
     @staticmethod
     def solve_all(setting: Scene, initial_a: Optional[np.ndarray] = None):
         normalized_a = Calculator.solve_acceleration_normalized(setting, initial_a)
-        normalized_cleaned_a = Calculator.clean_acceleration(setting, normalized_a)
+        normalized_cleaned_a = Calculator.clean_acceleration(normalized_a)
         cleaned_a = Calculator.denormalize(setting, normalized_cleaned_a)
         return cleaned_a, normalized_cleaned_a
 
@@ -77,7 +76,7 @@ class Calculator:
             if uzawa is False:
                 break
 
-        normalized_cleaned_a = Calculator.clean_acceleration(scene, normalized_a)
+        normalized_cleaned_a = Calculator.clean_acceleration(normalized_a)
         cleaned_a = Calculator.denormalize(scene, normalized_cleaned_a)
         cleaned_t = Calculator.clean_temperature(scene, temperature)
         return cleaned_a, cleaned_t
@@ -182,12 +181,10 @@ class Calculator:
         return t_vector
 
     @staticmethod
-    def clean_acceleration(scene: Scene, normalized_acceleration):
+    def clean_acceleration(normalized_acceleration):
         if normalized_acceleration is None:
             return None
-        if not isinstance(scene, SceneRandomized):
-            return normalized_acceleration
-        return normalized_acceleration + scene.normalized_a_correction
+        return normalized_acceleration
 
     @staticmethod
     def clean_temperature(scene, temperature):

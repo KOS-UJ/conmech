@@ -1,8 +1,26 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
+
 import random
 
 import numpy as np
 
 from conmech.helpers import nph
+from conmech.mesh.utils import interpolate_nodes
 
 
 def decide(scale):
@@ -41,18 +59,6 @@ def scale_nodes_to_square(nodes):
     nodes_max = np.max(nodes, axis=0)
     scaled_nodes = (nodes - nodes_min) / (nodes_max - nodes_min)
     return scaled_nodes
-
-
-def interpolate_nodes(scaled_nodes, corner_vectors):
-    input_dim = scaled_nodes.shape[-1]
-    output_dim = corner_vectors.shape[-1]
-    values = np.zeros((scaled_nodes.shape[0], output_dim))
-    for i in range(input_dim):
-        coordinate_i = scaled_nodes[..., [i]]
-        values += (
-            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + input_dim]
-        ) / input_dim
-    return values
 
 
 def get_nodes_interpolation(nodes: np.ndarray, base: np.ndarray, corner_vectors: np.ndarray):

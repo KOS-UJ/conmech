@@ -359,7 +359,7 @@ class TimeDependent(ProblemSolver):
         for n in output_step:
             done += n
             print(f"{done / n_steps * 100:.2f}%", end="\r")
-            self.run(state, n_steps=n, verbose=verbose)
+            self.run(state, n_steps=n, verbose=verbose, **kwargs)
             results.append(state.copy())
 
         return results

@@ -16,8 +16,8 @@ def get_fig():
 
 
 def get_one_ax(fig, rect, angle, distance):
-    # axes = fig.add_subplot(1, 1, 1, projection="3d", facecolor="none")
-    axes = fig.add_axes(rect, projection="3d", facecolor="none")
+    # axes = fig.add_subplot(1, 1, 1, projection="3D", facecolor="none")
+    axes = fig.add_axes(rect, projection="3D", facecolor="none")
     axes.set_proj_type("ortho")
     axes.view_init(elev=angle[0], azim=angle[1])  # , vertical_axis='y')
     axes.dist = distance

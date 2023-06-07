@@ -223,7 +223,7 @@ def main(show: bool = True, save: bool = False):
                 n_steps=n_steps,
                 output_step=output_steps,
                 verbose=True,
-                # fixed_point_abs_tol=0.001,
+                fixed_point_abs_tol=0.001,
                 initial_displacement=setup.initial_displacement,
                 initial_velocity=setup.initial_velocity,
             )
