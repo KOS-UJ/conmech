@@ -182,7 +182,7 @@ class Quasistatic(SchurComplement):
 
 
 @Solvers.register("quasistatic relaxation", "schur", "schur complement", "schur complement method")
-class Quasistatic(SchurComplement):
+class QuasistaticRelaxed(SchurComplement):
     def iterate(self):
         self.statement.update(
             Variables(

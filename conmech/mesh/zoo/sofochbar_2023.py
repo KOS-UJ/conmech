@@ -59,7 +59,7 @@ class JOB2023(RawMesh):
             ]
         )
 
-        foundation = dmsh.Path([[0., 0.], [diameter + 2 * thickness, 0.]])
+        foundation = dmsh.Path([[0.0, 0.0], [diameter + 2 * thickness, 0.0]])
 
         dense_y = mesh_prop.mesh_density_y
         dense_x = mesh_prop.mesh_density_x

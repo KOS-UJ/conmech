@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional, Callable
 
 import numpy as np
 
@@ -36,10 +36,10 @@ class BodyForces(Dynamics):
             boundaries_description=boundaries_description,
         )
 
-        self.inner_forces = None
+        self.inner_forces: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
         self._node_inner_forces = None
         self._inner_forces_time = None
-        self.outer_forces = None
+        self.outer_forces: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
         self._node_outer_forces = None
         self._outer_forces_time = None
 
@@ -55,17 +55,21 @@ class BodyForces(Dynamics):
 
     def node_inner_forces(self, time: float):
         # TODO handle set self.inner_forces
+        # pylint: disable=not-callable
         if time != self._inner_forces_time:
-            self._node_inner_forces = np.array([self.inner_forces(p, time)
-                                               for p in self.mesh.initial_nodes])
+            self._node_inner_forces = np.array(
+                [self.inner_forces(p, time) for p in self.mesh.initial_nodes]
+            )
             self._inner_forces_time = time
         return self._node_inner_forces
 
     def node_outer_forces(self, time: float):
         # TODO handle set self.inner_forces
+        # pylint: disable=not-callable
         if time != self._outer_forces_time:
-            self._node_outer_forces = np.array([self.outer_forces(p, time)
-                                               for p in self.mesh.initial_nodes])  # TODO: should be only on boundary!
+            self._node_outer_forces = np.array(
+                [self.outer_forces(p, time) for p in self.mesh.initial_nodes]
+            )  # TODO: should be only on boundary!
             self._outer_forces_time = time
         return self._node_outer_forces
 
@@ -84,8 +88,9 @@ class BodyForces(Dynamics):
         return neumann_surfaces * self.node_outer_forces(time)
 
     def get_integrated_forces_column(self, time: float):
-        integrated_forces = self.get_integrated_inner_forces(time) \
-                            + self.get_integrated_outer_forces(time)
+        integrated_forces = self.get_integrated_inner_forces(
+            time
+        ) + self.get_integrated_outer_forces(time)
         return nph.stack_column(integrated_forces[:, :])
 
     def get_integrated_forces_vector(self, time: float):

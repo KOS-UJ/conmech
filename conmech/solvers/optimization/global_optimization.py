@@ -43,7 +43,7 @@ class Quasistatic(Global):
 
 
 @Solvers.register("quasistatic relaxation", "global", "global optimization")
-class Quasistatic(Global):
+class QuasistaticRelaxed(Global):
     def iterate(self):
         self.statement.update(
             Variables(

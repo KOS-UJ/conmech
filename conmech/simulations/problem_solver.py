@@ -14,19 +14,23 @@ from conmech.dynamics.statement import (
     PiezoelectricStatement,
     DynamicVelocityStatement,
     QuasistaticVelocityWithPiezoelectricStatement,
-    Variables, QuasistaticRelaxationStatement,
+    Variables,
+    QuasistaticRelaxationStatement,
 )
 from conmech.properties.body_properties import (
     BodyProperties,
     ElasticProperties,
-    ViscoelasticProperties, ElasticRelaxationProperties, ViscoelasticPiezoelectricProperties,
+    ViscoelasticProperties,
+    ElasticRelaxationProperties,
+    ViscoelasticPiezoelectricProperties,
     ViscoelasticTemperatureProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     Dynamic as DynamicProblem,
-    TimeDependent as TimeDependentProblem, RelaxationQuasistaticProblem,
+    TimeDependent as TimeDependentProblem,
+    RelaxationQuasistaticProblem,
 )
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
@@ -154,13 +158,16 @@ class ProblemSolver:
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
-            solution = self.find_solution(state, self.validator, verbose=verbose, **kwargs,)
+            solution = self.find_solution(
+                state,
+                self.validator,
+                verbose=verbose,
+                **kwargs,
+            )
 
             if self.coordinates == "displacement":
                 state.set_displacement(
-                    solution,
-                    update_absement=True,
-                    time=self.step_solver.current_time
+                    solution, update_absement=True, time=self.step_solver.current_time
                 )
                 self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
                 self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()

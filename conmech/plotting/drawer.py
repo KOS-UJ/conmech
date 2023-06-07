@@ -15,6 +15,7 @@ from conmech.helpers.config import Config
 
 
 class Drawer:
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, state, config: Config):
         """
 
@@ -34,6 +35,7 @@ class Drawer:
         self.field_name = None
         self.field = None
         self.colorful = False
+        self.cmap = None
         self.x_min = None
         self.x_max = None
         self.y_min = None
@@ -72,7 +74,8 @@ class Drawer:
         # axes.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
         #
         # axes.set_aspect("equal", adjustable="box")
-        # plt.title(title)
+        if title is not None:
+            plt.title(title)
 
         if show:
             fig.tight_layout()
@@ -151,11 +154,15 @@ class Drawer:
     def draw_boundaries(self, axes):
         if self.colorful:
             nodes = self.state.displaced_nodes
-            self.draw_boundary(edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b")
+            self.draw_boundary(
+                edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b"
+            )
             self.draw_boundary(
                 edges=self.mesh.dirichlet_boundary, nodes=nodes, axes=axes, edge_color="r"
             )
-            self.draw_boundary(edges=self.mesh.neumann_boundary, nodes=nodes, axes=axes, edge_color="g")
+            self.draw_boundary(
+                edges=self.mesh.neumann_boundary, nodes=nodes, axes=axes, edge_color="g"
+            )
         else:
             self.draw_dirichlet(axes)
 
@@ -165,11 +172,22 @@ class Drawer:
         x = self.state.displaced_nodes[dirichlet_nodes][[0, 1]]
         v = np.zeros_like(x) + np.asarray([0, 1])
         if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
-            axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
-                        angles='xy', scale_units='xy', scale=2.5,
-                        headlength=10, headaxislength=10,  headwidth=10,
-                        pivot="tip",
-                        edgecolor='k', facecolor='None', linewidth=.5)
+            axes.quiver(
+                x[:, 0],
+                x[:, 1],
+                v[:, 0],
+                v[:, 1],
+                angles="xy",
+                scale_units="xy",
+                scale=2.5,
+                headlength=10,
+                headaxislength=10,
+                headwidth=10,
+                pivot="tip",
+                edgecolor="k",
+                facecolor="None",
+                linewidth=0.5,
+            )
 
     def draw_forces(self, axes):
         if self.outer_forces_scale:
@@ -187,8 +205,16 @@ class Drawer:
 
             pivot = "tip" if any(v[:, 1] < 0) else "tail"  # TODO
             if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
-                axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
-                            angles='xy', scale_units='xy', scale=scale, pivot=pivot,)
+                axes.quiver(
+                    x[:, 0],
+                    x[:, 1],
+                    v[:, 0],
+                    v[:, 1],
+                    angles="xy",
+                    scale_units="xy",
+                    scale=scale,
+                    pivot=pivot,
+                )
 
     def draw_stress(self, axes):
         if self.normal_stress_scale:
@@ -196,10 +222,17 @@ class Drawer:
             contact_nodes = list(set(contact_nodes.flatten()))
             x = self.state.displaced_nodes[contact_nodes]
             v = np.zeros((len(contact_nodes), 2))  # TODO
-            v[:, 1] = - self.state.stress_y[contact_nodes]  # TODO
+            v[:, 1] = -self.state.stress_y[contact_nodes]  # TODO
             if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
-                axes.quiver(x[:, 0], x[:, 1], v[:, 0], v[:, 1],
-                            angles='xy', scale_units='xy', scale=self.normal_stress_scale)
+                axes.quiver(
+                    x[:, 0],
+                    x[:, 1],
+                    v[:, 0],
+                    v[:, 1],
+                    angles="xy",
+                    scale_units="xy",
+                    scale=self.normal_stress_scale,
+                )
 
     @staticmethod
     def get_output_path(config, format_, name):
@@ -257,7 +290,8 @@ class Drawer:
         # cbar_ax = fig.add_axes([0.875, 0.15, 0.025, 0.6])
         # ax_pos = axes.get_position()
         # cax = fig.add_axes(
-        #     [axes.get_position().x0, axes.get_position().y0 * 0, axes.get_position().width, axes.get_position().height * 0.05])
+        #     [axes.get_position().x0, axes.get_position().y0 * 0,
+        #     axes.get_position().width, axes.get_position().height * 0.05])
 
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
         # divider = make_axes_locatable(axes)

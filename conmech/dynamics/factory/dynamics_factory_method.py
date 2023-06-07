@@ -6,7 +6,7 @@ from conmech.properties.body_properties import (
     ElasticProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
-    BodyProperties, ElasticRelaxationProperties,
+    BodyProperties,
 )
 
 

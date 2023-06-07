@@ -17,7 +17,7 @@ class State:
         self.time = 0
 
     def set_displacement(
-            self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
+        self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
     ):
         self.displacement = displacement_vector.reshape((2, -1)).T
         self.displaced_nodes[: self.body.mesh.nodes_count, :2] = (
@@ -29,9 +29,7 @@ class State:
             self.absement += dt * self.displacement
         self.time = time
 
-    def set_velocity(
-        self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool
-    ):
+    def set_velocity(self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool):
         self.velocity = velocity_vector.reshape((2, -1)).T
         if update_displacement:
             dt = time - self.time
@@ -51,7 +49,7 @@ class State:
                 self.body.body_prop,
                 self.body.mesh.elements,
                 self.body.mesh.initial_nodes,
-                self.time
+                self.time,
             )
         return self.__stress
 

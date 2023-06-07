@@ -19,12 +19,12 @@ from conmech.solvers.solver_methods import (
 
 class Optimization(Solver):
     def __init__(
-            self,
-            statement,
-            body,
-            time_step,
-            contact_law,
-            friction_bound,
+        self,
+        statement,
+        body,
+        time_step,
+        contact_law,
+        friction_bound,
     ):
         super().__init__(
             statement,
@@ -69,14 +69,14 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     def _solve_impl(
-            self,
-            initial_guess: np.ndarray,
-            *,
-            velocity: np.ndarray,
-            displacement: np.ndarray,
-            method="BFGS",
-            fixed_point_abs_tol: float = math.inf,
-            **kwargs,
+        self,
+        initial_guess: np.ndarray,
+        *,
+        velocity: np.ndarray,
+        displacement: np.ndarray,
+        method="BFGS",
+        fixed_point_abs_tol: float = math.inf,
+        **kwargs,
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
@@ -96,19 +96,16 @@ class Optimization(Solver):
 
         while norm >= fixed_point_abs_tol:
             if method.lower() in (  # TODO
-                    "quasi secant method",
-                    "limited memory quasi secant method",
-                    "quasi secant method limited memory",
-                    "qsm",
-                    "qsmlm"
+                "quasi secant method",
+                "limited memory quasi secant method",
+                "quasi secant method limited memory",
+                "qsm",
+                "qsmlm",
             ):
+                # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
-                solution = qsmlm.minimize(
-                    self.loss,
-                    solution,
-                    args=args,
-                    maxiter=maxiter
-                )
+
+                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
             else:
                 result = scipy.optimize.minimize(
                     self.loss,
