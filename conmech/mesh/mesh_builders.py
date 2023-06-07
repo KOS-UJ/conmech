@@ -6,7 +6,7 @@ from conmech.helpers import mph, nph
 from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.properties.mesh_properties import MeshProperties
-from deep_conmech.data import interpolation_helpers
+from conmech.mesh import interpolators
 
 
 def build_mesh(
@@ -25,7 +25,7 @@ def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
         nodes = nph.get_in_base(nodes, mesh_prop.initial_base)
     # TODO #65: Check if works with all combinations of options
     if mesh_prop.corners_vector is not None:
-        nodes_interpolation = interpolation_helpers.get_nodes_interpolation(
+        nodes_interpolation = interpolators.get_nodes_interpolation(
             nodes=nodes,
             base=mesh_prop.initial_base,
             corner_vectors=mesh_prop.corners_vector,

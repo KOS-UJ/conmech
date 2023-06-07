@@ -25,32 +25,3 @@ Install Gmsh used for mesh construction and dependencies from "requirements.txt"
 To run sample simulations, start any file from examples folder
 
     PYTHONPATH=. python examples/examples_2d.py
-
-
-# deep_conmech
-
-deep_conmech uses Graph Neural Networks to learn dynamic contact mechanics simulations based on energy function implemented in conmech. It is implemented in [PyTorch](https://pytorch.org/) using [PyTorch Geometric](https://github.com/pyg-team/pytorch_geometric) library.
-
-### Sample results
-
-<img src="samples/graph_circle_slope.gif" width="100%" /> | <img src="samples/graph_circle_left.gif" width="100%" />
-:-------------------------:|:-------------------------:
-
-### Installation
-
-Follow the instructions to install conmech, and then install additional dependencies by
-
-    pip install -r requirements-deep.txt
-
-### Usage
-
-To generate training and validation sets, start the training process and periodically save learned model parameters, run
-
-    PYTHONPATH=. python deep_conmech/run_model.py --mode=train
-
-To generate sample trajectories using the most current saved model parameters, run
-
-    PYTHONPATH=. python deep_conmech/run_model.py --mode=plot
- 
-
-
