@@ -9,4 +9,4 @@ pygmsh==7.1.17
 gmsh==4.9.5
 tqdm==4.63.0
 networkx==2.6.3
-dmsh==0.2.20
+dmsh @ git+https://github.com/KOS-UJ/dmsh@main
