@@ -31,12 +31,24 @@ class Static(Global):
 
 @Solvers.register("quasistatic", "global", "global optimization")
 class Quasistatic(Global):
-    def iterate(self, velocity):
-        super().iterate(velocity)
+    def iterate(self):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
                 electric_potential=self.p_vector,
+                time_step=self.time_step,
+                time=self.current_time,
+            )
+        )
+
+
+@Solvers.register("quasistatic relaxation", "global", "global optimization")
+class QuasistaticRelaxed(Global):
+    def iterate(self):
+        self.statement.update(
+            Variables(
+                absement=self.b_vector,
+                displacement=self.u_vector,
                 time_step=self.time_step,
             )
         )
@@ -44,8 +56,7 @@ class Quasistatic(Global):
 
 @Solvers.register("dynamic", "global", "global optimization")
 class Dynamic(Global):
-    def iterate(self, velocity):
-        super().iterate(velocity)
+    def iterate(self):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
@@ -53,5 +64,6 @@ class Dynamic(Global):
                 temperature=self.t_vector,
                 electric_potential=self.p_vector,
                 time_step=self.time_step,
+                time=self.current_time,
             )
         )

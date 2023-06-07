@@ -74,35 +74,48 @@ class Optimization(Solver):
         *,
         velocity: np.ndarray,
         displacement: np.ndarray,
+        method="BFGS",
         fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
         norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
-        velocity = np.squeeze(velocity.copy().reshape(1, -1))
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
-        maxiter = kwargs.get("maxiter", len(initial_guess) * 1e5)
+        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+        tol = kwargs.get("tol", 1e-12)
+        args = (
+            self.body.mesh.initial_nodes,
+            self.body.mesh.contact_boundary,
+            self.node_relations,
+            self.node_forces,
+            displacement,
+            self.time_step,
+        )
 
         while norm >= fixed_point_abs_tol:
-            result = scipy.optimize.minimize(
-                self.loss,
-                solution,
-                args=(
-                    self.body.mesh.initial_nodes,
-                    self.body.mesh.contact_boundary,
-                    self.node_relations,
-                    self.node_forces,
-                    displacement,
-                    self.time_step,
-                ),
-                method="BFGS",
-                options={"disp": disp, "maxiter": maxiter},
-                tol=1e-12,
-            )
-            solution = result.x
+            if method.lower() in (  # TODO
+                "quasi secant method",
+                "limited memory quasi secant method",
+                "quasi secant method limited memory",
+                "qsm",
+                "qsmlm",
+            ):
+                # pylint: disable=import-outside-toplevel,import-error)
+                from kosopt import qsmlm
 
+                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+            else:
+                result = scipy.optimize.minimize(
+                    self.loss,
+                    solution,
+                    args=args,
+                    method=method,
+                    options={"disp": disp, "maxiter": maxiter},
+                    tol=tol,
+                )
+                solution = result.x
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         return solution

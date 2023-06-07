@@ -116,11 +116,11 @@ class TDynamicSetup(TemperatureDynamic):
         return np.asarray([0.25])
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x, t=None):
         return np.array([0.0, -1])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x, t=None):
         if x[0] == 0:
             return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         if x[0] == 1.5:
@@ -202,8 +202,8 @@ def main(steps, setup, show: bool = True, save: bool = False):
         #     state = pickle.load(output)
         #     print(f"k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}")
         Drawer(state=state, config=config).draw(
-            temp_max=np.max(state.temperature),
-            temp_min=np.min(state.temperature),
+            field_max=np.max(state.temperature),
+            field_min=np.min(state.temperature),
             show=True,
             save=False,
         )

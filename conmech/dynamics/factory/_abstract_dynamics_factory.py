@@ -12,6 +12,9 @@ class AbstractDynamicsFactory:
     def calculate_constitutive_matrices(self, W, mu, lambda_):
         raise NotImplementedError()
 
+    def get_relaxation_tensor(self, W, coeff):
+        raise NotImplementedError()
+
     def calculate_acceleration(self, U, density):
         raise NotImplementedError()
 

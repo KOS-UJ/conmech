@@ -69,11 +69,11 @@ class PDynamicSetup(PiezoelectricDynamic):
         return np.asarray([0.0])
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x, t=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x, t=None):
         return np.array([0, 0])
 
     @staticmethod
@@ -116,7 +116,7 @@ def main(show: bool = True, save: bool = False):
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(
-            temp_max=T_max, temp_min=T_min, show=show, save=save
+            field_max=T_max, field_min=T_min, show=show, save=save
         )
 
 

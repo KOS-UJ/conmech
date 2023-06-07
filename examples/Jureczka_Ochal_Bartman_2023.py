@@ -4,10 +4,7 @@ Created at 21.10.2022
 import pickle
 from dataclasses import dataclass
 
-import numba
 import numpy as np
-from matplotlib.colors import Normalize
-import scipy.interpolate
 import matplotlib.pyplot as plt
 
 from conmech.helpers.config import Config
@@ -15,6 +12,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, Quasistatic
 from conmech.simulations.problem_solver import TimeDependent as QuasistaticProblemSolver
+from examples.utils import viscoelastic_constitutive_law
 
 
 def make_contact_law(limit_value, limit):
@@ -66,11 +64,11 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         contact_law: ... = contact_law_
 
         @staticmethod
-        def inner_forces(x):
+        def inner_forces(x, t=None):
             return np.array([0.0, -1.0])
 
         @staticmethod
-        def outer_forces(x):
+        def outer_forces(x, t=None):
             if x[1] == 0.6:
                 return np.array([-4.0, -4.0])
             if x[0] == 1.2:
@@ -90,90 +88,6 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         boundaries: ... = boundaries_
 
     return QuasistaticSetup(mesh_type=mesh_type_)
-
-
-def get_interpolated(u, vertices):
-    x = vertices[:, 0].copy()
-    y = vertices[:, 1].copy()
-    u_x = u[:, 0].copy()
-    u_y = u[:, 1].copy()
-    u_fun_x = scipy.interpolate.LinearNDInterpolator(list(zip(x, y)), u_x)
-    u_fun_y = scipy.interpolate.LinearNDInterpolator(list(zip(x, y)), u_y)
-    return u_fun_x, u_fun_y
-
-
-@numba.njit()
-def calculate_dx_dy(x0, u0, x1, u1, x2, u2):
-    a1 = x1[0] - x0[0]
-    b1 = x1[1] - x0[1]
-    c1 = u1 - u0
-    a2 = x2[0] - x0[0]
-    b2 = x2[1] - x0[1]
-    c2 = u2 - u0
-    a = b1 * c2 - b2 * c1
-    b = a2 * c1 - a1 * c2
-    c = a1 * b2 - b1 * a2
-    dx = a / c
-    dy = b / c
-    return dx, dy
-
-
-def gradient(elements, initial_nodes, f):
-    result = np.zeros((len(f), 2))
-    norm = np.zeros(len(f))
-    for element in elements:
-        x0 = initial_nodes[element[0]]
-        x1 = initial_nodes[element[1]]
-        x2 = initial_nodes[element[2]]
-        f0 = f[element[0]]
-        f1 = f[element[1]]
-        f2 = f[element[2]]
-        dx, dy = calculate_dx_dy(x0, f0, x1, f1, x2, f2)
-        result[element[0], 0] += dx
-        result[element[0], 1] += dy
-        norm[element[0]] += 1
-        result[element[1], 0] += dx
-        result[element[1], 1] += dy
-        norm[element[1]] += 1
-        result[element[2], 0] += dx
-        result[element[2], 1] += dy
-        norm[element[2]] += 1
-
-    result[:, 0] /= norm
-    result[:, 1] /= norm
-
-    return result
-
-
-def constitutive_law(u, v, setup, elements, nodes):
-    grad_x = gradient(elements, nodes, u[:, 0])
-    grad_y = gradient(elements, nodes, u[:, 1])
-    grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
-
-    stress_u = np.zeros_like(grad_u)
-    stress_u[:, 0, 0] = 2 * setup.mu_coef * grad_u[:, 0, 0] + setup.la_coef * (
-        grad_u[:, 0, 0] + grad_u[:, 1, 1]
-    )
-    stress_u[:, 1, 1] = 2 * setup.mu_coef * grad_u[:, 1, 1] + setup.la_coef * (
-        grad_u[:, 0, 0] + grad_u[:, 1, 1]
-    )
-    stress_u[:, 0, 1] = setup.mu_coef * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
-    stress_u[:, 1, 0] = stress_u[:, 0, 1]
-
-    grad_x = gradient(elements, nodes, v[:, 0])
-    grad_y = gradient(elements, nodes, v[:, 1])
-    grad_v = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
-
-    stress_v = np.zeros_like(grad_v)
-    stress_v[:, 0, 0] = 2 * setup.th_coef * grad_v[:, 0, 0] + setup.ze_coef * (
-        grad_v[:, 0, 0] + grad_v[:, 1, 1]
-    )
-    stress_v[:, 1, 1] = 2 * setup.th_coef * grad_v[:, 1, 1] + setup.ze_coef * (
-        grad_v[:, 0, 0] + grad_v[:, 1, 1]
-    )
-    stress_v[:, 0, 1] = setup.th_coef * (grad_v[:, 0, 1] + grad_v[:, 1, 0])
-    stress_v[:, 1, 0] = stress_v[:, 0, 1]
-    return stress_u + stress_v
 
 
 def main(show: bool = True, save: bool = False):
@@ -256,8 +170,8 @@ def main(show: bool = True, save: bool = False):
                 drawer.node_size = 1
                 drawer.original_mesh_color = "k"
                 drawer.deformed_mesh_color = None
-                drawer.draw(show=show, temp_min=0, temp_max=40, save=save)
-            stress = constitutive_law(
+                drawer.draw(show=show, field_min=0, field_max=40, save=save)
+            stress = viscoelastic_constitutive_law(
                 state.displacement,
                 state.velocity,
                 setup,
@@ -271,7 +185,7 @@ def main(show: bool = True, save: bool = False):
             drawer.original_mesh_color = None
             drawer.deformed_mesh_color = None
             drawer.cmap = plt.cm.rainbow
-            drawer.draw(show=show, temp_min=0, temp_max=30, save=True)
+            drawer.draw(show=show, field_min=0, field_max=30, save=True)
 
 
 if __name__ == "__main__":

@@ -51,11 +51,11 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
         return np.asarray([0.0])
 
     @staticmethod
-    def inner_forces(x):
+    def inner_forces(x, t=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x):
+    def outer_forces(x, t=None):
         return np.array([0, 0])
 
     @staticmethod
@@ -97,7 +97,7 @@ def main(show: bool):
     config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(
-            temp_max=e_max, temp_min=e_min, show=show, save=False
+            field_max=e_max, field_min=e_min, show=show, save=False
         )
 
 

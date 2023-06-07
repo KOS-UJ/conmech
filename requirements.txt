@@ -9,4 +9,7 @@ pygmsh==7.1.17
 gmsh==4.9.5
 tqdm==4.63.0
 networkx==2.6.3
+scikit-learn>=1.0.2
+seaborn==0.11.2
+
 dmsh @ git+https://github.com/KOS-UJ/dmsh@main

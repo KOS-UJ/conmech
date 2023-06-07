@@ -1,13 +1,19 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import numba
 import numpy as np
 
-from conmech.dynamics.factory.dynamics_factory_method import get_dynamics
+from conmech.dynamics.factory.dynamics_factory_method import (
+    get_dynamics,
+    get_basic_matrices,
+    get_factory,
+)
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import (
     TemperatureBodyProperties,
     BodyProperties,
+    ElasticRelaxationProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
@@ -56,6 +62,8 @@ class DynamicsConfiguration:
 
 
 class Dynamics(BodyPosition):
+    # TODO: brake inheritance
+    # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         mesh_prop: MeshProperties,
@@ -75,11 +83,15 @@ class Dynamics(BodyPosition):
         self.with_lhs = dynamics_config.with_lhs
         self.with_schur = dynamics_config.with_schur
 
+        self.factory = get_factory(mesh_prop.dimension)
         self.element_initial_volume: np.ndarray
         self.volume_at_nodes: np.ndarray
         self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
+        self._w_matrix = None
+        self.__relaxation: Optional[np.ndarray] = None
+        self.__relaxation_tensor: Optional[float] = None
         self.thermal_expansion: np.ndarray
         self.thermal_conductivity: np.ndarray
         self.piezoelectricity: np.ndarray
@@ -98,6 +110,11 @@ class Dynamics(BodyPosition):
         (
             self.element_initial_volume,
             self.volume_at_nodes,
+            U,
+            V,
+            self._w_matrix,
+        ) = get_basic_matrices(elements=self.mesh.elements, nodes=self.moved_nodes)
+        (
             self.acceleration_operator,
             self.elasticity,
             self.viscosity,
@@ -106,7 +123,7 @@ class Dynamics(BodyPosition):
             self.piezoelectricity,
             self.permittivity,
         ) = get_dynamics(
-            elements=self.mesh.elements, nodes=self.moved_nodes, body_prop=self.body_prop
+            elements=self.mesh.elements, body_prop=self.body_prop, U=U, V=V, W=self._w_matrix
         )
 
         if not self.with_lhs:
@@ -149,3 +166,17 @@ class Dynamics(BodyPosition):
     @property
     def with_temperature(self):
         return isinstance(self.body_prop, TemperatureBodyProperties)
+
+    def relaxation(self, time: float = 0):
+        # TODO handle others
+        if isinstance(self.body_prop, ElasticRelaxationProperties):
+            relaxation_tensor = self.body_prop.relaxation(time)
+            if (relaxation_tensor != self.__relaxation_tensor).any():
+                self.__relaxation_tensor = relaxation_tensor
+                self.__relaxation = self.factory.get_relaxation_tensor(
+                    self._w_matrix, relaxation_tensor
+                )
+        else:
+            raise TypeError("There is no relaxation operator!")
+
+        return self.__relaxation

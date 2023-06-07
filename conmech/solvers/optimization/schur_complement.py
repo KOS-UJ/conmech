@@ -169,13 +169,27 @@ class Static(SchurComplement):
 
 @Solvers.register("quasistatic", "schur", "schur complement", "schur complement method")
 class Quasistatic(SchurComplement):
-    def iterate(self, velocity):
-        super().iterate(velocity)
+    def iterate(self):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
                 time_step=self.time_step,
+                time=self.current_time,
                 electric_potential=self.p_vector,
+            )
+        )
+        self.node_forces_, self.forces_free = self.recalculate_forces()
+
+
+@Solvers.register("quasistatic relaxation", "schur", "schur complement", "schur complement method")
+class QuasistaticRelaxed(SchurComplement):
+    def iterate(self):
+        self.statement.update(
+            Variables(
+                absement=self.b_vector,
+                displacement=self.u_vector,
+                time_step=self.time_step,
+                time=self.current_time,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()
@@ -183,43 +197,7 @@ class Quasistatic(SchurComplement):
 
 @Solvers.register("dynamic", "schur", "schur complement", "schur complement method")
 class Dynamic(SchurComplement):
-    # TODO #50
-    # def inner_forces(x):
-    #     return 0.1 * (1.25 - abs(x - 1.25) + 0.5 - abs(y - 0.5))
-    #
-    # def outer_forces(x):
-    #     return 0
-    #
-    # self.inner_temperature = Forces(mesh, inner_forces, outer_forces)
-    # self.inner_temperature.setF()
-
-    # def solve(
-    #     self,
-    #     state,
-    #     *,
-    #     fixed_point_abs_tol: float = math.inf,
-    #     **kwargs
-    # ):
-    #     velocity = super(Dynamic, self).solve(state["velocity"],
-    #                                           fixed_point_abs_tol=fixed_point_abs_tol,
-    #                                           **kwargs)
-    #     state.set_velocity(velocity_vector=velocity)
-
-    # def solve_t(self, initial_guess, velocity) -> np.ndarray:
-    #     truncated_temperature = initial_guess[self.contact_ids]
-    #     solution_contact = super().solve_t(truncated_temperature, velocity)
-    #
-    #     _solution_free = self.temper_free_x_contact @ solution_contact
-    #     _solution_free = self.temper_rhs_free - _solution_free
-    #     solution_free = self.temper_free_x_free_inverted @ _solution_free
-    #
-    #     _result = np.concatenate((solution_contact, solution_free))
-    #     solution = np.squeeze(np.asarray(_result))
-    #
-    #     return solution
-
-    def iterate(self, velocity):
-        super().iterate(velocity)
+    def iterate(self):
         self.statement.update(
             Variables(
                 displacement=self.u_vector,
@@ -227,6 +205,7 @@ class Dynamic(SchurComplement):
                 temperature=self.t_vector,
                 electric_potential=self.p_vector,
                 time_step=self.time_step,
+                time=self.current_time,
             )
         )
         self.node_forces_, self.forces_free = self.recalculate_forces()

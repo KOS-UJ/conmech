@@ -33,3 +33,27 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
             return result
 
     return PSlopeContactLaw
+
+
+def make_const_contact_law(slope: float) -> Type[ContactLaw]:
+    class PSlopeContactLaw(ContactLaw):
+        @staticmethod
+        def potential_normal_direction(u_nu: float) -> float:
+            if u_nu <= 0:
+                return 0.0
+            return slope * u_nu
+
+        @staticmethod
+        def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
+            return 0
+
+        @staticmethod
+        def regularized_subderivative_tangential_direction(
+            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        ) -> float:
+            """
+            Coulomb regularization
+            """
+            return 0
+
+    return PSlopeContactLaw

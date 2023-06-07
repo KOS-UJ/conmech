@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 
@@ -9,15 +10,20 @@ class BodyProperties:
 
 
 @dataclass
-class StaticBodyProperties(BodyProperties):
+class ElasticProperties(BodyProperties):
     mu: float
     lambda_: float
 
 
 @dataclass
-class TimeDependentBodyProperties(StaticBodyProperties):
+class ViscoelasticProperties(ElasticProperties):
     theta: float
     zeta: float
+
+
+@dataclass
+class RelaxationBodyProperties:
+    relaxation: Callable[[float], np.ndarray]
 
 
 @dataclass
@@ -33,21 +39,26 @@ class TemperatureBodyProperties:
 
 
 @dataclass
-class StaticTemperatureBodyProperties(StaticBodyProperties, TemperatureBodyProperties):
+class ElasticTemperatureProperties(ElasticProperties, TemperatureBodyProperties):
     pass
 
 
 @dataclass
-class TimeDependentTemperatureBodyProperties(
-    TimeDependentBodyProperties,
+class ViscoelasticTemperatureProperties(
+    ViscoelasticProperties,
     TemperatureBodyProperties,
 ):
     pass
 
 
 @dataclass
-class TimeDependentPiezoelectricBodyProperties(
-    TimeDependentBodyProperties,
+class ViscoelasticPiezoelectricProperties(
+    ViscoelasticProperties,
     PiezoelectricBodyProperties,
 ):
+    pass
+
+
+@dataclass
+class ElasticRelaxationProperties(ElasticProperties, RelaxationBodyProperties):
     pass

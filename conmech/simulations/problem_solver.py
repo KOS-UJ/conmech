@@ -15,19 +15,22 @@ from conmech.dynamics.statement import (
     DynamicVelocityStatement,
     QuasistaticVelocityWithPiezoelectricStatement,
     Variables,
+    QuasistaticRelaxationStatement,
 )
 from conmech.properties.body_properties import (
-    TimeDependentTemperatureBodyProperties,
     BodyProperties,
-    TimeDependentBodyProperties,
-    StaticBodyProperties,
-    TimeDependentPiezoelectricBodyProperties,
+    ElasticProperties,
+    ViscoelasticProperties,
+    ElasticRelaxationProperties,
+    ViscoelasticPiezoelectricProperties,
+    ViscoelasticTemperatureProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     Dynamic as DynamicProblem,
     TimeDependent as TimeDependentProblem,
+    RelaxationQuasistaticProblem,
 )
 from conmech.scenarios.problems import Problem
 from conmech.scenarios.problems import Quasistatic as QuasistaticProblem
@@ -76,15 +79,19 @@ class ProblemSolver:
                 with_schur=False,
             ),
         )
-        self.body.set_permanent_forces_by_functions(
-            inner_forces_function=setup.inner_forces, outer_forces_function=setup.outer_forces
-        )
+        self.body.inner_forces = setup.inner_forces
+        self.body.outer_forces = setup.outer_forces
         self.setup = setup
 
         self.coordinates = None
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
+
+        self.penetration = []
+
+        self.done = 0
+        self.to_do = 1
 
     @property
     def solving_method(self):
@@ -95,17 +102,18 @@ class ProblemSolver:
         solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
         second_solver_class = Solvers.get_by_name(solver_name=value, problem=self.setup)
 
-        # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
         if isinstance(self.setup, StaticProblem):
             statement = StaticDisplacementStatement(self.body)
             time_step = 0
         elif isinstance(self.setup, (QuasistaticProblem, DynamicProblem)):
             if isinstance(self.setup, PiezoelectricQuasistaticProblem):
                 statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
-            elif isinstance(self.setup, QuasistaticProblem):
-                statement = QuasistaticVelocityStatement(self.body)
+            elif isinstance(self.setup, RelaxationQuasistaticProblem):
+                statement = QuasistaticRelaxationStatement(self.body)
             elif isinstance(self.setup, TemperatureDynamicProblem):
                 statement = DynamicVelocityWithTemperatureStatement(self.body)
+            elif isinstance(self.setup, QuasistaticProblem):  # This have to be last
+                statement = QuasistaticVelocityStatement(self.body)
             else:
                 statement = DynamicVelocityStatement(self.body)
             time_step = self.setup.time_step
@@ -147,36 +155,42 @@ class ProblemSolver:
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
-        :return: state
         """
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
-            solution = state.velocity.reshape(2, -1)
             solution = self.find_solution(
                 state,
-                solution,
                 self.validator,
                 verbose=verbose,
                 **kwargs,
             )
 
             if self.coordinates == "displacement":
-                state.set_displacement(solution, time=self.step_solver.current_time)
-                self.step_solver.u_vector[:] = state.displacement.reshape(-1)
+                state.set_displacement(
+                    solution, update_absement=True, time=self.step_solver.current_time
+                )
+                self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
+                self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
             elif self.coordinates == "velocity":
                 state.set_velocity(
                     solution,
                     update_displacement=True,
                     time=self.step_solver.current_time,
                 )
+                self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+                self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-    def find_solution(self, state, solution, validator, *, verbose=False, **kwargs) -> np.ndarray:
+            self.penetration.append((state.time, state.penetration))
+            self.step_solver.iterate()
+            self.done += 1
+            print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
+
+    def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
         quality = 0
-        # solution = state[self.coordinates].reshape(2, -1)  # TODO #23
-        solution = self.step_solver.solve(solution, **kwargs)
-        self.step_solver.iterate(solution)
+        initial_guess = state[self.coordinates].reshape(2, -1)
+        solution = self.step_solver.solve(initial_guess, **kwargs)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
@@ -203,6 +217,7 @@ class ProblemSolver:
                     temperature=solution_t,
                     electric_potential=solution_t,
                     time_step=self.step_solver.time_step,
+                    time=self.step_solver.current_time,
                 )
             )
             if isinstance(self.step_solver, SchurComplement):
@@ -269,7 +284,7 @@ class Static(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = StaticBodyProperties(
+        body_prop = ElasticProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -292,10 +307,75 @@ class Static(ProblemSolver):
             self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
+
+
+class QuasistaticRelaxation(ProblemSolver):
+    def __init__(self, setup: RelaxationQuasistaticProblem, solving_method: str):
+        """Solves general Contact Mechanics problem.
+
+        :param setup:
+        :param solving_method: 'schur', 'optimization', 'direct'
+        """
+        body_prop = ElasticRelaxationProperties(
+            mass_density=1.0,
+            mu=setup.mu_coef,
+            lambda_=setup.la_coef,
+            relaxation=setup.relaxation,
+        )
+        super().__init__(setup, body_prop)
+
+        self.coordinates = "displacement"
+        self.solving_method = solving_method
+
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
+    def solve(
+        self,
+        *,
+        n_steps: int,
+        initial_absement: Callable,
+        initial_displacement: Callable,
+        output_step: Optional[iter] = None,
+        verbose: bool = False,
+        **kwargs,
+    ) -> List[State]:
+        """
+        :param n_steps: number of time-step in simulation
+        :param output_step: from which time-step we want to get copy of State,
+                            default (n_steps-1,)
+                            example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
+                                     we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_absement: for the solver
+        :param initial_displacement: for the solver
+        :param verbose: show prints
+        :return: state
+        """
+        output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
+
+        state = State(self.body)
+        state.absement[:] = initial_absement(
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+        )
+        state.displacement[:] = initial_displacement(
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+        )
+
+        self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+
+        output_step = np.diff(output_step)
+        results = []
+        self.done = 0
+        self.to_do = n_steps
+        for n in output_step:
+            self.run(state, n_steps=n, verbose=verbose, **kwargs)
+            results.append(state.copy())
+
+        return results
 
 
 class TimeDependent(ProblemSolver):
@@ -305,7 +385,7 @@ class TimeDependent(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = TimeDependentBodyProperties(
+        body_prop = ViscoelasticProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -350,15 +430,14 @@ class TimeDependent(ProblemSolver):
             self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []
-        done = 0
+        self.done = 0
+        self.to_do = n_steps
         for n in output_step:
-            done += n
-            print(f"{done / n_steps * 100:.2f}%", end="\r")
             self.run(state, n_steps=n, verbose=verbose, **kwargs)
             results.append(state.copy())
 
@@ -373,7 +452,7 @@ class TemperatureTimeDependent(ProblemSolver):
         :param solving_method: 'schur', 'optimization', 'direct'
         """
 
-        body_prop = TimeDependentTemperatureBodyProperties(
+        body_prop = ViscoelasticTemperatureProperties(
             mass_density=1.0,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -426,13 +505,13 @@ class TemperatureTimeDependent(ProblemSolver):
         solution = state.velocity.reshape(2, -1)
         solution_t = state.temperature
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.t_vector[:] = state.temperature.T.ravel().copy()
 
-        self.second_step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.second_step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.second_step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.second_step_solver.t_vector[:] = state.temperature.T.ravel().copy()
 
         output_step = np.diff(output_step)
         done = 0
@@ -467,7 +546,7 @@ class PiezoelectricTimeDependent(ProblemSolver):
         :param setup:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = TimeDependentPiezoelectricBodyProperties(
+        body_prop = ViscoelasticPiezoelectricProperties(
             mass_density=0.1,
             mu=setup.mu_coef,
             lambda_=setup.la_coef,
@@ -520,13 +599,13 @@ class PiezoelectricTimeDependent(ProblemSolver):
         solution = state.velocity.reshape(2, -1)
         solution_t = state.electric_potential
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.step_solver.p_vector[:] = state.electric_potential.ravel().copy()
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.p_vector[:] = state.electric_potential.T.ravel().copy()
 
-        self.second_step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.second_step_solver.v_vector[:] = state.velocity.ravel().copy()
-        self.second_step_solver.p_vector[:] = state.electric_potential.ravel().copy()
+        self.second_step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.second_step_solver.p_vector[:] = state.electric_potential.T.ravel().copy()
 
         output_step = np.diff(output_step)
         results = []

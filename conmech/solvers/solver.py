@@ -23,6 +23,7 @@ class Solver:
 
         self.time_step = time_step
         self.current_time = 0
+        self.b_vector = np.zeros(self.body.mesh.nodes_count * 2)
         self.u_vector = np.zeros(self.body.mesh.nodes_count * 2)
         self.v_vector = np.zeros(self.body.mesh.nodes_count * 2)
         self.t_vector = np.zeros(self.body.mesh.nodes_count)
@@ -32,10 +33,12 @@ class Solver:
 
         self.statement.update(
             Variables(
+                absement=self.b_vector,
                 displacement=self.u_vector,
                 velocity=self.v_vector,
                 temperature=self.t_vector,
                 time_step=self.time_step,
+                time=self.current_time,
                 electric_potential=self.p_vector,
             )
         )
@@ -43,9 +46,8 @@ class Solver:
     def __str__(self):
         raise NotImplementedError()
 
-    def iterate(self, velocity):
-        self.v_vector[:] = velocity.reshape(-1)
-        self.u_vector[:] = self.u_vector + self.time_step * self.v_vector
+    def iterate(self):
+        pass
 
     def _solve_impl(
         self, initial_guess, *, velocity: np.ndarray, displacement: np.ndarray, **kwargs

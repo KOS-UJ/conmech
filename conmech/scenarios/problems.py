@@ -3,7 +3,7 @@ Contact Mechanics Problem setups
 """
 from abc import ABC
 from dataclasses import dataclass
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional, Callable
 
 import numpy as np
 
@@ -48,11 +48,11 @@ class Problem:
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
+    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -62,11 +62,11 @@ class Problem:
 
 class Static(Problem):
     @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
+    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -84,11 +84,11 @@ class TimeDependent(Problem):
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
+    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         raise NotImplementedError()
 
     @staticmethod
@@ -119,6 +119,14 @@ class PiezoelectricTimeDependent(TimeDependent, ABC):
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
+
+
+class RelaxationQuasistaticProblem(Quasistatic, ABC):
+    relaxation: Callable[[float], np.ndarray]
+
+    @staticmethod
+    def initial_absement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))
 
 
