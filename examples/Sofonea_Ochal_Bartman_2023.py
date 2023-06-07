@@ -50,15 +50,17 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     elements_number: ... = (20 / TEST, 20 / TEST)
     mu_coef: ... = E / (1 + kappa)
     la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
-    time_step: ... = 1/128 * TEST**2
+    time_step: ... = 1 / 128 * TEST**2
     contact_law: ... = make_const_contact_law(slope=10)
 
     @staticmethod
     def relaxation(t: float) -> np.ndarray:
-        _mu = 0.
+        _mu = 0.0
         return np.array(
-            [[[2 * _mu, 0], [_mu, _mu]],
-             [[_mu, _mu], [0, 2 * _mu]], ]
+            [
+                [[2 * _mu, 0], [_mu, _mu]],
+                [[_mu, _mu], [0, 2 * _mu]],
+            ]
         )
 
     @staticmethod
@@ -93,26 +95,30 @@ def main(save: bool = False, simulate: bool = True):
 
     def sin_outer_forces(x, t=None):
         if x[1] <= oy:
-            return np.array([0., 0])
+            return np.array([0.0, 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
             return np.array([0, fv * np.sin(t)])
         return np.array([0.0, 0.0])
 
     def const_relaxation(t=None):
-        _mu = 10000.
+        _mu = 10000.0
         return np.array(
-            [[[2 * _mu, 0], [_mu, _mu]],
-             [[_mu, _mu], [0, 2 * _mu]], ]
+            [
+                [[2 * _mu, 0], [_mu, _mu]],
+                [[_mu, _mu], [0, 2 * _mu]],
+            ]
         )
 
     def zero_relaxation(t=None):
-        _mu = 0.
+        _mu = 0.0
         return np.array(
-            [[[2 * _mu, 0], [_mu, _mu]],
-             [[_mu, _mu], [0, 2 * _mu]], ]
+            [
+                [[2 * _mu, 0], [_mu, _mu]],
+                [[_mu, _mu], [0, 2 * _mu]],
+            ]
         )
 
-    steps_per_unit = setup.time_step ** -1
+    steps_per_unit = setup.time_step**-1
     output_steps = (0, 1.5, 2.75, 4.0, 5.0, 6.0)
     output_steps = tuple(int(steps * steps_per_unit) for steps in output_steps)
     examples = {
@@ -162,7 +168,7 @@ def main(save: bool = False, simulate: bool = True):
                 initial_displacement=setup.initial_displacement,
                 tol=1e-9,
                 fixed_point_abs_tol=1e-9,
-                method="qsm"
+                method="qsm",
             )
             f_max = -np.inf
             f_min = np.inf
@@ -170,8 +176,8 @@ def main(save: bool = False, simulate: bool = True):
                 f_max = max(f_max, np.max(state.stress_x))
                 f_min = min(f_min, np.min(state.stress_x))
                 with open(
-                        f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
-                        "wb+",
+                    f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
+                    "wb+",
                 ) as output:
                     # Workaround
                     relaxation = state.body.body_prop.relaxation
@@ -181,13 +187,13 @@ def main(save: bool = False, simulate: bool = True):
                     pickle.dump(state, output)
                     state.body.body_prop.relaxation = relaxation
             with open(
-                    f"./output/sob2023/{name}_h_{h}_penetration",
-                    "wb+",
+                f"./output/sob2023/{name}_h_{h}_penetration",
+                "wb+",
             ) as output:
                 pickle.dump(runner.penetration, output)
             with open(
-                    f"./output/sob2023/{name}_h_{h}_global",
-                    "wb+",
+                f"./output/sob2023/{name}_h_{h}_global",
+                "wb+",
             ) as output:
                 pickle.dump([f_min, f_max], output)
 
@@ -255,13 +261,13 @@ def main(save: bool = False, simulate: bool = True):
                     save=False,
                 )
                 if time_step == 0:
-                    axes[0].annotate('$\Gamma_1$', xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
+                    axes[0].annotate("$\Gamma_1$", xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
                     position = (3.66, 4.5)
-                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=position, fontsize=18)
+                    axes[0].annotate("$\Gamma_2$", xy=(0, 0), xytext=position, fontsize=18)
                     axes[0].add_patch(Rectangle(position, 0.3, 0.3, color="white"))
-                    axes[0].annotate('$\Gamma_2$', xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
-                    axes[0].annotate('$\mathbf{f}_2$', xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
-                    axes[0].annotate('$\Gamma_3$', xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
+                    axes[0].annotate("$\Gamma_2$", xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
+                    axes[0].annotate("$\mathbf{f}_2$", xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
+                    axes[0].annotate("$\Gamma_3$", xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
                 axes[0].axis("on")
                 axes[0].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
                 axes[0].set_aspect("equal", adjustable="box")
@@ -275,7 +281,7 @@ def main(save: bool = False, simulate: bool = True):
 
 
 def plots(setup, h, examples, config):
-    _, axes = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(9, 4))
+    _, axes = plt.subplots(2, 2, sharex="col", sharey="row", figsize=(9, 4))
     for ax in axes.ravel():
         ax.set_xlim(0.0, 6.0)
         ax.grid()
@@ -327,30 +333,30 @@ def plots(setup, h, examples, config):
 def plot_outer_force(axis, frc, t, vertical_line=None):
     axis.set_ylim(-5.5, 5.5)
     axis.plot(t, frc, color="black")
-    axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
+    axis.axhline(y=[0], color="dimgray", ls="-", lw=1)
 
     if vertical_line is not None:
-        axis.axvline(x=[vertical_line], color='gray', ls='--', lw=1)
+        axis.axvline(x=[vertical_line], color="gray", ls="--", lw=1)
 
 
 def plot_displacement_normal_direction(axis, u_nu, t, vertical_line=None):
     axis.set_ylim(-0.5, 0.8)
     axis.plot(u_nu[:, 0], u_nu[:, 1], color="black")
-    axis.axhline(y=[0], color='dimgray', ls='-', lw=1)
+    axis.axhline(y=[0], color="dimgray", ls="-", lw=1)
 
     if vertical_line is not None:
-        axis.axvline(x=[vertical_line], color='gray', ls='--', lw=1)
+        axis.axvline(x=[vertical_line], color="gray", ls="--", lw=1)
 
 
 def zoom_outside(
-        src_ax,
-        roi,
-        dst_ax,
-        color="red",
-        linewidth=2,
-        draw_lines=False,
-        roi_kwargs=None,
-        arrow_kwargs=None,
+    src_ax,
+    roi,
+    dst_ax,
+    color="red",
+    linewidth=2,
+    draw_lines=False,
+    roi_kwargs=None,
+    arrow_kwargs=None,
 ):
     """Create a zoomed subplot outside the original subplot
 
@@ -408,15 +414,22 @@ def zoom_outside(
         else:
             corners = [1, 3]  # lower
     else:
-        RuntimeWarning("Cannot find a proper way to link the original chart to "
-                       "the zoomed chart! The lines between the region of "
-                       "interest and the zoomed chart will not be plotted.")
+        RuntimeWarning(
+            "Cannot find a proper way to link the original chart to "
+            "the zoomed chart! The lines between the region of "
+            "interest and the zoomed chart will not be plotted."
+        )
         return
     # plot 2 lines to link the region of interest and the zoomed chart
     for k in range(2):
-        src_ax.annotate('', xy=src_corners[corners[k]], xycoords="data",
-                        xytext=dst_corners[corners[k]], textcoords="figure fraction",
-                        arrowprops=arrow_kwargs)
+        src_ax.annotate(
+            "",
+            xy=src_corners[corners[k]],
+            xycoords="data",
+            xytext=dst_corners[corners[k]],
+            textcoords="figure fraction",
+            arrowprops=arrow_kwargs,
+        )
 
 
 if __name__ == "__main__":

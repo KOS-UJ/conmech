@@ -110,12 +110,12 @@ def viscoelastic_constitutive_law(u, v, setup, elements, nodes):
 
 
 def elastic_relaxation_constitutive_law(
-        displacement: np.ndarray,
-        absement: np.ndarray,
-        body_prop: BodyProperties,
-        elements,
-        nodes,
-        time,
+    displacement: np.ndarray,
+    absement: np.ndarray,
+    body_prop: BodyProperties,
+    elements,
+    nodes,
+    time,
 ):  # TODO!
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])
