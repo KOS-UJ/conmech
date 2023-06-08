@@ -114,7 +114,12 @@ def get_K_temp_scenarios(mesh_density, final_time):
     ]
 
 
-def main(mesh_density=5, final_time=3, plot_animation=True):
+def main(config: Config, mesh_density=5, final_time=3, plot_animation=True):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     all_scenarios = []
     all_scenarios.extend(get_C_temp_scenarios(mesh_density, final_time))
     all_scenarios.extend(get_K_temp_scenarios(mesh_density, final_time))
@@ -149,4 +154,4 @@ def main(mesh_density=5, final_time=3, plot_animation=True):
 
 
 if __name__ == "__main__":
-    main()
+    main(Config().init())

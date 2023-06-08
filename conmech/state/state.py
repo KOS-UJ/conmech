@@ -3,7 +3,6 @@ Created at 18.02.2021
 """
 
 import numpy as np
-from examples.utils import elastic_relaxation_constitutive_law
 
 
 class State:
@@ -13,7 +12,9 @@ class State:
         self.displacement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
         self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
+        self.setup = None
         self.__stress: np.ndarray = None
+        self.constitutive_law = None
         self.time = 0
 
     def set_displacement(
@@ -42,16 +43,22 @@ class State:
 
     @property
     def stress(self):
-        if self.__stress is None:
-            self.__stress = elastic_relaxation_constitutive_law(
-                self.displacement,
-                self.absement,
-                self.body.body_prop,
-                self.body.mesh.elements,
-                self.body.mesh.initial_nodes,
-                self.time,
+        if self.__stress is None and self.constitutive_law is not None:
+            # pylint: disable=not-callable
+            self.__stress = self.constitutive_law(
+                velocity=self.velocity,
+                displacement=self.displacement,
+                absement=self.absement,
+                setup=self.setup,
+                elements=self.body.mesh.elements,
+                nodes=self.body.mesh.initial_nodes,
+                time=self.time,
             )
         return self.__stress
+
+    @property
+    def stress_norm(self):
+        return np.linalg.norm(self.stress, axis=(1, 2))
 
     @property
     def stress_x(self):
@@ -76,6 +83,7 @@ class State:
         raise ValueError(f"Unknown coordinates {item}")
 
     def copy(self) -> "State":
+        # pylint: disable=unnecessary-dunder-call
         return self.__copy__()
 
     def __copy__(self) -> "State":

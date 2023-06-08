@@ -135,9 +135,8 @@ class TDynamicSetup(TemperatureDynamic):
 
 
 # TODO: #99
-def main(steps, setup, show: bool = True, save: bool = False):
+def main(steps, setup, config: Config):
     simulate = True
-    config = Config()
     output_step = (2**i for i in range(int(np.log2(steps))))
 
     setup = setup or TDynamicSetup(mesh_type="cross")
@@ -191,7 +190,6 @@ def main(steps, setup, show: bool = True, save: bool = False):
         initial_velocity=setup.initial_velocity,
         initial_temperature=setup.initial_temperature,
     )
-    config = Config()
     for state in states:
         # with open(f'output/animation/k_{int(np.log2(steps))}_h_{int(np.log2(setup.elements_number[0]))}',
         #           'wb') as output:
@@ -204,8 +202,8 @@ def main(steps, setup, show: bool = True, save: bool = False):
         Drawer(state=state, config=config).draw(
             field_max=np.max(state.temperature),
             field_min=np.min(state.temperature),
-            show=True,
-            save=False,
+            show=config.show,
+            save=config.save,
         )
 
 
@@ -218,4 +216,4 @@ if __name__ == "__main__":
             setup = TDynamicSetup(mesh_type="cross")
             setup.elements_number = (h, 1.5 * h)
             setup.time_step = T / k
-            main(setup=setup, steps=k, show=True, save=False)
+            main(setup=setup, steps=k, config=Config().init())

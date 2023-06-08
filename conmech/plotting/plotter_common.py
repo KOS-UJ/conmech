@@ -17,7 +17,7 @@ from conmech.scene.scene import Scene
 
 # TODO: #65 Move to config
 DPI = 800
-savefig_args = dict(transparent=False, facecolor="#191C20", pad_inches=0.0)  # "#24292E"
+savefig_args = {"transparent": False, "facecolor": "#191C20", "pad_inches": 0.0}  # "#24292E"
 
 
 @dataclass
@@ -58,6 +58,7 @@ def get_t_scale(
 
 def get_t_data(t_scale: np.ndarray) -> ColorbarSettings:
     # magma plasma cool coolwarm
+    # pylint: disable=no-member
     lim_small = 0.2
     lim_big = 10
 

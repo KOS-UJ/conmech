@@ -1,6 +1,7 @@
 """
 Created at 21.10.2022
 """
+import _pickle
 import pickle
 from dataclasses import dataclass
 
@@ -49,6 +50,7 @@ y1 = 0.15
 y2 = 0.45
 r = 0.05
 eps = 0.01
+path = "./output/JOB2023"
 
 
 def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction_bound_):
@@ -90,12 +92,16 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
     return QuasistaticSetup(mesh_type=mesh_type_)
 
 
-def main(show: bool = True, save: bool = False):
-    simulate = False
-    config = Config()
-    names = ("four_screws",)  # "one_screw", "friction", "hard")
-    h = 64
-    n_steps = 32
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
+    ids = slice(0, 4) if not config.test else slice(2, 3)
+    names = ("four_screws", "one_screw", "friction", "hard")[ids]
+    h = 64 if not config.test else 24
+    n_steps = 32 if not config.test else 8
     output_steps = range(0, n_steps)
 
     four_screws = BoundariesDescription(
@@ -114,6 +120,22 @@ def main(show: bool = True, save: bool = False):
     soft_foundation = make_contact_law(300, 0.1)
     hard_foundation = make_contact_law(3000, 0.1)
     friction_bound = 3
+
+    simulate = config.force
+    if not config.test:
+        try:
+            for name in names:
+                if name == names[0]:
+                    steps = (0, *output_steps[1:])
+                else:
+                    steps = output_steps[1:]
+                for time_step in steps:
+                    with open(f"{path}/{name}_t_{time_step}_h_{h}", "rb") as output:
+                        _ = pickle.load(output)
+        except Exception:
+            simulate = True
+    else:
+        simulate = True
 
     if simulate:
         for name in names:
@@ -143,9 +165,11 @@ def main(show: bool = True, save: bool = False):
             )
             for state in states:
                 with open(
-                    f"./output/2023/{name}_t_{int(state.time//setup.time_step)}_h_{h}",
-                    "wb+",
+                    f"{path}/{name}_t_{int(state.time//setup.time_step)}_h_{h}", "wb+"
                 ) as output:
+                    # Workaround
+                    state.body.outer_forces = None
+                    state.body.inner_forces = None
                     pickle.dump(state, output)
 
     for name in names:
@@ -163,30 +187,27 @@ def main(show: bool = True, save: bool = False):
         else:
             steps = output_steps[1:]
         for time_step in steps:
-            with open(f"./output/2023/{name}_t_{time_step}_h_{h}", "rb") as output:
+            with open(f"{path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
+                # Workaround
+                state.body.outer_forces = setup.outer_forces
+                state.body.inner_forces = setup.inner_forces
             if time_step == 0:
                 drawer = Drawer(state=state, config=config)
                 drawer.node_size = 1
                 drawer.original_mesh_color = "k"
                 drawer.deformed_mesh_color = None
-                drawer.draw(show=show, field_min=0, field_max=40, save=save)
-            stress = viscoelastic_constitutive_law(
-                state.displacement,
-                state.velocity,
-                setup,
-                state.body.mesh.elements,
-                state.body.mesh.initial_nodes,
-            )
-            c = np.linalg.norm(stress, axis=(1, 2))
-            state.temperature = c  # stress[:, 0, 1]
+                drawer.draw(show=config.show, field_min=0, field_max=40, save=config.save)
+            state.setup = setup
+            state.constitutive_law = viscoelastic_constitutive_law
             drawer = Drawer(state=state, config=config)
             drawer.node_size = 0
             drawer.original_mesh_color = None
             drawer.deformed_mesh_color = None
+            drawer.field_name = "stress_norm"
             drawer.cmap = plt.cm.rainbow
-            drawer.draw(show=show, field_min=0, field_max=30, save=True)
+            drawer.draw(show=config.show, field_min=0, field_max=30, save=config.save)
 
 
 if __name__ == "__main__":
-    main(show=False)
+    main(Config(outputs_path=path).init())

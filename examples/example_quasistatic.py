@@ -41,7 +41,12 @@ class QuasistaticSetup(Quasistatic):
     )
 
 
-def main(show: bool = True, save: bool = False):
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     setup = QuasistaticSetup(mesh_type="cross")
     runner = TimeDependentProblemSolver(setup, solving_method="schur")
 
@@ -52,10 +57,9 @@ def main(show: bool = True, save: bool = False):
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
     )
-    config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(show=show, save=save)
+        Drawer(state=state, config=config).draw(show=config.show, save=config.save)
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(Config().init())

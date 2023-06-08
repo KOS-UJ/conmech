@@ -100,7 +100,7 @@ def draw_parameters(axes, scene: Scene, current_time):
     y_max = axes.get_ylim()[1]
     z_max = axes.get_zlim()[1]
 
-    args = dict(color="w", fontsize=4)
+    args = {"color": "w", "fontsize": 4}
     axes.text(x_max - 2.0, y_max - 0.5, z_max + 1.0, s=annotation, **args)  # zdir=None,
 
 

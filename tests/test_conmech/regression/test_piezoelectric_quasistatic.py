@@ -2,7 +2,7 @@
 Created at 21.08.2019
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pytest
@@ -59,13 +59,17 @@ def generate_test_suits():
         ze_coef: ... = 4
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_piezo(1e1)
-        piezoelectricity: ... = np.array(
-            [
-                [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
-            ]
+        piezoelectricity: ... = field(
+            default_factory=lambda: np.array(
+                [
+                    [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
+                ]
+            )
         )
-        permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        permittivity: ... = field(
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        )
 
         @staticmethod
         def inner_forces(x, time=None):
@@ -216,13 +220,17 @@ def generate_test_suits():
         ze_coef: ... = 4.99
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_piezo(2.71)
-        piezoelectricity: ... = np.array(
-            [
-                [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
-            ]
+        piezoelectricity: ... = field(
+            default_factory=lambda: np.array(
+                [
+                    [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
+                ]
+            )
         )
-        permittivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        permittivity: ... = field(
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        )
 
         @staticmethod
         def inner_forces(x, time=None):

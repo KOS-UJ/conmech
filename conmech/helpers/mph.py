@@ -19,10 +19,7 @@ def run_process(function):  # , args
 
     queue = Queue()
 
-    # wrapper = lambda *args : queue.put(function())
-    wrapper = lambda: queue.put(function())
-
-    process = Process(target=wrapper)
+    process = Process(target=lambda: queue.put(function()))
     process.start()
     process.join()
     result = queue.get()
