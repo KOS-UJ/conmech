@@ -1,7 +1,7 @@
 """
 Created at 21.08.2019
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -38,13 +38,17 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     ze_coef: ... = 10.5
     time_step: ... = 0.01
     contact_law: ... = PPSlopeContactLaw
-    piezoelectricity: ... = np.array(
-        [
-            [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
-        ]
+    piezoelectricity: ... = field(
+        default_factory=lambda: np.array(
+            [
+                [[0.0, -0.59, 0.0], [-0.61, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[-0.59, 0.0, 0.0], [0.0, 1.14, 0.0], [0.0, 0.0, 0.0]],
+            ]
+        )
     )
-    permittivity: ... = np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
+    permittivity: ... = field(
+        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
+    )
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
@@ -76,10 +80,15 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     )
 
 
-def main(show: bool):
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     setup = PQuasistaticSetup(mesh_type="Barboteu2008")
     runner = PiezoelectricTimeDependent(setup, solving_method="global")
-    steps = 100
+    steps = 100 if not config.test else 10
     output = steps // 5
     states = runner.solve(
         n_steps=steps,
@@ -94,12 +103,11 @@ def main(show: bool):
     for state in states:
         e_max = max(e_max, np.max(state.electric_potential))
         e_min = min(e_min, np.min(state.electric_potential))
-    config = Config()
     for state in states:
         Drawer(state=state, config=config).draw(
-            field_max=e_max, field_min=e_min, show=show, save=False
+            field_max=e_max, field_min=e_min, show=config.show, save=config.save
         )
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(Config().init())

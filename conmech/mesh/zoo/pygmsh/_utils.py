@@ -18,6 +18,7 @@ def get_random_corner_mesh_size(mesh_prop: MeshProperties):
 
 # CORNERS left, bottom, right, top
 def set_mesh_size(geom, mesh_prop: MeshProperties):
+    # pylint: disable=unnecessary-lambda-assignment)
     if mesh_prop.corner_mesh_data is not None:
         if mesh_prop.dimension != 2:
             raise NotImplementedError

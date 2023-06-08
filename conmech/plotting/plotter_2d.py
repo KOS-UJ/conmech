@@ -383,10 +383,7 @@ def add_annotation(annotation, scene: Scene, position, axes):
 def draw_parameters(current_time, scene: Scene, scale, axes):
     x_max = axes.get_xlim()[1]
     y_max = axes.get_ylim()[1]
-    args = dict(
-        color="w",
-        fontsize=5,
-    )
+    args = {"color": "w", "fontsize": 5}
 
     annotation = plotter_common.get_frame_annotation(current_time=current_time, scene=scene)
     axes.text(x_max - 4.0 * scale, y_max - 2.0 * scale, s=annotation, **args)

@@ -78,7 +78,7 @@ def test_simulation(scenario, expected_boundary_nodes, expected_temperature):
         run_config=RunScenarioConfig(
             catalog=f"TEST_{scenario.name}",
             simulate_dirty_data=False,
-            plot_animation=config.plot_tests,
+            plot_animation=False,
         ),
     )
 

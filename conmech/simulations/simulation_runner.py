@@ -56,14 +56,14 @@ def run_scenario(
     run_config: RunScenarioConfig,
     get_scene_function: Optional[Callable] = None,
 ) -> Tuple[Scene, str, float]:
-    time_skip = config.print_skip
+    time_skip = 0.1
     ts = int(time_skip / scenario.time_step)
     index_skip = ts if run_config.save_all else 1
     plot_scenes_count = [0]
 
     save_files = run_config.plot_animation or run_config.save_all
     if save_files:
-        final_catalog = f"{config.output_catalog}/{config.current_time} - {run_config.catalog}"
+        final_catalog = f"{config.outputs_path}/{config.timestamp} - {run_config.catalog}"
         cmh.create_folders(f"{final_catalog}/scenarios")
         scenes_path = f"{final_catalog}/scenarios/{scenario.name}_DATA.scenes"
         if run_config.compare_with_base_scene:
@@ -217,7 +217,6 @@ def simulate(
             scene.make_dirty()
 
         if compare_with_base_scene:
-
             start_time = time.time()
             base_a = Calculator.solve(base_scene)  # TODO #65: save in setting
             calculator_time += time.time() - start_time

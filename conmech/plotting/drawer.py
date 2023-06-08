@@ -10,7 +10,6 @@ import networkx as nx
 import numpy as np
 from sklearn.preprocessing import normalize
 
-from conmech.helpers import cmh
 from conmech.helpers.config import Config
 
 
@@ -33,8 +32,9 @@ class Drawer:
         self.outer_forces_scale = 0
         self.normal_stress_scale = 0
         self.field_name = None
+        self.field_label = None
         self.field = None
-        self.colorful = False
+        self.colorful = True
         self.cmap = None
         self.x_min = None
         self.x_max = None
@@ -59,6 +59,8 @@ class Drawer:
 
         if self.field_name:
             self.field = getattr(self.state, self.field_name)
+            if self.field_label is None:
+                self.field_label = self.field_name
         if self.field is not None:
             self.draw_field(self.field, field_min, field_max, axes, fig)
 
@@ -84,6 +86,7 @@ class Drawer:
             self.save_plot(save_format)
 
     def set_axes_limits(self, axes):
+        # pylint: disable=nested-min-max
         if self.x_min is None:
             self.x_min = min(
                 min(self.state.body.mesh.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
@@ -236,9 +239,9 @@ class Drawer:
 
     @staticmethod
     def get_output_path(config, format_, name):
-        directory = f"./output/{config.current_time} - DRAWING"
-        cmh.create_folders(directory)
-        name = name if name else cmh.get_timestamp(config)
+        output_dir = config.output_dir or str(config.timestamp)
+        directory = f"{config.outputs_path}/{output_dir}"
+        name = name if name else config.timestamp
         path = f"{directory}/{name}.{format_}"
         return path
 
@@ -298,4 +301,4 @@ class Drawer:
         # cax = divider.append_axes("bottom", size="5%", pad=0.15)
         sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
         sm.set_array([])
-        fig.colorbar(sm, orientation="horizontal", label="Norm of stress tensor", ax=axes)
+        fig.colorbar(sm, orientation="horizontal", label=self.field_label, ax=axes)

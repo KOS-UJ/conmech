@@ -70,8 +70,15 @@ class StaticSetup(Static):
     )
 
 
-def main(show: bool = True, save: bool = False):
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     setup = StaticSetup(mesh_type="cross")
+    if config.test:
+        setup.elements_number = (2, 4)
     runner = StaticProblemSolver(setup, "schur")
 
     state = runner.solve(
@@ -79,9 +86,8 @@ def main(show: bool = True, save: bool = False):
         fixed_point_abs_tol=0.001,
         initial_displacement=setup.initial_displacement,
     )
-    config = Config()
-    Drawer(state=state, config=config).draw(show=show, save=save)
+    Drawer(state=state, config=config).draw(show=config.show, save=config.save)
 
 
 if __name__ == "__main__":
-    main(show=True, save=False)
+    main(Config().init())

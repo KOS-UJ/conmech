@@ -1,19 +1,36 @@
 import time
 from dataclasses import dataclass
-from datetime import datetime
+import pathlib
+from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class Config:
+    """
+    Technical configuration of simulations.
+    """
+
+    show: bool = True
+    save: bool = False
+    force: bool = True
+    test: bool = False
+    outputs_path: str = "./output"
+    output_dir: Optional[str] = None
     shell: bool = False
-    timestamp_skip: int = 10000
-    run_timestamp: float = int(time.time() * timestamp_skip)
-    current_time: str = datetime.now().strftime("%m.%d-%H.%M.%S")
+    timestamp: int = time.time_ns()
 
-    normalize_by_rotation: bool = True
+    def init(self) -> "Config":
+        """
+        Acquires needed resources.
 
-    print_skip: float = 0.1
+        Returns self so can be used as `main(Config().init())`
+        """
+        if self.show and self.save:
+            raise ValueError("Cannot show and save at once!")
 
-    plot_tests: bool = False
-
-    output_catalog: str = "output"
+        output_dir = self.output_dir or str(self.timestamp)
+        path_part_1 = pathlib.Path(self.outputs_path)
+        path_part_2 = pathlib.Path(output_dir)
+        path = path_part_1 / path_part_2
+        path.mkdir(parents=True, exist_ok=True)
+        return self

@@ -2,7 +2,7 @@
 Created at 21.08.2019
 """
 from argparse import ArgumentParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -63,8 +63,12 @@ class TDynamicSetup(TemperatureDynamic):
     ze_coef: ... = 4
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
-    thermal_expansion: ... = np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
-    thermal_conductivity: ... = np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+    thermal_expansion: ... = field(
+        default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+    )
+    thermal_conductivity: ... = field(
+        default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+    )
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
@@ -89,38 +93,36 @@ class TDynamicSetup(TemperatureDynamic):
     boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0, dirichlet=lambda x: False)
 
 
-def main(show: bool = True, save: bool = False):
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     setup = TDynamicSetup(mesh_type="cross")
     runner = TDynamicProblemSolver(setup, solving_method="schur")
+    n_steps = 32 if not config.test else 8
 
     states = runner.solve(
-        n_steps=32,
-        output_step=range(0, 32, 4),
+        n_steps=n_steps,
+        output_step=range(0, n_steps, 4),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
         initial_temperature=setup.initial_temperature,
     )
+    states = list(states)
     T_max = -np.inf
     T_min = np.inf
     for state in states:
         T_max = max(T_max, np.max(state.temperature))
         T_min = min(T_min, np.min(state.temperature))
-    config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(
-            field_max=T_max, field_min=T_min, show=show, save=save
-        )
+        drawer = Drawer(state=state, config=config)
+        drawer.cmap = "plasma"
+        drawer.field_name = "temperature"
+        drawer.draw(field_max=T_max, field_min=T_min, show=config.show, save=config.save)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--mode",
-        type=str,
-        choices=["show", "save"],
-        default="show",
-    )
-    args = parser.parse_args()
-    save = args.mode == "save"
-    main(show=not save, save=save)
+    main(Config().init())

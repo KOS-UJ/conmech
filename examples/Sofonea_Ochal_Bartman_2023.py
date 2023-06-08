@@ -31,6 +31,7 @@ from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
 
 from examples.p_slope_contact_law import make_const_contact_law
+from examples.utils import elastic_relaxation_constitutive_law
 
 eps = 1e-18
 ox = 2.5
@@ -39,7 +40,6 @@ r_big = 2.5
 r_small = 1.5
 r = (r_big + r_small) / 2
 fv = 5
-TEST = 1
 E = 10000
 kappa = 0.4
 
@@ -47,10 +47,10 @@ kappa = 0.4
 @dataclass
 class QuasistaticSetup(RelaxationQuasistaticProblem):
     grid_height: ... = 1.0
-    elements_number: ... = (20 / TEST, 20 / TEST)
+    elements_number: ... = (20, 20)
     mu_coef: ... = E / (1 + kappa)
     la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
-    time_step: ... = 1 / 128 * TEST**2
+    time_step: ... = 1 / 128
     contact_law: ... = make_const_contact_law(slope=10)
 
     @staticmethod
@@ -80,17 +80,16 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     )
 
 
-def main(save: bool = False, simulate: bool = True):
+def main(config: Config):
     """
+    Entrypoint to example.
 
-    If not `simulate` but results is not ready: run simulation.
-    If `simulate` simulation will be always run.
-
-    If `save` results will be saved as file.
-    If not `save` results will be shown.
+    To see result of simulation you need to call from python `main(Config().init())`.
     """
-    config = Config()
     setup = QuasistaticSetup(mesh_type="tunnel")
+    if config.test:
+        setup.elements_number = (8, 8)
+        setup.time_step *= 8
     h = setup.elements_number[0]
 
     def sin_outer_forces(x, t=None):
@@ -136,17 +135,18 @@ def main(save: bool = False, simulate: bool = True):
         },
     }
 
+    simulate = config.force
     try:
         for name in examples.keys():
             steps = examples[name]["output_steps"]
-            with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
+            with open(f"{config.outputs_path}/{name}_h_{h}_global", "rb") as output:
                 _ = pickle.load(output)
 
-            with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
+            with open(f"{config.outputs_path}/{name}_h_{h}_penetration", "rb") as output:
                 _ = pickle.load(output)
 
             for time_step in steps:
-                with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
+                with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                     _ = pickle.load(output)
     except IOError:
         simulate = True
@@ -168,15 +168,17 @@ def main(save: bool = False, simulate: bool = True):
                 initial_displacement=setup.initial_displacement,
                 tol=1e-9,
                 fixed_point_abs_tol=1e-9,
-                method="qsm",
+                method="Powell",
             )
             f_max = -np.inf
             f_min = np.inf
             for state in states:
+                state.setup = setup
+                state.constitutive_law = elastic_relaxation_constitutive_law
                 f_max = max(f_max, np.max(state.stress_x))
                 f_min = min(f_min, np.min(state.stress_x))
                 with open(
-                    f"./output/sob2023/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
+                    f"{config.outputs_path}/{name}_t_{int(state.time // setup.time_step)}_h_{h}",
                     "wb+",
                 ) as output:
                     # Workaround
@@ -184,15 +186,17 @@ def main(save: bool = False, simulate: bool = True):
                     state.body.outer_forces = None
                     state.body.inner_forces = None
                     state.body.body_prop.relaxation = None
+                    state.setup = None
+                    state.constitutive_law = None
                     pickle.dump(state, output)
                     state.body.body_prop.relaxation = relaxation
             with open(
-                f"./output/sob2023/{name}_h_{h}_penetration",
+                f"{config.outputs_path}/{name}_h_{h}_penetration",
                 "wb+",
             ) as output:
                 pickle.dump(runner.penetration, output)
             with open(
-                f"./output/sob2023/{name}_h_{h}_global",
+                f"{config.outputs_path}/{name}_h_{h}_global",
                 "wb+",
             ) as output:
                 pickle.dump([f_min, f_max], output)
@@ -201,15 +205,17 @@ def main(save: bool = False, simulate: bool = True):
 
     for name in examples.keys():
         steps = examples[name]["output_steps"]
-        with open(f"./output/sob2023/{name}_h_{h}_global", "rb") as output:
+        with open(f"{config.outputs_path}/{name}_h_{h}_global", "rb") as output:
             f_limits = pickle.load(output)
 
         for time_step in steps:
-            with open(f"./output/sob2023/{name}_t_{time_step}_h_{h}", "rb") as output:
+            with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
                 # Workaround
                 state.body.outer_forces = examples[name]["outer_forces"]
                 state.body.body_prop.relaxation = examples[name]["relaxation"]
+                state.setup = setup
+                state.constitutive_law = elastic_relaxation_constitutive_law
 
                 drawer = Drawer(state=state, config=config)
                 drawer.node_size = 0
@@ -274,9 +280,9 @@ def main(save: bool = False, simulate: bool = True):
 
                 fig.tight_layout(rect=[0, 0, 1, 1.2])
                 plt.subplots_adjust(wspace=0.4, top=1.25)
-                if not save:
+                if not config.save:
                     plt.show()
-                if save:
+                if config.save:
                     drawer.save_plot("pdf", name=f"{name}_{time_step}")
 
 
@@ -297,7 +303,7 @@ def plots(setup, h, examples, config):
 
     for col, name in enumerate(examples.keys()):
         col = 1 - col
-        with open(f"./output/sob2023/{name}_h_{h}_penetration", "rb") as output:
+        with open(f"{config.outputs_path}/{name}_h_{h}_penetration", "rb") as output:
             pnt = np.asarray(pickle.load(output))
         t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
         frc = np.empty((examples[name]["n_steps"] + 1, 1))
@@ -433,4 +439,4 @@ def zoom_outside(
 
 
 if __name__ == "__main__":
-    main(simulate=True, save=True)
+    main(Config(outputs_path="./output/SOB2023").init())

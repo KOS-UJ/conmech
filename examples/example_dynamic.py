@@ -40,21 +40,27 @@ class DynamicSetup(Dynamic):
         return 0
 
 
-def main(show: bool = True, save: bool = False):
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
+
     setup = DynamicSetup(mesh_type="cross")
     runner = TimeDependentProblemSolver(setup, solving_method="schur")
+    n_steps = 32 if not config.test else 10
 
     states = runner.solve(
-        n_steps=32,
-        output_step=(0, 32),
+        n_steps=n_steps,
+        output_step=(0, n_steps),
         verbose=True,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
     )
-    config = Config()
     for state in states:
-        Drawer(state=state, config=config).draw(show=show, save=save)
+        Drawer(state=state, config=config).draw(show=config.show, save=config.save)
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(Config().init())

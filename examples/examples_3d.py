@@ -16,7 +16,12 @@ from conmech.simulations import simulation_runner
 from conmech.state.obstacle import Obstacle
 
 
-def main(mesh_density=3, final_time=1, plot_animation=True):
+def main(config: Config, mesh_density=3, final_time=1, plot_animation=True):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
     obstacles = [
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
         Obstacle(np.array([[[0.3, 0.2, 1.0]], [[0.0, 0.0, -0.01]]]), default_obstacle_prop),
@@ -78,4 +83,4 @@ def main(mesh_density=3, final_time=1, plot_animation=True):
 
 
 if __name__ == "__main__":
-    main()
+    main(Config().init())

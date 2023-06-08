@@ -78,9 +78,9 @@ def gradient(elements, initial_nodes, f):
     return result
 
 
-def viscoelastic_constitutive_law(u, v, setup, elements, nodes):
-    grad_x = gradient(elements, nodes, u[:, 0])
-    grad_y = gradient(elements, nodes, u[:, 1])
+def viscoelastic_constitutive_law(displacement, velocity, setup, elements, nodes, **_kwargs):
+    grad_x = gradient(elements, nodes, displacement[:, 0])
+    grad_y = gradient(elements, nodes, displacement[:, 1])
     grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
     stress_u = np.zeros_like(grad_u)
@@ -93,8 +93,8 @@ def viscoelastic_constitutive_law(u, v, setup, elements, nodes):
     stress_u[:, 0, 1] = setup.mu_coef * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
     stress_u[:, 1, 0] = stress_u[:, 0, 1]
 
-    grad_x = gradient(elements, nodes, v[:, 0])
-    grad_y = gradient(elements, nodes, v[:, 1])
+    grad_x = gradient(elements, nodes, velocity[:, 0])
+    grad_y = gradient(elements, nodes, velocity[:, 1])
     grad_v = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
     stress_v = np.zeros_like(grad_v)
@@ -110,28 +110,23 @@ def viscoelastic_constitutive_law(u, v, setup, elements, nodes):
 
 
 def elastic_relaxation_constitutive_law(
-    displacement: np.ndarray,
-    absement: np.ndarray,
-    body_prop: BodyProperties,
-    elements,
-    nodes,
-    time,
+    displacement: np.ndarray, absement: np.ndarray, setup, elements, nodes, time, **_kwargs
 ):  # TODO!
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])
     grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
 
     stress_u = np.zeros_like(grad_u)
-    stress_u[:, 0, 0] = 2 * body_prop.mu * grad_u[:, 0, 0] + body_prop.lambda_ * (
+    stress_u[:, 0, 0] = 2 * setup.mu_coef * grad_u[:, 0, 0] + setup.la_coef * (
         grad_u[:, 0, 0] + grad_u[:, 1, 1]
     )
-    stress_u[:, 1, 1] = 2 * body_prop.mu * grad_u[:, 1, 1] + body_prop.lambda_ * (
+    stress_u[:, 1, 1] = 2 * setup.mu_coef * grad_u[:, 1, 1] + setup.la_coef * (
         grad_u[:, 0, 0] + grad_u[:, 1, 1]
     )
-    stress_u[:, 0, 1] = body_prop.mu * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
+    stress_u[:, 0, 1] = setup.mu_coef * (grad_u[:, 0, 1] + grad_u[:, 1, 0])
     stress_u[:, 1, 0] = stress_u[:, 0, 1]
 
-    rlx_coef = body_prop.relaxation(time)[1, 0, 1]  # TODO
+    rlx_coef = setup.relaxation(time)[1, 0, 1]  # TODO
 
     stress_b = np.zeros_like(grad_u)
     grad_x = gradient(elements, nodes, absement[:, 0])
