@@ -25,7 +25,7 @@ def generate_test_suits():
         elements_number: ... = (4, 4)
 
         @staticmethod
-        def inner_forces(x: np.ndarray) -> np.ndarray:
+        def inner_forces(x: np.ndarray, t: float) -> np.ndarray:
             return np.array([1000.0])
 
         @staticmethod

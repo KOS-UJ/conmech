@@ -39,16 +39,12 @@ class Problem(ABC):
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     @staticmethod
-    def initial_value(x: np.ndarray) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.zeros_like(x)
 
     @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        return np.zeros_like(x)
 
 
 class StaticProblem(Problem, ABC):
@@ -68,9 +64,17 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 
 @dataclass
-class PoissonProblem(StaticProblem, ABC):
+class PoissonProblem(StaticProblem, ABC):  # TODO: rename
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(len(x))
+
+    @staticmethod
+    def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        return np.zeros_like(len(x))
+
+    @staticmethod
+    def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.zeros_like(len(x))
 
 
@@ -84,20 +88,8 @@ class DisplacementProblem(Problem, ABC):
     dynamism: str = None  # TODO: #65 remove
 
     @staticmethod
-    def initial_value(x: np.ndarray) -> np.ndarray:
-        return DisplacementProblem.initial_displacement(x)
-
-    @staticmethod
     def initial_displacement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
-
-    @staticmethod
-    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
@@ -105,14 +97,6 @@ class DisplacementProblem(Problem, ABC):
 
 
 class StaticDisplacementProblem(DisplacementProblem, StaticProblem, ABC):
-    @staticmethod
-    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
-
     @staticmethod
     def friction_bound(u_nu: float) -> float:
         raise NotImplementedError()
@@ -127,13 +111,6 @@ class TimeDependentDisplacementProblem(DisplacementProblem, ABC):
     def initial_velocity(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
-    @staticmethod
-    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
-
-    @staticmethod
-    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        raise NotImplementedError()
 
 class QuasistaticDisplacementProblem(QuasistaticProblem, TimeDependentDisplacementProblem, ABC):
     pass

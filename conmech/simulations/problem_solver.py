@@ -46,7 +46,8 @@ from conmech.scenarios.problems import (
     ContactLaw,
 )
 from conmech.scene.body_forces import BodyForces
-from conmech.solvers._solvers import SolversRegistry, SchurComplement
+from conmech.solvers import SchurComplementOptimization
+from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state.state import State, TemperatureState, PiezoelectricState
@@ -109,6 +110,9 @@ class ProblemSolver:
         solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
         )
+        second_solver_class: Type[Solver] = SolversRegistry.get_by_name(
+            solver_name=value, problem=self.problem
+        )
         contact_law: Optional[ContactLaw]
         friction_bound: Optional[Callable[[float], float]]
 
@@ -118,7 +122,6 @@ class ProblemSolver:
             friction_bound = self.problem.friction_bound
             if isinstance(self.problem, StaticProblem):
                 statement = StaticDisplacementStatement(self.body)
-                time_step = 0
             elif isinstance(self.problem, TimeDependentProblem):
                 if isinstance(self.problem, PiezoelectricQuasistaticProblem):
                     statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
@@ -130,7 +133,6 @@ class ProblemSolver:
                     statement = DynamicVelocityWithTemperatureStatement(self.body)
                 else:
                     statement = DynamicVelocityStatement(self.body)
-                time_step = self.problem.time_step
             else:
                 raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         elif isinstance(self.problem, PoissonProblem):
@@ -171,7 +173,6 @@ class ProblemSolver:
 
     def run(self, state: State, n_steps: int, verbose: bool = False, **kwargs):
         """
-        :param solution:
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
@@ -181,10 +182,8 @@ class ProblemSolver:
 
             solution = self.find_solution(
                 state,
-                solution,
                 self.validator,
                 verbose=verbose,
-                velocity=solution,
                 **kwargs,
             )
 
@@ -213,7 +212,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-            self.penetration.append((state.time, state.penetration))
+            # self.penetration.append((state.time, state.penetration))  TODO!
             self.step_solver.iterate()
             self.done += 1
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
@@ -251,7 +250,7 @@ class ProblemSolver:
                     time=self.step_solver.current_time,
                 )
             )
-            if isinstance(self.step_solver, SchurComplement):
+            if isinstance(self.step_solver, SchurComplementOptimization):
                 (
                     self.step_solver.node_forces_,
                     self.step_solver.forces_free,
@@ -269,7 +268,7 @@ class ProblemSolver:
                     time_step=self.second_step_solver.time_step,
                 )
             )
-            if isinstance(self.second_step_solver, SchurComplement):
+            if isinstance(self.second_step_solver, SchurComplementOptimization):
                 (
                     self.second_step_solver.node_forces_,
                     self.second_step_solver.forces_free,
@@ -335,15 +334,17 @@ class PoissonSolver(ProblemSolver):
         state = TemperatureState(self.body)
 
         self.step_solver.u_vector[:] = state.displacement.ravel().copy()
+        self.step_solver.t_vector[:] = state.temperature.ravel().copy()
 
         self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
 
     def find_solution(
-        self, _: State, solution: np.ndarray, __: Validator, *, verbose: bool = False, **kwargs
+        self, state: State, __: Validator, *, verbose: bool = False, **kwargs
     ) -> np.ndarray:
-        solution = self.step_solver.solve(solution, **kwargs)
+        initial_guess = state[self.coordinates]
+        solution = self.step_solver.solve(initial_guess=initial_guess, **kwargs)
         return solution
 
 
@@ -656,13 +657,13 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
 
         state = PiezoelectricState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
         state.electric_potential[:] = initial_electric_potential(
-            self.body.mesh.initial_nodes[: self.body.mesh.independent_nodes_count]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)

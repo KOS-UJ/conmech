@@ -280,7 +280,7 @@ def main(config: Config):
 
                 fig.tight_layout(rect=[0, 0, 1, 1.2])
                 plt.subplots_adjust(wspace=0.4, top=1.25)
-                if not config.save:
+                if config.show:
                     plt.show()
                 if config.save:
                     drawer.save_plot("pdf", name=f"{name}_{time_step}")

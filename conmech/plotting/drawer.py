@@ -57,7 +57,7 @@ class Drawer:
     ):
         fig, axes = fig_axes or plt.subplots()
 
-        self.set_axes_limits(axes)
+        self.set_axes_limits(axes, foundation)
 
         if self.field_name:
             self.field = getattr(self.state, self.field_name)
@@ -87,7 +87,7 @@ class Drawer:
         if save:
             self.save_plot(save_format)
 
-    def set_axes_limits(self, axes):
+    def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max
         if self.x_min is None:
             self.x_min = min(
@@ -113,7 +113,7 @@ class Drawer:
         ylim = (self.y_min - y_margin, self.y_max + y_margin)
 
         if foundation:
-        axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
+            axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)
         if self.xlabel is not None:

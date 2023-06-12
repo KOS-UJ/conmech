@@ -11,7 +11,9 @@ from conmech.scenarios.problems import (
 
 
 class SolversRegistry:
-    solvers: Dict[str, Dict[str, Type[Solver]]] = {"static": {}, "quasistatic": {}, "quasistatic relaxation": {}, "dynamic": {}}
+    solvers: Dict[str, Dict[str, Type[Solver]]] = {
+        "static": {}, "quasistatic": {}, "quasistatic relaxation": {}, "dynamic": {}
+    }
 
     @staticmethod
     def register(dynamism: str, *names: str) -> Callable[[Type[Solver]], Type[Solver]]:

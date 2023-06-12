@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import numpy as np
 from conmech.helpers.config import Config
@@ -14,11 +15,17 @@ class StaticPoissonSetup(PoissonProblem):
     elements_number: ... = (14, 14)
 
     @staticmethod
-    def inner_forces(x: np.ndarray) -> np.ndarray:
+    def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        if x[1] == 0:
+            return np.array([8.0])
+        return np.array([.0])
+
+    @staticmethod
+    def inner_forces(x: np.ndarray, t = None) -> np.ndarray:
         return np.array([0.0])
 
     @staticmethod
-    def outer_forces(x: np.ndarray) -> np.ndarray:
+    def outer_forces(x: np.ndarray, t = None) -> np.ndarray:
         if x[1] == 0:
             return np.array([8.0])
         return np.array([.0])
@@ -28,17 +35,24 @@ class StaticPoissonSetup(PoissonProblem):
     )
 
 
-def main(show: bool = True, save: bool = False):
-    setup = StaticPoissonSetup(mesh_type="meshzoo")
+def main(config: Config):
+    """
+    Entrypoint to example.
+
+    To see result of simulation you need to call from python `main(Config().init())`.
+    """
+    setup = StaticPoissonSetup(mesh_type="cross")
     runner = PoissonSolver(setup, "direct")
 
     state = runner.solve(verbose=True)
-    config = Config()
     max_ = max(max(state.temperature), 1)
     min_ = min(min(state.temperature), 0)
-    Drawer(state=state, config=config).draw(
-        show=show, save=save, foundation=False, temp_max=max_, temp_min=0)
+    drawer = Drawer(state=state, config=config)
+    drawer.cmap = "plasma"
+    drawer.field_name = "displacement"
+    drawer.draw(
+        show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_)
 
 
 if __name__ == "__main__":
-    main(show=True)
+    main(Config().init())

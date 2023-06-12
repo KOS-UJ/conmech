@@ -101,6 +101,11 @@ class TemperatureState(State):
         super().__init__(body)
         self.temperature = np.zeros(self.body.mesh.nodes_count)
 
+    def __getitem__(self, item: [int, str]) -> np.ndarray:
+        if item == "temperature":
+            return self.temperature
+        return super()[item]
+
     def set_temperature(self, temperature_vector: np.ndarray):
         self.temperature = temperature_vector
 

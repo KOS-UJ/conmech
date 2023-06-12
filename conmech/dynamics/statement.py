@@ -71,7 +71,7 @@ class StaticPoissonStatement(Statement):
         self.left_hand_side = self.body.poisson_operator
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.get_integrated_forces_vector()
+        self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
 
 
 class StaticDisplacementStatement(Statement):

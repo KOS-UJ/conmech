@@ -143,8 +143,10 @@ class QuasistaticSchurOptimization(SchurComplementOptimization):
         self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
-@Solvers.register("quasistatic relaxation", "schur", "schur complement", "schur complement method")
-class QuasistaticRelaxed(SchurComplement):
+@SolversRegistry.register(
+    "quasistatic relaxation", "schur", "schur complement", "schur complement method"
+)
+class QuasistaticRelaxed(SchurComplementOptimization):
     def iterate(self):
         self.statement.update(
             Variables(
