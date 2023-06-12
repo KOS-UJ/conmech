@@ -73,7 +73,7 @@ class State:
         """
         This method assume foundation equals x=0.
         """
-        if self.displaced_nodes[self.body.mesh.contact_indices, 1]:
+        if len(self.displaced_nodes[self.body.mesh.contact_indices, 1]) != 0:
             return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
 
     def __getitem__(self, item: [int, str]) -> np.ndarray:

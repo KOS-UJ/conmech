@@ -209,7 +209,7 @@ def generate_test_suits():
     # various changes
 
     @dataclass()
-    class QuasistaticSetup_2(PiezoelectricDynamicProblem):
+    class QuasistaticSetup_2(PiezoelectricQuasistaticProblem):
         grid_height: ... = 1.37
         elements_number: ... = (2, 5)
         mu_coef: ... = 4.58

@@ -25,11 +25,11 @@ def generate_test_suits():
         elements_number: ... = (4, 4)
 
         @staticmethod
-        def inner_forces(x: np.ndarray, t: float) -> np.ndarray:
+        def inner_forces(x: np.ndarray, t: float = None) -> np.ndarray:
             return np.array([1000.0])
 
         @staticmethod
-        def outer_forces(x: np.ndarray) -> np.ndarray:
+        def outer_forces(x: np.ndarray, t: float = None) -> np.ndarray:
             return np.array([3.0])
 
         boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
@@ -90,11 +90,11 @@ def generate_test_suits():
         elements_number: ... = (3, 5)
 
         @staticmethod
-        def inner_forces(x):
+        def inner_forces(x, t=None):
             return np.array([0])
 
         @staticmethod
-        def outer_forces(x):
+        def outer_forces(x, t=None):
             return np.array([10.0])
 
         boundaries: ... = BoundariesDescription(

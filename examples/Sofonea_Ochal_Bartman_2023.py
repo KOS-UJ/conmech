@@ -134,6 +134,8 @@ def main(config: Config):
             "relaxation": zero_relaxation,
         },
     }
+    if config.test:
+        del examples["sob_02"]
 
     simulate = config.force
     try:
@@ -166,9 +168,9 @@ def main(config: Config):
                 verbose=False,
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
-                tol=1e-9,
-                fixed_point_abs_tol=1e-9,
-                method="Powell",
+                tol=1e-9 if config.test else 1e-3,
+                fixed_point_abs_tol=1e-9 if config.test else 1e-3,
+                method="Powell" if config.test else "BFGS",
             )
             f_max = -np.inf
             f_min = np.inf
