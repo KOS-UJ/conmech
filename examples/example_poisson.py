@@ -18,22 +18,25 @@ class StaticPoissonSetup(PoissonProblem):
     def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         if x[1] == 0:
             return np.array([8.0])
-        return np.array([.0])
+        return np.array([0.0])
 
     @staticmethod
-    def inner_forces(x: np.ndarray, t = None) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t=None) -> np.ndarray:
         if 0.4 <= x[0] <= 0.6 and 0.4 <= x[1] <= 0.6:
             return np.array([-10.0])
-        return np.array([2 * np.pi ** 2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])])
+        return np.array([2 * np.pi**2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])])
 
     @staticmethod
-    def outer_forces(x: np.ndarray, t = None) -> np.ndarray:
+    def outer_forces(x: np.ndarray, t=None) -> np.ndarray:
         if x[1] == 0:
             return np.array([0.0])
-        return np.array([.0])
+        return np.array([0.0])
 
     boundaries: ... = BoundariesDescription(
-        dirichlet=(lambda x: x[1] == 0 or x[0] == 0 or x[0] == 1 or x[1] == 1, lambda x: np.full(x.shape[0], 0))
+        dirichlet=(
+            lambda x: x[1] == 0 or x[0] == 0 or x[0] == 1 or x[1] == 1,
+            lambda x: np.full(x.shape[0], 0),
+        )
     )
 
 
@@ -53,7 +56,8 @@ def main(config: Config):
     drawer.cmap = "plasma"
     drawer.field_name = "temperature"
     drawer.draw(
-        show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_)
+        show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_
+    )
 
 
 if __name__ == "__main__":

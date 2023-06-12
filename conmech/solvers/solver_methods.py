@@ -37,6 +37,7 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
             result[i] += 0.5 * vector[i * offset + node_id_1]
     return result
 
+
 # TODO #97
 @numba.njit(inline="always")
 def interpolate_node_between_2023(node_id_0, _node_id_1, vector, dimension=DIMENSION):
@@ -60,7 +61,6 @@ def make_equation(
             return result
 
     else:
-
         jn = numba.njit(jn)
         jt = numba.njit(jt)
         h_functional = numba.njit(h_functional)

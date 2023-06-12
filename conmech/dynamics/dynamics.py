@@ -97,7 +97,6 @@ class Dynamics(BodyPosition):
         self.piezoelectricity: np.ndarray
         self.permittivity: np.ndarray
         self.poisson_operator: np.ndarray
-        self.norm_operator: np.ndarray
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
@@ -125,7 +124,6 @@ class Dynamics(BodyPosition):
             self.piezoelectricity,
             self.permittivity,
             self.poisson_operator,
-            self.norm_operator,
         ) = get_dynamics(
             elements=self.mesh.elements, body_prop=self.body_prop, U=U, V=V, W=self._w_matrix
         )

@@ -10,6 +10,9 @@ import numpy as np
 from conmech.mesh.boundaries_description import BoundariesDescription
 
 
+# pylint: disable=too-many-ancestors
+
+
 class ContactLaw:
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
@@ -31,6 +34,7 @@ class ContactLaw:
 
 @dataclass
 class Problem(ABC):
+    # pylint: disable=unused-argument
     dimension = 2  # TODO #74 : Not used?
     mesh_type: str
     grid_height: float
@@ -65,6 +69,7 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 @dataclass
 class PoissonProblem(StaticProblem, ABC):  # TODO: rename
+    # pylint: disable=unused-argument
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(len(x))

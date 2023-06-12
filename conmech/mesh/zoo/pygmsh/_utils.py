@@ -24,9 +24,9 @@ def set_mesh_size(geom, mesh_prop: MeshProperties):
             raise NotImplementedError
         corner_vectors = get_random_corner_mesh_size(mesh_prop=mesh_prop)
 
-        def callback(_, __, x, y, *___):
+        def callback(_, __, x_coord, y_coord, *___):
             return interpolate_nodes(
-                scaled_nodes=np.array([[x / mesh_prop.scale_x, y / mesh_prop.scale_y]]),
+                scaled_nodes=np.array([[x_coord / mesh_prop.scale_x, y_coord / mesh_prop.scale_y]]),
                 corner_vectors=corner_vectors,
             ).item()
 

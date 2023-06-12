@@ -11,14 +11,12 @@ import numpy as np
 from sklearn.preprocessing import normalize
 
 from conmech.helpers.config import Config
-from conmech.state.state import State
 
 
 class Drawer:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, state, config: Config):
         """
-
         outer_forces_scale: if >0 draw outer forces vectors with length scaled
                             (divided) by outer_forces_scale
                             if <0 draw fixed length vectors (e.g. -1 means vectors equals 1)
@@ -44,6 +42,7 @@ class Drawer:
         self.xlabel = None
         self.ylabel = None
 
+    # pylint: disable=too-many-arguments
     def draw(
         self,
         fig_axes=None,

@@ -12,7 +12,10 @@ from conmech.scenarios.problems import (
 
 class SolversRegistry:
     solvers: Dict[str, Dict[str, Type[Solver]]] = {
-        "static": {}, "quasistatic": {}, "quasistatic relaxation": {}, "dynamic": {}
+        "static": {},
+        "quasistatic": {},
+        "quasistatic relaxation": {},
+        "dynamic": {},
     }
 
     @staticmethod

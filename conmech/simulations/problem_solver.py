@@ -17,7 +17,6 @@ from conmech.dynamics.statement import (
     QuasistaticRelaxationStatement,
     StaticPoissonStatement,
     Variables,
-
 )
 from conmech.properties.body_properties import (
     BodyProperties,
@@ -107,10 +106,11 @@ class ProblemSolver:
 
     @solving_method.setter
     def solving_method(self, value: str) -> None:
+        self.__set_step_solver(value)
+        self.__set_second_step_solver(value)
+
+    def __set_step_solver(self, value):
         solver_class: Type[Solver] = SolversRegistry.get_by_name(
-            solver_name=value, problem=self.problem
-        )
-        second_solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
         )
         contact_law: Optional[ContactLaw]
@@ -136,9 +136,9 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         elif isinstance(self.problem, PoissonProblem):
-            statement = StaticPoissonStatement(self.body)
-            contact_law = None
-            friction_bound = None
+            self.step_solver = None
+            self.validator = None
+            return
         else:
             raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         self.step_solver = solver_class(
@@ -148,8 +148,14 @@ class ProblemSolver:
             contact_law,
             friction_bound,
         )
+        self.validator = Validator(self.step_solver)
+
+    def __set_second_step_solver(self, value):
+        second_solver_class: Type[Solver] = SolversRegistry.get_by_name(
+            solver_name=value, problem=self.problem
+        )
         if isinstance(self.problem, TemperatureTimeDependentProblem):
-            self.second_step_solver = solver_class(
+            self.second_step_solver = second_solver_class(
                 TemperatureStatement(self.body),
                 self.body,
                 self.time_step,
@@ -164,9 +170,14 @@ class ProblemSolver:
                 self.problem.contact_law,
                 self.problem.friction_bound,
             )
+        elif isinstance(self.problem, PoissonProblem):
+            self.second_step_solver = second_solver_class(
+                StaticPoissonStatement(self.body),
+                self.body,
+                self.time_step,
+            )
         else:
             self.second_step_solver = None
-        self.validator = Validator(self.step_solver)
 
     def solve(self, **kwargs):
         raise NotImplementedError()
@@ -187,15 +198,7 @@ class ProblemSolver:
                 **kwargs,
             )
 
-            if self.coordinates == "temperature":
-                if isinstance(state, TemperatureState):
-                    state.set_temperature(solution)
-                else:
-                    raise ValueError(
-                        f"Wrong coordinates type {self.coordinates} for state class "
-                        f"{type(solution)}"
-                    )
-            elif self.coordinates == "displacement":
+            if self.coordinates == "displacement":
                 state.set_displacement(
                     solution, update_absement=True, time=self.step_solver.current_time
                 )
@@ -324,28 +327,17 @@ class PoissonSolver(ProblemSolver):
         self.coordinates = "temperature"
         self.solving_method = solving_method
 
-    # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, verbose: bool = False, **kwargs) -> TemperatureState:
-        """
-        :param verbose: show prints
-        :return: state
-        """
+    def solve(self, **kwargs) -> TemperatureState:
         state = TemperatureState(self.body)
 
-        self.step_solver.u_vector[:] = state.displacement.ravel().copy()
-        self.step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
 
-        self.run(state, n_steps=1, verbose=verbose, **kwargs)
+        initial_guess = state[self.coordinates]
+        solution = self.second_step_solver.solve(initial_guess=initial_guess, **kwargs)
+        state.set_temperature(solution)
 
         return state
-
-    def find_solution(
-        self, state: State, __: Validator, *, verbose: bool = False, **kwargs
-    ) -> np.ndarray:
-        initial_guess = state[self.coordinates]
-        solution = self.step_solver.solve(initial_guess=initial_guess, **kwargs)
-        return solution
 
 
 class StaticSolver(ProblemSolver):

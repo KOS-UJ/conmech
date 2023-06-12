@@ -75,6 +75,7 @@ class State:
         """
         if len(self.displaced_nodes[self.body.mesh.contact_indices, 1]) != 0:
             return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
+        return 0
 
     def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item in (0, "displacement"):
@@ -105,7 +106,7 @@ class TemperatureState(State):
     def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item == "temperature":
             return self.temperature
-        return super()[item]
+        return super().__getitem__(item)
 
     def set_temperature(self, temperature_vector: np.ndarray):
         self.temperature = temperature_vector

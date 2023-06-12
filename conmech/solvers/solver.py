@@ -16,8 +16,8 @@ class Solver:
         statement: Statement,
         body: BodyForces,
         time_step: float,
-        contact_law: Optional[ContactLaw],
-        friction_bound: Optional[Callable[[float], float]],
+        contact_law: Optional[ContactLaw] = None,
+        friction_bound: Optional[Callable[[float], float]] = None,
     ):
         self.contact_law: Optional[ContactLaw] = contact_law
         self.friction_bound: Optional[Callable[[float], float]] = friction_bound
