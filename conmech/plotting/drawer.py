@@ -17,7 +17,6 @@ class Drawer:
     # pylint: disable=too-many-instance-attributes
     def __init__(self, state, config: Config):
         """
-
         outer_forces_scale: if >0 draw outer forces vectors with length scaled
                             (divided) by outer_forces_scale
                             if <0 draw fixed length vectors (e.g. -1 means vectors equals 1)
@@ -43,6 +42,7 @@ class Drawer:
         self.xlabel = None
         self.ylabel = None
 
+    # pylint: disable=too-many-arguments
     def draw(
         self,
         fig_axes=None,
@@ -52,10 +52,11 @@ class Drawer:
         save=False,
         save_format="png",
         title=None,
+        foundation=True,
     ):
         fig, axes = fig_axes or plt.subplots()
 
-        self.set_axes_limits(axes)
+        self.set_axes_limits(axes, foundation)
 
         if self.field_name:
             self.field = getattr(self.state, self.field_name)
@@ -85,7 +86,7 @@ class Drawer:
         if save:
             self.save_plot(save_format)
 
-    def set_axes_limits(self, axes):
+    def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max
         if self.x_min is None:
             self.x_min = min(
@@ -110,7 +111,8 @@ class Drawer:
         y_margin = dy * 0.2
         ylim = (self.y_min - y_margin, self.y_max + y_margin)
 
-        axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
+        if foundation:
+            axes.fill_between(xlim, [ylim[0], ylim[0]], color="gray", alpha=0.25)
         axes.set_xlim(*xlim)
         axes.set_ylim(*ylim)
         if self.xlabel is not None:

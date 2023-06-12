@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.body_properties import BodyProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.optimization.schur_complement import SchurComplement
+from conmech.helpers.schur_complement_functions import calculate_schur_complement_vector
 from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
@@ -101,7 +101,7 @@ class BodyForces(Dynamics):
         (
             normalized_rhs_boundary,
             normalized_rhs_free,
-        ) = SchurComplement.calculate_schur_complement_vector(
+        ) = calculate_schur_complement_vector(
             vector=normalized_rhs,
             dimension=self.mesh.dimension,
             contact_indices=self.mesh.contact_indices,
@@ -111,7 +111,7 @@ class BodyForces(Dynamics):
         )
         return normalized_rhs_boundary, normalized_rhs_free
 
-    def get_normalized_rhs_np(self, temperature=None):
+    def get_normalized_rhs_np(self, temperature=None) -> np.ndarray:
         _ = temperature
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)

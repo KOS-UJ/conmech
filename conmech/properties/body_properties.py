@@ -62,3 +62,8 @@ class ViscoelasticPiezoelectricProperties(
 @dataclass
 class ElasticRelaxationProperties(ElasticProperties, RelaxationBodyProperties):
     pass
+
+
+@dataclass
+class BaseFunctionNormBodyProperties(BodyProperties):
+    pass

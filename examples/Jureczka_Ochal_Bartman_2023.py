@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, Quasistatic
-from conmech.simulations.problem_solver import TimeDependent as QuasistaticProblemSolver
+from conmech.scenarios.problems import ContactLaw, QuasistaticDisplacementProblem
+from conmech.simulations.problem_solver import TimeDependentSolver as QuasistaticProblemSolver
 from examples.utils import viscoelastic_constitutive_law
 
 
@@ -55,7 +55,7 @@ path = "./output/JOB2023"
 
 def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction_bound_):
     @dataclass()
-    class QuasistaticSetup(Quasistatic):
+    class QuasistaticSetup(QuasistaticDisplacementProblem):
         grid_height: ... = 1.0
         elements_number: ... = elements_number_
         mu_coef: ... = 40

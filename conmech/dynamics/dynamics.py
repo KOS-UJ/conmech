@@ -17,7 +17,7 @@ from conmech.properties.body_properties import (
 )
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
-from conmech.solvers.optimization.schur_complement import SchurComplement
+from conmech.helpers.schur_complement_functions import calculate_schur_complement_matrices
 from conmech.state.body_position import BodyPosition
 
 
@@ -96,6 +96,7 @@ class Dynamics(BodyPosition):
         self.thermal_conductivity: np.ndarray
         self.piezoelectricity: np.ndarray
         self.permittivity: np.ndarray
+        self.poisson_operator: np.ndarray
 
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
@@ -122,6 +123,7 @@ class Dynamics(BodyPosition):
             self.thermal_conductivity,
             self.piezoelectricity,
             self.permittivity,
+            self.poisson_operator,
         ) = get_dynamics(
             elements=self.mesh.elements, body_prop=self.body_prop, U=U, V=V, W=self._w_matrix
         )
@@ -139,7 +141,7 @@ class Dynamics(BodyPosition):
                 self.solver_cache.free_x_contact,
                 self.solver_cache.contact_x_free,
                 self.solver_cache.free_x_free_inverted,
-            ) = SchurComplement.calculate_schur_complement_matrices(
+            ) = calculate_schur_complement_matrices(
                 matrix=self.solver_cache.lhs,
                 dimension=self.mesh.dimension,
                 contact_indices=self.mesh.contact_indices,
@@ -156,7 +158,7 @@ class Dynamics(BodyPosition):
                     self.solver_cache.temperature_free_x_contact,
                     self.solver_cache.temperature_contact_x_free,
                     self.solver_cache.temperature_free_x_free_inv,
-                ) = SchurComplement.calculate_schur_complement_matrices(
+                ) = calculate_schur_complement_matrices(
                     matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
                     contact_indices=self.mesh.contact_indices,

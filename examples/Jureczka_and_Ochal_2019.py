@@ -7,8 +7,8 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, Static
-from conmech.simulations.problem_solver import Static as StaticProblemSolver
+from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
+from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 
 
 class JureczkaOchal2019(ContactLaw):
@@ -41,8 +41,8 @@ class JureczkaOchal2019(ContactLaw):
         # return result
 
 
-@dataclass()
-class StaticSetup(Static):
+@dataclass
+class StaticSetup(StaticDisplacementProblem):
     grid_height: ... = 1.0
     elements_number: ... = (8, 16)
     mu_coef: ... = 4

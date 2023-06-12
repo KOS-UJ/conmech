@@ -49,6 +49,8 @@ def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
     dimension = len(elements[0]) - 1
     factory = get_factory(dimension)
 
+    poisson_operator = factory.calculate_poisson_matrix(W)
+
     elasticity = (
         factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
         if isinstance(body_prop, ElasticProperties)
@@ -87,4 +89,5 @@ def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
         thermal_conductivity,
         piezoelectricity,
         permittivity,
+        poisson_operator,
     )

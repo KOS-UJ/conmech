@@ -63,6 +63,17 @@ class Statement:
             i += 1
 
 
+class StaticPoissonStatement(Statement):
+    def __init__(self, dynamics):
+        super().__init__(dynamics, 1)
+
+    def update_left_hand_side(self, var: Variables):
+        self.left_hand_side = self.body.poisson_operator
+
+    def update_right_hand_side(self, var: Variables):
+        self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
+
+
 class StaticDisplacementStatement(Statement):
     def __init__(self, dynamics):
         super().__init__(dynamics, 2)

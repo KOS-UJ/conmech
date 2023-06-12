@@ -15,7 +15,7 @@ class State:
         self.setup = None
         self.__stress: np.ndarray = None
         self.constitutive_law = None
-        self.time = 0
+        self.time: float = 0
 
     def set_displacement(
         self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
@@ -73,9 +73,11 @@ class State:
         """
         This method assume foundation equals x=0.
         """
-        return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
+        if len(self.displaced_nodes[self.body.mesh.contact_indices, 1]) != 0:
+            return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
+        return 0
 
-    def __getitem__(self, item) -> np.ndarray:
+    def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item in (0, "displacement"):
             return self.displacement
         if item in (1, "velocity"):
@@ -100,6 +102,11 @@ class TemperatureState(State):
     def __init__(self, body):
         super().__init__(body)
         self.temperature = np.zeros(self.body.mesh.nodes_count)
+
+    def __getitem__(self, item: [int, str]) -> np.ndarray:
+        if item == "temperature":
+            return self.temperature
+        return super().__getitem__(item)
 
     def set_temperature(self, temperature_vector: np.ndarray):
         self.temperature = temperature_vector
