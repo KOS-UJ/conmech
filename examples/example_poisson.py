@@ -49,7 +49,7 @@ def main(config: Config):
     min_ = min(min(state.temperature), 0)
     drawer = Drawer(state=state, config=config)
     drawer.cmap = "plasma"
-    drawer.field_name = "displacement"
+    drawer.field_name = "temperature"
     drawer.draw(
         show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_)
 

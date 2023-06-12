@@ -212,7 +212,7 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-            # self.penetration.append((state.time, state.penetration))  TODO!
+            self.penetration.append((state.time, state.penetration))
             self.step_solver.iterate()
             self.done += 1
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
