@@ -32,6 +32,8 @@ class Calculator:
     def minimize(
         function: Callable[[np.ndarray], np.ndarray], initial_vector: np.ndarray
     ) -> np.ndarray:
+        if initial_vector.ndim != 1:
+            initial_vector = initial_vector.T[0]
         return scipy.optimize.minimize(
             function,
             initial_vector,
