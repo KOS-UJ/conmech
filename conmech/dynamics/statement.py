@@ -68,10 +68,11 @@ class StaticPoissonStatement(Statement):
         super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.poisson_operator
+        self.left_hand_side = self.body.poisson_operator.copy()
 
     def update_right_hand_side(self, var: Variables):
         self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
+        print()
 
 
 class StaticDisplacementStatement(Statement):

@@ -168,8 +168,8 @@ def main(config: Config):
                     f"{path}/{name}_t_{int(state.time//setup.time_step)}_h_{h}", "wb+"
                 ) as output:
                     # Workaround
-                    state.body.outer_forces = None
-                    state.body.inner_forces = None
+                    state.body.outer.source = None
+                    state.body.inner.source = None
                     pickle.dump(state, output)
 
     for name in names:
@@ -190,8 +190,8 @@ def main(config: Config):
             with open(f"{path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
                 # Workaround
-                state.body.outer_forces = setup.outer_forces
-                state.body.inner_forces = setup.inner_forces
+                state.body.outer.source = setup.outer_forces
+                state.body.inner.source = setup.inner_forces
             if time_step == 0:
                 drawer = Drawer(state=state, config=config)
                 drawer.node_size = 1

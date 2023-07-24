@@ -1,3 +1,5 @@
+import dataclasses
+import enum
 from typing import Callable, Optional
 
 import numpy as np
@@ -19,6 +21,19 @@ def energy(value, lhs, rhs):
     return value
 
 
+class Field(enum.Enum):
+    FORCE = "FORCE"
+    TEMPERATURE = "TEMPERATURE"
+    ELECTRIC = "ELECTRIC"
+
+
+@dataclasses.dataclass()
+class FieldSource:
+    source: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
+    cache: Optional[np.ndarray] = None
+    timestamp: Optional[float] = None
+
+
 class BodyForces(Dynamics):
     def __init__(
         self,
@@ -36,42 +51,38 @@ class BodyForces(Dynamics):
             boundaries_description=boundaries_description,
         )
 
-        self.inner_forces: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
-        self._node_inner_forces = None
-        self._inner_forces_time = None
-        self.outer_forces: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
-        self._node_outer_forces = None
-        self._outer_forces_time = None
+        self.inner = FieldSource()
+        self.outer = FieldSource()
 
     def prepare(self, inner_forces: np.ndarray):
-        self._node_inner_forces = inner_forces
-        self._node_outer_forces = np.zeros_like(self.mesh.initial_nodes)
-        self._inner_forces_time = 0
-        self._outer_forces_time = 0
+        self.inner.cache = inner_forces
+        self.outer.cache = np.zeros_like(self.mesh.initial_nodes)
+        self.inner.timestamp = 0
+        self.outer.timestamp = 0
 
     def clear(self):
-        self._node_inner_forces = None
-        self._node_outer_forces = None
+        self.inner.cache = None
+        self.outer.cache = None
 
     def node_inner_forces(self, time: float):
         # TODO handle set self.inner_forces
         # pylint: disable=not-callable
-        if time != self._inner_forces_time:
-            self._node_inner_forces = np.array(
-                [self.inner_forces(p, time) for p in self.mesh.initial_nodes]
+        if time != self.inner.timestamp:
+            self.inner.cache = np.array(
+                [self.inner.source(p, time) for p in self.mesh.initial_nodes]
             )
-            self._inner_forces_time = time
-        return self._node_inner_forces
+            self.inner.timestamp = time
+        return self.inner.cache
 
     def node_outer_forces(self, time: float):
         # TODO handle set self.inner_forces
         # pylint: disable=not-callable
-        if time != self._outer_forces_time:
-            self._node_outer_forces = np.array(
-                [self.outer_forces(p, time) for p in self.mesh.initial_nodes]
+        if time != self.outer.timestamp:
+            self.outer.cache = np.array(
+                [self.outer.source(p, time) for p in self.mesh.initial_nodes]
             )  # TODO: should be only on boundary!
-            self._outer_forces_time = time
-        return self._node_outer_forces
+            self.outer.timestamp = time
+        return self.outer.cache
 
     def normalized_inner_forces(self, time: float = 0):
         return self.normalize_rotate(self.node_inner_forces(time))
@@ -87,14 +98,14 @@ class BodyForces(Dynamics):
         )
         return neumann_surfaces * self.node_outer_forces(time)
 
-    def get_integrated_forces_column(self, time: float):
+    def get_integrated_field_sources_column(self, time: float, field: Field = Field.FORCE):
         integrated_forces = self.get_integrated_inner_forces(
             time
         ) + self.get_integrated_outer_forces(time)
         return nph.stack_column(integrated_forces[:, :])
 
     def get_integrated_forces_vector(self, time: float):
-        return self.get_integrated_forces_column(time).reshape(-1)
+        return self.get_integrated_field_sources_column(time).reshape(-1)
 
     def get_all_normalized_rhs_np(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_np(temperature)
@@ -116,7 +127,7 @@ class BodyForces(Dynamics):
 
         displacement_old_vector = nph.stack_column(self.normalized_displacement_old)
         velocity_old_vector = nph.stack_column(self.normalized_velocity_old)
-        f_vector = self.get_integrated_forces_column(time=0)
+        f_vector = self.get_integrated_field_sources_column(time=0)
         rhs = (
             f_vector
             - (self.viscosity + self.elasticity * self.time_step) @ velocity_old_vector

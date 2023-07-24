@@ -29,12 +29,12 @@ class StaticPoissonSetup(PoissonProblem):
     @staticmethod
     def outer_forces(x: np.ndarray, t=None) -> np.ndarray:
         if x[1] == 0:
-            return np.array([0.0])
-        return np.array([0.0])
+            return np.array([20.0])
+        return np.array([10.0])
 
     boundaries: ... = BoundariesDescription(
         dirichlet=(
-            lambda x: x[1] == 0 or x[0] == 0 or x[0] == 1 or x[1] == 1,
+            lambda x: x[1] == 0 or x[0] == 0 or x[1] == 1,
             lambda x: np.full(x.shape[0], 0),
         )
     )

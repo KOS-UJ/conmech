@@ -86,8 +86,8 @@ class ProblemSolver:
                 with_schur=False,
             ),
         )
-        self.body.inner_forces = problem.inner_forces
-        self.body.outer_forces = problem.outer_forces
+        self.body.inner.source = problem.inner_forces
+        self.body.outer.source = problem.outer_forces
         self.problem: Problem = problem
 
         self.coordinates: Optional[str] = None
