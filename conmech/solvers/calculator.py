@@ -123,20 +123,20 @@ class Calculator:
     ):
         _ = initial_t
         normalized_rhs = setting.get_normalized_t_rhs_np(normalized_acceleration)
-        t_vector = np.linalg.solve(setting.solver_cache.lhs_temperature, normalized_rhs)
+        t_vector = np.linalg.solve(setting.body.dynamics.solver_cache.lhs_temperature, normalized_rhs)
         return t_vector
 
     @staticmethod
     def solve_acceleration_normalized_function(setting, temperature=None, initial_a=None):
         _ = initial_a
         normalized_rhs = setting.get_normalized_rhs_np(temperature)
-        normalized_a_vector = np.linalg.solve(setting.solver_cache.lhs, normalized_rhs)
+        normalized_a_vector = np.linalg.solve(setting.body.dynamics.solver_cache.lhs, normalized_rhs)
         # print(f"Quality: {np.sum(np.mean(C@t-E))}") TODO: abs
-        return nph.unstack(normalized_a_vector, setting.mesh.dimension)
+        return nph.unstack(normalized_a_vector, setting.body.mesh.dimension)
 
     @staticmethod
     def get_acceleration_energy(setting, acceleration):
-        initial_a_boundary_vector = nph.stack_column(acceleration[setting.mesh.boundary_indices])
+        initial_a_boundary_vector = nph.stack_column(acceleration[setting.body.mesh.boundary_indices])
 
         cost_function, _ = setting.get_normalized_energy_obstacle_np()
         energy = cost_function(initial_a_boundary_vector)
@@ -146,10 +146,10 @@ class Calculator:
     def solve_acceleration_normalized_optimization(setting, temperature=None, initial_a=None):
         if initial_a is None:
             initial_a_boundary_vector = np.zeros(
-                setting.mesh.boundary_nodes_count * setting.mesh.dimension
+                setting.body.mesh.boundary_nodes_count * setting.body.mesh.dimension
             )
         else:
-            initial_a_boundary_vector = nph.stack_column(initial_a[setting.mesh.boundary_indices])
+            initial_a_boundary_vector = nph.stack_column(initial_a[setting.body.mesh.boundary_indices])
 
         cost_function, normalized_rhs_free = setting.get_normalized_energy_obstacle_np(temperature)
         normalized_boundary_a_vector_np = Calculator.minimize(
@@ -161,7 +161,7 @@ class Calculator:
             setting, normalized_rhs_free, normalized_boundary_a_vector
         )
 
-        return nph.unstack(normalized_a_vector, setting.mesh.dimension)
+        return nph.unstack(normalized_a_vector, setting.body.mesh.dimension)
 
     @staticmethod
     def solve_temperature_normalized_optimization(
@@ -170,7 +170,7 @@ class Calculator:
         initial_t_vector: Optional[np.ndarray] = None,
     ):
         _ = initial_t_vector
-        initial_t_boundary_vector = np.zeros(setting.mesh.boundary_nodes_count)
+        initial_t_boundary_vector = np.zeros(setting.body.mesh.boundary_nodes_count)
 
         (
             cost_function,
@@ -195,27 +195,27 @@ class Calculator:
 
     @staticmethod
     def denormalize(setting, normalized_cleaned_a):
-        return setting.denormalize_rotate(normalized_cleaned_a)
+        return setting.body.state.position.denormalize_rotate(normalized_cleaned_a)
 
     @staticmethod
     def complete_a_vector(setting, normalized_rhs_free, a_contact_vector):
-        a_independent_vector = setting.solver_cache.free_x_free_inverted @ (
-            normalized_rhs_free - (setting.solver_cache.free_x_contact @ a_contact_vector)
+        a_independent_vector = setting.body.dynamics.solver_cache.free_x_free_inverted @ (
+            normalized_rhs_free - (setting.body.dynamics.solver_cache.free_x_contact @ a_contact_vector)
         )
 
         normalized_a = np.vstack(
             (
-                nph.unstack(a_contact_vector, setting.mesh.dimension),
-                nph.unstack(a_independent_vector, setting.mesh.dimension),
+                nph.unstack(a_contact_vector, setting.body.mesh.dimension),
+                nph.unstack(a_independent_vector, setting.body.mesh.dimension),
             )
         )
         return nph.stack(normalized_a)
 
     @staticmethod
     def complete_t_vector(setting: SceneTemperature, normalized_t_rhs_free, t_contact_vector):
-        t_independent_vector = setting.solver_cache.temperature_free_x_free_inv @ (
+        t_independent_vector = setting.body.dynamics.solver_cache.temperature_free_x_free_inv @ (
             normalized_t_rhs_free
-            - (setting.solver_cache.temperature_free_x_contact @ t_contact_vector)
+            - (setting.body.dynamics.solver_cache.temperature_free_x_contact @ t_contact_vector)
         )
 
         return np.vstack((t_contact_vector, t_independent_vector))

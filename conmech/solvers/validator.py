@@ -30,7 +30,7 @@ class Validator:
                 state.body.mesh.initial_nodes,
                 state.body.mesh.contact_boundary,
                 self.elasticity,
-                state.body.get_integrated_forces_vector(time=state.time),
+                state.body.dynamics.force.get_integrated_forces_vector(time=state.time),
             )
         )
         if quality_inv == 0:

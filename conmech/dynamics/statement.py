@@ -68,11 +68,10 @@ class StaticPoissonStatement(Statement):
         super().__init__(dynamics, 1)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.poisson_operator.copy()
+        self.left_hand_side = self.body.dynamics.poisson_operator.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
-        print()
+        self.right_hand_side = self.body.dynamics.temperature.get_integrated_forces_vector(time=0)
 
 
 class StaticDisplacementStatement(Statement):
@@ -80,10 +79,10 @@ class StaticDisplacementStatement(Statement):
         super().__init__(dynamics, 2)
 
     def update_left_hand_side(self, var: Variables):
-        self.left_hand_side = self.body.elasticity.copy()
+        self.left_hand_side = self.body.dynamics.elasticity.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.get_integrated_forces_vector(time=0)
+        self.right_hand_side = self.body.dynamics.force.get_integrated_forces_vector(time=0)
 
 
 class QuasistaticRelaxationStatement(Statement):
@@ -94,7 +93,8 @@ class QuasistaticRelaxationStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.elasticity.copy() + self.body.relaxation(var.time) * var.time_step
+            self.body.dynamics.elasticity.copy()
+            + self.body.dynamics.relaxation(var.time) * var.time_step
         )
 
     def update_right_hand_side(self, var: Variables):
@@ -102,8 +102,8 @@ class QuasistaticRelaxationStatement(Statement):
         assert var.time is not None
 
         self.right_hand_side = (
-            self.body.get_integrated_forces_vector(time=var.time)
-            - self.body.relaxation(var.time) @ var.absement.T
+            self.body.dynamics.force.get_integrated_forces_vector(time=var.time)
+            - self.body.dynamics.relaxation(var.time) @ var.absement.T
         )
 
 
@@ -114,15 +114,15 @@ class QuasistaticVelocityStatement(Statement):
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
-        self.left_hand_side = self.body.viscosity.copy() + self.body.elasticity * var.time_step
+        self.left_hand_side = self.body.dynamics.viscosity.copy() + self.body.dynamics.elasticity * var.time_step
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
         assert var.time is not None
 
         self.right_hand_side = (
-            self.body.get_integrated_forces_vector(time=var.time)
-            - self.body.elasticity @ var.displacement.T
+            self.body.dynamics.force.get_integrated_forces_vector(time=var.time)
+            - self.body.dynamics.elasticity @ var.displacement.T
         )
 
 
@@ -134,9 +134,9 @@ class DynamicVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.viscosity
-            + (1 / var.time_step) * self.body.acceleration_operator
-            + self.body.elasticity * var.time_step
+            self.body.dynamics.viscosity
+            + (1 / var.time_step) * self.body.dynamics.acceleration_operator
+            + self.body.dynamics.elasticity * var.time_step
         )
 
     def update_right_hand_side(self, var):
@@ -145,11 +145,11 @@ class DynamicVelocityStatement(Statement):
         assert var.time_step is not None
         assert var.time is not None
 
-        A = -1 * self.body.elasticity @ var.displacement
+        A = -1 * self.body.dynamics.elasticity @ var.displacement
 
-        A += (1 / var.time_step) * self.body.acceleration_operator @ var.velocity
+        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator @ var.velocity
 
-        self.right_hand_side = self.body.get_integrated_forces_vector(time=var.time) + A
+        self.right_hand_side = self.body.dynamics.force.get_integrated_forces_vector(time=var.time) + A
 
 
 class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):
@@ -158,7 +158,7 @@ class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):
 
         assert var.temperature is not None
 
-        A = self.body.thermal_expansion.T @ var.temperature
+        A = self.body.dynamics.thermal_expansion.T @ var.temperature
 
         self.right_hand_side += A
 
@@ -172,20 +172,21 @@ class TemperatureStatement(Statement):
 
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
-        self.left_hand_side = (1 / var.time_step) * self.body.acceleration_operator[
+        self.left_hand_side = (1 / var.time_step) * self.body.dynamics.acceleration_operator[
             :ind, :ind
-        ] + self.body.thermal_conductivity[:ind, :ind]
+        ] + self.body.dynamics.thermal_conductivity[:ind, :ind]
 
     def update_right_hand_side(self, var):
         assert var.velocity is not None
         assert var.time_step is not None
         assert var.temperature is not None
 
-        rhs = (-1) * self.body.thermal_expansion @ var.velocity
+        rhs = (-1) * self.body.dynamics.thermal_expansion @ var.velocity
 
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
-        rhs += (1 / var.time_step) * self.body.acceleration_operator[:ind, :ind] @ var.temperature
+        rhs += ((1 / var.time_step) * self.body.dynamics.acceleration_operator[:ind, :ind]
+                @ var.temperature)
         self.right_hand_side = rhs
 
 
@@ -195,12 +196,12 @@ class PiezoelectricStatement(Statement):
         self.dirichlet_cond_name = "piezo_" + self.dirichlet_cond_name
 
     def update_left_hand_side(self, var):
-        self.left_hand_side = self.body.permittivity.copy()
+        self.left_hand_side = self.body.dynamics.permittivity.copy()
 
     def update_right_hand_side(self, var):
         assert var.displacement is not None
 
-        rhs = self.body.piezoelectricity @ var.displacement
+        rhs = self.body.dynamics.piezoelectricity @ var.displacement
         self.right_hand_side = rhs
 
 
@@ -210,7 +211,7 @@ class QuasistaticVelocityWithPiezoelectricStatement(QuasistaticVelocityStatement
 
         assert var.electric_potential is not None
 
-        A = (-1) * self.body.piezoelectricity.T @ var.electric_potential
+        A = (-1) * self.body.dynamics.piezoelectricity.T @ var.electric_potential
 
         self.right_hand_side += A
 
@@ -221,6 +222,6 @@ class DynamicVelocityWithPiezoelectricStatement(DynamicVelocityStatement):
 
         assert var.electric_potential is not None
 
-        A = self.body.piezoelectricity.T @ var.electric_potential
+        A = self.body.dynamics.piezoelectricity.T @ var.electric_potential
 
         self.right_hand_side += A

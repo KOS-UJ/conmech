@@ -315,7 +315,13 @@ def draw_nodes(nodes, position, color, axes):
 
 
 def draw_forces(scene: Scene, position, axes):
-    return draw_data("F", scene.normalized_inner_forces(), scene, position, axes)
+    return draw_data(
+        "F",
+        scene.normalize_rotate(scene.inner.node_source(scene.mesh.initial_nodes, 0)),
+        scene,
+        position,
+        axes,
+    )
 
 
 def draw_input_u(scene: Scene, position, axes):
@@ -357,7 +363,9 @@ def draw_all_sparse(scene: Scene, position, axes):
     for i, layer in enumerate(scene.all_layers):
         mesh = layer.mesh
         new_inner_forces = scene.approximate_boundary_or_all_from_base(
-            layer_number=i, base_values=scene.normalized_inner_forces()
+            layer_number=i, base_values=scene.normalize_rotate(
+                scene.inner.node_source(scene.mesh.initial_nodes, 0)
+            )
         )
 
         triplot(mesh.initial_nodes + position, mesh.elements, color="tab:orange", axes=axes)

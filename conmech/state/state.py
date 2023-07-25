@@ -4,10 +4,15 @@ Created at 18.02.2021
 
 import numpy as np
 
+from conmech.state.body_position import BodyPosition
+
 
 class State:
     def __init__(self, body):
         self.body = body
+        self.body.state = self
+        self.position = BodyPosition(body, normalize_by_rotation=False)
+
         self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.displacement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
@@ -123,8 +128,8 @@ class TemperatureState(State):
 
 
 class PiezoelectricState(State):
-    def __init__(self, grid):
-        super().__init__(grid)
+    def __init__(self, body):
+        super().__init__(body)
         self.electric_potential = np.zeros(self.body.mesh.nodes_count)
 
     def set_electric_potential(self, electric_vector: np.ndarray):

@@ -15,19 +15,13 @@ class StaticPoissonSetup(PoissonProblem):
     elements_number: ... = (8, 8)
 
     @staticmethod
-    def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        if x[1] == 0:
-            return np.array([8.0])
-        return np.array([0.0])
-
-    @staticmethod
-    def inner_forces(x: np.ndarray, t=None) -> np.ndarray:
+    def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         if 0.4 <= x[0] <= 0.6 and 0.4 <= x[1] <= 0.6:
             return np.array([-10.0])
-        return np.array([2 * np.pi**2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])])
+        return np.array([2 * np.pi ** 2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])])
 
     @staticmethod
-    def outer_forces(x: np.ndarray, t=None) -> np.ndarray:
+    def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         if x[1] == 0:
             return np.array([20.0])
         return np.array([10.0])

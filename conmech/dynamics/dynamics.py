@@ -9,16 +9,12 @@ from conmech.dynamics.factory.dynamics_factory_method import (
     get_basic_matrices,
     get_factory,
 )
-from conmech.mesh.boundaries_description import BoundariesDescription
+from conmech.helpers.schur_complement_functions import calculate_schur_complement_matrices
 from conmech.properties.body_properties import (
     TemperatureBodyProperties,
-    BodyProperties,
     ElasticRelaxationProperties,
 )
-from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.schedule import Schedule
-from conmech.helpers.schur_complement_functions import calculate_schur_complement_matrices
-from conmech.state.body_position import BodyPosition
+from conmech.scene.body_forces import BodyForces
 
 
 @numba.njit
@@ -61,29 +57,24 @@ class DynamicsConfiguration:
     with_schur: bool = True
 
 
-class Dynamics(BodyPosition):
-    # TODO: brake inheritance
+class Dynamics:
     # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
-        mesh_prop: MeshProperties,
-        body_prop: BodyProperties,
-        schedule: Schedule,
+        body: "Body",
+        time_step,
         dynamics_config: DynamicsConfiguration,
-        boundaries_description: BoundariesDescription,
     ):
-        super().__init__(
-            mesh_prop=mesh_prop,
-            schedule=schedule,
-            normalize_by_rotation=dynamics_config.normalize_by_rotation,
-            boundaries_description=boundaries_description,
-            create_in_subprocess=dynamics_config.create_in_subprocess,
-        )
-        self.body_prop = body_prop
+        self.body = body
+        self.body.dynamics = self
+
+        self.force = BodyForces(body)
+        self.temperature = BodyForces(body, )
+        self.time_step = time_step
         self.with_lhs = dynamics_config.with_lhs
         self.with_schur = dynamics_config.with_schur
 
-        self.factory = get_factory(mesh_prop.dimension)
+        self.factory = get_factory(body.mesh.mesh_prop.dimension)
         self.element_initial_volume: np.ndarray
         self.volume_at_nodes: np.ndarray
         self.acceleration_operator: np.ndarray
@@ -101,12 +92,6 @@ class Dynamics(BodyPosition):
         self.solver_cache = SolverMatrices()
         self.reinitialize_matrices()
 
-    def remesh(self, boundaries_description, create_in_subprocess):
-        # For some reason pylint don't see that Dynamics(BodyPosition) has mesh
-        # pylint: disable=no-member
-        super().mesh.remesh(boundaries_description, create_in_subprocess)
-        self.reinitialize_matrices()
-
     def reinitialize_matrices(self):
         (
             self.element_initial_volume,
@@ -114,7 +99,7 @@ class Dynamics(BodyPosition):
             U,
             V,
             self._w_matrix,
-        ) = get_basic_matrices(elements=self.mesh.elements, nodes=self.moved_nodes)
+        ) = get_basic_matrices(elements=self.body.mesh.elements, nodes=self.body.mesh.initial_nodes) # + self.displacement_old)
         (
             self.acceleration_operator,
             self.elasticity,
@@ -125,7 +110,7 @@ class Dynamics(BodyPosition):
             self.permittivity,
             self.poisson_operator,
         ) = get_dynamics(
-            elements=self.mesh.elements, body_prop=self.body_prop, U=U, V=V, W=self._w_matrix
+            elements=self.body.mesh.elements, body_prop=self.body.properties, U=U, V=V, W=self._w_matrix
         )
 
         if not self.with_lhs:
@@ -143,13 +128,13 @@ class Dynamics(BodyPosition):
                 self.solver_cache.free_x_free_inverted,
             ) = calculate_schur_complement_matrices(
                 matrix=self.solver_cache.lhs,
-                dimension=self.mesh.dimension,
-                contact_indices=self.mesh.contact_indices,
-                free_indices=self.mesh.free_indices,
+                dimension=self.body.mesh.dimension,
+                contact_indices=self.body.mesh.contact_indices,
+                free_indices=self.body.mesh.free_indices,
             )
 
             if self.with_temperature:
-                i = self.mesh.independent_indices
+                i = self.body.mesh.independent_indices
                 self.solver_cache.lhs_temperature = (
                     1 / self.time_step
                 ) * self.acceleration_operator[i, i] + self.thermal_conductivity[i, i]
@@ -161,18 +146,18 @@ class Dynamics(BodyPosition):
                 ) = calculate_schur_complement_matrices(
                     matrix=self.solver_cache.lhs_temperature,
                     dimension=1,
-                    contact_indices=self.mesh.contact_indices,
-                    free_indices=self.mesh.free_indices,
+                    contact_indices=self.body.mesh.contact_indices,
+                    free_indices=self.body.mesh.free_indices,
                 )
 
     @property
     def with_temperature(self):
-        return isinstance(self.body_prop, TemperatureBodyProperties)
+        return isinstance(self.body.properties, TemperatureBodyProperties)
 
     def relaxation(self, time: float = 0):
         # TODO handle others
-        if isinstance(self.body_prop, ElasticRelaxationProperties):
-            relaxation_tensor = self.body_prop.relaxation(time)
+        if isinstance(self.body.properties, ElasticRelaxationProperties):
+            relaxation_tensor = self.body.properties.relaxation(time)
             if (relaxation_tensor != self.__relaxation_tensor).any():
                 self.__relaxation_tensor = relaxation_tensor
                 self.__relaxation = self.factory.get_relaxation_tensor(

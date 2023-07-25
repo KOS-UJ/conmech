@@ -184,14 +184,14 @@ def main(config: Config):
                     "wb+",
                 ) as output:
                     # Workaround
-                    relaxation = state.body.body_prop.relaxation
-                    state.body.outer.source = None
-                    state.body.inner.source = None
-                    state.body.body_prop.relaxation = None
+                    relaxation = state.body.dynamics.relaxation
+                    state.body.dynamics.force.outer.source = None
+                    state.body.dynamics.force.inner.source = None
+                    state.body.properties.relaxation = None
                     state.setup = None
                     state.constitutive_law = None
                     pickle.dump(state, output)
-                    state.body.body_prop.relaxation = relaxation
+                    state.body.dynamics.relaxation = relaxation
             with open(
                 f"{config.outputs_path}/{name}_h_{h}_penetration",
                 "wb+",
@@ -214,8 +214,8 @@ def main(config: Config):
             with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
                 # Workaround
-                state.body.outer.source = examples[name]["outer_forces"]
-                state.body.body_prop.relaxation = examples[name]["relaxation"]
+                state.body.dynamics.force.outer.source = examples[name]["outer_forces"]
+                state.body.dynamics.relaxation = examples[name]["relaxation"]
                 state.setup = setup
                 state.constitutive_law = elastic_relaxation_constitutive_law
 

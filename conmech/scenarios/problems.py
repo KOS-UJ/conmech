@@ -79,7 +79,7 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
         return np.zeros_like(len(x))
 
     @staticmethod
-    def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.zeros_like(len(x))
 
 

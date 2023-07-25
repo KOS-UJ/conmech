@@ -4,16 +4,16 @@ from typing import List, Optional
 import numba
 import numpy as np
 
-from conmech.dynamics.dynamics import DynamicsConfiguration
+from conmech.dynamics.dynamics import DynamicsConfiguration, Dynamics
 from conmech.helpers import nph
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
-from conmech.properties.body_properties import ViscoelasticProperties
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
-from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces, energy
+from conmech.simulations.problem_solver import Body
 from conmech.state.body_position import BodyPosition
+from conmech.state.state import State
 
 
 def get_new_penetration_norm(displacement_step, normals, penetration):
@@ -122,44 +122,33 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
     return boundary_obstacle_indices
 
 
-class Scene(BodyForces):
+class Scene:
     def __init__(
         self,
-        mesh_prop: MeshProperties,
-        body_prop: ViscoelasticProperties,
+        body: "Body",
+        time_step: float,
         obstacle_prop: ObstacleProperties,
-        schedule: Schedule,
-        normalize_by_rotation: bool,
-        create_in_subprocess: bool,
-        with_schur: bool = True,
+        normalize_by_rotation: bool = False,
+        create_in_subprocess: bool = False
     ):
-        boundaries_description: ... = BoundariesDescription(
-            contact=lambda x: True, dirichlet=lambda x: False
-        )
-        super().__init__(
-            mesh_prop=mesh_prop,
-            body_prop=body_prop,
-            schedule=schedule,
-            dynamics_config=DynamicsConfiguration(
-                normalize_by_rotation=normalize_by_rotation,
-                create_in_subprocess=create_in_subprocess,
-                with_lhs=True,
-                with_schur=with_schur,
-            ),
-            boundaries_description=boundaries_description,
-        )
+        self.body = body
+        Dynamics(self.body, time_step, DynamicsConfiguration(create_in_subprocess=create_in_subprocess))
+        State(self.body)
+        self.time_step = time_step
         self.obstacle_prop = obstacle_prop
+        self.normalize_by_rotation = normalize_by_rotation
+        self.create_in_subprocess = create_in_subprocess
         self.closest_obstacle_indices = None
         self.linear_obstacles: np.ndarray = np.array([[], []])
         self.mesh_obstacles: List[BodyPosition] = []
 
-        self.clear()
+        self.body.dynamics.force.clear()
 
     def prepare(self, inner_forces):
-        super().prepare(inner_forces)
+        self.body.dynamics.force.prepare(inner_forces)
         if not self.has_no_obstacles:
             self.closest_obstacle_indices = get_closest_obstacle_to_boundary_numba(
-                self.boundary_nodes, self.obstacle_nodes
+                self.body.state.position.boundary_nodes, self.obstacle_nodes
             )
 
     def normalize_and_set_obstacles(
@@ -176,34 +165,34 @@ class Scene(BodyForces):
             boundaries_description: ... = BoundariesDescription(
                 contact=lambda x: True, dirichlet=lambda x: False
             )
-            self.mesh_obstacles.extend(
-                [
-                    BodyPosition(
-                        mesh_prop=mesh_prop,
-                        schedule=None,
-                        normalize_by_rotation=False,
-                        boundaries_description=boundaries_description,
-                    )
-                    for mesh_prop in all_mesh_prop
-                ]
-            )
+            for mesh_prop in all_mesh_prop:
+                mesh = Mesh(
+                    mesh_prop=mesh_prop,
+                    boundaries_description=boundaries_description,
+                    create_in_subprocess=self.create_in_subprocess,
+                )
+                obstacle = Body(properties=None, mesh=mesh)
+                self.mesh_obstacles.append(BodyPosition(
+                    obstacle, normalize_by_rotation=self.normalize_by_rotation)
+                )
 
     def get_normalized_energy_obstacle_np(self, temperature=None):
-        normalized_rhs_boundary, normalized_rhs_free = self.get_all_normalized_rhs_np(temperature)
+        normalized_rhs_boundary, normalized_rhs_free = (
+            self.body.dynamics.force.get_all_normalized_rhs_np(temperature))
         penetration = self.get_penetration()
         args = EnergyObstacleArguments(
-            lhs=self.solver_cache.lhs_boundary,
+            lhs=self.body.dynamics.solver_cache.lhs_boundary,   # TODO
             rhs=normalized_rhs_boundary,
             boundary_velocity_old=self.norm_boundary_velocity_old,
-            boundary_normals=self.get_normalized_boundary_normals(),
+            boundary_normals=self.body.state.position.get_normalized_boundary_normals(),
             penetration=penetration,
-            surface_per_boundary_node=self.get_surface_per_boundary_node(),
+            surface_per_boundary_node=self.body.state.position.get_surface_per_boundary_node(),
             obstacle_prop=self.obstacle_prop,
             time_step=self.time_step,
         )
         return (
             lambda normalized_boundary_a_vector: energy_obstacle(
-                acceleration=nph.unstack(normalized_boundary_a_vector, self.mesh.dimension),
+                acceleration=nph.unstack(normalized_boundary_a_vector, self.body.mesh.dimension),
                 args=args,
             ),
             normalized_rhs_free,
@@ -234,38 +223,47 @@ class Scene(BodyForces):
     def boundary_obstacle_nodes(self):
         return self.obstacle_nodes[self.closest_obstacle_indices]
 
+    def get_normalized_rhs_np(self, temperature=None):
+        value = self.body.dynamics.force.get_normalized_rhs_np()
+        return value
+
+    def iterate_self(self, acceleration, temperature=None):
+        return self.body.state.position.iterate_self(
+            time_step=self.time_step, acceleration=acceleration)
+
     @property
     def norm_boundary_obstacle_nodes(self):
-        return self.normalize_rotate(self.boundary_obstacle_nodes - self.mean_moved_nodes)
+        return self.body.state.position.normalize_rotate(
+            self.boundary_obstacle_nodes - self.body.state.position.mean_moved_nodes)
 
     def get_norm_obstacle_normals(self):
-        return self.normalize_rotate(self.get_obstacle_normals())
+        return self.body.state.position.normalize_rotate(self.get_obstacle_normals())
 
     def get_boundary_obstacle_normals(self):
         return self.get_obstacle_normals()[self.closest_obstacle_indices]
 
     def get_norm_boundary_obstacle_normals(self):
-        return self.normalize_rotate(self.get_boundary_obstacle_normals())
+        return self.body.state.position.normalize_rotate(self.get_boundary_obstacle_normals())
 
     @property
     def normalized_obstacle_nodes(self):
-        return self.normalize_rotate(self.obstacle_nodes - self.mean_moved_nodes)
+        return self.body.state.position.normalize_rotate(self.obstacle_nodes - self.mean_moved_nodes)
 
     @property
     def boundary_velocity_old(self):
-        return self.velocity_old[self.mesh.boundary_indices]
+        return self.body.state.position.velocity_old[self.body.mesh.boundary_indices]
 
     @property
     def boundary_a_old(self):
-        return self.acceleration_old[self.mesh.boundary_indices]
+        return self.body.state.position.acceleration_old[self.body.mesh.boundary_indices]
 
     @property
     def norm_boundary_velocity_old(self):
-        return self.rotated_velocity_old[self.mesh.boundary_indices]
+        return self.body.state.position.rotated_velocity_old[self.body.mesh.boundary_indices]
 
     @property
     def normalized_boundary_nodes(self):
-        return self.normalized_nodes[self.mesh.boundary_indices]
+        return self.body.state.position.normalized_nodes[self.body.mesh.boundary_indices]
 
     def get_penetration(self):
         return (-1) * nph.elementwise_dot(
@@ -278,20 +276,24 @@ class Scene(BodyForces):
         return penetration * (penetration > 0)
 
     def __get_boundary_penetration(self):
-        return (-1) * self.get_penetration_norm() * self.get_boundary_normals()
+        return (-1) * self.get_penetration_norm() * self.body.state.position.get_boundary_normals()
 
     def get_normalized_boundary_penetration(self):
-        return self.normalize_rotate(self.__get_boundary_penetration())
+        return self.body.state.position.normalize_rotate(self.__get_boundary_penetration())
 
     def get_damping_input(self):
         return self.obstacle_prop.hardness * self.get_normalized_boundary_penetration()
 
     def __get_boundary_v_tangential(self):
-        return nph.get_tangential(self.boundary_velocity_old, self.get_boundary_normals())
+        return nph.get_tangential(
+            self.boundary_velocity_old,
+            self.body.state.position.get_boundary_normals()
+        )
 
     def __get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
-            self.norm_boundary_velocity_old, self.get_normalized_boundary_normals()
+            self.norm_boundary_velocity_old,
+            self.body.state.position.get_normalized_boundary_normals()
         )
 
     def get_friction_vector(self):
@@ -320,7 +322,7 @@ class Scene(BodyForces):
         return np.pad(data, ((0, mesh.nodes_count - len(data)), (0, 0)), "constant")
 
     def complete_boundary_data_with_zeros(self, data: np.ndarray):
-        return Scene.complete_mesh_boundary_data_with_zeros(self.mesh, data)
+        return Scene.complete_mesh_boundary_data_with_zeros(self.body.mesh, data)
 
     @property
     def has_no_obstacles(self):
@@ -328,7 +330,7 @@ class Scene(BodyForces):
 
     def get_colliding_nodes_indicator(self):
         if self.has_no_obstacles:
-            return np.zeros((self.mesh.nodes_count, 1), dtype=np.int64)
+            return np.zeros((self.body.mesh.nodes_count, 1), dtype=np.int64)
         return self.complete_boundary_data_with_zeros((self.get_penetration() > 0) * 1)
 
     def is_colliding(self):
@@ -336,8 +338,8 @@ class Scene(BodyForces):
 
     def get_colliding_all_nodes_indicator(self):
         if self.is_colliding():
-            return np.ones((self.mesh.nodes_count, 1), dtype=np.int64)
-        return np.zeros((self.mesh.nodes_count, 1), dtype=np.int64)
+            return np.ones((self.body.mesh.nodes_count, 1), dtype=np.int64)
+        return np.zeros((self.body.mesh.nodes_count, 1), dtype=np.int64)
 
     def clear_for_save(self):
         self.element_initial_volume = None

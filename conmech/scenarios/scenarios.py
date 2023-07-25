@@ -4,6 +4,8 @@ import numpy as np
 
 from conmech.helpers import cmh
 from conmech.helpers.config import Config
+from conmech.mesh.boundaries_description import BoundariesDescription
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import (
     ViscoelasticTemperatureProperties,
     ViscoelasticProperties,
@@ -16,6 +18,7 @@ from conmech.properties.obstacle_properties import (
 from conmech.properties.schedule import Schedule
 from conmech.scene.scene import Scene
 from conmech.scene.scene_temperature import SceneTemperature
+from conmech.simulations.problem_solver import Body
 from conmech.solvers.calculator import Calculator
 from conmech.state.obstacle import Obstacle
 
@@ -44,11 +47,13 @@ class Scenario:
     @staticmethod
     def get_by_function(function, setting, current_time):
         if isinstance(function, np.ndarray):
-            return np.tile(function, (setting.mesh.nodes_count, 1))
+            return np.tile(function, (setting.body.mesh.nodes_count, 1))
         return np.array(
             [
-                function(*nodes_pairs, setting.mesh.mesh_prop, current_time)
-                for nodes_pairs in zip(setting.mesh.initial_nodes, setting.moved_nodes)
+                function(*nodes_pairs, setting.body.mesh.mesh_prop, current_time)
+                for nodes_pairs in zip(
+                setting.body.mesh.initial_nodes,
+                setting.body.state.position.moved_nodes)
             ]
         )
 
@@ -73,11 +78,19 @@ class Scenario:
         create_in_subprocess: bool = False,
     ) -> Scene:
         _ = randomize
-        setting = Scene(
+        boundaries_description: ... = BoundariesDescription(
+            contact=lambda x: True, dirichlet=lambda x: False
+        )
+        mesh = Mesh(
             mesh_prop=self.mesh_prop,
-            body_prop=self.body_prop,
+            boundaries_description=boundaries_description,
+            create_in_subprocess=False,  # TODO
+        )
+        body = Body(properties=self.body_prop, mesh=mesh)
+        setting = Scene(
+            body=body,
             obstacle_prop=self.obstacle_prop,
-            schedule=self.schedule,
+            time_step=self.schedule.time_step,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )
@@ -132,11 +145,19 @@ class TemperatureScenario(Scenario):
         create_in_subprocess: bool = False,
     ) -> SceneTemperature:
         _ = randomize
-        setting = SceneTemperature(
+        boundaries_description: ... = BoundariesDescription(
+            contact=lambda x: True, dirichlet=lambda x: False
+        )
+        mesh = Mesh(
             mesh_prop=self.mesh_prop,
-            body_prop=self.body_prop,
+            boundaries_description=boundaries_description,
+            create_in_subprocess=False,  # TODO
+        )
+        body = Body(self.body_prop, mesh)
+        setting = SceneTemperature(
+            body=body,
             obstacle_prop=self.obstacle_prop,
-            schedule=self.schedule,
+            time_step=self.schedule.time_step,
             normalize_by_rotation=normalize_by_rotation,
             create_in_subprocess=create_in_subprocess,
         )

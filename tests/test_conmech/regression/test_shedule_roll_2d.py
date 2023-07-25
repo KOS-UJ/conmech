@@ -59,4 +59,9 @@ def test_simulation(scenario, expected_boundary_nodes):
         ),
     )
 
-    np.testing.assert_allclose(setting.boundary_nodes, expected_boundary_nodes, atol=0.03)
+    # print result
+    np.set_printoptions(precision=8, suppress=True)
+    print(repr(setting.body.state.position.boundary_nodes))
+
+    np.testing.assert_allclose(
+        setting.body.state.position.boundary_nodes, expected_boundary_nodes, atol=0.03)

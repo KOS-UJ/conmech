@@ -80,7 +80,7 @@ def plot_frame(
             axes=axes,
             scene=scene,
             normalized_data=[
-                scene.normalized_inner_forces(),
+                scene.normalize_rotate(scene.inner.node_source(scene.mesh.initial_nodes, 0)),
                 scene.normalized_displacement_old,
                 scene.normalized_velocity_old,
                 scene.normalized_a_old,
