@@ -25,11 +25,11 @@ def generate_test_suits():
         elements_number: ... = (4, 4)
 
         @staticmethod
-        def internal_temperature(x: np.ndarray, t: float = None) -> np.ndarray:
+        def internal_temperature(x: np.ndarray, v=None, t: float = None) -> np.ndarray:
             return np.array([1000.0])
 
         @staticmethod
-        def outer_temperature(x: np.ndarray, t: float = None) -> np.ndarray:
+        def outer_temperature(x: np.ndarray, v=None, t: float = None) -> np.ndarray:
             return np.array([3.0])
 
         boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
@@ -90,11 +90,11 @@ def generate_test_suits():
         elements_number: ... = (3, 5)
 
         @staticmethod
-        def internal_temperature(x, t=None):
+        def internal_temperature(x, v=None, t=None):
             return np.array([0])
 
         @staticmethod
-        def outer_temperature(x, t=None):
+        def outer_temperature(x, v=None, t=None):
             return np.array([10.0])
 
         boundaries: ... = BoundariesDescription(

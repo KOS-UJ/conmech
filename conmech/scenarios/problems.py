@@ -43,11 +43,15 @@ class Problem(ABC):
     elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     @staticmethod
-    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    def inner_forces(
+            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+    ) -> np.ndarray:
         return np.zeros_like(x)
 
     @staticmethod
-    def outer_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    def outer_forces(
+            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+    ) -> np.ndarray:
         return np.zeros_like(x)
 
 
@@ -75,11 +79,15 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
         return np.zeros_like(len(x))
 
     @staticmethod
-    def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    def internal_temperature(
+            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+    ) -> np.ndarray:
         return np.zeros_like(len(x))
 
     @staticmethod
-    def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    def outer_temperature(
+            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+    ) -> np.ndarray:
         return np.zeros_like(len(x))
 
 

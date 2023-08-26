@@ -71,11 +71,11 @@ class PDynamicSetup(PiezoelectricDynamicProblem):
         return np.asarray([0.0])
 
     @staticmethod
-    def inner_forces(x, t=None):
+    def inner_forces(x, v=None, t=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x, t=None):
+    def outer_forces(x, v=None, t=None):
         return np.array([0, 0])
 
     @staticmethod

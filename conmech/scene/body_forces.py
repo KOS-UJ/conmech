@@ -6,7 +6,7 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.helpers.schur_complement_functions import calculate_schur_complement_vector
-from conmech.state.body_position import get_surface_per_boundary_node_numba, BodyPosition
+from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
 def energy(value, lhs, rhs):
@@ -24,16 +24,15 @@ class Field(enum.Enum):
 
 @dataclasses.dataclass()
 class FieldSource:
-    source: Optional[Callable[[np.ndarray, float], np.ndarray]] = None
+    source: Optional[Callable[[np.ndarray, np.ndarray, float], np.ndarray]] = None
     cache: Optional[np.ndarray] = None
     timestamp: Optional[float] = None
 
-    def node_source(self, nodes, time: float):
+    def node_source(self, nodes, time: float, value: np.ndarray):
         # pylint: disable=not-callable
         if time != self.timestamp:
-            self.cache = np.array([self.source(p, time) for p in nodes])
+            self.cache = np.array([self.source(p, value, time) for p in nodes])
             self.timestamp = time
-            print(self.cache.shape)
         return self.cache
 
 
@@ -56,31 +55,29 @@ class BodyForces:
         self.inner.cache = None
         self.outer.cache = None
 
-    def get_integrated_inner_forces(self, time):
+    def get_integrated_inner_forces(self, time: float, value: Optional[np.ndarray]):
         inner_forces = self.body.state.position.normalize_rotate(
-            self.inner.node_source(self.body.mesh.initial_nodes, time))
+            self.inner.node_source(self.body.mesh.initial_nodes, time, value))
         # TODO: should be only on boundary!
         return self.body.dynamics.volume_at_nodes @ inner_forces
 
-    def get_integrated_outer_forces(self, time):
+    def get_integrated_outer_forces(self, time: float, value: Optional[np.ndarray]):
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.body.mesh.neumann_boundary,
             considered_nodes_count=self.body.mesh.nodes_count,
             moved_nodes=self.body.state.position.moved_nodes,
         )
-        return neumann_surfaces * self.outer.node_source(self.body.mesh.initial_nodes, time)
+        outer_forces = self.outer.node_source(self.body.mesh.initial_nodes, time, value)
+        return neumann_surfaces * outer_forces
 
-    def get_integrated_field_sources_column(self, time: float, field: Field = Field.FORCE):
-        integrated_inner_forces = self.get_integrated_inner_forces(time)
-        integrated_outer_forces = self.get_integrated_outer_forces(time)
+    def get_integrated_field_sources_column(self, time: float, value: Optional[np.ndarray] = None):
+        integrated_inner_forces = self.get_integrated_inner_forces(time, value)
+        integrated_outer_forces = self.get_integrated_outer_forces(time, value)
         integrated_forces = integrated_inner_forces + integrated_outer_forces
         return nph.stack_column(integrated_forces[:, :])
 
-    def get_integrated_forces_vector(self, time: float):
-        return self.get_integrated_field_sources_column(time, field=Field.FORCE).reshape(-1)
-
-    def get_integrated_temperature_vector(self, time: float):
-        return self.get_integrated_field_sources_column(time, field=Field.TEMPERATURE).reshape(-1)
+    def integrate(self, time: float, value: Optional[np.ndarray] = None):
+        return self.get_integrated_field_sources_column(time, value).reshape(-1)
 
     def get_all_normalized_rhs_np(self, temperature=None):
         normalized_rhs = self.get_normalized_rhs_np(temperature)

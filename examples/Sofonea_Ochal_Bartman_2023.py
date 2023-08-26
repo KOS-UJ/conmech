@@ -64,11 +64,11 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
         )
 
     @staticmethod
-    def inner_forces(x, t=None):
+    def inner_forces(x, v=None, time=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x, t=None):
+    def outer_forces(x, v=None, time=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
@@ -92,11 +92,11 @@ def main(config: Config):
         setup.time_step *= 8
     h = setup.elements_number[0]
 
-    def sin_outer_forces(x, t=None):
+    def sin_outer_forces(x, v=None, time=None):
         if x[1] <= oy:
             return np.array([0.0, 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * np.sin(t)])
+            return np.array([0, fv * np.sin(time)])
         return np.array([0.0, 0.0])
 
     def const_relaxation(t=None):
@@ -310,7 +310,7 @@ def plots(setup, h, examples, config):
         t = np.asarray(range(0, examples[name]["n_steps"] + 1)) * setup.time_step
         frc = np.empty((examples[name]["n_steps"] + 1, 1))
         for i, _t in enumerate(t):
-            frc[i, :] = examples[name]["outer_forces"](np.asarray([2.5, 4.5]), _t)[1]
+            frc[i, :] = examples[name]["outer_forces"](np.asarray([2.5, 4.5]), None, _t)[1]
         rlx = np.empty((examples[name]["n_steps"] + 1, 1))
         for i, _t in enumerate(t):
             rlx[i, :] = examples[name]["relaxation"](_t)[1, 0, 1]

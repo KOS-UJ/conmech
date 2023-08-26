@@ -71,7 +71,8 @@ class StaticPoissonStatement(Statement):
         self.left_hand_side = self.body.dynamics.poisson_operator.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.dynamics.temperature.get_integrated_forces_vector(time=0)
+        self.right_hand_side = self.body.dynamics.temperature.integrate(
+            time=0, value=var.temperature)
 
 
 class StaticDisplacementStatement(Statement):
@@ -82,7 +83,7 @@ class StaticDisplacementStatement(Statement):
         self.left_hand_side = self.body.dynamics.elasticity.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.dynamics.force.get_integrated_forces_vector(time=0)
+        self.right_hand_side = self.body.dynamics.force.integrate(time=0)
 
 
 class QuasistaticRelaxationStatement(Statement):
@@ -102,7 +103,7 @@ class QuasistaticRelaxationStatement(Statement):
         assert var.time is not None
 
         self.right_hand_side = (
-            self.body.dynamics.force.get_integrated_forces_vector(time=var.time)
+            self.body.dynamics.force.integrate(time=var.time)
             - self.body.dynamics.relaxation(var.time) @ var.absement.T
         )
 
@@ -121,7 +122,7 @@ class QuasistaticVelocityStatement(Statement):
         assert var.time is not None
 
         self.right_hand_side = (
-            self.body.dynamics.force.get_integrated_forces_vector(time=var.time)
+            self.body.dynamics.force.integrate(time=var.time)
             - self.body.dynamics.elasticity @ var.displacement.T
         )
 
@@ -149,7 +150,7 @@ class DynamicVelocityStatement(Statement):
 
         A += (1 / var.time_step) * self.body.dynamics.acceleration_operator @ var.velocity
 
-        self.right_hand_side = self.body.dynamics.force.get_integrated_forces_vector(time=var.time) + A
+        self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
 
 
 class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):

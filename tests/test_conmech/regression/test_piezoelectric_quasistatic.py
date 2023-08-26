@@ -70,11 +70,11 @@ def generate_test_suits():
         )
 
         @staticmethod
-        def inner_forces(x, time=None):
+        def inner_forces(x, v=None, time=None):
             return np.array([-0.2, -0.2])
 
         @staticmethod
-        def outer_forces(x, time=None):
+        def outer_forces(x, v=None, time=None):
             return np.array([0, 0])
 
         @staticmethod
@@ -137,7 +137,7 @@ def generate_test_suits():
     setup_0_02_p_0 = QuasistaticSetup_1(mesh_type="cross")
     setup_0_02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
-    def inner_forces(x, time=None):
+    def inner_forces(x, v=None, time=None):
         return np.array([0, 0.2])
 
     setup_0_02_p_0.inner_forces = inner_forces
@@ -192,7 +192,7 @@ def generate_test_suits():
     setup_0_m02_p_0 = QuasistaticSetup_1(mesh_type="cross")
     setup_0_m02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
-    def inner_forces(x, time=None):
+    def inner_forces(x, v=None, time=None):
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
@@ -231,11 +231,11 @@ def generate_test_suits():
         )
 
         @staticmethod
-        def inner_forces(x, time=None):
+        def inner_forces(x, v=None, time=None):
             return np.array([0, -0.2])
 
         @staticmethod
-        def outer_forces(x, time=None):
+        def outer_forces(x, v=None, time=None):
             return np.array([0.3, 0.0])
 
         @staticmethod

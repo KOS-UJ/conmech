@@ -50,11 +50,11 @@ class StaticSetup(StaticDisplacementProblem):
     contact_law: ... = JureczkaOchal2019
 
     @staticmethod
-    def inner_forces(x, t=None):
+    def inner_forces(x, v=None, t=None):
         return np.array([-1.2, -0.8])
 
     @staticmethod
-    def outer_forces(x, t=None):
+    def outer_forces(x, v=None, t=None):
         return np.array([0, 0])
 
     @staticmethod
