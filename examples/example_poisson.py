@@ -24,9 +24,10 @@ class StaticPoissonSetup(PoissonProblem):
     def outer_temperature(
             x: np.ndarray, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
-        if x[1] == 0:
-            return np.array([20.0])
-        return np.array([10.0])
+        print(x)
+        if x[0] == 1:
+            return np.array([10.0])
+        return np.array([0.0])
 
     boundaries: ... = BoundariesDescription(
         dirichlet=(

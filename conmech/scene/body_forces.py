@@ -31,7 +31,9 @@ class FieldSource:
     def node_source(self, nodes, time: float, value: np.ndarray):
         # pylint: disable=not-callable
         if time != self.timestamp:
-            self.cache = np.array([self.source(p, value, time) for p in nodes])
+            self.cache = np.array(
+                [self.source(nodes[i], value[i: i+1], time) for i in range(len(nodes))]
+            )
             self.timestamp = time
         return self.cache
 
