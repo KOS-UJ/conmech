@@ -68,11 +68,11 @@ class SchurComplementOptimization(Optimization):
         return "schur"
 
     @property
-    def node_relations(self) -> np.ndarray:
+    def lhs(self) -> np.ndarray:
         return self._node_relations
 
     @property
-    def node_forces(self) -> np.ndarray:
+    def rhs(self) -> np.ndarray:
         return self.node_forces_
 
     def _solve_impl(

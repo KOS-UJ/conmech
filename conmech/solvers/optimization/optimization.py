@@ -66,11 +66,11 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     @property
-    def node_relations(self) -> np.ndarray:
+    def lhs(self) -> np.ndarray:
         raise NotImplementedError()
 
     @property
-    def node_forces(self) -> np.ndarray:
+    def rhs(self) -> np.ndarray:
         raise NotImplementedError()
 
     def _solve_impl(
@@ -93,8 +93,8 @@ class Optimization(Solver):
         args = (
             self.body.mesh.initial_nodes,
             self.body.mesh.contact_boundary,
-            self.node_relations,
-            self.node_forces,
+            self.lhs,
+            self.rhs,
             displacement,
             self.time_step,
         )
