@@ -68,7 +68,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                     ]
                 )
 
-    return edges_features_matrix, element_initial_volume
+    return edges_features_matrix, element_initial_volume, None
 
 
 @numba.njit

@@ -376,6 +376,15 @@ class StaticSolver(ProblemSolver):
         return state
 
 
+class NonHomogenousSolver(StaticSolver):
+    
+    def update_density(self, density: np.ndarray):
+        self.body.reinitialize_matrices(density)
+        # self.step_solver.statement.update(Variables())
+        # DO NOT REMOVE
+        self.solving_method = self.solving_method
+
+
 class QuasistaticRelaxation(ProblemSolver):
     def __init__(self, setup: RelaxationQuasistaticProblem, solving_method: str):
         """Solves general Contact Mechanics problem.

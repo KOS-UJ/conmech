@@ -1,4 +1,5 @@
 # pylint: disable=R0914
+from typing import Optional
 import numba
 import numpy as np
 
@@ -23,6 +24,7 @@ def get_edges_features_matrix_numba(elements, nodes):
         (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
     )
     element_initial_volume = np.zeros(elements_count)
+    local_stifness_matrices = np.empty((4, elements_count, element_size, element_size))
 
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
@@ -85,6 +87,8 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
+                local_stifness_matrices[:, element_index, i, j] = element_volume * np.asarray(w).flatten()
+                
                 edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
                     [
                         volume_at_nodes,
@@ -100,7 +104,7 @@ def get_edges_features_matrix_numba(elements, nodes):
                 )
 
     # Performance TIP: we need only sparse, triangular matrix (?)
-    return edges_features_matrix, element_initial_volume
+    return edges_features_matrix, element_initial_volume, local_stifness_matrices
 
 
 @numba.njit
@@ -133,7 +137,7 @@ def denominator_numba(x_i, x_j1, x_j2):
 
 
 class DynamicsFactory2D(AbstractDynamicsFactory):
-    def get_edges_features_matrix(self, elements, nodes):
+    def get_edges_features_matrix(self, elements, nodes):# , elements_density: Optional[np.ndarray] = None):
         return get_edges_features_matrix_numba(elements, nodes)
 
     @property
