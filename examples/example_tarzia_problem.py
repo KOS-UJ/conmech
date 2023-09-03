@@ -24,9 +24,9 @@ class StaticPoissonSetup(PoissonProblem):
     def outer_temperature(
             x: np.ndarray, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
-        alpha = 10
+        alpha = 1
         if x[0] == 1:
-            result = alpha * (v - np.array([20.0]))
+            result = np.full(1, alpha)
             return result
         return np.array([0.0])
 
