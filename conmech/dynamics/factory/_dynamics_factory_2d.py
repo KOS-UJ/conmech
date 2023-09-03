@@ -137,7 +137,7 @@ def denominator_numba(x_i, x_j1, x_j2):
 
 
 class DynamicsFactory2D(AbstractDynamicsFactory):
-    def get_edges_features_matrix(self, elements, nodes):# , elements_density: Optional[np.ndarray] = None):
+    def get_edges_features_matrix(self, elements, nodes):
         return get_edges_features_matrix_numba(elements, nodes)
 
     @property
