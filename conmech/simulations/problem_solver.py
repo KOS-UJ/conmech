@@ -109,6 +109,10 @@ class ProblemSolver:
         self.__set_step_solver(value)
         self.__set_second_step_solver(value)
 
+    def refresh_solvers(self):
+        self.__set_step_solver(self.solving_method)
+        self.__set_second_step_solver(self.solving_method)
+
     def __set_step_solver(self, value):
         solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
@@ -380,9 +384,7 @@ class NonHomogenousSolver(StaticSolver):
     
     def update_density(self, density: np.ndarray):
         self.body.reinitialize_matrices(density)
-        # self.step_solver.statement.update(Variables())
-        # DO NOT REMOVE
-        self.solving_method = self.solving_method
+        self.refresh_solvers()
 
 
 class QuasistaticRelaxation(ProblemSolver):
