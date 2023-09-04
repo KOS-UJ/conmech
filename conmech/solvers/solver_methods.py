@@ -182,6 +182,50 @@ def make_cost_functional(
     return cost_functional
 
 
+def make_cost_functional_poisson(
+    jn: Callable
+):
+    jn = njit(jn)
+
+    @numba.njit()
+    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary):
+        cost = 0
+        offset = len(u_vector) // DIMENSION
+
+        for edge in contact_boundary:
+            n_id_0 = edge[0]
+            n_id_1 = edge[1]
+            n_0 = nodes[n_id_0]
+            n_1 = nodes[n_id_1]
+
+            # ASSUMING `u_vector` and `nodes` have the same order!
+            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
+            um_old = interpolate_node_between(n_id_0, n_id_1, u_vector_old)
+
+            normal_vector = n_down(n_0, n_1)
+
+            um_normal = (um * normal_vector).sum()
+            um_old_normal = (um_old * normal_vector).sum()
+            um_tangential = um - um_normal * normal_vector
+
+            if n_id_0 < offset and n_id_1 < offset:
+                cost += nph.length(n_0, n_1) * (
+                    jn(um_normal)
+                )
+        return cost
+
+    # pylint: disable=unused-argument # 'dt'
+    # @numba.njit()
+    def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, dt):
+        print(u_vector.shape)
+        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
+        result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
+        result = np.asarray(result).ravel()
+        return result
+
+    return cost_functional
+
+
 def make_cost_functional_2023(  # TODO #97
     jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
 ):

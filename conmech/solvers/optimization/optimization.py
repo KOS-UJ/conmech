@@ -10,7 +10,7 @@ import scipy.optimize
 from conmech.dynamics.statement import (
     Statement,
     TemperatureStatement,
-    PiezoelectricStatement,
+    PiezoelectricStatement, StaticPoissonStatement,
 )
 from conmech.scenarios.problems import ContactLaw
 from conmech.scene.body_forces import BodyForces
@@ -18,7 +18,7 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_cost_functional_temperature,
-    make_cost_functional_piezoelectricity,
+    make_cost_functional_piezoelectricity, make_cost_functional_poisson,
 )
 
 
@@ -58,6 +58,10 @@ class Optimization(Solver):
                 h_functional=contact_law.h_temp,
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
+            )
+        elif isinstance(statement, StaticPoissonStatement):
+            self.loss = make_cost_functional_poisson(
+                jn=contact_law.potential_normal_direction,
             )
         else:
             raise ValueError(f"Unknown statement: {statement}")

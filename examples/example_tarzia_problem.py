@@ -1,18 +1,44 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Type
 
 import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import PoissonProblem
+from conmech.scenarios.problems import PoissonProblem, ContactLaw
 from conmech.simulations.problem_solver import PoissonSolver
+
+
+def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
+    class TarziaContactLaw(ContactLaw):
+        @staticmethod
+        def potential_normal_direction(u_nu: float) -> float:
+            if u_nu < 0:
+                return slope * ((0.5 * u_nu - 3) * u_nu)
+            return slope * ((0.5 * u_nu - 1) * u_nu)
+
+        @staticmethod
+        def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
+            raise NotImplementedError()
+
+        @staticmethod
+        def regularized_subderivative_tangential_direction(
+            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        ) -> float:
+            """
+            Coulomb regularization
+            """
+            raise NotImplementedError()
+
+    return TarziaContactLaw
 
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
     grid_height: ... = 1
     elements_number: ... = (8, 8)
+
+    contact_law: ... = make_slope_contact_law(slope=1000)
 
     @staticmethod
     def internal_temperature(x: np.ndarray, v=None, t: Optional[float] = None) -> np.ndarray:
@@ -34,7 +60,8 @@ class StaticPoissonSetup(PoissonProblem):
         dirichlet=(
             lambda x: x[1] == 0 or x[0] == 0 or x[1] == 1,
             lambda x: np.full(x.shape[0], 0),
-        )
+        ),
+        contact=lambda x: x[0] == 1,
     )
 
 
@@ -45,7 +72,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     setup = StaticPoissonSetup(mesh_type="cross")
-    runner = PoissonSolver(setup, "direct")
+    runner = PoissonSolver(setup, "global")
 
     state = runner.solve(verbose=True)
     max_ = max(max(state.temperature), 1)
