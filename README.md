@@ -25,3 +25,4 @@ Install Gmsh used for mesh construction and dependencies from "requirements.txt"
 To run sample simulations, start any file from examples folder
 
     PYTHONPATH=. python examples/examples_2d.py
+
