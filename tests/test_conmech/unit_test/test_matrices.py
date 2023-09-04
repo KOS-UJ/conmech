@@ -22,7 +22,7 @@ def test_matrices_2d_integrals():
     )
 
     # Act
-    edges_features_matrix, element_initial_volume = sut_2d(elements=elements, nodes=initial_nodes)
+    edges_features_matrix, element_initial_volume, _ = sut_2d(elements=elements, nodes=initial_nodes)
 
     # Assert
     np.testing.assert_allclose(element_initial_volume.sum(), area)
@@ -50,7 +50,7 @@ def test_matrices_3d_integrals():
     )
 
     # Act
-    edges_features_matrix, element_initial_volume = sut_3d(elements=elements, nodes=initial_nodes)
+    edges_features_matrix, element_initial_volume, _ = sut_3d(elements=elements, nodes=initial_nodes)
 
     # Assert
     np.testing.assert_allclose(element_initial_volume.sum(), 1)
