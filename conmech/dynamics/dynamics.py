@@ -115,7 +115,7 @@ class Dynamics(BodyPosition):
             U,
             V,
             self._w_matrix,
-            self._local_stifness_matrices
+            self._local_stifness_matrices,
         ) = get_basic_matrices(elements=self.mesh.elements, nodes=self.moved_nodes)
 
         if elements_density is not None:
@@ -125,7 +125,10 @@ class Dynamics(BodyPosition):
                     for j, global_j in enumerate(element):
                         for x in (0, 1):
                             for y in (0, 1):
-                                self._w_matrix[x][y][global_i, global_j] += elements_density[element_index] * self._local_stifness_matrices[2*x + y, element_index, i, j]
+                                self._w_matrix[x][y][global_i, global_j] += (
+                                    elements_density[element_index]
+                                    * self._local_stifness_matrices[2 * x + y, element_index, i, j]
+                                )
 
         (
             self.acceleration_operator,
