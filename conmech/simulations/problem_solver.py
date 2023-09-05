@@ -26,7 +26,6 @@ from conmech.properties.body_properties import (
     ViscoelasticPiezoelectricProperties,
     ViscoelasticTemperatureProperties,
 )
-from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     TimeDependentProblem,
@@ -65,17 +64,8 @@ class ProblemSolver:
         else:
             self.time_step = 0
 
-        grid_width: float = (
-            problem.grid_height / problem.elements_number[0]
-        ) * problem.elements_number[1]
-
         self.body: BodyForces = BodyForces(
-            mesh_prop=MeshProperties(
-                dimension=2,
-                mesh_type=problem.mesh_type,
-                mesh_density=[problem.elements_number[1], problem.elements_number[0]],
-                scale=[float(grid_width), float(problem.grid_height)],
-            ),
+            mesh_prop=problem.mesh_prop,
             body_prop=body_properties,
             schedule=Schedule(time_step=self.time_step, final_time=0.0),
             boundaries_description=problem.boundaries,
