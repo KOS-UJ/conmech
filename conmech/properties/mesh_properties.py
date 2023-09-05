@@ -28,6 +28,7 @@ class MeshProperties:
                 (self.grid_height / self.mesh_density[1]) * elems_num
                 for elems_num in self.mesh_density
             ]
+            self.dimension = self.dimension or 2
 
     def do_sanity_checks(self):
         if not (
