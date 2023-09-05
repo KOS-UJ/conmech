@@ -196,8 +196,8 @@ class ProblemSolver:
                 StaticPoissonStatement(self.body),
                 self.body,
                 self.time_step,
-                self.problem.contact_law,  # TODO
-                lambda float_: 0
+                self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
+                None
             )
         else:
             self.second_step_solver = None

@@ -32,7 +32,7 @@ class FieldSource:
         # pylint: disable=not-callable
         if time != self.timestamp:
             self.cache = np.array(
-                [self.source(nodes[i], value[i: i+1], time) for i in range(len(nodes))]
+                [self.source(nodes[i], None, time) for i in range(len(nodes))]
             )
             self.timestamp = time
         return self.cache

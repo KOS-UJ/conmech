@@ -13,9 +13,17 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
     class TarziaContactLaw(ContactLaw):
         @staticmethod
         def potential_normal_direction(u_nu: float) -> float:
-            if u_nu < 0:
-                return slope * ((0.5 * u_nu - 3) * u_nu)
-            return slope * ((0.5 * u_nu - 1) * u_nu)
+            b = 30
+            r = u_nu
+            # EXAMPLE 11
+            # if r < b:
+            #     result = (r - b) ** 2
+            # else:
+            #     result = 1 - np.exp(-(r-b))
+            # EXAMPLE 13
+            result = 0.5 * (r - b) ** 2
+            result *= slope
+            return result
 
         @staticmethod
         def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
@@ -38,7 +46,7 @@ class StaticPoissonSetup(PoissonProblem):
     grid_height: ... = 1
     elements_number: ... = (8, 8)
 
-    contact_law: ... = make_slope_contact_law(slope=1000)
+    contact_law: ... = make_slope_contact_law(slope=100)
 
     @staticmethod
     def internal_temperature(x: np.ndarray, v=None, t: Optional[float] = None) -> np.ndarray:

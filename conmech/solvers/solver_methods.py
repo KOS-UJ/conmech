@@ -217,7 +217,6 @@ def make_cost_functional_poisson(
     # pylint: disable=unused-argument # 'dt'
     # @numba.njit()
     def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, dt):
-        print(u_vector.shape)
         ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
         result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
         result = np.asarray(result).ravel()

@@ -32,7 +32,6 @@ class Solver:
         self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * 2)
         self.t_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)
         self.p_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)  # TODO #23
-        print(f"{self.body.mesh.nodes_count=}")
 
         self.elasticity: np.ndarray = body.dynamics.elasticity
 
