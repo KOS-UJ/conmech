@@ -44,12 +44,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(
-        mesh_type="cross",
-        dimension=2,
-        mesh_density=[5, 2],
-        grid_height=1.0
-    )
+    mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[5, 2], grid_height=1.0)
     setup = StaticSetup(mesh_prop=mesh_prop)
     runner = StaticSolver(setup, "schur")
 

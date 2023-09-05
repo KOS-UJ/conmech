@@ -23,15 +23,18 @@ class MeshProperties:
 
     def __post_init__(self):
         self.do_sanity_checks()
-        if self.mesh_type != 'msh_file':
+        if self.mesh_type != "msh_file":
             self.scale = [
                 (self.grid_height / self.mesh_density[1]) * elems_num
                 for elems_num in self.mesh_density
-                ]
+            ]
 
     def do_sanity_checks(self):
-        if not (self.mesh_type == 'msh_file' and self.path is not None and self.mesh_density is None) and\
-            not (self.mesh_type != 'msh_file' and self.path is None and self.mesh_density is not None):
+        if not (
+            self.mesh_type == "msh_file" and self.path is not None and self.mesh_density is None
+        ) and not (
+            self.mesh_type != "msh_file" and self.path is None and self.mesh_density is not None
+        ):
             raise ValueError("Improper combination of mesh parameters")
 
     @staticmethod

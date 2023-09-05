@@ -15,7 +15,6 @@ from conmech.mesh.mesh import MeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
-
 E = 10000
 kappa = 0.4
 
@@ -39,8 +38,7 @@ class StaticSetup(StaticDisplacementProblem):
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] < 0.1 and x[0] < 0.5,
-        dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] < 0.1 and x[0] < 0.5, dirichlet=lambda x: x[0] == 0
     )
 
 
@@ -50,10 +48,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(
-        mesh_type="msh_file",
-        path="examples/example_mesh.msh"
-    )
+    mesh_prop = MeshProperties(mesh_type="msh_file", path="examples/example_mesh.msh")
     setup = StaticSetup(mesh_prop=mesh_prop)
     runner = StaticSolver(setup, "schur")
 
