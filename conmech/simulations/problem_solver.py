@@ -244,7 +244,7 @@ class ProblemSolver:
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
         quality = 0
-        initial_guess = state[self.coordinates].reshape(2, -1)
+        initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)

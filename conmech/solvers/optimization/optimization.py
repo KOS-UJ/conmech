@@ -40,7 +40,7 @@ class Optimization(Solver):
             contact_law,
             friction_bound,
         )
-        if statement.dimension == 2:  # TODO
+        if statement.dimension in (2, 3):  # TODO
             self.loss = make_cost_functional(
                 jn=contact_law.potential_normal_direction,
                 jt=contact_law.potential_tangential_direction

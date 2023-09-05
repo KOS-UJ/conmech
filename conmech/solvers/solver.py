@@ -26,9 +26,9 @@ class Solver:
 
         self.time_step: float = time_step
         self.current_time: float = 0
-        self.b_vector = np.zeros(self.body.mesh.nodes_count * 2)
-        self.u_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * 2)
-        self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * 2)
+        self.b_vector = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
+        self.u_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
+        self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
         self.t_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)
         self.p_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)  # TODO #23
 

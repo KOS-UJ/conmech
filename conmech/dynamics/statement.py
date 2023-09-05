@@ -75,8 +75,8 @@ class StaticPoissonStatement(Statement):
 
 
 class StaticDisplacementStatement(Statement):
-    def __init__(self, dynamics):
-        super().__init__(dynamics, 2)
+    def __init__(self, body):
+        super().__init__(body, body.mesh.dimension)
 
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.dynamics.elasticity.copy()

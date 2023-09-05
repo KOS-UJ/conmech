@@ -13,10 +13,12 @@ class State:
         self.body.state = self
         self.position = BodyPosition(body, normalize_by_rotation=False)
 
-        self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
-        self.displacement: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
+        self.absement: np.ndarray = np.zeros(
+            (self.body.mesh.nodes_count, self.body.mesh.dimension))
+        self.displacement: np.ndarray = np.zeros(
+            (self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
-        self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, 2))
+        self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.setup = None
         self.__stress: np.ndarray = None
         self.constitutive_law = None
@@ -25,10 +27,10 @@ class State:
     def set_displacement(
         self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
     ):
-        self.displacement = displacement_vector.reshape((2, -1)).T
-        self.displaced_nodes[: self.body.mesh.nodes_count, :2] = (
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :2]
-            + self.displacement[:, :2]
+        self.displacement = displacement_vector.reshape((self.body.mesh.dimension, -1)).T
+        self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :]
+            + self.displacement[:, :]
         )
         if update_absement:
             dt = time - self.time
@@ -36,13 +38,13 @@ class State:
         self.time = time
 
     def set_velocity(self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool):
-        self.velocity = velocity_vector.reshape((2, -1)).T
+        self.velocity = velocity_vector.reshape((self.body.mesh.dimension, -1)).T
         if update_displacement:
             dt = time - self.time
             self.displacement += dt * self.velocity
-            self.displaced_nodes[: self.body.mesh.nodes_count, :2] = (
-                self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :2]
-                + self.displacement[:, :2]
+            self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
+                self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :]
+                + self.displacement[:, :]
             )
         self.time = time
 
