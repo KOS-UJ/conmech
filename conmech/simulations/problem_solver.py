@@ -1,7 +1,6 @@
 """
 General solver for Contact Mechanics problem.
 """
-import dataclasses
 from typing import Callable, List, Optional, Tuple, Type
 
 import numpy as np
@@ -197,7 +196,7 @@ class ProblemSolver:
                 self.body,
                 self.time_step,
                 self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
-                None
+                None,
             )
         else:
             self.second_step_solver = None

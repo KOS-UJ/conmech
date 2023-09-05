@@ -130,7 +130,9 @@ class BodyPosition:
 
     @property
     def moved_base(self):
-        return get_base(self.moved_nodes, self.body.mesh.base_seed_indices, self.body.mesh.closest_seed_index)
+        return get_base(
+            self.moved_nodes, self.body.mesh.base_seed_indices, self.body.mesh.closest_seed_index
+        )
 
     def normalize_rotate(self, vectors):
         if not self.normalize_by_rotation:
@@ -206,10 +208,14 @@ class BodyPosition:
 
     def get_boundary_normals(self):
         boundary_surfaces_normals = get_boundary_surfaces_normals(
-            self.moved_nodes, self.body.mesh.boundary_surfaces, self.body.mesh.boundary_internal_indices
+            self.moved_nodes,
+            self.body.mesh.boundary_surfaces,
+            self.body.mesh.boundary_internal_indices,
         )
         return get_boundary_nodes_normals_numba(
-            self.body.mesh.boundary_surfaces, self.body.mesh.boundary_nodes_count, boundary_surfaces_normals
+            self.body.mesh.boundary_surfaces,
+            self.body.mesh.boundary_nodes_count,
+            boundary_surfaces_normals,
         )
 
     def get_surface_per_boundary_node(self):

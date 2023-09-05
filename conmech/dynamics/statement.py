@@ -3,8 +3,6 @@ from typing import Optional
 
 import numpy as np
 
-from conmech.helpers import nph
-
 
 @dataclass
 class Variables:
@@ -116,7 +114,9 @@ class QuasistaticVelocityStatement(Statement):
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
-        self.left_hand_side = self.body.dynamics.viscosity.copy() + self.body.dynamics.elasticity * var.time_step
+        self.left_hand_side = (
+            self.body.dynamics.viscosity.copy() + self.body.dynamics.elasticity * var.time_step
+        )
 
     def update_right_hand_side(self, var: Variables):
         assert var.displacement is not None
@@ -187,8 +187,11 @@ class TemperatureStatement(Statement):
 
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
-        rhs += ((1 / var.time_step) * self.body.dynamics.acceleration_operator[:ind, :ind]
-                @ var.temperature)
+        rhs += (
+            (1 / var.time_step)
+            * self.body.dynamics.acceleration_operator[:ind, :ind]
+            @ var.temperature
+        )
         self.right_hand_side = rhs
 
 

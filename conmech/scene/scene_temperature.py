@@ -78,7 +78,8 @@ class SceneTemperature(Scene):
     def iterate_self(self, acceleration, temperature=None):
         self.set_temperature_old(temperature)
         return self.body.state.position.iterate_self(
-            time_step=self.time_step, acceleration=acceleration)
+            time_step=self.time_step, acceleration=acceleration
+        )
 
     def get_normalized_rhs_np(self, temperature=None):
         value = self.body.dynamics.force.get_normalized_rhs_np()
@@ -102,9 +103,14 @@ class SceneTemperature(Scene):
         return normalized_t_rhs_boundary, normalized_t_rhs_free
 
     def get_normalized_t_rhs_np(self, normalized_acceleration):
-        U = self.body.dynamics.acceleration_operator[self.body.mesh.independent_indices, self.body.mesh.independent_indices]
+        U = self.body.dynamics.acceleration_operator[
+            self.body.mesh.independent_indices, self.body.mesh.independent_indices
+        ]
 
-        v = self.body.state.position.normalized_velocity_old + normalized_acceleration * self.time_step
+        v = (
+            self.body.state.position.normalized_velocity_old
+            + normalized_acceleration * self.time_step
+        )
         v_vector = nph.stack_column(v)
 
         A = nph.stack_column(self.body.dynamics.volume_at_nodes @ self.heat)

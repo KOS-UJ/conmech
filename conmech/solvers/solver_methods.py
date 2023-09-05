@@ -182,9 +182,7 @@ def make_cost_functional(
     return cost_functional
 
 
-def make_cost_functional_poisson(
-    jn: Callable
-):
+def make_cost_functional_poisson(jn: Callable):
     jn = njit(jn)
 
     @numba.njit()
@@ -200,18 +198,13 @@ def make_cost_functional_poisson(
 
             # ASSUMING `u_vector` and `nodes` have the same order!
             um = interpolate_node_between(n_id_0, n_id_1, u_vector)
-            um_old = interpolate_node_between(n_id_0, n_id_1, u_vector_old)
 
             normal_vector = n_down(n_0, n_1)
 
             um_normal = (um * normal_vector).sum()
-            um_old_normal = (um_old * normal_vector).sum()
-            um_tangential = um - um_normal * normal_vector
 
             if n_id_0 < offset and n_id_1 < offset:
-                cost += nph.length(n_0, n_1) * (
-                    jn(um_normal)
-                )
+                cost += nph.length(n_0, n_1) * (jn(um_normal))
         return cost
 
     # pylint: disable=unused-argument # 'dt'

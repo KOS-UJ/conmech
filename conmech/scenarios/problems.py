@@ -44,13 +44,13 @@ class Problem(ABC):
 
     @staticmethod
     def inner_forces(
-            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+        x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
         return np.zeros_like(x)
 
     @staticmethod
     def outer_forces(
-            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+        x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
         return np.zeros_like(x)
 
@@ -80,13 +80,13 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 
     @staticmethod
     def internal_temperature(
-            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+        x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
         return np.zeros_like(len(x))
 
     @staticmethod
     def outer_temperature(
-            x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
+        x: np.ndarray, *, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
         return np.zeros_like(len(x))
 

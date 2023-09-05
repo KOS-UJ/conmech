@@ -69,7 +69,9 @@ class Dynamics:
         self.body.dynamics = self
 
         self.force = BodyForces(body)
-        self.temperature = BodyForces(body, )
+        self.temperature = BodyForces(
+            body,
+        )
         self.time_step = time_step
         self.with_lhs = dynamics_config.with_lhs
         self.with_schur = dynamics_config.with_schur
@@ -99,7 +101,9 @@ class Dynamics:
             U,
             V,
             self._w_matrix,
-        ) = get_basic_matrices(elements=self.body.mesh.elements, nodes=self.body.mesh.initial_nodes) # + self.displacement_old)
+        ) = get_basic_matrices(
+            elements=self.body.mesh.elements, nodes=self.body.mesh.initial_nodes
+        )  # + self.displacement_old)
         (
             self.acceleration_operator,
             self.elasticity,
@@ -110,7 +114,11 @@ class Dynamics:
             self.permittivity,
             self.poisson_operator,
         ) = get_dynamics(
-            elements=self.body.mesh.elements, body_prop=self.body.properties, U=U, V=V, W=self._w_matrix
+            elements=self.body.mesh.elements,
+            body_prop=self.body.properties,
+            U=U,
+            V=V,
+            W=self._w_matrix,
         )
 
         if not self.with_lhs:

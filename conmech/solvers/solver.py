@@ -7,7 +7,6 @@ import numpy as np
 
 from conmech.dynamics.statement import Statement, Variables
 from conmech.scenarios.problems import ContactLaw
-from conmech.scene.body_forces import BodyForces
 
 
 class Solver:

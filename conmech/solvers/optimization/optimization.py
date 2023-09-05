@@ -10,7 +10,8 @@ import scipy.optimize
 from conmech.dynamics.statement import (
     Statement,
     TemperatureStatement,
-    PiezoelectricStatement, StaticPoissonStatement,
+    PiezoelectricStatement,
+    StaticPoissonStatement,
 )
 from conmech.scenarios.problems import ContactLaw
 from conmech.scene.body_forces import BodyForces
@@ -18,7 +19,8 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_cost_functional_temperature,
-    make_cost_functional_piezoelectricity, make_cost_functional_poisson,
+    make_cost_functional_piezoelectricity,
+    make_cost_functional_poisson,
 )
 
 

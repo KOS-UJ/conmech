@@ -87,5 +87,7 @@ def test_simulation(scenario, expected_boundary_nodes, expected_temperature):
     print(repr(setting.body.state.position.boundary_nodes))
     print(repr(setting.t_old))
 
-    np.testing.assert_array_almost_equal(setting.body.state.position.boundary_nodes, expected_boundary_nodes, decimal=2)
+    np.testing.assert_array_almost_equal(
+        setting.body.state.position.boundary_nodes, expected_boundary_nodes, decimal=2
+    )
     np.testing.assert_array_almost_equal(setting.t_old, expected_temperature, decimal=2)

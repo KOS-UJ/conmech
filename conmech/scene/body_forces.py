@@ -31,18 +31,13 @@ class FieldSource:
     def node_source(self, nodes, time: float):
         # pylint: disable=not-callable
         if time != self.timestamp:
-            self.cache = np.array(
-                [self.source(nodes[i], time) for i in range(len(nodes))]
-            )
+            self.cache = np.array([self.source(nodes[i], time) for i in range(len(nodes))])
             self.timestamp = time
         return self.cache
 
 
 class BodyForces:
-    def __init__(
-        self,
-        body: "Body"
-    ):
+    def __init__(self, body: "Body"):
         self.body = body
         self.inner = FieldSource()
         self.outer = FieldSource()
@@ -59,7 +54,8 @@ class BodyForces:
 
     def get_integrated_inner_forces(self, time: float):
         inner_forces = self.body.state.position.normalize_rotate(
-            self.inner.node_source(self.body.mesh.initial_nodes, time))
+            self.inner.node_source(self.body.mesh.initial_nodes, time)
+        )
         # TODO: should be only on boundary!
         return self.body.dynamics.volume_at_nodes @ inner_forces
 
@@ -99,12 +95,18 @@ class BodyForces:
     def get_normalized_rhs_np(self, temperature=None) -> np.ndarray:
         _ = temperature
 
-        displacement_old_vector = nph.stack_column(self.body.state.position.normalized_displacement_old)
+        displacement_old_vector = nph.stack_column(
+            self.body.state.position.normalized_displacement_old
+        )
         velocity_old_vector = nph.stack_column(self.body.state.position.normalized_velocity_old)
         f_vector = self.get_integrated_field_sources_column(time=0)
         rhs = (
             f_vector
-            - (self.body.dynamics.viscosity + self.body.dynamics.elasticity * self.body.dynamics.time_step) @ velocity_old_vector
+            - (
+                self.body.dynamics.viscosity
+                + self.body.dynamics.elasticity * self.body.dynamics.time_step
+            )
+            @ velocity_old_vector
             - self.body.dynamics.elasticity @ displacement_old_vector
         )
         return rhs

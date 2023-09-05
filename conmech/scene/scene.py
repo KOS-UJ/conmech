@@ -10,7 +10,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
-from conmech.scene.body_forces import BodyForces, energy
+from conmech.scene.body_forces import energy
 from conmech.simulations.problem_solver import Body
 from conmech.state.body_position import BodyPosition
 from conmech.state.state import State
@@ -129,10 +129,12 @@ class Scene:
         time_step: float,
         obstacle_prop: ObstacleProperties,
         normalize_by_rotation: bool = False,
-        create_in_subprocess: bool = False
+        create_in_subprocess: bool = False,
     ):
         self.body = body
-        Dynamics(self.body, time_step, DynamicsConfiguration(create_in_subprocess=create_in_subprocess))
+        Dynamics(
+            self.body, time_step, DynamicsConfiguration(create_in_subprocess=create_in_subprocess)
+        )
         State(self.body)
         self.time_step = time_step
         self.obstacle_prop = obstacle_prop
@@ -172,16 +174,18 @@ class Scene:
                     create_in_subprocess=self.create_in_subprocess,
                 )
                 obstacle = Body(properties=None, mesh=mesh)
-                self.mesh_obstacles.append(BodyPosition(
-                    obstacle, normalize_by_rotation=self.normalize_by_rotation)
+                self.mesh_obstacles.append(
+                    BodyPosition(obstacle, normalize_by_rotation=self.normalize_by_rotation)
                 )
 
     def get_normalized_energy_obstacle_np(self, temperature=None):
-        normalized_rhs_boundary, normalized_rhs_free = (
-            self.body.dynamics.force.get_all_normalized_rhs_np(temperature))
+        (
+            normalized_rhs_boundary,
+            normalized_rhs_free,
+        ) = self.body.dynamics.force.get_all_normalized_rhs_np(temperature)
         penetration = self.get_penetration()
         args = EnergyObstacleArguments(
-            lhs=self.body.dynamics.solver_cache.lhs_boundary,   # TODO
+            lhs=self.body.dynamics.solver_cache.lhs_boundary,  # TODO
             rhs=normalized_rhs_boundary,
             boundary_velocity_old=self.norm_boundary_velocity_old,
             boundary_normals=self.body.state.position.get_normalized_boundary_normals(),
@@ -229,12 +233,14 @@ class Scene:
 
     def iterate_self(self, acceleration, temperature=None):
         return self.body.state.position.iterate_self(
-            time_step=self.time_step, acceleration=acceleration)
+            time_step=self.time_step, acceleration=acceleration
+        )
 
     @property
     def norm_boundary_obstacle_nodes(self):
         return self.body.state.position.normalize_rotate(
-            self.boundary_obstacle_nodes - self.body.state.position.mean_moved_nodes)
+            self.boundary_obstacle_nodes - self.body.state.position.mean_moved_nodes
+        )
 
     def get_norm_obstacle_normals(self):
         return self.body.state.position.normalize_rotate(self.get_obstacle_normals())
@@ -247,7 +253,9 @@ class Scene:
 
     @property
     def normalized_obstacle_nodes(self):
-        return self.body.state.position.normalize_rotate(self.obstacle_nodes - self.mean_moved_nodes)
+        return self.body.state.position.normalize_rotate(
+            self.obstacle_nodes - self.mean_moved_nodes
+        )
 
     @property
     def boundary_velocity_old(self):
@@ -286,14 +294,13 @@ class Scene:
 
     def __get_boundary_v_tangential(self):
         return nph.get_tangential(
-            self.boundary_velocity_old,
-            self.body.state.position.get_boundary_normals()
+            self.boundary_velocity_old, self.body.state.position.get_boundary_normals()
         )
 
     def __get_normalized_boundary_v_tangential(self):
         return nph.get_tangential(
             self.norm_boundary_velocity_old,
-            self.body.state.position.get_normalized_boundary_normals()
+            self.body.state.position.get_normalized_boundary_normals(),
         )
 
     def get_friction_vector(self):

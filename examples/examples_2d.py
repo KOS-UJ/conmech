@@ -16,7 +16,6 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    config = Config(shell=False)
     obstacles = [
         Obstacle(
             np.array([[[0.7, 1.0], [-0.3, 1.0]], [[0.0, -0.01], [4.0, -0.01]]]),

@@ -52,8 +52,8 @@ class Scenario:
             [
                 function(*nodes_pairs, setting.body.mesh.mesh_prop, current_time)
                 for nodes_pairs in zip(
-                setting.body.mesh.initial_nodes,
-                setting.body.state.position.moved_nodes)
+                    setting.body.mesh.initial_nodes, setting.body.state.position.moved_nodes
+                )
             ]
         )
 
