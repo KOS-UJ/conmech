@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from conmech.simulations.problem_solver import StaticSolver as StaticProblem
+from conmech.mesh.mesh import MeshProperties
 from examples.Jureczka_and_Ochal_2019 import StaticSetup
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -61,7 +62,12 @@ def test(solving_method):
         [0.0, 0.0],
         [0.0, 0.0],
     ]
-    setup = StaticSetup(mesh_type="cross")
+    mesh_prop = MeshProperties(
+        mesh_type="cross",
+        mesh_density=[16, 8],
+        grid_height=1
+    )
+    setup = StaticSetup(mesh_prop)
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(
         fixed_point_abs_tol=0.001, initial_displacement=setup.initial_displacement

@@ -8,8 +8,9 @@ import numpy as np
 import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import PiezoelectricQuasistaticProblem, PiezoelectricDynamicProblem
+from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
+from conmech.mesh.mesh import MeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -49,8 +50,6 @@ def generate_test_suits():
 
     @dataclass()
     class QuasistaticSetup_1(PiezoelectricQuasistaticProblem):
-        grid_height: ... = 1
-        elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
         th_coef: ... = 4
@@ -85,7 +84,13 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_m02_m02 = QuasistaticSetup_1(mesh_type="cross")
+    mesh_prop_1 = MeshProperties(
+        mesh_type="cross",
+        mesh_density=[5, 2],
+        grid_height=1
+    )
+
+    setup_m02_m02 = QuasistaticSetup_1(mesh_prop_1)
 
     expected_displacement_vector_m02_m02 = np.asarray(
         [
@@ -134,7 +139,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = QuasistaticSetup_1(mesh_type="cross")
+    setup_0_02_p_0 = QuasistaticSetup_1(mesh_prop_1)
     setup_0_02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
     def inner_forces(x, time=None):
@@ -189,7 +194,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = QuasistaticSetup_1(mesh_type="cross")
+    setup_0_m02_p_0 = QuasistaticSetup_1(mesh_prop_1)
     setup_0_m02_p_0.contact_law = make_slope_contact_law_piezo(0)
 
     def inner_forces(x, time=None):
@@ -210,8 +215,6 @@ def generate_test_suits():
 
     @dataclass()
     class QuasistaticSetup_2(PiezoelectricQuasistaticProblem):
-        grid_height: ... = 1.37
-        elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
         la_coef: ... = 3.33
         th_coef: ... = 2.11
@@ -246,7 +249,12 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_var = QuasistaticSetup_2(mesh_type="cross")
+    mesh_prop_2 = MeshProperties(
+        mesh_type="cross",
+        mesh_density=[5, 2],
+        grid_height=1.37
+    )
+    setup_var = QuasistaticSetup_2(mesh_prop_2)
     expected_displacement_vector_var = np.asarray(
         [
             [0.0, 0.0],

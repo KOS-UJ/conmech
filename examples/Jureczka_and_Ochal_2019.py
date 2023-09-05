@@ -43,8 +43,6 @@ class JureczkaOchal2019(ContactLaw):
 
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (8, 16)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = JureczkaOchal2019
