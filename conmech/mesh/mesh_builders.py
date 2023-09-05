@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import meshio
 
 from conmech.helpers import mph, nph
 from conmech.mesh.zoo import MeshZOO
@@ -40,6 +41,10 @@ def build_initial_mesh(
     mesh_prop: MeshProperties,
     create_in_subprocess=False,
 ) -> RawMesh:
+    if mesh_prop.mesh_type == 'msh_file':
+        mesh = meshio.read(mesh_prop.path)
+        return RawMesh(nodes=mesh.points, elements=mesh.cells_dict['triangle'])
+
     if not create_in_subprocess:
         return MeshZOO.get_by_name(mesh_prop.mesh_type)(mesh_prop)
     return mph.run_process(lambda: MeshZOO.get_by_name(mesh_prop.mesh_type)(mesh_prop))

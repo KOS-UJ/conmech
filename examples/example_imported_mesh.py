@@ -1,5 +1,5 @@
 """
-Created at 21.08.2019
+Created at 05.09.2023
 """
 from dataclasses import dataclass
 
@@ -15,26 +15,32 @@ from conmech.mesh.mesh import MeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
+
+E = 10000
+kappa = 0.4
+
+
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
-    mu_coef: ... = 4
-    la_coef: ... = 4
+    mu_coef: ... = E / (1 + kappa)
+    la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
     contact_law: ... = make_slope_contact_law(slope=1)
 
     @staticmethod
     def inner_forces(x, t=None):
-        return np.array([-0.2, -0.2])
+        return np.array([0, 0])
 
     @staticmethod
     def outer_forces(x, t=None):
-        return np.array([0, 0])
+        return np.array([0, -1]) if x[0] > 1.9 and x[1] < 0.1 else np.zeros(2)
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] < 0.1 and x[0] < 0.5,
+        dirichlet=lambda x: x[0] == 0
     )
 
 
@@ -45,10 +51,8 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     mesh_prop = MeshProperties(
-        mesh_type="cross",
-        dimension=2,
-        mesh_density=[5, 2],
-        grid_height=1.0
+        mesh_type="msh_file",
+        path="examples/example_mesh.msh"
     )
     setup = StaticSetup(mesh_prop=mesh_prop)
     runner = StaticSolver(setup, "schur")

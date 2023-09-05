@@ -36,29 +36,10 @@ class ContactLaw:
 @dataclass
 class Problem(ABC):
     # pylint: disable=unused-argument
-    dimension = 2  # TODO #74 : Not used?
-    mesh_type: str
+    mesh_prop: MeshProperties
     boundaries: BoundariesDescription
-    grid_height: float
-    grid_width: float = field(init=False)
-    mesh_prop: MeshProperties = field(init=False)
 
-    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
-
-    def __post_init__(self):
-        self.grid_width = (
-            self.grid_height / self.elements_number[0]
-        ) * self.elements_number[1]
-
-        self.mesh_prop = MeshProperties(
-                dimension=self.dimension,
-                mesh_type=self.mesh_type,
-                mesh_density=[self.elements_number[1], self.elements_number[0]],
-                scale=[float(self.grid_width), float(self.grid_height)],
-            )
-
-
-    @staticmethod   
+    @staticmethod
     def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.zeros_like(x)
 
@@ -101,8 +82,6 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 
 @dataclass
 class DisplacementProblem(Problem, ABC):
-    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
-
     mu_coef: float
     la_coef: float
     contact_law: ContactLaw

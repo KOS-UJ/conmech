@@ -115,6 +115,8 @@ class Mesh:
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
+        if mesh_prop.mesh_type == 'msh_file':
+            self.fill_mesh_prop_data(input_nodes)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
@@ -130,6 +132,11 @@ class Mesh:
         )
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
+
+
+    def fill_mesh_prop_data(self, nodes: np.ndarray):
+        self.mesh_prop.dimension = nodes.shape[1]
+        self.mesh_prop.scale = [max(nodes[:, j]) - min(nodes[:, j]) for j in range(nodes.shape[1])]
 
     def normalize_shift(self, vectors):
         _ = self
