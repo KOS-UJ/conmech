@@ -73,22 +73,7 @@ class StaticPoissonStatement(Statement):
         self.left_hand_side = self.body.dynamics.poisson_operator.copy()
 
     def update_right_hand_side(self, var: Variables):
-        self.right_hand_side = self.body.dynamics.temperature.integrate(
-            time=0, value=var.temperature)
-
-    # def update_left_hand_side(self, var: Variables):
-    #     integrated_outer_forces = (
-    #         self.body.dynamics.temperature.get_integrated_outer_forces(0, var.temperature)
-    #     )
-    #     integrated_forces = nph.stack_column(integrated_outer_forces[:, :]).reshape(-1)
-    #     self.left_hand_side = self.body.dynamics.poisson_operator.copy()
-    #     np.fill_diagonal(self.left_hand_side, self.left_hand_side.diagonal() + integrated_forces)
-    #
-    # def update_right_hand_side(self, var: Variables):
-    #     integrated_inner_forces = self.body.dynamics.temperature.get_integrated_inner_forces(0, var.temperature)
-    #     integrated_outer_forces = self.body.dynamics.temperature.get_integrated_outer_forces(0, var.temperature)
-    #     integrated_forces = integrated_inner_forces + 3 * integrated_outer_forces
-    #     self.right_hand_side = nph.stack_column(integrated_forces[:, :]).reshape(-1)
+        self.right_hand_side = self.body.dynamics.temperature.integrate(time=0)
 
 
 class StaticDisplacementStatement(Statement):

@@ -200,7 +200,7 @@ class Drawer:
             neumann_nodes = list(set(neumann_nodes.flatten()))
             x = self.state.displaced_nodes[neumann_nodes]
             v = self.state.body.dynamics.force.outer.node_source(
-                self.state.body.mesh.initial_nodes, self.state.time, None)[neumann_nodes]
+                self.state.body.mesh.initial_nodes, self.state.time)[neumann_nodes]
 
             scale = self.outer_forces_scale
 

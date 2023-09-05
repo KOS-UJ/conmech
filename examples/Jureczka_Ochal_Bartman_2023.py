@@ -66,11 +66,11 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
         contact_law: ... = contact_law_
 
         @staticmethod
-        def inner_forces(x, v=None, t=None):
+        def inner_forces(x, t=None):
             return np.array([0.0, -1.0])
 
         @staticmethod
-        def outer_forces(x, v=None, t=None):
+        def outer_forces(x, t=None):
             if x[1] == 0.6:
                 return np.array([-4.0, -4.0])
             if x[0] == 1.2:

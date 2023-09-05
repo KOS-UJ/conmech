@@ -116,11 +116,11 @@ class TDynamicSetup(TemperatureDynamic):
         return np.asarray([0.25])
 
     @staticmethod
-    def inner_forces(x, v=None, t=None):
+    def inner_forces(x, t=None):
         return np.array([0.0, -1])
 
     @staticmethod
-    def outer_forces(x, v=None, t=None):
+    def outer_forces(x, t=None):
         if x[0] == 0:
             return np.array([48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         if x[0] == 1.5:
