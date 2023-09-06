@@ -100,18 +100,11 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 v = [INT_PH * j_d_phi for j_d_phi in j_d_phi_vec]
 
-                w = [
-                    [i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec]
-                    for i_d_phi in i_d_phi_vec
-                ]
+                w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
-                local_stifness_matrices[:, :, element_index, i, j] = (
-                    element_volume * np.asarray(w)
-                )
+                local_stifness_matrices[:, :, element_index, i, j] = element_volume * np.asarray(w)
 
-                edges_features_matrix[
-                    :, element[i], element[j]
-                ] += element_volume * np.array(
+                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
                     [
                         volume_at_nodes,
                         u,

@@ -126,7 +126,9 @@ class Dynamics(BodyPosition):
                         for w_idx in range(4):
                             self._w_matrix[w_idx // 2][w_idx % 2][global_i, global_j] += (
                                 elements_density[element_index]
-                                * self._local_stifness_matrices[w_idx // 2, w_idx % 2, element_index, i, j]
+                                * self._local_stifness_matrices[
+                                    w_idx // 2, w_idx % 2, element_index, i, j
+                                ]
                             )
 
         (
