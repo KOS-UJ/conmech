@@ -1,7 +1,7 @@
 import numpy as np
 
 from conmech.helpers.config import Config
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import (
     TemperatureScenario,
@@ -40,7 +40,7 @@ def get_C_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"C_{i}",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
@@ -78,7 +78,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     def h_corner(
         initial_node: np.ndarray,
         moved_node: np.ndarray,
-        mesh_prop: MeshProperties,
+        mesh_prop: GeneratedMeshProperties,
         t: float,
     ):
         x_scaled = initial_node[0] / mesh_prop.scale_x
@@ -92,7 +92,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
     return [
         TemperatureScenario(
             name=f"K_{i}",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2, mesh_type=M_RECTANGLE, scale=[1], mesh_density=[mesh_density]
             ),
             body_prop=temp_body_prop,
@@ -108,7 +108,7 @@ def get_K_temp_scenarios(mesh_density, final_time):
 def get_polygon_scenarios(mesh_density, final_time):
     polygon_scenario = lambda i, forces_function, obstacle: TemperatureScenario(
         name=f"polygon_{i}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_POLYGON, scale=[1], mesh_density=[mesh_density]
         ),
         body_prop=default_temp_body_prop,
@@ -129,7 +129,7 @@ def get_friction_scenarios(mesh_density, final_time):
     obstacle = Obstacle(np.array([[[0.0, 1.0]], [[0.0, 0.0]]]), default_temp_obstacle_prop)
     friction_scenario = lambda i: TemperatureScenario(
         name="circle_flat_A_roll",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2,
             mesh_type=M_CIRCLE,
             scale=[1],

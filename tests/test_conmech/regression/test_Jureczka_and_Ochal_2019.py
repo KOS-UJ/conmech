@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 from conmech.simulations.problem_solver import StaticSolver as StaticProblem
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from examples.Jureczka_and_Ochal_2019 import StaticSetup
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -62,7 +62,7 @@ def test(solving_method):
         [0.0, 0.0],
         [0.0, 0.0],
     ]
-    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[16, 8], grid_height=1)
+    mesh_prop = GeneratedMeshProperties(mesh_type="cross", mesh_density=[16, 8], grid_height=1)
     setup = StaticSetup(mesh_prop)
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(

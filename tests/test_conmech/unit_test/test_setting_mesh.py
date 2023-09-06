@@ -4,7 +4,7 @@ import pytest
 from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.state.body_position import BodyPosition
 
@@ -17,7 +17,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         contact=lambda x: True, dirichlet=lambda x: False
     )
     setting = BodyPosition(
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2,
             mesh_type="meshzoo_rectangle",
             mesh_density=[3, 3],
@@ -44,7 +44,7 @@ def test_boundary_nodes_data_3d():
         contact=lambda x: True, dirichlet=lambda x: False
     )
     setting = BodyPosition(
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
         ),
         schedule=Schedule(1),

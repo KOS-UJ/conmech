@@ -20,12 +20,12 @@ import dmsh
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("JOB2023", "jurochbar_2023", "bow")
 class JOB2023(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         # pylint: disable=no-member  # for dmsh
         geo = dmsh.Polygon(
             [

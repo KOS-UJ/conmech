@@ -20,12 +20,12 @@ import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("cube", "cube_3d", "meshzoo_cube_3d")
 class Cube(RawMesh):
-    def __init__(self, _mesh_prop: MeshProperties):
+    def __init__(self, _mesh_prop: GeneratedMeshProperties):
         nodes = np.asarray(
             [
                 [0.0, 0.0, 0.0],

@@ -9,7 +9,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -46,7 +46,7 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    mesh_prop_1 = MeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1)
+    mesh_prop_1 = GeneratedMeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1)
     setup_m02_m02 = StaticSetup(mesh_prop_1)
 
     expected_displacement_vector_m02_m02 = [
@@ -137,7 +137,7 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    mesh_prop_2 = MeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1.37)
+    mesh_prop_2 = GeneratedMeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1.37)
     setup_var = StaticSetup(mesh_prop_2)
     expected_displacement_vector_var = [
         [0.0, 0.0],

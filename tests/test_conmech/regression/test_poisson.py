@@ -9,7 +9,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @pytest.fixture(params=["direct"])
@@ -35,7 +35,7 @@ def generate_test_suits():
 
         boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
 
-    mesh_prop_1 = MeshProperties(mesh_type="cross", mesh_density=[4, 4], grid_height=1)
+    mesh_prop_1 = GeneratedMeshProperties(mesh_type="cross", mesh_density=[4, 4], grid_height=1)
     setup_1 = StaticSetup(mesh_prop_1)
 
     expected_temperature_1 = [
@@ -100,7 +100,7 @@ def generate_test_suits():
             dirichlet=(lambda x: x[0] == 0, lambda x: np.full_like(x[:, 0], 5))
         )
 
-    mesh_prop_2 = MeshProperties(mesh_type="cross", mesh_density=[5, 3], grid_height=1.37)
+    mesh_prop_2 = GeneratedMeshProperties(mesh_type="cross", mesh_density=[5, 3], grid_height=1.37)
     setup_2 = StaticSetup(mesh_prop_2)
     expected_temperature_vector_2 = [
         63.35184411,

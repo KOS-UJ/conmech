@@ -16,7 +16,7 @@ from conmech.simulations.problem_solver import (
     TemperatureTimeDependentSolver as TDynamicProblemSolver,
 )
 from conmech.state.state import TemperatureState
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 import matplotlib.tri as tri
 
@@ -141,7 +141,7 @@ def main(steps, setup, config: Config):
     output_step = (2**i for i in range(int(np.log2(steps))))
 
     if setup is None:
-        mesh_prop = MeshProperties(
+        mesh_prop = GeneratedMeshProperties(
             mesh_type="cross", dimension=2, mesh_density=[4, 4], grid_height=1.0
         )
         setup = TDynamicSetup(mesh_prop)
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     hs = [2**i for i in [2]]
     for h in hs:
         for k in ks:
-            mesh_prop = MeshProperties(
+            mesh_prop = GeneratedMeshProperties(
                 mesh_type="cross", dimension=2, mesh_density=[1.5 * h, h], grid_height=1.0
             )
             setup = TDynamicSetup(mesh_prop)

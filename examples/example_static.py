@@ -9,7 +9,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -44,7 +44,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[5, 2], grid_height=1.0)
+    mesh_prop = GeneratedMeshProperties(mesh_type="cross", dimension=2, mesh_density=[5, 2], grid_height=1.0)
     setup = StaticSetup(mesh_prop=mesh_prop)
     runner = StaticSolver(setup, "schur")
 

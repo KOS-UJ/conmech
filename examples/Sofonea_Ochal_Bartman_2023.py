@@ -29,7 +29,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 from examples.p_slope_contact_law import make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
@@ -85,7 +85,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(mesh_type="tunnel", grid_height=1.0, mesh_density=[20, 20])
+    mesh_prop = GeneratedMeshProperties(mesh_type="tunnel", grid_height=1.0, mesh_density=[20, 20])
     setup = QuasistaticSetup(mesh_prop)
     if config.test:
         mesh_prop.mesh_density = [8, 8]

@@ -6,7 +6,7 @@ import meshio
 from conmech.helpers import mph, nph
 from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties, ImportedMeshProperties
 from conmech.mesh import interpolators
 
 
@@ -41,7 +41,7 @@ def build_initial_mesh(
     mesh_prop: MeshProperties,
     create_in_subprocess=False,
 ) -> RawMesh:
-    if mesh_prop.mesh_type == "msh_file":
+    if isinstance(mesh_prop, ImportedMeshProperties):
         mesh = meshio.read(mesh_prop.path)
         return RawMesh(nodes=mesh.points, elements=mesh.cells_dict["triangle"])
 

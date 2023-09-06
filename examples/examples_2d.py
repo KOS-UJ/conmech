@@ -2,7 +2,7 @@ import numpy as np
 
 import conmech.scenarios.scenarios as scenarios
 from conmech.helpers.config import Config
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios.scenarios import Scenario
@@ -40,7 +40,7 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
         scenarios.polygon_mesh_obstacles(mesh_density=mesh_density, scale=1, final_time=final_time),
         Scenario(
             name="circle_slide_roll",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -53,7 +53,7 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_A_roll",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -66,7 +66,7 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_B_roll",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -79,7 +79,7 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="circle_flat_C_roll",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_CIRCLE,
                 scale=[1],
@@ -92,7 +92,7 @@ def main(config: Config, mesh_density=4, final_time=5, plot_animation=True):
         ),
         Scenario(
             name="rectangle_flat_roll",
-            mesh_prop=MeshProperties(
+            mesh_prop=GeneratedMeshProperties(
                 dimension=2,
                 mesh_type=scenarios.M_RECTANGLE,
                 scale=[1],

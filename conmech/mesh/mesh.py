@@ -6,7 +6,7 @@ from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.mesh.boundaries import Boundaries
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties, ImportedMeshProperties
 
 
 @numba.njit
@@ -115,7 +115,7 @@ class Mesh:
             mesh_prop=mesh_prop,
             create_in_subprocess=create_in_subprocess,
         )
-        if mesh_prop.mesh_type == "msh_file":
+        if isinstance(mesh_prop, ImportedMeshProperties):
             self.fill_mesh_prop_data(input_nodes)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements

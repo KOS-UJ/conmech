@@ -21,12 +21,12 @@ import pygmsh
 from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("spline", "pygmsh_spline", "pygmsh_spline_2d")
 class Spline(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         with pygmsh.geo.Geometry() as geom:
             p_1 = geom.add_point([0.0, 0.0])
             p_2 = geom.add_point([mesh_prop.scale_x, 0.0])

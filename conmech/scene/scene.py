@@ -9,7 +9,7 @@ from conmech.helpers import nph
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import ViscoelasticProperties
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.obstacle_properties import ObstacleProperties
 from conmech.properties.schedule import Schedule
 from conmech.scene.body_forces import BodyForces, energy
@@ -125,7 +125,7 @@ def get_closest_obstacle_to_boundary_numba(boundary_nodes, obstacle_nodes):
 class Scene(BodyForces):
     def __init__(
         self,
-        mesh_prop: MeshProperties,
+        mesh_prop: GeneratedMeshProperties,
         body_prop: ViscoelasticProperties,
         obstacle_prop: ObstacleProperties,
         schedule: Schedule,
@@ -165,7 +165,7 @@ class Scene(BodyForces):
     def normalize_and_set_obstacles(
         self,
         obstacles_unnormalized: Optional[np.ndarray],
-        all_mesh_prop: Optional[List[MeshProperties]],
+        all_mesh_prop: Optional[List[GeneratedMeshProperties]],
     ):
         if obstacles_unnormalized is not None and obstacles_unnormalized.size > 0:
             self.linear_obstacles = obstacles_unnormalized

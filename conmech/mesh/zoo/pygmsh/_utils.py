@@ -1,6 +1,6 @@
 import numpy as np
 
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.mesh.utils import interpolate_nodes
 
 
@@ -9,7 +9,7 @@ def get_random_corner_data():
     # random_data = np.zeros(4) #random_data[1] = 1.
 
 
-def get_random_corner_mesh_size(mesh_prop: MeshProperties):
+def get_random_corner_mesh_size(mesh_prop: GeneratedMeshProperties):
     mesh_density = mesh_prop.mesh_density_x
     scale = mesh_density * 0.8
     corner_data = (mesh_prop.corner_mesh_data * 2.0 * scale) - scale
@@ -17,7 +17,7 @@ def get_random_corner_mesh_size(mesh_prop: MeshProperties):
 
 
 # CORNERS left, bottom, right, top
-def set_mesh_size(geom, mesh_prop: MeshProperties):
+def set_mesh_size(geom, mesh_prop: GeneratedMeshProperties):
     # pylint: disable=unnecessary-lambda-assignment)
     if mesh_prop.corner_mesh_data is not None:
         if mesh_prop.dimension != 2:

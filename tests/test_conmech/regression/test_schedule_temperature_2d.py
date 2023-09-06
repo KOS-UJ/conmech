@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from conmech.helpers.config import Config
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import TemperatureScenario
@@ -16,7 +16,7 @@ def generate_test_suits():
     )
     scenario = TemperatureScenario(
         name=f"polygon_temp",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=scenarios.M_POLYGON, scale=[1], mesh_density=[3]
         ),
         body_prop=scenarios.default_temp_body_prop,

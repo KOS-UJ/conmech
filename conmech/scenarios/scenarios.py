@@ -8,7 +8,7 @@ from conmech.properties.body_properties import (
     ViscoelasticTemperatureProperties,
     ViscoelasticProperties,
 )
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties, GeneratedMeshProperties
 from conmech.properties.obstacle_properties import (
     ObstacleProperties,
     TemperatureObstacleProperties,
@@ -24,7 +24,7 @@ class Scenario:
     def __init__(
         self,
         name: str,
-        mesh_prop: MeshProperties,
+        mesh_prop: GeneratedMeshProperties,
         body_prop: ViscoelasticProperties,
         schedule: Schedule,
         forces_function: Union[Callable[..., np.ndarray], np.ndarray],
@@ -101,7 +101,7 @@ class TemperatureScenario(Scenario):
     def __init__(
         self,
         name: str,
-        mesh_prop: MeshProperties,
+        mesh_prop: GeneratedMeshProperties,
         body_prop: ViscoelasticProperties,
         schedule: Schedule,
         forces_function: Union[Callable, np.ndarray],
@@ -168,14 +168,14 @@ default_temp_body_prop = ViscoelasticTemperatureProperties(
 )
 
 obstacle_mesh_prop = [
-    MeshProperties(
+    GeneratedMeshProperties(
         dimension=2,
         mesh_type="pygmsh_circle",
         scale=[1],
         mesh_density=[4],
         initial_position=np.array([1.5, 0.0]),
     ),
-    MeshProperties(
+    GeneratedMeshProperties(
         dimension=2,
         mesh_type="pygmsh_rectangle",
         scale=[1],
@@ -366,7 +366,7 @@ def polygon_mesh_obstacles(mesh_density, scale, final_time, tag=""):
     )
     return Scenario(
         name=f"polygon_mesh_obstacles{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -380,7 +380,7 @@ def circle_slope(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"circle_slope{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -394,7 +394,7 @@ def spline_down(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("bottom", default_obstacle_prop)
     return Scenario(
         name=f"spline_down{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_SPLINE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -408,7 +408,7 @@ def circle_up_left(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("back", default_obstacle_prop)
     return Scenario(
         name=f"circle_up_left{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -423,7 +423,7 @@ def polygon_left(mesh_density, scale, final_time, tag=""):
     obstacle.geometry *= scale
     return Scenario(
         name=f"polygon_left{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -437,7 +437,7 @@ def polygon_slope(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("slope", default_obstacle_prop)
     return Scenario(
         name=f"polygon_slope{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -451,7 +451,7 @@ def circle_rotate(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"circle_rotate{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_CIRCLE, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -465,7 +465,7 @@ def polygon_rotate(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_rotate{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2, mesh_type=M_POLYGON, scale=[scale], mesh_density=[mesh_density]
         ),
         body_prop=default_body_prop,
@@ -479,7 +479,7 @@ def polygon_stay(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("side", default_obstacle_prop)
     return Scenario(
         name=f"polygon_stay{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[scale],
@@ -496,7 +496,7 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
     obstacle = Obstacle.get_linear_obstacle("two", default_obstacle_prop)
     return Scenario(
         name=f"polygon_two{tag}",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2,
             mesh_type=M_POLYGON,
             scale=[scale],
@@ -511,7 +511,7 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
 
 scenario_3d = Scenario(
     name="ball_roll",
-    mesh_prop=MeshProperties(dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]),
+    mesh_prop=GeneratedMeshProperties(dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]),
     body_prop=default_body_prop,
     schedule=Schedule(final_time=1),
     forces_function=np.array([0.0, 0.0, -0.5]),

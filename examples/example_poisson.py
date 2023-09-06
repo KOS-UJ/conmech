@@ -7,7 +7,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @dataclass()
@@ -44,7 +44,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[8, 8], grid_height=1.0)
+    mesh_prop = GeneratedMeshProperties(mesh_type="cross", mesh_density=[8, 8], grid_height=1.0)
     setup = StaticPoissonSetup(mesh_prop)
     runner = PoissonSolver(setup, "direct")
 

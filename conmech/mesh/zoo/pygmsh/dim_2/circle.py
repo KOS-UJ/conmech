@@ -21,12 +21,12 @@ import pygmsh
 from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("circle", "pygmsh_circle", "pygmsh_circle_2d")
 class Circle(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         with pygmsh.geo.Geometry() as geom:
             geom.add_circle(
                 [mesh_prop.scale_x / 2.0, mesh_prop.scale_y / 2.0],

@@ -21,12 +21,12 @@ import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("rectangle", "rectangle_2d", "meshzoo_rectangle", "meshzoo_rectangle_2d")
 class Rectangle(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         # pylint: disable=no-member
         nodes, elements = meshzoo.rectangle_tri(
             np.linspace(0.0, mesh_prop.scale_x, int(mesh_prop.mesh_density_x) + 1),

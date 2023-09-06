@@ -7,7 +7,7 @@ from typing import Optional, Callable
 
 import numpy as np
 
-from conmech.mesh.mesh import MeshProperties
+from conmech.properties.mesh_properties import MeshProperties
 from conmech.mesh.boundaries_description import BoundariesDescription
 
 

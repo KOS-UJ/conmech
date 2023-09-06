@@ -4,12 +4,12 @@ import numpy as np
 from conmech.helpers import nph
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("cross")
 class CrossMesh(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         super().__init__(*CrossMesh._get_cross_rectangle(mesh_prop))
 
     @staticmethod

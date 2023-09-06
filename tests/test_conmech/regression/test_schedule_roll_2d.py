@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from conmech.helpers.config import Config
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 from conmech.properties.schedule import Schedule
 from conmech.scenarios import scenarios
 from conmech.scenarios.scenarios import Scenario
@@ -13,7 +13,7 @@ from conmech.state.obstacle import Obstacle
 def generate_test_suits():
     scenario = Scenario(
         name="circle_slide_roll",
-        mesh_prop=MeshProperties(
+        mesh_prop=GeneratedMeshProperties(
             dimension=2,
             mesh_type=scenarios.M_CIRCLE,
             scale=[1],

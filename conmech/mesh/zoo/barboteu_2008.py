@@ -22,12 +22,12 @@ import pygmsh
 from conmech.mesh.utils import interpolate_nodes
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import GeneratedMeshProperties
 
 
 @MeshZOO.register("Barboteu2008", "barboteu_2008")
 class Barboteu2008(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_prop: GeneratedMeshProperties):
         with pygmsh.geo.Geometry() as geom:
             geom.add_polygon(
                 [
@@ -47,7 +47,7 @@ class Barboteu2008(RawMesh):
         super().__init__(nodes, elements)
 
     @staticmethod
-    def _set_mesh_size(geom, mesh_prop: MeshProperties):
+    def _set_mesh_size(geom, mesh_prop: GeneratedMeshProperties):
         # pylint: disable=unnecessary-lambda-assignment
         if mesh_prop.corner_mesh_data is not None:
             if mesh_prop.dimension != 2:
@@ -74,7 +74,7 @@ class Barboteu2008(RawMesh):
         return np.random.rand(4).reshape(-1, 1)
 
     @staticmethod
-    def _get_random_corner_mesh_size(mesh_prop: MeshProperties):
+    def _get_random_corner_mesh_size(mesh_prop: GeneratedMeshProperties):
         mesh_density = mesh_prop.mesh_density_x
         scale = mesh_density * 0.8
         corner_data = (mesh_prop.corner_mesh_data * 2.0 * scale) - scale
