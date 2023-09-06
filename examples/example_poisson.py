@@ -7,13 +7,10 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-
+from conmech.mesh.mesh import MeshProperties
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-    grid_height: ... = 1
-    elements_number: ... = (8, 8)
-
     @staticmethod
     def external_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         if x[1] == 0:
@@ -46,7 +43,8 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = StaticPoissonSetup(mesh_type="cross")
+    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[8, 8], grid_height=1.0)
+    setup = StaticPoissonSetup(mesh_prop)
     runner = PoissonSolver(setup, "direct")
 
     state = runner.solve(verbose=True)

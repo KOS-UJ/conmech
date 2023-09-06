@@ -11,9 +11,10 @@ import matplotlib.pyplot as plt
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
+from conmech.scenarios.problems import TemperatureDynamicProblem
+from conmech.simulations.problem_solver import TemperatureTimeDependentSolver as TDynamicProblemSolver
 from conmech.state.state import TemperatureState
+from conmech.mesh.mesh import MeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
 import matplotlib.tri as tri
 
@@ -98,9 +99,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class TDynamicSetup(TemperatureDynamic):
-    grid_height: ... = 1.0
-    elements_number: ... = (4, 4)
+class TDynamicSetup(TemperatureDynamicProblem):
     mu_coef: ... = 45
     la_coef: ... = 105
     th_coef: ... = 4.5
@@ -139,7 +138,9 @@ def main(steps, setup, config: Config):
     simulate = True
     output_step = (2**i for i in range(int(np.log2(steps))))
 
-    setup = setup or TDynamicSetup(mesh_type="cross")
+    if setup is None:
+        mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[4, 4], grid_height=1.0)
+        setup = TDynamicSetup(mesh_prop)
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
     # for step, state in zip(output_step, runner.solve(
@@ -213,7 +214,7 @@ if __name__ == "__main__":
     hs = [2**i for i in [2]]
     for h in hs:
         for k in ks:
-            setup = TDynamicSetup(mesh_type="cross")
-            setup.elements_number = (h, 1.5 * h)
+            mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[1.5 * h, h], grid_height=1.0)
+            setup = TDynamicSetup(mesh_prop)
             setup.time_step = T / k
             main(setup=setup, steps=k, config=Config().init())

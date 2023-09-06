@@ -29,6 +29,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
+from conmech.mesh.mesh import MeshProperties
 
 from examples.p_slope_contact_law import make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
@@ -46,8 +47,6 @@ kappa = 0.4
 
 @dataclass
 class QuasistaticSetup(RelaxationQuasistaticProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (20, 20)
     mu_coef: ... = E / (1 + kappa)
     la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
     time_step: ... = 1 / 128
@@ -86,11 +85,16 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = QuasistaticSetup(mesh_type="tunnel")
+    mesh_prop = MeshProperties(
+        mesh_type="tunnel",
+        grid_height=1.0,
+        mesh_density=[20, 20]
+    )
+    setup = QuasistaticSetup(mesh_prop)
     if config.test:
-        setup.elements_number = (8, 8)
+        mesh_prop.mesh_density = [8, 8]
         setup.time_step *= 8
-    h = setup.elements_number[0]
+    h = mesh_prop.mesh_density[1]
 
     def sin_outer_forces(x, t=None):
         if x[1] <= oy:

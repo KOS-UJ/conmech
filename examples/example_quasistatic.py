@@ -9,14 +9,13 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import QuasistaticDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver
+from conmech.mesh.mesh import MeshProperties
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
 class QuasistaticSetup(QuasistaticDisplacementProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (2, 5)
     mu_coef: ... = 4
     la_coef: ... = 4
     th_coef: ... = 4
@@ -47,7 +46,8 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = QuasistaticSetup(mesh_type="cross")
+    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1.0)
+    setup = QuasistaticSetup(mesh_prop)
     runner = TimeDependentSolver(setup, solving_method="schur")
 
     states = runner.solve(
