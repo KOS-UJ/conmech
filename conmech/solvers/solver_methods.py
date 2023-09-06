@@ -26,16 +26,16 @@ def n_down(n0, n1):
 
 
 @numba.njit()
-def n_down_3D(n0, n1, n3):
+def n_down_3d(n0, n1, n2, n_interior):
     # [0,-1]
-    # x = 0
-    # y = 1
-    # z = 1
-    # dx = n0[x] - n1[x]
-    # dy = n0[y] - n1[y]
-    # dz = n0[z] - n1[z]
+    x = 0
+    y = 1
+    z = 2
+    nx = n0[y] * n1[z] - n0[z] * n1[y]
+    ny = n0[z] * n1[x] - n0[x] * n1[z]
+    nz = n0[x] * n1[y] - n0[y] * n1[x]
     # norm = np.sqrt(dx**2 + dy**2)
-    # n = np.array([float(dy) / norm, float(-dx) / norm])
+    n = np.array([nx, ny, nz])
     # if n[1] > 0:
     #     n = -n
     return np.array([0, 0, -1])  # TODO
@@ -55,7 +55,7 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
 
 
 @numba.njit(inline="always")
-def interpolate_node_between_3D(node_id_0, node_id_1, node_id_2, vector, dimension=3):
+def interpolate_node_between_3d(node_id_0, node_id_1, node_id_2, vector, dimension=3):
     result = np.zeros(dimension)
     offset = len(vector) // dimension
     for i in range(dimension):
@@ -213,7 +213,7 @@ def make_cost_functional(
     return cost_functional
 
 
-def make_cost_functional_3D(
+def make_cost_functional_3d(
     jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
 ):
     jn = njit(jn)
@@ -234,10 +234,10 @@ def make_cost_functional_3D(
             n_2 = nodes[n_id_2]
 
             # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_node_between_3D(n_id_0, n_id_1, n_id_2, u_vector)
-            um_old = interpolate_node_between_3D(n_id_0, n_id_1, n_id_2, u_vector_old)
+            um = interpolate_node_between_3d(n_id_0, n_id_1, n_id_2, u_vector)
+            um_old = interpolate_node_between_3d(n_id_0, n_id_1, n_id_2, u_vector_old)
 
-            normal_vector = n_down_3D(n_0, n_1, n_2)
+            normal_vector = n_down_3d(n_0, n_1, n_2)
 
             um_normal = (um * normal_vector).sum()
             um_old_normal = (um_old * normal_vector).sum()
@@ -264,7 +264,7 @@ def make_cost_functional_poisson(jn: Callable):
     jn = njit(jn)
 
     @numba.njit()
-    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary):
+    def contact_cost_functional(u_vector, nodes, contact_boundary):
         cost = 0
         offset = len(u_vector) // DIMENSION
 
@@ -285,10 +285,10 @@ def make_cost_functional_poisson(jn: Callable):
                 cost += nph.length(n_0, n_1) * (jn(um_normal))
         return cost
 
-    # pylint: disable=unused-argument # 'dt'
+    # pylint: disable=unused-argument # u_vector_old, dt
     # @numba.njit()
     def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, dt):
-        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
+        ju = contact_cost_functional(u_vector, nodes, contact_boundary)
         result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
         result = np.asarray(result).ravel()
         return result

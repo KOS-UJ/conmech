@@ -87,7 +87,6 @@ class Mesh:
         self,
         mesh_prop: MeshProperties,
         boundaries_description: BoundariesDescription,
-        create_in_subprocess: bool,
     ):
         self.mesh_prop = mesh_prop
 
@@ -100,20 +99,15 @@ class Mesh:
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
 
-        self.reinitialize_data(mesh_prop, boundaries_description, create_in_subprocess)
-
-    def remesh(self, boundaries_description, create_in_subprocess):
-        self.reinitialize_data(self.mesh_prop, boundaries_description, create_in_subprocess)
+        self.reinitialize_data(mesh_prop, boundaries_description)
 
     def reinitialize_data(
         self,
         mesh_prop: MeshProperties,
-        boundaries_description: BoundariesDescription,
-        create_in_subprocess,
+        boundaries_description: BoundariesDescription
     ):
         input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_prop=mesh_prop,
-            create_in_subprocess=create_in_subprocess,
+            mesh_prop=mesh_prop
         )
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements

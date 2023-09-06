@@ -12,10 +12,6 @@ from examples.example_piezo_quasistatic import main as quasi_piezo
 from examples.example_dynamic import main as dynamic
 from examples.example_piezoelectric_dynamic import main as dynamic_piezo
 from examples.example_temperature_dynamic import main as dynamic_temp
-from examples.examples_2d import main as examples_2d
-from examples.examples_3d import main as examples_3d
-from examples.examples_temperature_2d import main as examples_temperature_2d
-from examples.examples_temperature_3d import main as examples_temperature_3d
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
@@ -38,14 +34,6 @@ test_suits = {
     ),
     "Sofonea_Ochal_Bartman_2023": lambda: Sofonea_Ochal_Bartman_2023(
         Config(outputs_path="./output/SOB2023", **default_args).init()
-    ),
-    "examples_2d": lambda: examples_2d(Config(**default_args).init(), **default_args_deep),
-    "examples_3d": lambda: examples_3d(Config(**default_args).init(), **default_args_deep),
-    "examples_temperature_2d": lambda: examples_temperature_2d(
-        Config(**default_args).init(), **default_args_deep
-    ),
-    "examples_temperature_3d": lambda: examples_temperature_3d(
-        Config(**default_args).init(), **default_args_deep
     ),
 }
 

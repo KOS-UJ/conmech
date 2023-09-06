@@ -20,7 +20,7 @@ from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
-    make_cost_functional_poisson, make_cost_functional_3D,
+    make_cost_functional_poisson, make_cost_functional_3d,
 )
 
 
@@ -49,7 +49,7 @@ class Optimization(Solver):
                 h_functional=friction_bound,
             )
         elif statement.dimension == 3:  # TODO
-            self.loss = make_cost_functional_3D(
+            self.loss = make_cost_functional_3d(
                 jn=contact_law.potential_normal_direction,
                 jt=contact_law.potential_tangential_direction
                 if hasattr(contact_law, "potential_tangential_direction")

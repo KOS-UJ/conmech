@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from conmech.helpers import mph, nph
+from conmech.helpers import nph
 from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.raw_mesh import RawMesh
 from conmech.properties.mesh_properties import MeshProperties
@@ -10,10 +10,9 @@ from conmech.mesh import interpolators
 
 
 def build_mesh(
-    mesh_prop: MeshProperties,
-    create_in_subprocess=False,
+    mesh_prop: MeshProperties
 ) -> Tuple[np.ndarray, np.ndarray]:
-    raw_mesh = build_initial_mesh(mesh_prop=mesh_prop, create_in_subprocess=create_in_subprocess)
+    raw_mesh = build_initial_mesh(mesh_prop=mesh_prop)
     nodes = translate_nodes(nodes=raw_mesh.nodes, mesh_prop=mesh_prop)
     return nodes, raw_mesh.elements
 
@@ -38,8 +37,5 @@ def translate_nodes(nodes: np.ndarray, mesh_prop: MeshProperties):
 
 def build_initial_mesh(
     mesh_prop: MeshProperties,
-    create_in_subprocess=False,
 ) -> RawMesh:
-    if not create_in_subprocess:
-        return MeshZOO.get_by_name(mesh_prop.mesh_type)(mesh_prop)
-    return mph.run_process(lambda: MeshZOO.get_by_name(mesh_prop.mesh_type)(mesh_prop))
+    return MeshZOO.get_by_name(mesh_prop.mesh_type)(mesh_prop)

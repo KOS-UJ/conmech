@@ -128,26 +128,6 @@ def get_in_base(vectors: np.ndarray, base: np.ndarray) -> np.ndarray:
 
 
 @numba.njit
-def len_x_numba(corners):
-    return corners[2] - corners[0]
-
-
-@numba.njit
-def len_y_numba(corners):
-    return corners[3] - corners[1]
-
-
-@numba.njit
-def min_numba(corners):
-    return [corners[0], corners[1]]
-
-
-@numba.njit
-def max_numba(corners):
-    return [corners[2], corners[3]]
-
-
-@numba.njit
 def get_node_index_numba(node, nodes):
     for i, n in enumerate(nodes):
         if np.sum(np.abs(node - n)) < 0.0001:
@@ -159,35 +139,6 @@ def generate_normal(rows: int, columns: int, scale: float) -> np.ndarray:
     return np.random.normal(loc=0.0, scale=scale * 0.5, size=[rows, columns])
 
 
-def generate_uniform_circle(rows: int, columns: int, low: float, high: float) -> np.ndarray:
-    result = generate_normal(rows=rows, columns=columns, scale=1.0)
-    normalized_result = normalize_euclidean_numba(result)
-    radius = np.random.uniform(low=low, high=high, size=[rows, 1])
-    return radius * normalized_result
-
-
-def append_euclidean_norm(data: np.ndarray) -> np.ndarray:
-    return np.hstack((data, euclidean_norm(data, keepdims=True)))
-
-
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
-
-
-# @numba.njit
-# def calculate_angle_numba(new_up_vector):
-#     old_up_vector = np.array([0., 1.])
-#     angle = (2 * (new_up_vector[0] >= 0) - 1) * np.arccos(np.dot(new_up_vector, old_up_vector))
-#     return angle
-#
-# @numba.njit
-# def rotate_numba(vectors, angle):
-#     s = np.sin(angle)
-#     c = np.cos(angle)
-#
-#     rotated_vectors = np.zeros_like(vectors)
-#     rotated_vectors[:, 0] = vectors[:, 0] * c - vectors[:, 1] * s
-#     rotated_vectors[:, 1] = vectors[:, 0] * s + vectors[:, 1] * c
-#
-#     return rotated_vectors

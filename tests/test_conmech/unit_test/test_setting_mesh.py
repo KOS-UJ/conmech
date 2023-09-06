@@ -6,7 +6,6 @@ from conmech.mesh import mesh
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.schedule import Schedule
 from conmech.simulations.problem_solver import Body
 from conmech.state.body_position import BodyPosition
 
@@ -27,7 +26,6 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     mesh = Mesh(
         mesh_prop=mesh_prop,
         boundaries_description=boundaries_description,
-        create_in_subprocess=False,  # TODO
     )
     body = Body(properties=None, mesh=mesh)
     setting = BodyPosition(
@@ -56,7 +54,6 @@ def test_boundary_nodes_data_3d():
     mesh = Mesh(
         mesh_prop=mesh_prop,
         boundaries_description=boundaries_description,
-        create_in_subprocess=False,  # TODO
     )
     body = Body(properties=None, mesh=mesh)
     setting = BodyPosition(

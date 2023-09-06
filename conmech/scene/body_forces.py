@@ -5,7 +5,6 @@ from typing import Callable, Optional
 import numpy as np
 
 from conmech.helpers import nph
-from conmech.helpers.schur_complement_functions import calculate_schur_complement_vector
 from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
@@ -76,37 +75,3 @@ class BodyForces:
 
     def integrate(self, time: float):
         return self.get_integrated_field_sources_column(time).reshape(-1)
-
-    def get_all_normalized_rhs_np(self, temperature=None):
-        normalized_rhs = self.get_normalized_rhs_np(temperature)
-        (
-            normalized_rhs_boundary,
-            normalized_rhs_free,
-        ) = calculate_schur_complement_vector(
-            vector=normalized_rhs,
-            dimension=self.body.mesh.dimension,
-            contact_indices=self.body.mesh.contact_indices,
-            free_indices=self.body.mesh.free_indices,
-            free_x_free_inverted=self.body.dynamics.solver_cache.free_x_free_inverted,
-            contact_x_free=self.body.dynamics.solver_cache.contact_x_free,
-        )
-        return normalized_rhs_boundary, normalized_rhs_free
-
-    def get_normalized_rhs_np(self, temperature=None) -> np.ndarray:
-        _ = temperature
-
-        displacement_old_vector = nph.stack_column(
-            self.body.state.position.normalized_displacement_old
-        )
-        velocity_old_vector = nph.stack_column(self.body.state.position.normalized_velocity_old)
-        f_vector = self.get_integrated_field_sources_column(time=0)
-        rhs = (
-            f_vector
-            - (
-                self.body.dynamics.viscosity
-                + self.body.dynamics.elasticity * self.body.dynamics.time_step
-            )
-            @ velocity_old_vector
-            - self.body.dynamics.elasticity @ displacement_old_vector
-        )
-        return rhs

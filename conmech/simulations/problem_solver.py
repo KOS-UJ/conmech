@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
-from conmech.dynamics.dynamics import DynamicsConfiguration, Dynamics
+from conmech.dynamics.dynamics import Dynamics
 from conmech.dynamics.statement import (
     StaticDisplacementStatement,
     QuasistaticVelocityStatement,
@@ -85,22 +85,12 @@ class ProblemSolver:
         mesh = Mesh(
             mesh_prop=mesh_prop,
             boundaries_description=problem.boundaries,
-            create_in_subprocess=False,  # TODO
         )
 
         self.body = Body(body_properties, mesh)
         self.schedule = None
 
-        Dynamics(
-            body=self.body,
-            time_step=self.time_step,  # TODO
-            dynamics_config=DynamicsConfiguration(
-                normalize_by_rotation=False,
-                create_in_subprocess=False,
-                with_lhs=False,
-                with_schur=False,
-            ),
-        )
+        Dynamics(self.body)
 
         self.body.dynamics.force.inner.source = problem.inner_forces
         self.body.dynamics.force.outer.source = problem.outer_forces
@@ -346,7 +336,7 @@ class PoissonSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
-        state = TemperatureState(self.body)  # TODO
+        _ = TemperatureState(self.body)  # TODO
 
         self.coordinates = "temperature"
         self.solving_method = solving_method
@@ -378,7 +368,7 @@ class StaticSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
-        state = State(self.body)  # TODO
+        _ = State(self.body)  # TODO
 
         self.coordinates = "displacement"
         self.solving_method = solving_method
@@ -417,7 +407,7 @@ class QuasistaticRelaxation(ProblemSolver):
         )
         super().__init__(setup, body_prop)
 
-        state = State(self.body)  # TODO
+        _ = State(self.body)  # TODO
 
         self.coordinates = "displacement"
         self.solving_method = solving_method
@@ -485,7 +475,7 @@ class TimeDependentSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
-        state: State = State(self.body)  # TODO
+        _ = State(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -556,7 +546,7 @@ class TemperatureTimeDependentSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
-        state: State = TemperatureState(self.body)  # TODO
+        _ = TemperatureState(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -651,7 +641,7 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
-        state = PiezoelectricState(self.body)  # TODO
+        _ = PiezoelectricState(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
