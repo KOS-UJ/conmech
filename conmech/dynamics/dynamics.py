@@ -123,13 +123,10 @@ class Dynamics(BodyPosition):
             for element_index, element in enumerate(self.mesh.elements):
                 for i, global_i in enumerate(element):
                     for j, global_j in enumerate(element):
-                        for w_idx in range(4):
-                            self._w_matrix[w_idx // 2][w_idx % 2][global_i, global_j] += (
-                                elements_density[element_index]
-                                * self._local_stifness_matrices[
-                                    w_idx // 2, w_idx % 2, element_index, i, j
-                                ]
-                            )
+                        self._w_matrix[:, :, global_i, global_j] += (
+                            elements_density[element_index]
+                            * self._local_stifness_matrices[:, :, element_index, i, j]
+                        )
 
         (
             self.acceleration_operator,
