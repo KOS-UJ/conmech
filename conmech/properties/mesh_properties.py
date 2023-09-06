@@ -10,7 +10,7 @@ class MeshProperties:
 
     mesh_density: Optional[List[float]] = None
     grid_height: Optional[float] = None
-    scale: Optional[List[float]] = field(init=False)
+    scale: Optional[List[float]] = None
     dimension: Optional[int] = None
 
     path: Optional[str] = None
@@ -24,7 +24,7 @@ class MeshProperties:
     def __post_init__(self):
         self.do_sanity_checks()
         if self.mesh_type != "msh_file":
-            self.scale = [
+            self.scale = self.scale or [
                 (self.grid_height / self.mesh_density[1]) * elems_num
                 for elems_num in self.mesh_density
             ]
