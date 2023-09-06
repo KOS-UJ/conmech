@@ -119,14 +119,7 @@ class Dynamics(BodyPosition):
         ) = get_basic_matrices(elements=self.mesh.elements, nodes=self.moved_nodes)
 
         if elements_density is not None:
-            self._w_matrix.fill(0)
-            for element_index, element in enumerate(self.mesh.elements):
-                for i, global_i in enumerate(element):
-                    for j, global_j in enumerate(element):
-                        self._w_matrix[:, :, global_i, global_j] += (
-                            elements_density[element_index]
-                            * self._local_stifness_matrices[:, :, element_index, i, j]
-                        )
+            self._w_matrix = self.asembly_w_matrix_with_density(elements_density)
 
         (
             self.acceleration_operator,
@@ -177,6 +170,17 @@ class Dynamics(BodyPosition):
                     contact_indices=self.mesh.contact_indices,
                     free_indices=self.mesh.free_indices,
                 )
+
+    def asembly_w_matrix_with_density(self, elements_density: np.ndarray):
+        w_matrix = np.zeros_like(self._w_matrix)
+        for element_index, element in enumerate(self.mesh.elements):
+            for i, global_i in enumerate(element):
+                for j, global_j in enumerate(element):
+                    w_matrix[:, :, global_i, global_j] += (
+                        elements_density[element_index]
+                        * self._local_stifness_matrices[:, :, element_index, i, j]
+                    )
+        return w_matrix
 
     @property
     def with_temperature(self):
