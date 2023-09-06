@@ -98,7 +98,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[10, 4], grid_height=1.0)
+    mesh_prop = MeshProperties(
+        mesh_type="cross", dimension=2, mesh_density=[10, 4], grid_height=1.0
+    )
     setup = TDynamicSetup(mesh_prop)
     runner = TemperatureTimeDependentSolver(setup, solving_method="schur")
     n_steps = 32 if not config.test else 8

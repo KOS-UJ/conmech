@@ -62,11 +62,7 @@ def test(solving_method):
         [0.0, 0.0],
         [0.0, 0.0],
     ]
-    mesh_prop = MeshProperties(
-        mesh_type="cross",
-        mesh_density=[16, 8],
-        grid_height=1
-    )
+    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[16, 8], grid_height=1)
     setup = StaticSetup(mesh_prop)
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(

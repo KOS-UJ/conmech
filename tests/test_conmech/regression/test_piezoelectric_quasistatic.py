@@ -84,11 +84,7 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    mesh_prop_1 = MeshProperties(
-        mesh_type="cross",
-        mesh_density=[5, 2],
-        grid_height=1
-    )
+    mesh_prop_1 = MeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1)
 
     setup_m02_m02 = QuasistaticSetup_1(mesh_prop_1)
 
@@ -249,11 +245,7 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    mesh_prop_2 = MeshProperties(
-        mesh_type="cross",
-        mesh_density=[5, 2],
-        grid_height=1.37
-    )
+    mesh_prop_2 = MeshProperties(mesh_type="cross", mesh_density=[5, 2], grid_height=1.37)
     setup_var = QuasistaticSetup_2(mesh_prop_2)
     expected_displacement_vector_var = np.asarray(
         [

@@ -85,11 +85,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(
-        mesh_type="tunnel",
-        grid_height=1.0,
-        mesh_density=[20, 20]
-    )
+    mesh_prop = MeshProperties(mesh_type="tunnel", grid_height=1.0, mesh_density=[20, 20])
     setup = QuasistaticSetup(mesh_prop)
     if config.test:
         mesh_prop.mesh_density = [8, 8]

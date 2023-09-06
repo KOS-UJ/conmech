@@ -11,6 +11,7 @@ from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 from conmech.mesh.mesh import MeshProperties
 
+
 class JureczkaOchal2019(ContactLaw):
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
@@ -74,11 +75,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = MeshProperties(
-        mesh_type="cross",
-        mesh_density=[16, 8],
-        grid_height=1
-    )
+    mesh_prop = MeshProperties(mesh_type="cross", mesh_density=[16, 8], grid_height=1)
     if config.test:
         mesh_prop.mesh_density = [4, 2]
 

@@ -88,11 +88,7 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
 
         boundaries: ... = boundaries_
 
-    mesh_prop = MeshProperties(
-        mesh_type=mesh_type_,
-        mesh_density=elements_number_,
-        grid_height=1.0
-    )
+    mesh_prop = MeshProperties(mesh_type=mesh_type_, mesh_density=elements_number_, grid_height=1.0)
     return QuasistaticSetup(mesh_prop)
 
 

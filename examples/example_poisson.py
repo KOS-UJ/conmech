@@ -9,6 +9,7 @@ from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
 from conmech.mesh.mesh import MeshProperties
 
+
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
     @staticmethod

@@ -12,7 +12,9 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamicProblem
-from conmech.simulations.problem_solver import TemperatureTimeDependentSolver as TDynamicProblemSolver
+from conmech.simulations.problem_solver import (
+    TemperatureTimeDependentSolver as TDynamicProblemSolver,
+)
 from conmech.state.state import TemperatureState
 from conmech.mesh.mesh import MeshProperties
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -139,7 +141,9 @@ def main(steps, setup, config: Config):
     output_step = (2**i for i in range(int(np.log2(steps))))
 
     if setup is None:
-        mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[4, 4], grid_height=1.0)
+        mesh_prop = MeshProperties(
+            mesh_type="cross", dimension=2, mesh_density=[4, 4], grid_height=1.0
+        )
         setup = TDynamicSetup(mesh_prop)
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
@@ -214,7 +218,9 @@ if __name__ == "__main__":
     hs = [2**i for i in [2]]
     for h in hs:
         for k in ks:
-            mesh_prop = MeshProperties(mesh_type="cross", dimension=2, mesh_density=[1.5 * h, h], grid_height=1.0)
+            mesh_prop = MeshProperties(
+                mesh_type="cross", dimension=2, mesh_density=[1.5 * h, h], grid_height=1.0
+            )
             setup = TDynamicSetup(mesh_prop)
             setup.time_step = T / k
             main(setup=setup, steps=k, config=Config().init())
