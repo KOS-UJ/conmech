@@ -26,7 +26,7 @@ def get_edges_features_matrix_numba(elements, nodes):
     # Local stifness matrices (w[0, 0], w[0, 1], w[1, 0], w[1, 1]) per mesh element
     # Detailed description can be found in [LSM] Local stifness matrix
     local_stifness_matrices = np.empty(
-        (DIMENSION**2, elements_count, element_size, element_size)
+        (DIMENSION, DIMENSION, elements_count, element_size, element_size)
     )
 
     for element_index in range(elements_count):  # TODO: #65 prange?
@@ -105,8 +105,8 @@ def get_edges_features_matrix_numba(elements, nodes):
                     for i_d_phi in i_d_phi_vec
                 ]
 
-                local_stifness_matrices[:, element_index, i, j] = (
-                    element_volume * np.asarray(w).flatten()
+                local_stifness_matrices[:, :, element_index, i, j] = (
+                    element_volume * np.asarray(w)
                 )
 
                 edges_features_matrix[
