@@ -23,7 +23,11 @@ def get_edges_features_matrix_numba(elements, nodes):
         (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
     )
     element_initial_volume = np.zeros(elements_count)
-    local_stifness_matrices = np.empty((4, elements_count, element_size, element_size))
+    # Local stifness matrices (w[0, 0], w[0, 1], w[1, 0], w[1, 1]) per mesh element
+    # Detailed description can be find in the README.md file (/home/viking/Code/optimization/conmech/conmech/dynamics/factory/README.md)
+    local_stifness_matrices = np.empty(
+        (DIMENSION**2, elements_count, element_size, element_size)
+    )
 
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
@@ -41,9 +45,21 @@ def get_edges_features_matrix_numba(elements, nodes):
         )
         int_matrix = np.array(
             [
-                [0, 1 / 6 * element_nodes[:, 0].sum(), 1 / 6 * element_nodes[:, 1].sum()],
-                [1 / 6 * element_nodes[:, 0].sum(), 1 / 12 * int_sqr[0], 1 / 24 * int_xy],
-                [1 / 6 * element_nodes[:, 1].sum(), 1 / 24 * int_xy, 1 / 12 * int_sqr[1]],
+                [
+                    0,
+                    1 / 6 * element_nodes[:, 0].sum(),
+                    1 / 6 * element_nodes[:, 1].sum(),
+                ],
+                [
+                    1 / 6 * element_nodes[:, 0].sum(),
+                    1 / 12 * int_sqr[0],
+                    1 / 24 * int_xy,
+                ],
+                [
+                    1 / 6 * element_nodes[:, 1].sum(),
+                    1 / 24 * int_xy,
+                    1 / 12 * int_sqr[1],
+                ],
             ]
         )
         jacobian = np.abs(np.linalg.det(element_nodes[1:] - element_nodes[0]))
@@ -84,13 +100,18 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 v = [INT_PH * j_d_phi for j_d_phi in j_d_phi_vec]
 
-                w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
+                w = [
+                    [i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec]
+                    for i_d_phi in i_d_phi_vec
+                ]
 
                 local_stifness_matrices[:, element_index, i, j] = (
                     element_volume * np.asarray(w).flatten()
                 )
 
-                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
+                edges_features_matrix[
+                    :, element[i], element[j]
+                ] += element_volume * np.array(
                     [
                         volume_at_nodes,
                         u,
