@@ -35,7 +35,7 @@ class ContactLaw:
 @dataclass
 class Problem(ABC):
     # pylint: disable=unused-argument
-    dimension = 2  # TODO #74 : Not used?
+    dimension = 2
     mesh_type: str
     grid_height: float
     boundaries: BoundariesDescription

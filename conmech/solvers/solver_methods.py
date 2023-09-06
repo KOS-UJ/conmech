@@ -25,6 +25,22 @@ def n_down(n0, n1):
     return n
 
 
+@numba.njit()
+def n_down_3D(n0, n1, n3):
+    # [0,-1]
+    # x = 0
+    # y = 1
+    # z = 1
+    # dx = n0[x] - n1[x]
+    # dy = n0[y] - n1[y]
+    # dz = n0[z] - n1[z]
+    # norm = np.sqrt(dx**2 + dy**2)
+    # n = np.array([float(dy) / norm, float(-dx) / norm])
+    # if n[1] > 0:
+    #     n = -n
+    return np.array([0, 0, -1])  # TODO
+
+
 @numba.njit(inline="always")
 def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
     result = np.zeros(dimension)
@@ -37,6 +53,21 @@ def interpolate_node_between(node_id_0, node_id_1, vector, dimension=DIMENSION):
             result[i] += 0.5 * vector[i * offset + node_id_1]
     return result
 
+
+@numba.njit(inline="always")
+def interpolate_node_between_3D(node_id_0, node_id_1, node_id_2, vector, dimension=3):
+    result = np.zeros(dimension)
+    offset = len(vector) // dimension
+    for i in range(dimension):
+        if node_id_0 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += 0.5 * vector[i * offset + node_id_0]
+    for i in range(dimension):
+        if node_id_1 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += 0.5 * vector[i * offset + node_id_1]
+    for i in range(dimension):
+        if node_id_2 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
+            result[i] += 0.5 * vector[i * offset + node_id_2]
+    return result
 
 # TODO #97
 @numba.njit(inline="always")
@@ -167,6 +198,53 @@ def make_cost_functional(
 
             if n_id_0 < offset and n_id_1 < offset:
                 cost += nph.length(n_0, n_1) * (
+                    jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential)
+                )
+        return cost
+
+    # pylint: disable=unused-argument # 'dt'
+    @numba.njit()
+    def cost_functional(u_vector, nodes, contact_boundary, lhs, rhs, u_vector_old, dt):
+        ju = contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary)
+        result = 0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
+        result = np.asarray(result).ravel()
+        return result
+
+    return cost_functional
+
+
+def make_cost_functional_3D(
+    jn: Callable, jt: Optional[Callable] = None, h_functional: Optional[Callable] = None
+):
+    jn = njit(jn)
+    jt = njit(jt)
+    h_functional = njit(h_functional)
+
+    @numba.njit()
+    def contact_cost_functional(u_vector, u_vector_old, nodes, contact_boundary):
+        cost = 0
+        offset = len(u_vector) // 3
+
+        for edge in contact_boundary:
+            n_id_0 = edge[0]
+            n_id_1 = edge[1]
+            n_id_2 = edge[2]
+            n_0 = nodes[n_id_0]
+            n_1 = nodes[n_id_1]
+            n_2 = nodes[n_id_2]
+
+            # ASSUMING `u_vector` and `nodes` have the same order!
+            um = interpolate_node_between_3D(n_id_0, n_id_1, n_id_2, u_vector)
+            um_old = interpolate_node_between_3D(n_id_0, n_id_1, n_id_2, u_vector_old)
+
+            normal_vector = n_down_3D(n_0, n_1, n_2)
+
+            um_normal = (um * normal_vector).sum()
+            um_old_normal = (um_old * normal_vector).sum()
+            um_tangential = um - um_normal * normal_vector
+
+            if n_id_0 < offset and n_id_1 < offset and n_id_2 < offset:
+                cost += 1 * (
                     jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential)
                 )
         return cost

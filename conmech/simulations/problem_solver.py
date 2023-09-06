@@ -77,7 +77,7 @@ class ProblemSolver:
         ) * problem.elements_number[1]
 
         mesh_prop = MeshProperties(
-            dimension=2,
+            dimension=problem.dimension,
             mesh_type=problem.mesh_type,
             mesh_density=[problem.elements_number[1], problem.elements_number[0]],
             scale=[float(grid_width), float(problem.grid_height)],
