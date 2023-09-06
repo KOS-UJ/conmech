@@ -58,17 +58,18 @@ def main(config: Config):
         Drawer(state=state, config=config).draw(show=config.show, save=config.save)
     else:
         fig = plt.figure()
-        axs = fig.add_subplot(111, projection='3d')
+        axs = fig.add_subplot(111, projection="3d")
         # Draw nodes
         nodes = state.body.mesh.initial_nodes
-        axs.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], c='b', marker='o')
+        axs.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], c="b", marker="o")
 
         # Draw elements
         faces = state.displaced_nodes[state.body.mesh.boundary_surfaces]
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
         axs.add_collection3d(
-            Poly3DCollection(faces, facecolors='cyan', linewidths=1,
-                             edgecolors='r', alpha=.25))
+            Poly3DCollection(faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25)
+        )
         plt.show()
 
 

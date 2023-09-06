@@ -24,18 +24,18 @@ def n_down(n0, n1):
         n = -n
     return n
 
-
+# pylint: disable=unused-argument # TODO
 @numba.njit()
 def n_down_3d(n0, n1, n2, n_interior):
     # [0,-1]
-    x = 0
-    y = 1
-    z = 2
-    nx = n0[y] * n1[z] - n0[z] * n1[y]
-    ny = n0[z] * n1[x] - n0[x] * n1[z]
-    nz = n0[x] * n1[y] - n0[y] * n1[x]
-    # norm = np.sqrt(dx**2 + dy**2)
-    n = np.array([nx, ny, nz])
+    # x = 0
+    # y = 1
+    # z = 2
+    # nx = n0[y] * n1[z] - n0[z] * n1[y]
+    # ny = n0[z] * n1[x] - n0[x] * n1[z]
+    # nz = n0[x] * n1[y] - n0[y] * n1[x]
+    # # norm = np.sqrt(dx**2 + dy**2)
+    # n = np.array([nx, ny, nz])
     # if n[1] > 0:
     #     n = -n
     return np.array([0, 0, -1])  # TODO
@@ -68,6 +68,7 @@ def interpolate_node_between_3d(node_id_0, node_id_1, node_id_2, vector, dimensi
         if node_id_2 < offset:  # exclude dirichlet nodes (and inner nodes in schur)
             result[i] += 0.5 * vector[i * offset + node_id_2]
     return result
+
 
 # TODO #97
 @numba.njit(inline="always")
@@ -237,16 +238,14 @@ def make_cost_functional_3d(
             um = interpolate_node_between_3d(n_id_0, n_id_1, n_id_2, u_vector)
             um_old = interpolate_node_between_3d(n_id_0, n_id_1, n_id_2, u_vector_old)
 
-            normal_vector = n_down_3d(n_0, n_1, n_2)
+            normal_vector = n_down_3d(n_0, n_1, n_2, 0)  # TODO
 
             um_normal = (um * normal_vector).sum()
             um_old_normal = (um_old * normal_vector).sum()
             um_tangential = um - um_normal * normal_vector
 
             if n_id_0 < offset and n_id_1 < offset and n_id_2 < offset:
-                cost += 1 * (
-                    jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential)
-                )
+                cost += 1 * (jn(um_normal) + h_functional(um_old_normal) * jt(um_tangential))
         return cost
 
     # pylint: disable=unused-argument # 'dt'

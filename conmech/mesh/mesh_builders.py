@@ -9,9 +9,7 @@ from conmech.properties.mesh_properties import MeshProperties
 from conmech.mesh import interpolators
 
 
-def build_mesh(
-    mesh_prop: MeshProperties
-) -> Tuple[np.ndarray, np.ndarray]:
+def build_mesh(mesh_prop: MeshProperties) -> Tuple[np.ndarray, np.ndarray]:
     raw_mesh = build_initial_mesh(mesh_prop=mesh_prop)
     nodes = translate_nodes(nodes=raw_mesh.nodes, mesh_prop=mesh_prop)
     return nodes, raw_mesh.elements

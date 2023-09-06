@@ -99,9 +99,7 @@ class Mesh:
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
 
-        input_nodes, input_elements = mesh_builders.build_mesh(
-            mesh_prop=mesh_prop
-        )
+        input_nodes, input_elements = mesh_builders.build_mesh(mesh_prop=mesh_prop)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )

@@ -20,7 +20,8 @@ from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
-    make_cost_functional_poisson, make_cost_functional_3d,
+    make_cost_functional_poisson,
+    make_cost_functional_3d,
 )
 
 

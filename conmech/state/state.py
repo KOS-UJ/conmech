@@ -13,10 +13,10 @@ class State:
         self.body.state = self
         self.position = BodyPosition(body, normalize_by_rotation=False)
 
-        self.absement: np.ndarray = np.zeros(
-            (self.body.mesh.nodes_count, self.body.mesh.dimension))
+        self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.displacement: np.ndarray = np.zeros(
-            (self.body.mesh.nodes_count, self.body.mesh.dimension))
+            (self.body.mesh.nodes_count, self.body.mesh.dimension)
+        )
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
         self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.setup = None
@@ -29,8 +29,7 @@ class State:
     ):
         self.displacement = displacement_vector.reshape((self.body.mesh.dimension, -1)).T
         self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :]
-            + self.displacement[:, :]
+            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
         )
         if update_absement:
             dt = time - self.time
