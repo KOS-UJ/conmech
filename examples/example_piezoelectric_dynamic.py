@@ -101,7 +101,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = GeneratedMeshProperties(mesh_type="Barboteu2008", mesh_density=[3, 4], grid_height=1.0)
+    mesh_prop = GeneratedMeshProperties(
+        mesh_type="Barboteu2008", mesh_density=[3, 4], grid_height=1.0
+    )
     setup = PDynamicSetup(mesh_prop)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
 

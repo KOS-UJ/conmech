@@ -511,7 +511,9 @@ def polygon_two(mesh_density, scale, final_time, tag=""):
 
 scenario_3d = Scenario(
     name="ball_roll",
-    mesh_prop=GeneratedMeshProperties(dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]),
+    mesh_prop=GeneratedMeshProperties(
+        dimension=3, mesh_type=M_BALL_3D, scale=[1], mesh_density=[4]
+    ),
     body_prop=default_body_prop,
     schedule=Schedule(final_time=1),
     forces_function=np.array([0.0, 0.0, -0.5]),

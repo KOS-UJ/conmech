@@ -85,7 +85,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_prop = GeneratedMeshProperties(mesh_type="Barboteu2008", mesh_density=[2, 2], grid_height=1.0)
+    mesh_prop = GeneratedMeshProperties(
+        mesh_type="Barboteu2008", mesh_density=[2, 2], grid_height=1.0
+    )
     setup = PQuasistaticSetup(mesh_prop)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
     steps = 100 if not config.test else 10

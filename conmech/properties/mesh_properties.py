@@ -8,7 +8,7 @@ import numpy as np
 class MeshProperties:
     mesh_type: str
     scale: Optional[List[float]] = None
-    dimension: Optional[int] = None
+    dimension: Optional[int] = 2
 
     initial_base: Optional[np.ndarray] = None
     initial_position: Optional[np.ndarray] = None
@@ -40,10 +40,8 @@ class GeneratedMeshProperties(MeshProperties):
 
     def __post_init__(self):
         self.scale = self.scale or [
-            (self.grid_height / self.mesh_density[1]) * elems_num
-            for elems_num in self.mesh_density
+            (self.grid_height / self.mesh_density[1]) * elems_num for elems_num in self.mesh_density
         ]
-        self.dimension = self.dimension or 2
 
     @property
     def mesh_density_x(self) -> float:
