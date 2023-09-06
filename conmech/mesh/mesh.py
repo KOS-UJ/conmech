@@ -99,13 +99,6 @@ class Mesh:
         self.base_seed_indices: np.ndarray
         self.closest_seed_index: int
 
-        self.reinitialize_data(mesh_prop, boundaries_description)
-
-    def reinitialize_data(
-        self,
-        mesh_prop: MeshProperties,
-        boundaries_description: BoundariesDescription
-    ):
         input_nodes, input_elements = mesh_builders.build_mesh(
             mesh_prop=mesh_prop
         )
