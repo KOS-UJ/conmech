@@ -25,9 +25,11 @@ def get_basic_matrices(elements: np.ndarray, nodes: np.ndarray):
     dimension = len(elements[0]) - 1
     factory = get_factory(dimension)
 
-    edges_features_matrix, element_initial_volume = factory.get_edges_features_matrix(
-        elements, nodes
-    )
+    (
+        edges_features_matrix,
+        element_initial_volume,
+        local_stifness_matrices,
+    ) = factory.get_edges_features_matrix(elements, nodes)
 
     volume_at_nodes = edges_features_matrix[0]
     U = edges_features_matrix[1]
@@ -42,7 +44,7 @@ def get_basic_matrices(elements: np.ndarray, nodes: np.ndarray):
             for k in range(factory.dimension)
         ]
     )
-    return element_initial_volume, volume_at_nodes, U, V, W
+    return element_initial_volume, volume_at_nodes, U, V, W, local_stifness_matrices
 
 
 def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):

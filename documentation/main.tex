@@ -1,0 +1,29 @@
+\documentclass{article}
+
+\usepackage{url}
+\usepackage{amsmath}
+
+
+\title{Conmech documentation}
+
+\begin{document}
+
+\maketitle
+
+\subsection*{[LSM] Local stifness matrix}
+
+\[
+w_e^{kl} = \left[
+\int_{T_e} \frac{\partial \phi_i}{\partial x_k}\frac{\partial \phi_j}{\partial x_l}dx
+\right]_{i,j=1, \dots, N_e} \qquad \forall k,l \in \{1, 2\}
+\]
+
+\begin{tabular}{ll}
+Where & $e$ is the index of the element\\
+& $N_e$ is number of vertices of element $e$\\
+& $T_e$ is the surface of the mesh element $e$\\
+& $\phi_j$ is $j$-th base function of the element $e$
+\end{tabular}
+
+
+\end{document}
