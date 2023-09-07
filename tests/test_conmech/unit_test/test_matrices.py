@@ -85,23 +85,18 @@ def test_local_stiff_mats_assembly():
             dimension=2, mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
         ),
     )
-    edges_features_matrix, _, local_stiff_mats = sut_2d(
-        elements=elements, nodes=initial_nodes
-    )
+    edges_features_matrix, _, local_stiff_mats = sut_2d(elements=elements, nodes=initial_nodes)
     expected_w_matrix = np.asarray(
         [
-            [
-                edges_features_matrix[2 + dimension * (k + 1) + j]
-                for j in range(dimension)
-            ]
+            [edges_features_matrix[2 + dimension * (k + 1) + j] for j in range(dimension)]
             for k in range(dimension)
         ]
     )
-    
+
     mesh = object.__new__(Mesh)
     mesh.initial_nodes = initial_nodes
     mesh.elements = elements
-    
+
     dynamics = object.__new__(Dynamics)
     dynamics.mesh = mesh
     dynamics._local_stifness_matrices = local_stiff_mats

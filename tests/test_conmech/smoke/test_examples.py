@@ -36,7 +36,7 @@ test_suits = {
     "Sofonea_Ochal_Bartman_2023": lambda: Sofonea_Ochal_Bartman_2023(
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
-    "density": lambda: density(Config(**default_args).init())
+    "density": lambda: density(Config(**default_args).init()),
 }
 
 
