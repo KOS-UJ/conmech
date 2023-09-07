@@ -24,6 +24,7 @@ def n_down(n0, n1):
         n = -n
     return n
 
+
 # pylint: disable=unused-argument # TODO
 @numba.njit()
 def n_down_3d(n0, n1, n2, n_interior):

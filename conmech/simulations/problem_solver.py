@@ -398,7 +398,7 @@ class StaticSolver(ProblemSolver):
 
 class NonHomogenousSolver(StaticSolver):
     def update_density(self, density: np.ndarray):
-        self.body.reinitialize_matrices(density)
+        self.body.dynamics.reinitialize_matrices(density)
         self.refresh_solvers()
 
 
