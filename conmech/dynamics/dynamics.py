@@ -89,7 +89,8 @@ class Dynamics(BodyPosition):
         self.acceleration_operator: np.ndarray
         self.elasticity: np.ndarray
         self.viscosity: np.ndarray
-        self._w_matrix = None
+        self._w_matrix: np.ndarray = None
+        self._local_stifness_matrices: np.ndarray = None
         self.__relaxation: Optional[np.ndarray] = None
         self.__relaxation_tensor: Optional[float] = None
         self.thermal_expansion: np.ndarray
@@ -107,14 +108,19 @@ class Dynamics(BodyPosition):
         super().mesh.remesh(boundaries_description, create_in_subprocess)
         self.reinitialize_matrices()
 
-    def reinitialize_matrices(self):
+    def reinitialize_matrices(self, elements_density: Optional[np.ndarray] = None):
         (
             self.element_initial_volume,
             self.volume_at_nodes,
             U,
             V,
             self._w_matrix,
+            self._local_stifness_matrices,
         ) = get_basic_matrices(elements=self.mesh.elements, nodes=self.moved_nodes)
+
+        if elements_density is not None:
+            self._w_matrix = self.asembly_w_matrix_with_density(elements_density)
+
         (
             self.acceleration_operator,
             self.elasticity,
@@ -164,6 +170,17 @@ class Dynamics(BodyPosition):
                     contact_indices=self.mesh.contact_indices,
                     free_indices=self.mesh.free_indices,
                 )
+
+    def asembly_w_matrix_with_density(self, elements_density: np.ndarray):
+        w_matrix = np.zeros_like(self._w_matrix)
+        for element_index, element in enumerate(self.mesh.elements):
+            for i, global_i in enumerate(element):
+                for j, global_j in enumerate(element):
+                    w_matrix[:, :, global_i, global_j] += (
+                        elements_density[element_index]
+                        * self._local_stifness_matrices[:, :, element_index, i, j]
+                    )
+        return w_matrix
 
     @property
     def with_temperature(self):

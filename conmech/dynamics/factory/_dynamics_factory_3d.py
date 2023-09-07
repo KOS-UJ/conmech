@@ -68,7 +68,8 @@ def get_edges_features_matrix_numba(elements, nodes):
                     ]
                 )
 
-    return edges_features_matrix, element_initial_volume
+    # TODO: #115 compute local_stifness_matrices which should be returned as 3rd value
+    return edges_features_matrix, element_initial_volume, None
 
 
 @numba.njit
