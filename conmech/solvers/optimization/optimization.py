@@ -11,6 +11,7 @@ from conmech.dynamics.statement import (
     Statement,
     TemperatureStatement,
     PiezoelectricStatement,
+    StaticPoissonStatement,
 )
 from conmech.scenarios.problems import ContactLaw
 from conmech.scene.body_forces import BodyForces
@@ -19,6 +20,8 @@ from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
+    make_cost_functional_poisson,
+    make_cost_functional_3d,
 )
 
 
@@ -46,6 +49,14 @@ class Optimization(Solver):
                 else None,
                 h_functional=friction_bound,
             )
+        elif statement.dimension == 3:  # TODO
+            self.loss = make_cost_functional_3d(
+                jn=contact_law.potential_normal_direction,
+                jt=contact_law.potential_tangential_direction
+                if hasattr(contact_law, "potential_tangential_direction")
+                else None,
+                h_functional=friction_bound,
+            )
         elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional_temperature(
                 h_functional=contact_law.h_temp,
@@ -59,6 +70,10 @@ class Optimization(Solver):
                 hn=contact_law.h_nu,
                 ht=contact_law.h_tau,
             )
+        elif isinstance(statement, StaticPoissonStatement):
+            self.loss = make_cost_functional_poisson(
+                jn=contact_law.potential_normal_direction,
+            )
         else:
             raise ValueError(f"Unknown statement: {statement}")
 
@@ -66,11 +81,11 @@ class Optimization(Solver):
         raise NotImplementedError()
 
     @property
-    def node_relations(self) -> np.ndarray:
+    def lhs(self) -> np.ndarray:
         raise NotImplementedError()
 
     @property
-    def node_forces(self) -> np.ndarray:
+    def rhs(self) -> np.ndarray:
         raise NotImplementedError()
 
     def _solve_impl(
@@ -93,8 +108,8 @@ class Optimization(Solver):
         args = (
             self.body.mesh.initial_nodes,
             self.body.mesh.contact_boundary,
-            self.node_relations,
-            self.node_forces,
+            self.lhs,
+            self.rhs,
             displacement,
             self.time_step,
         )

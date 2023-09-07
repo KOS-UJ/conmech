@@ -14,11 +14,11 @@ class GlobalOptimization(Optimization):
         return "global optimization"
 
     @property
-    def node_relations(self) -> np.ndarray:
+    def lhs(self) -> np.ndarray:
         return self.statement.left_hand_side
 
     @property
-    def node_forces(self) -> np.ndarray:
+    def rhs(self) -> np.ndarray:
         return self.statement.right_hand_side
 
 

@@ -64,11 +64,11 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
         )
 
     @staticmethod
-    def inner_forces(x, t=None):
+    def inner_forces(x, time=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
-    def outer_forces(x, t=None):
+    def outer_forces(x, time=None):
         return np.array([0.0, 0.0])
 
     @staticmethod
@@ -92,11 +92,11 @@ def main(config: Config):
         setup.time_step *= 8
     h = setup.elements_number[0]
 
-    def sin_outer_forces(x, t=None):
+    def sin_outer_forces(x, time=None):
         if x[1] <= oy:
             return np.array([0.0, 0])
         if (x[0] - ox) ** 2 + (x[1] - oy) ** 2 >= (r + eps) ** 2:
-            return np.array([0, fv * np.sin(t)])
+            return np.array([0, fv * np.sin(time)])
         return np.array([0.0, 0.0])
 
     def const_relaxation(t=None):
@@ -184,14 +184,14 @@ def main(config: Config):
                     "wb+",
                 ) as output:
                     # Workaround
-                    relaxation = state.body.body_prop.relaxation
-                    state.body.outer_forces = None
-                    state.body.inner_forces = None
-                    state.body.body_prop.relaxation = None
+                    relaxation = state.body.dynamics.relaxation
+                    state.body.dynamics.force.outer.source = None
+                    state.body.dynamics.force.inner.source = None
+                    state.body.properties.relaxation = None
                     state.setup = None
                     state.constitutive_law = None
                     pickle.dump(state, output)
-                    state.body.body_prop.relaxation = relaxation
+                    state.body.dynamics.relaxation = relaxation
             with open(
                 f"{config.outputs_path}/{name}_h_{h}_penetration",
                 "wb+",
@@ -214,8 +214,8 @@ def main(config: Config):
             with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
                 # Workaround
-                state.body.outer_forces = examples[name]["outer_forces"]
-                state.body.body_prop.relaxation = examples[name]["relaxation"]
+                state.body.dynamics.force.outer.source = examples[name]["outer_forces"]
+                state.body.dynamics.relaxation = examples[name]["relaxation"]
                 state.setup = setup
                 state.constitutive_law = elastic_relaxation_constitutive_law
 

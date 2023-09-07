@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Tuple, Type
 
 import numpy as np
 
-from conmech.dynamics.dynamics import DynamicsConfiguration
+from conmech.dynamics.dynamics import Dynamics
 from conmech.dynamics.statement import (
     StaticDisplacementStatement,
     QuasistaticVelocityStatement,
@@ -18,6 +18,7 @@ from conmech.dynamics.statement import (
     StaticPoissonStatement,
     Variables,
 )
+from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import (
     BodyProperties,
     ElasticProperties,
@@ -27,7 +28,6 @@ from conmech.properties.body_properties import (
     ViscoelasticTemperatureProperties,
 )
 from conmech.properties.mesh_properties import MeshProperties
-from conmech.properties.schedule import Schedule
 from conmech.scenarios.problems import (
     TimeDependentProblem,
     Problem,
@@ -44,12 +44,19 @@ from conmech.scenarios.problems import (
     RelaxationQuasistaticProblem,
     ContactLaw,
 )
-from conmech.scene.body_forces import BodyForces
 from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
 from conmech.state.state import State, TemperatureState, PiezoelectricState
+
+
+class Body:
+    def __init__(self, properties, mesh):
+        self.properties: BodyProperties = properties
+        self.mesh: Mesh = mesh
+        self.dynamics: Optional[Dynamics] = None
+        self.state: Optional[State] = None
 
 
 class ProblemSolver:
@@ -69,25 +76,28 @@ class ProblemSolver:
             problem.grid_height / problem.elements_number[0]
         ) * problem.elements_number[1]
 
-        self.body: BodyForces = BodyForces(
-            mesh_prop=MeshProperties(
-                dimension=2,
-                mesh_type=problem.mesh_type,
-                mesh_density=[problem.elements_number[1], problem.elements_number[0]],
-                scale=[float(grid_width), float(problem.grid_height)],
-            ),
-            body_prop=body_properties,
-            schedule=Schedule(time_step=self.time_step, final_time=0.0),
-            boundaries_description=problem.boundaries,
-            dynamics_config=DynamicsConfiguration(
-                normalize_by_rotation=False,
-                create_in_subprocess=False,
-                with_lhs=False,
-                with_schur=False,
-            ),
+        mesh_prop = MeshProperties(
+            dimension=problem.dimension,
+            mesh_type=problem.mesh_type,
+            mesh_density=[problem.elements_number[1], problem.elements_number[0]],
+            scale=[float(grid_width), float(problem.grid_height)],
         )
-        self.body.inner_forces = problem.inner_forces
-        self.body.outer_forces = problem.outer_forces
+        mesh = Mesh(
+            mesh_prop=mesh_prop,
+            boundaries_description=problem.boundaries,
+        )
+
+        self.body = Body(body_properties, mesh)
+        self.schedule = None
+
+        Dynamics(self.body)
+
+        self.body.dynamics.force.inner.source = problem.inner_forces
+        self.body.dynamics.force.outer.source = problem.outer_forces
+        if isinstance(problem, PoissonProblem):
+            self.body.dynamics.temperature.inner.source = problem.internal_temperature
+            self.body.dynamics.temperature.outer.source = problem.outer_temperature
+
         self.problem: Problem = problem
 
         self.coordinates: Optional[str] = None
@@ -179,6 +189,8 @@ class ProblemSolver:
                 StaticPoissonStatement(self.body),
                 self.body,
                 self.time_step,
+                self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
+                None,
             )
         else:
             self.second_step_solver = None
@@ -226,7 +238,7 @@ class ProblemSolver:
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
         quality = 0
-        initial_guess = state[self.coordinates].reshape(2, -1)
+        initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
         quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
@@ -328,6 +340,8 @@ class PoissonSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
+        _ = TemperatureState(self.body)  # TODO
+
         self.coordinates = "temperature"
         self.solving_method = solving_method
 
@@ -358,6 +372,8 @@ class StaticSolver(ProblemSolver):
         )
         super().__init__(problem, body_prop)
 
+        _ = State(self.body)  # TODO
+
         self.coordinates = "displacement"
         self.solving_method = solving_method
 
@@ -382,7 +398,7 @@ class StaticSolver(ProblemSolver):
 
 class NonHomogenousSolver(StaticSolver):
     def update_density(self, density: np.ndarray):
-        self.body.reinitialize_matrices(density)
+        self.body.dynamics.reinitialize_matrices(density)
         self.refresh_solvers()
 
 
@@ -400,6 +416,8 @@ class QuasistaticRelaxation(ProblemSolver):
             relaxation=setup.relaxation,
         )
         super().__init__(setup, body_prop)
+
+        _ = State(self.body)  # TODO
 
         self.coordinates = "displacement"
         self.solving_method = solving_method
@@ -466,6 +484,8 @@ class TimeDependentSolver(ProblemSolver):
             zeta=problem.ze_coef,
         )
         super().__init__(problem, body_prop)
+
+        _ = State(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -535,6 +555,8 @@ class TemperatureTimeDependentSolver(ProblemSolver):
             thermal_conductivity=problem.thermal_conductivity,
         )
         super().__init__(problem, body_prop)
+
+        _ = TemperatureState(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method
@@ -628,6 +650,8 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
             permittivity=problem.permittivity,
         )
         super().__init__(problem, body_prop)
+
+        _ = PiezoelectricState(self.body)  # TODO
 
         self.coordinates = "velocity"
         self.solving_method = solving_method

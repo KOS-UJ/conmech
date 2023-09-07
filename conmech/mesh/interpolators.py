@@ -74,28 +74,3 @@ def get_nodes_interpolation(nodes: np.ndarray, base: np.ndarray, corner_vectors:
         denormalized_nodes_interpolation  # nph.get_in_base(denormalized_nodes_interpolation, base)
     )
     return nodes_interpolation
-
-
-def interpolate_four(
-    nodes: np.ndarray,
-    mean_scale: float,
-    corners_scale_proportion: float,
-    base: np.ndarray,
-    interpolate_rotate: bool,
-    zero_out_proportion: float = 0,
-):
-    if decide(zero_out_proportion):
-        return np.zeros_like(nodes)
-
-    dimension = nodes.shape[1]
-    corners_scale = mean_scale * corners_scale_proportion
-
-    mean = get_mean(dimension=dimension, scale=mean_scale)
-
-    get_corner_vectors = get_corner_vectors_rotate if interpolate_rotate else get_corner_vectors_all
-    corner_vectors = get_corner_vectors(dimension=dimension, scale=corners_scale)
-    nodes_interpolation = get_nodes_interpolation(
-        nodes=nodes, base=base, corner_vectors=corner_vectors
-    )
-
-    return mean + nodes_interpolation

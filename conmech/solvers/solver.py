@@ -7,14 +7,13 @@ import numpy as np
 
 from conmech.dynamics.statement import Statement, Variables
 from conmech.scenarios.problems import ContactLaw
-from conmech.scene.body_forces import BodyForces
 
 
 class Solver:
     def __init__(
         self,
         statement: Statement,
-        body: BodyForces,
+        body: "Body",
         time_step: float,
         contact_law: Optional[ContactLaw] = None,
         friction_bound: Optional[Callable[[float], float]] = None,
@@ -22,18 +21,18 @@ class Solver:
         self.contact_law: Optional[ContactLaw] = contact_law
         self.friction_bound: Optional[Callable[[float], float]] = friction_bound
 
-        self.body: BodyForces = body
+        self.body = body
         self.statement: Statement = statement
 
         self.time_step: float = time_step
         self.current_time: float = 0
-        self.b_vector = np.zeros(self.body.mesh.nodes_count * 2)
-        self.u_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * 2)
-        self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * 2)
+        self.b_vector = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
+        self.u_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
+        self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
         self.t_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)
         self.p_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)  # TODO #23
 
-        self.elasticity: np.ndarray = body.elasticity
+        self.elasticity: np.ndarray = body.dynamics.elasticity
 
         self.statement.update(
             Variables(
