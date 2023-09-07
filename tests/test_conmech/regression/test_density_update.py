@@ -241,7 +241,7 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize("setup, density_func, expected_displacement_vector", generate_test_suits())
-def test_direct_solver(solving_method, setup, density_func, expected_displacement_vector):
+def test_nonhomogenous_solver(solving_method, setup, density_func, expected_displacement_vector):
     runner = NonHomogenousSolver(setup, solving_method)
     elem_centers = get_elem_centers(runner)
     elements_density = np.asarray([density_func(x) for x in elem_centers])

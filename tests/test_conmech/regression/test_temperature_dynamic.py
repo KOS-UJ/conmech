@@ -296,7 +296,7 @@ def generate_test_suits():
     "setup, expected_displacement_vector, expected_temperature_vector",
     generate_test_suits(),
 )
-def test_global_optimization_solver(
+def test_temperature_time_dependent_solver(
     solving_method, setup, expected_displacement_vector, expected_temperature_vector
 ):
     runner = TemperatureTimeDependentSolver(setup, solving_method)
