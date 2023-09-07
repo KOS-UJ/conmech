@@ -16,7 +16,7 @@ from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
 from examples.example_poisson import main as poisson
-from examples.example_density import main as density
+from examples.example_nonhomogenous_density import main as nonhomogenous_density
 
 default_args = dict(show=False, save=False, force=True, test=True)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
@@ -36,7 +36,7 @@ test_suits = {
     "Sofonea_Ochal_Bartman_2023": lambda: Sofonea_Ochal_Bartman_2023(
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
-    "density": lambda: density(Config(**default_args).init()),
+    "nonhomogenous_density": lambda: nonhomogenous_density(Config(**default_args).init()),
 }
 
 
