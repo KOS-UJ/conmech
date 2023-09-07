@@ -6,6 +6,8 @@ from conmech.dynamics.factory._dynamics_factory_2d import (
 from conmech.dynamics.factory._dynamics_factory_3d import (
     get_edges_features_matrix_numba as sut_3d,
 )
+from conmech.dynamics.dynamics import Dynamics
+from conmech.mesh.mesh import Mesh
 from conmech.mesh import mesh_builders
 from conmech.properties.mesh_properties import MeshProperties
 
@@ -71,3 +73,43 @@ def test_matrices_3d_integrals():
         np.testing.assert_almost_equal(M.sum(), 0)
 
     # TODO: Check Wij = Wji.T
+
+
+def test_local_stiff_mats_assembly():
+    # Arrange
+    dimension = 2
+    scale_x = 2
+    scale_y = 3
+    initial_nodes, elements = mesh_builders.build_mesh(
+        mesh_prop=MeshProperties(
+            dimension=2, mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
+        ),
+    )
+    edges_features_matrix, _, local_stiff_mats = sut_2d(
+        elements=elements, nodes=initial_nodes
+    )
+    expected_w_matrix = np.asarray(
+        [
+            [
+                edges_features_matrix[2 + dimension * (k + 1) + j]
+                for j in range(dimension)
+            ]
+            for k in range(dimension)
+        ]
+    )
+    
+    mesh = object.__new__(Mesh)
+    mesh.initial_nodes = initial_nodes
+    mesh.elements = elements
+    
+    dynamics = object.__new__(Dynamics)
+    dynamics.mesh = mesh
+    dynamics._local_stifness_matrices = local_stiff_mats
+    dynamics._w_matrix = expected_w_matrix
+    density = np.ones(elements.shape[0])
+
+    # Act
+    assembled_w_mat = dynamics.asembly_w_matrix_with_density(density)
+
+    # Assert
+    np.testing.assert_almost_equal(assembled_w_mat, expected_w_matrix)
