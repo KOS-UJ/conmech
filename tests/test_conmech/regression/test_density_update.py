@@ -240,7 +240,6 @@ def generate_test_suits():
     return test_suites
 
 
-# TODO find out why "schur" method gives different result in first test scenario
 @pytest.mark.parametrize("setup, density_func, expected_displacement_vector", generate_test_suits())
 def test_direct_solver(solving_method, setup, density_func, expected_displacement_vector):
     runner = NonHomogenousSolver(setup, solving_method)
