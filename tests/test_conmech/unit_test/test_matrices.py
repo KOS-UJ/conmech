@@ -7,6 +7,7 @@ from conmech.dynamics.factory._dynamics_factory_3d import (
     get_edges_features_matrix_numba as sut_3d,
 )
 from conmech.dynamics.dynamics import Dynamics
+from conmech.simulations.problem_solver import Body
 from conmech.mesh.mesh import Mesh
 from conmech.mesh import mesh_builders
 from conmech.properties.mesh_properties import MeshProperties
@@ -97,8 +98,11 @@ def test_local_stiff_mats_assembly():
     mesh.initial_nodes = initial_nodes
     mesh.elements = elements
 
+    body = object.__new__(Body)
+    body.mesh = mesh
+
     dynamics = object.__new__(Dynamics)
-    dynamics.mesh = mesh
+    dynamics.body = body
     dynamics._local_stifness_matrices = local_stiff_mats
     dynamics._w_matrix = expected_w_matrix
     density = np.ones(elements.shape[0])
