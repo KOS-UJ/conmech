@@ -96,9 +96,6 @@ class Mesh:
 
         self.boundaries: Boundaries
 
-        self.base_seed_indices: np.ndarray
-        self.closest_seed_index: int
-
         input_nodes, input_elements = mesh_builders.build_mesh(mesh_prop=mesh_prop)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
@@ -109,9 +106,6 @@ class Mesh:
             self.boundaries,
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, boundaries_description
-        )
-        self.base_seed_indices, self.closest_seed_index = get_base_seed_indices_numba(
-            self.initial_nodes
         )
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
