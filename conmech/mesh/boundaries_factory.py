@@ -197,6 +197,7 @@ class BoundariesFactory:
                     )
 
         boundaries = Boundaries(
+            nodes=initial_nodes,
             boundary_internal_indices=boundary_internal_indices,
             contact=contact_boundary,
             neumann=neumann_boundary,

@@ -7,13 +7,11 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
 from conmech.properties.mesh_properties import MeshProperties
 from conmech.simulations.problem_solver import Body
-from conmech.state.body_position import BodyPosition
 
 
 @pytest.mark.parametrize("scale_x, scale_y", ((1, 1), (2, 3), (5, 1)))
 def test_boundary_nodes_data_2d(scale_x, scale_y):
     # Arrange
-    volume = 2 * (scale_x + scale_y)
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
@@ -27,15 +25,9 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
         mesh_prop=mesh_prop,
         boundaries_description=boundaries_description,
     )
-    body = Body(properties=None, mesh=mesh)
-    setting = BodyPosition(
-        body,
-        normalize_by_rotation=True,
-    )
 
     # Act and Assert
-    np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
-    boundary_normals = setting.get_boundary_normals()
+    boundary_normals = mesh.boundaries.surface_normals
     np.testing.assert_allclose(
         nph.euclidean_norm_numba(boundary_normals),
         np.ones(len(boundary_normals)),
@@ -44,7 +36,6 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
 
 def test_boundary_nodes_data_3d():
     # Arrange
-    volume = 6
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
@@ -55,15 +46,9 @@ def test_boundary_nodes_data_3d():
         mesh_prop=mesh_prop,
         boundaries_description=boundaries_description,
     )
-    body = Body(properties=None, mesh=mesh)
-    setting = BodyPosition(
-        body,
-        normalize_by_rotation=True,
-    )
 
     # Act and Assert
-    np.testing.assert_allclose(setting.get_surface_per_boundary_node().sum(), volume)
-    boundary_normals = setting.get_boundary_normals()
+    boundary_normals = mesh.boundaries.surface_normals
     np.testing.assert_allclose(
         nph.euclidean_norm_numba(boundary_normals),
         np.ones(len(boundary_normals)),

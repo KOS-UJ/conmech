@@ -4,14 +4,11 @@ Created at 18.02.2021
 
 import numpy as np
 
-from conmech.state.body_position import BodyPosition
-
 
 class State:
     def __init__(self, body):
         self.body = body
         self.body.state = self
-        self.position = BodyPosition(body, normalize_by_rotation=False)
 
         self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.displacement: np.ndarray = np.zeros(

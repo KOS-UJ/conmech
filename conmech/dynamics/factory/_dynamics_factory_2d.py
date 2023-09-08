@@ -29,6 +29,8 @@ def get_edges_features_matrix_numba(elements, nodes):
         (DIMENSION, DIMENSION, elements_count, element_size, element_size)
     )
 
+    en0 = np.empty(ELEMENT_NODES_COUNT)
+    en1 = np.empty(ELEMENT_NODES_COUNT)
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
         element_nodes = nodes[element]
@@ -38,25 +40,23 @@ def get_edges_features_matrix_numba(elements, nodes):
             + element_nodes[0] * (element_nodes[1] + element_nodes[2])
             + element_nodes[1] * element_nodes[2]
         )
-        int_xy = (
-            element_nodes[:, 0]
-            @ np.array([[2.0, 1.0, 1.0], [1.0, 2.0, 1.0], [1.0, 1.0, 2.0]])
-            @ element_nodes[:, 1]
-        )
+        en0[:] = element_nodes[:, 0]
+        en1[:] = element_nodes[:, 1]
+        int_xy = en0 @ np.array([[2.0, 1.0, 1.0], [1.0, 2.0, 1.0], [1.0, 1.0, 2.0]]) @ en1
         int_matrix = np.array(
             [
                 [
                     0,
-                    1 / 6 * element_nodes[:, 0].sum(),
-                    1 / 6 * element_nodes[:, 1].sum(),
+                    1 / 6 * en0.sum(),
+                    1 / 6 * en1.sum(),
                 ],
                 [
-                    1 / 6 * element_nodes[:, 0].sum(),
+                    1 / 6 * en0.sum(),
                     1 / 12 * int_sqr[0],
                     1 / 24 * int_xy,
                 ],
                 [
-                    1 / 6 * element_nodes[:, 1].sum(),
+                    1 / 6 * en1.sum(),
                     1 / 24 * int_xy,
                     1 / 12 * int_sqr[1],
                 ],

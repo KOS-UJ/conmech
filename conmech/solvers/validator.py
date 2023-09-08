@@ -29,6 +29,7 @@ class Validator:
                 solution,
                 state.body.mesh.initial_nodes,
                 state.body.mesh.contact_boundary,
+                state.body.mesh.boundaries.contact_normals,
                 self.elasticity,
                 state.body.dynamics.force.integrate(time=state.time),
             )
