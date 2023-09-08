@@ -1,3 +1,4 @@
+import pickle
 from dataclasses import dataclass
 from typing import Optional, Type
 
@@ -13,7 +14,7 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
     class TarziaContactLaw(ContactLaw):
         @staticmethod
         def potential_normal_direction(u_nu: float) -> float:
-            b = 30
+            b = 5
             r = u_nu
             # EXAMPLE 11
             # if r < b:
@@ -44,9 +45,9 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
     grid_height: ... = 1
-    elements_number: ... = (8, 8)
+    elements_number: ... = (6, 12)
 
-    contact_law: ... = make_slope_contact_law(slope=100)
+    contact_law: ... = make_slope_contact_law(slope=1000)
 
     @staticmethod
     def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
@@ -55,21 +56,17 @@ class StaticPoissonSetup(PoissonProblem):
         return np.array([2 * np.pi**2 * np.sin(np.pi * x[0]) * np.sin(np.pi * x[1])])
 
     @staticmethod
-    def outer_temperature(
-        x: np.ndarray, v: Optional[np.ndarray] = None, t: Optional[float] = None
-    ) -> np.ndarray:
-        alpha = 1
-        if x[0] == 1:
-            result = np.full(1, alpha)
-            return result
-        return np.array([0.0])
+    def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        if x[1] > 0.5:
+            return np.array([1.0])
+        return np.array([-1.0])
 
     boundaries: ... = BoundariesDescription(
         dirichlet=(
-            lambda x: x[1] == 0 or x[0] == 0 or x[1] == 1,
-            lambda x: np.full(x.shape[0], 0),
+            lambda x: x[0] == 0.0,
+            lambda x: np.full(x.shape[0], 5),
         ),
-        contact=lambda x: x[0] == 1,
+        contact=lambda x: x[0] == 2.0,
     )
 
 
@@ -79,10 +76,49 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    alphas = [0.01, 0.1, 1, 10, 100, 1000, 10000]
+    ihs = [4, 8, 16, 32, 64, 128, 256]
+    alphas = alphas
+    ihs = ihs
+
+    for alpha in alphas:
+        for ih in ihs:
+            try:
+                if config.force:
+                    simulate(config, alpha, ih)
+                draw(config, alpha, ih)
+            except FileNotFoundError:
+                simulate(config, alpha, ih)
+                draw(config, alpha, ih)
+
+
+def simulate(config, alpha, ih):
+    print(f"Simulate {alpha=}, {ih=}")
     setup = StaticPoissonSetup(mesh_type="cross")
+    setup.contact_law = make_slope_contact_law(slope=alpha)
+    setup.elements_number = (1 * ih, 2 * ih)
+
     runner = PoissonSolver(setup, "global")
 
     state = runner.solve(verbose=True)
+
+    if config.outputs_path:
+        with open(
+            f"{config.outputs_path}/alpha_{alpha}_ih_{ih}",
+            "wb+",
+        ) as output:
+            # Workaround
+            state.body.dynamics.force.outer.source = None
+            state.body.dynamics.force.inner.source = None
+            state.body.properties.relaxation = None
+            state.setup = None
+            state.constitutive_law = None
+            pickle.dump(state, output)
+
+
+def draw(config, alpha, ih):
+    with open(f"{config.outputs_path}/alpha_{alpha}_ih_{ih}", "rb") as output:
+        state = pickle.load(output)
     max_ = max(max(state.temperature), 1)
     min_ = min(min(state.temperature), 0)
     drawer = Drawer(state=state, config=config)
@@ -94,4 +130,4 @@ def main(config: Config):
 
 
 if __name__ == "__main__":
-    main(Config().init())
+    main(Config(outputs_path="./output/BOT2023", force=False).init())

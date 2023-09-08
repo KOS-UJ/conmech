@@ -58,13 +58,6 @@ def euclidean_norm_numba(vector: np.ndarray) -> np.ndarray:
     return np.sqrt(data)
 
 
-@numba.njit
-def normalize_euclidean_numba(data: np.ndarray) -> np.ndarray:
-    norm = euclidean_norm_numba(data)
-    reshaped_norm = norm if data.ndim == 1 else norm.reshape(-1, 1)
-    return data / reshaped_norm
-
-
 def get_normal(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     return elementwise_dot(vector, normal, keepdims=True)
 
@@ -85,25 +78,6 @@ def get_tangential_numba(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     normal_vector = vector @ normal
     tangential_vector = vector - (normal_vector * normal)
     return tangential_vector
-
-
-def get_tangential_2d(normal: np.ndarray) -> np.ndarray:
-    return np.array((normal[..., 1], -normal[..., 0])).T
-
-
-def complete_base(base_seed: np.ndarray, closest_seed_index: int = 0) -> np.ndarray:
-    dim = base_seed.shape[-1]
-    normalized_base_seed = normalize_euclidean_numba(base_seed)
-    if dim == 2:
-        unnormalized_base = orthogonalize_gram_schmidt(normalized_base_seed)
-    elif dim == 3:
-        rolled_base_seed = np.roll(normalized_base_seed, -closest_seed_index, axis=0)
-        unnormalized_rolled_base = orthogonalize_gram_schmidt(rolled_base_seed)
-        unnormalized_base = np.roll(unnormalized_rolled_base, closest_seed_index, axis=0)
-    else:
-        raise ArgumentError
-    base = normalize_euclidean_numba(unnormalized_base)
-    return base
 
 
 def orthogonalize_gram_schmidt(vectors: np.ndarray) -> np.ndarray:

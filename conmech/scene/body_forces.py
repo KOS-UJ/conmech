@@ -1,18 +1,38 @@
 import dataclasses
 import enum
 from typing import Callable, Optional
+from ctypes import ArgumentError
 
 import numpy as np
+import numba
 
 from conmech.helpers import nph
-from conmech.state.body_position import get_surface_per_boundary_node_numba
 
 
-def energy(value, lhs, rhs):
-    value_vector = nph.stack_column(value)
-    first = 0.5 * (lhs @ value_vector) - rhs
-    value = first.reshape(-1) @ value_vector
-    return value
+@numba.njit
+def get_surface_per_boundary_node_numba(boundary_surfaces, considered_nodes_count, moved_nodes):
+    surface_per_boundary_node = np.zeros((considered_nodes_count, 1), dtype=np.float64)
+
+    for boundary_surface in boundary_surfaces:
+        face_nodes = moved_nodes[boundary_surface]
+        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
+
+    return surface_per_boundary_node
+
+
+@numba.njit
+def element_volume_part_numba(face_nodes):
+    dim = face_nodes.shape[1]
+    nodes_count = face_nodes.shape[0]
+    if dim == 2:
+        volume = nph.euclidean_norm_numba(face_nodes[0] - face_nodes[1])
+    elif dim == 3:
+        volume = 0.5 * nph.euclidean_norm_numba(
+            np.cross(face_nodes[1] - face_nodes[0], face_nodes[2] - face_nodes[0])
+        )
+    else:
+        raise ArgumentError
+    return volume / nodes_count
 
 
 class Field(enum.Enum):
@@ -41,20 +61,12 @@ class BodyForces:
         self.inner = FieldSource()
         self.outer = FieldSource()
 
-    def prepare(self, inner_forces: np.ndarray):
-        self.inner.cache = inner_forces
-        self.outer.cache = np.zeros_like(self.body.mesh.initial_nodes)
-        self.inner.timestamp = 0
-        self.outer.timestamp = 0
-
     def clear(self):
         self.inner.cache = None
         self.outer.cache = None
 
     def get_integrated_inner_forces(self, time: float):
-        inner_forces = self.body.state.position.normalize_rotate(
-            self.inner.node_source(self.body.mesh.initial_nodes, time)
-        )
+        inner_forces = self.inner.node_source(self.body.mesh.initial_nodes, time)
         # TODO: should be only on boundary!
         return self.body.dynamics.volume_at_nodes @ inner_forces
 
@@ -62,7 +74,7 @@ class BodyForces:
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.body.mesh.neumann_boundary,
             considered_nodes_count=self.body.mesh.nodes_count,
-            moved_nodes=self.body.state.position.moved_nodes,
+            moved_nodes=self.body.mesh.initial_nodes,
         )
         outer_forces = self.outer.node_source(self.body.mesh.initial_nodes, time)
         return neumann_surfaces * outer_forces

@@ -108,6 +108,7 @@ class Optimization(Solver):
         args = (
             self.body.mesh.initial_nodes,
             self.body.mesh.contact_boundary,
+            self.body.mesh.boundaries.contact_normals,
             self.lhs,
             self.rhs,
             displacement,

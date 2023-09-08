@@ -59,6 +59,7 @@ class Direct(Solver):
                 args=(
                     self.body.mesh.initial_nodes,
                     self.body.mesh.contact_boundary,
+                    self.body.mesh.boundaries.contact_normals,
                     self.node_relations,
                     self.node_forces,
                 ),
