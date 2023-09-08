@@ -296,7 +296,7 @@ def generate_test_suits():
     "setup, expected_displacement_vector, expected_electric_potential_vector",
     generate_test_suits(),
 )
-def test_global_optimization_solver(
+def test_piezoelectric_time_dependent_solver(
     solving_method, setup, expected_displacement_vector, expected_electric_potential_vector
 ):
     runner = PiezoelectricTimeDependentSolver(setup, solving_method)
