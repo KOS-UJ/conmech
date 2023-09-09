@@ -9,6 +9,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
+from conmech.properties.mesh_properties import CrossMeshDescription
 
 
 @pytest.fixture(params=["direct"])
@@ -21,8 +22,6 @@ def generate_test_suits():
 
     @dataclass()
     class StaticSetup(PoissonProblem):
-        grid_height: ... = 1
-        elements_number: ... = (4, 4)
 
         @staticmethod
         def internal_temperature(x: np.ndarray, t: float = None) -> np.ndarray:
@@ -34,7 +33,12 @@ def generate_test_suits():
 
         boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
 
-    setup_1 = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None,
+        max_element_perimeter=0.25,
+        scale=[1, 1]
+    )
+    setup_1 = StaticSetup(mesh_descr)
 
     expected_temperature_1 = [
         52.44178922,
@@ -86,8 +90,6 @@ def generate_test_suits():
 
     @dataclass()
     class StaticSetup(PoissonProblem):
-        grid_height: ... = 1.37
-        elements_number: ... = (3, 5)
 
         @staticmethod
         def internal_temperature(x, t=None):
@@ -101,7 +103,12 @@ def generate_test_suits():
             dirichlet=(lambda x: x[0] == 0, lambda x: np.full_like(x[:, 0], 5))
         )
 
-    setup_2 = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None,
+        max_element_perimeter=1.37 / 3,
+        scale=[1.37 * 5 / 3, 1.37]
+    )  
+    setup_2 = StaticSetup(mesh_descr)
     expected_temperature_vector_2 = [
         63.35184411,
         55.74064007,

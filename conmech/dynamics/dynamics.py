@@ -26,7 +26,7 @@ class Dynamics:
         self.temperature = BodyForces(
             body,
         )
-        self.factory = get_factory(body.mesh.mesh_prop.dimension)
+        self.factory = get_factory(body.mesh.dimension)
         self.element_initial_volume: np.ndarray
         self.volume_at_nodes: np.ndarray
         self.acceleration_operator: np.ndarray

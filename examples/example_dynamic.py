@@ -10,13 +10,12 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import DynamicDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver
+from conmech.properties.mesh_properties import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
 class DynamicSetup(DynamicDisplacementProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (2, 5)
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
@@ -46,8 +45,12 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-
-    setup = DynamicSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None,
+        max_element_perimeter=0.5,
+        scale=[2.5, 1]
+    )
+    setup = DynamicSetup(mesh_descr)
     runner = TimeDependentSolver(setup, solving_method="schur")
     n_steps = 32 if not config.test else 10
 

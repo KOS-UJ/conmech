@@ -1,45 +1,143 @@
+from abc import ABC
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 import numpy as np
+import meshio
+from conmech.mesh.zoo.raw_mesh import RawMesh
+
+@dataclass
+class MeshDescription(ABC):
+    initial_position: np.ndarray
+
+    def build(self):
+        raise NotImplementedError()
 
 
 @dataclass
-class MeshProperties:
-    mesh_type: str
-    mesh_density: List[float]
+class ImportedMeshDescription(MeshDescription):
+    path: str
+
+    def build(self):
+        mesh = meshio.read(self.path)
+        return RawMesh(nodes=mesh.points, elements=mesh.cells_dict["triangle"])
+
+
+@dataclass
+class GeneratedMeshDescription(MeshDescription, ABC):
+    max_element_perimeter: float
+
+
+@dataclass
+class HardcodedMeshDescription(MeshDescription, ABC):
+    pass
+
+@dataclass
+class RectangleMeshDescription(GeneratedMeshDescription):
     scale: List[float]
-    dimension: int
-    initial_base: Optional[np.ndarray] = None
-    initial_position: Optional[np.ndarray] = None
-    mean_at_origin: bool = False
-    corners_vector: Optional[np.ndarray] = None
-    corner_mesh_data: Optional[np.ndarray] = None
 
-    @staticmethod
-    def _get_modulo(array, index):
-        return array[index % len(array)]
+    def build(self):
+        from conmech.mesh.zoo.rectangle import Rectangle
+        return Rectangle(self)
 
-    @property
-    def scale_x(self) -> float:
-        return self._get_modulo(self.scale, 0)
 
-    @property
-    def scale_y(self) -> float:
-        return self._get_modulo(self.scale, 1)
+@dataclass
+class CrossMeshDescription(GeneratedMeshDescription):
+    scale: List[float]
 
-    @property
-    def scale_z(self) -> float:
-        return self._get_modulo(self.scale, 2)
+    def build(self):
+        from conmech.mesh.zoo.cross_for_tests import CrossMesh
+        return CrossMesh(self)
 
-    @property
-    def mesh_density_x(self) -> float:
-        return self._get_modulo(self.mesh_density, 0)
 
-    @property
-    def mesh_density_y(self) -> float:
-        return self._get_modulo(self.mesh_density, 1)
+@dataclass
+class CubeMeshDescription(HardcodedMeshDescription):
 
-    @property
-    def mesh_density_z(self) -> float:
-        return self._get_modulo(self.mesh_density, 2)
+    def build(self):
+        from conmech.mesh.zoo.cube import Cube
+        return Cube(self)
+
+
+@dataclass
+class BallMeshDescription(HardcodedMeshDescription):
+
+    def build(self):
+        from conmech.mesh.zoo.ball import Ball
+        return Ball(self)
+
+
+@dataclass
+class Barboteu2008MeshDescription(GeneratedMeshDescription):
+    
+    def build(self):
+        from conmech.mesh.zoo.barboteu_2008 import Barboteu2008
+        return Barboteu2008(self)
+
+
+@dataclass
+class JOB2023MeshDescription(GeneratedMeshDescription):
+
+    def build(self):
+        from conmech.mesh.zoo.jurochbar_2023 import JOB2023
+        return JOB2023(self)
+
+
+@dataclass
+class SOB2023MeshDescription(GeneratedMeshDescription):
+    scale: List[float]
+
+    def build(self):
+        from conmech.mesh.zoo.sofochbar_2023 import SOB2023
+        return SOB2023(self)
+
+
+@dataclass
+class CircleMeshDescription(GeneratedMeshDescription):
+    radius: float
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_2.circle import Circle
+        return Circle(self)
+
+
+@dataclass
+class PolygonMeshDescription(GeneratedMeshDescription):
+    scale: List[float]
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_2.polygon import Polygon
+        return Polygon(self)
+
+
+@dataclass
+class PgmshRectangleMeshDescription(GeneratedMeshDescription):
+    scale: List[float]
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_2.rectangle import PgmshRectangle
+        return PgmshRectangle(self)
+
+
+@dataclass
+class SplineMeshDescription(GeneratedMeshDescription):
+    scale: List[float]
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_2.spline import Spline
+        return Spline(self)
+
+
+@dataclass
+class Polygon3DMeshDescription(GeneratedMeshDescription):
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_3.polygon import Polygon3D
+        return Polygon3D(self)
+
+
+@dataclass
+class TwistMeshDescription(GeneratedMeshDescription):
+
+    def build(self):
+        from conmech.mesh.zoo.pygmsh.dim_3.twist import Twist
+        return Twist(self)

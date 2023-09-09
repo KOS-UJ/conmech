@@ -9,14 +9,13 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import NonHomogenousSolver
+from conmech.properties.mesh_properties import CrossMeshDescription
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (2, 5)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
@@ -44,7 +43,12 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None,
+        max_element_perimeter=0.5,
+        scale=[2.5, 1]
+    )
+    setup = StaticSetup(mesh_descr)
     runner = NonHomogenousSolver(setup, "schur")
 
     elem_centers = np.empty(shape=(len(runner.body.mesh.elements), 2))

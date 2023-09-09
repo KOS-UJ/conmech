@@ -18,24 +18,23 @@
 # USA.
 import pygmsh
 
-from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import PgmshRectangleMeshDescription
 
 
-@MeshZOO.register("pygmsh_rectangle", "pygmsh_rectangle_2d")
-class Rectangle(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+class PgmshRectangle(RawMesh):
+    def __init__(self, mesh_descr: PgmshRectangleMeshDescription):
         with pygmsh.geo.Geometry() as geom:
+            scale_x, scale_y = mesh_descr.scale
             geom.add_polygon(
                 [
                     [0.0, 0.0],
-                    [0.0, mesh_prop.scale_y],
-                    [mesh_prop.scale_x, mesh_prop.scale_y],
-                    [mesh_prop.scale_x, 0.0],
+                    [0.0, scale_y],
+                    [scale_x, scale_y],
+                    [scale_x, 0.0],
                 ]
             )
-            _utils.set_mesh_size(geom, mesh_prop)
+            _utils.set_mesh_size(geom, mesh_descr)
             nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)

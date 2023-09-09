@@ -17,15 +17,14 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
 import dmsh
+import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import SOB2023MeshDescription
 
 
-@MeshZOO.register("sofochbar", "sofochbar_2023", "tunnel")
-class JOB2023(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+class SOB2023(RawMesh):
+    def __init__(self, mesh_descr: SOB2023MeshDescription):
         # pylint: disable=no-member  # for dmsh
         diameter = 3.0
         thickness = 1.0
@@ -61,8 +60,7 @@ class JOB2023(RawMesh):
 
         foundation = dmsh.Path([[0.0, 0.0], [diameter + 2 * thickness, 0.0]])
 
-        dense_y = mesh_prop.mesh_density_y
-        dense_x = mesh_prop.mesh_density_x
+        dense_x, dense_y = [int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale]
 
         def target_edge_length(x):
             return dense_y**-1 + dense_x**-1 * foundation.dist(x)

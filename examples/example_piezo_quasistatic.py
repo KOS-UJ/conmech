@@ -10,6 +10,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
+from conmech.properties.mesh_properties import Barboteu2008MeshDescription
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
@@ -30,8 +31,6 @@ class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 @dataclass()
 class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (2, 2)
     mu_coef: ... = 45
     la_coef: ... = 105
     th_coef: ... = 4.5
@@ -86,7 +85,11 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = PQuasistaticSetup(mesh_type="Barboteu2008")
+    mesh_descr = Barboteu2008MeshDescription(
+        initial_position=None,
+        max_element_perimeter=0.5
+    )
+    setup = PQuasistaticSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
     steps = 100 if not config.test else 10
     output = steps // 5

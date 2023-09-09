@@ -20,13 +20,11 @@ import pygmsh
 
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import Polygon3DMeshDescription
 
 
-@MeshZOO.register("polygon_3d", "pygmsh_polygon_3d")
-class Polygon(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+class Polygon3D(RawMesh):
+    def __init__(self, mesh_descr: Polygon3DMeshDescription):
         with pygmsh.geo.Geometry() as geom:
             poly = geom.add_polygon(
                 [
@@ -38,7 +36,7 @@ class Polygon(RawMesh):
             )
             geom.extrude(poly, [0.0, 0.3, 1.0], num_layers=5)
 
-            _utils.set_mesh_size(geom, mesh_prop)
+            _utils.set_mesh_size(geom, mesh_descr)
             nodes, elements = _utils.get_nodes_and_elements(geom, 3)
             nodes = _utils.normalize_nodes(nodes)
         super().__init__(nodes, elements)

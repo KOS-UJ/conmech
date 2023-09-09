@@ -8,6 +8,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PoissonProblem, ContactLaw
 from conmech.simulations.problem_solver import PoissonSolver
+from conmech.properties.mesh_properties import CrossMeshDescription
 
 
 def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
@@ -44,8 +45,6 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-    grid_height: ... = 1
-    elements_number: ... = (6, 12)
 
     contact_law: ... = make_slope_contact_law(slope=1000)
 
@@ -94,9 +93,13 @@ def main(config: Config):
 
 def simulate(config, alpha, ih):
     print(f"Simulate {alpha=}, {ih=}")
-    setup = StaticPoissonSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None,
+        max_element_perimeter=1 / ih,
+        scale=[2, 1]
+    )
+    setup = StaticPoissonSetup(mesh_descr)
     setup.contact_law = make_slope_contact_law(slope=alpha)
-    setup.elements_number = (1 * ih, 2 * ih)
 
     runner = PoissonSolver(setup, "global")
 

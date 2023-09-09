@@ -21,13 +21,11 @@ import pygmsh
 
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import TwistMeshDescription
 
 
-@MeshZOO.register("twist", "twist_3d", "pygmsh_twist_3d")
 class Twist(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: TwistMeshDescription):
         with pygmsh.geo.Geometry() as geom:
             poly = geom.add_polygon(
                 [
@@ -49,7 +47,7 @@ class Twist(RawMesh):
                 point_on_axis=[0, 0, 0],
                 angle=np.pi / 3,
             )
-            _utils.set_mesh_size(geom, mesh_prop)
+            _utils.set_mesh_size(geom, mesh_descr)
             nodes, elements = _utils.get_nodes_and_elements(geom, 3)
             nodes = _utils.normalize_nodes(nodes)
         super().__init__(nodes, elements)

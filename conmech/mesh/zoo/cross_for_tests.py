@@ -3,22 +3,21 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import CrossMeshDescription
 
 
-@MeshZOO.register("cross")
 class CrossMesh(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
-        super().__init__(*CrossMesh._get_cross_rectangle(mesh_prop))
+    def __init__(self, mesh_descr: CrossMeshDescription):
+        super().__init__(*CrossMesh._get_cross_rectangle(mesh_descr))
 
     @staticmethod
-    def _get_cross_rectangle(mesh_prop):
+    def _get_cross_rectangle(mesh_descr: CrossMeshDescription):
+        scale_x, scale_y = mesh_descr.scale
+        size_x, size_y = [int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale]
+
         min_ = np.array((0.0, 0.0))
-        size_x = int(mesh_prop.mesh_density_x)
-        size_y = int(mesh_prop.mesh_density_y)
-        edge_len_x = mesh_prop.scale_x / size_x
-        edge_len_y = mesh_prop.scale_y / size_y
+        edge_len_x = scale_x / size_x
+        edge_len_y = scale_y / size_y
 
         nodes_count = 2 * (size_x * size_y) + (size_x + size_y) + 1
         nodes = np.zeros((nodes_count, 2), dtype="float")

@@ -14,6 +14,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamic
 from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
 from conmech.state.state import TemperatureState
+from conmech.properties.mesh_properties import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 import matplotlib.tri as tri
 
@@ -99,8 +100,6 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 @dataclass()
 class TDynamicSetup(TemperatureDynamic):
-    grid_height: ... = 1.0
-    elements_number: ... = (4, 4)
     mu_coef: ... = 45
     la_coef: ... = 105
     th_coef: ... = 4.5
@@ -213,7 +212,13 @@ if __name__ == "__main__":
     hs = [2**i for i in [2]]
     for h in hs:
         for k in ks:
-            setup = TDynamicSetup(mesh_type="cross")
-            setup.elements_number = (h, 1.5 * h)
+            mesh_descr = CrossMeshDescription(
+                initial_position=None,
+                max_element_perimeter=0.25,
+                scale=[1, 1]
+            )
+            setup = TDynamicSetup(mesh_descr)
+            # TODO set this mesh density parameter propperly
+            # setup.elements_number = (h, 1.5 * h)
             setup.time_step = T / k
             main(setup=setup, steps=k, config=Config().init())

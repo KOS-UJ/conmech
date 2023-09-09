@@ -8,7 +8,7 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-
+from conmech.properties.mesh_properties import MeshDescription
 
 # pylint: disable=too-many-ancestors
 
@@ -35,12 +35,8 @@ class ContactLaw:
 @dataclass
 class Problem(ABC):
     # pylint: disable=unused-argument
-    dimension = 2
-    mesh_type: str
-    grid_height: float
+    mesh_descr: MeshDescription
     boundaries: BoundariesDescription
-
-    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
 
     @staticmethod
     def inner_forces(
@@ -89,8 +85,6 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 
 @dataclass
 class DisplacementProblem(Problem, ABC):
-    elements_number: Union[Tuple[int, int], Tuple[int, int, int]]  # number of triangles per aside
-
     mu_coef: float
     la_coef: float
     contact_law: ContactLaw

@@ -19,13 +19,11 @@
 import dmsh
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_properties import JOB2023MeshDescription
 
 
-@MeshZOO.register("JOB2023", "jurochbar_2023", "bow")
 class JOB2023(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: JOB2023MeshDescription):
         # pylint: disable=no-member  # for dmsh
         geo = dmsh.Polygon(
             [
@@ -45,5 +43,5 @@ class JOB2023(RawMesh):
         geo = geo - dmsh.Circle([x2, y1], r)
         geo = geo - dmsh.Circle([x1, y2], r)
         geo = geo - dmsh.Circle([x2, y2], r)
-        nodes, elements = dmsh.generate(geo, 1 / mesh_prop.mesh_density[0])
+        nodes, elements = dmsh.generate(geo, mesh_descr.max_element_perimeter)
         super().__init__(nodes, elements)

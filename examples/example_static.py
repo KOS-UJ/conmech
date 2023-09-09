@@ -10,6 +10,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
+from conmech.properties.mesh_properties import RectangleMeshDescription, CubeMeshDescription
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
@@ -19,8 +20,6 @@ DIMENSION = 2
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
     dimension = DIMENSION
-    grid_height: ... = 1.0
-    elements_number: ... = (2, 5)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
@@ -48,9 +47,21 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_type = "cross" if DIMENSION == 2 else "meshzoo_cube_3d"
+    # mesh_type = "cross" if DIMENSION == 2 else "meshzoo_cube_3d"
     solving_method = "schur" if DIMENSION == 2 else "global"  # TODO
-    setup = StaticSetup(mesh_type=mesh_type)
+    
+    if DIMENSION == 2:
+        mesh_descr = RectangleMeshDescription(
+            initial_position=None,
+            max_element_perimeter=0.5,
+            scale=[2.5, 1]
+        )
+    else:
+        mesh_descr = CubeMeshDescription(
+            initial_position=None
+        )
+    
+    setup = StaticSetup(mesh_descr=mesh_descr)
     runner = StaticSolver(setup, solving_method)
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
