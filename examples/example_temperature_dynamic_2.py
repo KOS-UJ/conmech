@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import TemperatureDynamic
-from conmech.simulations.problem_solver import TemperatureTimeDependent as TDynamicProblemSolver
+from conmech.scenarios.problems import TemperatureDynamicProblem
+from conmech.simulations.problem_solver import TemperatureTimeDependentSolver as TDynamicProblemSolver
 from conmech.state.state import TemperatureState
 from conmech.properties.mesh_properties import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -99,7 +99,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 
 @dataclass()
-class TDynamicSetup(TemperatureDynamic):
+class TDynamicSetup(TemperatureDynamicProblem):
     mu_coef: ... = 45
     la_coef: ... = 105
     th_coef: ... = 4.5
@@ -138,7 +138,11 @@ def main(steps, setup, config: Config):
     simulate = True
     output_step = (2**i for i in range(int(np.log2(steps))))
 
-    setup = setup or TDynamicSetup(mesh_type="cross")
+    if setup is None:
+        mesh_descr = CrossMeshDescription(
+            initial_position=None, max_element_perimeter=0.25, scale=[1, 1]
+        )
+        setup = TDynamicSetup(mesh_descr)
     runner = TDynamicProblemSolver(setup, solving_method="schur")
 
     # for step, state in zip(output_step, runner.solve(
@@ -213,10 +217,8 @@ if __name__ == "__main__":
     for h in hs:
         for k in ks:
             mesh_descr = CrossMeshDescription(
-                initial_position=None, max_element_perimeter=0.25, scale=[1, 1]
+                initial_position=None, max_element_perimeter=1 / h, scale=[1.5, 1]
             )
             setup = TDynamicSetup(mesh_descr)
-            # TODO set this mesh density parameter propperly
-            # setup.elements_number = (h, 1.5 * h)
             setup.time_step = T / k
             main(setup=setup, steps=k, config=Config().init())
