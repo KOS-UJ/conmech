@@ -59,9 +59,7 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.25,
-        scale=[2.5, 1]
+        initial_position=None, max_element_perimeter=0.25, scale=[2.5, 1]
     )
     setup_1 = StaticSetup(mesh_descr)
 
@@ -184,9 +182,7 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.5,
-        scale=[2.5, 1]
+        initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
     )
     setup_2 = StaticSetup(mesh_descr)
 

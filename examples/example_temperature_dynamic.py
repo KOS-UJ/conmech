@@ -101,9 +101,7 @@ def main(config: Config):
     #     grid_height: ... = 1.0
     # elements_number: ... = (4, 10)
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.1,
-        scale=[2.5, 1]
+        initial_position=None, max_element_perimeter=0.1, scale=[2.5, 1]
     )
     setup = TDynamicSetup(mesh_descr)
     runner = TemperatureTimeDependentSolver(setup, solving_method="schur")

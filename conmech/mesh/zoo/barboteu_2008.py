@@ -23,9 +23,7 @@ from conmech.properties.mesh_properties import Barboteu2008MeshDescription
 
 
 class Barboteu2008(RawMesh):
-
     def __init__(self, mesh_descr: Barboteu2008MeshDescription):
-
         with pygmsh.geo.Geometry() as geom:
             geom.add_polygon(
                 [

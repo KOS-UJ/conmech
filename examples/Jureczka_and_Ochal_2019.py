@@ -76,9 +76,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=1/16,
-        scale=[2, 1]
+        initial_position=None, max_element_perimeter=1 / 16, scale=[2, 1]
     )
     setup = StaticSetup(mesh_descr)
     if config.test:

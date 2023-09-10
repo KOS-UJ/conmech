@@ -8,6 +8,7 @@ from conmech.properties.mesh_properties import GeneratedMeshDescription
 def set_mesh_size(geom: Geometry, mesh_descr: GeneratedMeshDescription):
     def callback(*_):
         return mesh_descr.max_element_perimeter
+
     geom.set_mesh_size_callback(callback)
 
 

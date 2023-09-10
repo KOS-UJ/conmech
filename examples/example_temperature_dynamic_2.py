@@ -213,9 +213,7 @@ if __name__ == "__main__":
     for h in hs:
         for k in ks:
             mesh_descr = CrossMeshDescription(
-                initial_position=None,
-                max_element_perimeter=0.25,
-                scale=[1, 1]
+                initial_position=None, max_element_perimeter=0.25, scale=[1, 1]
             )
             setup = TDynamicSetup(mesh_descr)
             # TODO set this mesh density parameter propperly

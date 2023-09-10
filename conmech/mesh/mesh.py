@@ -83,7 +83,7 @@ def get_base_seed_indices_numba(nodes):
 
 
 # TODO make it inherit from RawMesh
-class Mesh():
+class Mesh:
     def __init__(
         self,
         mesh_descr: MeshDescription,
@@ -116,7 +116,7 @@ class Mesh():
     @property
     def scale(self):
         return np.max(self.initial_nodes, axis=0) - np.min(self.initial_nodes, axis=0)
-    
+
     def normalize_shift(self, vectors):
         _ = self
         return vectors - np.mean(vectors, axis=0)

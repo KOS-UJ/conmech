@@ -49,18 +49,14 @@ def main(config: Config):
     """
     # mesh_type = "cross" if DIMENSION == 2 else "meshzoo_cube_3d"
     solving_method = "schur" if DIMENSION == 2 else "global"  # TODO
-    
+
     if DIMENSION == 2:
         mesh_descr = RectangleMeshDescription(
-            initial_position=None,
-            max_element_perimeter=0.5,
-            scale=[2.5, 1]
+            initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
         )
     else:
-        mesh_descr = CubeMeshDescription(
-            initial_position=None
-        )
-    
+        mesh_descr = CubeMeshDescription(initial_position=None)
+
     setup = StaticSetup(mesh_descr=mesh_descr)
     runner = StaticSolver(setup, solving_method)
 

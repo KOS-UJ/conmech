@@ -64,9 +64,7 @@ def test(solving_method):
     ]
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.125,
-        scale=[2, 1]
+        initial_position=None, max_element_perimeter=0.125, scale=[2, 1]
     )
     setup = StaticSetup(mesh_descr)
     runner = StaticProblem(setup, solving_method)

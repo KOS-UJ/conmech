@@ -44,9 +44,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.5,
-        scale=[2.5, 1]
+        initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
     )
     setup = StaticSetup(mesh_descr)
     runner = NonHomogenousSolver(setup, "schur")

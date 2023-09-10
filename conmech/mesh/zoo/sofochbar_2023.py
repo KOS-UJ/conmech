@@ -60,7 +60,9 @@ class SOB2023(RawMesh):
 
         foundation = dmsh.Path([[0.0, 0.0], [diameter + 2 * thickness, 0.0]])
 
-        dense_x, dense_y = [int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale]
+        dense_x, dense_y = [
+            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+        ]
 
         def target_edge_length(x):
             return dense_y**-1 + dense_x**-1 * foundation.dist(x)

@@ -13,7 +13,9 @@ class CrossMesh(RawMesh):
     @staticmethod
     def _get_cross_rectangle(mesh_descr: CrossMeshDescription):
         scale_x, scale_y = mesh_descr.scale
-        size_x, size_y = [int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale]
+        size_x, size_y = [
+            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+        ]
 
         min_ = np.array((0.0, 0.0))
         edge_len_x = scale_x / size_x

@@ -18,7 +18,7 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     mesh_descr = RectangleMeshDescription(
         initial_position=None,
         max_element_perimeter=(np.min([scale_x, scale_y]) / 3),
-        scale=[scale_x, scale_y]
+        scale=[scale_x, scale_y],
     )
     mesh = Mesh(
         mesh_descr=mesh_descr,
@@ -38,9 +38,7 @@ def test_boundary_nodes_data_3d():
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
-    mesh_descr = CubeMeshDescription(
-        initial_position=None
-    )
+    mesh_descr = CubeMeshDescription(initial_position=None)
     mesh = Mesh(
         mesh_descr=mesh_descr,
         boundaries_description=boundaries_description,

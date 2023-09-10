@@ -24,11 +24,11 @@ from conmech.properties.mesh_properties import RectangleMeshDescription
 
 
 class Rectangle(RawMesh):
-
     def __init__(self, mesh_descr: RectangleMeshDescription):
-
         scale_x, scale_y = mesh_descr.scale
-        mesh_density = [int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale]
+        mesh_density = [
+            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+        ]
 
         nodes, elements = meshzoo.rectangle_tri(
             np.linspace(0.0, scale_x, int(mesh_density[0]) + 1),

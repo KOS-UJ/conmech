@@ -152,7 +152,7 @@ def main(config: Config):
                 mesh_descr_=mesh_descr,
                 boundaries_=boundaries,
                 contact_law_=contact_law,
-                friction_bound_=friction_bound
+                friction_bound_=friction_bound,
             )
             runner = QuasistaticProblemSolver(setup, "schur")
             states = runner.solve(
@@ -179,7 +179,7 @@ def main(config: Config):
             mesh_descr_=mesh_descr,
             boundaries_=boundaries,
             contact_law_=contact_law,
-            friction_bound_=friction_bound
+            friction_bound_=friction_bound,
         )
         if name == names[0]:
             steps = (0, *output_steps[1:])

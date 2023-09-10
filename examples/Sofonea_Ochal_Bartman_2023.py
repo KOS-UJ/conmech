@@ -88,16 +88,12 @@ def main(config: Config):
     if config.test:
         elements_number = (20, 20)
         mesh_descr = SOB2023MeshDescription(
-            initial_position=None,
-            max_element_perimeter=0.05,
-            scale=[1, 1]
+            initial_position=None, max_element_perimeter=0.05, scale=[1, 1]
         )
     else:
         elements_number = (8, 8)
         mesh_descr = SOB2023MeshDescription(
-            initial_position=None,
-            max_element_perimeter=0.125,
-            scale=[1, 1]
+            initial_position=None, max_element_perimeter=0.125, scale=[1, 1]
         )
     setup = QuasistaticSetup(mesh_descr)
     if config.test:

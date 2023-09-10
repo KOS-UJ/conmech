@@ -6,6 +6,7 @@ import numpy as np
 import meshio
 from conmech.mesh.zoo.raw_mesh import RawMesh
 
+
 @dataclass
 class MeshDescription(ABC):
     initial_position: np.ndarray
@@ -32,12 +33,14 @@ class GeneratedMeshDescription(MeshDescription, ABC):
 class HardcodedMeshDescription(MeshDescription, ABC):
     pass
 
+
 @dataclass
 class RectangleMeshDescription(GeneratedMeshDescription):
     scale: List[float]
 
     def build(self):
         from conmech.mesh.zoo.rectangle import Rectangle
+
         return Rectangle(self)
 
 
@@ -47,38 +50,39 @@ class CrossMeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.cross_for_tests import CrossMesh
+
         return CrossMesh(self)
 
 
 @dataclass
 class CubeMeshDescription(HardcodedMeshDescription):
-
     def build(self):
         from conmech.mesh.zoo.cube import Cube
+
         return Cube(self)
 
 
 @dataclass
 class BallMeshDescription(HardcodedMeshDescription):
-
     def build(self):
         from conmech.mesh.zoo.ball import Ball
+
         return Ball(self)
 
 
 @dataclass
 class Barboteu2008MeshDescription(GeneratedMeshDescription):
-    
     def build(self):
         from conmech.mesh.zoo.barboteu_2008 import Barboteu2008
+
         return Barboteu2008(self)
 
 
 @dataclass
 class JOB2023MeshDescription(GeneratedMeshDescription):
-
     def build(self):
         from conmech.mesh.zoo.jurochbar_2023 import JOB2023
+
         return JOB2023(self)
 
 
@@ -88,6 +92,7 @@ class SOB2023MeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.sofochbar_2023 import SOB2023
+
         return SOB2023(self)
 
 
@@ -97,6 +102,7 @@ class CircleMeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_2.circle import Circle
+
         return Circle(self)
 
 
@@ -106,6 +112,7 @@ class PolygonMeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_2.polygon import Polygon
+
         return Polygon(self)
 
 
@@ -115,6 +122,7 @@ class PgmshRectangleMeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_2.rectangle import PgmshRectangle
+
         return PgmshRectangle(self)
 
 
@@ -124,20 +132,21 @@ class SplineMeshDescription(GeneratedMeshDescription):
 
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_2.spline import Spline
+
         return Spline(self)
 
 
 @dataclass
 class Polygon3DMeshDescription(GeneratedMeshDescription):
-
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_3.polygon import Polygon3D
+
         return Polygon3D(self)
 
 
 @dataclass
 class TwistMeshDescription(GeneratedMeshDescription):
-
     def build(self):
         from conmech.mesh.zoo.pygmsh.dim_3.twist import Twist
+
         return Twist(self)

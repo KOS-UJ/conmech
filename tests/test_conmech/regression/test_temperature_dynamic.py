@@ -90,9 +90,7 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.5,
-        scale=[2.5, 1]
+        initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
     )
     setup_m02_m02 = DynamicSetup(mesh_descr)
 
@@ -249,10 +247,8 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.685,
-        scale=[3.425, 1.37]
-    )  
+        initial_position=None, max_element_perimeter=0.685, scale=[3.425, 1.37]
+    )
     setup_var = DynamicSetup(mesh_descr)
     expected_displacement_vector_var = np.asarray(
         [

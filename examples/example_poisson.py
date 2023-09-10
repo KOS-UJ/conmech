@@ -12,7 +12,6 @@ from conmech.properties.mesh_properties import CrossMeshDescription
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-
     @staticmethod
     def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         if 0.4 <= x[0] <= 0.6 and 0.4 <= x[1] <= 0.6:
@@ -42,9 +41,7 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.125,
-        scale=[1, 1]
+        initial_position=None, max_element_perimeter=0.125, scale=[1, 1]
     )
     setup = StaticPoissonSetup(mesh_descr)
     runner = PoissonSolver(setup, "direct")
