@@ -98,8 +98,6 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    #     grid_height: ... = 1.0
-    # elements_number: ... = (4, 10)
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=0.1, scale=[2.5, 1]
     )

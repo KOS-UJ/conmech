@@ -45,7 +45,6 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-
     contact_law: ... = make_slope_contact_law(slope=1000)
 
     @staticmethod
@@ -94,9 +93,7 @@ def main(config: Config):
 def simulate(config, alpha, ih):
     print(f"Simulate {alpha=}, {ih=}")
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=1 / ih,
-        scale=[2, 1]
+        initial_position=None, max_element_perimeter=1 / ih, scale=[2, 1]
     )
     setup = StaticPoissonSetup(mesh_descr)
     setup.contact_law = make_slope_contact_law(slope=alpha)

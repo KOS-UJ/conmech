@@ -48,7 +48,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_descr = ImportedMeshDescription(initial_position=None, path="examples/meshes/example_mesh.msh")
+    mesh_descr = ImportedMeshDescription(
+        initial_position=None, path="examples/meshes/example_mesh.msh"
+    )
     setup = StaticSetup(mesh_descr)
     runner = StaticSolver(setup, "schur")
 
