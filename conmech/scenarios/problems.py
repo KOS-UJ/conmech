@@ -3,7 +3,7 @@ Contact Mechanics Problem setups
 """
 from abc import ABC
 from dataclasses import dataclass
-from typing import Tuple, Union, Optional, Callable
+from typing import Optional, Callable
 
 import numpy as np
 
