@@ -17,6 +17,8 @@ from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
 from examples.example_poisson import main as poisson
 from examples.example_nonhomogenous_density import main as nonhomogenous_density
+from examples.example_imported_mesh import main as imported_mesh
+
 
 default_args = dict(show=False, save=False, force=True, test=True)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
@@ -37,6 +39,7 @@ test_suits = {
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
     "nonhomogenous_density": lambda: nonhomogenous_density(Config(**default_args).init()),
+    "imported_mesh": lambda: imported_mesh(Config(**default_args).init()),
 }
 
 
