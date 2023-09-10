@@ -38,7 +38,7 @@ class StaticSetup(StaticDisplacementProblem):
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] < 0.1 and x[0] < 0.5, dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] == 0 and x[0] < 0.5, dirichlet=lambda x: x[0] == 0
     )
 
 
