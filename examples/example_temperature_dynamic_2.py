@@ -12,7 +12,9 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamicProblem
-from conmech.simulations.problem_solver import TemperatureTimeDependentSolver as TDynamicProblemSolver
+from conmech.simulations.problem_solver import (
+    TemperatureTimeDependentSolver as TDynamicProblemSolver,
+)
 from conmech.state.state import TemperatureState
 from conmech.properties.mesh_properties import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
