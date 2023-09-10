@@ -6,6 +6,8 @@ import numpy as np
 import meshio
 from conmech.mesh.zoo.raw_mesh import RawMesh
 
+# pylint: disable=import-outside-toplevel
+
 
 @dataclass
 class MeshDescription(ABC):
