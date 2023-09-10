@@ -30,6 +30,7 @@ class Rectangle(RawMesh):
             int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
         ]
 
+        # pylint: disable=no-member
         nodes, elements = meshzoo.rectangle_tri(
             np.linspace(0.0, scale_x, int(mesh_density[0]) + 1),
             np.linspace(0.0, scale_y, int(mesh_density[1]) + 1),
