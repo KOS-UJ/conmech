@@ -23,7 +23,7 @@ class ImportedMeshDescription(MeshDescription):
 
     def build(self):
         mesh: meshio.Mesh = meshio.read(self.path)
-        
+
         if "tetra" in mesh.cells_dict:
             # mesh is 3D
             return RawMesh(nodes=mesh.points, elements=mesh.cells_dict["tetra"])
