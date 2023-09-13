@@ -17,7 +17,7 @@ from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
 from examples.example_poisson import main as poisson
 from examples.example_nonhomogenous_density import main as nonhomogenous_density
-from examples.example_imported_mesh import main as imported_mesh
+from examples.example_imported_mesh_static import main as imported_mesh
 
 
 default_args = dict(show=False, save=False, force=True, test=True)
