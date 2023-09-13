@@ -57,7 +57,7 @@ class Direct(Solver):
                 self.equation,
                 initial_guess,
                 args=(
-                    self.body.mesh.initial_nodes,
+                    self.body.mesh.nodes,
                     self.body.mesh.contact_boundary,
                     self.body.mesh.boundaries.contact_normals,
                     self.node_relations,

@@ -66,7 +66,7 @@ class BodyForces:
         self.outer.cache = None
 
     def get_integrated_inner_forces(self, time: float):
-        inner_forces = self.inner.node_source(self.body.mesh.initial_nodes, time)
+        inner_forces = self.inner.node_source(self.body.mesh.nodes, time)
         # TODO: should be only on boundary!
         return self.body.dynamics.volume_at_nodes @ inner_forces
 
@@ -74,9 +74,9 @@ class BodyForces:
         neumann_surfaces = get_surface_per_boundary_node_numba(
             boundary_surfaces=self.body.mesh.neumann_boundary,
             considered_nodes_count=self.body.mesh.nodes_count,
-            moved_nodes=self.body.mesh.initial_nodes,
+            moved_nodes=self.body.mesh.nodes,
         )
-        outer_forces = self.outer.node_source(self.body.mesh.initial_nodes, time)
+        outer_forces = self.outer.node_source(self.body.mesh.nodes, time)
         return neumann_surfaces * outer_forces
 
     def get_integrated_field_sources_column(self, time: float):

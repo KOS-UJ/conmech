@@ -93,7 +93,7 @@ def test_local_stiff_mats_assembly():
     )
 
     mesh = object.__new__(Mesh)
-    mesh.initial_nodes = initial_nodes
+    mesh.nodes = initial_nodes
     mesh.elements = elements
 
     body = object.__new__(Body)

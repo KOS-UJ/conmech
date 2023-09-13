@@ -51,7 +51,7 @@ def main(config: Config):
 
     elem_centers = np.empty(shape=(len(runner.body.mesh.elements), 2))
     for idx, elem in enumerate(runner.body.mesh.elements):
-        verts = runner.body.mesh.initial_nodes[elem]
+        verts = runner.body.mesh.nodes[elem]
         elem_centers[idx] = np.sum(verts, axis=0) / len(elem)
     density = np.asarray([1 if x[0] < 1 else 0.2 for x in elem_centers])
 

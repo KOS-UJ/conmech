@@ -27,7 +27,7 @@ class Validator:
         quality_inv = np.linalg.norm(
             self.rhs(
                 solution,
-                state.body.mesh.initial_nodes,
+                state.body.mesh.nodes,
                 state.body.mesh.contact_boundary,
                 state.body.mesh.boundaries.contact_normals,
                 self.elasticity,

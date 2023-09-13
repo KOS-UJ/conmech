@@ -67,7 +67,7 @@ def main(config: Config):
         fig = plt.figure()
         axs = fig.add_subplot(111, projection="3d")
         # Draw nodes
-        nodes = state.body.mesh.initial_nodes
+        nodes = state.body.mesh.nodes
         axs.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], c="b", marker="o")
 
         # Draw elements

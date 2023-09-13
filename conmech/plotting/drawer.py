@@ -90,22 +90,22 @@ class Drawer:
         # pylint: disable=nested-min-max
         if self.x_min is None:
             self.x_min = min(
-                min(self.state.body.mesh.initial_nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
+                min(self.state.body.mesh.nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
             )
         if self.x_max is None:
             self.x_max = max(
-                max(self.state.body.mesh.initial_nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
+                max(self.state.body.mesh.nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
             )
         dx = self.x_max - self.x_min
         x_margin = dx * 0.2
         xlim = (self.x_min - x_margin, self.x_max + x_margin)
         if self.y_min is None:
             self.y_min = min(
-                min(self.state.body.mesh.initial_nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
+                min(self.state.body.mesh.nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
             )
         if self.y_max is None:
             self.y_max = max(
-                max(self.state.body.mesh.initial_nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
+                max(self.state.body.mesh.nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
             )
         dy = self.y_max - self.y_min
         y_margin = dy * 0.2
@@ -200,7 +200,7 @@ class Drawer:
             neumann_nodes = list(set(neumann_nodes.flatten()))
             x = self.state.displaced_nodes[neumann_nodes]
             v = self.state.body.dynamics.force.outer.node_source(
-                self.state.body.mesh.initial_nodes, self.state.time
+                self.state.body.mesh.nodes, self.state.time
             )[neumann_nodes]
 
             scale = self.outer_forces_scale

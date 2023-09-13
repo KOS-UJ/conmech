@@ -14,7 +14,7 @@ class State:
         self.displacement: np.ndarray = np.zeros(
             (self.body.mesh.nodes_count, self.body.mesh.dimension)
         )
-        self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.initial_nodes)
+        self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.nodes)
         self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.setup = None
         self.__stress: np.ndarray = None
@@ -26,7 +26,7 @@ class State:
     ):
         self.displacement = displacement_vector.reshape((self.body.mesh.dimension, -1)).T
         self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
         )
         if update_absement:
             dt = time - self.time
@@ -39,8 +39,7 @@ class State:
             dt = time - self.time
             self.displacement += dt * self.velocity
             self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
-                self.body.mesh.initial_nodes[: self.body.mesh.nodes_count, :]
-                + self.displacement[:, :]
+                self.body.mesh.nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
             )
         self.time = time
 
@@ -54,7 +53,7 @@ class State:
                 absement=self.absement,
                 setup=self.setup,
                 elements=self.body.mesh.elements,
-                nodes=self.body.mesh.initial_nodes,
+                nodes=self.body.mesh.nodes,
                 time=self.time,
             )
         return self.__stress
