@@ -19,7 +19,7 @@
 import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import BallMeshDescription
+from conmech.properties.mesh_description import BallMeshDescription
 
 
 class Ball(RawMesh):

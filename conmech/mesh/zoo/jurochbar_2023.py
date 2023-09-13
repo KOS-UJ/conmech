@@ -19,7 +19,7 @@
 import dmsh
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import JOB2023MeshDescription
+from conmech.properties.mesh_description import JOB2023MeshDescription
 
 
 class JOB2023(RawMesh):

@@ -10,7 +10,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
-from conmech.properties.mesh_properties import Barboteu2008MeshDescription
+from conmech.properties.mesh_description import Barboteu2008MeshDescription
 
 from examples.p_slope_contact_law import make_slope_contact_law
 

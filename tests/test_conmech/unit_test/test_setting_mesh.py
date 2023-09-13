@@ -5,7 +5,7 @@ from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
-from conmech.properties.mesh_properties import RectangleMeshDescription, CubeMeshDescription
+from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
 from conmech.simulations.problem_solver import Body
 
 

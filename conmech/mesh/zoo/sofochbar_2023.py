@@ -20,7 +20,7 @@ import dmsh
 import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import SOB2023MeshDescription
+from conmech.properties.mesh_description import SOB2023MeshDescription
 
 
 class SOB2023(RawMesh):

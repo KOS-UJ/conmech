@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from conmech.properties.mesh_properties import MeshDescription
+from conmech.properties.mesh_description import MeshDescription
 
 
 def build_mesh(mesh_descr: MeshDescription) -> Tuple[np.ndarray, np.ndarray]:

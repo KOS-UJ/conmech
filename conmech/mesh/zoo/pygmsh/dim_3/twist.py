@@ -21,7 +21,7 @@ import pygmsh
 
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import TwistMeshDescription
+from conmech.properties.mesh_description import TwistMeshDescription
 
 
 class Twist(RawMesh):

@@ -13,7 +13,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, QuasistaticDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver as QuasistaticProblemSolver
-from conmech.properties.mesh_properties import JOB2023MeshDescription
+from conmech.properties.mesh_description import JOB2023MeshDescription
 from examples.utils import viscoelastic_constitutive_law
 
 

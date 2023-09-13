@@ -19,7 +19,7 @@
 import pygmsh
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import Barboteu2008MeshDescription
+from conmech.properties.mesh_description import Barboteu2008MeshDescription
 
 
 class Barboteu2008(RawMesh):

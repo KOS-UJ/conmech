@@ -20,7 +20,7 @@ import meshzoo
 import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import RectangleMeshDescription
+from conmech.properties.mesh_description import RectangleMeshDescription
 
 
 class Rectangle(RawMesh):

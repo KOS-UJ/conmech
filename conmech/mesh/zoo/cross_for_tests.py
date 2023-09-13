@@ -3,7 +3,7 @@ import numpy as np
 
 from conmech.helpers import nph
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import CrossMeshDescription
+from conmech.properties.mesh_description import CrossMeshDescription
 
 
 class CrossMesh(RawMesh):

@@ -16,7 +16,7 @@ from conmech.simulations.problem_solver import (
     TemperatureTimeDependentSolver as TDynamicProblemSolver,
 )
 from conmech.state.state import TemperatureState
-from conmech.properties.mesh_properties import CrossMeshDescription
+from conmech.properties.mesh_description import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 import matplotlib.tri as tri
 

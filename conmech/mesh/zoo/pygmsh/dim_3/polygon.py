@@ -20,7 +20,7 @@ import pygmsh
 
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import Polygon3DMeshDescription
+from conmech.properties.mesh_description import Polygon3DMeshDescription
 
 
 class Polygon3D(RawMesh):

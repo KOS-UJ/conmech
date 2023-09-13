@@ -10,7 +10,7 @@ from conmech.dynamics.dynamics import Dynamics
 from conmech.simulations.problem_solver import Body
 from conmech.mesh.mesh import Mesh
 from conmech.mesh import mesh_builders
-from conmech.properties.mesh_properties import RectangleMeshDescription, CubeMeshDescription
+from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
 
 
 def test_matrices_2d_integrals():

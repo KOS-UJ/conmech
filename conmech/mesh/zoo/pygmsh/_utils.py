@@ -1,7 +1,7 @@
 import numpy as np
 from pygmsh.geo import Geometry
 
-from conmech.properties.mesh_properties import GeneratedMeshDescription
+from conmech.properties.mesh_description import GeneratedMeshDescription
 
 
 # CORNERS left, bottom, right, top

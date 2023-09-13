@@ -9,7 +9,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import PoissonProblem
 from conmech.simulations.problem_solver import PoissonSolver
-from conmech.properties.mesh_properties import CrossMeshDescription
+from conmech.properties.mesh_description import CrossMeshDescription
 
 
 @pytest.fixture(params=["direct"])

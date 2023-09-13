@@ -9,7 +9,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import NonHomogenousSolver
-from conmech.properties.mesh_properties import CrossMeshDescription
+from conmech.properties.mesh_description import CrossMeshDescription
 
 from examples.p_slope_contact_law import make_slope_contact_law
 

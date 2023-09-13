@@ -6,7 +6,7 @@ from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.mesh.boundaries import Boundaries
-from conmech.properties.mesh_properties import MeshDescription
+from conmech.properties.mesh_description import MeshDescription
 
 
 @numba.njit

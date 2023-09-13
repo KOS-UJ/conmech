@@ -8,7 +8,7 @@ from typing import Optional, Callable
 import numpy as np
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.properties.mesh_properties import MeshDescription
+from conmech.properties.mesh_description import MeshDescription
 
 # pylint: disable=too-many-ancestors
 
