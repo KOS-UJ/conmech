@@ -16,9 +16,3 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-__all__ = ["MeshZOO"]
-
-from conmech.mesh.zoo.meshzoo import MeshZOO
-from . import ball, barboteu_2008, cross_for_tests, cube, jurochbar_2023, rectangle, sofochbar_2023
-from .pygmsh.dim_2 import circle, polygon as polygon_2d, rectangle as pygmsh_rectangle, spline
-from .pygmsh.dim_3 import polygon, twist

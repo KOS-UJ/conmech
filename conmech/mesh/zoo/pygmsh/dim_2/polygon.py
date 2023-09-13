@@ -18,24 +18,23 @@
 # USA.
 import pygmsh
 
-from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import PolygonMeshDescription
 
 
-@MeshZOO.register("polygon", "polygon_2d", "pygmsh_polygon", "pygmsh_polygon_2d")
 class Polygon(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: PolygonMeshDescription):
+        scale_x, scale_y = mesh_descr.scale
         with pygmsh.geo.Geometry() as geom:
             geom.add_polygon(
                 [
-                    [mesh_prop.scale_x * 0.0 / 1.4, mesh_prop.scale_y * 0.2 / 1.4],
-                    [mesh_prop.scale_x * 1.0 / 1.4, mesh_prop.scale_y * 0.0 / 1.4],
-                    [mesh_prop.scale_x * 1.1 / 1.4, mesh_prop.scale_y * 1.4 / 1.4],
-                    [mesh_prop.scale_x * 0.1 / 1.4, mesh_prop.scale_y * 0.9 / 1.4],
+                    [scale_x * 0.0 / 1.4, scale_y * 0.2 / 1.4],
+                    [scale_x * 1.0 / 1.4, scale_y * 0.0 / 1.4],
+                    [scale_x * 1.1 / 1.4, scale_y * 1.4 / 1.4],
+                    [scale_x * 0.1 / 1.4, scale_y * 0.9 / 1.4],
                 ]
             )
-            _utils.set_mesh_size(geom, mesh_prop)
+            _utils.set_mesh_size(geom, mesh_descr)
             nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)

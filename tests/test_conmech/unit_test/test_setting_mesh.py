@@ -5,7 +5,7 @@ from conmech.helpers import nph
 from conmech.mesh import mesh
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.mesh import Mesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
 from conmech.simulations.problem_solver import Body
 
 
@@ -15,14 +15,13 @@ def test_boundary_nodes_data_2d(scale_x, scale_y):
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
-    mesh_prop = MeshProperties(
-        dimension=2,
-        mesh_type="meshzoo_rectangle",
-        mesh_density=[3, 3],
+    mesh_descr = RectangleMeshDescription(
+        initial_position=None,
+        max_element_perimeter=(np.min([scale_x, scale_y]) / 3),
         scale=[scale_x, scale_y],
     )
     mesh = Mesh(
-        mesh_prop=mesh_prop,
+        mesh_descr=mesh_descr,
         boundaries_description=boundaries_description,
     )
 
@@ -39,11 +38,9 @@ def test_boundary_nodes_data_3d():
     boundaries_description: ... = BoundariesDescription(
         contact=lambda x: True, dirichlet=lambda x: False
     )
-    mesh_prop = MeshProperties(
-        dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[4], scale=[1]
-    )
+    mesh_descr = CubeMeshDescription(initial_position=None)
     mesh = Mesh(
-        mesh_prop=mesh_prop,
+        mesh_descr=mesh_descr,
         boundaries_description=boundaries_description,
     )
 

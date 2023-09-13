@@ -6,7 +6,7 @@ from conmech.mesh import mesh_builders
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.mesh.boundaries import Boundaries
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import MeshDescription
 
 
 @numba.njit
@@ -82,21 +82,20 @@ def get_base_seed_indices_numba(nodes):
     return base_seed_indices, int(np.argmin(errors))
 
 
+# TODO make it inherit from RawMesh
 class Mesh:
     def __init__(
         self,
-        mesh_prop: MeshProperties,
+        mesh_descr: MeshDescription,
         boundaries_description: BoundariesDescription,
     ):
-        self.mesh_prop = mesh_prop
-
         self.initial_nodes: np.ndarray
         self.elements: np.ndarray
         self.edges: np.ndarray
 
         self.boundaries: Boundaries
 
-        input_nodes, input_elements = mesh_builders.build_mesh(mesh_prop=mesh_prop)
+        input_nodes, input_elements = mesh_builders.build_mesh(mesh_descr=mesh_descr)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
@@ -109,6 +108,14 @@ class Mesh:
         )
         edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
+
+    @property
+    def dimension(self):
+        return self.initial_nodes.shape[1]
+
+    @property
+    def scale(self):
+        return np.max(self.initial_nodes, axis=0) - np.min(self.initial_nodes, axis=0)
 
     def normalize_shift(self, vectors):
         _ = self
@@ -197,10 +204,6 @@ class Mesh:
     @property
     def free_indices(self):
         return slice(self.contact_nodes_count, self.independent_nodes_count)
-
-    @property
-    def dimension(self):
-        return self.mesh_prop.dimension
 
     @property
     def nodes_count(self):

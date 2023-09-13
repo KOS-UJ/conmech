@@ -9,6 +9,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import NonHomogenousSolver
+from conmech.properties.mesh_description import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -37,8 +38,6 @@ def generate_test_suits():
 
     @dataclass()
     class StaticSetup(StaticDisplacementProblem):
-        grid_height: ... = 1
-        elements_number: ... = (4, 10)
         mu_coef: ... = 4
         la_coef: ... = 4
         contact_law: ... = make_slope_contact_law(slope=1)
@@ -59,7 +58,10 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_1 = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=0.25, scale=[2.5, 1]
+    )
+    setup_1 = StaticSetup(mesh_descr)
 
     expected_displacement_vectors_1 = [
         [
@@ -159,8 +161,6 @@ def generate_test_suits():
 
     @dataclass()
     class StaticSetup(StaticDisplacementProblem):
-        grid_height: ... = 1
-        elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
         contact_law: ... = make_slope_contact_law(slope=1)
@@ -181,7 +181,10 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0 and x[0] < 0.2, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_2 = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
+    )
+    setup_2 = StaticSetup(mesh_descr)
 
     expected_displacement_vectors_2 = [
         [

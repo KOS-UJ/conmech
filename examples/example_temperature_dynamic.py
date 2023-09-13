@@ -11,6 +11,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
+from conmech.properties.mesh_description import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 
 
@@ -55,8 +56,6 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
 @dataclass()
 class TDynamicSetup(TemperatureDynamicProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (4, 10)
     mu_coef: ... = 4
     la_coef: ... = 4
     th_coef: ... = 4
@@ -99,7 +98,10 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = TDynamicSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=0.25, scale=[2.5, 1]
+    )
+    setup = TDynamicSetup(mesh_descr)
     runner = TemperatureTimeDependentSolver(setup, solving_method="schur")
     n_steps = 32 if not config.test else 8
 

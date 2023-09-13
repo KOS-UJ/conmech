@@ -10,6 +10,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
+from conmech.properties.mesh_description import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -59,8 +60,6 @@ def generate_test_suits():
 
     @dataclass()
     class DynamicSetup(TemperatureDynamicProblem):
-        grid_height: ... = 1
-        elements_number: ... = (2, 5)
         mu_coef: ... = 4
         la_coef: ... = 4
         th_coef: ... = 4
@@ -90,7 +89,10 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_m02_m02 = DynamicSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
+    )
+    setup_m02_m02 = DynamicSetup(mesh_descr)
 
     expected_displacement_vector_m02_m02 = np.asarray(
         [
@@ -139,7 +141,7 @@ def generate_test_suits():
 
     # p = 0 and opposite forces
 
-    setup_0_02_p_0 = DynamicSetup(mesh_type="cross")
+    setup_0_02_p_0 = DynamicSetup(mesh_descr)
     setup_0_02_p_0.contact_law = make_slope_contact_law_temp(0)
 
     def inner_forces(x, time=None):
@@ -194,7 +196,7 @@ def generate_test_suits():
 
     # p = 0
 
-    setup_0_m02_p_0 = DynamicSetup(mesh_type="cross")
+    setup_0_m02_p_0 = DynamicSetup(mesh_descr)
     setup_0_m02_p_0.contact_law = make_slope_contact_law_temp(0)
 
     def inner_forces(x, time=None):
@@ -215,8 +217,6 @@ def generate_test_suits():
 
     @dataclass()
     class DynamicSetup(TemperatureDynamicProblem):
-        grid_height: ... = 1.37
-        elements_number: ... = (2, 5)
         mu_coef: ... = 4.58
         la_coef: ... = 3.33
         th_coef: ... = 2.11
@@ -246,7 +246,10 @@ def generate_test_suits():
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
 
-    setup_var = DynamicSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=0.685, scale=[3.425, 1.37]
+    )
+    setup_var = DynamicSetup(mesh_descr)
     expected_displacement_vector_var = np.asarray(
         [
             [0.0, 0.0],

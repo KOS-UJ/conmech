@@ -13,6 +13,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, QuasistaticDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver as QuasistaticProblemSolver
+from conmech.properties.mesh_description import JOB2023MeshDescription
 from examples.utils import viscoelastic_constitutive_law
 
 
@@ -53,11 +54,9 @@ eps = 0.01
 path = "./output/JOB2023"
 
 
-def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction_bound_):
+def make_setup(mesh_descr_, boundaries_, contact_law_, friction_bound_):
     @dataclass()
     class QuasistaticSetup(QuasistaticDisplacementProblem):
-        grid_height: ... = 1.0
-        elements_number: ... = elements_number_
         mu_coef: ... = 40
         la_coef: ... = 100
         th_coef: ... = 40
@@ -89,7 +88,7 @@ def make_setup(mesh_type_, boundaries_, contact_law_, elements_number_, friction
 
         boundaries: ... = boundaries_
 
-    return QuasistaticSetup(mesh_type=mesh_type_)
+    return QuasistaticSetup(mesh_descr=mesh_descr_)
 
 
 def main(config: Config):
@@ -137,6 +136,8 @@ def main(config: Config):
     else:
         simulate = True
 
+    mesh_descr = JOB2023MeshDescription(initial_position=None, max_element_perimeter=1 / h)
+
     if simulate:
         for name in names:
             boundaries = four_screws
@@ -148,10 +149,9 @@ def main(config: Config):
             if name == "friction":
                 friction_bound = 300
             setup = make_setup(
-                mesh_type_="bow",
+                mesh_descr_=mesh_descr,
                 boundaries_=boundaries,
                 contact_law_=contact_law,
-                elements_number_=(h, h),
                 friction_bound_=friction_bound,
             )
             runner = QuasistaticProblemSolver(setup, "schur")
@@ -176,10 +176,9 @@ def main(config: Config):
         boundaries = four_screws
         contact_law = soft_foundation()
         setup = make_setup(
-            mesh_type_="bow",
+            mesh_descr_=mesh_descr,
             boundaries_=boundaries,
             contact_law_=contact_law,
-            elements_number_=(h, h),
             friction_bound_=friction_bound,
         )
         if name == names[0]:

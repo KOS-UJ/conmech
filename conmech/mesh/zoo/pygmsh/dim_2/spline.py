@@ -18,28 +18,27 @@
 # USA.
 import pygmsh
 
-from conmech.mesh.zoo import MeshZOO
 from conmech.mesh.zoo.pygmsh import _utils
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import SplineMeshDescription
 
 
-@MeshZOO.register("spline", "pygmsh_spline", "pygmsh_spline_2d")
 class Spline(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: SplineMeshDescription):
+        scale_x, scale_y = mesh_descr.scale
         with pygmsh.geo.Geometry() as geom:
             p_1 = geom.add_point([0.0, 0.0])
-            p_2 = geom.add_point([mesh_prop.scale_x, 0.0])
-            p_3 = geom.add_point([mesh_prop.scale_x, mesh_prop.scale_y / 2.0])
-            p_4 = geom.add_point([mesh_prop.scale_x, mesh_prop.scale_y])
+            p_2 = geom.add_point([scale_x, 0.0])
+            p_3 = geom.add_point([scale_x, scale_y / 2.0])
+            p_4 = geom.add_point([scale_x, scale_y])
             s_1 = geom.add_bspline([p_1, p_2, p_3, p_4])
 
-            p_2 = geom.add_point([0.0, mesh_prop.scale_y])
-            p_3 = geom.add_point([mesh_prop.scale_x / 2.0, mesh_prop.scale_y])
+            p_2 = geom.add_point([0.0, scale_y])
+            p_3 = geom.add_point([scale_x / 2.0, scale_y])
             s_2 = geom.add_spline([p_4, p_3, p_2, p_1])
 
             curve_loop = geom.add_curve_loop([s_1, s_2])
             geom.add_plane_surface(curve_loop)
-            _utils.set_mesh_size(geom, mesh_prop)
+            _utils.set_mesh_size(geom, mesh_descr)
             nodes, elements = _utils.get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)

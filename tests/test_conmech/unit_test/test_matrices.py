@@ -10,7 +10,7 @@ from conmech.dynamics.dynamics import Dynamics
 from conmech.simulations.problem_solver import Body
 from conmech.mesh.mesh import Mesh
 from conmech.mesh import mesh_builders
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
 
 
 def test_matrices_2d_integrals():
@@ -19,9 +19,9 @@ def test_matrices_2d_integrals():
     scale_y = 3
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_prop=MeshProperties(
-            dimension=2, mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
-        ),
+        mesh_descr=RectangleMeshDescription(
+            initial_position=None, max_element_perimeter=(scale_x / 3), scale=[scale_x, scale_y]
+        )
     )
 
     # Act
@@ -49,9 +49,7 @@ def test_matrices_2d_integrals():
 def test_matrices_3d_integrals():
     # Arrange
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_prop=MeshProperties(
-            dimension=2, mesh_type="meshzoo_cube_3d", mesh_density=[3], scale=[1]
-        ),
+        mesh_descr=CubeMeshDescription(initial_position=None)
     )
 
     # Act
@@ -82,9 +80,9 @@ def test_local_stiff_mats_assembly():
     scale_x = 2
     scale_y = 3
     initial_nodes, elements = mesh_builders.build_mesh(
-        mesh_prop=MeshProperties(
-            dimension=2, mesh_type="meshzoo_rectangle", mesh_density=[3], scale=[scale_x, scale_y]
-        ),
+        mesh_descr=RectangleMeshDescription(
+            initial_position=None, max_element_perimeter=(scale_x / 3), scale=[scale_x, scale_y]
+        )
     )
     edges_features_matrix, _, local_stiff_mats = sut_2d(elements=elements, nodes=initial_nodes)
     expected_w_matrix = np.asarray(

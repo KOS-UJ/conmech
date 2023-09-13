@@ -19,13 +19,11 @@
 import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import BallMeshDescription
 
 
-@MeshZOO.register("ball", "ball_3d", "meshzoo_ball_3d")
 class Ball(RawMesh):
-    def __init__(self, _mesh_prop: MeshProperties):
+    def __init__(self, _mesh_decr: BallMeshDescription):
         nodes = np.asarray(
             [
                 [-0.33333333, -0.33333333, -0.33333333],

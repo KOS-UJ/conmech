@@ -9,6 +9,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
+from conmech.properties.mesh_description import CrossMeshDescription
 
 
 class JureczkaOchal2019(ContactLaw):
@@ -43,8 +44,6 @@ class JureczkaOchal2019(ContactLaw):
 
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
-    grid_height: ... = 1.0
-    elements_number: ... = (8, 16)
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = JureczkaOchal2019
@@ -76,7 +75,10 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    setup = StaticSetup(mesh_type="cross")
+    mesh_descr = CrossMeshDescription(
+        initial_position=None, max_element_perimeter=1 / 16, scale=[2, 1]
+    )
+    setup = StaticSetup(mesh_descr)
     if config.test:
         setup.elements_number = (2, 4)
     runner = StaticProblemSolver(setup, "schur")

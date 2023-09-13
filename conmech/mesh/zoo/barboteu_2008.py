@@ -16,18 +16,14 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-import numpy as np
 import pygmsh
 
-from conmech.mesh.utils import interpolate_nodes
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import Barboteu2008MeshDescription
 
 
-@MeshZOO.register("Barboteu2008", "barboteu_2008")
 class Barboteu2008(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: Barboteu2008MeshDescription):
         with pygmsh.geo.Geometry() as geom:
             geom.add_polygon(
                 [
@@ -42,25 +38,13 @@ class Barboteu2008(RawMesh):
                 ],
                 mesh_size=0.1,
             )
-            Barboteu2008._set_mesh_size(geom, mesh_prop)
+            Barboteu2008._set_mesh_size(geom, mesh_descr)
             nodes, elements = Barboteu2008._get_nodes_and_elements(geom, 2)
         super().__init__(nodes, elements)
 
     @staticmethod
-    def _set_mesh_size(geom, mesh_prop: MeshProperties):
-        # pylint: disable=unnecessary-lambda-assignment
-        if mesh_prop.corner_mesh_data is not None:
-            if mesh_prop.dimension != 2:
-                raise NotImplementedError
-            corner_vectors = Barboteu2008._get_random_corner_mesh_size(mesh_prop=mesh_prop)
-            callback = lambda dim, tag, x, y, z, *_: interpolate_nodes(
-                scaled_nodes=np.array([[x / mesh_prop.scale_x, y / mesh_prop.scale_y]]),
-                corner_vectors=corner_vectors,
-            ).item()
-        else:
-            callback = lambda dim, tag, x, y, z, *_: 1.0 / mesh_prop.mesh_density_x
-
-        geom.set_mesh_size_callback(callback)
+    def _set_mesh_size(geom, mesh_descr: Barboteu2008MeshDescription):
+        geom.set_mesh_size_callback(lambda dim, tag, x, y, z, *_: mesh_descr.max_element_perimeter)
 
     @staticmethod
     def _get_nodes_and_elements(geom, dim):
@@ -68,14 +52,3 @@ class Barboteu2008(RawMesh):
         nodes = geom_mesh.points.copy()
         elements = geom_mesh.cells[-2].data.astype("long").copy()
         return nodes[:, :dim], elements
-
-    @staticmethod
-    def _get_random_corner_data():
-        return np.random.rand(4).reshape(-1, 1)
-
-    @staticmethod
-    def _get_random_corner_mesh_size(mesh_prop: MeshProperties):
-        mesh_density = mesh_prop.mesh_density_x
-        scale = mesh_density * 0.8
-        corner_data = (mesh_prop.corner_mesh_data * 2.0 * scale) - scale
-        return 1.0 / (mesh_density + corner_data)

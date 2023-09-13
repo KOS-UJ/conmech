@@ -20,17 +20,20 @@ import meshzoo
 import numpy as np
 
 from conmech.mesh.zoo.raw_mesh import RawMesh
-from conmech.mesh.zoo import MeshZOO
-from conmech.properties.mesh_properties import MeshProperties
+from conmech.properties.mesh_description import RectangleMeshDescription
 
 
-@MeshZOO.register("rectangle", "rectangle_2d", "meshzoo_rectangle", "meshzoo_rectangle_2d")
 class Rectangle(RawMesh):
-    def __init__(self, mesh_prop: MeshProperties):
+    def __init__(self, mesh_descr: RectangleMeshDescription):
+        scale_x, scale_y = mesh_descr.scale
+        mesh_density = [
+            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+        ]
+
         # pylint: disable=no-member
         nodes, elements = meshzoo.rectangle_tri(
-            np.linspace(0.0, mesh_prop.scale_x, int(mesh_prop.mesh_density_x) + 1),
-            np.linspace(0.0, mesh_prop.scale_y, int(mesh_prop.mesh_density_y) + 1),
+            np.linspace(0.0, scale_x, int(mesh_density[0]) + 1),
+            np.linspace(0.0, scale_y, int(mesh_density[1]) + 1),
             variant="zigzag",
         )
         super().__init__(nodes, elements)
