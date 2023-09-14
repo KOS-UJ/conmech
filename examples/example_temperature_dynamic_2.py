@@ -24,8 +24,8 @@ import matplotlib.tri as tri
 
 
 def compute_error(ref: TemperatureState, sol: TemperatureState):
-    x = sol.body.mesh.initial_nodes[:, 0]
-    y = sol.body.mesh.initial_nodes[:, 1]
+    x = sol.body.mesh.nodes[:, 0]
+    y = sol.body.mesh.nodes[:, 1]
 
     soltri = tri.Triangulation(x, y, triangles=sol.body.mesh.elements)
     u1hi = tri.LinearTriInterpolator(soltri, sol.velocity[:, 0])
@@ -35,9 +35,9 @@ def compute_error(ref: TemperatureState, sol: TemperatureState):
     total_abs_error = np.full_like(ref.temperature, fill_value=np.nan)
 
     for element in ref.body.mesh.elements:
-        x0 = ref.body.mesh.initial_nodes[element[0]]
-        x1 = ref.body.mesh.initial_nodes[element[1]]
-        x2 = ref.body.mesh.initial_nodes[element[2]]
+        x0 = ref.body.mesh.nodes[element[0]]
+        x1 = ref.body.mesh.nodes[element[1]]
+        x2 = ref.body.mesh.nodes[element[2]]
         if total_abs_error[element[0]] != np.nan:
             total_abs_error[element[0]] = (  # abs(ref.velocity[element[0], 0] - u1hi(*x0))
                 # + abs(ref.velocity[element[0], 1] - u2hi(*x0))

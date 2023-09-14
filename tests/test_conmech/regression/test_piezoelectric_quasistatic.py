@@ -310,9 +310,9 @@ def test_piezoelectric_time_dependent_solver(
         initial_electric_potential=setup.initial_electric_potential,
     )
 
-    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
-    displacement = results[-1].body.mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
-    electric_potential = np.zeros(len(results[-1].body.mesh.initial_nodes))
+    std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
+    displacement = results[-1].body.mesh.nodes[:] - results[-1].displaced_nodes[:]
+    electric_potential = np.zeros(len(results[-1].body.mesh.nodes))
     electric_potential[: len(results[-1].electric_potential)] = results[-1].electric_potential
 
     # print result

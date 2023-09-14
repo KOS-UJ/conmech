@@ -72,8 +72,8 @@ def test(solving_method):
         fixed_point_abs_tol=0.001, initial_displacement=setup.initial_displacement
     )
 
-    displacement = result.body.mesh.initial_nodes[:] - result.displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
+    displacement = result.body.mesh.nodes[:] - result.displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

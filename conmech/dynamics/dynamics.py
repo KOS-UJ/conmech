@@ -53,7 +53,7 @@ class Dynamics:
             self._w_matrix,
             self._local_stifness_matrices,
         ) = get_basic_matrices(
-            elements=self.body.mesh.elements, nodes=self.body.mesh.initial_nodes
+            elements=self.body.mesh.elements, nodes=self.body.mesh.nodes
         )  # + self.displacement_old)
 
         if elements_density is not None:

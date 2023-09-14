@@ -182,8 +182,8 @@ def test_time_dependent_solver(solving_method, setup, expected_displacement_vect
         initial_velocity=setup.initial_velocity,
     )
 
-    displacement = results[-1].body.mesh.initial_nodes[:] - results[-1].displaced_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
+    displacement = results[-1].body.mesh.nodes[:] - results[-1].displaced_nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

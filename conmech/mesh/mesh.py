@@ -7,6 +7,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.mesh.boundaries import Boundaries
 from conmech.properties.mesh_description import MeshDescription
+from conmech.mesh.zoo.raw_mesh import RawMesh
 
 
 @numba.njit
@@ -82,40 +83,38 @@ def get_base_seed_indices_numba(nodes):
     return base_seed_indices, int(np.argmin(errors))
 
 
-# TODO make it inherit from RawMesh
-class Mesh:
+class Mesh(RawMesh):
     def __init__(
         self,
         mesh_descr: MeshDescription,
         boundaries_description: BoundariesDescription,
     ):
-        self.initial_nodes: np.ndarray
-        self.elements: np.ndarray
         self.edges: np.ndarray
 
         self.boundaries: Boundaries
 
         input_nodes, input_elements = mesh_builders.build_mesh(mesh_descr=mesh_descr)
+        super().__init__(input_nodes, input_elements)
         unordered_nodes, unordered_elements = remove_unconnected_nodes_numba(
             input_nodes, input_elements
         )
         (
-            self.initial_nodes,
+            self.nodes,
             self.elements,
             self.boundaries,
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, boundaries_description
         )
-        edges_matrix = get_edges_matrix(nodes_count=len(self.initial_nodes), elements=self.elements)
+        edges_matrix = get_edges_matrix(nodes_count=len(self.nodes), elements=self.elements)
         self.edges = get_edges_list_numba(edges_matrix)
 
     @property
     def dimension(self):
-        return self.initial_nodes.shape[1]
+        return self.nodes.shape[1]
 
     @property
     def scale(self):
-        return np.max(self.initial_nodes, axis=0) - np.min(self.initial_nodes, axis=0)
+        return np.max(self.nodes, axis=0) - np.min(self.nodes, axis=0)
 
     def normalize_shift(self, vectors):
         _ = self
@@ -123,7 +122,7 @@ class Mesh:
 
     @property
     def normalized_initial_nodes(self):
-        return self.normalize_shift(self.initial_nodes)
+        return self.normalize_shift(self.nodes)
 
     @property
     def input_initial_nodes(self):
@@ -180,7 +179,7 @@ class Mesh:
 
     @property
     def initial_boundary_nodes(self):
-        return self.initial_nodes[self.boundary_indices]
+        return self.nodes[self.boundary_indices]
 
     @property
     def contact_indices(self):
@@ -207,7 +206,7 @@ class Mesh:
 
     @property
     def nodes_count(self):
-        return len(self.initial_nodes)
+        return len(self.nodes)
 
     @property
     def boundary_surfaces_count(self):

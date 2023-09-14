@@ -375,7 +375,7 @@ class StaticSolver(ProblemSolver):
         """
         state = State(self.body)
         state.displacement = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
@@ -436,11 +436,9 @@ class QuasistaticRelaxation(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = State(self.body)
-        state.absement[:] = initial_absement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
-        )
+        state.absement[:] = initial_absement(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
 
         self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
@@ -505,11 +503,9 @@ class TimeDependentSolver(ProblemSolver):
 
         state: State = State(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
@@ -576,13 +572,11 @@ class TemperatureTimeDependentSolver(ProblemSolver):
 
         state = TemperatureState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.temperature[:] = initial_temperature(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)
@@ -671,13 +665,11 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
 
         state = PiezoelectricState(self.body)
         state.displacement[:] = initial_displacement(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.electric_potential[:] = initial_electric_potential(
-            self.body.mesh.initial_nodes[: self.body.mesh.nodes_count]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
 
         solution = state.velocity.reshape(2, -1)

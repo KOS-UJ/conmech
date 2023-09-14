@@ -22,7 +22,7 @@ def solving_method(request):
 def get_elem_centers(runner: NonHomogenousSolver):
     elem_centers = np.empty(shape=(len(runner.body.mesh.elements), 2))
     for idx, elem in enumerate(runner.body.mesh.elements):
-        verts = runner.body.mesh.initial_nodes[elem]
+        verts = runner.body.mesh.nodes[elem]
         elem_centers[idx] = np.sum(verts, axis=0) / len(elem)
     return elem_centers
 
@@ -252,8 +252,8 @@ def test_nonhomogenous_solver(solving_method, setup, density_func, expected_disp
 
     result = runner.solve(initial_displacement=setup.initial_displacement)
 
-    displacement = result.displaced_nodes[:] - result.body.mesh.initial_nodes[:]
-    std_ids = standard_boundary_nodes(runner.body.mesh.initial_nodes, runner.body.mesh.elements)
+    displacement = result.displaced_nodes[:] - result.body.mesh.nodes[:]
+    std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

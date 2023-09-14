@@ -106,7 +106,7 @@ class Optimization(Solver):
         maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
         tol = kwargs.get("tol", 1e-12)
         args = (
-            self.body.mesh.initial_nodes,
+            self.body.mesh.nodes,
             self.body.mesh.contact_boundary,
             self.body.mesh.boundaries.contact_normals,
             self.lhs,
