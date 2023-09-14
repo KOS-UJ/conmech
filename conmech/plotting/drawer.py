@@ -24,7 +24,7 @@ class Drawer:
         self.state = state
         self.config = config
         self.mesh = state.body.mesh
-        self.node_size = 2 + (300 / len(self.mesh.initial_nodes))
+        self.node_size = 2 + (300 / len(self.mesh.nodes))
         self.line_width = self.node_size / 2
         self.deformed_mesh_color = "k"
         self.original_mesh_color = "0.7"
@@ -123,7 +123,7 @@ class Drawer:
     def draw_meshes(self, axes):
         if self.original_mesh_color is not None:
             self.draw_mesh(
-                self.mesh.initial_nodes,
+                self.mesh.nodes,
                 axes,
                 label="Original",
                 node_color=self.original_mesh_color,
