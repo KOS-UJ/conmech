@@ -84,28 +84,32 @@ class Drawer:
             fig.tight_layout()
             plt.show()
         if save:
-            self.save_plot(save_format)
+            self.save_plot(save_format, name=save)
 
     def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max
         if self.x_min is None:
             self.x_min = min(
-                min(self.state.body.mesh.nodes[:, 0]), min(self.state.displaced_nodes[:, 0])
+                min(self.state.body.mesh.nodes[:, 0]),
+                min(self.state.displaced_nodes[:, 0]),
             )
         if self.x_max is None:
             self.x_max = max(
-                max(self.state.body.mesh.nodes[:, 0]), max(self.state.displaced_nodes[:, 0])
+                max(self.state.body.mesh.nodes[:, 0]),
+                max(self.state.displaced_nodes[:, 0]),
             )
         dx = self.x_max - self.x_min
         x_margin = dx * 0.2
         xlim = (self.x_min - x_margin, self.x_max + x_margin)
         if self.y_min is None:
             self.y_min = min(
-                min(self.state.body.mesh.nodes[:, 1]), min(self.state.displaced_nodes[:, 1])
+                min(self.state.body.mesh.nodes[:, 1]),
+                min(self.state.displaced_nodes[:, 1]),
             )
         if self.y_max is None:
             self.y_max = max(
-                max(self.state.body.mesh.nodes[:, 1]), max(self.state.displaced_nodes[:, 1])
+                max(self.state.body.mesh.nodes[:, 1]),
+                max(self.state.displaced_nodes[:, 1]),
             )
         dy = self.y_max - self.y_min
         y_margin = dy * 0.2
@@ -163,7 +167,10 @@ class Drawer:
                 edges=self.mesh.contact_boundary, nodes=nodes, axes=axes, edge_color="b"
             )
             self.draw_boundary(
-                edges=self.mesh.dirichlet_boundary, nodes=nodes, axes=axes, edge_color="r"
+                edges=self.mesh.dirichlet_boundary,
+                nodes=nodes,
+                axes=axes,
+                edge_color="r",
             )
             self.draw_boundary(
                 edges=self.mesh.neumann_boundary, nodes=nodes, axes=axes, edge_color="g"
@@ -175,7 +182,7 @@ class Drawer:
         dirichlet_nodes = self.state.body.mesh.dirichlet_boundary
         dirichlet_nodes = list(set(dirichlet_nodes.flatten()))
         x = self.state.displaced_nodes[dirichlet_nodes][[0, 1]]
-        v = np.zeros_like(x) + np.asarray([0, 1])
+        v = np.zeros_like(x) + np.asarray([1, 0])
         if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
             axes.quiver(
                 x[:, 0],
@@ -184,7 +191,7 @@ class Drawer:
                 v[:, 1],
                 angles="xy",
                 scale_units="xy",
-                scale=2.5,
+                scale=8.0,
                 headlength=10,
                 headaxislength=10,
                 headwidth=10,
@@ -245,7 +252,7 @@ class Drawer:
     def get_output_path(config, format_, name):
         output_dir = config.output_dir or str(config.timestamp)
         directory = f"{config.outputs_path}/{output_dir}"
-        name = name if name else config.timestamp
+        name = name if isinstance(name, str) else config.timestamp
         path = f"{directory}/{name}.{format_}"
         return path
 
@@ -261,7 +268,9 @@ class Drawer:
         )
         plt.close()
 
-    def draw_boundary(self, edges, nodes, axes, label="", node_color="k", edge_color="k"):
+    def draw_boundary(
+        self, edges, nodes, axes, label="", node_color="k", edge_color="k"
+    ):
         graph = nx.Graph()
         for edge in edges:
             graph.add_edge(edge[0], edge[1])
@@ -303,6 +312,8 @@ class Drawer:
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
         # divider = make_axes_locatable(axes)
         # cax = divider.append_axes("bottom", size="5%", pad=0.15)
-        sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
+        sm = plt.cm.ScalarMappable(
+            cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max)
+        )
         sm.set_array([])
         fig.colorbar(sm, orientation="horizontal", label=self.field_label, ax=axes)

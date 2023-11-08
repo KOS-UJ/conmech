@@ -93,8 +93,8 @@ class Optimization(Solver):
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
-        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
-        tol = kwargs.get("tol", 1e-12)
+        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e12))
+        tol = kwargs.get("tol", 1e-18)
         args = (
             self.body.mesh.nodes,
             self.body.mesh.contact_boundary,
@@ -104,6 +104,13 @@ class Optimization(Solver):
             displacement,
             self.time_step,
         )
+
+        loss = []
+        sols = []
+        sols.append(solution)
+        loss.append(self.loss(solution, *args)[0])
+        print("pre", method, self.loss(solution, *args))
+
 
         while norm >= fixed_point_abs_tol:
             if method.lower() in (  # TODO
@@ -117,6 +124,34 @@ class Optimization(Solver):
                 from kosopt import qsmlm
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                sols[self.loss(solution, *args)] = solution
+            elif method.lower() == 'constrained':
+                import numba
+                contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
+                GAP = 0.0
+                @numba.njit()
+                def constr(x):
+                    offset = len(x) // 2
+                    t = x[offset:offset+contact_nodes_count]
+                    return np.min(t + GAP)
+
+                maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+                tol = kwargs.get("tol", 1e-12)
+                result = scipy.optimize.minimize(
+                    self.loss,
+                    solution,
+                    args=args,
+                    options={"disp": disp, "maxiter": maxiter},
+                    tol=tol,
+                    constraints=({'type': 'ineq',
+                                 'fun': constr
+                                 })
+                )
+                solution = result.x
+                sols.append(solution)
+                loss.append(self.loss(solution, *args)[0])
+                print(method, self.loss(solution, *args))
+                break
             else:
                 result = scipy.optimize.minimize(
                     self.loss,
@@ -127,6 +162,14 @@ class Optimization(Solver):
                     tol=tol,
                 )
                 solution = result.x
+                sols.append(solution.copy())
+                loss.append(self.loss(solution, *args)[0])
+                print(method, self.loss(solution, *args))
+                break
+
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
+        min_index = loss.index(np.min(loss))
+        solution = sols[min_index]
+        print(loss, "final:", self.loss(solution, *args))
         return solution

@@ -90,6 +90,14 @@ class Barboteu2008MeshDescription(GeneratedMeshDescription):
 
 
 @dataclass
+class BOST2023MeshDescription(GeneratedMeshDescription):
+    def build(self):
+        from conmech.mesh.zoo.barochsoftar_2024 import BOST2023
+
+        return BOST2023(self)
+
+
+@dataclass
 class JOB2023MeshDescription(GeneratedMeshDescription):
     def build(self):
         from conmech.mesh.zoo.jurochbar_2023 import JOB2023
