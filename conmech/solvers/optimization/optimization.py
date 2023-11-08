@@ -1,7 +1,6 @@
 """
 Created at 18.02.2021
 """
-
 import math
 from typing import Optional
 
@@ -114,9 +113,9 @@ class Optimization(Solver):
                 "qsmlm",
             ):
                 # pylint: disable=import-outside-toplevel,import-error)
-                from kosopt import qsmlm
+                from kosopt import qsmlmi
 
-                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                solution = qsmlmi.minimize(self.loss, solution, args=args, maxiter=maxiter)
                 sols.append(solution.copy())
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
