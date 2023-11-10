@@ -10,11 +10,14 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
+from conmech.properties.mesh_description import (
+    RectangleMeshDescription,
+    CubeMeshDescription,
+)
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
-DIMENSION = 2
+DIMENSION = 3
 
 
 @dataclass
@@ -75,7 +78,9 @@ def main(config: Config):
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
         axs.add_collection3d(
-            Poly3DCollection(faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25)
+            Poly3DCollection(
+                faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25
+            )
         )
         plt.show()
 

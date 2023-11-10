@@ -21,7 +21,6 @@ from conmech.solvers.solver_methods import (
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
     make_cost_functional_poisson,
-    make_cost_functional_3d,
 )
 
 
@@ -41,21 +40,14 @@ class Optimization(Solver):
             contact_law,
             friction_bound,
         )
-        if statement.dimension == 2:  # TODO
+        if statement.dimension >= 2:  # TODO
             self.loss = make_cost_functional(
                 jn=contact_law.potential_normal_direction,
                 jt=contact_law.potential_tangential_direction
                 if hasattr(contact_law, "potential_tangential_direction")
                 else None,
                 h_functional=friction_bound,
-            )
-        elif statement.dimension == 3:  # TODO
-            self.loss = make_cost_functional_3d(
-                jn=contact_law.potential_normal_direction,
-                jt=contact_law.potential_tangential_direction
-                if hasattr(contact_law, "potential_tangential_direction")
-                else None,
-                h_functional=friction_bound,
+                dim=statement.dimension,
             )
         elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional_temperature(
@@ -126,7 +118,9 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
 
-                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                solution = qsmlm.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
             else:
                 result = scipy.optimize.minimize(
                     self.loss,

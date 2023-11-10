@@ -23,7 +23,9 @@ def unstack(vector: np.ndarray, dim: int) -> np.ndarray:
     return vector.reshape(-1, dim, order="F")
 
 
-def unstack_and_sum_columns(data: np.ndarray, dim: int, keepdims: bool = False) -> np.ndarray:
+def unstack_and_sum_columns(
+    data: np.ndarray, dim: int, keepdims: bool = False
+) -> np.ndarray:
     return np.sum(unstack(data, dim), axis=1, keepdims=keepdims)
 
 
@@ -62,7 +64,9 @@ def get_normal(vector: np.ndarray, normal: np.ndarray) -> np.ndarray:
     return elementwise_dot(vector, normal, keepdims=True)
 
 
-def get_normal_tangential(vector: np.ndarray, normal: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def get_normal_tangential(
+    vector: np.ndarray, normal: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     normal_vector = get_normal(vector, normal)
     tangential_vector = vector - (normal_vector * normal)
     return normal_vector, tangential_vector
@@ -116,3 +120,11 @@ def generate_normal(rows: int, columns: int, scale: float) -> np.ndarray:
 @numba.njit(inline="always")
 def length(p_1, p_2):
     return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
+
+
+@numba.njit(inline="always")
+def length_prb(edge, nodes):
+    return np.sqrt(
+        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2
+        + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
+    )
