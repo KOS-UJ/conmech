@@ -103,13 +103,15 @@ def main(config: Config):
     mesh_descr = RectangleMeshDescription(
         initial_position=None,
         max_element_perimeter=0.25 * 10 * mm,
-        scale=[2.5 * 10 * mm, 10 * mm],
+        scale=[8 * 10 * mm, 10 * mm],
     )
 
     setup = StaticSetup(mesh_descr=mesh_descr)
 
-    for method in ("Powell", "BFGS", "CG", "qsm"):
-        for force in np.arange(25e3 * kN, 26e3 * kN + 1, 1e3 * kN) * surface:
+    for method in ("Powell", "BFGS", "CG", "qsm")[3:]:
+        for force in (
+            np.asarray([23e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN]) * surface
+        ):
 
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:

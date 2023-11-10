@@ -124,9 +124,11 @@ class Optimization(Solver):
                 "qsmlm",
             ):
                 # pylint: disable=import-outside-toplevel,import-error)
-                from kosopt import qsmlm
+                from kosopt import qsmlmi
 
-                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                solution = qsmlmi.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
             else:
                 result = scipy.optimize.minimize(
                     self.loss,
