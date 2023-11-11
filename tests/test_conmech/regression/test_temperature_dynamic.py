@@ -67,14 +67,10 @@ def generate_test_suits():
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(1e1)
         thermal_expansion: ... = field(
-            default_factory=lambda: np.array(
-                [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-            )
+            default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
         thermal_conductivity: ... = field(
-            default_factory=lambda: np.array(
-                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-            )
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
         )
 
         @staticmethod
@@ -207,12 +203,8 @@ def generate_test_suits():
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
-    expected_displacement_vector_0_m02_p_0 = [
-        -v for v in expected_displacement_vector_0_02_p_0
-    ]
-    expected_temperature_vector_0_m02_p_0 = [
-        -v for v in expected_temperature_vector_0_02_p_0
-    ]
+    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
+    expected_temperature_vector_0_m02_p_0 = [-v for v in expected_temperature_vector_0_02_p_0]
     test_suites.append(
         (
             setup_0_m02_p_0,
@@ -232,14 +224,10 @@ def generate_test_suits():
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(2.71)
         thermal_expansion: ... = field(
-            default_factory=lambda: np.array(
-                [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-            )
+            default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
         thermal_conductivity: ... = field(
-            default_factory=lambda: np.array(
-                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-            )
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
         )
 
         @staticmethod

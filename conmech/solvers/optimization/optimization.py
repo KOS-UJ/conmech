@@ -15,10 +15,7 @@ from conmech.dynamics.statement import (
 )
 from conmech.scenarios.problems import ContactLaw
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import (
-    make_cost_functional,
-    make_cost_functional_poisson,
-)
+from conmech.solvers.solver_methods import make_cost_functional
 
 
 class Optimization(Solver):
@@ -62,8 +59,10 @@ class Optimization(Solver):
                 problem_dimension=body.mesh.dimension,
             )
         elif isinstance(statement, StaticPoissonStatement):
-            self.loss = make_cost_functional_poisson(
-                jn=contact_law.potential_normal_direction,
+            self.loss = make_cost_functional(
+                normal_condition=contact_law.potential_normal_direction,
+                variable_dimension=statement.dimension,
+                problem_dimension=body.mesh.dimension,
             )
         else:
             raise ValueError(f"Unknown statement: {statement}")
@@ -117,9 +116,7 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
 
-                solution = qsmlm.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
-                )
+                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
             else:
                 result = scipy.optimize.minimize(
                     self.loss,

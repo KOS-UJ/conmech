@@ -17,7 +17,7 @@ from conmech.properties.mesh_description import (
 
 from examples.p_slope_contact_law import make_slope_contact_law
 
-DIMENSION = 3
+DIMENSION = 2
 
 
 @dataclass
@@ -78,9 +78,7 @@ def main(config: Config):
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
         axs.add_collection3d(
-            Poly3DCollection(
-                faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25
-            )
+            Poly3DCollection(faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25)
         )
         plt.show()
 

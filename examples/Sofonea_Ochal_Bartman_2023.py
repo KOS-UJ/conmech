@@ -75,7 +75,8 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
         return 0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[0] >= 4 and x[1] < eps, dirichlet=lambda x: x[0] <= 1 and x[1] < eps
+        contact=lambda x: x[0] >= 4 and x[1] < eps,
+        dirichlet=lambda x: x[0] <= 1 and x[1] < eps,
     )
 
 
@@ -85,15 +86,15 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    if config.test:
+    if not config.test:
         elements_number = (20, 20)
         mesh_descr = SOB2023MeshDescription(
             initial_position=None, max_element_perimeter=0.05, scale=[1, 1]
         )
     else:
-        elements_number = (8, 8)
+        elements_number = (5, 5)
         mesh_descr = SOB2023MeshDescription(
-            initial_position=None, max_element_perimeter=0.125, scale=[1, 1]
+            initial_position=None, max_element_perimeter=0.2, scale=[1, 1]
         )
     setup = QuasistaticSetup(mesh_descr)
     if config.test:
@@ -391,7 +392,12 @@ def zoom_outside(
     roi_kwargs = roi_kwargs if roi_kwargs else {}
     arrow_kwargs = arrow_kwargs if arrow_kwargs else {}
     roi_kwargs = dict(
-        [("fill", False), ("linestyle", "dashed"), ("color", color), ("linewidth", linewidth)]
+        [
+            ("fill", False),
+            ("linestyle", "dashed"),
+            ("color", color),
+            ("linewidth", linewidth),
+        ]
         + list(roi_kwargs.items())
     )
     arrow_kwargs = dict(
@@ -405,7 +411,12 @@ def zoom_outside(
         return
 
     # get coordinates of corners
-    src_corners = [[roi[0], roi[1]], [roi[0], roi[3]], [roi[2], roi[1]], [roi[2], roi[3]]]
+    src_corners = [
+        [roi[0], roi[1]],
+        [roi[0], roi[3]],
+        [roi[2], roi[1]],
+        [roi[2], roi[3]],
+    ]
     dst_corners = dst_ax.get_position().corners()
     src_bb = src_ax.get_position()
     dst_bb = dst_ax.get_position()

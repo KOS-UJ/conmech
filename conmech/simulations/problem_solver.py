@@ -177,9 +177,7 @@ class ProblemSolver:
                 StaticPoissonStatement(self.body),
                 self.body,
                 self.time_step,
-                self.problem.contact_law
-                if hasattr(self.problem, "contact_law")
-                else None,  # TODO
+                self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
                 None,
             )
         else:
@@ -234,9 +232,7 @@ class ProblemSolver:
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
-    def find_solution_uzawa(
-        self, solution, solution_t
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:
         # TODO #95
         norm = np.inf
         old_solution = solution.copy().reshape(-1, 1).squeeze()
@@ -300,8 +296,7 @@ class ProblemSolver:
         )
         self.second_step_solver.v_vector = velocity.reshape(-1)
         self.second_step_solver.u_vector = (
-            old_u_vector
-            + self.second_step_solver.time_step * self.second_step_solver.v_vector
+            old_u_vector + self.second_step_solver.time_step * self.second_step_solver.v_vector
         )
         self.step_solver.p_vector = solution_t
         self.second_step_solver.p_vector = solution_t
@@ -311,9 +306,7 @@ class ProblemSolver:
         return solution, solution_t
 
     @staticmethod
-    def print_iteration_info(
-        quality: float, error_tolerance: float, verbose: bool
-    ) -> None:
+    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool) -> None:
         qualitative = quality > error_tolerance
         sign = ">" if qualitative else "<"
         end = "." if qualitative else ", trying again..."
@@ -374,9 +367,7 @@ class StaticSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(
-        self, *, initial_displacement: Callable, verbose: bool = False, **kwargs
-    ) -> State:
+    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints
@@ -445,9 +436,7 @@ class QuasistaticRelaxation(ProblemSolver):
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
         state = State(self.body)
-        state.absement[:] = initial_absement(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
+        state.absement[:] = initial_absement(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.displacement[:] = initial_displacement(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
@@ -516,9 +505,7 @@ class TimeDependentSolver(ProblemSolver):
         state.displacement[:] = initial_displacement(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
@@ -587,9 +574,7 @@ class TemperatureTimeDependentSolver(ProblemSolver):
         state.displacement[:] = initial_displacement(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.temperature[:] = initial_temperature(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
@@ -612,9 +597,7 @@ class TemperatureTimeDependentSolver(ProblemSolver):
                 done += 1
                 print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
-                self.second_step_solver.current_time += (
-                    self.second_step_solver.time_step
-                )
+                self.second_step_solver.current_time += self.second_step_solver.time_step
 
                 # solution = self.find_solution(self.step_solver, state, solution, self.validator,
                 #                               verbose=verbose)
@@ -684,9 +667,7 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
         state.displacement[:] = initial_displacement(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
-        state.velocity[:] = initial_velocity(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
         state.electric_potential[:] = initial_electric_potential(
             self.body.mesh.nodes[: self.body.mesh.nodes_count]
         )
@@ -710,9 +691,7 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
                 done += 1
                 print(f"{done/n_steps*100:.2f}%", end="\r")
                 self.step_solver.current_time += self.step_solver.time_step
-                self.second_step_solver.current_time += (
-                    self.second_step_solver.time_step
-                )
+                self.second_step_solver.current_time += self.second_step_solver.time_step
 
                 solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 

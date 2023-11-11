@@ -63,14 +63,10 @@ class TDynamicSetup(TemperatureDynamicProblem):
     time_step: ... = 0.02
     contact_law: ... = TPSlopeContactLaw
     thermal_expansion: ... = field(
-        default_factory=lambda: np.array(
-            [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
-        )
+        default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
     )
     thermal_conductivity: ... = field(
-        default_factory=lambda: np.array(
-            [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-        )
+        default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
     )
 
     @staticmethod
@@ -93,9 +89,7 @@ class TDynamicSetup(TemperatureDynamicProblem):
     def friction_bound(u_nu):
         return 0
 
-    boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0, dirichlet=lambda x: False
-    )
+    boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0, dirichlet=lambda x: False)
 
 
 def main(config: Config):
@@ -129,9 +123,7 @@ def main(config: Config):
         drawer = Drawer(state=state, config=config)
         drawer.cmap = "plasma"
         drawer.field_name = "temperature"
-        drawer.draw(
-            field_max=T_max, field_min=T_min, show=config.show, save=config.save
-        )
+        drawer.draw(field_max=T_max, field_min=T_min, show=config.show, save=config.save)
 
 
 if __name__ == "__main__":
