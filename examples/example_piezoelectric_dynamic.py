@@ -17,32 +17,21 @@ from examples.p_slope_contact_law import make_slope_contact_law
 
 # TODO # 48
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-    # @staticmethod
-    # def g(t):
-    #     return 10.7 + t * 0.02
-    # return 0.5 + t * 0.01
-
     @staticmethod
     def h_nu(uN, t):
-        # g_t = 10.7 + t * 0.02
-        # if uN > g_t:
-        #     return 100.0 * (uN - g_t)
-        return 0
+        raise NotImplementedError()
 
     @staticmethod
     def h_tau(uN, t):
-        # g_t = 10.7 + t * 0.02
-        # if uN > g_t:
-        #     return 10.0 * (uN - g_t)
-        return 0
-
-    # def jT(self, vTx, vTy):
-    #     # return np.log(np.linalg.norm(vTx, vTy)+1)
-    #     return np.linalg.norm(vTx, vTy)
+        raise NotImplementedError()
 
     @staticmethod
-    def h_temp(u_tau):  # potential
-        return 0 * 0.1 * 0.5 * u_tau**2
+    def electric_charge_tangetial(u_tau):  # potential
+        return 0 * 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
+
+    @staticmethod
+    def electric_charge_flux(charge):
+        return 0 * charge
 
 
 @dataclass()
@@ -62,7 +51,9 @@ class PDynamicSetup(PiezoelectricDynamicProblem):
         )
     )
     permittivity: ... = field(
-        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
+        default_factory=lambda: np.array(
+            [[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]]
+        )
     )
 
     @staticmethod
@@ -101,7 +92,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_descr = Barboteu2008MeshDescription(initial_position=None, max_element_perimeter=0.25)
+    mesh_descr = Barboteu2008MeshDescription(
+        initial_position=None, max_element_perimeter=0.25
+    )
     setup = PDynamicSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
 

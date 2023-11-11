@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import PiezoelectricQuasistaticProblem, PiezoelectricDynamicProblem
+from conmech.scenarios.problems import (
+    PiezoelectricQuasistaticProblem,
+    PiezoelectricDynamicProblem,
+)
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from examples.p_slope_contact_law import make_slope_contact_law
@@ -24,21 +27,19 @@ def make_slope_contact_law_piezo(slope):
     class PPSlopeContactLaw(make_slope_contact_law(slope=slope)):
         @staticmethod
         def h_nu(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 100.0 * (uN - g_t)
-            return 0
+            raise NotImplementedError()
 
         @staticmethod
         def h_tau(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 10.0 * (uN - g_t)
-            return 0
+            raise NotImplementedError()
 
         @staticmethod
-        def h_temp(u_tau):  # potential  # TODO # 48
-            return 0.1 * 0.5 * u_tau**2
+        def electric_charge_tangetial(u_tau):  # potential
+            return 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
+
+        @staticmethod
+        def electric_charge_flux(charge):
+            return 0 * charge
 
     return PPSlopeContactLaw
 
@@ -65,7 +66,9 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod
@@ -198,8 +201,12 @@ def generate_test_suits():
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
-    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
-    expected_temperature_vector_0_m02_p_0 = [-v for v in expected_temperature_vector_0_02_p_0]
+    expected_displacement_vector_0_m02_p_0 = [
+        -v for v in expected_displacement_vector_0_02_p_0
+    ]
+    expected_temperature_vector_0_m02_p_0 = [
+        -v for v in expected_temperature_vector_0_02_p_0
+    ]
     test_suites.append(
         (
             setup_0_m02_p_0,
@@ -227,7 +234,9 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod
@@ -300,7 +309,10 @@ def generate_test_suits():
     generate_test_suits(),
 )
 def test_piezoelectric_time_dependent_solver(
-    solving_method, setup, expected_displacement_vector, expected_electric_potential_vector
+    solving_method,
+    setup,
+    expected_displacement_vector,
+    expected_electric_potential_vector,
 ):
     runner = PiezoelectricTimeDependentSolver(setup, solving_method)
     results = runner.solve(
@@ -313,7 +325,9 @@ def test_piezoelectric_time_dependent_solver(
     std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
     displacement = results[-1].body.mesh.nodes[:] - results[-1].displaced_nodes[:]
     electric_potential = np.zeros(len(results[-1].body.mesh.nodes))
-    electric_potential[: len(results[-1].electric_potential)] = results[-1].electric_potential
+    electric_potential[: len(results[-1].electric_potential)] = results[
+        -1
+    ].electric_potential
 
     # print result
     np.set_printoptions(precision=8, suppress=True)
@@ -325,5 +339,7 @@ def test_piezoelectric_time_dependent_solver(
     )
     precision = 2 if solving_method == "global optimization" else 1  # TODO #94
     np.testing.assert_array_almost_equal(
-        electric_potential[std_ids], expected_electric_potential_vector, decimal=precision
+        electric_potential[std_ids],
+        expected_electric_potential_vector,
+        decimal=precision,
     )

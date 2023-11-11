@@ -37,8 +37,8 @@ def make_slope_contact_law_temp(slope):
             return 0
 
         @staticmethod
-        def h_temp(vTnorm):
-            return 0.1 * vTnorm
+        def h_temp(vT):
+            return 0.1 * np.linalg.norm(vT)
 
         # TODO #96: ContactLaw abstract class
 
@@ -48,7 +48,7 @@ def make_slope_contact_law_temp(slope):
 
         @staticmethod
         def h_temp(u_tau):  # potential  # TODO # 48
-            return 0 * u_tau
+            return 0 * np.linalg.norm(u_tau)
 
     return TPSlopeContactLaw
 
@@ -67,10 +67,14 @@ def generate_test_suits():
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(1e1)
         thermal_expansion: ... = field(
-            default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+            default_factory=lambda: np.array(
+                [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
+            )
         )
         thermal_conductivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod
@@ -203,8 +207,12 @@ def generate_test_suits():
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
-    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
-    expected_temperature_vector_0_m02_p_0 = [-v for v in expected_temperature_vector_0_02_p_0]
+    expected_displacement_vector_0_m02_p_0 = [
+        -v for v in expected_displacement_vector_0_02_p_0
+    ]
+    expected_temperature_vector_0_m02_p_0 = [
+        -v for v in expected_temperature_vector_0_02_p_0
+    ]
     test_suites.append(
         (
             setup_0_m02_p_0,
@@ -224,10 +232,14 @@ def generate_test_suits():
         time_step: ... = 0.1
         contact_law: ... = make_slope_contact_law_temp(2.71)
         thermal_expansion: ... = field(
-            default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+            default_factory=lambda: np.array(
+                [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
+            )
         )
         thermal_conductivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod

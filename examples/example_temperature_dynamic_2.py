@@ -39,19 +39,25 @@ def compute_error(ref: TemperatureState, sol: TemperatureState):
         x1 = ref.body.mesh.nodes[element[1]]
         x2 = ref.body.mesh.nodes[element[2]]
         if total_abs_error[element[0]] != np.nan:
-            total_abs_error[element[0]] = (  # abs(ref.velocity[element[0], 0] - u1hi(*x0))
+            total_abs_error[
+                element[0]
+            ] = (  # abs(ref.velocity[element[0], 0] - u1hi(*x0))
                 # + abs(ref.velocity[element[0], 1] - u2hi(*x0))
                 +abs(ref.temperature[element[0]] - thi(*x0))
                 / ref.temperature[element[0]]
             )
         if total_abs_error[element[1]] != np.nan:
-            total_abs_error[element[1]] = (  # abs(ref.velocity[element[1], 0] - u1hi(*x1))
+            total_abs_error[
+                element[1]
+            ] = (  # abs(ref.velocity[element[1], 0] - u1hi(*x1))
                 # + abs(ref.velocity[element[1], 1] - u2hi(*x1))
                 +abs(ref.temperature[element[1]] - thi(*x1))
                 / ref.temperature[element[1]]
             )
         if total_abs_error[element[2]] != np.nan:
-            total_abs_error[element[2]] = (  # abs(ref.velocity[element[2], 0] - u1hi(*x2))
+            total_abs_error[
+                element[2]
+            ] = (  # abs(ref.velocity[element[2], 0] - u1hi(*x2))
                 # + abs(ref.velocity[element[2], 1] - u2hi(*x2))
                 +abs(ref.temperature[element[2]] - thi(*x2))
                 / ref.temperature[element[2]]
@@ -97,7 +103,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * u_tau**2
+        return 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
 
 
 @dataclass()

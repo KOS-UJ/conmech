@@ -18,15 +18,19 @@ from examples.p_slope_contact_law import make_slope_contact_law
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     @staticmethod
     def h_nu(uN, t):
-        return 0
+        raise NotImplementedError()
 
     @staticmethod
     def h_tau(uN, t):
+        raise NotImplementedError()
+
+    @staticmethod
+    def electric_charge_tangetial(u_tau):  # potential
         return 0
 
     @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
-        return 0
+    def electric_charge_flux(charge):
+        return 0 * charge
 
 
 @dataclass()
@@ -46,7 +50,9 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
         )
     )
     permittivity: ... = field(
-        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
+        default_factory=lambda: np.array(
+            [[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]]
+        )
     )
 
     @staticmethod
@@ -85,7 +91,9 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_descr = Barboteu2008MeshDescription(initial_position=None, max_element_perimeter=0.5)
+    mesh_descr = Barboteu2008MeshDescription(
+        initial_position=None, max_element_perimeter=0.5
+    )
     setup = PQuasistaticSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
     steps = 100 if not config.test else 10

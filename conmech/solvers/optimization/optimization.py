@@ -14,12 +14,9 @@ from conmech.dynamics.statement import (
     StaticPoissonStatement,
 )
 from conmech.scenarios.problems import ContactLaw
-from conmech.scene.body_forces import BodyForces
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
-    make_cost_functional_temperature,
-    make_cost_functional_piezoelectricity,
     make_cost_functional_poisson,
 )
 
@@ -28,7 +25,7 @@ class Optimization(Solver):
     def __init__(
         self,
         statement: Statement,
-        body: BodyForces,
+        body: "Body",
         time_step: float,
         contact_law: Optional[ContactLaw],
         friction_bound,
@@ -42,25 +39,27 @@ class Optimization(Solver):
         )
         if statement.dimension >= 2:  # TODO
             self.loss = make_cost_functional(
-                jn=contact_law.potential_normal_direction,
-                jt=contact_law.potential_tangential_direction
+                normal_condition=contact_law.potential_normal_direction,
+                tangential_condition=contact_law.potential_tangential_direction
                 if hasattr(contact_law, "potential_tangential_direction")
                 else None,
-                h_functional=friction_bound,
-                dim=statement.dimension,
+                tangential_condition_bound=friction_bound,
+                variable_dimension=statement.dimension,
+                problem_dimension=body.mesh.dimension,
             )
         elif isinstance(statement, TemperatureStatement):
-            self.loss = make_cost_functional_temperature(
-                h_functional=contact_law.h_temp,
-                hn=contact_law.h_nu,
-                ht=contact_law.h_tau,
-                heat_exchange=contact_law.temp_exchange,
+            self.loss = make_cost_functional(
+                tangential_condition=contact_law.h_temp,
+                normal_condition=contact_law.temp_exchange,
+                normal_condition_bound=-1,
             )
         elif isinstance(statement, PiezoelectricStatement):
-            self.loss = make_cost_functional_piezoelectricity(
-                h_functional=contact_law.h_temp,
-                hn=contact_law.h_nu,
-                ht=contact_law.h_tau,
+            self.loss = make_cost_functional(
+                tangential_condition=contact_law.electric_charge_tangetial,
+                tangential_condition_bound=-1,
+                normal_condition=None,
+                variable_dimension=statement.dimension,
+                problem_dimension=body.mesh.dimension,
             )
         elif isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional_poisson(

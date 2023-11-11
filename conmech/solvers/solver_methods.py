@@ -131,50 +131,58 @@ def make_equation(
 
 
 def njit(func: Optional[Callable], value: Optional[Any] = 0) -> Callable:
-    if func is None:
+    if func is None or isinstance(func, (int, float)):
+        ret_val = func if func is not None else value
 
         @numba.njit()
         def const(_):
-            return value
+            return ret_val
 
         return const
     return numba.njit(func)
 
 
 def make_cost_functional(
-    jn: Callable,
-    jt: Optional[Callable] = None,
-    h_functional: Optional[Callable] = None,
-    dim=2,
+    normal_condition: Callable,
+    normal_condition_bound: Optional[Callable] = None,
+    tangential_condition: Optional[Callable] = None,
+    tangential_condition_bound: Optional[Callable] = None,
+    problem_dimension=2,
+    variable_dimension=2,
 ):
-    jn = njit(jn)
-    jt = njit(jt)
-    h_functional = njit(h_functional)
+    normal_condition = njit(normal_condition)
+    normal_condition_bound = njit(normal_condition_bound, value=1)
+    tangential_condition = njit(tangential_condition)
+    tangential_condition_bound = njit(tangential_condition_bound, value=1)
 
     @numba.njit()
-    def contact_cost(length, normal, tangential, tangential_second):
-        return length * (normal + tangential_second * tangential)
+    def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
+        return length * (normal_bound * normal + tangential_bound * tangential)
 
     @numba.njit()
     def contact_cost_functional(
-        u_vector, u_vector_old, nodes, contact_boundary, contact_normals
+        var, displacement, nodes, contact_boundary, contact_normals
     ):
-        offset = len(u_vector) // dim
+        offset = len(var) // problem_dimension
 
         cost = 0.0
         for ei in numba.prange(len(contact_boundary)):
             edge = contact_boundary[ei]
             normal_vector = contact_normals[ei]
             # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_node_between_prb(edge, u_vector, dimension=dim)
+            vm = interpolate_node_between_prb(edge, var, dimension=variable_dimension)
+            if variable_dimension == 1:
+                vm_normal = vm[0]
+                vm_tangential = np.empty(0)
+            else:
+                vm_normal = (vm * normal_vector).sum()
+                vm_tangential = vm - vm_normal * normal_vector
+
+            um = interpolate_node_between_prb(
+                edge, displacement, dimension=problem_dimension
+            )
             um_normal = (um * normal_vector).sum()
             um_tangential = um - um_normal * normal_vector
-
-            um_old = interpolate_node_between_prb(edge, u_vector_old, dimension=dim)
-            um_old_normal = (um_old * normal_vector).sum()
-            um_old_tangential = um_old - um_old_normal * normal_vector
-
-            # temp_m = interpolate_node_between_prb(edge, temp_vector, dimension=1)
 
             for node_id in edge:
                 if node_id >= offset:
@@ -182,23 +190,22 @@ def make_cost_functional(
 
             cost += contact_cost(
                 nph.length_prb(edge, nodes),
-                jn(um_normal),
-                jt(um_tangential),
-                h_functional(um_old_normal),
+                normal_condition(vm_normal),
+                normal_condition_bound(um_normal),
+                tangential_condition(vm_tangential),
+                tangential_condition_bound(um_normal),
             )
         return cost
 
     # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def cost_functional(
-        u_vector, nodes, contact_boundary, contact_normals, lhs, rhs, u_vector_old, dt
+        var, nodes, contact_boundary, contact_normals, lhs, rhs, u_vector, dt
     ):
         ju = contact_cost_functional(
-            u_vector, u_vector_old, nodes, contact_boundary, contact_normals
+            var, u_vector, nodes, contact_boundary, contact_normals
         )
-        result = (
-            0.5 * np.dot(np.dot(lhs, u_vector), u_vector) - np.dot(rhs, u_vector) + ju
-        )
+        result = 0.5 * np.dot(np.dot(lhs, var), var) - np.dot(rhs, var) + ju
         result = np.asarray(result).ravel()
         return result
 
@@ -303,140 +310,6 @@ def make_cost_functional_2023(  # TODO #97
         )
         result = (
             0.5 * np.dot(np.dot(lhs, v_vector), v_vector) - np.dot(rhs, v_vector) + ju
-        )
-        result = np.asarray(result).ravel()
-        return result
-
-    return cost_functional
-
-
-def make_cost_functional_temperature(
-    normal_condition: Callable,
-    tangential_condition: Optional[Callable] = None,
-    h_functional: Optional[Callable] = None,
-    heat_exchange: Optional[Callable] = None,
-):
-    jn = njit(normal_condition)
-    jt = njit(tangential_condition)
-    h_functional = njit(h_functional)
-    heat_exchange = njit(heat_exchange)
-    #
-    # cost += contact_cost(
-    #     nph.length_prb(edge, nodes),
-    #     jn(um_normal),
-    #     jt(um_tangential),
-    #     h_functional(um_old_normal),
-    # )
-    #
-    # @numba.njit()
-    # def contact_cost(length, normal, tangential, tangential_second):
-    #     return length * (normal + tangential_second)
-    #
-    # (h_functional(np.linalg.norm(um_tangential)) - heat_exchange(temp_m[0]))
-
-    @numba.njit()
-    def contact_cost_functional(
-        u_vector, temp_vector, nodes, contact_boundary, contact_normals
-    ):
-        offset = len(u_vector) // DIMENSION
-
-        cost = 0.0
-        for ei in numba.prange(len(contact_boundary)):
-            edge = contact_boundary[ei]
-            # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_node_between_prb(edge, u_vector)
-            temp_m = interpolate_node_between_prb(edge, temp_vector, dimension=1)
-
-            normal_vector = contact_normals[ei]
-
-            um_normal = (um * normal_vector).sum()
-            um_tangential = um - um_normal * normal_vector
-
-            for node_id in edge:
-                if node_id >= offset:
-                    continue
-
-            cost += nph.length_prb(edge, nodes) * (
-                h_functional(np.linalg.norm(um_tangential)) - heat_exchange(temp_m[0])
-            )
-        return cost
-
-    # pylint: disable=unused-argument # 'dt'
-    @numba.njit()
-    def cost_functional(
-        temp_vector, nodes, contact_boundary, contact_normals, lhs, rhs, u_vector, dt
-    ):
-        ju = contact_cost_functional(
-            u_vector,
-            temp_vector,
-            nodes,
-            contact_boundary,
-            contact_normals,
-        )
-        result = (
-            0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
-            - np.dot(rhs, temp_vector)
-            - ju
-        )
-        result = np.asarray(result).ravel()
-        return result
-
-    return cost_functional
-
-
-def make_cost_functional_piezoelectricity(
-    hn: Callable,
-    ht: Optional[Callable] = None,
-    h_functional: Optional[Callable] = None,
-    electric_charge_exchange: Optional[Callable] = None,
-):
-    _hn = njit(hn)  # TODO #48
-    _ht = njit(ht)
-    h_functional = numba.njit(h_functional)
-    electric_charge_exchange = njit(electric_charge_exchange)
-
-    @numba.njit()
-    def contact_cost_functional(
-        u_vector, nodes, contact_boundary, contact_normals, temp_vector
-    ):
-        cost = 0
-        offset = len(u_vector) // DIMENSION
-
-        for ei, edge in enumerate(contact_boundary):
-            n_id_0 = edge[0]
-            n_id_1 = edge[1]
-            n_0 = nodes[n_id_0]
-            n_1 = nodes[n_id_1]
-
-            # ASSUMING `u_vector` and `nodes` have the same order!
-            um = interpolate_node_between(n_id_0, n_id_1, u_vector)
-            temp_m = interpolate_node_between(n_id_0, n_id_1, temp_vector, dimension=1)
-
-            normal_vector = contact_normals[ei]
-
-            um_normal = (um * normal_vector).sum()
-            um_tangential = um - um_normal * normal_vector
-
-            if n_id_0 < offset and n_id_1 < offset:
-                # cost += edgeLength * (hn(uNmL, tmL)
-                #      + h(np.linalg.norm(np.asarray((uTmLx, uTmLy)))) * ht(uNmL, tmL))
-                cost += nph.length(n_0, n_1) * (
-                    h_functional(np.linalg.norm(um_tangential))
-                    - electric_charge_exchange(temp_m[0])
-                )
-        return cost
-
-    # pylint: disable=unused-argument # 'dt'
-    @numba.njit()
-    def cost_functional(
-        temp_vector, nodes, contact_boundary, contact_normals, lhs, rhs, u_vector, dt
-    ):
-        result = (
-            0.5 * np.dot(np.dot(lhs, temp_vector), temp_vector)
-            - np.dot(rhs, temp_vector)
-            - contact_cost_functional(
-                u_vector, nodes, contact_boundary, contact_normals, temp_vector
-            )
         )
         result = np.asarray(result).ravel()
         return result
