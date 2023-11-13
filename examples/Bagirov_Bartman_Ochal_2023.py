@@ -108,7 +108,7 @@ def main(config: Config):
 
     setup = StaticSetup(mesh_descr=mesh_descr)
 
-    for method in ("Powell", "BFGS", "CG", "qsm")[3:]:
+    for method in ("Powell", "BFGS", "CG", "qsm", "dg")[:]:
         for force in (
             np.asarray([23e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN]) * surface
         ):
@@ -130,7 +130,12 @@ def main(config: Config):
             )
             drawer = Drawer(state=state, config=config)
             drawer.colorful = True
-            drawer.draw(show=config.show, save=config.save, title=f"{method}: {force}")
+            drawer.draw(
+                show=config.show,
+                save=config.save,
+                title=f"{method}: {force}, "
+                      f"time: {runner.step_solver.last_timing}"
+            )
 
 
 if __name__ == "__main__":
@@ -142,4 +147,4 @@ if __name__ == "__main__":
         Y[i] = MMLV99.potential_normal_direction(X[i])
     plt.plot(X, Y)
     plt.show()
-    main(Config().init())
+    main(Config(save=True, show=False).init())

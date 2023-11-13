@@ -4,6 +4,7 @@ Created at 21.08.2019
 @author: Michał Jureczka
 @author: Piotr Bartman
 """
+import time
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -252,7 +253,7 @@ class Drawer:
     def get_output_path(config, format_, name):
         output_dir = config.output_dir or str(config.timestamp)
         directory = f"{config.outputs_path}/{output_dir}"
-        name = name if isinstance(name, str) else config.timestamp
+        name = name if isinstance(name, str) else time.time_ns()
         path = f"{directory}/{name}.{format_}"
         return path
 

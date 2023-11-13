@@ -113,6 +113,16 @@ class Optimization(Solver):
                 "qsmlm",
             ):
                 # pylint: disable=import-outside-toplevel,import-error)
+                from kosopt import qsmlm
+                solution = qsmlm.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
+            elif method.lower() in (  # TODO
+                    "discontinuous gradient",
+                    "discontinuous gradient method",
+                    "dg",
+            ):
+                # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlmi
 
                 solution = qsmlmi.minimize(self.loss, solution, args=args, maxiter=maxiter)
