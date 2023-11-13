@@ -114,5 +114,7 @@ def generate_normal(rows: int, columns: int, scale: float) -> np.ndarray:
 
 
 @numba.njit(inline="always")
-def length(p_1, p_2):
-    return np.sqrt((p_1[0] - p_2[0]) ** 2 + (p_1[1] - p_2[1]) ** 2)
+def length(edge, nodes):
+    return np.sqrt(
+        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2 + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
+    )

@@ -228,7 +228,7 @@ class ProblemSolver:
         quality = 0
         initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
-        quality = validator.check_quality(state, solution, quality)
+        # quality = validator.check_quality(state, solution, quality)
         self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 

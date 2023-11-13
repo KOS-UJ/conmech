@@ -18,15 +18,19 @@ from examples.p_slope_contact_law import make_slope_contact_law
 class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
     @staticmethod
     def h_nu(uN, t):
-        return 0
+        raise NotImplementedError()
 
     @staticmethod
     def h_tau(uN, t):
+        raise NotImplementedError()
+
+    @staticmethod
+    def electric_charge_tangetial(u_tau):  # potential
         return 0
 
     @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
-        return 0
+    def electric_charge_flux(charge):
+        return 0 * charge
 
 
 @dataclass()

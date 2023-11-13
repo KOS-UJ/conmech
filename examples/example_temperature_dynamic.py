@@ -41,7 +41,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * u_tau**2
+        return 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
 
     # TODO #96 : ContactLaw abstract class
 
@@ -51,7 +51,7 @@ class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
 
     @staticmethod
     def h_temp(u_tau):  # potential  # TODO # 48
-        return 0 * u_tau
+        return 0 * np.linalg.norm(u_tau)
 
 
 @dataclass()

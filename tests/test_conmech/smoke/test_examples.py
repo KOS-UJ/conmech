@@ -39,7 +39,10 @@ test_suits = {
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
     "nonhomogenous_density": lambda: nonhomogenous_density(Config(**default_args).init()),
-    "imported_mesh": lambda: imported_mesh(Config(**default_args).init()),
+    "imported_mesh": lambda: imported_mesh(
+        Config(**default_args).init(),
+        mesh_path="examples/meshes/example_mesh.msh",
+    ),
 }
 
 
