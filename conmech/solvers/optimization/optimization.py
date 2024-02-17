@@ -117,6 +117,13 @@ class Optimization(Solver):
                 solution = qsmlm.minimize(
                     self.loss, solution, args=args, maxiter=maxiter
                 )
+            elif method.lower() in (
+                "subgradient"
+            ):
+                from kosopt import subgradient
+                solution = subgradient.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
             elif method.lower() in (  # TODO
                     "discontinuous gradient",
                     "discontinuous gradient method",
