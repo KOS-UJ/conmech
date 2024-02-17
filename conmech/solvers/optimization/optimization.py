@@ -77,6 +77,8 @@ class Optimization(Solver):
         else:
             raise ValueError(f"Unknown statement: {statement}")
 
+    RESULTS = ""
+
     def __str__(self):
         raise NotImplementedError()
 
@@ -128,6 +130,13 @@ class Optimization(Solver):
                 solution = qsmlm.minimize(
                     self.loss, solution, args=args, maxiter=maxiter
                 )
+            elif method.lower() in (
+                "subgradient"
+            ):
+                from kosopt import subgradient
+                solution = subgradient.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
             elif method.lower() in (  # TODO
                     "discontinuous gradient",
                     "discontinuous gradient method",
@@ -150,4 +159,6 @@ class Optimization(Solver):
                 solution = result.x
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
+        Optimization.RESULTS += \
+            f'"{method}":' + str(self.loss(solution, *args)[0]) + ",\n"
         return solution
