@@ -16,7 +16,8 @@ from conmech.dynamics.statement import (
 from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional, make_equation
+from conmech.solvers.solver_methods import (
+    make_cost_functional, make_equation, make_cost_functional_subgradient)
 
 
 class Optimization(Solver):
@@ -42,6 +43,11 @@ class Optimization(Solver):
             tangential_condition_bound=contact_law.tangential_bound,
             variable_dimension=statement.dimension_out,
             problem_dimension=statement.dimension_in,
+        )
+        self.subgradient = make_cost_functional_subgradient(
+            djn=contact_law.subderivative_normal_direction,  # TODO
+            djt=None,
+            dh_functional=None,
         )
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
@@ -115,14 +121,16 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
                 solution = qsmlm.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
+                    self.loss, solution, args=args, maxiter=maxiter,
+                    subgradient=self.subgradient
                 )
             elif method.lower() in (
                 "subgradient"
             ):
                 from kosopt import subgradient
                 solution = subgradient.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
+                    self.loss, solution, args=args, maxiter=maxiter,
+                    subgradient=self.subgradient
                 )
             elif method.lower() in (  # TODO
                     "discontinuous gradient",

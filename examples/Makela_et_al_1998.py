@@ -26,32 +26,33 @@ k20 = 5e6 * kN * surface
 k21 = 5e3 * kN * surface
 
 
-def normal_direction(u_nu: float) -> float:
-    u_nu = -u_nu
-    if u_nu <= 0:
-        return 0.0
-    if u_nu < 0.5 * mm:
-        return k0 * u_nu * 2
-    if u_nu < 1 * mm:
-        return k10 * (u_nu * 2) + k11
-    if u_nu < 2 * mm:
-        return k20 * (u_nu * 2) + k21
-    return 0
-
-
 class MMLV99(ContactLaw):
     @staticmethod
     def potential_normal_direction(u_nu: float) -> float:
         u_nu = -u_nu
+        coef = 1.
         if u_nu <= 0:
             return 0.0
         if u_nu < 0.5 * mm:
-            return k0 * u_nu ** 2
+            return k0 * u_nu ** 2 * coef
         if u_nu < 1 * mm:
-            return k10 * u_nu ** 2 + k11 * u_nu
+            return (k10 * u_nu ** 2 + k11 * u_nu) * coef
         if u_nu < 2 * mm:
-            return k20 * u_nu ** 2 + k21 * u_nu + 4
-        return 16
+            return (k20 * u_nu ** 2 + k21 * u_nu + 4) * coef
+        return 16 * coef
+
+    @staticmethod
+    def normal_direction(u_nu: float) -> float:
+        u_nu = -u_nu
+        if u_nu <= 0:
+            return 0.0
+        if u_nu < 0.5 * mm:
+            return k0 * u_nu * 2
+        if u_nu < 1 * mm:
+            return k10 * (u_nu * 2) + k11
+        if u_nu < 2 * mm:
+            return k20 * (u_nu * 2) + k21
+        return 0
 
     @staticmethod
     def potential_tangential_direction(u_tau: np.ndarray) -> float:
@@ -161,19 +162,23 @@ def main(config: Config, methods, forces):
             with open(path, "rb") as output:
                 state = pickle.load(output)
 
+            print("drawing")
             drawer = Drawer(state=state, config=config)
             drawer.colorful = True
             drawer.draw(
                 show=config.show,
                 save=config.save,
-                title=f"{m}: {f}, "
+                # title=f"{m}: {f}, "
                 # f"time: {runner.step_solver.last_timing}"
             )
             x = state.body.mesh.nodes[:state.body.mesh.contact_nodes_count - 1,
                 0]
             u = state.displacement[:state.body.mesh.contact_nodes_count - 1, 1]
-            y1 = [normal_direction(-u_) for u_ in u]
+            y1 = [MMLV99().normal_direction(-u_) for u_ in u]
             plt.plot(x, y1, label=f"{f:.2e}")
+        plt.ylabel("Interlaminar binding force [kN/m$^2$]")
+        plt.xlabel(r"Contact interface [mm]")
+        plt.grid()
         plt.title(m)
         plt.legend()
         plt.show()
@@ -188,54 +193,56 @@ if __name__ == "__main__":
         Y[i] = MMLV99.potential_normal_direction(X[i])
     plt.plot(X, Y)
     plt.show()
-    # for i in range(1000):
-    #     Y[i] = normal_direction(X[i])
-    # plt.plot(X, Y)
-    # plt.show()
-    results = {
-        "Powell": [-0.09786211600599237,
-                   -0.12214289905239312,
-                   -0.13027212877878766,
-                   -0.13447218948364842,
-                   -0.13588717514960513,
-                   -0.1373096435316275,
-                   -0.7582249893948801,
-                   -0.8589012530191608,
-                   -1.2688709210981735, ],
-        "BFGS": [-0.09487765162385353,
-                 -0.12207326519092926,
-                 -0.11772218280878324,
-                 -0.1198269497911567,
-                 -0.12061095335641955,
-                 -0.1219350781729528,
-                 -0.12279409585312624,
-                 -0.8584230093357013,
-                 -1.2687124265093166, ],
-        "CG": [-0.0955742828809952,
-               -0.12191044159984168,
-               -0.13009806547436803,
-               -0.1341887930175023,
-               -0.1358025353476277,
-               -0.136904521914724,
-               -0.13865495481609302,
-               -0.8584104766729636,
-               -1.2658836730355307, ],
-        "subgradient2": [-0.09786204500205781,
-                         -0.12214281874382482,
-                         -0.13027204041320914,
-                         -0.15450061948841598,
-                         -0.1571765749815719,
-                         -0.15986547858657962,
-                         -0.7582249071621823,
-                         -0.8589012119331098,
-                         -1.2688708874747643, ],
-    }
-    for m, losses in results.items():
-        plt.plot(-1 * np.asarray(losses), label=m)
-    plt.legend()
-    # plt.loglog()
+    for i in range(1000):
+        Y[i] = MMLV99.normal_direction(X[i])
+    plt.plot(X, Y)
     plt.show()
-    methods = ("BFGS", "CG", "qsm", "Powell", "subgradient")[-2:]
-    forces = (23e3 * kN, 25e3 * kN, 25.6e3 * kN, 25.9e3 * kN, 26e3 * kN,
-              26.1e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN)[:]
+    results = {
+        "BFGS": [-0.061546678021737036,
+                 -0.06782602334922566,
+                 -0.07441012406759984,
+                 -0.08129875924227234,
+                 -0.0959892642846613,
+                 -0.10379118250601398,
+                 -0.10538811134540409,
+                 -0.8584224789292736,
+                 -0.14133884664811114, ],
+        "CG": [-0.07225702623584927,
+               -0.07966800277816762,
+               -0.08744039267159345,
+               -0.09557428287965247,
+               -0.12191044159984168,
+               -0.1358025353476277,
+               -0.13865495481609302,
+               -0.15028696247286885,
+               -1.265832916470563, ],
+        "Powell": [-0.0723012449592487,
+                   -0.07971212256709342,
+                   -0.0874845064006726,
+                   -0.0978621160055679,
+                   -0.12214289905071576,
+                   -0.13588717513833654,
+                   -0.7582249892835198,
+                   -0.8589012526317955,
+                   -1.2688709207679356, ],
+        "subgradient": [-0.05079652409797247,
+                        -0.046161334145372934,
+                        -0.04120648554585715,
+                        -0.3859157295854724,
+                        -0.6104716467978587,
+                        -0.7302821710666211,
+                        -0.7554950402698594,
+                        -0.8555741662642888,
+                        -1.2663638426265278, ],
+    }
+    forces = np.asarray((20e3 * kN, 21e3 * kN, 21e3 * kN, 23e3 * kN,
+              25e3 * kN, 26e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN))[::2]
+    # for m, losses in results.items():
+    #     plt.plot(forces/1e3, -1 * np.asarray(losses[:]), "-o", label=m)
+    plt.legend()
+    plt.ylabel("$-\mathcal{L}(u)$")
+    plt.xlabel(r"Load [kN/m$^2$]")
+    plt.grid()
+    plt.show()
+    methods = ("BFGS", "CG", "Powell", "subgradient")[-1:]
     main(Config(save=True, show=False, force=False).init(), methods, forces)
