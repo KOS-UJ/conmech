@@ -4,6 +4,7 @@ Created at 18.02.2021
 from typing import Callable, Optional
 
 import numpy as np
+import time
 
 from conmech.dynamics.statement import Statement, Variables
 from conmech.scenarios.problems import ContactLaw
@@ -46,6 +47,8 @@ class Solver:
             )
         )
 
+        self.last_timing = None
+
     def __str__(self) -> str:
         raise NotImplementedError()
 
@@ -58,6 +61,7 @@ class Solver:
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
+        start = time.time()
         solution = self._solve_impl(
             initial_guess, velocity=self.v_vector, displacement=self.u_vector, **kwargs
         )
@@ -69,5 +73,7 @@ class Solver:
                 dirichlet_cond, node_count, self.statement.dimension
             ):
                 solution[i] = c[j]
+
+        self.last_timing = time.time() - start
 
         return solution
