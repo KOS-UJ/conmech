@@ -1,6 +1,7 @@
 """
 Created at 21.08.2019
 """
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -50,7 +51,7 @@ class StaticSetup(StaticDisplacementProblem):
 
     @staticmethod
     def inner_forces(x, t=None):
-        return np.array([-1.2, -0.8])
+        return np.array([-1.2, -0.9])
 
     @staticmethod
     def outer_forces(x, t=None):

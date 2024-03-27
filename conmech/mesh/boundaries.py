@@ -102,7 +102,7 @@ class Boundaries:
 
     @property
     def contact_normals(self):
-        return self.surface_normals[: self.contact_nodes_count]
+        return self.surface_normals[: len(self.boundaries["contact"].surfaces)]
 
     @property
     def neumann_boundary(self):

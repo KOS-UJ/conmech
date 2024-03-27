@@ -1,6 +1,7 @@
 """
 Created at 05.09.2023
 """
+
 from dataclasses import dataclass
 
 import numpy as np

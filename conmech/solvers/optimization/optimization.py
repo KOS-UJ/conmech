@@ -1,9 +1,11 @@
 """
 Created at 18.02.2021
 """
+
 import math
 from typing import Optional
 
+import numba
 import numpy as np
 import scipy.optimize
 
@@ -37,9 +39,11 @@ class Optimization(Solver):
         if statement.dimension >= 2:  # TODO
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
-                tangential_condition=contact_law.potential_tangential_direction
-                if hasattr(contact_law, "potential_tangential_direction")
-                else None,
+                tangential_condition=(
+                    contact_law.potential_tangential_direction
+                    if hasattr(contact_law, "potential_tangential_direction")
+                    else None
+                ),
                 tangential_condition_bound=friction_bound,
                 variable_dimension=statement.dimension,
                 problem_dimension=body.mesh.dimension,
@@ -105,6 +109,11 @@ class Optimization(Solver):
             self.time_step,
         )
 
+        loss = []
+        sols = []
+        sols.append(solution)
+        loss.append(self.loss(solution, *args)[0])
+
         while norm >= fixed_point_abs_tol:
             if method.lower() in (  # TODO
                 "quasi secant method",
@@ -117,6 +126,30 @@ class Optimization(Solver):
                 from kosopt import qsmlm
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                sols[self.loss(solution, *args)] = solution
+            elif method.lower() == "constrained":
+                contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
+
+                @numba.njit()
+                def constr(x):
+                    offset = len(x) // 2
+                    t = x[offset : offset + contact_nodes_count]
+                    return np.min(t)
+
+                maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+                tol = kwargs.get("tol", 1e-12)
+                result = scipy.optimize.minimize(
+                    self.loss,
+                    solution,
+                    args=args,
+                    options={"disp": disp, "maxiter": maxiter},
+                    tol=tol,
+                    constraints=({"type": "ineq", "fun": constr}),
+                )
+                solution = result.x
+                sols.append(solution)
+                loss.append(self.loss(solution, *args)[0])
+                break
             else:
                 result = scipy.optimize.minimize(
                     self.loss,
@@ -127,6 +160,12 @@ class Optimization(Solver):
                     tol=tol,
                 )
                 solution = result.x
+                sols.append(solution.copy())
+                loss.append(self.loss(solution, *args)[0])
+                break
+
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
+        min_index = loss.index(np.min(loss))
+        solution = sols[min_index]
         return solution

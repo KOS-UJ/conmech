@@ -1,6 +1,7 @@
 """
 Created at 18.02.2021
 """
+
 from typing import Callable, Optional
 
 import numpy as np

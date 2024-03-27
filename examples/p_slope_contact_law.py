@@ -1,6 +1,7 @@
 """
 Example contact law
 """
+
 from typing import Type
 
 import numpy as np

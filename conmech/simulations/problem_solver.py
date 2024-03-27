@@ -1,6 +1,7 @@
 """
 General solver for Contact Mechanics problem.
 """
+
 from typing import Callable, List, Optional, Tuple, Type
 
 import numpy as np

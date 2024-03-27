@@ -1,6 +1,7 @@
 """
 numpy helpers
 """
+
 from ctypes import ArgumentError
 from typing import Optional, Tuple
 
