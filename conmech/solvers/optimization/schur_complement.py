@@ -1,6 +1,7 @@
 """
 Created at 22.02.2021
 """
+
 import math
 from typing import Tuple
 

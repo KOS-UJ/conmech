@@ -1,9 +1,11 @@
 """
 Created at 18.02.2021
 """
+
 import math
 from typing import Optional
 
+import numba
 import numpy as np
 import scipy.optimize
 
@@ -37,9 +39,11 @@ class Optimization(Solver):
         if statement.dimension >= 2:  # TODO
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
-                tangential_condition=contact_law.potential_tangential_direction
-                if hasattr(contact_law, "potential_tangential_direction")
-                else None,
+                tangential_condition=(
+                    contact_law.potential_tangential_direction
+                    if hasattr(contact_law, "potential_tangential_direction")
+                    else None
+                ),
                 tangential_condition_bound=friction_bound,
                 variable_dimension=statement.dimension,
                 problem_dimension=body.mesh.dimension,
@@ -109,8 +113,6 @@ class Optimization(Solver):
         sols = []
         sols.append(solution)
         loss.append(self.loss(solution, *args)[0])
-        print("pre", method, self.loss(solution, *args))
-
 
         while norm >= fixed_point_abs_tol:
             if method.lower() in (  # TODO
@@ -125,15 +127,14 @@ class Optimization(Solver):
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
                 sols[self.loss(solution, *args)] = solution
-            elif method.lower() == 'constrained':
-                import numba
+            elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
-                GAP = 0.0
+
                 @numba.njit()
                 def constr(x):
                     offset = len(x) // 2
-                    t = x[offset:offset+contact_nodes_count]
-                    return np.min(t + GAP)
+                    t = x[offset : offset + contact_nodes_count]
+                    return np.min(t)
 
                 maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
                 tol = kwargs.get("tol", 1e-12)
@@ -143,14 +144,11 @@ class Optimization(Solver):
                     args=args,
                     options={"disp": disp, "maxiter": maxiter},
                     tol=tol,
-                    constraints=({'type': 'ineq',
-                                 'fun': constr
-                                 })
+                    constraints=({"type": "ineq", "fun": constr}),
                 )
                 solution = result.x
                 sols.append(solution)
                 loss.append(self.loss(solution, *args)[0])
-                print(method, self.loss(solution, *args))
                 break
             else:
                 result = scipy.optimize.minimize(
@@ -164,12 +162,10 @@ class Optimization(Solver):
                 solution = result.x
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-                print(method, self.loss(solution, *args))
                 break
 
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
         solution = sols[min_index]
-        print(loss, "final:", self.loss(solution, *args))
         return solution

@@ -44,9 +44,11 @@ def compare(ref: TemperatureState, sol: TemperatureState):
         u2dx, u2dy = calculate_dx_dy(x0, u2_0, x1, u2_1, x2, u2_2)
         # tdx, tdy = calculate_dx_dy(x0, t0, x1, t1, x2, t2)
         u1hdx, u1hdy = calculate_dx_dy(
-            x0, u1hi(*x0).compressed(), x1, u1hi(*x1).compressed(), x2, u1hi(*x2).compressed())
+            x0, u1hi(*x0).compressed(), x1, u1hi(*x1).compressed(), x2, u1hi(*x2).compressed()
+        )
         u2hdx, u2hdy = calculate_dx_dy(
-            x0, u2hi(*x0).compressed(), x1, u2hi(*x1).compressed(), x2, u2hi(*x2).compressed())
+            x0, u2hi(*x0).compressed(), x1, u2hi(*x1).compressed(), x2, u2hi(*x2).compressed()
+        )
         # thdx, thdy = calculate_dx_dy(x0, thi(*x0), x1, thi(*x1), x2, thi(*x2))
 
         u1h = u1hi(*x0) + u1hi(*x1) + u1hi(*x2)
@@ -82,7 +84,7 @@ def calculate_dx_dy(x0, u0, x1, u1, x2, u2):
 
 def error_estimates(ref, *args):
     reference_k_h = (9, 6)
-    denominator = 1 # TODO 2 ** reference_k_h[0] * 2 ** reference_k_h[1] * 4
+    denominator = 1  # TODO 2 ** reference_k_h[0] * 2 ** reference_k_h[1] * 4
 
     # T = 1
     # kn = 10
@@ -90,7 +92,7 @@ def error_estimates(ref, *args):
     # ks = range(kn)
     # hs = range(hn)
 
-    with open(ref, 'rb') as output:
+    with open(ref, "rb") as output:
         reference = pickle.load(output)
         denominator = len(reference.body.mesh.elements)
         print(f"{denominator=}")
@@ -98,7 +100,7 @@ def error_estimates(ref, *args):
     ue = {}
     # te = np.empty((kn, hn))
     for arg in args:
-        with open(arg, 'rb') as output:
+        with open(arg, "rb") as output:
             solution = pickle.load(output)
             u, t = compare(reference, solution)
             ue[arg] = u / denominator

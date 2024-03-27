@@ -1,6 +1,7 @@
 """
 Created at 16.02.2022
 """
+
 from typing import Callable, Tuple, Union
 
 import numba

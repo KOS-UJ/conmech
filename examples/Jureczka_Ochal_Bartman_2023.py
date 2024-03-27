@@ -1,6 +1,7 @@
 """
 Created at 21.10.2022
 """
+
 import _pickle
 import pickle
 from dataclasses import dataclass

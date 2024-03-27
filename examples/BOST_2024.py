@@ -85,11 +85,13 @@ class StaticSetup(StaticDisplacementProblem):
 
 def prepare_setup(ig, setup):
     if ig == "inf":
+
         def potential_normal_direction(u_nu: float) -> float:
             return 0
 
         kwargs = {"method": "constrained"}
     else:
+
         def potential_normal_direction(u_nu: float) -> float:
             u_nu -= GAP
             # EXAMPLE 10
@@ -98,9 +100,9 @@ def prepare_setup(ig, setup):
             if u_nu <= 0:
                 result = 0.0
             elif u_nu < b:
-                result = (a + np.exp(-b)) / (2 * b) * u_nu ** 2
+                result = (a + np.exp(-b)) / (2 * b) * u_nu**2
             else:
-                result = a * u_nu - np.exp(- u_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
+                result = a * u_nu - np.exp(-u_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
             return ig * result
 
         kwargs = {"method": "POWELL"}
@@ -127,10 +129,7 @@ def main(config: Config, igs: List[int], highlighted: Iterable):
     if config.force:
         to_simulate = igs
 
-    mesh_descr = BOST2023MeshDescription(
-        initial_position=None,
-        max_element_perimeter=1 / 32
-    )
+    mesh_descr = BOST2023MeshDescription(initial_position=None, max_element_perimeter=1 / 32)
 
     if to_simulate:
         print("Simulating...")
@@ -168,7 +167,7 @@ def main(config: Config, igs: List[int], highlighted: Iterable):
                     initial_displacement = lambda _: state.displacement.copy()
 
             state.displaced_nodes[: state.body.mesh.nodes_count, :] = (
-                    state.body.mesh.nodes[: state.body.mesh.nodes_count, :] + state.displacement[:, :]
+                state.body.mesh.nodes[: state.body.mesh.nodes_count, :] + state.displacement[:, :]
             )
             with open(f"{config.outputs_path}/{PREFIX}_ig_{ig}", "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -204,20 +203,21 @@ def main(config: Config, igs: List[int], highlighted: Iterable):
     print("Error estimate")
     errors = error_estimates(
         f"{config.outputs_path}/{PREFIX}_ig_inf",
-        *[f"{config.outputs_path}/{PREFIX}_ig_{ig}" for ig in igs])
+        *[f"{config.outputs_path}/{PREFIX}_ig_{ig}" for ig in igs],
+    )
     X = [ig for ig in igs if not isinstance(ig, str)]
     Y = list(errors.values())[:-1]
     Y = [v[0] for v in Y]
-    Y = - np.asarray(Y)
+    Y = -np.asarray(Y)
     plot_errors(X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
 
 
 def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
-    plt.plot(X[:], Y[:], marker='o', color='gray')
+    plt.plot(X[:], Y[:], marker="o", color="gray")
     if highlighted_id is not None:
-        plt.plot(X[highlighted_id], Y[highlighted_id], 'ro', color='black')
+        plt.plot(X[highlighted_id], Y[highlighted_id], "ro", color="black")
     plt.loglog()
-    plt.grid(True, which='major', linestyle='--', linewidth=0.5)
+    plt.grid(True, which="major", linestyle="--", linewidth=0.5)
     plt.xlabel(r"$\lambda^{-1}_{\,\, n}$")
     plt.ylabel(r"$||\mathbf{u}^h_n - \mathbf{u}||$")
     if save is None:
@@ -227,43 +227,136 @@ def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
 
 
 if __name__ == "__main__":
-
     # results from the paper
     highlighted = (1, 1024, 1216, 2048, 5931641, "inf")
     highlighted_id = np.asarray((1, 20, 24, 26, -3))
 
-    X = np.asarray([0, 1, 2, 4, 5, 8, 11, 16, 22, 32, 45, 64, 90, 128, 181, 256, 362, 512, 724, 896, 1024,
-         1088, 1120, 1152, 1216, 1448, 2048, 2896, 4096, 5792, 8192, 11585, 16384, 23170, 32768,
-         46340, 65536, 92681, 131072, 185363, 262144, 370727, 524288, 741455, 1048576, 1482910,
-         2097152, 2965820, 4194304, 5931641, 8388608, 11863283])
-    Y = np.asarray([1.957688239442841, 1.955823800273701, 1.9550737995244916, 1.9535713010795799,
-                    1.9528202182876828, 1.9505617554633947, 1.9483005592237832, 1.9445216877172742,
-                    1.939976356940407, 1.9323603026049123, 1.9224029295661968, 1.9077076426739854,
-                    1.887348094110511, 1.8570040907627985, 1.8135169713254757, 1.7493452687885334,
-                    1.6528260472436915, 1.5016916054916745, 1.247485589366432, 0.9833463022514393,
-                    0.7219304912004216, 0.5510492874873285, 0.44668589874753256,
-                    0.32141797154720314, 0.2235180524765496, 0.18110766227417885,
-                    0.13217099205041302, 0.09590338285207281, 0.06933759603103229,
-                    0.050067258317548866, 0.036147047768223, 0.02613519925974203,
-                    0.018945653731469527, 0.013792699500121302, 0.01010466081623074,
-                    0.0074703782466904725, 0.0055919695751946025, 0.004256100793696483,
-                    0.003309243652330325, 0.002641490469903024, 0.002173650857273765,
-                    0.0018483357409417435, 0.0016235440683907585, 0.0014687173119601173,
-                    0.0013620445313966081, 0.0012883643852057848, 0.0012373372831507256,
-                    0.0012019371089261616, 0.0011773413958895045, 0.0011602208824840082,
-                    0.0011019352332271976, 0.001139913361649654]
-                   )
+    X = np.asarray(
+        [
+            0,
+            1,
+            2,
+            4,
+            5,
+            8,
+            11,
+            16,
+            22,
+            32,
+            45,
+            64,
+            90,
+            128,
+            181,
+            256,
+            362,
+            512,
+            724,
+            896,
+            1024,
+            1088,
+            1120,
+            1152,
+            1216,
+            1448,
+            2048,
+            2896,
+            4096,
+            5792,
+            8192,
+            11585,
+            16384,
+            23170,
+            32768,
+            46340,
+            65536,
+            92681,
+            131072,
+            185363,
+            262144,
+            370727,
+            524288,
+            741455,
+            1048576,
+            1482910,
+            2097152,
+            2965820,
+            4194304,
+            5931641,
+            8388608,
+            11863283,
+        ]
+    )
+    Y = np.asarray(
+        [
+            1.957688239442841,
+            1.955823800273701,
+            1.9550737995244916,
+            1.9535713010795799,
+            1.9528202182876828,
+            1.9505617554633947,
+            1.9483005592237832,
+            1.9445216877172742,
+            1.939976356940407,
+            1.9323603026049123,
+            1.9224029295661968,
+            1.9077076426739854,
+            1.887348094110511,
+            1.8570040907627985,
+            1.8135169713254757,
+            1.7493452687885334,
+            1.6528260472436915,
+            1.5016916054916745,
+            1.247485589366432,
+            0.9833463022514393,
+            0.7219304912004216,
+            0.5510492874873285,
+            0.44668589874753256,
+            0.32141797154720314,
+            0.2235180524765496,
+            0.18110766227417885,
+            0.13217099205041302,
+            0.09590338285207281,
+            0.06933759603103229,
+            0.050067258317548866,
+            0.036147047768223,
+            0.02613519925974203,
+            0.018945653731469527,
+            0.013792699500121302,
+            0.01010466081623074,
+            0.0074703782466904725,
+            0.0055919695751946025,
+            0.004256100793696483,
+            0.003309243652330325,
+            0.002641490469903024,
+            0.002173650857273765,
+            0.0018483357409417435,
+            0.0016235440683907585,
+            0.0014687173119601173,
+            0.0013620445313966081,
+            0.0012883643852057848,
+            0.0012373372831507256,
+            0.0012019371089261616,
+            0.0011773413958895045,
+            0.0011602208824840082,
+            0.0011019352332271976,
+            0.001139913361649654,
+        ]
+    )
 
-    plot_errors(X, Y, highlighted_id, save='convergence.pdf')
+    plot_errors(X, Y, highlighted_id, save="convergence.pdf")
 
     show = True
 
-    igs = {int(2**(i/2)) for i in range(0, 48)}
-    eigs = {1024-128, 1024+64, 1024+96, 1024+128, 1024+128+64,}
+    igs = {int(2 ** (i / 2)) for i in range(0, 48)}
+    eigs = {
+        1024 - 128,
+        1024 + 64,
+        1024 + 96,
+        1024 + 128,
+        1024 + 128 + 64,
+    }
     igs.update(eigs)
-    igs = [0] + sorted(list(igs)) + ["inf"]#
+    igs = [0] + sorted(list(igs)) + ["inf"]  #
     igs = igs[:]
-    main(
-        Config(save=not show, show=show, force=False).init(),
-        igs, highlighted
-    )
+    main(Config(save=not show, show=show, force=False).init(), igs, highlighted)

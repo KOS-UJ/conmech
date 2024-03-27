@@ -1,6 +1,7 @@
 """
 Contact Mechanics Problem setups
 """
+
 from abc import ABC
 from dataclasses import dataclass
 from typing import Optional, Callable
