@@ -55,7 +55,7 @@ class StaticSetup(StaticDisplacementProblem):
 
     @staticmethod
     def outer_forces(x, t=None):
-        return np.array([0.5, 0.5])
+        return np.array([0, 0])
 
     @staticmethod
     def friction_bound(u_nu: float) -> float:
