@@ -15,6 +15,7 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
 
 
+@SolversRegistry.register("dynamic", "direct")
 @SolversRegistry.register("static", "direct")
 class Direct(Solver):
     def __init__(
@@ -46,7 +47,7 @@ class Direct(Solver):
 
     @property
     def node_relations(self) -> np.ndarray:
-        return self.statement.left_hand_side
+        return self.statement.left_hand_side.data
 
     @property
     def node_forces(self) -> np.ndarray:

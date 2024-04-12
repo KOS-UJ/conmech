@@ -23,9 +23,8 @@ class Dynamics:
         self.body.dynamics = self
 
         self.force = BodyForces(body)
-        self.temperature = BodyForces(
-            body,
-        )
+        self.temperature = BodyForces(body)
+
         self.factory = get_factory(body.mesh.dimension)
         self.element_initial_volume: np.ndarray
         self.volume_at_nodes: np.ndarray
@@ -68,6 +67,7 @@ class Dynamics:
             self.piezoelectricity,
             self.permittivity,
             self.poisson_operator,
+            self.wave_operator,
         ) = get_dynamics(
             elements=self.body.mesh.elements,
             body_prop=self.body.properties,

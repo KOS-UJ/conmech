@@ -44,7 +44,7 @@ class SchurComplementOptimization(Optimization):
 
     def recalculate_displacement(self):
         return calculate_schur_complement_matrices(
-            matrix=self.statement.left_hand_side,
+            matrix=self.statement.left_hand_side.data,
             dimension=self.statement.dimension,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,

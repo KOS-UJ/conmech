@@ -3,6 +3,8 @@ from typing import Optional
 
 import numpy as np
 
+from conmech.struct.stiffness_matrix import SM1
+
 
 @dataclass
 class Variables:
@@ -42,10 +44,10 @@ class Statement:
                 dirichlet_cond, node_count, self.dimension
             ):
                 self.right_hand_side[:] -= self.left_hand_side[:, i] @ c[j]
-                self.left_hand_side[:, i] = 0
-                self.left_hand_side[i, :] = 0
+                self.left_hand_side.data[:, i] = 0
+                self.left_hand_side.data[i, :] = 0
                 # have to be "[i][:, i]" instead of just a "[i, i]" because the i may be ndarray
-                self.left_hand_side[i][:, i] = np.eye(j.stop - j.start)
+                self.left_hand_side.data[i][:, i] = np.eye(j.stop - j.start)
                 self.right_hand_side[i] = c[j]
 
     def find_dirichlet_conditions(self):
@@ -72,6 +74,34 @@ class StaticPoissonStatement(Statement):
 
     def update_right_hand_side(self, var: Variables):
         self.right_hand_side = self.body.dynamics.temperature.integrate(time=0)
+
+
+class WaveStatement(Statement):
+    def __init__(self, body):
+        super().__init__(body, 1)
+
+    def update_left_hand_side(self, var):
+        assert var.time_step is not None
+
+        self.left_hand_side = (
+            (1 / var.time_step)
+            * self.body.dynamics.acceleration_operator.SM1
+            + self.body.dynamics.poisson_operator * var.time_step
+        )
+
+    def update_right_hand_side(self, var):
+        assert var.displacement is not None
+        assert var.velocity is not None
+        assert var.time_step is not None
+        assert var.time is not None
+
+        ind = self.body.mesh.nodes_count  # 1 dimensional
+
+        A = -1 * self.body.dynamics.poisson_operator @ var.displacement[:ind]
+
+        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator.SM1 @ var.velocity[:ind]
+
+        self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
 
 
 class StaticDisplacementStatement(Statement):
@@ -115,7 +145,7 @@ class QuasistaticVelocityStatement(Statement):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.dynamics.viscosity.copy() + self.body.dynamics.elasticity * var.time_step
+            self.body.dynamics.viscosity + self.body.dynamics.elasticity * var.time_step
         )
 
     def update_right_hand_side(self, var: Variables):
@@ -174,9 +204,10 @@ class TemperatureStatement(Statement):
 
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
-        self.left_hand_side = (1 / var.time_step) * self.body.dynamics.acceleration_operator[
+        left_hand_side = (1 / var.time_step) * self.body.dynamics.acceleration_operator[
             :ind, :ind
         ] + self.body.dynamics.thermal_conductivity[:ind, :ind]
+        self.left_hand_side = SM1(left_hand_side)
 
     def update_right_hand_side(self, var):
         assert var.velocity is not None

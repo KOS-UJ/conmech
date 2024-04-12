@@ -17,7 +17,7 @@ from conmech.dynamics.statement import (
     QuasistaticVelocityWithPiezoelectricStatement,
     QuasistaticRelaxationStatement,
     StaticPoissonStatement,
-    Variables,
+    Variables, WaveStatement,
 )
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import (
@@ -42,7 +42,7 @@ from conmech.scenarios.problems import (
     PiezoelectricTimeDependentProblem,
     PiezoelectricQuasistaticProblem,
     RelaxationQuasistaticProblem,
-    ContactLaw,
+    ContactLaw, WaveProblem,
 )
 from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
@@ -142,6 +142,10 @@ class ProblemSolver:
             self.step_solver = None
             self.validator = None
             return
+        elif isinstance(self.problem, WaveProblem):
+            statement = WaveStatement(self.body)
+            contact_law = None
+            friction_bound = None
         else:
             raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         self.step_solver = solver_class(
@@ -210,6 +214,11 @@ class ProblemSolver:
                 self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
                 self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
             elif self.coordinates == "velocity":
+                if self.step_solver.statement.dimension == 1:  # TODO workaround
+                    ind = len(solution)
+                    extended_solution = np.zeros(ind * 2)  # TODO
+                    extended_solution[:ind] = solution
+                    solution = extended_solution
                 state.set_velocity(
                     solution,
                     update_displacement=True,
@@ -705,6 +714,64 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
                     state.set_electric_potential(solution_t)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
+            results.append(state.copy())
+
+        return results
+
+
+class WaveSolver(ProblemSolver):
+    def __init__(self, problem: WaveProblem, solving_method: str):
+        """Solves general Contact Mechanics problem.
+
+        :param solving_method: 'schur', 'optimization', 'direct'
+        """
+        body_prop = BodyProperties(mass_density=1)
+        super().__init__(problem, body_prop)
+
+        _ = State(self.body)  # TODO
+
+        self.coordinates = "velocity"
+        self.solving_method = solving_method
+
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
+    def solve(
+        self,
+        *,
+        n_steps: int,
+        initial_displacement: Callable,
+        initial_velocity: Callable,
+        output_step: Optional[iter] = None,
+        **kwargs,
+    ) -> List[State]:
+        """
+        :param n_steps: number of time-step in simulation
+        :param output_step: from which time-step we want to get copy of State,
+                            default (n_steps-1,)
+                            example: for Setup.time-step = 2, n_steps = 10,  output_step = (2, 6, 9)
+                                     we get 3 shared copy of State for time-steps 4, 12 and 18
+        :param initial_displacement: for the solver
+        :param initial_velocity: for the solver
+        :param initial_electric_potential: for the solver
+        :return: state
+        """
+        output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
+
+        state = State(self.body)
+        state.displacement[:] = initial_displacement(
+            self.body.mesh.nodes[: self.body.mesh.nodes_count]
+        )
+        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
+
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+
+        output_step = np.diff(output_step)
+        results = []
+        self.done = 0
+        self.to_do = n_steps
+        for n in output_step:
+            self.run(state, n_steps=n, **kwargs)
             results.append(state.copy())
 
         return results

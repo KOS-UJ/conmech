@@ -1,6 +1,8 @@
 from typing import Tuple
 import numpy as np
 
+from conmech.struct.stiffness_matrix import SM1
+
 
 class AbstractDynamicsFactory:
     @property
@@ -34,5 +36,9 @@ class AbstractDynamicsFactory:
         raise NotImplementedError()
 
     @staticmethod
-    def calculate_poisson_matrix(W: np.ndarray) -> np.ndarray:
+    def calculate_poisson_matrix(W: np.ndarray) -> SM1:
+        return SM1(np.sum(W.diagonal(), axis=2))
+
+    @staticmethod
+    def calculate_wave_matrix(W: np.ndarray) -> np.ndarray:
         return np.sum(W.diagonal(), axis=2)

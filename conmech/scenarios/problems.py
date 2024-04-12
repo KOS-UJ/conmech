@@ -85,6 +85,17 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 
 
 @dataclass
+class WaveProblem(DynamicProblem, ABC):
+    @staticmethod
+    def initial_displacement(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
+
+    @staticmethod
+    def initial_velocity(x: np.ndarray) -> np.ndarray:
+        return np.zeros_like(x)
+
+
+@dataclass
 class DisplacementProblem(Problem, ABC):
     mu_coef: float
     la_coef: float

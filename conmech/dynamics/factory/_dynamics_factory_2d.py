@@ -3,6 +3,7 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.struct.stiffness_matrix import SM2, SM1, SM1to2
 
 DIMENSION = 2
 ELEMENT_NODES_COUNT = 3
@@ -161,31 +162,31 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
 
     def calculate_constitutive_matrices(
         self, W: np.ndarray, mu: float, lambda_: float
-    ) -> np.ndarray:
+    ) -> SM2:
         A_11 = (2 * mu + lambda_) * W[0, 0] + mu * W[1, 1]
         A_12 = mu * W[1, 0] + lambda_ * W[0, 1]
         A_21 = lambda_ * W[1, 0] + mu * W[0, 1]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
-        return np.block([[A_11, A_12], [A_21, A_22]])
+        return SM2(np.block([[A_11, A_12], [A_21, A_22]]))
 
     def get_relaxation_tensor(self, W, coeff):
         A_11 = coeff[0][0][0] * W[0, 0] + coeff[0][1][1] * W[1, 1]
         A_12 = coeff[0][1][0] * W[1, 0] + coeff[0][0][1] * W[0, 1]
         A_21 = coeff[1][1][0] * W[1, 0] + coeff[1][0][1] * W[0, 1]
         A_22 = coeff[1][0][0] * W[0, 0] + coeff[1][1][1] * W[1, 1]
-        return np.block([[A_11, A_12], [A_21, A_22]])
+        return SM2(np.block([[A_11, A_12], [A_21, A_22]]))
 
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
-        return density * np.block([[U, Z], [Z, U]])
+        return SM2(density * np.block([[U, Z], [Z, U]]))
 
     def calculate_thermal_expansion(self, V, coeff):
         A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1]
         A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1]
-        return np.block([A_11, A_22])
+        return SM1to2(np.block([A_11, A_22]))
 
     def calculate_thermal_conductivity(self, W, coeff):
-        return (
+        return SM1(
             coeff[0][0] * W[0, 0]
             + coeff[0][1] * W[0, 1]
             + coeff[1][0] * W[1, 0]
@@ -197,10 +198,10 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         A_12 = coeff[0][1][0] * W[1, 0] + coeff[0][0][1] * W[0, 1]
         A_21 = coeff[1][1][0] * W[1, 0] + coeff[1][0][1] * W[0, 1]
         A_22 = coeff[1][0][0] * W[0, 0] + coeff[1][1][1] * W[1, 1]
-        return np.block([[A_11 + A_12, A_22 + A_21]])
+        return SM2(np.block([[A_11 + A_12, A_22 + A_21]]))
 
     def get_permittivity_tensor(self, W, coeff):
-        return (
+        return SM1(
             coeff[0][0] * W[0, 0]
             + coeff[0][1] * W[0, 1]
             + coeff[1][0] * W[1, 0]
