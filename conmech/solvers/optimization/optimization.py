@@ -13,11 +13,12 @@ from conmech.dynamics.statement import (
     Statement,
     TemperatureStatement,
     PiezoelectricStatement,
-    StaticPoissonStatement,
+    StaticPoissonStatement, WaveStatement,
 )
-from conmech.scenarios.problems import ContactLaw
+from conmech.scenarios.problems import ContactLaw, InteriorContactLaw
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional
+from conmech.solvers.solver_methods import make_cost_functional, make_equation, \
+    make_cost_functional_2
 
 
 class Optimization(Solver):
@@ -68,6 +69,18 @@ class Optimization(Solver):
                 variable_dimension=statement.dimension,
                 problem_dimension=body.mesh.dimension,
             )
+        elif isinstance(statement, WaveStatement):
+            if isinstance(contact_law, InteriorContactLaw):
+                self.loss = make_equation(  # TODO!
+                    jn=contact_law.subderivative_normal_direction,
+                    jt=contact_law.regularized_subderivative_tangential_direction,
+                    contact=contact_law.general_contact_condition,
+                    h_functional=friction_bound,
+                )
+            else:
+                self.loss = make_cost_functional_2(
+                    contact=contact_law.general_contact_condition,
+                )
         else:
             raise ValueError(f"Unknown statement: {statement}")
 
@@ -106,6 +119,8 @@ class Optimization(Solver):
             self.lhs,
             self.rhs,
             displacement,
+            # self.body.dynamics.acceleration_operator.SM1.data,
+            self.body.dynamics.volume_at_nodes,
             self.time_step,
         )
 

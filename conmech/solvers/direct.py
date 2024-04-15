@@ -39,6 +39,11 @@ class Direct(Solver):
             self.equation = make_equation(
                 jn=contact_law.subderivative_normal_direction,
                 jt=contact_law.regularized_subderivative_tangential_direction,
+                contact=(
+                    contact_law.general_contact_condition
+                    if hasattr(contact_law, "general_contact_condition")
+                    else None
+                ),
                 h_functional=friction_bound,
             )
 
@@ -53,7 +58,15 @@ class Direct(Solver):
     def node_forces(self) -> np.ndarray:
         return self.statement.right_hand_side
 
-    def _solve_impl(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
+    def _solve_impl(
+            self,
+            initial_guess: np.ndarray,
+            *,
+            velocity: np.ndarray,
+            displacement: np.ndarray,
+            **kwargs
+    ) -> np.ndarray:
+        displacement = np.squeeze(displacement.copy().reshape(1, -1))
         if self.equation is not None:
             result = scipy.optimize.fsolve(
                 self.equation,
@@ -64,8 +77,29 @@ class Direct(Solver):
                     self.body.mesh.boundaries.contact_normals,
                     self.node_relations,
                     self.node_forces,
+                    displacement,
+                    velocity,
+                    self.body.dynamics.acceleration_operator.SM1.data,
+                    self.time_step
                 ),
             )
+            # result = scipy.optimize.minimize(
+            #     self.equation,
+            #     initial_guess,
+            #     args=(
+            #         self.body.mesh.nodes,
+            #         self.body.mesh.contact_boundary,
+            #         self.body.mesh.boundaries.contact_normals,
+            #         self.node_relations,
+            #         self.node_forces,
+            #         displacement,
+            #         velocity,
+            #         self.body.dynamics.volume_at_nodes,
+            #         self.time_step,
+            #     ),
+            #     method="BFGS",
+            # )
+            # result = result.x
         else:
             result = np.linalg.solve(self.node_relations, self.node_forces)
         return np.asarray(result)

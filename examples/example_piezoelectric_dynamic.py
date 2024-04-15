@@ -2,7 +2,6 @@
 Created at 21.08.2019
 """
 
-from argparse import ArgumentParser
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -95,7 +94,7 @@ def main(config: Config):
     setup = PDynamicSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
 
-    steps = 100 if not config.test else 10
+    steps = 100 if not config.test else 5
     output = steps // 5
     states = runner.solve(
         n_steps=steps,

@@ -19,6 +19,7 @@ class State:
         self.setup = None
         self.__stress: np.ndarray = None
         self.constitutive_law = None
+        self.temperature = None  # TODO
         self.time: float = 0
 
     def set_displacement(

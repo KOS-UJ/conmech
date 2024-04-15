@@ -42,7 +42,7 @@ from conmech.scenarios.problems import (
     PiezoelectricTimeDependentProblem,
     PiezoelectricQuasistaticProblem,
     RelaxationQuasistaticProblem,
-    ContactLaw, WaveProblem,
+    ContactLaw, WaveProblem, ContactWaveProblem,
 )
 from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
@@ -144,7 +144,10 @@ class ProblemSolver:
             return
         elif isinstance(self.problem, WaveProblem):
             statement = WaveStatement(self.body)
-            contact_law = None
+            if isinstance(self.problem, ContactWaveProblem):
+                contact_law = self.problem.contact_law
+            else:
+                contact_law = None
             friction_bound = None
         else:
             raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
@@ -214,11 +217,11 @@ class ProblemSolver:
                 self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
                 self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
             elif self.coordinates == "velocity":
-                if self.step_solver.statement.dimension == 1:  # TODO workaround
-                    ind = len(solution)
-                    extended_solution = np.zeros(ind * 2)  # TODO
-                    extended_solution[:ind] = solution
-                    solution = extended_solution
+                # if self.step_solver.statement.dimension == 1:  # TODO workaround
+                #     ind = len(solution)
+                #     extended_solution = np.zeros(ind * 2)  # TODO
+                #     extended_solution[:ind] = solution
+                #     solution = extended_solution
                 state.set_velocity(
                     solution,
                     update_displacement=True,
@@ -235,11 +238,11 @@ class ProblemSolver:
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
-        quality = 0
+        # quality = 0
         initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
         # quality = validator.check_quality(state, solution, quality)
-        self.print_iteration_info(quality, validator.error_tolerance, verbose)
+        # self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:

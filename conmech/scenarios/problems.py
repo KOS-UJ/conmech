@@ -33,6 +33,12 @@ class ContactLaw:
         raise NotImplementedError()
 
 
+class InteriorContactLaw(ContactLaw):
+    @staticmethod
+    def general_contact_condition(u, v):  # TODO
+        raise NotImplementedError()
+
+
 @dataclass
 class Problem(ABC):
     # pylint: disable=unused-argument
@@ -93,6 +99,16 @@ class WaveProblem(DynamicProblem, ABC):
     @staticmethod
     def initial_velocity(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
+
+
+@dataclass
+class ContactWaveProblem(WaveProblem, ABC):
+    contact_law: ContactLaw
+
+
+@dataclass
+class BoundaryContactWaveProblem(WaveProblem, ABC):
+    contact_law: ContactLaw
 
 
 @dataclass
