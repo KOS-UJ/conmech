@@ -107,8 +107,8 @@ class ContactWaveProblem(WaveProblem, ABC):
 
 
 @dataclass
-class BoundaryContactWaveProblem(WaveProblem, ABC):
-    contact_law: ContactLaw
+class InteriorContactWaveProblem(ContactWaveProblem, ABC):
+    pass
 
 
 @dataclass

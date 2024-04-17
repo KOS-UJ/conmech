@@ -37,7 +37,7 @@ class Optimization(Solver):
             contact_law,
             friction_bound,
         )
-        if statement.dimension >= 2:  # TODO
+        if statement.dimension_in == 2 and statement.dimension_out == 2:
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
                 tangential_condition=(
@@ -46,8 +46,8 @@ class Optimization(Solver):
                     else None
                 ),
                 tangential_condition_bound=friction_bound,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in
             )
         elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional(
@@ -60,14 +60,14 @@ class Optimization(Solver):
                 tangential_condition=contact_law.electric_charge_tangetial,
                 tangential_condition_bound=-1,
                 normal_condition=None,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in
             )
         elif isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in,
             )
         elif isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
@@ -125,6 +125,8 @@ class Optimization(Solver):
 
         loss = []
         sols = []
+        # solution = solution[:len(solution) // 2]  # TODO
+        # old_solution = solution.copy()
         sols.append(solution)
         loss.append(self.loss(solution, *args)[0])
 
@@ -141,26 +143,6 @@ class Optimization(Solver):
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
                 sols.append(solution.copy())
-                loss.append(self.loss(solution, *args)[0])
-
-                ### TODO
-                ind = self.lhs.shape[0]
-                response = np.zeros(ind)
-                for i in range(ind):
-                    response[i] = self.contact_law.general_contact_condition(
-                        displacement[i] + solution[i] * self.time_step,
-                        solution[i])
-                validation = np.dot(self.lhs, solution[:ind]) \
-                             + np.dot(self.body.dynamics.volume_at_nodes,
-                                      response) \
-                             - self.rhs
-                valid = np.linalg.norm(validation)
-                if valid < 0.1:
-                    print("Validation:", valid)
-                    break
-                else:
-                    print("Trying again:", valid)
-
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
 
@@ -204,10 +186,9 @@ class Optimization(Solver):
                 #     response[i] = self.contact_law.general_contact_condition(
                 #         displacement[i] + solution[i] * self.time_step,
                 #         solution[i])
-                # validation = np.dot(self.lhs, solution[:ind]) \
-                #              + np.dot(self.body.dynamics.volume_at_nodes,
-                #                       response) \
-                #              - self.rhs
+                #     validation = np.dot(self.lhs, solution[:ind]) - self.rhs \
+                #                  + np.dot(np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
+                #                           response)
                 # valid = np.linalg.norm(validation)
                 # if valid < 0.1:
                 #     print("Validation:", valid)
@@ -219,4 +200,9 @@ class Optimization(Solver):
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
         solution = sols[min_index]
+
+        # es = np.zeros(len(solution) * 2)
+        # es[:len(solution)] = solution[:]
+        # solution = es
+
         return solution

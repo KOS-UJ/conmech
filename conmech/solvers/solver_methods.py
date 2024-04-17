@@ -49,7 +49,7 @@ def make_equation(
                                       + var[i] * time_step, var[i])
             res = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) \
                 - np.dot(rhs, var[:ind]) \
-                + 0.5 * np.dot(np.dot(volume_multiplier, response), var[:ind]) \
+                + 0.5 * np.dot(np.dot(volume_multiplier, response), np.ones_like(var[:ind])) \
                 + np.dot(var[ind:], var[ind:].T)
 
             result = np.asarray(res).ravel()
@@ -235,20 +235,26 @@ def make_cost_functional_2(
             for node_id in edge:
                 if node_id >= offset:
                     continue
+            # print(f"({nodes[edge[0]]}, {nodes[edge[1]]})", end=" ")
 
             cost += contact_cost(
                 nph.length(edge, nodes),
                 1,
-                contact(um + vm * dt, vm),
+                contact(um[0] + vm[0] * dt, vm[0]) * vm[0],
                 0, 0
             )
+        # print(";")
         return cost
 
     # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def cost_functional(var, nodes, contact_boundary, contact_normals, lhs, rhs, u_vector, base_integrals, dt):
         ju = contact_cost_functional(var, u_vector, nodes, contact_boundary, contact_normals, dt)
-        result = 0.5 * np.dot(np.dot(lhs, var), var) - np.dot(rhs, var) + ju
+        # result = 0.5 * np.dot(np.dot(lhs, var), var) - np.dot(rhs, var) + ju
+        ind = lhs.shape[0]
+        result = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) \
+                 - np.dot(rhs, var[:ind]) \
+                 + 0.5 * ju
         result = np.asarray(result).ravel()
         return result
 

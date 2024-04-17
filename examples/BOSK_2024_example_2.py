@@ -4,30 +4,32 @@ from typing import Optional
 import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.plotting.membrane import plot as membrane_plot
-from conmech.scenarios.problems import ContactWaveProblem, InteriorContactLaw
+from conmech.plotting.membrane import plot as membrane_plot, plot_in_columns
+from conmech.scenarios.problems import InteriorContactWaveProblem, \
+    InteriorContactLaw
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.state import State
 
-PRECISION = 8
+TESTING = True
+PRECISION = 12 if not TESTING else 3
 
 
-class DampedNormalCompliance(InteriorContactLaw):
-    @staticmethod
-    def general_contact_condition(u, v):
-        k = 50
-        obstacle_level = 1
-        beta = 150
-        if u < obstacle_level:
-            return 0
-        return k * (u - obstacle_level) + beta * v
+def make_DNC(obstacle_level: float, kappa: float, beta: float):
+    class DampedNormalCompliance(InteriorContactLaw):
+        @staticmethod
+        def general_contact_condition(u, v):
+            if u < obstacle_level:
+                return 0
+            return kappa * (u - obstacle_level) + beta * v
+
+    return DampedNormalCompliance
 
 
 @dataclass()
-class MembraneSetup(ContactWaveProblem):
-    time_step: ... = 2 / PRECISION
-    contact_law: ... = DampedNormalCompliance()
+class MembraneSetup(InteriorContactWaveProblem):
+    time_step: ... = 1 / 20
+    contact_law: ... = make_DNC(1.0, kappa=100.0, beta=150.0)()
 
     @staticmethod
     def inner_forces(
@@ -53,6 +55,7 @@ def main(config: Config, setup, name, steps):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    print(name)
     to_simulate = False
     if config.force:
         to_simulate = True
@@ -83,7 +86,7 @@ def main(config: Config, setup, name, steps):
                 State.load(f"{config.path}/{name}_step_{step}"))
 
     states_ids = list(range(len(states)))
-    to_plot = states_ids[1:4] + states_ids[::16][1:]
+    to_plot = [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
     vmin = np.inf
     vmax = -np.inf
     field = "velocity"
@@ -97,24 +100,35 @@ def main(config: Config, setup, name, steps):
         vmin = min(min(getattr(state, field)[:, 0]), vmin)
         zmax = max(max(getattr(state, zfield)[:, 0]), zmax)
         zmin = min(min(getattr(state, zfield)[:, 0]), zmin)
+    # vmax = min(vmax, 1)
+    # vmin = max(vmin, -1)
     prec = 1
     zmax = round(zmax + 0.05 * prec, prec)
     zmin = round(zmin - 0.05 * prec, prec)
+    states_ = []
     for i, state in enumerate(states):
         if i not in to_plot:
             continue
-        membrane_plot(
-            state, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
-            title=f"{name}: {i * setup.time_step:.2f}s"
-        )
+        states_.append(state)
+    plot_in_columns(
+        states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
+        title=f"velocity"  #: {i * setup.time_step:.2f}s"
+    )
 
 
 if __name__ == "__main__":
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=1 / PRECISION, scale=[1, 1]
     )
-    T = 3.2
+    T = 3.3 if not TESTING else 2.0
     setups = dict()
+    to_simulate = [
+        "plain",
+        # "nonzero",
+        # "velocity",
+        "force",
+        # "beta=0",
+    ]
 
     setup = MembraneSetup(mesh_descr)
     setups["plain"] = setup
@@ -140,19 +154,14 @@ if __name__ == "__main__":
     setup.inner_forces = inner_forces
     setups["force"] = setup
 
-    def general_contact_condition(u, v):
-        k = 300
-        obstacle_level = 1
-        beta = 0
-        if u < obstacle_level:
-            return 0
-        return k * (u - obstacle_level) + beta * max(v, 0)
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law.general_contact_condition = general_contact_condition
+    setup.contact_law = make_DNC(1.0, kappa=100.0, beta=0.0)()
     setups["beta=0"] = setup
 
-    for name, setup in setups.items():
+    for name in to_simulate:
         main(
             Config(output_dir="BOSK.ORG", force=True).init(),
-            setup, name=name, steps=int(T/list(setups.values())[0].time_step)+1
+            setups[name],
+            name=name,
+            steps=int(T / setups[name].time_step) + 1
         )

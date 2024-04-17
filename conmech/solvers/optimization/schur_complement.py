@@ -45,7 +45,7 @@ class SchurComplementOptimization(Optimization):
     def recalculate_displacement(self):
         return calculate_schur_complement_matrices(
             matrix=self.statement.left_hand_side.data,
-            dimension=self.statement.dimension,
+            dimension=self.statement.dimension_in,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
         )
@@ -53,13 +53,13 @@ class SchurComplementOptimization(Optimization):
     def recalculate_forces(self):
         node_forces, forces_free = calculate_schur_complement_vector(
             vector=self.statement.right_hand_side,
-            dimension=self.statement.dimension,
+            dimension=self.statement.dimension_in,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             return node_forces.T, forces_free
         return node_forces.reshape(-1), forces_free.reshape(-1)
 
@@ -90,7 +90,7 @@ class SchurComplementOptimization(Optimization):
         return solution
 
     def truncate_free_nodes(self, initial_guess: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             _result = initial_guess.reshape(2, -1)
             _result = _result[:, self.contact_ids]
             _result = _result.reshape(1, -1)
@@ -99,7 +99,7 @@ class SchurComplementOptimization(Optimization):
         return initial_guess[self.contact_ids]
 
     def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             _result = truncated_solution.reshape(-1, 1)
         else:
             _result = truncated_solution
@@ -110,7 +110,7 @@ class SchurComplementOptimization(Optimization):
         return result
 
     def merge(self, solution_contact: np.ndarray, solution_free: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             u_contact = solution_contact.reshape(2, -1)
             u_free = solution_free.reshape(2, -1)
             _result = np.concatenate((u_contact, u_free), axis=1)

@@ -15,7 +15,6 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
 
 
-@SolversRegistry.register("dynamic", "direct")
 @SolversRegistry.register("static", "direct")
 class Direct(Solver):
     def __init__(
@@ -83,23 +82,6 @@ class Direct(Solver):
                     self.time_step
                 ),
             )
-            # result = scipy.optimize.minimize(
-            #     self.equation,
-            #     initial_guess,
-            #     args=(
-            #         self.body.mesh.nodes,
-            #         self.body.mesh.contact_boundary,
-            #         self.body.mesh.boundaries.contact_normals,
-            #         self.node_relations,
-            #         self.node_forces,
-            #         displacement,
-            #         velocity,
-            #         self.body.dynamics.volume_at_nodes,
-            #         self.time_step,
-            #     ),
-            #     method="BFGS",
-            # )
-            # result = result.x
         else:
             result = np.linalg.solve(self.node_relations, self.node_forces)
         return np.asarray(result)
