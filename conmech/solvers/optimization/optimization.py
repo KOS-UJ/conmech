@@ -119,8 +119,7 @@ class Optimization(Solver):
             self.lhs,
             self.rhs,
             displacement,
-            # self.body.dynamics.acceleration_operator.SM1.data,
-            self.body.dynamics.volume_at_nodes,
+            np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
             self.time_step,
         )
 
@@ -141,7 +140,27 @@ class Optimization(Solver):
                 from kosopt import qsmlm
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
-                sols[self.loss(solution, *args)] = solution
+                sols.append(solution.copy())
+                loss.append(self.loss(solution, *args)[0])
+
+                ### TODO
+                ind = self.lhs.shape[0]
+                response = np.zeros(ind)
+                for i in range(ind):
+                    response[i] = self.contact_law.general_contact_condition(
+                        displacement[i] + solution[i] * self.time_step,
+                        solution[i])
+                validation = np.dot(self.lhs, solution[:ind]) \
+                             + np.dot(self.body.dynamics.volume_at_nodes,
+                                      response) \
+                             - self.rhs
+                valid = np.linalg.norm(validation)
+                if valid < 0.1:
+                    print("Validation:", valid)
+                    break
+                else:
+                    print("Trying again:", valid)
+
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
 
@@ -177,7 +196,24 @@ class Optimization(Solver):
                 solution = result.x
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-                break
+
+                ### TODO
+                # ind = self.lhs.shape[0]
+                # response = np.zeros(ind)
+                # for i in range(ind):
+                #     response[i] = self.contact_law.general_contact_condition(
+                #         displacement[i] + solution[i] * self.time_step,
+                #         solution[i])
+                # validation = np.dot(self.lhs, solution[:ind]) \
+                #              + np.dot(self.body.dynamics.volume_at_nodes,
+                #                       response) \
+                #              - self.rhs
+                # valid = np.linalg.norm(validation)
+                # if valid < 0.1:
+                #     print("Validation:", valid)
+                #     break
+                # else:
+                #     print("Trying again:", valid)
 
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()

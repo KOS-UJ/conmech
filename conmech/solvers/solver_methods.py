@@ -42,21 +42,16 @@ def make_equation(
                 volume_multiplier: np.ndarray,
                 time_step,
         ) -> np.ndarray:
-            # ind = independent_indices.stop // 2
             ind = lhs.shape[0]
             response = np.zeros(ind)
-            # print(max(displacement), max(var))
             for i in range(ind):
-                response[i] = contact(displacement[i] + var[i] * time_step, var[i])
-            # if max(response):
-            #     print(max(response))
-            # RHS = np.dot(np.dot(volume_multiplier, response), var[:ind]) / np.dot(rhs, var[:ind])
-            # if RHS:
-            #     print(">", RHS, end=", ")
-            # result = var.copy()
-            # result[:ind] = np.dot(lhs, var[:ind]) + np.dot(volume_multiplier, response) - rhs  # TODO: truncating vector
-            res = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) - np.dot(rhs, var[:ind]) + 0.5 * np.dot(np.dot(volume_multiplier, response), var[:ind]) + np.dot(var[ind:], var[ind:].T)
-            # return result
+                response[i] = contact(displacement[i]
+                                      + var[i] * time_step, var[i])
+            res = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) \
+                - np.dot(rhs, var[:ind]) \
+                + 0.5 * np.dot(np.dot(volume_multiplier, response), var[:ind]) \
+                + np.dot(var[ind:], var[ind:].T)
+
             result = np.asarray(res).ravel()
             return result
 

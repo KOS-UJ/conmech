@@ -1,6 +1,7 @@
 """
 Created at 18.02.2021
 """
+import pickle
 
 import numpy as np
 
@@ -99,6 +100,29 @@ class State:
         copy.velocity[:] = self.velocity
         copy.time = self.time
         return copy
+
+    def save(self, path):
+        fos = self.body.dynamics.force.outer.source
+        self.body.dynamics.force.outer.source = None
+        fis = self.body.dynamics.force.inner.source
+        self.body.dynamics.force.inner.source = None
+        s = self.setup
+        self.setup = None
+        cl = self.constitutive_law
+        self.constitutive_law = None
+
+        with open(path, "wb+") as file:
+            pickle.dump(self, file)
+
+        self.body.dynamics.force.outer.source = fos
+        self.body.dynamics.force.inner.source = fis
+        self.setup = s
+        self.constitutive_law = cl
+
+    @classmethod
+    def load(cls, path):
+        with open(path, "rb") as file:
+            return pickle.load(file)
 
 
 class TemperatureState(State):
