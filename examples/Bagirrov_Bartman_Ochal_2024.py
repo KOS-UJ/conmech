@@ -162,14 +162,14 @@ def main(config: Config, methods, forces):
             with open(path, "rb") as output:
                 state = pickle.load(output)
 
-            # drawer = Drawer(state=state, config=config)
-            # drawer.colorful = True
-            # drawer.draw(
-            #     show=config.show,
-            #     save=config.save,
-            #     title=f"{m}: {f}, "
-            #     # f"time: {runner.step_solver.last_timing}"
-            # )
+            drawer = Drawer(state=state, config=config)
+            drawer.colorful = True
+            drawer.draw(
+                show=config.show,
+                save=config.save,
+                title=f"{m}: {f}, "
+                # f"time: {runner.step_solver.last_timing}"
+            )
             x = state.body.mesh.nodes[:state.body.mesh.contact_nodes_count - 1,
                 0]
             u = state.displacement[:state.body.mesh.contact_nodes_count - 1, 1]
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # plt.legend()
     # # plt.loglog()
     # plt.show()
-    methods = ("BFGS", "CG", "qsm", "Powell", "subgradient", 'qsm')[-1:]
+    methods = ("BFGS", "CG", "qsm", "Powell", "subgradient")
     forces = (23e3 * kN, 25e3 * kN, 25.6e3 * kN, 25.9e3 * kN, 26e3 * kN,
               26.1e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN)[-1::4]
-    main(Config(save=False, show=True, force=True).init(), methods, forces)
+    main(Config(save=False, show=True, force=False).init(), methods, forces)

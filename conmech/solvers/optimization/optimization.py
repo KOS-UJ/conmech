@@ -21,7 +21,7 @@ from conmech.solvers.solver_methods import (
     make_cost_functional_temperature,
     make_cost_functional_piezoelectricity,
     make_cost_functional_poisson,
-    make_cost_functional_3d,
+    make_cost_functional_3d, make_cost_functional_subgradient,
 )
 
 
@@ -48,6 +48,11 @@ class Optimization(Solver):
                 if hasattr(contact_law, "potential_tangential_direction")
                 else None,
                 h_functional=friction_bound,
+            )
+            self.subgradient = make_cost_functional_subgradient(
+                djn=contact_law.normal_direction,  # TODO
+                djt=None,
+                dh_functional=None,
             )
         elif statement.dimension == 3:  # TODO
             self.loss = make_cost_functional_3d(
@@ -128,14 +133,16 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
                 solution = qsmlm.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
+                    self.loss, solution, args=args, maxiter=maxiter,
+                    subgradient=self.subgradient
                 )
             elif method.lower() in (
                 "subgradient"
             ):
                 from kosopt import subgradient
                 solution = subgradient.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
+                    self.loss, solution, args=args, maxiter=maxiter,
+                    subgradient=self.subgradient
                 )
             elif method.lower() in (  # TODO
                     "discontinuous gradient",
@@ -157,6 +164,7 @@ class Optimization(Solver):
                     tol=tol,
                 )
                 solution = result.x
+                break
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         Optimization.RESULTS += \
