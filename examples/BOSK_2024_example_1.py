@@ -9,10 +9,20 @@ from conmech.scenarios.problems import ContactLaw, ContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.state import State
-from examples.BOSK_2024_example_2 import make_DNC
 
 TESTING = True
 PRECISION = 12 if not TESTING else 3
+
+
+def make_DNC(obstacle_level: float, kappa: float, beta: float):
+    class DampedNormalCompliance(ContactLaw):
+        @staticmethod
+        def general_contact_condition(u, v):
+            if u < obstacle_level:
+                return 0
+            return kappa * (u - obstacle_level) + beta * v
+
+    return DampedNormalCompliance
 
 
 @dataclass()
@@ -58,7 +68,7 @@ def main(config: Config, setup, name, steps):
                 to_simulate = True
 
     if to_simulate:
-        runner = WaveSolver(setup, "global")
+        runner = WaveSolver(setup, "schur")
 
         states = runner.solve(
             n_steps=steps,

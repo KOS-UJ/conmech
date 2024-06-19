@@ -89,6 +89,9 @@ class ProblemSolver:
 
         self.problem: Problem = problem
 
+        # True if only on dimension of displacement is used
+        self.driving_vector = False
+
         self.coordinates: Optional[str] = None
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
@@ -157,6 +160,7 @@ class ProblemSolver:
             self.time_step,
             contact_law,
             friction_bound,
+            driving_vector=self.driving_vector
         )
         self.validator = Validator(self.step_solver)
 
@@ -171,6 +175,7 @@ class ProblemSolver:
                 self.time_step,
                 self.problem.contact_law,
                 self.problem.friction_bound,
+                self.driving_vector,
             )
         elif isinstance(self.problem, PiezoelectricTimeDependentProblem):
             self.second_step_solver = second_solver_class(
@@ -179,6 +184,7 @@ class ProblemSolver:
                 self.time_step,
                 self.problem.contact_law,
                 self.problem.friction_bound,
+                self.driving_vector,
             )
         elif isinstance(self.problem, PoissonProblem):
             self.second_step_solver = second_solver_class(
@@ -239,7 +245,7 @@ class ProblemSolver:
 
     def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
         # quality = 0
-        initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
+        initial_guess = state[self.coordinates].T.ravel().reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
         # quality = validator.check_quality(state, solution, quality)
         # self.print_iteration_info(quality, validator.error_tolerance, verbose)
@@ -734,6 +740,7 @@ class WaveSolver(ProblemSolver):
         _ = State(self.body)  # TODO
 
         self.coordinates = "velocity"
+        self.driving_vector = True
         self.solving_method = solving_method
 
     # super class method takes **kwargs, so signatures are consistent

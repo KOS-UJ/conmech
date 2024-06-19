@@ -24,6 +24,7 @@ class Direct(Solver):
         time_step: float,
         contact_law: Optional[ContactLaw] = None,
         friction_bound: Optional[Callable[[float], float]] = None,
+        driving_vector: bool = False,
     ):
         super().__init__(
             statement,
@@ -31,6 +32,7 @@ class Direct(Solver):
             time_step,
             contact_law,
             friction_bound,
+            driving_vector,
         )
         self.equation: Optional[Callable] = None
 
@@ -61,7 +63,7 @@ class Direct(Solver):
             self,
             initial_guess: np.ndarray,
             *,
-            velocity: np.ndarray,
+            variable_old: np.ndarray,
             displacement: np.ndarray,
             **kwargs
     ) -> np.ndarray:
@@ -71,13 +73,13 @@ class Direct(Solver):
                 self.equation,
                 initial_guess,
                 args=(
+                    variable_old,
                     self.body.mesh.nodes,
                     self.body.mesh.contact_boundary,
                     self.body.mesh.boundaries.contact_normals,
                     self.node_relations,
                     self.node_forces,
                     displacement,
-                    velocity,
                     self.body.dynamics.acceleration_operator.SM1.data,
                     self.time_step
                 ),

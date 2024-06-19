@@ -18,6 +18,7 @@ class Solver:
         time_step: float,
         contact_law: Optional[ContactLaw] = None,
         friction_bound: Optional[Callable[[float], float]] = None,
+        driving_vector: bool = False,
     ):
         self.contact_law: Optional[ContactLaw] = contact_law
         self.friction_bound: Optional[Callable[[float], float]] = friction_bound
@@ -34,6 +35,8 @@ class Solver:
         self.p_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)  # TODO #23
 
         self.elasticity: np.ndarray = body.dynamics.elasticity
+
+        self.driving_vector = driving_vector
 
         self.statement.update(
             Variables(
@@ -54,13 +57,14 @@ class Solver:
         pass
 
     def _solve_impl(
-        self, initial_guess, *, velocity: np.ndarray, displacement: np.ndarray, **kwargs
+        self, initial_guess, *, variable_old: np.ndarray, displacement: np.ndarray, **kwargs
     ):
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
+
         solution = self._solve_impl(
-            initial_guess, velocity=self.v_vector, displacement=self.u_vector, **kwargs
+            initial_guess, variable_old=self.v_vector, displacement=self.u_vector, **kwargs  # TODO: FIXME variable_old
         )
 
         for dirichlet_cond in self.statement.find_dirichlet_conditions():

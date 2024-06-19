@@ -54,10 +54,20 @@ def apply_predicate_to_surfaces(surfaces, nodes, predicate: Callable):
 
 
 def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
+    """
+    Node order
+
+    [C C C N N N N N I I I I I I I D D D]
+    C - contact node
+    N - neumann node
+    I - internal node
+    D - dirichlet node
+    Dirichlet override other
+    """
     # move boundary nodes to the top
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
     # then move contact nodes to the top
-    nodes, elements, contact_nodes_count = reorder(nodes, elements, is_contact, to_top=True)
+    nodes, elements, contact_nodes_count = reorder(nodes, elements, lambda *args: is_contact(*args) and not is_dirichlet(*args), to_top=True)
     # finally move dirichlet nodes to the bottom
     nodes, elements, dirichlet_nodes_count = reorder(nodes, elements, is_dirichlet, to_top=False)
     return (

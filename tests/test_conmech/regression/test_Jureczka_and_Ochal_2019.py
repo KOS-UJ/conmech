@@ -69,7 +69,8 @@ def test(solving_method):
     setup = StaticSetup(mesh_descr)
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(
-        fixed_point_abs_tol=0.001, initial_displacement=setup.initial_displacement
+         initial_displacement=setup.initial_displacement,
+        method='Powell' if solving_method == 'schur' else 'BFGS'
     )
 
     displacement = result.body.mesh.nodes[:] - result.displaced_nodes[:]

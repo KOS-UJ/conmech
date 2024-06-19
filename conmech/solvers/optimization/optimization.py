@@ -29,6 +29,7 @@ class Optimization(Solver):
         time_step: float,
         contact_law: Optional[ContactLaw],
         friction_bound,
+        driving_vector,
     ):
         super().__init__(
             statement,
@@ -36,6 +37,7 @@ class Optimization(Solver):
             time_step,
             contact_law,
             friction_bound,
+            driving_vector,
         )
         if statement.dimension_in == 2 and statement.dimension_out == 2:
             self.loss = make_cost_functional(
@@ -80,6 +82,8 @@ class Optimization(Solver):
             else:
                 self.loss = make_cost_functional_2(
                     contact=contact_law.general_contact_condition,
+                    variable_dimension=statement.dimension_out,
+                    problem_dimension=statement.dimension_in,
                 )
         else:
             raise ValueError(f"Unknown statement: {statement}")
@@ -99,7 +103,7 @@ class Optimization(Solver):
         self,
         initial_guess: np.ndarray,
         *,
-        velocity: np.ndarray,
+        variable_old: np.ndarray,
         displacement: np.ndarray,
         method="BFGS",
         fixed_point_abs_tol: float = math.inf,
@@ -113,6 +117,7 @@ class Optimization(Solver):
         maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
         tol = kwargs.get("tol", 1e-12)
         args = (
+            variable_old,
             self.body.mesh.nodes,
             self.body.mesh.contact_boundary,
             self.body.mesh.boundaries.contact_normals,
@@ -131,7 +136,7 @@ class Optimization(Solver):
         loss.append(self.loss(solution, *args)[0])
 
         while norm >= fixed_point_abs_tol:
-            if method.lower() in (  # TODO
+            if method.lower() in (
                 "quasi secant method",
                 "limited memory quasi secant method",
                 "quasi secant method limited memory",
