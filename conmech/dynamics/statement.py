@@ -83,10 +83,13 @@ class WaveStatement(Statement):
 
     def update_left_hand_side(self, var):
         assert var.time_step is not None
+        a = self.body.dynamics.acceleration_operator.SM1
+        b = SM1(self.body.dynamics.volume_at_nodes)
+        # a.data = 4 * a.data
 
         self.left_hand_side = (
             (1 / var.time_step)
-            * self.body.dynamics.acceleration_operator.SM1
+            * a
             + self.body.dynamics.poisson_operator * var.time_step
         )
 
@@ -96,11 +99,15 @@ class WaveStatement(Statement):
         assert var.time_step is not None
         assert var.time is not None
 
+        a = self.body.dynamics.acceleration_operator.SM1
+        b = SM1(self.body.dynamics.volume_at_nodes)
+        # a.data = 4 * a.data
+
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
         A = -1 * self.body.dynamics.poisson_operator @ var.displacement[:ind]
 
-        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator.SM1 @ var.velocity[:ind]
+        A += (1 / var.time_step) * a @ var.velocity[:ind]
 
         self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
 

@@ -2,10 +2,12 @@ from typing import Callable, List
 
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.tri as mtri
 from matplotlib.cm import ScalarMappable, get_cmap
 import matplotlib.tri as tri
+import scipy.optimize as opt
 
+from conmech.state.products.intersection_contact_limit_points import \
+    IntersectionContactLimitPoints
 from conmech.state.state import State
 
 
@@ -13,16 +15,31 @@ def plot_in_columns(states: List[State], *args, **kwargs):
     fig = plt.figure(layout='compressed', figsize=(8.3, 11.7))
     fig.suptitle(kwargs['title'])
     del kwargs['title']
+
+    in3d = kwargs.get('in3d', False)
+    if in3d:
+        extra_kwargs = {'projection': '3d'}
+    else:
+        extra_kwargs = {}
+        kwargs['in3d'] = False
+
     cols = 2
     rows = len(states) // 2
     i = 1
     for r in range(1, len(states)+1):
-        ax = fig.add_subplot(rows, cols, i, projection='3d')
+        ax = fig.add_subplot(rows, cols, i, **extra_kwargs)
         do_plot(fig, states[r-1], *args, ax=ax, elev=15, azim=30, **kwargs)
         i += 1
         # ax = fig.add_subplot(rows, cols, i, projection='3d')
         # do_plot(fig, states[r-1], *args, ax=ax, elev=90, azim=90, **kwargs)
         # i += 1
+    plt.show()
+
+
+def plot_limit_points(prod: IntersectionContactLimitPoints):
+    for time, zeros in prod.data.items():
+        plt.scatter(np.ones_like(zeros) * time, zeros, s=2, color='black')
+
     plt.show()
 
 
@@ -33,14 +50,20 @@ def plot(state: State, *args, **kwargs):
     plt.show()
 
 
-def do_plot(fig, state: State, field="displacement", vmin=None, vmax=None, zmin=None, zmax=None, title=None, ax=None, elev=0, azim=-0):
+def do_plot(
+        fig, state: State, field="displacement",
+        vmin=None, vmax=None, zmin=None, zmax=None,
+        title=None, ax=None, elev=0, azim=-0,
+        in3d=False, x=0.0,
+):
     assert state.body.mesh.dimension == 2  # membrane have to be 2D
     X = state.body.mesh.nodes[:, 0]
     Y = state.body.mesh.nodes[:, 1]
 
     soltri = tri.Triangulation(X, Y, triangles=state.body.mesh.elements)
-    v = tri.LinearTriInterpolator(soltri, getattr(state, field)[:, 0])
-    u = tri.LinearTriInterpolator(soltri, state.displacement[:, 0])
+    interpol = tri.LinearTriInterpolator #if in3d else tri.CubicTriInterpolator
+    v = interpol(soltri, getattr(state, field)[:, 0])
+    u = interpol(soltri, state.displacement[:, 0])
 
     # higher resolution
     X = np.linspace(0, 1, 100)
@@ -60,8 +83,11 @@ def do_plot(fig, state: State, field="displacement", vmin=None, vmax=None, zmin=
     for i in range(len(BX)):
         BU[i] = u(BX[i], BY[i])
 
-    ax.view_init(elev=elev, azim=azim)
-    plot_surface(fig, ax, X, Y, U, BX, BY, BU, lambda x, y, z: v(x, y), vmin, vmax, zmin, zmax, title)
+    if in3d:
+        ax.view_init(elev=elev, azim=azim)
+        plot_surface(fig, ax, X, Y, U, BX, BY, BU, lambda x, y, z: v(x, y), vmin, vmax, zmin, zmax, title)
+    else:
+        plot_intersection(fig, ax, u, x, ymin=zmin, ymax=zmax)
 
 
 def plot_surface(fig, ax, X, Y, U, BX, BY, BU, v: Callable, vmin=None, vmax=None, zmin=None, zmax=None, title=None):
@@ -83,6 +109,12 @@ def plot_surface(fig, ax, X, Y, U, BX, BY, BU, v: Callable, vmin=None, vmax=None
     # plt.show()
 
     # v2_mayavi(True, X, Y, U, np.ones_like(U))
+
+
+def plot_intersection(fig, ax, u, x, ymin, ymax):
+    space = np.linspace(0, 1, 100)
+    ax.set_ylim([ymin, ymax])
+    ax.plot(space, u(np.ones_like(space) * x, space))
 
 
 def map_colors(p3dc, func, cmap='viridis', vmin=None, vmax=None):

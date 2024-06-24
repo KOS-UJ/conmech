@@ -11,6 +11,8 @@ class State:
         self.body = body
         self.body.state = self
 
+        self.products = {}
+
         self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
         self.displacement: np.ndarray = np.zeros(
             (self.body.mesh.nodes_count, self.body.mesh.dimension)
@@ -34,6 +36,7 @@ class State:
             dt = time - self.time
             self.absement += dt * self.displacement
         self.time = time
+        self.update_products()
 
     def set_velocity(self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool):
         self.velocity = velocity_vector.reshape((self.body.mesh.dimension, -1)).T
@@ -44,6 +47,7 @@ class State:
                 self.body.mesh.nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
             )
         self.time = time
+        self.update_products()
 
     @property
     def stress(self):
@@ -72,14 +76,12 @@ class State:
     def stress_y(self):
         return self.stress[:, 1, 1]
 
-    @property
-    def penetration(self):
-        """
-        This method assume foundation equals x=0.
-        """
-        if len(self.displaced_nodes[self.body.mesh.contact_indices, 1]) != 0:
-            return np.min(self.displaced_nodes[self.body.mesh.contact_indices, 1])
-        return 0
+    def inject_product(self, product):
+        self.products[product.name] = product
+
+    def update_products(self):
+        for prod in self.products.values():
+            prod.update(self)
 
     def __getitem__(self, item: [int, str]) -> np.ndarray:
         if item in (0, "displacement"):
@@ -99,6 +101,7 @@ class State:
         copy.displaced_nodes[:] = self.displaced_nodes
         copy.velocity[:] = self.velocity
         copy.time = self.time
+        copy.products = {n: p.copy() for n, p in self.products.items()}
         return copy
 
     def save(self, path):

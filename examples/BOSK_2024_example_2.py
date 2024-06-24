@@ -4,15 +4,20 @@ from typing import Optional
 import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.plotting.membrane import plot as membrane_plot, plot_in_columns
+from conmech.plotting.membrane import plot as membrane_plot, plot_in_columns, \
+    plot_limit_points
 from conmech.scenarios.problems import InteriorContactWaveProblem, \
     InteriorContactLaw
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
+from conmech.state.products.intersection_contact_limit_points import \
+    IntersectionContactLimitPoints
 from conmech.state.state import State
 
-TESTING = True
+TESTING = False
+FORCE_SIMULATION = False
 PRECISION = 12 if not TESTING else 3
+OBSTACLE_LEVEL = 1.0
 
 
 def make_DNC(obstacle_level: float, kappa: float, beta: float):
@@ -29,7 +34,7 @@ def make_DNC(obstacle_level: float, kappa: float, beta: float):
 @dataclass()
 class MembraneSetup(InteriorContactWaveProblem):
     time_step: ... = 1 / 20
-    contact_law: ... = make_DNC(1.0, kappa=100.0, beta=150.0)()
+    contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=100.0, beta=150.0)()
 
     @staticmethod
     def inner_forces(
@@ -56,11 +61,12 @@ def main(config: Config, setup, name, steps):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     print(name)
+    output_step = range(0, steps)
     to_simulate = False
     if config.force:
         to_simulate = True
     else:
-        for step in range(steps):
+        for step in output_step:
             try:
                 State.load(f"{config.path}/{name}_step_{step}")
             except IOError:
@@ -71,7 +77,9 @@ def main(config: Config, setup, name, steps):
 
         states = runner.solve(
             n_steps=steps,
-            output_step=range(0, steps),
+            output_step=output_step,
+            products=[IntersectionContactLimitPoints(
+                obstacle_level=OBSTACLE_LEVEL, x=0.50)],
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,
             verbose=True,
@@ -81,12 +89,13 @@ def main(config: Config, setup, name, steps):
             state.save(f"{config.path}/{name}_step_{step}")
     else:
         states = []
-        for step in range(steps):
+        for step in output_step:
             states.append(
                 State.load(f"{config.path}/{name}_step_{step}"))
 
+    plot_limit_points(states[-1].products['limit points at 0.50'])
     states_ids = list(range(len(states)))
-    to_plot = [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
+    to_plot = states_ids[:64:4] # [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
     vmin = np.inf
     vmax = -np.inf
     field = "velocity"
@@ -112,8 +121,14 @@ def main(config: Config, setup, name, steps):
         states_.append(state)
     plot_in_columns(
         states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
+        x=0.5,
         title=f"velocity"  #: {i * setup.time_step:.2f}s"
     )
+    # plot_in_columns(
+    #     states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
+    #     in3d=True,
+    #     title=f"velocity"  #: {i * setup.time_step:.2f}s"
+    # )
 
 
 if __name__ == "__main__":
@@ -126,7 +141,7 @@ if __name__ == "__main__":
         "plain",
         # "nonzero",
         # "velocity",
-        "force",
+        #"force",
         # "beta=0",
     ]
 
@@ -155,12 +170,12 @@ if __name__ == "__main__":
     setups["force"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(1.0, kappa=100.0, beta=0.0)()
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=100.0, beta=0.0)()
     setups["beta=0"] = setup
 
     for name in to_simulate:
         main(
-            Config(output_dir="BOSK.ORG", force=True).init(),
+            Config(output_dir="BOSK.2", force=FORCE_SIMULATION).init(),
             setups[name],
             name=name,
             steps=int(T / setups[name].time_step) + 1

@@ -54,7 +54,7 @@ def make_equation(
                                       + var[i] * time_step, var[i])
             res = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) \
                 - np.dot(rhs, var[:ind]) \
-                + 0.5 * np.dot(np.dot(volume_multiplier[:ind, :ind], response), np.ones_like(var[:ind])) \
+                + 0.5 * np.dot(np.dot(volume_multiplier, response), np.ones_like(var[:ind])) \
                 + np.dot(var[ind:], var[ind:].T)
 
             result = np.asarray(res).ravel()

@@ -48,6 +48,7 @@ from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
 from conmech.solvers.validator import Validator
+from conmech.state.products.product import Product
 from conmech.state.state import State, TemperatureState, PiezoelectricState
 
 
@@ -96,8 +97,6 @@ class ProblemSolver:
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
         self.validator: Optional[Validator] = None
-
-        self.penetration = []
 
         self.done = 0
         self.to_do = 1
@@ -200,12 +199,22 @@ class ProblemSolver:
     def solve(self, **kwargs):
         raise NotImplementedError()
 
-    def run(self, state: State, n_steps: int, verbose: bool = False, **kwargs):
+    def run(
+            self,
+            state: State, n_steps: int,
+            verbose: bool = False,
+            products: Optional[List[Product]] = None,
+            **kwargs
+    ):
         """
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
         """
+        if products is not None:
+            for prod in products:
+                state.inject_product(prod)
+
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
 
@@ -238,7 +247,6 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-            self.penetration.append((state.time, state.penetration))
             self.step_solver.iterate()
             self.done += 1
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")

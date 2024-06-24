@@ -30,6 +30,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
 from conmech.properties.mesh_description import SOB2023MeshDescription
+from conmech.state.products.penetration import Penetration
 
 from examples.p_slope_contact_law import make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
@@ -175,6 +176,7 @@ def main(config: Config):
                 n_steps=examples[name]["n_steps"],
                 output_step=examples[name]["output_steps"],
                 verbose=False,
+                products=[Penetration()],
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
                 tol=1e-9 if config.test else 1e-3,
@@ -205,7 +207,10 @@ def main(config: Config):
                 f"{config.outputs_path}/{name}_h_{h}_penetration",
                 "wb+",
             ) as output:
-                pickle.dump(runner.penetration, output)
+                penetration = states[-1].products['penetration']
+                pickle.dump(
+                    list((t, p) for t, p in penetration.data.items()), output
+                )
             with open(
                 f"{config.outputs_path}/{name}_h_{h}_global",
                 "wb+",
