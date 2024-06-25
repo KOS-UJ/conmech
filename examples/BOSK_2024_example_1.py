@@ -2,12 +2,15 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
+from matplotlib import pyplot as plt
+
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.membrane import plot_in_columns, plot_limit_points
 from conmech.scenarios.problems import ContactLaw, ContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
+from conmech.state.products.intersection import Intersection
 from conmech.state.products.intersection_contact_limit_points import \
     IntersectionContactLimitPoints
 from conmech.state.state import State
@@ -15,8 +18,9 @@ from conmech.state.state import State
 TESTING = False
 FORCE_SIMULATION = True
 FULL = False
-PRECISION = 8 if not TESTING else 3
-OBSTACLE_LEVEL = 2.0
+PRECISION = 32 if not TESTING else 3
+OBSTACLE_LEVEL = 1.0
+T = 10.0
 
 
 def make_DNC(obstacle_level: float, kappa: float, beta: float):
@@ -32,8 +36,9 @@ def make_DNC(obstacle_level: float, kappa: float, beta: float):
 
 @dataclass()
 class MembraneSetup(ContactWaveProblem):
-    time_step: ... = 1 / 400
-    contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
+    time_step: ... = 1 / 512
+    propagation: ... = 4.0
+    contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.5)()
 
     @staticmethod
     def inner_forces(
@@ -62,7 +67,7 @@ def main(config: Config, setup, name, steps):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     print(name)
-    output_step = (0, steps)
+    output_step = (steps,)
     to_simulate = False
     if config.force:
         to_simulate = True
@@ -80,7 +85,7 @@ def main(config: Config, setup, name, steps):
             n_steps=steps,
             output_step=output_step,
             products=[IntersectionContactLimitPoints(
-                obstacle_level=OBSTACLE_LEVEL, x=1.0)],
+                obstacle_level=OBSTACLE_LEVEL, x=1.0), Intersection(x=1.0)],
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,
             verbose=True,
@@ -95,8 +100,15 @@ def main(config: Config, setup, name, steps):
                 State.load(f"{config.path}/{name}_step_{step}"))
 
     plot_limit_points(states[-1].products['limit points at 1.00'])
+    # intersect = states[-1].products['intersection at 1.00']
+    # for t, v in intersect.data.items():
+    #     if t in (s / 2 for s in range(int(2 * T) + 1)):
+    #         plt.title(f'{t:.2f}')
+    #         plt.plot(*v)
+    #         plt.show()
     if not FULL:
         return
+
     states_ids = list(range(len(states)))
     to_plot = [10, 30, 50, 210, 320, 430, 540, 600] #states_ids[1:4] #+ states_ids[::4][1:]
     vmin = np.inf
@@ -123,7 +135,7 @@ def main(config: Config, setup, name, steps):
         states_.append(state)
     plot_in_columns(
         states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
-        title=f"velocity" #: {i * setup.time_step:.2f}s"
+        title=f"velocity"  #: {i * setup.time_step:.2f}s"
     )
     plot_in_columns(
         states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
@@ -136,26 +148,45 @@ if __name__ == "__main__":
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=1 / PRECISION, scale=[1, 1]
     )
-    T = 8.0
     setups = dict()
-    to_simulate = [
-        "plain",
-        # "force"
-        # "beta=0",
-    ]
 
-    setup = MembraneSetup(mesh_descr)
-    setups["plain"] = setup
-
-    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        return np.array([max(100 * (1 - t), 0)])
-    setup = MembraneSetup(mesh_descr)
-    setup.inner_forces = inner_forces
-    setups["force"] = setup
-
-    setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=100.0, beta=0.0)()
-    setups["beta=0"] = setup
+    kappas = (0.0, 0.5, 1.0, 5.0, 10.0, 100.0)[-2:]
+    betas = (0.0, 0.25, 0.5, 0.75, 1.0, 1.5)[1:-1]
+    to_simulate = []
+    for kappa in kappas:
+        for beta in betas:
+            label = f"kappa={kappa:.2f};beta={beta:.2f}"
+            to_simulate.append(label)
+            setup = MembraneSetup(mesh_descr)
+            setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=kappa, beta=beta)()
+            setups[label] = setup
+    # to_simulate = [
+    #     "no contact",
+    #     # "plain",
+    #     # "force"
+    #     "beta=0.00",
+    #     "beta=0.25",
+    #     "beta=0.50",
+    #     "beta=0.75",
+    #     "beta=1.00",
+    # ]
+    #
+    # setup = MembraneSetup(mesh_descr)
+    # setups["plain"] = setup
+    #
+    # setup = MembraneSetup(mesh_descr)
+    # setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
+    # setups["no contact"] = setup
+    #
+    # def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+    #     return np.array([max(100 * (1 - t), 0)])
+    # setup = MembraneSetup(mesh_descr)
+    # setup.inner_forces = inner_forces
+    # setups["force"] = setup
+    #
+    # setup = MembraneSetup(mesh_descr)
+    # setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
+    # setups["beta=0"] = setup
 
     for name in to_simulate:
         main(

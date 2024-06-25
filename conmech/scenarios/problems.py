@@ -92,6 +92,8 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 
 @dataclass
 class WaveProblem(DynamicProblem, ABC):
+    propagation: float
+
     @staticmethod
     def initial_displacement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)

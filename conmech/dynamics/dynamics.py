@@ -67,7 +67,6 @@ class Dynamics:
             self.piezoelectricity,
             self.permittivity,
             self.poisson_operator,
-            self.wave_operator,
         ) = get_dynamics(
             elements=self.body.mesh.elements,
             body_prop=self.body.properties,

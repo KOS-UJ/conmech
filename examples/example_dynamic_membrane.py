@@ -13,6 +13,7 @@ from conmech.properties.mesh_description import CrossMeshDescription
 @dataclass()
 class MembraneSetup(WaveProblem):
     time_step: ... = 0.1
+    propagation: ... = 1.0
 
     @staticmethod
     def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:

@@ -26,7 +26,7 @@ from conmech.properties.body_properties import (
     ViscoelasticProperties,
     ElasticRelaxationProperties,
     ViscoelasticPiezoelectricProperties,
-    ViscoelasticTemperatureProperties,
+    ViscoelasticTemperatureProperties, MembraneProperties,
 )
 from conmech.scenarios.problems import (
     TimeDependentProblem,
@@ -348,10 +348,9 @@ class PoissonSolver(ProblemSolver):
         :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = ElasticProperties(
+        body_prop = MembraneProperties(
             mass_density=1.0,
-            mu=0,
-            lambda_=0,
+            propagation=1.0,
         )
         super().__init__(problem, body_prop)
 
@@ -742,7 +741,8 @@ class WaveSolver(ProblemSolver):
 
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = BodyProperties(mass_density=1)
+        body_prop = MembraneProperties(
+            mass_density=1, propagation=problem.propagation)
         super().__init__(problem, body_prop)
 
         _ = State(self.body)  # TODO

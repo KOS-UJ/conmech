@@ -6,7 +6,7 @@ from conmech.properties.body_properties import (
     ElasticProperties,
     TemperatureBodyProperties,
     PiezoelectricBodyProperties,
-    BodyProperties,
+    BodyProperties, MembraneProperties,
 )
 
 
@@ -51,25 +51,30 @@ def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
     dimension = len(elements[0]) - 1
     factory = get_factory(dimension)
 
-    poisson_operator = factory.calculate_poisson_matrix(W)
-    wave_operator = factory.calculate_wave_matrix(W)
+    acceleration_operator = factory.calculate_acceleration(
+        U, body_prop.mass_density)
 
-    elasticity = (
-        factory.calculate_constitutive_matrices(W, body_prop.mu, body_prop.lambda_)
-        if isinstance(body_prop, ElasticProperties)
-        else None
-    )
+    if isinstance(body_prop, MembraneProperties):
+        poisson_operator = factory.calculate_poisson_matrix(
+            W, body_prop.propagation)
+    else:
+        poisson_operator = None
 
-    viscosity = (
-        factory.calculate_constitutive_matrices(W, body_prop.theta, body_prop.zeta)
-        if isinstance(body_prop, ViscoelasticProperties)
-        else None
-    )
+    if isinstance(body_prop, ElasticProperties):
+        elasticity = factory.calculate_constitutive_matrices(
+            W, body_prop.mu, body_prop.lambda_)
+    else:
+        elasticity = None
 
-    acceleration_operator = factory.calculate_acceleration(U, body_prop.mass_density)
+    if isinstance(body_prop, ViscoelasticProperties):
+        viscosity = factory.calculate_constitutive_matrices(
+            W, body_prop.theta, body_prop.zeta)
+    else:
+        viscosity = None
 
     if isinstance(body_prop, TemperatureBodyProperties):
-        thermal_expansion = factory.calculate_thermal_expansion(V, body_prop.thermal_expansion)
+        thermal_expansion = factory.calculate_thermal_expansion(
+            V, body_prop.thermal_expansion)
         thermal_conductivity = factory.calculate_thermal_conductivity(
             W, body_prop.thermal_conductivity
         )
@@ -78,8 +83,10 @@ def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
         thermal_conductivity = None
 
     if isinstance(body_prop, PiezoelectricBodyProperties):
-        piezoelectricity = factory.get_piezoelectric_tensor(W, body_prop.piezoelectricity)
-        permittivity = factory.get_permittivity_tensor(W, body_prop.permittivity)
+        piezoelectricity = factory.get_piezoelectric_tensor(
+            W, body_prop.piezoelectricity)
+        permittivity = factory.get_permittivity_tensor(
+            W, body_prop.permittivity)
     else:
         piezoelectricity = None
         permittivity = None
@@ -93,5 +100,4 @@ def get_dynamics(elements: np.ndarray, body_prop: BodyProperties, U, V, W):
         piezoelectricity,
         permittivity,
         poisson_operator,
-        wave_operator,
     )

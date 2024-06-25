@@ -36,9 +36,10 @@ def plot_in_columns(states: List[State], *args, **kwargs):
     plt.show()
 
 
-def plot_limit_points(prod: IntersectionContactLimitPoints):
+def plot_limit_points(prod: IntersectionContactLimitPoints, title=None):
     for time, zeros in prod.data.items():
         plt.scatter(np.ones_like(zeros) * time, zeros, s=2, color='black')
+    plt.title(title)
 
     plt.show()
 

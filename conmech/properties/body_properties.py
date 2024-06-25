@@ -65,5 +65,5 @@ class ElasticRelaxationProperties(ElasticProperties, RelaxationBodyProperties):
 
 
 @dataclass
-class BaseFunctionNormBodyProperties(BodyProperties):
-    pass
+class MembraneProperties(BodyProperties):
+    propagation: float

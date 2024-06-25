@@ -36,8 +36,8 @@ class AbstractDynamicsFactory:
         raise NotImplementedError()
 
     @staticmethod
-    def calculate_poisson_matrix(W: np.ndarray) -> SM1:
-        return SM1(np.sum(W.diagonal(), axis=2))
+    def calculate_poisson_matrix(W: np.ndarray, propagation: float) -> SM1:
+        return SM1(propagation * np.sum(W.diagonal(), axis=2))
 
     @staticmethod
     def calculate_wave_matrix(W: np.ndarray) -> np.ndarray:
