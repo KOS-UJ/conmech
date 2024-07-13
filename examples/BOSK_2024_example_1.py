@@ -18,9 +18,9 @@ from conmech.state.state import State
 TESTING = False
 FORCE_SIMULATION = True
 FULL = False
-PRECISION = 32 if not TESTING else 3
-OBSTACLE_LEVEL = 1.0
-T = 10.0
+PRECISION = 16 if not TESTING else 3
+OBSTACLE_LEVEL = 0.01
+T = 4.0
 
 
 def make_DNC(obstacle_level: float, kappa: float, beta: float):
@@ -37,7 +37,7 @@ def make_DNC(obstacle_level: float, kappa: float, beta: float):
 @dataclass()
 class MembraneSetup(ContactWaveProblem):
     time_step: ... = 1 / 512
-    propagation: ... = 4.0
+    propagation: ... = np.sqrt(4.0)
     contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.5)()
 
     @staticmethod
@@ -150,43 +150,43 @@ if __name__ == "__main__":
     )
     setups = dict()
 
-    kappas = (0.0, 0.5, 1.0, 5.0, 10.0, 100.0)[-2:]
-    betas = (0.0, 0.25, 0.5, 0.75, 1.0, 1.5)[1:-1]
-    to_simulate = []
-    for kappa in kappas:
-        for beta in betas:
-            label = f"kappa={kappa:.2f};beta={beta:.2f}"
-            to_simulate.append(label)
-            setup = MembraneSetup(mesh_descr)
-            setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=kappa, beta=beta)()
-            setups[label] = setup
-    # to_simulate = [
-    #     "no contact",
-    #     # "plain",
-    #     # "force"
-    #     "beta=0.00",
-    #     "beta=0.25",
-    #     "beta=0.50",
-    #     "beta=0.75",
-    #     "beta=1.00",
-    # ]
-    #
-    # setup = MembraneSetup(mesh_descr)
-    # setups["plain"] = setup
-    #
-    # setup = MembraneSetup(mesh_descr)
-    # setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
-    # setups["no contact"] = setup
-    #
-    # def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-    #     return np.array([max(100 * (1 - t), 0)])
-    # setup = MembraneSetup(mesh_descr)
-    # setup.inner_forces = inner_forces
-    # setups["force"] = setup
-    #
-    # setup = MembraneSetup(mesh_descr)
-    # setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
-    # setups["beta=0"] = setup
+    # kappas = (0.0, 0.5, 1.0, 5.0, 10.0, 100.0)[-2:]
+    # betas = (0.0, 0.25, 0.5, 0.75, 1.0, 1.5)[1:-1]
+    # to_simulate = []
+    # for kappa in kappas:
+    #     for beta in betas:
+    #         label = f"kappa={kappa:.2f};beta={beta:.2f}"
+    #         to_simulate.append(label)
+    #         setup = MembraneSetup(mesh_descr)
+    #         setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=kappa, beta=beta)()
+    #         setups[label] = setup
+    to_simulate = [
+        "no contact",
+        # "plain",
+        # "force"
+        # "beta=0.00",
+        # "beta=0.25",
+        # "beta=0.50",
+        # "beta=0.75",
+        # "beta=1.00",
+    ]
+
+    setup = MembraneSetup(mesh_descr)
+    setups["plain"] = setup
+
+    setup = MembraneSetup(mesh_descr)
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
+    setups["no contact"] = setup
+
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
+        return np.array([max(100 * (1 - t), 0)])
+    setup = MembraneSetup(mesh_descr)
+    setup.inner_forces = inner_forces
+    setups["force"] = setup
+
+    setup = MembraneSetup(mesh_descr)
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
+    setups["beta=0"] = setup
 
     for name in to_simulate:
         main(

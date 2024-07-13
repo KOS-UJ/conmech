@@ -110,7 +110,7 @@ class ContactWaveProblem(WaveProblem, ABC):
 
 @dataclass
 class InteriorContactWaveProblem(ContactWaveProblem, ABC):
-    pass
+    contact_law: InteriorContactLaw
 
 
 @dataclass

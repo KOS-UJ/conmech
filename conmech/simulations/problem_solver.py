@@ -90,7 +90,7 @@ class ProblemSolver:
 
         self.problem: Problem = problem
 
-        # True if only on dimension of displacement is used
+        # True if only one dimension of displacement is used
         self.driving_vector = False
 
         self.coordinates: Optional[str] = None
@@ -232,11 +232,6 @@ class ProblemSolver:
                 self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
                 self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
             elif self.coordinates == "velocity":
-                # if self.step_solver.statement.dimension == 1:  # TODO workaround
-                #     ind = len(solution)
-                #     extended_solution = np.zeros(ind * 2)  # TODO
-                #     extended_solution[:ind] = solution
-                #     solution = extended_solution
                 state.set_velocity(
                     solution,
                     update_displacement=True,
@@ -364,6 +359,7 @@ class PoissonSolver(ProblemSolver):
         state = TemperatureState(self.body)
 
         self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.second_step_solver.iterate()
 
         initial_guess = state[self.coordinates]
         solution = self.second_step_solver.solve(initial_guess=initial_guess, **kwargs)
@@ -405,6 +401,7 @@ class StaticSolver(ProblemSolver):
         )
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.iterate()
         self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
@@ -469,6 +466,7 @@ class QuasistaticRelaxation(ProblemSolver):
 
         self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.iterate()
 
         output_step = np.diff(output_step)
         results = []
@@ -535,6 +533,7 @@ class TimeDependentSolver(ProblemSolver):
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.iterate()
 
         output_step = np.diff(output_step)
         results = []
@@ -615,6 +614,9 @@ class TemperatureTimeDependentSolver(ProblemSolver):
         self.second_step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
         self.second_step_solver.t_vector[:] = state.temperature.T.ravel().copy()
+
+        self.step_solver.iterate()
+        self.second_step_solver.iterate()
 
         output_step = np.diff(output_step)
         done = 0
@@ -709,6 +711,9 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
         self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
         self.second_step_solver.p_vector[:] = state.electric_potential.T.ravel().copy()
 
+        self.step_solver.iterate()
+        self.second_step_solver.iterate()
+
         output_step = np.diff(output_step)
         results = []
         done = 0
@@ -736,7 +741,11 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
 
 
 class WaveSolver(ProblemSolver):
-    def __init__(self, problem: WaveProblem, solving_method: str):
+    def __init__(
+            self,
+            problem: WaveProblem,
+            solving_method: str,
+    ):
         """Solves general Contact Mechanics problem.
 
         :param solving_method: 'schur', 'optimization', 'direct'
@@ -759,6 +768,7 @@ class WaveSolver(ProblemSolver):
         n_steps: int,
         initial_displacement: Callable,
         initial_velocity: Callable,
+        state: State | None = None,
         output_step: Optional[iter] = None,
         **kwargs,
     ) -> List[State]:
@@ -775,14 +785,16 @@ class WaveSolver(ProblemSolver):
         """
         output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
 
-        state = State(self.body)
-        state.displacement[:] = initial_displacement(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
-        state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
+        if state is None:
+            state = State(self.body)
+            state.displacement[:] = initial_displacement(
+                self.body.mesh.nodes[: self.body.mesh.nodes_count]
+            )
+            state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.iterate()
 
         output_step = np.diff(output_step)
         results = []

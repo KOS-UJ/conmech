@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from typing import Optional
 
@@ -18,17 +19,17 @@ from conmech.state.products.intersection_contact_limit_points import \
 from conmech.state.state import State
 
 TESTING = False
-FORCE_SIMULATION = True
+FORCE_SIMULATION = False
 PRECISION = 8 if not TESTING else 3
 OBSTACLE_LEVEL = 1.0
-KAPPA = 10.0
-BETA = 0.0
-FORCE = 250.0
-PROPAGATION = 2.5
-TIMESTEP = 1/256
+KAPPA = 1.0
+BETA = 1.0
+FORCE = 25.0
+PROPAGATION = np.sqrt(2.5)
+TIMESTEP = 1/4096
 
 FULL = False
-END = (0.75, 1)
+END = (0.9, 1)
 
 
 def make_DNC(obstacle_level: float, kappa: float, beta: float):
@@ -98,7 +99,7 @@ def main(config: Config, setup, name, steps):
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,
             verbose=True,
-            method="Powell",
+            # method="Powell",
         )
         for step, state in enumerate(states):
             state.save(f"{config.path}/{name}_step_{int(state.time / setup.time_step)}")
@@ -108,23 +109,27 @@ def main(config: Config, setup, name, steps):
             states.append(
                 State.load(f"{config.path}/{name}_step_{step}"))
 
+    start = time.time()
     plot_limit_points(
         states[-1].products['limit points at 0.50'],
         title=fr'$\kappa={setup.contact_law.KAPPA}$ '
-              fr'$\beta={setup.contact_law.BETA}$')
-    intersect = states[-1].products['intersection at 0.50']
-    results = tuple(intersect.data.items())
-    T = results[-1][0]
-    num = len(results)
-    i = 0
-    for t, v in intersect.data.items():
-        i += 1
-        # if t in (s / 2 for s in range(int(2 * T) + 1)):
-        plt.plot(*v, color=f'{1 - t / T:.3f}')
-        if num * END[0] < i < num * END[1]:
-            break
-    plt.title(f'{t:.2f}')
+              fr'$\beta={setup.contact_law.BETA}$', finish=False)
+    print(time.time() - start)
+    plt.grid()
     plt.show()
+    # intersect = states[-1].products['intersection at 0.50']
+    # results = tuple(intersect.data.items())
+    # T = results[-1][0]
+    # num = len(results)
+    # i = 0
+    # for t, v in intersect.data.items():
+    #     i += 1
+    #     # if t in (s / 2 for s in range(int(2 * T) + 1)):
+    #     plt.plot(*v, color=f'{1 - t / T:.3f}')
+    #     if num * END[0] < i < num * END[1]:
+    #         break
+    # plt.title(f'{t:.2f}')
+    # plt.show()
     if not FULL:
         return
 
@@ -172,14 +177,16 @@ if __name__ == "__main__":
     T = 2.0 if not TESTING else MembraneSetup(None).time_step * 2
     setups = dict()
     to_simulate = [
-        "plain",
+        # "plain",
         # "nonzero",
         # "velocity",
         # "force",
         # "beta=0",
         # "beta=0.5",
         # "beta=1.0",
-
+        # "beta=10.0",
+        "beta=100.0",
+        # "beta=200.0",
     ]
 
     setup = MembraneSetup(mesh_descr)
@@ -195,12 +202,24 @@ if __name__ == "__main__":
     setups["nonzero"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.5)()
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=0.5)()
     setups["beta=0.5"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=1.0, beta=10.0)()
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=1.0)()
     setups["beta=1.0"] = setup
+
+    setup = MembraneSetup(mesh_descr)
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=10.0)()
+    setups["beta=10.0"] = setup
+
+    setup = MembraneSetup(mesh_descr)
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=100.0)()
+    setups["beta=100.0"] = setup
+
+    setup = MembraneSetup(mesh_descr)
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=200.0)()
+    setups["beta=200.0"] = setup
 
     def initial_velocity(x: np.ndarray) -> np.ndarray:
         return np.ones_like(x) * 10
@@ -215,7 +234,7 @@ if __name__ == "__main__":
     setups["force"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
+    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=0.0)()
     setups["beta=0"] = setup
 
     for name in to_simulate:

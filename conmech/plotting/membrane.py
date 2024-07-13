@@ -36,12 +36,29 @@ def plot_in_columns(states: List[State], *args, **kwargs):
     plt.show()
 
 
-def plot_limit_points(prod: IntersectionContactLimitPoints, title=None):
+def plot_limit_points(
+        prod: IntersectionContactLimitPoints,
+        color='black', title=None, label=None, finish=True, ylim=(0, 1)):
+    buff = np.zeros((2, 1000))
+    buff_size = 0
     for time, zeros in prod.data.items():
-        plt.scatter(np.ones_like(zeros) * time, zeros, s=2, color='black')
+        for zero in zeros:  # significant performance improvement
+            buff[0, buff_size] = time
+            buff[1, buff_size] = zero
+            buff_size += 1
+        if buff_size == 1000:
+            plt.scatter(buff[0, :], buff[1, :],
+                        s=1, color=color, label=label)
+            label = None
+            buff_size = 0
+    if buff_size > 0:
+        plt.scatter(buff[0, :buff_size], buff[1, :buff_size],
+                    s=1, color=color, label=label)
     plt.title(title)
+    plt.ylim(*ylim)
 
-    plt.show()
+    if finish:
+        plt.show()
 
 
 def plot(state: State, *args, **kwargs):

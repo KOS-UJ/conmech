@@ -33,5 +33,12 @@ class Product:
         result.data = self.data.copy()
         return result
 
-    def copy(self):
+    def copy(self) -> 'Product':
         return self.__copy__()
+
+    def range(self, start, stop) -> 'Product':
+        result = self.copy()
+        for key in self.data.keys():
+            if key <= start or key > stop:
+                del result.data[key]
+        return result

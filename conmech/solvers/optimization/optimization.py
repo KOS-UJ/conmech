@@ -130,8 +130,6 @@ class Optimization(Solver):
 
         loss = []
         sols = []
-        # solution = solution[:len(solution) // 2]  # TODO
-        # old_solution = solution.copy()
         sols.append(solution)
         loss.append(self.loss(solution, *args)[0])
 
@@ -183,31 +181,11 @@ class Optimization(Solver):
                 solution = result.x
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-
-                ### TODO
-                # ind = self.lhs.shape[0]
-                # response = np.zeros(ind)
-                # for i in range(ind):
-                #     response[i] = self.contact_law.general_contact_condition(
-                #         displacement[i] + solution[i] * self.time_step,
-                #         solution[i])
-                #     validation = np.dot(self.lhs, solution[:ind]) - self.rhs \
-                #                  + np.dot(np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
-                #                           response)
-                # valid = np.linalg.norm(validation)
-                # if valid < 0.1:
-                #     print("Validation:", valid)
-                #     break
-                # else:
-                #     print("Trying again:", valid)
+                break
 
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
         solution = sols[min_index]
-
-        # es = np.zeros(len(solution) * 2)
-        # es[:len(solution)] = solution[:]
-        # solution = es
 
         return solution

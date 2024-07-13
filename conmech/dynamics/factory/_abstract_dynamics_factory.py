@@ -37,7 +37,7 @@ class AbstractDynamicsFactory:
 
     @staticmethod
     def calculate_poisson_matrix(W: np.ndarray, propagation: float) -> SM1:
-        return SM1(propagation * np.sum(W.diagonal(), axis=2))
+        return SM1(propagation ** 2 * np.sum(W.diagonal(), axis=2))
 
     @staticmethod
     def calculate_wave_matrix(W: np.ndarray) -> np.ndarray:
