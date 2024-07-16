@@ -19,7 +19,7 @@ from conmech.state.products.intersection_contact_limit_points import \
 from conmech.state.state import State
 
 TESTING = False
-FORCE_SIMULATION = False
+FORCE_SIMULATION = True
 PRECISION = 8 if not TESTING else 3
 OBSTACLE_LEVEL = 1.0
 KAPPA = 1.0
@@ -27,6 +27,7 @@ BETA = 1.0
 FORCE = 25.0
 PROPAGATION = np.sqrt(2.5)
 TIMESTEP = 1/4096
+CONTINUING = 'beta=100.0_step_129'
 
 FULL = False
 END = (0.9, 1)
@@ -91,6 +92,14 @@ def main(config: Config, setup, name, steps):
     if to_simulate:
         runner = WaveSolver(setup, "global")
 
+        if CONTINUING:
+            path = f"{config.path}/{CONTINUING}"
+            print("Loading:", path)
+            state = State.load(path)
+            state.products = {}
+        else:
+            state = None
+
         states = runner.solve(
             n_steps=steps,
             output_step=output_step,
@@ -98,11 +107,13 @@ def main(config: Config, setup, name, steps):
                 obstacle_level=OBSTACLE_LEVEL, x=0.50), Intersection(x=0.50)],
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,
+            state=state,
             verbose=True,
             # method="Powell",
         )
         for step, state in enumerate(states):
             state.save(f"{config.path}/{name}_step_{int(state.time / setup.time_step)}")
+            print(f"{config.path}/{name}_step_{int(state.time / setup.time_step)}")
     else:
         states = []
         for step in output_step:
@@ -110,6 +121,14 @@ def main(config: Config, setup, name, steps):
                 State.load(f"{config.path}/{name}_step_{step}"))
 
     start = time.time()
+    if CONTINUING:
+        path = f"{config.path}/{CONTINUING}"
+        print("Loading:", path)
+        state = State.load(path)
+        plot_limit_points(
+            state.products['limit points at 0.50'],
+            title=fr'$\kappa={setup.contact_law.KAPPA}$ '
+                  fr'$\beta={setup.contact_law.BETA}$', finish=False)
     plot_limit_points(
         states[-1].products['limit points at 0.50'],
         title=fr'$\kappa={setup.contact_law.KAPPA}$ '
@@ -174,7 +193,7 @@ if __name__ == "__main__":
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=1 / PRECISION, scale=[1, 1]
     )
-    T = 2.0 if not TESTING else MembraneSetup(None).time_step * 2
+    T = 8.0 if not TESTING else MembraneSetup(None).time_step * 2
     setups = dict()
     to_simulate = [
         # "plain",

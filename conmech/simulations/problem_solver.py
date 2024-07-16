@@ -792,6 +792,8 @@ class WaveSolver(ProblemSolver):
             )
             state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
 
+        self.step_solver.current_time = state.time
+
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
         self.step_solver.iterate()
