@@ -27,7 +27,7 @@ BETA = 1.0
 FORCE = 25.0
 PROPAGATION = np.sqrt(2.5)
 TIMESTEP = 1/4096
-CONTINUING = 'beta=100.0_step_129'
+CONTINUING = 'beta=100.0_step_32769'
 
 FULL = False
 END = (0.9, 1)
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=1 / PRECISION, scale=[1, 1]
     )
-    T = 8.0 if not TESTING else MembraneSetup(None).time_step * 2
+    T = 0.25 if not TESTING else MembraneSetup(None).time_step * 2
     setups = dict()
     to_simulate = [
         # "plain",

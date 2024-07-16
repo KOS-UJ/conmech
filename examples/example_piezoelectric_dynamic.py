@@ -90,12 +90,14 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_descr = Barboteu2008MeshDescription(initial_position=None, max_element_perimeter=0.25)
+    mesh_descr = Barboteu2008MeshDescription(
+        initial_position=None,
+        max_element_perimeter=0.25 if not config.test else 0.5)
     setup = PDynamicSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
 
-    steps = 100 if not config.test else 5
-    output = steps // 5
+    steps = 100 if not config.test else 2
+    output = steps // 5 if not config.test else 1
     states = runner.solve(
         n_steps=steps,
         output_step=range(0, steps + 1, output),

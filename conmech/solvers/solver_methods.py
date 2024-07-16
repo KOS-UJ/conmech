@@ -181,6 +181,10 @@ def make_cost_functional(
             um = interpolate_node_between(edge, displacement, displacement, dimension=problem_dimension)
             um_normal = (um * normal_vector).sum()
 
+            for node_id in edge:
+                if node_id >= offset:
+                    continue
+
             cost += contact_cost(
                 nph.length(edge, nodes),
                 normal_condition(vm_normal),
@@ -233,18 +237,17 @@ def make_cost_functional_2(
             um = interpolate_node_between(edge, displacement, displacement, dimension=problem_dimension)
             um_normal = (um * normal_vector).sum()
 
-            for node_id in edge:
-                if node_id >= offset:
-                    continue
-            # print(f"({nodes[edge[0]]}, {nodes[edge[1]]})", end=" ")
+            # for node_id in edge:
+            #     if node_id >= offset:
+            #         continue
 
             cost += contact_cost(
                 nph.length(edge, nodes),
                 1,
                 contact(um[0] + vm[0] * dt, vm[0]) * vm[0],
-                0, 0
+                0,
+                0
             )
-        # print(";")
         return cost
 
     # pylint: disable=unused-argument # 'dt'

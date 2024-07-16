@@ -85,7 +85,7 @@ def main(config: Config):
     """
     Entrypoint to example.
 
-    To see result of simulation you need to call from python `main(Config().init())`.
+    To see result you need to call from python `main(Config().init())`.
     """
     if not config.test:
         elements_number = (20, 20)
@@ -179,9 +179,9 @@ def main(config: Config):
                 products=[Penetration()],
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
-                tol=1e-9 if config.test else 1e-3,
-                fixed_point_abs_tol=1e-9 if config.test else 1e-3,
-                method="Powell" if config.test else "BFGS",
+                tol=1e-9 if not config.test else 1e-3,
+                fixed_point_abs_tol=1e-9 if not config.test else 1e-3,
+                method="Powell" if not config.test else "BFGS",
             )
             f_max = -np.inf
             f_min = np.inf

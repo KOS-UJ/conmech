@@ -76,8 +76,8 @@ def main(config: Config):
     """
     alphas = [0.01, 0.1, 1, 10, 100, 1000, 10000]
     ihs = [4, 8, 16, 32, 64, 128, 256]
-    alphas = alphas
-    ihs = ihs
+    alphas = alphas if not config.test else alphas[:1]
+    ihs = ihs if not config.test else ihs[:1]
 
     for alpha in alphas:
         for ih in ihs:

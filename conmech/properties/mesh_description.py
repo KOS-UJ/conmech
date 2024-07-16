@@ -11,7 +11,7 @@ from conmech.mesh.zoo.raw_mesh import RawMesh
 
 @dataclass
 class MeshDescription(ABC):
-    initial_position: np.ndarray
+    initial_position: np.ndarray | None
 
     def build(self):
         raise NotImplementedError()

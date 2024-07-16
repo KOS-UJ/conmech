@@ -15,6 +15,7 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_equation
 
 
+@SolversRegistry.register("dynamic", "direct")
 @SolversRegistry.register("static", "direct")
 class Direct(Solver):
     def __init__(
@@ -86,4 +87,10 @@ class Direct(Solver):
             )
         else:
             result = np.linalg.solve(self.node_relations, self.node_forces)
+            result_len = len(result)
+            var_len = len(initial_guess.ravel())
+            if result_len < var_len:
+                result_ = np.zeros(var_len)
+                result_[:result_len] = result[:]
+                result = result_
         return np.asarray(result)

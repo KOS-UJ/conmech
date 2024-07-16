@@ -142,6 +142,19 @@ def c1_influ(states, output_path=None):
 
 
 def case2():
+    kappa = 1.
+    beta = 100.
+    # state = State.load(f"output/BOSK.pub/i2_kappa={kappa:.2f};beta={beta:.2f}")
+    # plot_limit_points(
+    #     state.products['limit points at 0.50'],
+    #     title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
+    state = State.load(f"output/BOSK.pub/ci2_kappa={kappa:.2f};beta={beta:.2f}")
+    plot_limit_points(
+        state.products['limit points at 0.50'],
+        title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
+    plt.grid()
+    plt.show()
+
     kappa = 1.0
 
     states = []

@@ -192,6 +192,7 @@ class ProblemSolver:
                 self.time_step,
                 self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
                 None,
+                False,
             )
         else:
             self.second_step_solver = None
