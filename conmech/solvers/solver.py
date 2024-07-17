@@ -7,7 +7,7 @@ from typing import Callable, Optional
 import numpy as np
 
 from conmech.dynamics.statement import Statement, Variables
-from conmech.scenarios.problems import ContactLaw
+from conmech.dynamics.contact.contact_law import ContactLaw
 
 
 class Solver:

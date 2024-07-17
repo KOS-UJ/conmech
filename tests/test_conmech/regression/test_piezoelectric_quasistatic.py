@@ -7,14 +7,14 @@ from dataclasses import dataclass, field
 import numpy as np
 import pytest
 
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import (
     PiezoelectricQuasistaticProblem,
-    PiezoelectricDynamicProblem,
 )
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
@@ -23,25 +23,37 @@ def solving_method(request):
     return request.param
 
 
-def make_slope_contact_law_piezo(slope):
-    class PPSlopeContactLaw(make_slope_contact_law(slope=slope)):
-        @staticmethod
-        def h_nu(uN, t):
-            raise NotImplementedError()
+class PPSlopeContactLaw(PotentialOfContactLaw):
+    @staticmethod
+    def tangential_bound(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        return - 1.0
 
-        @staticmethod
-        def h_tau(uN, t):
-            raise NotImplementedError()
+    @staticmethod
+    def potential_normal_direction(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        """
+        electric charge flux
 
-        @staticmethod
-        def electric_charge_tangetial(u_tau):  # potential
-            return 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
+        var_nu == charge
+        """
+        return 0.0
 
-        @staticmethod
-        def electric_charge_flux(charge):
-            return 0 * charge
+    @staticmethod
+    def potential_tangential_direction(
+            var_tau: float,
+            static_displacement_tau: float,
+            dt: float
+    ) -> float:
+        """electric charge tangential"""
+        return 0.1 * 0.5 * np.linalg.norm(var_tau) ** 2
 
-    return PPSlopeContactLaw
 
 
 def generate_test_suits():
@@ -56,7 +68,8 @@ def generate_test_suits():
         th_coef: ... = 4
         ze_coef: ... = 4
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_piezo(1e1)
+        contact_law: ... = make_slope_contact_law(1e1)
+        contact_law_2: ... = PPSlopeContactLaw()
         piezoelectricity: ... = field(
             default_factory=lambda: np.array(
                 [
@@ -125,7 +138,7 @@ def generate_test_suits():
     # p = 0 and opposite forces
 
     setup_0_02_p_0 = QuasistaticSetup_1(mesh_descr)
-    setup_0_02_p_0.contact_law = make_slope_contact_law_piezo(0)
+    setup_0_02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, 0.2])
@@ -167,7 +180,7 @@ def generate_test_suits():
     # p = 0
 
     setup_0_m02_p_0 = QuasistaticSetup_1(mesh_descr)
-    setup_0_m02_p_0.contact_law = make_slope_contact_law_piezo(0)
+    setup_0_m02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, -0.2])
@@ -192,7 +205,8 @@ def generate_test_suits():
         th_coef: ... = 2.11
         ze_coef: ... = 4.99
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_piezo(2.71)
+        contact_law: ... = make_slope_contact_law(2.71)
+        contact_law_2: ... = PPSlopeContactLaw
         piezoelectricity: ... = field(
             default_factory=lambda: np.array(
                 [

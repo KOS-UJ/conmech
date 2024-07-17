@@ -42,12 +42,12 @@ from conmech.scenarios.problems import (
     PiezoelectricTimeDependentProblem,
     PiezoelectricQuasistaticProblem,
     RelaxationQuasistaticProblem,
-    ContactLaw, WaveProblem, ContactWaveProblem,
+    WaveProblem, ContactWaveProblem,
 )
+from conmech.dynamics.contact.contact_law import ContactLaw
 from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
-from conmech.solvers.validator import Validator
 from conmech.state.products.product import Product
 from conmech.state.state import State, TemperatureState, PiezoelectricState
 
@@ -96,7 +96,6 @@ class ProblemSolver:
         self.coordinates: Optional[str] = None
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
-        self.validator: Optional[Validator] = None
 
         self.done = 0
         self.to_do = 1
@@ -142,7 +141,6 @@ class ProblemSolver:
                 raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
         elif isinstance(self.problem, PoissonProblem):
             self.step_solver = None
-            self.validator = None
             return
         elif isinstance(self.problem, WaveProblem):
             statement = WaveStatement(self.body)
@@ -161,7 +159,6 @@ class ProblemSolver:
             friction_bound,
             driving_vector=self.driving_vector
         )
-        self.validator = Validator(self.step_solver)
 
     def __set_second_step_solver(self, value):
         second_solver_class: Type[Solver] = SolversRegistry.get_by_name(
@@ -172,7 +169,7 @@ class ProblemSolver:
                 TemperatureStatement(self.body),
                 self.body,
                 self.time_step,
-                self.problem.contact_law,
+                self.problem.contact_law_2,
                 self.problem.friction_bound,
                 self.driving_vector,
             )
@@ -181,7 +178,7 @@ class ProblemSolver:
                 PiezoelectricStatement(self.body),
                 self.body,
                 self.time_step,
-                self.problem.contact_law,
+                self.problem.contact_law_2,
                 self.problem.friction_bound,
                 self.driving_vector,
             )
@@ -190,7 +187,7 @@ class ProblemSolver:
                 StaticPoissonStatement(self.body),
                 self.body,
                 self.time_step,
-                self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
+                self.problem.contact_law_2 if hasattr(self.problem, "contact_law_2") else None,
                 None,
                 False,
             )
@@ -221,7 +218,6 @@ class ProblemSolver:
 
             solution = self.find_solution(
                 state,
-                self.validator,
                 verbose=verbose,
                 **kwargs,
             )
@@ -247,12 +243,9 @@ class ProblemSolver:
             self.done += 1
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
 
-    def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
-        # quality = 0
+    def find_solution(self, state, *, verbose=False, **kwargs) -> np.ndarray:
         initial_guess = state[self.coordinates].T.ravel().reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
-        # quality = validator.check_quality(state, solution, quality)
-        # self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:
@@ -327,14 +320,6 @@ class ProblemSolver:
         self.second_step_solver.t_vector = solution_t
 
         return solution, solution_t
-
-    @staticmethod
-    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool) -> None:
-        qualitative = quality > error_tolerance
-        sign = ">" if qualitative else "<"
-        end = "." if qualitative else ", trying again..."
-        if verbose:
-            print(f"quality = {quality} {sign} {error_tolerance}{end}")
 
 
 class PoissonSolver(ProblemSolver):
@@ -628,8 +613,6 @@ class TemperatureTimeDependentSolver(ProblemSolver):
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
-                # solution = self.find_solution(self.step_solver, state, solution, self.validator,
-                #                               verbose=verbose)
                 solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
@@ -639,7 +622,6 @@ class TemperatureTimeDependentSolver(ProblemSolver):
                         time=self.step_solver.current_time,
                     )
                     state.set_temperature(solution_t)
-                    # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
             yield state.copy()

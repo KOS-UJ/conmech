@@ -6,17 +6,23 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import PoissonProblem, ContactLaw
+from conmech.scenarios.problems import PoissonProblem
+from conmech.dynamics.contact.contact_law import ContactLaw, \
+    PotentialOfContactLaw
 from conmech.simulations.problem_solver import PoissonSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 
 
 def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
-    class TarziaContactLaw(ContactLaw):
+    class TarziaContactLaw(PotentialOfContactLaw):
         @staticmethod
-        def potential_normal_direction(u_nu: float) -> float:
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
             b = 5
-            r = u_nu
+            r = var_nu
             # EXAMPLE 11
             # if r < b:
             #     result = (r - b) ** 2
@@ -26,19 +32,6 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
             result = 0.5 * (r - b) ** 2
             result *= slope
             return result
-
-        @staticmethod
-        def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-            raise NotImplementedError()
-
-        @staticmethod
-        def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
-        ) -> float:
-            """
-            Coulomb regularization
-            """
-            raise NotImplementedError()
 
     return TarziaContactLaw
 

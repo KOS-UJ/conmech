@@ -8,39 +8,44 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
+from conmech.scenarios.problems import StaticDisplacementProblem
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 
 
-class JureczkaOchal2019(ContactLaw):
+class JureczkaOchal2019(PotentialOfContactLaw):
     @staticmethod
-    def potential_normal_direction(u_nu: float) -> float:
-        if u_nu <= 0:
+    def potential_normal_direction(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        if var_nu <= 0:
             return 0.0
-        if u_nu < 0.1:
-            return 10 * u_nu * u_nu
+        if var_nu < 0.1:
+            return 10 * var_nu * var_nu
         return 0.1
 
     @staticmethod
-    def potential_tangential_direction(u_tau: np.ndarray) -> float:
-        return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)
-
-    @staticmethod
-    def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-        return 0
-
-    @staticmethod
-    def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    def potential_tangential_direction(
+            var_tau: float,
+            static_displacement_tau: float,
+            dt: float
     ) -> float:
-        """
-        Coulomb regularization
-        """
-        return 0
-        # regularization = 1 / np.sqrt(u_tau[0] * u_tau[0] + u_tau[1] * u_tau[1] + rho ** 2)
-        # result = regularization * (u_tau[0] * v_tau[0] + u_tau[1] * v_tau[1])
-        # return result
+        return np.log(np.sum(var_tau * var_tau) ** 0.5 + 1)
+
+    @staticmethod
+    def tangential_bound(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        if static_displacement_nu < 0:
+            return 0
+        if static_displacement_nu < 0.1:
+            return 8 * static_displacement_nu
+        return 0.8
 
 
 @dataclass
@@ -56,14 +61,6 @@ class StaticSetup(StaticDisplacementProblem):
     @staticmethod
     def outer_forces(x, t=None):
         return np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        if u_nu < 0:
-            return 0
-        if u_nu < 0.1:
-            return 8 * u_nu
-        return 0.8
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0

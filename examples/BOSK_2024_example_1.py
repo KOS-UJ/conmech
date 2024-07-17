@@ -7,7 +7,9 @@ from matplotlib import pyplot as plt
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.membrane import plot_in_columns, plot_limit_points
-from conmech.scenarios.problems import ContactLaw, ContactWaveProblem
+from conmech.scenarios.problems import ContactWaveProblem
+from conmech.dynamics.contact.contact_law import ContactLaw, \
+    PotentialOfContactLaw
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.products.intersection import Intersection
@@ -24,12 +26,17 @@ T = 4.0
 
 
 def make_DNC(obstacle_level: float, kappa: float, beta: float):
-    class DampedNormalCompliance(ContactLaw):
+    class DampedNormalCompliance(PotentialOfContactLaw):
         @staticmethod
-        def general_contact_condition(u, v):
-            if u < obstacle_level:
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
+            displacement = static_displacement_nu + var_nu * dt
+            if displacement < obstacle_level:
                 return 0
-            return kappa * (u - obstacle_level) + beta * v
+            return kappa * (displacement - obstacle_level) + beta * var_nu
 
     return DampedNormalCompliance
 

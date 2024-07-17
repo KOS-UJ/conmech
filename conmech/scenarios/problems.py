@@ -8,35 +8,11 @@ from typing import Optional, Callable
 
 import numpy as np
 
+from conmech.dynamics.contact.contact_law import ContactLaw, InteriorContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.mesh_description import MeshDescription
 
 # pylint: disable=too-many-ancestors
-
-
-class ContactLaw:
-    @staticmethod
-    def potential_normal_direction(u_nu: float) -> float:
-        raise NotImplementedError()
-
-    @staticmethod
-    def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-        raise NotImplementedError()
-
-    @staticmethod
-    def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
-    ) -> float:
-        """
-        Coulomb regularization
-        """
-        raise NotImplementedError()
-
-
-class InteriorContactLaw(ContactLaw):
-    @staticmethod
-    def general_contact_condition(u, v):  # TODO
-        raise NotImplementedError()
 
 
 @dataclass
@@ -79,15 +55,15 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
     # pylint: disable=unused-argument
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros(len(x))
 
     @staticmethod
     def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros(len(x))
 
     @staticmethod
     def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros(len(x))
 
 
 @dataclass
@@ -154,21 +130,23 @@ class DynamicDisplacementProblem(DynamicProblem, TimeDependentDisplacementProble
 
 
 class TemperatureTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
+    contact_law_2: ContactLaw
     thermal_expansion: np.ndarray
     thermal_conductivity: np.ndarray
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros(len(x))
 
 
 class PiezoelectricTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
+    contact_law_2: ContactLaw
     piezoelectricity: np.ndarray
     permittivity: np.ndarray
 
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros(len(x))
 
 
 class RelaxationQuasistaticProblem(QuasistaticDisplacementProblem, ABC):
@@ -176,7 +154,7 @@ class RelaxationQuasistaticProblem(QuasistaticDisplacementProblem, ABC):
 
     @staticmethod
     def initial_absement(x: np.ndarray) -> np.ndarray:
-        return np.zeros_like(len(x))
+        return np.zeros_like(x)
 
 
 class TemperatureDynamicProblem(DynamicProblem, TemperatureTimeDependentProblem, ABC):

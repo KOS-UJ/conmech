@@ -142,42 +142,69 @@ def c1_influ(states, output_path=None):
 
 
 def case2():
+    output_path = 'output/BOSK.pub'
     kappa = 1.
-    beta = 100.
-    # state = State.load(f"output/BOSK.pub/i2_kappa={kappa:.2f};beta={beta:.2f}")
-    # plot_limit_points(
-    #     state.products['limit points at 0.50'],
-    #     title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
-    state = State.load(f"output/BOSK.pub/ci2_kappa={kappa:.2f};beta={beta:.2f}")
+    # for var, subnumber, beta in (('control', 'a)', 0.), ('beta', 'b)', 100.)):
+        # plt.figure(figsize=(6, 4.5))
+        # state = State.load(f"output/BOSK.pub/i2_kappa={kappa:.2f};beta={beta:.2f}")
+        # plot_limit_points(
+        #     state.products['limit points at 0.50'],
+        #     title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
+        # state = State.load(f"output/BOSK.pub/ci2_kappa={kappa:.2f};beta={beta:.2f}")
+        # plot_limit_points(
+        #     state.products['limit points at 0.50'],
+        #     title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
+        # plt.title(subnumber, loc='left')
+        # plt.xticks((0.0, 3.6, 7.2, 10.8, 14.4, 16.0))
+        # plt.yticks((0.0, 0.5, 1.0))
+        # plt.xlabel("time")
+        # plt.ylabel("y")
+        # plt.grid()
+        #
+        # show(output_path, name='int_' + var)
+
+    beta = 0.0  # TODO
+    state = State.load(
+        f"output/BOSK.pub/i2_c2_plain")
     plot_limit_points(
-        state.products['limit points at 0.50'],
+        state.products['limit points at 0.50'].range(0.0, 4.0),
         title=fr'$\kappa={kappa}$ $\beta={beta}$', finish=False)
-    plt.grid()
     plt.show()
 
-    kappa = 1.0
+    timesteps = (1.0 - 0.0625, 1.75,)
+    labels = ('b)', 'a)')
+    eps = 0.001
 
-    states = []
-    for beta in (0.0, 100.0):
-        states.append(
-            State.load(f"output/BOSK.pub/i2_kappa={kappa:.2f};beta={beta:.2f}"))
+    all_zeros = []
 
-        plot_limit_points(
-            states[-1].products['limit points at 0.50'],
-            title=fr'$\kappa={kappa}$ $\beta={beta}$')
-    #     intersect = states[-1].products['intersection at 0.50']
-    #     results = tuple(intersect.data.items())
-    #     T = results[-1][0]
-    # num = len(results)
-    # i = 0
-    # for t, v in intersect.data.items():
-    #     i += 1
-    #     # if t in (s / 2 for s in range(int(2 * T) + 1)):
-    #     plt.plot(*v, color=f'{1 - t / T:.3f}')
-    #     if num * END[0] < i < num * END[1]:
-    #         break
-    # plt.title(f'{t:.2f}')
-    # plt.show()
+    for subnumber, timestep in zip(labels, timesteps):
+        intersect = state.products['intersection at 0.50']
+        plt.figure(figsize=(5, 4))
+        zeros = state.products['limit points at 0.50'].data[timestep]
+        all_zeros.extend(zeros)
+        plt.xticks((0.0, *zeros, 1.0), rotation=90)
+        plt.yticks((0.0, 1.0, 1.8))
+        plt.grid()
+        plt.axhspan(1.0, 1.8, alpha=0.1, color='lightskyblue')
+
+        for t, v in intersect.data.items():
+            if timestep - eps > t or t > timestep + eps:
+                continue
+            print(t)
+            plt.plot(*v, color=f'black')
+        state.products['limit points at 0.50'].range(0.00, 8.00)
+
+        plt.scatter(zeros, np.ones_like(zeros), color=f'black', s=10)
+        plt.ylim(0.0, 1.8)
+        plt.xlabel("y")
+        plt.ylabel("z")
+        plt.title(
+            fr'$\kappa={kappa:.2f}$, $\beta={beta:.2f}$, $t={timestep}$')
+        plt.title(subnumber, loc='left')
+
+        plt.show()
+
+        # show(output_path, name=f'boundary_{timestep:.3f}')
 
 
 if __name__ == '__main__':

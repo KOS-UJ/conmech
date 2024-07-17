@@ -32,7 +32,7 @@ from conmech.simulations.problem_solver import QuasistaticRelaxation
 from conmech.properties.mesh_description import SOB2023MeshDescription
 from conmech.state.products.penetration import Penetration
 
-from examples.p_slope_contact_law import make_const_contact_law
+from conmech.dynamics.contact.p_slope_contact_law import make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
 
 eps = 1e-18

@@ -12,36 +12,38 @@ import matplotlib.pyplot as plt
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, QuasistaticDisplacementProblem
+from conmech.scenarios.problems import QuasistaticDisplacementProblem
+from conmech.dynamics.contact.contact_law import ContactLaw, \
+    PotentialOfContactLaw
 from conmech.simulations.problem_solver import TimeDependentSolver as QuasistaticProblemSolver
 from conmech.properties.mesh_description import JOB2023MeshDescription
 from examples.utils import viscoelastic_constitutive_law
 
 
 def make_contact_law(limit_value, limit):
-    class JureczkaOchalBartman2023(ContactLaw):
+    class JureczkaOchalBartman2023(PotentialOfContactLaw):
         @staticmethod
-        def potential_normal_direction(u_nu: float) -> float:
-            if u_nu <= 0:
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
+            if var_nu <= 0:
                 return 0.0
-            if u_nu < limit:
-                return limit_value * u_nu
+            if var_nu < limit:
+                return limit_value * var_nu
             return limit_value * limit
 
         @staticmethod
-        def potential_tangential_direction(u_tau: np.ndarray) -> float:
-            return -0.3 * np.exp(-np.sum(u_tau * u_tau) ** 0.5) + 0.7 * np.sum(u_tau * u_tau) ** 0.5
-            # return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)\
-
-        @staticmethod
-        def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-            return 0
-
-        @staticmethod
-        def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+        def potential_tangential_direction(
+                var_tau: float,
+                static_displacement_tau: float,
+                dt: float
         ) -> float:
-            return 0
+            return (
+                    -0.3 * np.exp(-np.sum(var_tau * var_tau) ** 0.5)
+                    + 0.7 * np.sum(var_tau * var_tau) ** 0.5
+            )
 
     return JureczkaOchalBartman2023
 

@@ -8,7 +8,7 @@ import numpy as np
 import scipy.optimize
 
 from conmech.dynamics.statement import Statement
-from conmech.scenarios.problems import ContactLaw
+from conmech.dynamics.contact.contact_law import DirectContactLaw
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
@@ -23,7 +23,7 @@ class Direct(Solver):
         statement: Statement,
         body: BodyForces,
         time_step: float,
-        contact_law: Optional[ContactLaw] = None,
+        contact_law: Optional[DirectContactLaw] = None,
         friction_bound: Optional[Callable[[float], float]] = None,
         driving_vector: bool = False,
     ):
@@ -40,7 +40,6 @@ class Direct(Solver):
         if contact_law is not None:
             self.equation = make_equation(
                 jn=contact_law.subderivative_normal_direction,
-                jt=contact_law.regularized_subderivative_tangential_direction,
                 contact=(
                     contact_law.general_contact_condition
                     if hasattr(contact_law, "general_contact_condition")

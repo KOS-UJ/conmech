@@ -16,7 +16,7 @@ from conmech.properties.mesh_description import (
     CubeMeshDescription,
 )
 
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
 
 DIMENSION = 2
 
@@ -53,6 +53,7 @@ def main(config: Config):
     """
     # mesh_type = "cross" if DIMENSION == 2 else "meshzoo_cube_3d"
     solving_method = "schur" if DIMENSION == 2 else "global"  # TODO
+    solving_method = "direct"
 
     if DIMENSION == 2:
         mesh_descr = RectangleMeshDescription(

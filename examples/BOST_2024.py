@@ -25,7 +25,8 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
+from conmech.scenarios.problems import StaticDisplacementProblem
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 from conmech.properties.mesh_description import BOST2023MeshDescription
 from examples.error_estimates import error_estimates
@@ -35,27 +36,15 @@ E = 12000
 kappa = 0.42
 
 
-class BOST23(ContactLaw):
-    @staticmethod
-    def potential_normal_direction(u_nu: float) -> float:
-        raise NotImplementedError()
+class BOST23(PotentialOfContactLaw):
 
     @staticmethod
-    def potential_tangential_direction(u_tau: np.ndarray) -> float:
-        return np.sum(u_tau * u_tau) ** 0.5
-
-    @staticmethod
-    def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-        return 0
-
-    @staticmethod
-    def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    def potential_tangential_direction(
+            var_tau: float,
+            static_displacement_tau: float,
+            dt: float
     ) -> float:
-        """
-        Coulomb regularization
-        """
-        return 0
+        return np.sum(var_tau * var_tau) ** 0.5
 
 
 @dataclass
@@ -86,23 +75,31 @@ class StaticSetup(StaticDisplacementProblem):
 def prepare_setup(ig, setup):
     if ig == "inf":
 
-        def potential_normal_direction(u_nu: float) -> float:
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
             return 0
 
         kwargs = {"method": "constrained"}
     else:
 
-        def potential_normal_direction(u_nu: float) -> float:
-            u_nu -= GAP
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
+            var_nu -= GAP
             # EXAMPLE 10
             a = 0.1
             b = 0.1
-            if u_nu <= 0:
+            if var_nu <= 0:
                 result = 0.0
-            elif u_nu < b:
-                result = (a + np.exp(-b)) / (2 * b) * u_nu**2
+            elif var_nu < b:
+                result = (a + np.exp(-b)) / (2 * b) * var_nu**2
             else:
-                result = a * u_nu - np.exp(-u_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
+                result = a * var_nu - np.exp(-var_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
             return ig * result
 
         kwargs = {"method": "POWELL"}

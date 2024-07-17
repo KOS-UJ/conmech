@@ -9,8 +9,8 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.membrane import plot as membrane_plot, plot_in_columns, \
     plot_limit_points
-from conmech.scenarios.problems import InteriorContactWaveProblem, \
-    InteriorContactLaw
+from conmech.scenarios.problems import InteriorContactWaveProblem
+from conmech.dynamics.contact.contact_law import InteriorContactLaw
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.products.intersection import Intersection
@@ -22,12 +22,13 @@ TESTING = False
 FORCE_SIMULATION = True
 PRECISION = 8 if not TESTING else 3
 OBSTACLE_LEVEL = 1.0
-KAPPA = 1.0
-BETA = 1.0
-FORCE = 25.0
-PROPAGATION = np.sqrt(2.5)
-TIMESTEP = 1/4096
-CONTINUING = 'beta=100.0_step_32769'
+KAPPA = 10.0
+BETA = 0.0
+FORCE = 250.0
+PROPAGATION = 2.5
+TIMESTEP = 1/1024
+# TIMESTEP = 1/4096
+CONTINUING = None #'beta=100.0_step_32769'
 
 FULL = False
 END = (0.9, 1)
@@ -39,10 +40,15 @@ def make_DNC(obstacle_level: float, kappa: float, beta: float):
         BETA = beta
 
         @staticmethod
-        def general_contact_condition(u, v):
-            if u < obstacle_level:
-                return 0
-            return kappa * (u - obstacle_level) + beta * v
+        def potential_normal_direction(
+                var_nu: float,
+                static_displacement_nu: float,
+                dt: float
+        ) -> float:
+            displacement = static_displacement_nu + var_nu * dt
+            if displacement < obstacle_level:
+                return 0.
+            return kappa * (displacement - obstacle_level) + beta * var_nu
 
     return DampedNormalCompliance
 
@@ -193,10 +199,10 @@ if __name__ == "__main__":
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=1 / PRECISION, scale=[1, 1]
     )
-    T = 0.25 if not TESTING else MembraneSetup(None).time_step * 2
+    T = 2.0 if not TESTING else MembraneSetup(None).time_step * 2
     setups = dict()
     to_simulate = [
-        # "plain",
+        "plain",
         # "nonzero",
         # "velocity",
         # "force",
@@ -204,7 +210,7 @@ if __name__ == "__main__":
         # "beta=0.5",
         # "beta=1.0",
         # "beta=10.0",
-        "beta=100.0",
+        # "beta=100.0",
         # "beta=200.0",
     ]
 

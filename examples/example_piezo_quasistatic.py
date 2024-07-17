@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
@@ -13,25 +14,39 @@ from conmech.scenarios.problems import PiezoelectricQuasistaticProblem
 from conmech.plotting.drawer import Drawer
 from conmech.properties.mesh_description import Barboteu2008MeshDescription
 
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
 
 
-class PPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
+class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
-    def h_nu(uN, t):
-        raise NotImplementedError()
-
-    @staticmethod
-    def h_tau(uN, t):
-        raise NotImplementedError()
-
-    @staticmethod
-    def electric_charge_tangetial(u_tau):  # potential
-        return 0
+    def tangential_bound(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        return - 1.0
 
     @staticmethod
-    def electric_charge_flux(charge):
-        return 0 * charge
+    def potential_normal_direction(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        """
+        electric charge flux
+
+        var_nu == charge
+        """
+        return 0.0
+
+    @staticmethod
+    def potential_tangential_direction(
+            var_tau: float,
+            static_displacement_tau: float,
+            dt: float
+    ) -> float:
+        """electric charge tangential"""
+        return 0 * np.linalg.norm(var_tau)
 
 
 @dataclass()
@@ -41,7 +56,8 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     th_coef: ... = 4.5
     ze_coef: ... = 10.5
     time_step: ... = 0.01
-    contact_law: ... = PPSlopeContactLaw
+    contact_law: ... = make_slope_contact_law(slope=1e1)
+    contact_law_2: ... = PPSlopeContactLaw
     piezoelectricity: ... = field(
         default_factory=lambda: np.array(
             [

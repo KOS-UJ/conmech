@@ -15,7 +15,8 @@ from conmech.dynamics.statement import (
     PiezoelectricStatement,
     StaticPoissonStatement, WaveStatement,
 )
-from conmech.scenarios.problems import ContactLaw, InteriorContactLaw
+from conmech.dynamics.contact.contact_law import ContactLaw, InteriorContactLaw, \
+    PotentialOfContactLaw
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_cost_functional, make_equation, \
     make_cost_functional_2
@@ -27,7 +28,7 @@ class Optimization(Solver):
         statement: Statement,
         body: "Body",
         time_step: float,
-        contact_law: Optional[ContactLaw],
+        contact_law: Optional[PotentialOfContactLaw],
         friction_bound,
         driving_vector,
     ):
@@ -42,46 +43,41 @@ class Optimization(Solver):
         if statement.dimension_in == 2 and statement.dimension_out == 2:
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
-                tangential_condition=(
-                    contact_law.potential_tangential_direction
-                    if hasattr(contact_law, "potential_tangential_direction")
-                    else None
-                ),
-                tangential_condition_bound=friction_bound,
+                tangential_condition=contact_law.potential_tangential_direction,
+                tangential_condition_bound=contact_law.tangential_bound,
                 variable_dimension=statement.dimension_out,
                 problem_dimension=statement.dimension_in
             )
         elif isinstance(statement, TemperatureStatement):
             self.loss = make_cost_functional(
-                tangential_condition=contact_law.h_temp,
-                normal_condition=contact_law.temp_exchange,
-                normal_condition_bound=-1,
+                tangential_condition=contact_law.potential_tangential_direction,
+                normal_condition=contact_law.potential_normal_direction,
+                normal_condition_bound=contact_law.normal_bound,
             )
         elif isinstance(statement, PiezoelectricStatement):
             self.loss = make_cost_functional(
-                tangential_condition=contact_law.electric_charge_tangetial,
-                tangential_condition_bound=-1,
-                normal_condition=None,
+                tangential_condition=contact_law.potential_tangential_direction,
+                tangential_condition_bound=contact_law.tangential_bound,
+                normal_condition=contact_law.potential_normal_direction,
                 variable_dimension=statement.dimension_out,
                 problem_dimension=statement.dimension_in
             )
         elif isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction,
+                normal_condition=contact_law.potential_normal_direction if contact_law is not None else None,
                 variable_dimension=statement.dimension_out,
                 problem_dimension=statement.dimension_in,
             )
         elif isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
-                    jn=contact_law.subderivative_normal_direction,
-                    jt=contact_law.regularized_subderivative_tangential_direction,
-                    contact=contact_law.general_contact_condition,
+                    jn=None,
+                    contact=contact_law.potential_normal_direction,
                     h_functional=friction_bound,
                 )
             else:
                 self.loss = make_cost_functional_2(
-                    contact=contact_law.general_contact_condition,
+                    normal_condition=contact_law.potential_normal_direction,
                     variable_dimension=statement.dimension_out,
                     problem_dimension=statement.dimension_in,
                 )

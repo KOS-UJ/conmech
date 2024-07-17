@@ -7,11 +7,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import pytest
 
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
@@ -20,37 +21,35 @@ def solving_method(request):
     return request.param
 
 
-def make_slope_contact_law_temp(slope):
-    class TPSlopeContactLaw(make_slope_contact_law(slope=slope)):
-        @staticmethod
-        def h_nu(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 100.0 * (uN - g_t)
-            return 0
+class TPSlopeContactLaw(PotentialOfContactLaw):
+    @staticmethod
+    def normal_bound(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        """
+        Direction of heat flux
+        """
+        return - 1.0
 
-        @staticmethod
-        def h_tau(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 10.0 * (uN - g_t)
-            return 0
+    @staticmethod
+    def potential_normal_direction(
+            var_nu: float,
+            static_displacement_nu: float,
+            dt: float
+    ) -> float:
+        """Temperature exchange"""
+        return 0.0
 
-        @staticmethod
-        def h_temp(vT):
-            return 0.1 * np.linalg.norm(vT)
-
-        # TODO #96: ContactLaw abstract class
-
-        @staticmethod
-        def temp_exchange(temp):  # potential  # TODO # 48
-            return 0 * temp
-
-        @staticmethod
-        def h_temp(u_tau):  # potential  # TODO # 48
-            return 0 * np.linalg.norm(u_tau)
-
-    return TPSlopeContactLaw
+    @staticmethod
+    def potential_tangential_direction(
+            var_tau: float,
+            static_displacement_tau: float,
+            dt: float
+    ) -> float:
+        """Friction generated temperature"""
+        return 0.0
 
 
 def generate_test_suits():
@@ -65,7 +64,8 @@ def generate_test_suits():
         th_coef: ... = 4
         ze_coef: ... = 4
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_temp(1e1)
+        contact_law: ... = make_slope_contact_law(1e1)
+        contact_law_2: ... = TPSlopeContactLaw()
         thermal_expansion: ... = field(
             default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
@@ -131,7 +131,7 @@ def generate_test_suits():
     # p = 0 and opposite forces
 
     setup_0_02_p_0 = DynamicSetup(mesh_descr)
-    setup_0_02_p_0.contact_law = make_slope_contact_law_temp(0)
+    setup_0_02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, 0.2])
@@ -175,7 +175,7 @@ def generate_test_suits():
     # p = 0
 
     setup_0_m02_p_0 = DynamicSetup(mesh_descr)
-    setup_0_m02_p_0.contact_law = make_slope_contact_law_temp(0)
+    setup_0_m02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, -0.2])
@@ -200,7 +200,8 @@ def generate_test_suits():
         th_coef: ... = 2.11
         ze_coef: ... = 4.99
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_temp(2.71)
+        contact_law: ... = make_slope_contact_law(2.71)
+        contact_law_2: ... = TPSlopeContactLaw
         thermal_expansion: ... = field(
             default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
