@@ -16,7 +16,7 @@ from conmech.properties.mesh_description import (
     CubeMeshDescription,
 )
 
-from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 @dataclass

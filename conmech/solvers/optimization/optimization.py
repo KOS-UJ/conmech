@@ -15,11 +15,11 @@ from conmech.dynamics.statement import (
     PiezoelectricStatement,
     StaticPoissonStatement, WaveStatement,
 )
-from conmech.dynamics.contact.contact_law import ContactLaw, InteriorContactLaw, \
+from conmech.dynamics.contact.contact_law import ContactLaw, \
     PotentialOfContactLaw
+from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional, make_equation, \
-    make_cost_functional_2
+from conmech.solvers.solver_methods import make_cost_functional, make_equation
 
 
 class Optimization(Solver):
@@ -40,49 +40,29 @@ class Optimization(Solver):
             friction_bound,
             driving_vector,
         )
-        if statement.dimension_in > 1 and statement.dimension_out > 1:
-            self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction,
-                tangential_condition=contact_law.potential_tangential_direction,
-                tangential_condition_bound=contact_law.tangential_bound,
-                variable_dimension=statement.dimension_out,
-                problem_dimension=statement.dimension_in
-            )
-        elif isinstance(statement, TemperatureStatement):
-            self.loss = make_cost_functional(
-                tangential_condition=contact_law.potential_tangential_direction,
-                normal_condition=contact_law.potential_normal_direction,
-                normal_condition_bound=contact_law.normal_bound,
-            )
-        elif isinstance(statement, PiezoelectricStatement):
-            self.loss = make_cost_functional(
-                tangential_condition=contact_law.potential_tangential_direction,
-                tangential_condition_bound=contact_law.tangential_bound,
-                normal_condition=contact_law.potential_normal_direction,
-                variable_dimension=statement.dimension_out,
-                problem_dimension=statement.dimension_in
-            )
-        elif isinstance(statement, StaticPoissonStatement):
-            self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction if contact_law is not None else None,
-                variable_dimension=statement.dimension_out,
-                problem_dimension=statement.dimension_in,
-            )
-        elif isinstance(statement, WaveStatement):
+        self.loss = make_cost_functional(
+            normal_condition=contact_law.potential_normal_direction,
+            normal_condition_bound=contact_law.normal_bound,
+            tangential_condition=contact_law.potential_tangential_direction,
+            tangential_condition_bound=contact_law.tangential_bound,
+            variable_dimension=statement.dimension_out,
+            problem_dimension=statement.dimension_in
+        )
+        if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
                     jn=None,
                     contact=contact_law.potential_normal_direction,
                     h_functional=friction_bound,
                 )
-            else:
-                self.loss = make_cost_functional_2(
-                    normal_condition=contact_law.potential_normal_direction,
-                    variable_dimension=statement.dimension_out,
-                    problem_dimension=statement.dimension_in,
-                )
-        else:
-            raise ValueError(f"Unknown statement: {statement}")
+
+
+        if isinstance(statement, StaticPoissonStatement):
+            self.loss = make_cost_functional(
+                normal_condition=contact_law.potential_normal_direction if contact_law is not None else None,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in,
+            )
 
     def __str__(self):
         raise NotImplementedError()

@@ -8,7 +8,8 @@ from typing import Optional, Callable
 
 import numpy as np
 
-from conmech.dynamics.contact.contact_law import ContactLaw, InteriorContactLaw
+from conmech.dynamics.contact.contact_law import ContactLaw
+from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.mesh_description import MeshDescription
 

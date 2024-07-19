@@ -2,14 +2,12 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from matplotlib import pyplot as plt
 
+from conmech.dynamics.contact.damped_normal_compliance import make_damped_norm_compl
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.membrane import plot_in_columns, plot_limit_points
 from conmech.scenarios.problems import ContactWaveProblem
-from conmech.dynamics.contact.contact_law import ContactLaw, \
-    PotentialOfContactLaw
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.products.intersection import Intersection
@@ -25,27 +23,11 @@ OBSTACLE_LEVEL = 0.01
 T = 4.0
 
 
-def make_DNC(obstacle_level: float, kappa: float, beta: float):
-    class DampedNormalCompliance(PotentialOfContactLaw):
-        @staticmethod
-        def potential_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
-        ) -> float:
-            displacement = static_displacement_nu + var_nu * dt
-            if displacement < obstacle_level:
-                return 0
-            return kappa * (displacement - obstacle_level) + beta * var_nu
-
-    return DampedNormalCompliance
-
-
 @dataclass()
 class MembraneSetup(ContactWaveProblem):
     time_step: ... = 1 / 512
     propagation: ... = np.sqrt(4.0)
-    contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.5)()
+    contact_law: ... = make_damped_norm_compl(OBSTACLE_LEVEL, kappa=10.0, beta=0.5)()
 
     @staticmethod
     def inner_forces(
@@ -182,7 +164,7 @@ if __name__ == "__main__":
     setups["plain"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
+    setup.contact_law = make_damped_norm_compl(OBSTACLE_LEVEL, kappa=0.0, beta=0.0)()
     setups["no contact"] = setup
 
     def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
@@ -192,7 +174,7 @@ if __name__ == "__main__":
     setups["force"] = setup
 
     setup = MembraneSetup(mesh_descr)
-    setup.contact_law = make_DNC(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
+    setup.contact_law = make_damped_norm_compl(OBSTACLE_LEVEL, kappa=10.0, beta=0.0)()
     setups["beta=0"] = setup
 
     for name in to_simulate:

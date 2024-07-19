@@ -32,7 +32,8 @@ from conmech.simulations.problem_solver import QuasistaticRelaxation
 from conmech.properties.mesh_description import SOB2023MeshDescription
 from conmech.state.products.penetration import Penetration
 
-from conmech.dynamics.contact.p_slope_contact_law import make_const_contact_law
+from conmech.dynamics.contact.constant_constact_law import \
+    make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
 
 eps = 1e-18
@@ -51,7 +52,7 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     mu_coef: ... = E / (1 + kappa)
     la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
     time_step: ... = 1 / 128
-    contact_law: ... = make_const_contact_law(slope=10)
+    contact_law: ... = make_const_contact_law(resistance=10)
 
     @staticmethod
     def relaxation(t: float) -> np.ndarray:

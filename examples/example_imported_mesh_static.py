@@ -13,7 +13,7 @@ from conmech.simulations.problem_solver import StaticSolver
 from conmech.properties.mesh_description import ImportedMeshDescription
 
 
-from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 E = 10000

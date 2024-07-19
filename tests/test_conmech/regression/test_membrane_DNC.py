@@ -191,7 +191,7 @@ def generate_test_suits():
 
 @pytest.mark.parametrize("setup, expected_displacement_vector",
                          generate_test_suits())
-def test_boundary_DNC(solving_method, setup, expected_displacement_vector):
+def test_membrane_DNC(solving_method, setup, expected_displacement_vector):
     runner = WaveSolver(setup, solving_method)
     results = runner.solve(
         n_steps=2,

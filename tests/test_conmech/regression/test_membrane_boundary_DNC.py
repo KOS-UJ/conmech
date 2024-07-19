@@ -26,7 +26,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import ContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.BOSK_2024_example_1 import make_DNC
+from conmech.dynamics.contact.damped_normal_compliance import make_damped_norm_compl
 
 
 @pytest.fixture(params=["schur", "global optimization"])
@@ -41,7 +41,7 @@ def generate_test_suits():
     class MembraneSetup(ContactWaveProblem):
         time_step: ... = 0.1
         propagation: ... = 1.0
-        contact_law: ... = make_DNC(0.01, kappa=1.0, beta=0.5)()
+        contact_law: ... = make_damped_norm_compl(0.01, kappa=1.0, beta=0.5)()
 
         @staticmethod
         def inner_forces(
@@ -163,7 +163,7 @@ def generate_test_suits():
     class MembraneSetup(ContactWaveProblem):
         time_step: ... = 0.1
         propagation: ... = 1.0
-        contact_law: ... = make_DNC(0.01, kappa=10.0, beta=0.5)()
+        contact_law: ... = make_damped_norm_compl(0.01, kappa=10.0, beta=0.5)()
 
         @staticmethod
         def inner_forces(

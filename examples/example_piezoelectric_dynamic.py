@@ -13,7 +13,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PiezoelectricDynamicProblem
 from conmech.simulations.problem_solver import PiezoelectricTimeDependentSolver
 from conmech.properties.mesh_description import Barboteu2008MeshDescription
-from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 # TODO # 48

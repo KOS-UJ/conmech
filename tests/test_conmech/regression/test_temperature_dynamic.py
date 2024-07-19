@@ -12,7 +12,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 

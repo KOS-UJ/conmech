@@ -113,9 +113,3 @@ class PotentialOfContactLaw(ContactLaw):
         :returns potential of foundation friction response
         """
         return 0
-
-
-class InteriorContactLaw(ContactLaw):
-    @staticmethod
-    def general_contact_condition(u, v):  # TODO
-        raise NotImplementedError()
