@@ -40,7 +40,7 @@ class Optimization(Solver):
             friction_bound,
             driving_vector,
         )
-        if statement.dimension_in == 2 and statement.dimension_out == 2:
+        if statement.dimension_in > 1 and statement.dimension_out > 1:
             self.loss = make_cost_functional(
                 normal_condition=contact_law.potential_normal_direction,
                 tangential_condition=contact_law.potential_tangential_direction,

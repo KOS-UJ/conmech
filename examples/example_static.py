@@ -18,12 +18,9 @@ from conmech.properties.mesh_description import (
 
 from conmech.dynamics.contact.p_slope_contact_law import make_slope_contact_law
 
-DIMENSION = 2
-
 
 @dataclass
 class StaticSetup(StaticDisplacementProblem):
-    dimension = DIMENSION
     mu_coef: ... = 4
     la_coef: ... = 4
     contact_law: ... = make_slope_contact_law(slope=1)
@@ -36,26 +33,20 @@ class StaticSetup(StaticDisplacementProblem):
     def outer_forces(x, t=None):
         return 0 * x
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        return 0
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
 
 
-def main(config: Config):
+def main(config: Config, dimension=2):
     """
     Entrypoint to example.
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    # mesh_type = "cross" if DIMENSION == 2 else "meshzoo_cube_3d"
-    solving_method = "schur" if DIMENSION == 2 else "global"  # TODO
-    solving_method = "direct"
+    solving_method = "schur" if dimension == 2 else "global"
 
-    if DIMENSION == 2:
+    if dimension == 2:
         mesh_descr = RectangleMeshDescription(
             initial_position=None, max_element_perimeter=0.5, scale=[2.5, 1]
         )
@@ -66,7 +57,7 @@ def main(config: Config):
     runner = StaticSolver(setup, solving_method)
 
     state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement)
-    if DIMENSION == 2:
+    if dimension == 2:
         Drawer(state=state, config=config).draw(show=config.show, save=config.save)
     else:
         fig = plt.figure()
@@ -86,4 +77,4 @@ def main(config: Config):
 
 
 if __name__ == "__main__":
-    main(Config().init())
+    main(Config().init(), 3)

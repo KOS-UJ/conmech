@@ -62,6 +62,10 @@ class SM1to2(StiffnessMatrix):
     DIMENSION = (1, 2)
 
 
+class SM1to3(StiffnessMatrix):
+    DIMENSION = (1, 3)
+
+
 class SM2(StiffnessMatrix):
     DIMENSION = (2, 2)
 
@@ -74,3 +78,9 @@ class SM2(StiffnessMatrix):
 
 class SM3(StiffnessMatrix):
     DIMENSION = (3, 3)
+
+    @property
+    def SM1(self) -> SM1:
+        x_len = self.data.shape[0] // 3
+        y_len = self.data.shape[1] // 3
+        return SM1(self.data[:x_len, :y_len])

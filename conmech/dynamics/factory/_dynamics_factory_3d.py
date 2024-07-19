@@ -2,6 +2,7 @@ import numba
 import numpy as np
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.struct.stiffness_matrix import SM3, SM1, SM1to3
 
 DIMENSION = 3
 ELEMENT_NODES_COUNT = 4
@@ -163,20 +164,24 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         A_13 = lambda_ * W[2, 0] + mu * W[0, 2]
         A_23 = lambda_ * W[2, 1] + mu * W[1, 2]
 
-        return np.block([[A_11, A_12, A_13], [A_21, A_22, A_23], [A_31, A_32, A_33]])
+        return SM3(np.block([
+            [A_11, A_12, A_13],
+            [A_21, A_22, A_23],
+            [A_31, A_32, A_33],
+        ]))
 
     def calculate_acceleration(self, U, density):
         Z = np.zeros_like(U)
-        return density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]])
+        return SM3(density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]]))
 
     def calculate_thermal_expansion(self, V, coeff):
         A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1] + coeff[0][2] * V[2]
         A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1] + coeff[1][2] * V[2]
         A_33 = coeff[2][0] * V[0] + coeff[2][1] * V[1] + coeff[2][2] * V[2]
-        return np.block([A_11, A_22, A_33])
+        return SM1to3(np.block([A_11, A_22, A_33]))
 
     def calculate_thermal_conductivity(self, W, coeff):
-        return (
+        return SM1(
             coeff[0][0] * W[0, 0]
             + coeff[0][1] * W[0, 1]
             + coeff[0][2] * W[0, 2]
