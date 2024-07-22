@@ -35,10 +35,6 @@ class DynamicSetup(DynamicDisplacementProblem):
     def outer_forces(x, t=None):
         return np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
-
 
 def main(config: Config):
     """

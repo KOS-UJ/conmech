@@ -32,10 +32,6 @@ class QuasistaticSetup(QuasistaticDisplacementProblem):
     def outer_forces(x, t=None):
         return np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        return 0
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )

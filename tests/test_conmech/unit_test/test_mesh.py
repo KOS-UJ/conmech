@@ -7,7 +7,9 @@ import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
-from tests.test_conmech.regression.std_boundary import extract_boundary_paths_from_elements
+from tests.test_conmech.regression.std_boundary import (
+    extract_boundary_paths_from_elements,
+)
 
 
 def test_identify_surfaces():
@@ -171,7 +173,9 @@ def generate_test_suits_old():
     )
 
 
-unordered_nodes = np.asarray([[1.0, 1.0], [0.0, 0.0], [0.0, 2.0], [2.0, 2.0], [2.0, 0.0]])
+unordered_nodes = np.asarray(
+    [[1.0, 1.0], [0.0, 0.0], [0.0, 2.0], [2.0, 2.0], [2.0, 0.0]]
+)
 unordered_elements = np.asarray([[1, 2, 0], [2, 3, 0], [3, 4, 0], [4, 1, 0]])
 
 
@@ -207,7 +211,9 @@ def test_condition_boundaries(_test_name_, params):
         expected_neumann_boundary,
         expected_dirichlet_boundary,
     ) = params
-    boundaries_description = BoundariesDescription(contact=is_contact, dirichlet=is_dirichlet)
+    boundaries_description = BoundariesDescription(
+        contact=is_contact, dirichlet=is_dirichlet
+    )
 
     # Act
     (
@@ -215,12 +221,16 @@ def test_condition_boundaries(_test_name_, params):
         elements,
         boundaries_data,
     ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, boundaries_description=boundaries_description
+        unordered_nodes,
+        unordered_elements,
+        boundaries_description=boundaries_description,
     )
 
     # Assert
     def unify_edges(boundary):
-        return frozenset([frozenset([str(np.sort(node)) for node in edge]) for edge in boundary])
+        return frozenset(
+            [frozenset([str(np.sort(node)) for node in edge]) for edge in boundary]
+        )
 
     def compare_surfaces(actual_surfaces, expected_surfaces):
         return unify_edges(initial_nodes[actual_surfaces]) == unify_edges(
@@ -229,4 +239,6 @@ def test_condition_boundaries(_test_name_, params):
 
     assert compare_surfaces(boundaries_data.contact_boundary, expected_contact_boundary)
     assert compare_surfaces(boundaries_data.neumann_boundary, expected_neumann_boundary)
-    assert compare_surfaces(boundaries_data.dirichlet_boundary, expected_dirichlet_boundary)
+    assert compare_surfaces(
+        boundaries_data.dirichlet_boundary, expected_dirichlet_boundary
+    )

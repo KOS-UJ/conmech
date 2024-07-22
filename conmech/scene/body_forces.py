@@ -10,12 +10,16 @@ from conmech.helpers import nph
 
 
 @numba.njit
-def get_surface_per_boundary_node_numba(boundary_surfaces, considered_nodes_count, moved_nodes):
+def get_surface_per_boundary_node_numba(
+    boundary_surfaces, considered_nodes_count, moved_nodes
+):
     surface_per_boundary_node = np.zeros((considered_nodes_count, 1), dtype=np.float64)
 
     for boundary_surface in boundary_surfaces:
         face_nodes = moved_nodes[boundary_surface]
-        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(face_nodes)
+        surface_per_boundary_node[boundary_surface] += element_volume_part_numba(
+            face_nodes
+        )
 
     return surface_per_boundary_node
 
@@ -50,7 +54,9 @@ class FieldSource:
     def node_source(self, nodes, time: float):
         # pylint: disable=not-callable
         if time != self.timestamp:
-            self.cache = np.array([self.source(nodes[i], time) for i in range(len(nodes))])
+            self.cache = np.array(
+                [self.source(nodes[i], time) for i in range(len(nodes))]
+            )
             self.timestamp = time
         return self.cache
 

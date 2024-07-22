@@ -105,7 +105,9 @@ class Mesh(RawMesh):
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, boundaries_description
         )
-        edges_matrix = get_edges_matrix(nodes_count=len(self.nodes), elements=self.elements)
+        edges_matrix = get_edges_matrix(
+            nodes_count=len(self.nodes), elements=self.elements
+        )
         self.edges = get_edges_list_numba(edges_matrix)
 
     @property
@@ -171,7 +173,11 @@ class Mesh(RawMesh):
     @property
     def free_nodes_count(self):
         # TODO: #65 CHECK
-        return self.independent_nodes_count - self.contact_nodes_count - self.dirichlet_nodes_count
+        return (
+            self.independent_nodes_count
+            - self.contact_nodes_count
+            - self.dirichlet_nodes_count
+        )
 
     @property
     def boundary_indices(self):

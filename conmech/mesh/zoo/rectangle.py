@@ -27,7 +27,8 @@ class Rectangle(RawMesh):
     def __init__(self, mesh_descr: RectangleMeshDescription):
         scale_x, scale_y = mesh_descr.scale
         mesh_density = [
-            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+            int(np.ceil(scale / mesh_descr.max_element_perimeter))
+            for scale in mesh_descr.scale
         ]
 
         # pylint: disable=no-member

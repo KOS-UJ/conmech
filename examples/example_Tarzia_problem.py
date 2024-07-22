@@ -7,8 +7,7 @@ from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import PoissonProblem
-from conmech.dynamics.contact.contact_law import ContactLaw, \
-    PotentialOfContactLaw
+from conmech.dynamics.contact.contact_law import ContactLaw, PotentialOfContactLaw
 from conmech.simulations.problem_solver import PoissonSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 
@@ -17,9 +16,7 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
     class TarziaContactLaw(PotentialOfContactLaw):
         @staticmethod
         def potential_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             b = 5
             r = var_nu
@@ -38,7 +35,7 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
 
 @dataclass()
 class StaticPoissonSetup(PoissonProblem):
-    contact_law: ... = make_slope_contact_law(slope=1000)
+    contact_law_2: ... = make_slope_contact_law(slope=1000)
 
     @staticmethod
     def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
@@ -118,7 +115,11 @@ def draw(config, alpha, ih):
     drawer.cmap = "plasma"
     drawer.field_name = "temperature"
     drawer.draw(
-        show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_
+        show=config.show,
+        save=config.save,
+        foundation=False,
+        field_max=max_,
+        field_min=min_,
     )
 
 

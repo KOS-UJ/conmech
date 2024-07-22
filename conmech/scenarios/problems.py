@@ -13,6 +13,21 @@ from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.properties.mesh_description import MeshDescription
 
+from conmech.dynamics.statement import (
+    Statement,
+    StaticDisplacementStatement,
+    QuasistaticVelocityStatement,
+    DynamicVelocityWithTemperatureStatement,
+    TemperatureStatement,
+    PiezoelectricStatement,
+    DynamicVelocityStatement,
+    QuasistaticVelocityWithPiezoelectricStatement,
+    QuasistaticRelaxationStatement,
+    StaticPoissonStatement,
+    Variables,
+    WaveStatement,
+)
+
 # pylint: disable=too-many-ancestors
 
 
@@ -21,6 +36,14 @@ class Problem(ABC):
     # pylint: disable=unused-argument
     mesh_descr: MeshDescription
     boundaries: BoundariesDescription
+
+    @classmethod
+    def statement(cls, body) -> Optional[Statement]:
+        raise NotImplementedError()
+
+    @classmethod
+    def second_statement(cls, body) -> Optional[Statement]:
+        return None
 
     @staticmethod
     def inner_forces(
@@ -52,8 +75,15 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 
 @dataclass
-class PoissonProblem(StaticProblem, ABC):  # TODO: rename
-    # pylint: disable=unused-argument
+class PoissonProblem(StaticProblem, ABC):
+    @classmethod
+    def statement(cls, body) -> Optional[Statement]:
+        return None
+
+    @classmethod
+    def second_statement(cls, body) -> Optional[Statement]:
+        return StaticPoissonStatement(body)
+
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
         return np.zeros(len(x))
@@ -70,6 +100,10 @@ class PoissonProblem(StaticProblem, ABC):  # TODO: rename
 @dataclass
 class WaveProblem(DynamicProblem, ABC):
     propagation: float
+
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return WaveStatement(body)
 
     @staticmethod
     def initial_displacement(x: np.ndarray) -> np.ndarray:
@@ -101,15 +135,11 @@ class DisplacementProblem(Problem, ABC):
     def initial_displacement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
-
 
 class StaticDisplacementProblem(DisplacementProblem, StaticProblem, ABC):
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        raise NotImplementedError()
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return StaticDisplacementStatement(body)
 
 
 class TimeDependentDisplacementProblem(DisplacementProblem, ABC):
@@ -122,18 +152,28 @@ class TimeDependentDisplacementProblem(DisplacementProblem, ABC):
         return np.zeros_like(x)
 
 
-class QuasistaticDisplacementProblem(QuasistaticProblem, TimeDependentDisplacementProblem, ABC):
-    pass
+class QuasistaticDisplacementProblem(
+    QuasistaticProblem, TimeDependentDisplacementProblem, ABC
+):
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return QuasistaticVelocityStatement(body)
 
 
 class DynamicDisplacementProblem(DynamicProblem, TimeDependentDisplacementProblem, ABC):
-    pass
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return DynamicVelocityStatement(body)
 
 
 class TemperatureTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
     contact_law_2: ContactLaw
     thermal_expansion: np.ndarray
     thermal_conductivity: np.ndarray
+
+    @classmethod
+    def second_statement(cls, body) -> Optional[Statement]:
+        return TemperatureStatement(body)
 
     @staticmethod
     def initial_temperature(x: np.ndarray) -> np.ndarray:
@@ -145,6 +185,10 @@ class PiezoelectricTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
     piezoelectricity: np.ndarray
     permittivity: np.ndarray
 
+    @classmethod
+    def second_statement(cls, body) -> Optional[Statement]:
+        return PiezoelectricStatement(body)
+
     @staticmethod
     def initial_electric_potential(x: np.ndarray) -> np.ndarray:
         return np.zeros(len(x))
@@ -153,19 +197,28 @@ class PiezoelectricTimeDependentProblem(TimeDependentDisplacementProblem, ABC):
 class RelaxationQuasistaticProblem(QuasistaticDisplacementProblem, ABC):
     relaxation: Callable[[float], np.ndarray]
 
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return QuasistaticRelaxationStatement(body)
+
     @staticmethod
     def initial_absement(x: np.ndarray) -> np.ndarray:
         return np.zeros_like(x)
 
 
 class TemperatureDynamicProblem(DynamicProblem, TemperatureTimeDependentProblem, ABC):
-    pass
+
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return DynamicVelocityWithTemperatureStatement(body)
 
 
 class PiezoelectricQuasistaticProblem(
     QuasistaticDisplacementProblem, PiezoelectricTimeDependentProblem, ABC
 ):
-    pass
+    @classmethod
+    def statement(cls, body) -> Statement:
+        return QuasistaticVelocityWithPiezoelectricStatement(body)
 
 
 class PiezoelectricDynamicProblem(

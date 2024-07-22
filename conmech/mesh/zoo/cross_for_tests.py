@@ -14,7 +14,8 @@ class CrossMesh(RawMesh):
     def _get_cross_rectangle(mesh_descr: CrossMeshDescription):
         scale_x, scale_y = mesh_descr.scale
         size_x, size_y = [
-            int(np.ceil(scale / mesh_descr.max_element_perimeter)) for scale in mesh_descr.scale
+            int(np.ceil(scale / mesh_descr.max_element_perimeter))
+            for scale in mesh_descr.scale
         ]
 
         min_ = np.array((0.0, 0.0))
@@ -43,15 +44,21 @@ class CrossMesh(RawMesh):
         index = 0
         for i in range(size_x):
             for j in range(size_y):
-                left_bottom = np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_node
+                left_bottom = (
+                    np.array((i * edge_len_x, j * edge_len_y)) + left_bottom_node
+                )
 
                 lb = nph.get_node_index_numba(left_bottom, nodes)
-                rb = nph.get_node_index_numba(left_bottom + np.array((edge_len_x, 0.0)), nodes)
+                rb = nph.get_node_index_numba(
+                    left_bottom + np.array((edge_len_x, 0.0)), nodes
+                )
                 c = nph.get_node_index_numba(
                     left_bottom + np.array((0.5 * edge_len_x, 0.5 * edge_len_y)),
                     nodes,
                 )
-                lt = nph.get_node_index_numba(left_bottom + np.array((0.0, edge_len_y)), nodes)
+                lt = nph.get_node_index_numba(
+                    left_bottom + np.array((0.0, edge_len_y)), nodes
+                )
                 rt = nph.get_node_index_numba(
                     left_bottom + np.array((edge_len_x, edge_len_y)), nodes
                 )
@@ -73,7 +80,9 @@ class CrossMesh(RawMesh):
         index = 0
         for j in range(size_y - 1, -1, -1):
             for i in range(size_x - 1, -1, -1):
-                nodes[index] = np.array(((i + 0.5) * edge_len_x, (j + 0.5) * edge_len_y))
+                nodes[index] = np.array(
+                    ((i + 0.5) * edge_len_x, (j + 0.5) * edge_len_y)
+                )
                 index += 1
 
         for j in range(size_y - 1, 0, -1):

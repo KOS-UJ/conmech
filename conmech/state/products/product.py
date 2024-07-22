@@ -16,11 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-from typing import List
 
 
 class Product:
-
     def __init__(self, name):
         self.name = name
         self.data = {}
@@ -29,14 +27,14 @@ class Product:
         raise NotImplementedError()
 
     def __copy__(self):
+        return self.copy()
+
+    def copy(self) -> "Product":
         result = Product(self.name)
         result.data = self.data.copy()
         return result
 
-    def copy(self) -> 'Product':
-        return self.__copy__()
-
-    def range(self, start, stop) -> 'Product':
+    def range(self, start, stop) -> "Product":
         result = self.copy()
         for key in self.data.keys():
             if key <= start or key > stop:

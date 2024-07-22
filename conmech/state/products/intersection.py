@@ -18,15 +18,14 @@
 # USA.
 
 import numpy as np
-import matplotlib.tri as tri
+from matplotlib import tri
 
 from conmech.state.products.product import Product
 
 
 class Intersection(Product):
-
     def __init__(self, x):
-        super().__init__(f'intersection at {x:.2f}')
+        super().__init__(f"intersection at {x:.2f}")
         self.x = x
 
     def update(self, state):

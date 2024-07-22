@@ -71,7 +71,9 @@ def main(config: Config, dimension=2):
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
         axs.add_collection3d(
-            Poly3DCollection(faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25)
+            Poly3DCollection(
+                faces, facecolors="cyan", linewidths=1, edgecolors="r", alpha=0.25
+            )
         )
         plt.show()
 

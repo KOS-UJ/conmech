@@ -3,7 +3,6 @@ numpy helpers
 """
 
 from ctypes import ArgumentError
-from typing import Optional, Tuple
 
 import numba
 import numpy as np
@@ -11,9 +10,6 @@ import numpy as np
 
 def stack_column(data: np.ndarray) -> np.ndarray:
     return data.T.flatten().reshape(-1, 1)
-
-
-stack_column_numba = numba.njit(stack_column)
 
 
 def unstack(vector: np.ndarray, dim: int) -> np.ndarray:
@@ -39,8 +35,10 @@ def get_node_index_numba(node, nodes):
             return i
     raise ArgumentError
 
+
 @numba.njit(inline="always")
 def length(edge, nodes):
     return np.sqrt(
-        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2 + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
+        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2
+        + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
     )

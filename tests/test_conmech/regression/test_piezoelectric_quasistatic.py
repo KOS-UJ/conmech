@@ -26,17 +26,13 @@ def solving_method(request):
 class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
     def tangential_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
-        return - 1.0
+        return -1.0
 
     @staticmethod
     def potential_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """
         electric charge flux
@@ -47,13 +43,10 @@ class PPSlopeContactLaw(PotentialOfContactLaw):
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         """electric charge tangential"""
         return 0.1 * 0.5 * np.linalg.norm(var_tau) ** 2
-
 
 
 def generate_test_suits():
@@ -79,7 +72,9 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod
@@ -89,10 +84,6 @@ def generate_test_suits():
         @staticmethod
         def outer_forces(x, time=None):
             return np.array([0, 0])
-
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
@@ -105,7 +96,7 @@ def generate_test_suits():
 
     expected_displacement_vector_m02_m02 = np.asarray(
         [
-            [0., 0.],
+            [0.0, 0.0],
             [0.01284572, 0.00727844],
             [0.01998403, 0.01155948],
             [0.02406325, 0.01469925],
@@ -117,14 +108,27 @@ def generate_test_suits():
             [0.01788636, 0.01699742],
             [0.01220893, 0.01293959],
             [0.00540516, 0.00662938],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ]
     )
     expected_temperature_vector_m02_m02 = np.asarray(
-        [-0.09317176, -0.05082419, -0.01792647, 0.00284861, 0.01673696,
-         0.02415654, -0.00054601, -0.00339339, 0.00680334, 0.02489092,
-         0.04042651, 0.04127354, 0.01658142, -0.02771255,]
+        [
+            -0.09317176,
+            -0.05082419,
+            -0.01792647,
+            0.00284861,
+            0.01673696,
+            0.02415654,
+            -0.00054601,
+            -0.00339339,
+            0.00680334,
+            0.02489092,
+            0.04042651,
+            0.04127354,
+            0.01658142,
+            -0.02771255,
+        ]
     )
 
     test_suites.append(
@@ -147,7 +151,7 @@ def generate_test_suits():
 
     expected_displacement_vector_0_02_p_0 = np.asarray(
         [
-            [0., 0.],
+            [0.0, 0.0],
             [-0.05119819, -0.04903926],
             [-0.08203236, -0.13236709],
             [-0.09784363, -0.23465962],
@@ -159,14 +163,27 @@ def generate_test_suits():
             [0.09784406, -0.23465962],
             [0.08203271, -0.13236709],
             [0.05119838, -0.04903929],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ]
     )
     expected_temperature_vector_0_02_p_0 = np.asarray(
-        [0.32217749, 0.17962827, 0.04606892, -0.04874313, -0.10557165,
-         -0.12452466, -0.12761607, -0.12452451, -0.10557137, -0.04874258,
-         0.04606974, 0.17962935, 0.32217874, 0.16140012,]
+        [
+            0.32217749,
+            0.17962827,
+            0.04606892,
+            -0.04874313,
+            -0.10557165,
+            -0.12452466,
+            -0.12761607,
+            -0.12452451,
+            -0.10557137,
+            -0.04874258,
+            0.04606974,
+            0.17962935,
+            0.32217874,
+            0.16140012,
+        ]
     )
 
     test_suites.append(
@@ -186,8 +203,12 @@ def generate_test_suits():
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
-    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
-    expected_temperature_vector_0_m02_p_0 = [-v for v in expected_temperature_vector_0_02_p_0]
+    expected_displacement_vector_0_m02_p_0 = [
+        -v for v in expected_displacement_vector_0_02_p_0
+    ]
+    expected_temperature_vector_0_m02_p_0 = [
+        -v for v in expected_temperature_vector_0_02_p_0
+    ]
     test_suites.append(
         (
             setup_0_m02_p_0,
@@ -216,7 +237,9 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+            default_factory=lambda: np.array(
+                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+            )
         )
 
         @staticmethod
@@ -226,10 +249,6 @@ def generate_test_suits():
         @staticmethod
         def outer_forces(x, time=None):
             return np.array([0.3, 0.0])
-
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0.0
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
@@ -241,7 +260,7 @@ def generate_test_suits():
     setup_var = QuasistaticSetup_2(mesh_descr)
     expected_displacement_vector_var = np.asarray(
         [
-            [0., 0.],
+            [0.0, 0.0],
             [-0.00767607, 0.01454776],
             [-0.0191455, 0.04235841],
             [-0.0297773, 0.07752592],
@@ -253,15 +272,28 @@ def generate_test_suits():
             [-0.13068551, 0.08537821],
             [-0.10023372, 0.04869301],
             [-0.05979862, 0.02043574],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ]
     )
 
     expected_temperature_vector_var = np.asarray(
-        [0.18017535, 0.20951466, 0.19322749, 0.13329264, 0.08185755,
-         0.09077227, -0.10696354, -0.26170111, -0.21741867, -0.17859079,
-         -0.14847378, -0.1462184, -0.17605883, 0.08383385,]
+        [
+            0.18017535,
+            0.20951466,
+            0.19322749,
+            0.13329264,
+            0.08185755,
+            0.09077227,
+            -0.10696354,
+            -0.26170111,
+            -0.21741867,
+            -0.17859079,
+            -0.14847378,
+            -0.1462184,
+            -0.17605883,
+            0.08383385,
+        ]
     )
 
     test_suites.append(
@@ -292,7 +324,9 @@ def test_piezoelectric_time_dependent_solver(
     std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
     displacement = results[-1].body.mesh.nodes[:] - results[-1].displaced_nodes[:]
     electric_potential = np.zeros(len(results[-1].body.mesh.nodes))
-    electric_potential[: len(results[-1].electric_potential)] = results[-1].electric_potential
+    electric_potential[: len(results[-1].electric_potential)] = results[
+        -1
+    ].electric_potential
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

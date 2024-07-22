@@ -40,11 +40,17 @@ class BOST23(PotentialOfContactLaw):
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         return np.sum(var_tau * var_tau) ** 0.5
+
+    @staticmethod
+    def tangential_bound(
+        var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        if var_nu < 0:
+            return 0
+        return var_nu
 
 
 @dataclass
@@ -61,12 +67,6 @@ class StaticSetup(StaticDisplacementProblem):
     def outer_forces(x, t=None):
         return np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        if u_nu < 0:
-            return 0
-        return u_nu
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
@@ -76,9 +76,7 @@ def prepare_setup(ig, setup):
     if ig == "inf":
 
         def potential_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             return 0
 
@@ -86,9 +84,7 @@ def prepare_setup(ig, setup):
     else:
 
         def potential_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             var_nu -= GAP
             # EXAMPLE 10
@@ -99,7 +95,9 @@ def prepare_setup(ig, setup):
             elif var_nu < b:
                 result = (a + np.exp(-b)) / (2 * b) * var_nu**2
             else:
-                result = a * var_nu - np.exp(-var_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
+                result = (
+                    a * var_nu - np.exp(-var_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
+                )
             return ig * result
 
         kwargs = {"method": "POWELL"}
@@ -109,9 +107,9 @@ def prepare_setup(ig, setup):
 
 
 def main(
-        config: Config,
-        igs: Optional[List[int]] = None,
-        highlighted: Optional[Iterable] = None
+    config: Config,
+    igs: Optional[List[int]] = None,
+    highlighted: Optional[Iterable] = None,
 ):
     """
     Entrypoint to example.
@@ -134,7 +132,7 @@ def main(
 
     mesh_descr = BOST2023MeshDescription(
         initial_position=None,
-        max_element_perimeter=1 / 32 if not config.test else 1 / 6
+        max_element_perimeter=1 / 32 if not config.test else 1 / 6,
     )
 
     if to_simulate:
@@ -168,12 +166,15 @@ def main(
                 if ig == ig_prev:
                     initial_displacement = setup.initial_displacement
                 else:
-                    with open(f"{config.outputs_path}/{PREFIX}_ig_{ig_prev}", "rb") as output:
+                    with open(
+                        f"{config.outputs_path}/{PREFIX}_ig_{ig_prev}", "rb"
+                    ) as output:
                         state = pickle.load(output)
                     initial_displacement = lambda _: state.displacement.copy()
 
             state.displaced_nodes[: state.body.mesh.nodes_count, :] = (
-                state.body.mesh.nodes[: state.body.mesh.nodes_count, :] + state.displacement[:, :]
+                state.body.mesh.nodes[: state.body.mesh.nodes_count, :]
+                + state.displacement[:, :]
             )
             with open(f"{config.outputs_path}/{PREFIX}_ig_{ig}", "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -215,7 +216,9 @@ def main(
     Y = list(errors.values())[:-1]
     Y = [v[0] for v in Y]
     Y = -np.asarray(Y)
-    plot_errors(X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
+    plot_errors(
+        X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf"
+    )
 
 
 def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
@@ -246,6 +249,6 @@ if __name__ == "__main__":
         1024 + 128 + 64,
     }
     igs.update(eigs)
-    igs = [0] + sorted(list(igs)) + ["inf"]  #
+    igs = [0] + sorted(list(igs)) + ["inf"]
     igs = igs[:]
     main(Config(save=not show, show=show, force=False).init(), igs, highlighted)

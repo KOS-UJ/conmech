@@ -23,10 +23,14 @@ class AbstractDynamicsFactory:
     def calculate_acceleration(self, U: np.ndarray, density: float) -> np.ndarray:
         raise NotImplementedError()
 
-    def calculate_thermal_expansion(self, V: np.ndarray, coeff: np.ndarray) -> np.ndarray:
+    def calculate_thermal_expansion(
+        self, V: np.ndarray, coeff: np.ndarray
+    ) -> np.ndarray:
         raise NotImplementedError()
 
-    def calculate_thermal_conductivity(self, W: np.ndarray, coeff: np.ndarray) -> np.ndarray:
+    def calculate_thermal_conductivity(
+        self, W: np.ndarray, coeff: np.ndarray
+    ) -> np.ndarray:
         raise NotImplementedError()
 
     def get_piezoelectric_tensor(self, W: np.ndarray, coeff: np.ndarray) -> np.ndarray:
@@ -37,7 +41,7 @@ class AbstractDynamicsFactory:
 
     @staticmethod
     def calculate_poisson_matrix(W: np.ndarray, propagation: float) -> SM1:
-        return SM1(propagation ** 2 * np.sum(W.diagonal(), axis=2))
+        return SM1(propagation**2 * np.sum(W.diagonal(), axis=2))
 
     @staticmethod
     def calculate_wave_matrix(W: np.ndarray) -> np.ndarray:

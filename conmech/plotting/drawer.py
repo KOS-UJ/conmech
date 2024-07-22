@@ -268,7 +268,9 @@ class Drawer:
         )
         plt.close()
 
-    def draw_boundary(self, edges, nodes, axes, label="", node_color="k", edge_color="k"):
+    def draw_boundary(
+        self, edges, nodes, axes, label="", node_color="k", edge_color="k"
+    ):
         graph = nx.Graph()
         for edge in edges:
             graph.add_edge(edge[0], edge[1])
@@ -310,6 +312,8 @@ class Drawer:
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
         # divider = make_axes_locatable(axes)
         # cax = divider.append_axes("bottom", size="5%", pad=0.15)
-        sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
+        sm = plt.cm.ScalarMappable(
+            cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max)
+        )
         sm.set_array([])
         fig.colorbar(sm, orientation="horizontal", label=self.field_label, ax=axes)

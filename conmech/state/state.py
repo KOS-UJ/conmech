@@ -1,6 +1,7 @@
 """
 Created at 18.02.2021
 """
+
 import pickle
 
 import numpy as np
@@ -13,12 +14,16 @@ class State:
 
         self.products = {}
 
-        self.absement: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
+        self.absement: np.ndarray = np.zeros(
+            (self.body.mesh.nodes_count, self.body.mesh.dimension)
+        )
         self.displacement: np.ndarray = np.zeros(
             (self.body.mesh.nodes_count, self.body.mesh.dimension)
         )
         self.displaced_nodes: np.ndarray = np.copy(self.body.mesh.nodes)
-        self.velocity: np.ndarray = np.zeros((self.body.mesh.nodes_count, self.body.mesh.dimension))
+        self.velocity: np.ndarray = np.zeros(
+            (self.body.mesh.nodes_count, self.body.mesh.dimension)
+        )
         self.setup = None
         self.__stress: np.ndarray = None
         self.constitutive_law = None
@@ -26,11 +31,18 @@ class State:
         self.time: float = 0
 
     def set_displacement(
-        self, displacement_vector: np.ndarray, time: float, *, update_absement: bool = False
+        self,
+        displacement_vector: np.ndarray,
+        time: float,
+        *,
+        update_absement: bool = False,
     ):
-        self.displacement = displacement_vector.reshape((self.body.mesh.dimension, -1)).T
+        self.displacement = displacement_vector.reshape(
+            (self.body.mesh.dimension, -1)
+        ).T
         self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
-            self.body.mesh.nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
+            self.body.mesh.nodes[: self.body.mesh.nodes_count, :]
+            + self.displacement[:, :]
         )
         if update_absement:
             dt = time - self.time
@@ -38,13 +50,16 @@ class State:
         self.time = time
         self.update_products()
 
-    def set_velocity(self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool):
+    def set_velocity(
+        self, velocity_vector: np.ndarray, time: float, *, update_displacement: bool
+    ):
         self.velocity = velocity_vector.reshape((self.body.mesh.dimension, -1)).T
         if update_displacement:
             dt = time - self.time
             self.displacement += dt * self.velocity
             self.displaced_nodes[: self.body.mesh.nodes_count, :] = (
-                self.body.mesh.nodes[: self.body.mesh.nodes_count, :] + self.displacement[:, :]
+                self.body.mesh.nodes[: self.body.mesh.nodes_count, :]
+                + self.displacement[:, :]
             )
         self.time = time
         self.update_products()

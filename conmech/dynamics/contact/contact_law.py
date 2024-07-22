@@ -16,14 +16,17 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
+from abc import ABC, abstractmethod
+
 
 class ContactLaw:
+    # pylint: disable=unused-argument)
+    """
+    "Abstract" class for all contact conditions.
+    """
+
     @staticmethod
-    def normal_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
-    ) -> float:
+    def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         """
         :param var_nu: variable normal vector length
         :param static_displacement_nu: normal vector length of displacement from
@@ -35,9 +38,7 @@ class ContactLaw:
 
     @staticmethod
     def tangential_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """
         Friction bound
@@ -51,12 +52,19 @@ class ContactLaw:
         return 1.0
 
 
-class DirectContactLaw(ContactLaw):
+class DirectContactLaw(ContactLaw, ABC):
+    # pylint: disable=unused-argument)
+    """
+    Abstract class for contact conditions given in a direct form.
+    Since usually contact law is a multifunction it can be treated as
+    a subderivative of *some* function - potential. Hence, from point of view
+    of conmech package we call subderivative form.
+    """
+
     @staticmethod
+    @abstractmethod
     def subderivative_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """
         :param var_nu: variable normal vector length
@@ -69,9 +77,7 @@ class DirectContactLaw(ContactLaw):
 
     @staticmethod
     def subderivative_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         """
         :param var_tau: variable normal vector length
@@ -80,15 +86,24 @@ class DirectContactLaw(ContactLaw):
         :param dt: time step
         :returns potential of foundation friction response
         """
-        raise NotImplementedError()
+        return 0.0
 
 
-class PotentialOfContactLaw(ContactLaw):
+class PotentialOfContactLaw(ContactLaw, ABC):
+    # pylint: disable=unused-argument)
+    """
+    Abstract class for contact conditions given in a potential form.
+    Since usually contact law is a multifunction it can be treated as
+    a subderivative of *some* function - potential. To solve contact problem
+    numerically with optimization approach we need only the potential of
+    contact condition. Hence, from point of view of conmech package,
+    we call potential form.
+    """
+
     @staticmethod
+    @abstractmethod
     def potential_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """
         :param var_nu: variable normal vector length
@@ -101,9 +116,7 @@ class PotentialOfContactLaw(ContactLaw):
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         """
         :param var_tau: variable normal vector length

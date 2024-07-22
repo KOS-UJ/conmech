@@ -20,17 +20,13 @@ from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_l
 class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
     def tangential_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
-        return - 1.0
+        return -1.0
 
     @staticmethod
     def potential_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """
         electric charge flux
@@ -41,9 +37,7 @@ class PPSlopeContactLaw(PotentialOfContactLaw):
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         """electric charge tangential"""
         return 0 * np.linalg.norm(var_tau)
@@ -67,7 +61,9 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
         )
     )
     permittivity: ... = field(
-        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
+        default_factory=lambda: np.array(
+            [[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]]
+        )
     )
 
     @staticmethod
@@ -81,10 +77,6 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
     @staticmethod
     def outer_forces(x, t=None):
         return np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: 0.0 <= x[0] <= 1.0 and 0.0 <= x[1] <= 1.0,
@@ -107,8 +99,8 @@ def main(config: Config):
     To see result of simulation you need to call from python `main(Config().init())`.
     """
     mesh_descr = Barboteu2008MeshDescription(
-        initial_position=None,
-        max_element_perimeter=0.5)
+        initial_position=None, max_element_perimeter=0.5
+    )
     setup = PQuasistaticSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
     steps = 100 if not config.test else 2

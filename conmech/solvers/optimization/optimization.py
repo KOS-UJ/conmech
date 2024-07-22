@@ -11,12 +11,10 @@ import scipy.optimize
 
 from conmech.dynamics.statement import (
     Statement,
-    TemperatureStatement,
-    PiezoelectricStatement,
-    StaticPoissonStatement, WaveStatement,
+    StaticPoissonStatement,
+    WaveStatement,
 )
-from conmech.dynamics.contact.contact_law import ContactLaw, \
-    PotentialOfContactLaw
+from conmech.dynamics.contact.contact_law import ContactLaw, PotentialOfContactLaw
 from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_cost_functional, make_equation
@@ -29,7 +27,6 @@ class Optimization(Solver):
         body: "Body",
         time_step: float,
         contact_law: Optional[PotentialOfContactLaw],
-        friction_bound,
         driving_vector,
     ):
         super().__init__(
@@ -37,7 +34,6 @@ class Optimization(Solver):
             body,
             time_step,
             contact_law,
-            friction_bound,
             driving_vector,
         )
         self.loss = make_cost_functional(
@@ -46,20 +42,22 @@ class Optimization(Solver):
             tangential_condition=contact_law.potential_tangential_direction,
             tangential_condition_bound=contact_law.tangential_bound,
             variable_dimension=statement.dimension_out,
-            problem_dimension=statement.dimension_in
+            problem_dimension=statement.dimension_in,
         )
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
                     jn=None,
                     contact=contact_law.potential_normal_direction,
-                    h_functional=friction_bound,
                 )
-
 
         if isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction if contact_law is not None else None,
+                normal_condition=(
+                    contact_law.potential_normal_direction
+                    if contact_law is not None
+                    else None
+                ),
                 variable_dimension=statement.dimension_out,
                 problem_dimension=statement.dimension_in,
             )
@@ -120,7 +118,9 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
 
-                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
+                solution = qsmlm.minimize(
+                    self.loss, solution, args=args, maxiter=maxiter
+                )
                 sols.append(solution.copy())
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count

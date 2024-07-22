@@ -28,12 +28,12 @@ class Penetration(Product):
     """
 
     def __init__(self):
-        super().__init__('penetration')
+        super().__init__("penetration")
 
     def update(self, state):
         if len(state.displaced_nodes[state.body.mesh.contact_indices, 1]) != 0:
             all_p = state.displaced_nodes[state.body.mesh.contact_indices, 1]
             p = np.min(all_p)
         else:
-            p = 0.
+            p = 0.0
         self.data[state.time] = p

@@ -49,6 +49,7 @@ class StiffnessMatrix:
     def __rmatmul__(self, other):
         return other @ self.data
 
+    # pylint: disable=invalid-name
     @property
     def T(self):
         return self.data.T
@@ -69,6 +70,7 @@ class SM1to3(StiffnessMatrix):
 class SM2(StiffnessMatrix):
     DIMENSION = (2, 2)
 
+    # pylint: disable=invalid-name
     @property
     def SM1(self) -> SM1:
         x_len = self.data.shape[0] // 2
@@ -79,6 +81,7 @@ class SM2(StiffnessMatrix):
 class SM3(StiffnessMatrix):
     DIMENSION = (3, 3)
 
+    # pylint: disable=invalid-name
     @property
     def SM1(self) -> SM1:
         x_len = self.data.shape[0] // 3

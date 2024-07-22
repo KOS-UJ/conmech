@@ -18,30 +18,22 @@ from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_l
 
 class TPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
-    def normal_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
-    ) -> float:
+    def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         """
         Direction of heat flux
         """
-        return - 1.0
+        return -1.0
 
     @staticmethod
     def potential_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         """Temperature exchange"""
         return 0.0
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         """Friction generated temperature"""
         return 0 * np.linalg.norm(var_tau)
@@ -57,10 +49,14 @@ class TDynamicSetup(TemperatureDynamicProblem):
     contact_law: ... = make_slope_contact_law(slope=1e1)
     contact_law_2: ... = TPSlopeContactLaw
     thermal_expansion: ... = field(
-        default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
+        default_factory=lambda: np.array(
+            [[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]]
+        )
     )
     thermal_conductivity: ... = field(
-        default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
+        default_factory=lambda: np.array(
+            [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
+        )
     )
 
     @staticmethod
@@ -79,11 +75,9 @@ class TDynamicSetup(TemperatureDynamicProblem):
             return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
-
-    boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0, dirichlet=lambda x: False)
+    boundaries: ... = BoundariesDescription(
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: False
+    )
 
 
 def main(config: Config):
@@ -117,7 +111,9 @@ def main(config: Config):
         drawer = Drawer(state=state, config=config)
         drawer.cmap = "plasma"
         drawer.field_name = "temperature"
-        drawer.draw(field_max=T_max, field_min=T_min, show=config.show, save=config.save)
+        drawer.draw(
+            field_max=T_max, field_min=T_min, show=config.show, save=config.save
+        )
 
 
 if __name__ == "__main__":

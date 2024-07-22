@@ -20,7 +20,6 @@ class SchurComplementOptimization(Optimization):
         body,
         time_step,
         contact_law,
-        friction_bound,
         driving_vector,
     ):
         super().__init__(
@@ -28,7 +27,6 @@ class SchurComplementOptimization(Optimization):
             body,
             time_step,
             contact_law,
-            friction_bound,
             driving_vector,
         )
 
@@ -87,9 +85,7 @@ class SchurComplementOptimization(Optimization):
         truncated_ig = self.truncate_free_nodes(initial_guess)
         # truncated_ig: [[xc, yc]]
         if self.driving_vector:
-            truncated_ig = truncated_ig[
-                :, :truncated_ig.shape[1] // 2
-            ]
+            truncated_ig = truncated_ig[:, : truncated_ig.shape[1] // 2]
             # truncated_ig: [[xc]]
         solution_contact = super()._solve_impl(truncated_ig, **kwargs)
         # solution_contact: [xc, yc] / [xc]
@@ -132,7 +128,9 @@ class SchurComplementOptimization(Optimization):
         result = self.free_x_free_inverted @ _result
         return result
 
-    def merge(self, solution_contact: np.ndarray, solution_free: np.ndarray) -> np.ndarray:
+    def merge(
+        self, solution_contact: np.ndarray, solution_free: np.ndarray
+    ) -> np.ndarray:
         if self.statement.dimension_in == 2 or self.driving_vector:
             u_contact = solution_contact.reshape(2, -1)
             u_free = solution_free.reshape(2, -1)
@@ -146,12 +144,16 @@ class SchurComplementOptimization(Optimization):
         return result
 
 
-@SolversRegistry.register("static", "schur", "schur complement", "schur complement method")
+@SolversRegistry.register(
+    "static", "schur", "schur complement", "schur complement method"
+)
 class StaticSchurOptimization(SchurComplementOptimization):
     pass
 
 
-@SolversRegistry.register("quasistatic", "schur", "schur complement", "schur complement method")
+@SolversRegistry.register(
+    "quasistatic", "schur", "schur complement", "schur complement method"
+)
 class QuasistaticSchurOptimization(SchurComplementOptimization):
     def iterate(self):
         self.statement.update(
@@ -181,7 +183,9 @@ class QuasistaticRelaxed(SchurComplementOptimization):
         self.node_forces_, self.forces_free = self.recalculate_forces()
 
 
-@SolversRegistry.register("dynamic", "schur", "schur complement", "schur complement method")
+@SolversRegistry.register(
+    "dynamic", "schur", "schur complement", "schur complement method"
+)
 class DynamicSchurOptimization(SchurComplementOptimization):
     def iterate(self):
         self.statement.update(
@@ -208,7 +212,9 @@ def calculate_schur_complement_vector(
     vector_split = nph.unstack(vector, dimension)
     vector_contact = nph.stack_column(vector_split[contact_indices, :])
     vector_free = nph.stack_column(vector_split[free_indices, :])
-    vector_boundary = vector_contact - (contact_x_free @ (free_x_free_inverted @ vector_free))
+    vector_boundary = vector_contact - (
+        contact_x_free @ (free_x_free_inverted @ vector_free)
+    )
     return vector_boundary, vector_free
 
 
@@ -229,6 +235,8 @@ def calculate_schur_complement_matrices(
     contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
 
     free_x_free_inverted = np.linalg.inv(free_x_free)
-    matrix_boundary = contact_x_contact - contact_x_free @ (free_x_free_inverted @ free_x_contact)
+    matrix_boundary = contact_x_contact - contact_x_free @ (
+        free_x_free_inverted @ free_x_contact
+    )
 
     return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted

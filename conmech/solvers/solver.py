@@ -2,7 +2,7 @@
 Created at 18.02.2021
 """
 
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -17,11 +17,9 @@ class Solver:
         body: "Body",
         time_step: float,
         contact_law: Optional[ContactLaw] = None,
-        friction_bound: Optional[Callable[[float], float]] = None,
         driving_vector: bool = False,
     ):
         self.contact_law: Optional[ContactLaw] = contact_law
-        self.friction_bound: Optional[Callable[[float], float]] = friction_bound
 
         self.body = body
         self.statement: Statement = statement
@@ -29,8 +27,12 @@ class Solver:
         self.time_step: float = time_step
         self.current_time: float = 0
         self.b_vector = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
-        self.u_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
-        self.v_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count * self.body.mesh.dimension)
+        self.u_vector: np.ndarray = np.zeros(
+            self.body.mesh.nodes_count * self.body.mesh.dimension
+        )
+        self.v_vector: np.ndarray = np.zeros(
+            self.body.mesh.nodes_count * self.body.mesh.dimension
+        )
         self.t_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)
         self.p_vector: np.ndarray = np.zeros(self.body.mesh.nodes_count)  # TODO #23
 
@@ -57,14 +59,22 @@ class Solver:
         pass
 
     def _solve_impl(
-        self, initial_guess, *, variable_old: np.ndarray, displacement: np.ndarray, **kwargs
+        self,
+        initial_guess,
+        *,
+        variable_old: np.ndarray,
+        displacement: np.ndarray,
+        **kwargs,
     ):
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
 
         solution = self._solve_impl(
-            initial_guess, variable_old=self.v_vector, displacement=self.u_vector, **kwargs  # TODO: FIXME variable_old
+            initial_guess,
+            variable_old=self.v_vector,
+            displacement=self.u_vector,
+            **kwargs,  # TODO: FIXME variable_old
         )
 
         for dirichlet_cond in self.statement.find_dirichlet_conditions():

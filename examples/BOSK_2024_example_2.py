@@ -5,18 +5,21 @@ from typing import Optional
 import numpy as np
 from matplotlib import pyplot as plt
 
-from conmech.dynamics.contact.damped_normal_compliance import \
-    make_damped_norm_compl
+from conmech.dynamics.contact.damped_normal_compliance import make_damped_norm_compl
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.plotting.membrane import plot as membrane_plot, plot_in_columns, \
-    plot_limit_points
+from conmech.plotting.membrane import (
+    plot as membrane_plot,
+    plot_in_columns,
+    plot_limit_points,
+)
 from conmech.scenarios.problems import InteriorContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.state.products.intersection import Intersection
-from conmech.state.products.intersection_contact_limit_points import \
-    IntersectionContactLimitPoints
+from conmech.state.products.intersection_contact_limit_points import (
+    IntersectionContactLimitPoints,
+)
 from conmech.state.state import State
 
 TESTING = False
@@ -27,9 +30,9 @@ KAPPA = 10.0
 BETA = 0.0
 FORCE = 250.0
 PROPAGATION = 2.5
-TIMESTEP = 1/1024
+TIMESTEP = 1 / 1024
 # TIMESTEP = 1/4096
-CONTINUING = None #'beta=100.0_step_32769'
+CONTINUING = None  #'beta=100.0_step_32769'
 
 FULL = False
 END = (0.9, 1)
@@ -46,17 +49,14 @@ class MembraneSetup(InteriorContactWaveProblem):
     contact_law: ... = make_DNC(OBSTACLE_LEVEL, kappa=KAPPA, beta=BETA)()
 
     @staticmethod
-    def inner_forces(
-            x: np.ndarray,
-            t: Optional[float] = None
-    ) -> np.ndarray:
+    def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.array([FORCE])
 
     @staticmethod
     def outer_forces(
         x: np.ndarray, v: Optional[np.ndarray] = None, t: Optional[float] = None
     ) -> np.ndarray:
-        return np.array([0.])
+        return np.array([0.0])
 
     boundaries: ... = BoundariesDescription(
         dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1)
@@ -95,8 +95,10 @@ def main(config: Config, setup, name, steps):
         states = runner.solve(
             n_steps=steps,
             output_step=output_step,
-            products=[IntersectionContactLimitPoints(
-                obstacle_level=OBSTACLE_LEVEL, x=0.50), Intersection(x=0.50)],
+            products=[
+                IntersectionContactLimitPoints(obstacle_level=OBSTACLE_LEVEL, x=0.50),
+                Intersection(x=0.50),
+            ],
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,
             state=state,
@@ -109,8 +111,7 @@ def main(config: Config, setup, name, steps):
     else:
         states = []
         for step in output_step:
-            states.append(
-                State.load(f"{config.path}/{name}_step_{step}"))
+            states.append(State.load(f"{config.path}/{name}_step_{step}"))
 
     start = time.time()
     if CONTINUING:
@@ -118,13 +119,17 @@ def main(config: Config, setup, name, steps):
         print("Loading:", path)
         state = State.load(path)
         plot_limit_points(
-            state.products['limit points at 0.50'],
-            title=fr'$\kappa={setup.contact_law.KAPPA}$ '
-                  fr'$\beta={setup.contact_law.BETA}$', finish=False)
+            state.products["limit points at 0.50"],
+            title=rf"$\kappa={setup.contact_law.KAPPA}$ "
+            rf"$\beta={setup.contact_law.BETA}$",
+            finish=False,
+        )
     plot_limit_points(
-        states[-1].products['limit points at 0.50'],
-        title=fr'$\kappa={setup.contact_law.KAPPA}$ '
-              fr'$\beta={setup.contact_law.BETA}$', finish=False)
+        states[-1].products["limit points at 0.50"],
+        title=rf"$\kappa={setup.contact_law.KAPPA}$ "
+        rf"$\beta={setup.contact_law.BETA}$",
+        finish=False,
+    )
     print(time.time() - start)
     plt.grid()
     plt.show()
@@ -145,7 +150,9 @@ def main(config: Config, setup, name, steps):
         return
 
     states_ids = list(range(len(states)))
-    to_plot = states_ids[:64:4] # [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
+    to_plot = states_ids[
+        :64:4
+    ]  # [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
     vmin = np.inf
     vmax = -np.inf
     field = "velocity"
@@ -170,9 +177,14 @@ def main(config: Config, setup, name, steps):
             continue
         states_.append(state)
     plot_in_columns(
-        states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
+        states_,
+        field=field,
+        vmin=vmin,
+        vmax=vmax,
+        zmin=zmin,
+        zmax=zmax,
         x=0.5,
-        title=f"velocity"  #: {i * setup.time_step:.2f}s"
+        title=f"velocity",  #: {i * setup.time_step:.2f}s"
     )
     # plot_in_columns(
     #     states_, field=field, vmin=vmin, vmax=vmax, zmin=zmin, zmax=zmax,
@@ -208,6 +220,7 @@ if __name__ == "__main__":
         b = np.zeros(x.shape[0])
         c = np.stack((a, b), axis=1)
         return c
+
     setup = MembraneSetup(mesh_descr)
     setup.initial_displacement = initial_displacement
     setups["nonzero"] = setup
@@ -234,12 +247,14 @@ if __name__ == "__main__":
 
     def initial_velocity(x: np.ndarray) -> np.ndarray:
         return np.ones_like(x) * 10
+
     setup = MembraneSetup(mesh_descr)
     setup.initial_velocity = initial_velocity
     setups["velocity"] = setup
 
     def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
         return np.array([max(15 * (1 - t), 0)])
+
     setup = MembraneSetup(mesh_descr)
     setup.inner_forces = inner_forces
     setups["force"] = setup
@@ -253,5 +268,5 @@ if __name__ == "__main__":
             Config(output_dir="BOSK.2", force=FORCE_SIMULATION).init(),
             setups[name],
             name=name,
-            steps=int(T / setups[name].time_step) + 1
+            steps=int(T / setups[name].time_step) + 1,
         )

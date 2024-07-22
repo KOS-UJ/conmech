@@ -1,7 +1,21 @@
-"""
-Created at 21.08.2019
-"""
-
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2024  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 from dataclasses import dataclass
 
 import numpy as np
@@ -17,9 +31,7 @@ from conmech.properties.mesh_description import CrossMeshDescription
 class JureczkaOchal2019(PotentialOfContactLaw):
     @staticmethod
     def potential_normal_direction(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         if var_nu <= 0:
             return 0.0
@@ -29,17 +41,13 @@ class JureczkaOchal2019(PotentialOfContactLaw):
 
     @staticmethod
     def potential_tangential_direction(
-            var_tau: float,
-            static_displacement_tau: float,
-            dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         return np.log(np.sum(var_tau * var_tau) ** 0.5 + 1)
 
     @staticmethod
     def tangential_bound(
-            var_nu: float,
-            static_displacement_nu: float,
-            dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         if static_displacement_nu < 0:
             return 0

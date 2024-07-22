@@ -13,7 +13,7 @@ def solving_method(request):
 
 def test(solving_method):
     expected_displacement_vector = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.06078453, 0.03250193],
         [0.10404238, 0.03644206],
         [0.13873971, 0.04036119],
@@ -33,10 +33,10 @@ def test(solving_method):
         [0.10898344, 0.0296097],
         [0.07489846, 0.01345543],
         [0.03838516, -0.00183673],
-        [0., 0.],
-        [0., 0.],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     mesh_descr = CrossMeshDescription(
@@ -45,8 +45,8 @@ def test(solving_method):
     setup = StaticSetup(mesh_descr)
     runner = StaticProblem(setup, solving_method)
     result = runner.solve(
-         initial_displacement=setup.initial_displacement,
-        method='Powell' if solving_method == 'schur' else 'BFGS'
+        initial_displacement=setup.initial_displacement,
+        method="Powell" if solving_method == "schur" else "BFGS",
     )
 
     displacement = result.body.mesh.nodes[:] - result.displaced_nodes[:]

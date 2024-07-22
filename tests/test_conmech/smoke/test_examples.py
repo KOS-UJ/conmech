@@ -36,7 +36,9 @@ test_suits = {
     "dynamic": lambda: dynamic(Config(**default_args).init()),
     "dynamic_piezo": lambda: dynamic_piezo(Config(**default_args).init()),
     "dynamic_temp": lambda: dynamic_temp(Config(**default_args).init()),
-    "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(Config(**default_args).init()),
+    "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(
+        Config(**default_args).init()
+    ),
     "Jureczka_Ochal_Bartman_2023": lambda: Jureczka_Ochal_Bartman_2023(
         Config(outputs_path="./output/JOB2023", **default_args).init()
     ),
@@ -49,7 +51,9 @@ test_suits = {
     "Tarzia_problem": lambda: Tarzia_problem(
         Config(outputs_path="./output/BOST2024", **default_args).init()
     ),
-    "nonhomogenous_density": lambda: nonhomogenous_density(Config(**default_args).init()),
+    "nonhomogenous_density": lambda: nonhomogenous_density(
+        Config(**default_args).init()
+    ),
     "imported_mesh": lambda: imported_mesh(
         Config(**default_args).init(),
         mesh_path="examples/meshes/example_mesh.msh",

@@ -29,10 +29,6 @@ class StaticSetup(StaticDisplacementProblem):
     def outer_forces(x, t=None):
         return np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        return 0
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0 and x[0] <= 1.0, dirichlet=lambda x: x[0] == 0
     )

@@ -51,10 +51,6 @@ def generate_test_suits():
         def outer_forces(x, t=None):
             return np.array([0, 0])
 
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0
-
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
@@ -172,11 +168,9 @@ def generate_test_suits():
 
         @staticmethod
         def outer_forces(x, t=None):
-            return np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
-
-        @staticmethod
-        def friction_bound(u_nu: float) -> float:
-            return 0
+            return (
+                np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
+            )
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0 and x[0] <= 1.0, dirichlet=lambda x: x[0] == 0
@@ -189,7 +183,7 @@ def generate_test_suits():
 
     expected_displacement_vectors_2 = [
         [
-            [0., 0.],
+            [0.0, 0.0],
             [0.04618958, 0.03954446],
             [0.08306192, 0.11665549],
             [0.20096414, 0.32413195],
@@ -201,11 +195,11 @@ def generate_test_suits():
             [-0.1983749, 0.32574654],
             [-0.08307566, 0.11683613],
             [-0.0462062, 0.03954483],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ],
         [
-            [0., 0.],
+            [0.0, 0.0],
             [0.04624452, 0.03968952],
             [0.08281797, 0.11579863],
             [0.13057317, 0.24686878],
@@ -217,11 +211,11 @@ def generate_test_suits():
             [-0.12955284, 0.2475101],
             [-0.08281856, 0.1159435],
             [-0.04625718, 0.03969205],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ],
         [
-            [0., 0.],
+            [0.0, 0.0],
             [0.09165037, 0.10057917],
             [0.16064146, 0.33569807],
             [0.2058385, 0.66787976],
@@ -233,8 +227,8 @@ def generate_test_suits():
             [-0.45275785, 0.68336219],
             [-0.34627313, 0.3623118],
             [-0.19077607, 0.14100217],
-            [0., 0.],
-            [0., 0.],
+            [0.0, 0.0],
+            [0.0, 0.0],
         ],
     ]
 
@@ -244,8 +238,12 @@ def generate_test_suits():
     return test_suites
 
 
-@pytest.mark.parametrize("setup, density_func, expected_displacement_vector", generate_test_suits())
-def test_nonhomogenous_solver(solving_method, setup, density_func, expected_displacement_vector):
+@pytest.mark.parametrize(
+    "setup, density_func, expected_displacement_vector", generate_test_suits()
+)
+def test_nonhomogenous_solver(
+    solving_method, setup, density_func, expected_displacement_vector
+):
     runner = NonHomogenousSolver(setup, solving_method)
     elem_centers = get_elem_centers(runner)
     elements_density = np.asarray([density_func(x) for x in elem_centers])

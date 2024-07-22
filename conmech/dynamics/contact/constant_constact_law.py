@@ -18,17 +18,18 @@
 # USA.
 from typing import Type
 
-from conmech.dynamics.contact.contact_law import ContactLaw, DirectContactLaw, \
-    PotentialOfContactLaw
+from conmech.dynamics.contact.contact_law import (
+    ContactLaw,
+    DirectContactLaw,
+    PotentialOfContactLaw,
+)
 
 
 def make_const_contact_law(resistance: float) -> Type[ContactLaw]:
     class PSlopeContactLaw(DirectContactLaw, PotentialOfContactLaw):
         @staticmethod
         def potential_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             if var_nu <= 0:
                 return 0 * static_displacement_nu
@@ -36,9 +37,7 @@ def make_const_contact_law(resistance: float) -> Type[ContactLaw]:
 
         @staticmethod
         def subderivative_normal_direction(
-                var_nu: float,
-                static_displacement_nu: float,
-                dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             if var_nu <= 0:
                 return 0

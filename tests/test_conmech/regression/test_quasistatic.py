@@ -42,10 +42,6 @@ def generate_test_suits():
         def outer_forces(x, time=None):
             return np.array([0, 0])
 
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0
-
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
@@ -137,10 +133,6 @@ def generate_test_suits():
         @staticmethod
         def outer_forces(x, time=None):
             return np.array([0.3, 0.0])
-
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0.0
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0

@@ -78,7 +78,9 @@ def gradient(elements, initial_nodes, f):
     return result
 
 
-def viscoelastic_constitutive_law(displacement, velocity, setup, elements, nodes, **_kwargs):
+def viscoelastic_constitutive_law(
+    displacement, velocity, setup, elements, nodes, **_kwargs
+):
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])
     grad_u = np.concatenate((grad_x, grad_y), axis=1).reshape(-1, 2, 2)
@@ -110,7 +112,13 @@ def viscoelastic_constitutive_law(displacement, velocity, setup, elements, nodes
 
 
 def elastic_relaxation_constitutive_law(
-    displacement: np.ndarray, absement: np.ndarray, setup, elements, nodes, time, **_kwargs
+    displacement: np.ndarray,
+    absement: np.ndarray,
+    setup,
+    elements,
+    nodes,
+    time,
+    **_kwargs,
 ):  # TODO!
     grad_x = gradient(elements, nodes, displacement[:, 0])
     grad_y = gradient(elements, nodes, displacement[:, 1])

@@ -44,7 +44,9 @@ class Barboteu2008(RawMesh):
 
     @staticmethod
     def _set_mesh_size(geom, mesh_descr: Barboteu2008MeshDescription):
-        geom.set_mesh_size_callback(lambda dim, tag, x, y, z, *_: mesh_descr.max_element_perimeter)
+        geom.set_mesh_size_callback(
+            lambda dim, tag, x, y, z, *_: mesh_descr.max_element_perimeter
+        )
 
     @staticmethod
     def _get_nodes_and_elements(geom, dim):

@@ -24,7 +24,6 @@ class Direct(Solver):
         body: BodyForces,
         time_step: float,
         contact_law: Optional[DirectContactLaw] = None,
-        friction_bound: Optional[Callable[[float], float]] = None,
         driving_vector: bool = False,
     ):
         super().__init__(
@@ -32,7 +31,6 @@ class Direct(Solver):
             body,
             time_step,
             contact_law,
-            friction_bound,
             driving_vector,
         )
         self.equation: Optional[Callable] = None
@@ -45,7 +43,6 @@ class Direct(Solver):
                     if hasattr(contact_law, "general_contact_condition")
                     else None
                 ),
-                h_functional=friction_bound,
             )
 
     def __str__(self) -> str:
@@ -60,12 +57,12 @@ class Direct(Solver):
         return self.statement.right_hand_side
 
     def _solve_impl(
-            self,
-            initial_guess: np.ndarray,
-            *,
-            variable_old: np.ndarray,
-            displacement: np.ndarray,
-            **kwargs
+        self,
+        initial_guess: np.ndarray,
+        *,
+        variable_old: np.ndarray,
+        displacement: np.ndarray,
+        **kwargs,
     ) -> np.ndarray:
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         if self.equation is not None:
@@ -81,7 +78,7 @@ class Direct(Solver):
                     self.node_forces,
                     displacement,
                     self.body.dynamics.acceleration_operator.SM1.data,
-                    self.time_step
+                    self.time_step,
                 ),
             )
         else:

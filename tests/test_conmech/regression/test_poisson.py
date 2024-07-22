@@ -31,7 +31,9 @@ def generate_test_suits():
         def outer_temperature(x: np.ndarray, t: float = None) -> np.ndarray:
             return np.array([3.0])
 
-        boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] == 0 or x[0] == 1)
+        boundaries: ... = BoundariesDescription(
+            dirichlet=lambda x: x[0] == 0 or x[0] == 1
+        )
 
     mesh_descr = CrossMeshDescription(
         initial_position=None, max_element_perimeter=0.25, scale=[1, 1]
@@ -101,7 +103,9 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None, max_element_perimeter=1.37 / 3, scale=[1.37 * 5 / 3, 1.37]
+        initial_position=None,
+        max_element_perimeter=1.37 / 3,
+        scale=[1.37 * 5 / 3, 1.37],
     )
     setup_2 = StaticSetup(mesh_descr)
     expected_temperature_vector_2 = [
@@ -160,4 +164,6 @@ def test_poisson_solver(solving_method, setup, expected_temperature_vector):
 
     np.set_printoptions(precision=8, suppress=True)
 
-    np.testing.assert_array_almost_equal(temperature, expected_temperature_vector, decimal=3)
+    np.testing.assert_array_almost_equal(
+        temperature, expected_temperature_vector, decimal=3
+    )

@@ -18,16 +18,15 @@
 # USA.
 
 import numpy as np
-import matplotlib.tri as tri
+from matplotlib import tri
 import scipy.optimize as opt
 
 from conmech.state.products.product import Product
 
 
 class IntersectionContactLimitPoints(Product):
-
     def __init__(self, x, obstacle_level):
-        super().__init__(f'limit points at {x:.2f}')
+        super().__init__(f"limit points at {x:.2f}")
         self.x = x
         self.obstacle_level = obstacle_level
 
@@ -35,7 +34,7 @@ class IntersectionContactLimitPoints(Product):
         y_min = np.min(state.body.mesh.nodes[:, 1])
         y_max = np.max(state.body.mesh.nodes[:, 1])
         step = len(state.body.mesh.nodes) ** -1 / 2
-        u = interpolate(state, 'displacement')
+        u = interpolate(state, "displacement")
 
         def u_intsec(y):
             return u(self.x, y) - self.obstacle_level
@@ -53,16 +52,16 @@ def interpolate(state, field):
     return interpol(soltri, getattr(state, field)[:, 0])
 
 
-def estimate_zeros(f, xmin, xmax, step) -> tuple:
+def estimate_zeros(func, xmin, xmax, step) -> tuple:
     zeros = []
     x = xmin
-    sign = np.sign(f(x))
+    sign = np.sign(func(x))
     while x <= xmax:
-        f_x = f(x)
+        f_x = func(x)
         if f_x == 0:
             zeros.append(x)
         elif f_x < 0 < sign or f_x > 0 > sign:
-            zeros.append(opt.brentq(f, x-step, x))
+            zeros.append(opt.brentq(func, x - step, x))
         sign = np.sign(f_x)
         x += step
     return tuple(zeros)
