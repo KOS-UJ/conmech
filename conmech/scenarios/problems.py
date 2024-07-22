@@ -24,7 +24,6 @@ from conmech.dynamics.statement import (
     QuasistaticVelocityWithPiezoelectricStatement,
     QuasistaticRelaxationStatement,
     StaticPoissonStatement,
-    Variables,
     WaveStatement,
 )
 
@@ -76,6 +75,7 @@ class DynamicProblem(TimeDependentProblem, ABC):
 
 @dataclass
 class PoissonProblem(StaticProblem, ABC):
+    # pylint: disable=unused-argument
     @classmethod
     def statement(cls, body) -> Optional[Statement]:
         return None

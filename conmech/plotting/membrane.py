@@ -3,7 +3,7 @@ from typing import Callable, List
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.cm import ScalarMappable, get_cmap
-import matplotlib.tri as tri
+from matplotlib import tri
 
 from conmech.state.products.intersection_contact_limit_points import (
     IntersectionContactLimitPoints,

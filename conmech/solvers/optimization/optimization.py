@@ -14,7 +14,7 @@ from conmech.dynamics.statement import (
     StaticPoissonStatement,
     WaveStatement,
 )
-from conmech.dynamics.contact.contact_law import ContactLaw, PotentialOfContactLaw
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import make_cost_functional, make_equation
