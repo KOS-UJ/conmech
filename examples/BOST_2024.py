@@ -48,9 +48,7 @@ class BOST23(PotentialOfContactLaw):
     def tangential_bound(
         var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
-        if var_nu < 0:
-            return 0
-        return var_nu
+        return 1.0
 
 
 @dataclass
@@ -215,7 +213,9 @@ def main(
     X = [ig for ig in igs if not isinstance(ig, str)]
     Y = list(errors.values())[:-1]
     Y = [v[0] for v in Y]
-    Y = -np.asarray(Y)
+    # Y = -np.asarray(Y)
+    print(f"{X=}")
+    print(f"{Y=}")
     plot_errors(
         X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf"
     )
@@ -251,4 +251,4 @@ if __name__ == "__main__":
     igs.update(eigs)
     igs = [0] + sorted(list(igs)) + ["inf"]
     igs = igs[:]
-    main(Config(save=not show, show=show, force=False).init(), igs, highlighted)
+    main(Config(save=not show, show=show, force=True).init(), igs, highlighted)
