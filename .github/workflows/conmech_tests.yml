@@ -14,22 +14,15 @@ jobs:
   run_tests:
     strategy:
       matrix:
-        platform: [ ubuntu-latest, macos-14, windows-latest ]
-        python-version: [ "3.9", "3.10", "3.11", "3.12" ]
+        platform: [ ubuntu-latest, macos-13, windows-latest ]
+        python-version: [ "3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
 
-      - if: matrix.platform != 'macos-14'
-        uses: actions/setup-python@v1
+      - uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
-
-      - if: matrix.platform == 'macos-14'
-        run: |
-          sudo ln -s `which python3` /usr/local/bin/python
-          echo "PIP_INSTALL_ARGS=--break-system-packages" >> $GITHUB_ENV
-          python -m pip install --break-system-packages distutils setuptools packaging # Python 3.12 workaround
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
