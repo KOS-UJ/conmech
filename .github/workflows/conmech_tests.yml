@@ -20,9 +20,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/setup-python@v1
+      - if: matrix.platform != 'macos-14'
+        uses: actions/setup-python@v1
         with:
           python-version: ${{ matrix.python-version }}
+
+      - if: matrix.platform == 'macos-14'
+        run: |
+          sudo ln -s `which python3` /usr/local/bin/python
+          echo "PIP_INSTALL_ARGS=--break-system-packages" >> $GITHUB_ENV
+          python -m pip install --break-system-packages setuptools packaging # Python 3.12 workaround
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
