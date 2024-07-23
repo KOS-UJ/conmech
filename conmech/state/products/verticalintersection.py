@@ -23,10 +23,10 @@ from matplotlib import tri
 from conmech.state.products.product import Product
 
 
-class Intersection(Product):
+class VerticalIntersection(Product):
     def __init__(self, x):
         super().__init__(f"intersection at {x:.2f}")
-        self.x = x
+        self.level = x
 
     def update(self, state):
         y_min = np.min(state.body.mesh.nodes[:, 1])
@@ -39,4 +39,4 @@ class Intersection(Product):
         soltri = tri.Triangulation(X, Y, triangles=state.body.mesh.elements)
         u = tri.LinearTriInterpolator(soltri, state.displacement[:, 0])
 
-        self.data[state.time] = (space, u(np.ones_like(space) * self.x, space))
+        self.data[state.time] = (space, u(np.ones_like(space) * self.level, space))

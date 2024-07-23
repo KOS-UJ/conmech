@@ -10,9 +10,9 @@ from conmech.plotting.membrane import plot_in_columns, plot_limit_points
 from conmech.scenarios.problems import ContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from conmech.state.products.intersection import Intersection
+from conmech.state.products.verticalintersection import VerticalIntersection
 from conmech.state.products.intersection_contact_limit_points import (
-    IntersectionContactLimitPoints,
+    VerticalIntersectionContactLimitPoints,
 )
 from conmech.state.state import State
 
@@ -72,8 +72,10 @@ def main(config: Config, setup, name, steps):
             n_steps=steps,
             output_step=output_step,
             products=[
-                IntersectionContactLimitPoints(obstacle_level=OBSTACLE_LEVEL, x=1.0),
-                Intersection(x=1.0),
+                VerticalIntersectionContactLimitPoints(
+                    obstacle_level=OBSTACLE_LEVEL, x=1.0
+                ),
+                VerticalIntersection(x=1.0),
             ],
             initial_displacement=setup.initial_displacement,
             initial_velocity=setup.initial_velocity,

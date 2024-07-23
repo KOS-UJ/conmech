@@ -110,7 +110,7 @@ class ProblemSolver:
             statement,
             self.body,
             self.time_step,
-            getattr(self.problem, 'contact_law', None),
+            getattr(self.problem, "contact_law", None),
             driving_vector=self.driving_vector,
         )
 
@@ -127,7 +127,7 @@ class ProblemSolver:
             statement,
             self.body,
             self.time_step,
-            getattr(self.problem, 'contact_law_2', None),
+            getattr(self.problem, "contact_law_2", None),
             driving_vector=self.driving_vector,
         )
 

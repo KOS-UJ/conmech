@@ -6,7 +6,7 @@ from matplotlib.cm import ScalarMappable, get_cmap
 from matplotlib import tri
 
 from conmech.state.products.intersection_contact_limit_points import (
-    IntersectionContactLimitPoints,
+    VerticalIntersectionContactLimitPoints,
 )
 from conmech.state.state import State
 
@@ -37,7 +37,7 @@ def plot_in_columns(states: List[State], *args, **kwargs):
 
 
 def plot_limit_points(
-    prod: IntersectionContactLimitPoints,
+    prod: VerticalIntersectionContactLimitPoints,
     color="black",
     title=None,
     label=None,
@@ -73,6 +73,7 @@ def plot(state: State, *args, **kwargs):
     plt.show()
 
 
+# pylint: disable=too-many-arguments, too-many-locals
 def do_plot(
     fig,
     state: State,
@@ -89,43 +90,51 @@ def do_plot(
     x=0.0,
 ):
     assert state.body.mesh.dimension == 2  # membrane have to be 2D
-    X = state.body.mesh.nodes[:, 0]
-    Y = state.body.mesh.nodes[:, 1]
+    mesh_node_x = state.body.mesh.nodes[:, 0]
+    mesh_node_y = state.body.mesh.nodes[:, 1]
 
-    soltri = tri.Triangulation(X, Y, triangles=state.body.mesh.elements)
+    soltri = tri.Triangulation(
+        mesh_node_x, mesh_node_y, triangles=state.body.mesh.elements
+    )
     interpol = tri.LinearTriInterpolator  # if in3d else tri.CubicTriInterpolator
     v = interpol(soltri, getattr(state, field)[:, 0])
     u = interpol(soltri, state.displacement[:, 0])
 
     # higher resolution
-    X = np.linspace(0, 1, 100)
-    Y = np.linspace(0, 1, 100)
-    X, Y = np.meshgrid(X, Y)
-    X = X.ravel()
-    Y = Y.ravel()
-    U = np.zeros_like(X)
-    for i in range(len(U)):
-        U[i] = u(X[i], Y[i])
+    x_disc = np.linspace(0, 1, 100)
+    y_disc = np.linspace(0, 1, 100)
+    node_x, node_y = np.meshgrid(x_disc, y_disc)
+    node_x = node_x.ravel()
+    node_y = node_y.ravel()
+    node_val = np.zeros_like(node_x)
+    # pylint: disable=consider-using-enumerate
+    for i in range(len(node_val)):
+        node_val[i] = u(node_x[i], node_y[i])
 
-    B = np.linspace(0, 1, 100)
-    RB = np.linspace(1, 0, 100)
-    BX = np.concatenate((B, np.ones_like(B), RB, np.zeros_like(RB), np.zeros(1)))
-    BY = np.concatenate((np.zeros_like(B), B, np.ones_like(RB), RB, np.zeros(1)))
-    BU = np.empty_like(BX)
-    for i in range(len(BX)):
-        BU[i] = u(BX[i], BY[i])
+    bound = np.linspace(0, 1, 100)
+    rev_bound = np.linspace(1, 0, 100)
+    bound_x = np.concatenate(
+        (bound, np.ones_like(bound), rev_bound, np.zeros_like(rev_bound), np.zeros(1))
+    )
+    bound_y = np.concatenate(
+        (np.zeros_like(bound), bound, np.ones_like(rev_bound), rev_bound, np.zeros(1))
+    )
+    bound_val = np.empty_like(bound_x)
+    # pylint: disable=consider-using-enumerate
+    for i in range(len(bound_x)):
+        bound_val[i] = u(bound_x[i], bound_y[i])
 
     if in3d:
         ax.view_init(elev=elev, azim=azim)
         plot_surface(
             fig,
             ax,
-            X,
-            Y,
-            U,
-            BX,
-            BY,
-            BU,
+            node_x,
+            node_y,
+            node_val,
+            bound_x,
+            bound_y,
+            bound_val,
             lambda x, y, z: v(x, y),
             vmin,
             vmax,
@@ -134,49 +143,47 @@ def do_plot(
             title,
         )
     else:
-        plot_intersection(fig, ax, u, x, ymin=zmin, ymax=zmax)
+        plot_intersection(ax, u, x, ymin=zmin, ymax=zmax)
 
 
 def plot_surface(
     fig,
     ax,
-    X,
-    Y,
-    U,
-    BX,
-    BY,
-    BU,
-    v: Callable,
+    node_x,
+    node_y,
+    node_val,
+    bound_x,
+    bound_y,
+    bound_val,
+    v_func: Callable,
     vmin=None,
     vmax=None,
     zmin=None,
     zmax=None,
     title=None,
 ):
-    p3dc = ax.plot_trisurf(X, Y, U, alpha=1)
+    p3dc = ax.plot_trisurf(node_x, node_y, node_val, alpha=1)
     ax.set_zlim(zmin=zmin, zmax=zmax)
 
-    mappable = map_colors(p3dc, v, "coolwarm", vmin, vmax)
+    mappable = map_colors(p3dc, v_func, "coolwarm", vmin, vmax)
     plt.title(title)
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
     ax.set_zlabel("u")
 
-    ax.plot3D(BX, BY, BU, color="blue")
+    ax.plot3D(bound_x, bound_y, bound_val, color="blue")
 
     cbar_ax = fig.add_axes([0.10, 0.957, 0.8, 0.02])
     plt.colorbar(mappable, shrink=0.6, aspect=15, cax=cbar_ax, orientation="horizontal")
 
     # plt.show()
 
-    # v2_mayavi(True, X, Y, U, np.ones_like(U))
 
-
-def plot_intersection(fig, ax, u, x, ymin, ymax):
+def plot_intersection(ax, valfunc, insec_x, ymin, ymax):
     space = np.linspace(0, 1, 100)
     ax.set_ylim([ymin, ymax])
-    ax.plot(space, u(np.ones_like(space) * x, space))
+    ax.plot(space, valfunc(np.ones_like(space) * insec_x, space))
 
 
 def map_colors(p3dc, func, cmap="viridis", vmin=None, vmax=None):
@@ -191,6 +198,7 @@ def map_colors(p3dc, func, cmap="viridis", vmin=None, vmax=None):
     """
 
     # reconstruct the triangles from internal data
+    # pylint: disable=protected-access
     x, y, z, _ = p3dc._vec
     slices = p3dc._segslices
     triangles = np.array([np.array((x[s], y[s], z[s])).T for s in slices])
@@ -210,40 +218,3 @@ def map_colors(p3dc, func, cmap="viridis", vmin=None, vmax=None):
 
     # if the caller wants a colorbar, they need this
     return ScalarMappable(cmap=cmap, norm=norm)
-
-
-def v2_mayavi(transparency, X, Y, Z, O):
-    X = X.reshape(100, 100)
-    Y = Y.reshape(100, 100)
-    Z = Z.reshape(100, 100)
-    O = O.reshape(100, 100)
-    from mayavi import mlab
-
-    # mlab.test_contour3d()
-    # mlab.show()
-    # fig = mlab.figure()
-
-    # ax_ranges = [-2, 2, -2, 2, 0, 8]
-    # ax_scale = [1.0, 1.0, 0.4]
-    # ax_extent = ax_ranges * np.repeat(ax_scale, 2)
-
-    X = np.linspace(0, 1, 100)
-    Y = np.linspace(0, 1, 100)
-    X, Y = np.meshgrid(X, Y, indexing="ij")
-    surf3 = mlab.surf(X, Y, Z)
-    # surf4 = mlab.surf(X, Y, O)
-
-    # surf3.actor.actor.scale = ax_scale
-    # surf4.actor.actor.scale = ax_scale
-    # mlab.view(60, 74, 17, [-2.5, -4.6, -0.3])
-    # mlab.outline(surf3, color=(.7, .7, .7),)# extent=ax_extent)
-    # mlab.axes(surf3, color=(.7, .7, .7),)# extent=ax_extent,
-    # ranges=ax_ranges,
-    # label='x', ylabel='y', zlabel='z')
-
-    # if transparency:
-    #     surf3.actor.property.opacity = 0.5
-    #     surf4.actor.property.opacity = 0.5
-    # fig.scene.renderer.use_depth_peeling = 1
-
-    mlab.show()

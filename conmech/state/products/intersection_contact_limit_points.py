@@ -24,10 +24,10 @@ import scipy.optimize as opt
 from conmech.state.products.product import Product
 
 
-class IntersectionContactLimitPoints(Product):
+class VerticalIntersectionContactLimitPoints(Product):
     def __init__(self, x, obstacle_level):
         super().__init__(f"limit points at {x:.2f}")
-        self.x = x
+        self.level = x
         self.obstacle_level = obstacle_level
 
     def update(self, state):
@@ -36,8 +36,8 @@ class IntersectionContactLimitPoints(Product):
         step = len(state.body.mesh.nodes) ** -1 / 2
         u = interpolate(state, "displacement")
 
-        def u_intsec(y):
-            return u(self.x, y) - self.obstacle_level
+        def u_intsec(y_coord):
+            return u(self.level, y_coord) - self.obstacle_level
 
         self.data[state.time] = estimate_zeros(u_intsec, y_min, y_max, step)
 
