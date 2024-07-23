@@ -29,7 +29,7 @@ jobs:
         run: |
           sudo ln -s `which python3` /usr/local/bin/python
           echo "PIP_INSTALL_ARGS=--break-system-packages" >> $GITHUB_ENV
-          python -m pip install --break-system-packages setuptools packaging # Python 3.12 workaround
+          python -m pip install --break-system-packages distutils setuptools packaging # Python 3.12 workaround
 
       - run: pip install pytest
       - run: pip install -r requirements.txt
