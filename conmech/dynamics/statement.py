@@ -3,6 +3,8 @@ from typing import Optional
 
 import numpy as np
 
+from conmech.struct.stiffness_matrix import SM1
+
 
 @dataclass
 class Variables:
@@ -16,9 +18,10 @@ class Variables:
 
 
 class Statement:
-    def __init__(self, body, dimension):
+    def __init__(self, body, dimensions: tuple):
         self.body = body
-        self.dimension = dimension
+        self.dimension_in = dimensions[0]
+        self.dimension_out = dimensions[1]
         self.left_hand_side = None
         self.right_hand_side = None
         self.dirichlet_cond_name = "dirichlet"
@@ -39,13 +42,13 @@ class Statement:
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
             for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
-                dirichlet_cond, node_count, self.dimension
+                dirichlet_cond, node_count, self.dimension_in
             ):
                 self.right_hand_side[:] -= self.left_hand_side[:, i] @ c[j]
-                self.left_hand_side[:, i] = 0
-                self.left_hand_side[i, :] = 0
+                self.left_hand_side.data[:, i] = 0
+                self.left_hand_side.data[i, :] = 0
                 # have to be "[i][:, i]" instead of just a "[i, i]" because the i may be ndarray
-                self.left_hand_side[i][:, i] = np.eye(j.stop - j.start)
+                self.left_hand_side.data[i][:, i] = np.eye(j.stop - j.start)
                 self.right_hand_side[i] = c[j]
 
     def find_dirichlet_conditions(self):
@@ -65,7 +68,7 @@ class Statement:
 
 class StaticPoissonStatement(Statement):
     def __init__(self, dynamics):
-        super().__init__(dynamics, 1)
+        super().__init__(dynamics, (1, 1))
 
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.dynamics.poisson_operator.copy()
@@ -74,9 +77,36 @@ class StaticPoissonStatement(Statement):
         self.right_hand_side = self.body.dynamics.temperature.integrate(time=0)
 
 
+class WaveStatement(Statement):
+    def __init__(self, body):
+        super().__init__(body, (1, 1))
+
+    def update_left_hand_side(self, var):
+        assert var.time_step is not None
+
+        self.left_hand_side = (
+            (1 / var.time_step) * self.body.dynamics.acceleration_operator.SM1
+            + self.body.dynamics.poisson_operator * var.time_step
+        )
+
+    def update_right_hand_side(self, var):
+        assert var.displacement is not None
+        assert var.velocity is not None
+        assert var.time_step is not None
+        assert var.time is not None
+
+        ind = self.body.mesh.nodes_count  # 1 dimensional
+
+        A = -1 * self.body.dynamics.poisson_operator @ var.displacement[:ind]
+
+        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator.SM1 @ var.velocity[:ind]
+
+        self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
+
+
 class StaticDisplacementStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, body.mesh.dimension)
+        super().__init__(body, (body.mesh.dimension, body.mesh.dimension))
 
     def update_left_hand_side(self, var: Variables):
         self.left_hand_side = self.body.dynamics.elasticity.copy()
@@ -87,7 +117,7 @@ class StaticDisplacementStatement(Statement):
 
 class QuasistaticRelaxationStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, 2)
+        super().__init__(body, (2, 2))
 
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
@@ -109,13 +139,13 @@ class QuasistaticRelaxationStatement(Statement):
 
 class QuasistaticVelocityStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, 2)
+        super().__init__(body, (2, 2))
 
     def update_left_hand_side(self, var: Variables):
         assert var.time_step is not None
 
         self.left_hand_side = (
-            self.body.dynamics.viscosity.copy() + self.body.dynamics.elasticity * var.time_step
+            self.body.dynamics.viscosity + self.body.dynamics.elasticity * var.time_step
         )
 
     def update_right_hand_side(self, var: Variables):
@@ -130,7 +160,7 @@ class QuasistaticVelocityStatement(Statement):
 
 class DynamicVelocityStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, 2)
+        super().__init__(body, (2, 2))
 
     def update_left_hand_side(self, var):
         assert var.time_step is not None
@@ -167,16 +197,17 @@ class DynamicVelocityWithTemperatureStatement(DynamicVelocityStatement):
 
 class TemperatureStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, 1)
+        super().__init__(body, (1, 1))
 
     def update_left_hand_side(self, var):
         assert var.time_step is not None
 
         ind = self.body.mesh.nodes_count  # 1 dimensional
 
-        self.left_hand_side = (1 / var.time_step) * self.body.dynamics.acceleration_operator[
+        left_hand_side = (1 / var.time_step) * self.body.dynamics.acceleration_operator[
             :ind, :ind
         ] + self.body.dynamics.thermal_conductivity[:ind, :ind]
+        self.left_hand_side = SM1(left_hand_side)
 
     def update_right_hand_side(self, var):
         assert var.velocity is not None
@@ -197,7 +228,7 @@ class TemperatureStatement(Statement):
 
 class PiezoelectricStatement(Statement):
     def __init__(self, body):
-        super().__init__(body, 1)
+        super().__init__(body, (1, 1))
         self.dirichlet_cond_name = "piezo_" + self.dirichlet_cond_name
 
     def update_left_hand_side(self, var):

@@ -12,7 +12,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import DynamicDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
@@ -34,10 +34,6 @@ class DynamicSetup(DynamicDisplacementProblem):
     @staticmethod
     def outer_forces(x, t=None):
         return np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
 
 
 def main(config: Config):

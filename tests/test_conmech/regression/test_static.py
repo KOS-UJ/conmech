@@ -11,7 +11,7 @@ from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
@@ -38,10 +38,6 @@ def generate_test_suits():
         @staticmethod
         def outer_forces(x, t=None):
             return np.array([0, 0])
-
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
@@ -131,10 +127,6 @@ def generate_test_suits():
         @staticmethod
         def outer_forces(x, t=None):
             return np.array([0.3, 0.0])
-
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0.0
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0

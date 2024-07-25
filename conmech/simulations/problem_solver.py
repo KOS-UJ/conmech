@@ -7,18 +7,7 @@ from typing import Callable, List, Optional, Tuple, Type
 import numpy as np
 
 from conmech.dynamics.dynamics import Dynamics
-from conmech.dynamics.statement import (
-    StaticDisplacementStatement,
-    QuasistaticVelocityStatement,
-    DynamicVelocityWithTemperatureStatement,
-    TemperatureStatement,
-    PiezoelectricStatement,
-    DynamicVelocityStatement,
-    QuasistaticVelocityWithPiezoelectricStatement,
-    QuasistaticRelaxationStatement,
-    StaticPoissonStatement,
-    Variables,
-)
+from conmech.dynamics.statement import Variables
 from conmech.mesh.mesh import Mesh
 from conmech.properties.body_properties import (
     BodyProperties,
@@ -27,27 +16,23 @@ from conmech.properties.body_properties import (
     ElasticRelaxationProperties,
     ViscoelasticPiezoelectricProperties,
     ViscoelasticTemperatureProperties,
+    MembraneProperties,
 )
 from conmech.scenarios.problems import (
     TimeDependentProblem,
     Problem,
-    StaticProblem,
-    QuasistaticProblem,
     PoissonProblem,
-    DisplacementProblem,
     StaticDisplacementProblem,
     TimeDependentDisplacementProblem,
     TemperatureTimeDependentProblem,
-    TemperatureDynamicProblem,
     PiezoelectricTimeDependentProblem,
-    PiezoelectricQuasistaticProblem,
     RelaxationQuasistaticProblem,
-    ContactLaw,
+    WaveProblem,
 )
 from conmech.solvers import SchurComplementOptimization
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
-from conmech.solvers.validator import Validator
+from conmech.state.products.product import Product
 from conmech.state.state import State, TemperatureState, PiezoelectricState
 
 
@@ -89,12 +74,12 @@ class ProblemSolver:
 
         self.problem: Problem = problem
 
+        # True if only one dimension of displacement is used
+        self.driving_vector = False
+
         self.coordinates: Optional[str] = None
         self.step_solver: Optional[Solver] = None
         self.second_step_solver: Optional[Solver] = None
-        self.validator: Optional[Validator] = None
-
-        self.penetration = []
 
         self.done = 0
         self.to_do = 1
@@ -116,89 +101,61 @@ class ProblemSolver:
         solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
         )
-        contact_law: Optional[ContactLaw]
-        friction_bound: Optional[Callable[[float], float]]
-
-        # TODO: #65 fixed solvers to avoid: th_coef, ze_coef = mu_coef, la_coef
-        if isinstance(self.problem, DisplacementProblem):
-            contact_law = self.problem.contact_law
-            friction_bound = self.problem.friction_bound
-            if isinstance(self.problem, StaticProblem):
-                statement = StaticDisplacementStatement(self.body)
-            elif isinstance(self.problem, TimeDependentProblem):
-                if isinstance(self.problem, PiezoelectricQuasistaticProblem):
-                    statement = QuasistaticVelocityWithPiezoelectricStatement(self.body)
-                elif isinstance(self.problem, RelaxationQuasistaticProblem):
-                    statement = QuasistaticRelaxationStatement(self.body)
-                elif isinstance(self.problem, QuasistaticProblem):
-                    statement = QuasistaticVelocityStatement(self.body)
-                elif isinstance(self.problem, TemperatureDynamicProblem):
-                    statement = DynamicVelocityWithTemperatureStatement(self.body)
-                else:
-                    statement = DynamicVelocityStatement(self.body)
-            else:
-                raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
-        elif isinstance(self.problem, PoissonProblem):
+        statement = self.problem.statement(self.body)
+        if statement is None:
             self.step_solver = None
-            self.validator = None
             return
-        else:
-            raise ValueError(f"Unsupported problem class: {self.problem.__class__}")
+
         self.step_solver = solver_class(
             statement,
             self.body,
             self.time_step,
-            contact_law,
-            friction_bound,
+            getattr(self.problem, "contact_law", None),
+            driving_vector=self.driving_vector,
         )
-        self.validator = Validator(self.step_solver)
 
     def __set_second_step_solver(self, value):
         second_solver_class: Type[Solver] = SolversRegistry.get_by_name(
             solver_name=value, problem=self.problem
         )
-        if isinstance(self.problem, TemperatureTimeDependentProblem):
-            self.second_step_solver = second_solver_class(
-                TemperatureStatement(self.body),
-                self.body,
-                self.time_step,
-                self.problem.contact_law,
-                self.problem.friction_bound,
-            )
-        elif isinstance(self.problem, PiezoelectricTimeDependentProblem):
-            self.second_step_solver = second_solver_class(
-                PiezoelectricStatement(self.body),
-                self.body,
-                self.time_step,
-                self.problem.contact_law,
-                self.problem.friction_bound,
-            )
-        elif isinstance(self.problem, PoissonProblem):
-            self.second_step_solver = second_solver_class(
-                StaticPoissonStatement(self.body),
-                self.body,
-                self.time_step,
-                self.problem.contact_law if hasattr(self.problem, "contact_law") else None,  # TODO
-                None,
-            )
-        else:
+        statement = self.problem.second_statement(self.body)
+        if statement is None:
             self.second_step_solver = None
+            return
+
+        self.second_step_solver = second_solver_class(
+            statement,
+            self.body,
+            self.time_step,
+            getattr(self.problem, "contact_law_2", None),
+            driving_vector=self.driving_vector,
+        )
 
     def solve(self, **kwargs):
         raise NotImplementedError()
 
-    def run(self, state: State, n_steps: int, verbose: bool = False, **kwargs):
+    def run(
+        self,
+        state: State,
+        n_steps: int,
+        verbose: bool = False,
+        products: Optional[List[Product]] = None,
+        **kwargs,
+    ):
         """
         :param state:
         :param n_steps: number of steps
         :param verbose: show prints
         """
+        if products is not None:
+            for prod in products:
+                state.inject_product(prod)
+
         for _ in range(n_steps):
             self.step_solver.current_time += self.step_solver.time_step
 
             solution = self.find_solution(
                 state,
-                self.validator,
                 verbose=verbose,
                 **kwargs,
             )
@@ -220,17 +177,13 @@ class ProblemSolver:
             else:
                 raise ValueError(f"Unknown coordinates: {self.coordinates}")
 
-            self.penetration.append((state.time, state.penetration))
             self.step_solver.iterate()
             self.done += 1
             print(f"{self.done / self.to_do * 100:.2f}%", end="\r")
 
-    def find_solution(self, state, validator, *, verbose=False, **kwargs) -> np.ndarray:
-        quality = 0
-        initial_guess = state[self.coordinates].reshape(state.body.mesh.dimension, -1)
+    def find_solution(self, state, **kwargs) -> np.ndarray:
+        initial_guess = state[self.coordinates].T.ravel().reshape(state.body.mesh.dimension, -1)
         solution = self.step_solver.solve(initial_guess, **kwargs)
-        # quality = validator.check_quality(state, solution, quality)
-        self.print_iteration_info(quality, validator.error_tolerance, verbose)
         return solution
 
     def find_solution_uzawa(self, solution, solution_t) -> Tuple[np.ndarray, np.ndarray]:
@@ -306,14 +259,6 @@ class ProblemSolver:
 
         return solution, solution_t
 
-    @staticmethod
-    def print_iteration_info(quality: float, error_tolerance: float, verbose: bool) -> None:
-        qualitative = quality > error_tolerance
-        sign = ">" if qualitative else "<"
-        end = "." if qualitative else ", trying again..."
-        if verbose:
-            print(f"quality = {quality} {sign} {error_tolerance}{end}")
-
 
 class PoissonSolver(ProblemSolver):
     def __init__(self, problem: Problem, solving_method: str):
@@ -322,10 +267,9 @@ class PoissonSolver(ProblemSolver):
         :param problem:
         :param solving_method: 'schur', 'optimization', 'direct'
         """
-        body_prop = ElasticProperties(
+        body_prop = MembraneProperties(
             mass_density=1.0,
-            mu=0,
-            lambda_=0,
+            propagation=1.0,
         )
         super().__init__(problem, body_prop)
 
@@ -339,6 +283,7 @@ class PoissonSolver(ProblemSolver):
         state = TemperatureState(self.body)
 
         self.second_step_solver.t_vector[:] = state.temperature.ravel().copy()
+        self.second_step_solver.iterate()
 
         initial_guess = state[self.coordinates]
         solution = self.second_step_solver.solve(initial_guess=initial_guess, **kwargs)
@@ -380,6 +325,7 @@ class StaticSolver(ProblemSolver):
         )
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.iterate()
         self.run(state, n_steps=1, verbose=verbose, **kwargs)
 
         return state
@@ -444,6 +390,7 @@ class QuasistaticRelaxation(ProblemSolver):
 
         self.step_solver.b_vector[:] = state.absement.T.ravel().copy()
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.iterate()
 
         output_step = np.diff(output_step)
         results = []
@@ -510,6 +457,7 @@ class TimeDependentSolver(ProblemSolver):
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.iterate()
 
         output_step = np.diff(output_step)
         results = []
@@ -591,6 +539,9 @@ class TemperatureTimeDependentSolver(ProblemSolver):
         self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
         self.second_step_solver.t_vector[:] = state.temperature.T.ravel().copy()
 
+        self.step_solver.iterate()
+        self.second_step_solver.iterate()
+
         output_step = np.diff(output_step)
         done = 0
         for n in output_step:
@@ -600,8 +551,6 @@ class TemperatureTimeDependentSolver(ProblemSolver):
                 self.step_solver.current_time += self.step_solver.time_step
                 self.second_step_solver.current_time += self.second_step_solver.time_step
 
-                # solution = self.find_solution(self.step_solver, state, solution, self.validator,
-                #                               verbose=verbose)
                 solution, solution_t = self.find_solution_uzawa(solution, solution_t)
 
                 if self.coordinates == "velocity":
@@ -611,7 +560,6 @@ class TemperatureTimeDependentSolver(ProblemSolver):
                         time=self.step_solver.current_time,
                     )
                     state.set_temperature(solution_t)
-                    # self.step_solver.iterate(solution)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
             yield state.copy()
@@ -684,6 +632,9 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
         self.second_step_solver.v_vector[:] = state.velocity.T.ravel().copy()
         self.second_step_solver.p_vector[:] = state.electric_potential.T.ravel().copy()
 
+        self.step_solver.iterate()
+        self.second_step_solver.iterate()
+
         output_step = np.diff(output_step)
         results = []
         done = 0
@@ -705,6 +656,76 @@ class PiezoelectricTimeDependentSolver(ProblemSolver):
                     state.set_electric_potential(solution_t)
                 else:
                     raise ValueError(f"Unknown coordinates: {self.coordinates}")
+            results.append(state.copy())
+
+        return results
+
+
+class WaveSolver(ProblemSolver):
+    def __init__(
+        self,
+        problem: WaveProblem,
+        solving_method: str,
+    ):
+        """Solves general Contact Mechanics problem.
+
+        :param solving_method: 'schur', 'optimization', 'direct'
+        """
+        body_prop = MembraneProperties(mass_density=1, propagation=problem.propagation)
+        super().__init__(problem, body_prop)
+
+        _ = State(self.body)  # TODO
+
+        self.coordinates = "velocity"
+        self.driving_vector = True
+        self.solving_method = solving_method
+
+    # super class method takes **kwargs, so signatures are consistent
+    # pylint: disable=arguments-differ
+    def solve(
+        self,
+        *,
+        n_steps: int,
+        initial_displacement: Callable,
+        initial_velocity: Callable,
+        state: Optional[State] = None,
+        output_step: Optional[iter] = None,
+        **kwargs,
+    ) -> List[State]:
+        """
+        :param n_steps: number of time-step in simulation
+        :param output_step: from which time-step we want to get copy of State,
+                            default (n_steps-1,)
+                            example: for Setup.time-step = 2, n_steps = 10,
+                            output_step = (2, 6, 9) we get 3 shared copy of
+                            State for time-steps 4, 12 and 18
+        :param initial_displacement: for the solver
+        :param initial_velocity: for the solver
+        :param state: if present, simulation starts from this state,
+                      use this to resume stopped simulation.
+        :return: state
+        """
+        output_step = (0, *output_step) if output_step else (0, n_steps)  # 0 for diff
+
+        if state is None:
+            state = State(self.body)
+            state.displacement[:] = initial_displacement(
+                self.body.mesh.nodes[: self.body.mesh.nodes_count]
+            )
+            state.velocity[:] = initial_velocity(self.body.mesh.nodes[: self.body.mesh.nodes_count])
+
+        self.step_solver.current_time = state.time
+
+        self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
+        self.step_solver.v_vector[:] = state.velocity.T.ravel().copy()
+        self.step_solver.iterate()
+
+        output_step = np.diff(output_step)
+        results = []
+        self.done = 0
+        self.to_do = n_steps
+        for n in output_step:
+            self.run(state, n_steps=n, **kwargs)
             results.append(state.copy())
 
         return results

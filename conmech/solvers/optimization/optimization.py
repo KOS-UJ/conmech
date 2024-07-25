@@ -11,13 +11,13 @@ import scipy.optimize
 
 from conmech.dynamics.statement import (
     Statement,
-    TemperatureStatement,
-    PiezoelectricStatement,
     StaticPoissonStatement,
+    WaveStatement,
 )
-from conmech.scenarios.problems import ContactLaw
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
+from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_cost_functional
+from conmech.solvers.solver_methods import make_cost_functional, make_equation
 
 
 class Optimization(Solver):
@@ -26,50 +26,39 @@ class Optimization(Solver):
         statement: Statement,
         body: "Body",
         time_step: float,
-        contact_law: Optional[ContactLaw],
-        friction_bound,
+        contact_law: Optional[PotentialOfContactLaw],
+        driving_vector,
     ):
         super().__init__(
             statement,
             body,
             time_step,
             contact_law,
-            friction_bound,
+            driving_vector,
         )
-        if statement.dimension >= 2:  # TODO
+        self.loss = make_cost_functional(
+            normal_condition=contact_law.potential_normal_direction,
+            normal_condition_bound=contact_law.normal_bound,
+            tangential_condition=contact_law.potential_tangential_direction,
+            tangential_condition_bound=contact_law.tangential_bound,
+            variable_dimension=statement.dimension_out,
+            problem_dimension=statement.dimension_in,
+        )
+        if isinstance(statement, WaveStatement):
+            if isinstance(contact_law, InteriorContactLaw):
+                self.loss = make_equation(  # TODO!
+                    jn=None,
+                    contact=contact_law.potential_normal_direction,
+                )
+
+        if isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction,
-                tangential_condition=(
-                    contact_law.potential_tangential_direction
-                    if hasattr(contact_law, "potential_tangential_direction")
-                    else None
+                normal_condition=(
+                    contact_law.potential_normal_direction if contact_law is not None else None
                 ),
-                tangential_condition_bound=friction_bound,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in,
             )
-        elif isinstance(statement, TemperatureStatement):
-            self.loss = make_cost_functional(
-                tangential_condition=contact_law.h_temp,
-                normal_condition=contact_law.temp_exchange,
-                normal_condition_bound=-1,
-            )
-        elif isinstance(statement, PiezoelectricStatement):
-            self.loss = make_cost_functional(
-                tangential_condition=contact_law.electric_charge_tangetial,
-                tangential_condition_bound=-1,
-                normal_condition=None,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
-            )
-        elif isinstance(statement, StaticPoissonStatement):
-            self.loss = make_cost_functional(
-                normal_condition=contact_law.potential_normal_direction,
-                variable_dimension=statement.dimension,
-                problem_dimension=body.mesh.dimension,
-            )
-        else:
-            raise ValueError(f"Unknown statement: {statement}")
 
     def __str__(self):
         raise NotImplementedError()
@@ -86,7 +75,7 @@ class Optimization(Solver):
         self,
         initial_guess: np.ndarray,
         *,
-        velocity: np.ndarray,
+        variable_old: np.ndarray,
         displacement: np.ndarray,
         method="BFGS",
         fixed_point_abs_tol: float = math.inf,
@@ -100,12 +89,14 @@ class Optimization(Solver):
         maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
         tol = kwargs.get("tol", 1e-12)
         args = (
+            variable_old,
             self.body.mesh.nodes,
             self.body.mesh.contact_boundary,
             self.body.mesh.boundaries.contact_normals,
             self.lhs,
             self.rhs,
             displacement,
+            np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
             self.time_step,
         )
 
@@ -115,7 +106,7 @@ class Optimization(Solver):
         loss.append(self.loss(solution, *args)[0])
 
         while norm >= fixed_point_abs_tol:
-            if method.lower() in (  # TODO
+            if method.lower() in (
                 "quasi secant method",
                 "limited memory quasi secant method",
                 "quasi secant method limited memory",
@@ -126,7 +117,7 @@ class Optimization(Solver):
                 from kosopt import qsmlm
 
                 solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
-                sols[self.loss(solution, *args)] = solution
+                sols.append(solution.copy())
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
 
@@ -168,4 +159,5 @@ class Optimization(Solver):
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
         solution = sols[min_index]
+
         return solution

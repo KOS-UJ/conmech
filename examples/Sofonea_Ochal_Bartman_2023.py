@@ -30,8 +30,9 @@ from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import RelaxationQuasistaticProblem
 from conmech.simulations.problem_solver import QuasistaticRelaxation
 from conmech.properties.mesh_description import SOB2023MeshDescription
+from conmech.state.products.penetration import Penetration
 
-from examples.p_slope_contact_law import make_const_contact_law
+from conmech.dynamics.contact.constant_constact_law import make_const_contact_law
 from examples.utils import elastic_relaxation_constitutive_law
 
 eps = 1e-18
@@ -50,7 +51,7 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     mu_coef: ... = E / (1 + kappa)
     la_coef: ... = E * kappa / ((1 + kappa) * (1 - 2 * kappa))
     time_step: ... = 1 / 128
-    contact_law: ... = make_const_contact_law(slope=10)
+    contact_law: ... = make_const_contact_law(resistance=10)
 
     @staticmethod
     def relaxation(t: float) -> np.ndarray:
@@ -70,10 +71,6 @@ class QuasistaticSetup(RelaxationQuasistaticProblem):
     def outer_forces(x, time=None):
         return np.array([0.0, 0.0])
 
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[0] >= 4 and x[1] < eps,
         dirichlet=lambda x: x[0] <= 1 and x[1] < eps,
@@ -84,7 +81,7 @@ def main(config: Config):
     """
     Entrypoint to example.
 
-    To see result of simulation you need to call from python `main(Config().init())`.
+    To see result you need to call from python `main(Config().init())`.
     """
     if not config.test:
         elements_number = (20, 20)
@@ -175,11 +172,12 @@ def main(config: Config):
                 n_steps=examples[name]["n_steps"],
                 output_step=examples[name]["output_steps"],
                 verbose=False,
+                products=[Penetration()],
                 initial_absement=setup.initial_absement,
                 initial_displacement=setup.initial_displacement,
-                tol=1e-9 if config.test else 1e-3,
-                fixed_point_abs_tol=1e-9 if config.test else 1e-3,
-                method="Powell" if config.test else "BFGS",
+                tol=1e-9 if not config.test else 1e-3,
+                fixed_point_abs_tol=1e-9 if not config.test else 1e-3,
+                method="Powell" if not config.test else "BFGS",
             )
             f_max = -np.inf
             f_min = np.inf
@@ -205,7 +203,8 @@ def main(config: Config):
                 f"{config.outputs_path}/{name}_h_{h}_penetration",
                 "wb+",
             ) as output:
-                pickle.dump(runner.penetration, output)
+                penetration = states[-1].products["penetration"]
+                pickle.dump(list((t, p) for t, p in penetration.data.items()), output)
             with open(
                 f"{config.outputs_path}/{name}_h_{h}_global",
                 "wb+",

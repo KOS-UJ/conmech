@@ -27,10 +27,10 @@ class Config:
         """
         if self.show and self.save:
             raise ValueError("Cannot show and save at once!")
-
-        output_dir = self.output_dir or str(self.timestamp)
-        path_part_1 = pathlib.Path(self.outputs_path)
-        path_part_2 = pathlib.Path(output_dir)
-        path = path_part_1 / path_part_2
-        path.mkdir(parents=True, exist_ok=True)
+        self.path.mkdir(parents=True, exist_ok=True)
         return self
+
+    @property
+    def path(self):
+        output_dir = self.output_dir or str(self.timestamp)
+        return pathlib.Path(self.outputs_path) / pathlib.Path(output_dir)

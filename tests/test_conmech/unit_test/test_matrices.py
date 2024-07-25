@@ -10,7 +10,10 @@ from conmech.dynamics.dynamics import Dynamics
 from conmech.simulations.problem_solver import Body
 from conmech.mesh.mesh import Mesh
 from conmech.mesh import mesh_builders
-from conmech.properties.mesh_description import RectangleMeshDescription, CubeMeshDescription
+from conmech.properties.mesh_description import (
+    RectangleMeshDescription,
+    CubeMeshDescription,
+)
 
 
 def test_matrices_2d_integrals():
@@ -20,7 +23,9 @@ def test_matrices_2d_integrals():
     area = scale_x * scale_y
     initial_nodes, elements = mesh_builders.build_mesh(
         mesh_descr=RectangleMeshDescription(
-            initial_position=None, max_element_perimeter=(scale_x / 3), scale=[scale_x, scale_y]
+            initial_position=None,
+            max_element_perimeter=(scale_x / 3),
+            scale=[scale_x, scale_y],
         )
     )
 
@@ -81,7 +86,9 @@ def test_local_stiff_mats_assembly():
     scale_y = 3
     initial_nodes, elements = mesh_builders.build_mesh(
         mesh_descr=RectangleMeshDescription(
-            initial_position=None, max_element_perimeter=(scale_x / 3), scale=[scale_x, scale_y]
+            initial_position=None,
+            max_element_perimeter=(scale_x / 3),
+            scale=[scale_x, scale_y],
         )
     )
     edges_features_matrix, _, local_stiff_mats = sut_2d(elements=elements, nodes=initial_nodes)

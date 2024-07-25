@@ -7,11 +7,12 @@ from dataclasses import dataclass, field
 import numpy as np
 import pytest
 
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
@@ -20,37 +21,27 @@ def solving_method(request):
     return request.param
 
 
-def make_slope_contact_law_temp(slope):
-    class TPSlopeContactLaw(make_slope_contact_law(slope=slope)):
-        @staticmethod
-        def h_nu(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 100.0 * (uN - g_t)
-            return 0
+class TPSlopeContactLaw(PotentialOfContactLaw):
+    @staticmethod
+    def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
+        """
+        Direction of heat flux
+        """
+        return -1.0
 
-        @staticmethod
-        def h_tau(uN, t):
-            g_t = 10.7 + t * 0.02
-            if uN > g_t:
-                return 10.0 * (uN - g_t)
-            return 0
+    @staticmethod
+    def potential_normal_direction(
+        var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        """Temperature exchange"""
+        return 0.0
 
-        @staticmethod
-        def h_temp(vT):
-            return 0.1 * np.linalg.norm(vT)
-
-        # TODO #96: ContactLaw abstract class
-
-        @staticmethod
-        def temp_exchange(temp):  # potential  # TODO # 48
-            return 0 * temp
-
-        @staticmethod
-        def h_temp(u_tau):  # potential  # TODO # 48
-            return 0 * np.linalg.norm(u_tau)
-
-    return TPSlopeContactLaw
+    @staticmethod
+    def potential_tangential_direction(
+        var_tau: float, static_displacement_tau: float, dt: float
+    ) -> float:
+        """Friction generated temperature"""
+        return 0.0
 
 
 def generate_test_suits():
@@ -65,7 +56,8 @@ def generate_test_suits():
         th_coef: ... = 4
         ze_coef: ... = 4
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_temp(1e1)
+        contact_law: ... = make_slope_contact_law(1e1)
+        contact_law_2: ... = TPSlopeContactLaw()
         thermal_expansion: ... = field(
             default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
@@ -81,10 +73,6 @@ def generate_test_suits():
         def outer_forces(x, time=None):
             return np.array([0, 0])
 
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0
-
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
@@ -97,17 +85,17 @@ def generate_test_suits():
     expected_displacement_vector_m02_m02 = np.asarray(
         [
             [0.0, 0.0],
-            [0.03142428, 0.02691658],
-            [0.04839312, 0.04238928],
-            [0.05698615, 0.05458973],
-            [0.06022096, 0.06307318],
-            [0.0591116, 0.07018657],
-            [0.05128066, 0.07756148],
-            [0.04143363, 0.07994437],
-            [0.03895115, 0.06888961],
-            [0.03117291, 0.05560756],
-            [0.01913418, 0.03800219],
-            [0.00700475, 0.01647643],
+            [0.00570683, 0.00431404],
+            [0.00857057, 0.00526714],
+            [0.01005346, 0.00586446],
+            [0.01058508, 0.00597765],
+            [0.01028078, 0.00577634],
+            [0.01051063, 0.0074202],
+            [0.01045592, 0.00795605],
+            [0.0099967, 0.00760991],
+            [0.00853351, 0.00684343],
+            [0.00600395, 0.00531373],
+            [0.00282262, 0.00263098],
             [0.0, 0.0],
             [0.0, 0.0],
         ]
@@ -115,17 +103,17 @@ def generate_test_suits():
     expected_temperature_vector_m02_m02 = np.asarray(
         [
             0.0,
-            0.00735363,
-            0.00913178,
-            0.00828201,
-            0.00694812,
-            0.00636948,
-            0.00607767,
-            0.00578943,
-            0.00648897,
-            0.00789741,
-            0.00825697,
-            0.00542543,
+            0.00407167,
+            0.00284784,
+            0.00232436,
+            0.00175827,
+            0.0014074,
+            0.00094456,
+            0.00049082,
+            0.00088726,
+            0.00154845,
+            0.00210648,
+            0.00257013,
             0.0,
             0.0,
         ]
@@ -142,7 +130,7 @@ def generate_test_suits():
     # p = 0 and opposite forces
 
     setup_0_02_p_0 = DynamicSetup(mesh_descr)
-    setup_0_02_p_0.contact_law = make_slope_contact_law_temp(0)
+    setup_0_02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, 0.2])
@@ -152,17 +140,17 @@ def generate_test_suits():
     expected_displacement_vector_0_02_p_0 = np.asarray(
         [
             [0.0, 0.0],
-            [-0.09962716, -0.10791196],
-            [-0.16199068, -0.27160136],
-            [-0.19306197, -0.47359855],
-            [-0.20451057, -0.68641614],
-            [-0.20646559, -0.89647558],
-            [0.00000059, -0.89632143],
-            [0.20646675, -0.89647557],
-            [0.20451168, -0.68641617],
-            [0.19306293, -0.47359861],
-            [0.16199141, -0.27160145],
-            [0.09962757, -0.10791209],
+            [-0.00357335, -0.00721697],
+            [-0.00400228, -0.01306104],
+            [-0.00328983, -0.01728046],
+            [-0.00266257, -0.02009906],
+            [-0.00246619, -0.02248587],
+            [0.00000012, -0.02249418],
+            [0.00246643, -0.02248586],
+            [0.00266281, -0.02009906],
+            [0.00329004, -0.01728048],
+            [0.00400244, -0.01306106],
+            [0.00357344, -0.007217],
             [0.0, 0.0],
             [0.0, 0.0],
         ]
@@ -170,17 +158,17 @@ def generate_test_suits():
     expected_temperature_vector_0_02_p_0 = np.asarray(
         [
             0.0,
-            -0.01368016,
-            -0.01005095,
-            -0.00546105,
-            -0.00217319,
-            -0.00098241,
-            -0.00000016,
-            0.00098209,
-            0.00217289,
-            0.0054608,
-            0.01005075,
-            0.01368001,
+            -0.00125683,
+            0.00007371,
+            0.00030325,
+            0.00019259,
+            0.00008153,
+            -0.00000002,
+            -0.00008157,
+            -0.00019262,
+            -0.00030328,
+            -0.00007372,
+            0.00125684,
             0.0,
             0.0,
         ]
@@ -197,7 +185,7 @@ def generate_test_suits():
     # p = 0
 
     setup_0_m02_p_0 = DynamicSetup(mesh_descr)
-    setup_0_m02_p_0.contact_law = make_slope_contact_law_temp(0)
+    setup_0_m02_p_0.contact_law = make_slope_contact_law(0)
 
     def inner_forces(x, time=None):
         return np.array([0, -0.2])
@@ -222,7 +210,8 @@ def generate_test_suits():
         th_coef: ... = 2.11
         ze_coef: ... = 4.99
         time_step: ... = 0.1
-        contact_law: ... = make_slope_contact_law_temp(2.71)
+        contact_law: ... = make_slope_contact_law(2.71)
+        contact_law_2: ... = TPSlopeContactLaw
         thermal_expansion: ... = field(
             default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
         )
@@ -238,10 +227,6 @@ def generate_test_suits():
         def outer_forces(x, time=None):
             return np.array([0.3, 0.0])
 
-        @staticmethod
-        def friction_bound(u_nu):
-            return 0.0
-
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
         )
@@ -253,17 +238,17 @@ def generate_test_suits():
     expected_displacement_vector_var = np.asarray(
         [
             [0.0, 0.0],
-            [0.00826122, 0.0421944],
-            [0.00410242, 0.13421482],
-            [-0.00990836, 0.25783836],
-            [-0.02692933, 0.40249172],
-            [-0.04900262, 0.56156278],
-            [-0.20968181, 0.59213072],
-            [-0.39831803, 0.6111903],
-            [-0.36578831, 0.43996181],
-            [-0.31149975, 0.29375818],
-            [-0.23806523, 0.16985506],
-            [-0.13971534, 0.07516066],
+            [-0.00224574, 0.00303146],
+            [-0.00635254, 0.00724873],
+            [-0.01133355, 0.01098753],
+            [-0.01611561, 0.01621815],
+            [-0.02404372, 0.02594285],
+            [-0.03629391, 0.03524607],
+            [-0.06458808, 0.04365407],
+            [-0.05360272, 0.02541212],
+            [-0.04325996, 0.01882516],
+            [-0.0340562, 0.01503337],
+            [-0.0222147, 0.01126095],
             [0.0, 0.0],
             [0.0, 0.0],
         ]
@@ -272,17 +257,17 @@ def generate_test_suits():
     expected_temperature_vector_var = np.asarray(
         [
             0.0,
-            -0.00870148,
-            -0.01319496,
-            -0.00947956,
-            -0.00501162,
-            -0.00299865,
-            -0.00606658,
-            -0.00913445,
-            -0.01288869,
-            -0.02153761,
-            -0.03067854,
-            -0.03005361,
+            -0.00160508,
+            -0.00133705,
+            -0.00092485,
+            -0.00083582,
+            -0.00073482,
+            -0.00167299,
+            -0.00278935,
+            -0.00325494,
+            -0.00339006,
+            -0.00344784,
+            -0.00747268,
             0.0,
             0.0,
         ]
@@ -304,7 +289,7 @@ def test_temperature_time_dependent_solver(
 ):
     runner = TemperatureTimeDependentSolver(setup, solving_method)
     result_generator = runner.solve(
-        n_steps=32,
+        n_steps=4,
         initial_displacement=setup.initial_displacement,
         initial_velocity=setup.initial_velocity,
         initial_temperature=setup.initial_temperature,

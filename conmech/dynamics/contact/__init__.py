@@ -1,6 +1,6 @@
 # CONMECH @ Jagiellonian University in Kraków
 #
-# Copyright (C) 2023  Piotr Bartman <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2024  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -16,16 +16,3 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-import numpy as np
-
-
-def interpolate_nodes(scaled_nodes, corner_vectors):
-    input_dim = scaled_nodes.shape[-1]
-    output_dim = corner_vectors.shape[-1]
-    values = np.zeros((scaled_nodes.shape[0], output_dim))
-    for i in range(input_dim):
-        coordinate_i = scaled_nodes[..., [i]]
-        values += (
-            coordinate_i * corner_vectors[i] + (1 - coordinate_i) * corner_vectors[i + input_dim]
-        ) / input_dim
-    return values

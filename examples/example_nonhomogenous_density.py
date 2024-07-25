@@ -12,7 +12,7 @@ from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import NonHomogenousSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 @dataclass
@@ -27,14 +27,10 @@ class StaticSetup(StaticDisplacementProblem):
 
     @staticmethod
     def outer_forces(x, t=None):
-        return np.array([0, 0.1]) if x[1] < 0.2 and x[0] > 2.2 else np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        return 0
+        return np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0 and x[0] < 0.2, dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] == 0 and x[0] <= 1.0, dirichlet=lambda x: x[0] == 0
     )
 
 

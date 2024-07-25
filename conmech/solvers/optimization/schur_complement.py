@@ -20,14 +20,14 @@ class SchurComplementOptimization(Optimization):
         body,
         time_step,
         contact_law,
-        friction_bound,
+        driving_vector,
     ):
         super().__init__(
             statement,
             body,
             time_step,
             contact_law,
-            friction_bound,
+            driving_vector,
         )
 
         self.contact_ids = slice(0, body.mesh.contact_nodes_count)
@@ -44,8 +44,8 @@ class SchurComplementOptimization(Optimization):
 
     def recalculate_displacement(self):
         return calculate_schur_complement_matrices(
-            matrix=self.statement.left_hand_side,
-            dimension=self.statement.dimension,
+            matrix=self.statement.left_hand_side.data,
+            dimension=self.statement.dimension_in,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
         )
@@ -53,13 +53,13 @@ class SchurComplementOptimization(Optimization):
     def recalculate_forces(self):
         node_forces, forces_free = calculate_schur_complement_vector(
             vector=self.statement.right_hand_side,
-            dimension=self.statement.dimension,
+            dimension=self.statement.dimension_in,
             contact_indices=self.contact_ids,
             free_indices=self.free_ids,
             contact_x_free=self.contact_x_free,
             free_x_free_inverted=self.free_x_free_inverted,
         )
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             return node_forces.T, forces_free
         return node_forces.reshape(-1), forces_free.reshape(-1)
 
@@ -81,16 +81,35 @@ class SchurComplementOptimization(Optimization):
         fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
-        truncated_initial_guess = self.truncate_free_nodes(initial_guess)
-        solution_contact = super()._solve_impl(
-            truncated_initial_guess, fixed_point_abs_tol=fixed_point_abs_tol, **kwargs
-        )
+        # initial_guess: [[xc, xf, xd] [yc, yf, yd]]
+        truncated_ig = self.truncate_free_nodes(initial_guess)
+        # truncated_ig: [[xc, yc]]
+        if self.driving_vector:
+            truncated_ig = truncated_ig[:, : truncated_ig.shape[1] // 2]
+            # truncated_ig: [[xc]]
+        solution_contact = super()._solve_impl(truncated_ig, **kwargs)
+        # solution_contact: [xc, yc] / [xc]
         solution_free = self.complement_free_nodes(solution_contact)
+        # solution_free: [[xf], [xd], [yf], [yd]] / [xf, xd]
+        if self.driving_vector:
+            length = len(solution_free)
+            extender = np.zeros(length * 2).reshape(-1, 1)
+            solution_free = solution_free.reshape(-1, 1)
+            extender[:length, 0] = solution_free[:, 0]
+            solution_free = extender
+
+            length = len(solution_contact)
+            extender = np.zeros(length * 2)
+            extender[:length] = solution_contact[:]
+            solution_contact = extender
+            # solution_free: [[xf,], [xd,], [0,], [0,]]
+            # solution_contact: [xc, 0]
         solution = self.merge(solution_contact, solution_free)
+        # solution: [xc, xf, xd, yc, yf, yd]
         return solution
 
     def truncate_free_nodes(self, initial_guess: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2 or self.driving_vector:
             _result = initial_guess.reshape(2, -1)
             _result = _result[:, self.contact_ids]
             _result = _result.reshape(1, -1)
@@ -99,7 +118,7 @@ class SchurComplementOptimization(Optimization):
         return initial_guess[self.contact_ids]
 
     def complement_free_nodes(self, truncated_solution: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2:
             _result = truncated_solution.reshape(-1, 1)
         else:
             _result = truncated_solution
@@ -110,7 +129,7 @@ class SchurComplementOptimization(Optimization):
         return result
 
     def merge(self, solution_contact: np.ndarray, solution_free: np.ndarray) -> np.ndarray:
-        if self.statement.dimension == 2:
+        if self.statement.dimension_in == 2 or self.driving_vector:
             u_contact = solution_contact.reshape(2, -1)
             u_free = solution_free.reshape(2, -1)
             _result = np.concatenate((u_contact, u_free), axis=1)

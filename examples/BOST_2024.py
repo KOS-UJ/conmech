@@ -25,7 +25,8 @@ import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
+from conmech.scenarios.problems import StaticDisplacementProblem
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 from conmech.properties.mesh_description import BOST2023MeshDescription
 from examples.error_estimates import error_estimates
@@ -35,27 +36,16 @@ E = 12000
 kappa = 0.42
 
 
-class BOST23(ContactLaw):
+class BOST23(PotentialOfContactLaw):
     @staticmethod
-    def potential_normal_direction(u_nu: float) -> float:
-        raise NotImplementedError()
-
-    @staticmethod
-    def potential_tangential_direction(u_tau: np.ndarray) -> float:
-        return np.sum(u_tau * u_tau) ** 0.5
-
-    @staticmethod
-    def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-        return 0
-
-    @staticmethod
-    def regularized_subderivative_tangential_direction(
-        u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    def potential_tangential_direction(
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
-        """
-        Coulomb regularization
-        """
-        return 0
+        return np.sum(var_tau * var_tau) ** 0.5
+
+    @staticmethod
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
+        return 1.0
 
 
 @dataclass
@@ -72,12 +62,6 @@ class StaticSetup(StaticDisplacementProblem):
     def outer_forces(x, t=None):
         return np.array([0, 0])
 
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        if u_nu < 0:
-            return 0
-        return u_nu
-
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
     )
@@ -86,23 +70,27 @@ class StaticSetup(StaticDisplacementProblem):
 def prepare_setup(ig, setup):
     if ig == "inf":
 
-        def potential_normal_direction(u_nu: float) -> float:
+        def potential_normal_direction(
+            var_nu: float, static_displacement_nu: float, dt: float
+        ) -> float:
             return 0
 
         kwargs = {"method": "constrained"}
     else:
 
-        def potential_normal_direction(u_nu: float) -> float:
-            u_nu -= GAP
+        def potential_normal_direction(
+            var_nu: float, static_displacement_nu: float, dt: float
+        ) -> float:
+            var_nu -= GAP
             # EXAMPLE 10
             a = 0.1
             b = 0.1
-            if u_nu <= 0:
+            if var_nu <= 0:
                 result = 0.0
-            elif u_nu < b:
-                result = (a + np.exp(-b)) / (2 * b) * u_nu**2
+            elif var_nu < b:
+                result = (a + np.exp(-b)) / (2 * b) * var_nu**2
             else:
-                result = a * u_nu - np.exp(-u_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
+                result = a * var_nu - np.exp(-var_nu) + ((b + 2) * np.exp(-b) - a * b) / 2
             return ig * result
 
         kwargs = {"method": "POWELL"}
@@ -111,14 +99,20 @@ def prepare_setup(ig, setup):
     return kwargs
 
 
-def main(config: Config, igs: List[int], highlighted: Iterable):
+def main(
+    config: Config,
+    igs: Optional[List[int]] = None,
+    highlighted: Optional[Iterable] = None,
+):
     """
     Entrypoint to example.
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    PREFIX = "BOST_POWELL"
+    PREFIX = "BOST"
     to_simulate = []
+    igs = igs or [1024, "inf"]
+    highlighted = highlighted or igs
     for ig in igs:
         try:
             with open(f"{config.outputs_path}/{PREFIX}_ig_{ig}", "rb") as output:
@@ -129,7 +123,10 @@ def main(config: Config, igs: List[int], highlighted: Iterable):
     if config.force:
         to_simulate = igs
 
-    mesh_descr = BOST2023MeshDescription(initial_position=None, max_element_perimeter=1 / 32)
+    mesh_descr = BOST2023MeshDescription(
+        initial_position=None,
+        max_element_perimeter=1 / 32 if not config.test else 1 / 6,
+    )
 
     if to_simulate:
         print("Simulating...")
@@ -208,11 +205,13 @@ def main(config: Config, igs: List[int], highlighted: Iterable):
     X = [ig for ig in igs if not isinstance(ig, str)]
     Y = list(errors.values())[:-1]
     Y = [v[0] for v in Y]
-    Y = -np.asarray(Y)
-    plot_errors(X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
+    # Y = -np.asarray(Y)
+    print(f"{X=}")
+    print(f"{Y=}")
+    plot_errors(config, X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
 
 
-def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
+def plot_errors(config, X, Y, highlighted_id, save: Optional[str] = None):
     plt.plot(X[:], Y[:], marker="o", color="gray")
     if highlighted_id is not None:
         plt.plot(X[highlighted_id], Y[highlighted_id], "ro", color="black")
@@ -220,131 +219,14 @@ def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
     plt.grid(True, which="major", linestyle="--", linewidth=0.5)
     plt.xlabel(r"$\lambda^{-1}_{\,\, n}$")
     plt.ylabel(r"$||\mathbf{u}^h_n - \mathbf{u}||$")
-    if save is None:
+    if save is None and config.show:
         plt.show()
-    else:
+    elif config.save:
         plt.savefig(save, format="pdf")
 
 
 if __name__ == "__main__":
-    # results from the paper
     highlighted = (1, 1024, 1216, 2048, 5931641, "inf")
-    highlighted_id = np.asarray((1, 20, 24, 26, -3))
-
-    X = np.asarray(
-        [
-            0,
-            1,
-            2,
-            4,
-            5,
-            8,
-            11,
-            16,
-            22,
-            32,
-            45,
-            64,
-            90,
-            128,
-            181,
-            256,
-            362,
-            512,
-            724,
-            896,
-            1024,
-            1088,
-            1120,
-            1152,
-            1216,
-            1448,
-            2048,
-            2896,
-            4096,
-            5792,
-            8192,
-            11585,
-            16384,
-            23170,
-            32768,
-            46340,
-            65536,
-            92681,
-            131072,
-            185363,
-            262144,
-            370727,
-            524288,
-            741455,
-            1048576,
-            1482910,
-            2097152,
-            2965820,
-            4194304,
-            5931641,
-            8388608,
-            11863283,
-        ]
-    )
-    Y = np.asarray(
-        [
-            1.957688239442841,
-            1.955823800273701,
-            1.9550737995244916,
-            1.9535713010795799,
-            1.9528202182876828,
-            1.9505617554633947,
-            1.9483005592237832,
-            1.9445216877172742,
-            1.939976356940407,
-            1.9323603026049123,
-            1.9224029295661968,
-            1.9077076426739854,
-            1.887348094110511,
-            1.8570040907627985,
-            1.8135169713254757,
-            1.7493452687885334,
-            1.6528260472436915,
-            1.5016916054916745,
-            1.247485589366432,
-            0.9833463022514393,
-            0.7219304912004216,
-            0.5510492874873285,
-            0.44668589874753256,
-            0.32141797154720314,
-            0.2235180524765496,
-            0.18110766227417885,
-            0.13217099205041302,
-            0.09590338285207281,
-            0.06933759603103229,
-            0.050067258317548866,
-            0.036147047768223,
-            0.02613519925974203,
-            0.018945653731469527,
-            0.013792699500121302,
-            0.01010466081623074,
-            0.0074703782466904725,
-            0.0055919695751946025,
-            0.004256100793696483,
-            0.003309243652330325,
-            0.002641490469903024,
-            0.002173650857273765,
-            0.0018483357409417435,
-            0.0016235440683907585,
-            0.0014687173119601173,
-            0.0013620445313966081,
-            0.0012883643852057848,
-            0.0012373372831507256,
-            0.0012019371089261616,
-            0.0011773413958895045,
-            0.0011602208824840082,
-            0.0011019352332271976,
-            0.001139913361649654,
-        ]
-    )
-
-    plot_errors(X, Y, highlighted_id, save="convergence.pdf")
 
     show = True
 
@@ -357,6 +239,6 @@ if __name__ == "__main__":
         1024 + 128 + 64,
     }
     igs.update(eigs)
-    igs = [0] + sorted(list(igs)) + ["inf"]  #
+    igs = [0] + sorted(list(igs)) + ["inf"]
     igs = igs[:]
-    main(Config(save=not show, show=show, force=False).init(), igs, highlighted)
+    main(Config(save=not show, show=show, force=True).init(), igs, highlighted)

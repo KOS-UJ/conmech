@@ -12,7 +12,7 @@ from conmech.scenarios.problems import QuasistaticDisplacementProblem
 from conmech.simulations.problem_solver import TimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
 
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
 @dataclass()
@@ -31,10 +31,6 @@ class QuasistaticSetup(QuasistaticDisplacementProblem):
     @staticmethod
     def outer_forces(x, t=None):
         return np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu: float) -> float:
-        return 0
 
     boundaries: ... = BoundariesDescription(
         contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0

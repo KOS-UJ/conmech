@@ -2,57 +2,41 @@
 Created at 21.08.2019
 """
 
-from argparse import ArgumentParser
 from dataclasses import dataclass, field
 
 import numpy as np
 
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.scenarios.problems import TemperatureDynamicProblem
 from conmech.simulations.problem_solver import TemperatureTimeDependentSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.p_slope_contact_law import make_slope_contact_law
+from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 
 
-class TPSlopeContactLaw(make_slope_contact_law(slope=1e1)):
-    # @staticmethod  # TODO # 48
-    # def g(t):
-    #     return 10.7 + t * 0.02
-    # return 0.5 + t * 0.01
+class TPSlopeContactLaw(PotentialOfContactLaw):
+    @staticmethod
+    def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
+        """
+        Direction of heat flux
+        """
+        return -1.0
 
     @staticmethod
-    def h_nu(uN, t):
-        g_t = 10.7 + t * 0.02
-        if uN > g_t:
-            return 100.0 * (uN - g_t)
-        return 0
+    def potential_normal_direction(
+        var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        """Temperature exchange"""
+        return 0.0
 
     @staticmethod
-    def h_tau(uN, t):
-        g_t = 10.7 + t * 0.02
-        if uN > g_t:
-            return 10.0 * (uN - g_t)
-        return 0
-
-    # def jT(self, vTx, vTy):  # TODO # 48
-    #     # return np.log(np.linalg.norm(vTx, vTy)+1)
-    #     return np.linalg.norm(vTx, vTy)
-
-    @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
-        return 0.1 * 0.5 * np.linalg.norm(u_tau) ** 2
-
-    # TODO #96 : ContactLaw abstract class
-
-    @staticmethod
-    def temp_exchange(temp):  # potential  # TODO # 48
-        return 0 * temp
-
-    @staticmethod
-    def h_temp(u_tau):  # potential  # TODO # 48
-        return 0 * np.linalg.norm(u_tau)
+    def potential_tangential_direction(
+        var_tau: float, static_displacement_tau: float, dt: float
+    ) -> float:
+        """Friction generated temperature"""
+        return 0 * np.linalg.norm(var_tau)
 
 
 @dataclass()
@@ -62,7 +46,8 @@ class TDynamicSetup(TemperatureDynamicProblem):
     th_coef: ... = 4
     ze_coef: ... = 4
     time_step: ... = 0.02
-    contact_law: ... = TPSlopeContactLaw
+    contact_law: ... = make_slope_contact_law(slope=1e1)
+    contact_law_2: ... = TPSlopeContactLaw
     thermal_expansion: ... = field(
         default_factory=lambda: np.array([[0.5, 0.0, 0.0], [0.0, 0.5, 0.0], [0.0, 0.0, 0.5]])
     )
@@ -85,10 +70,6 @@ class TDynamicSetup(TemperatureDynamicProblem):
         if x[0] == 2.5:
             return np.array([-48.0 * (0.25 - (x[1] - 0.5) ** 2), 0])
         return np.array([0, 0])
-
-    @staticmethod
-    def friction_bound(u_nu):
-        return 0
 
     boundaries: ... = BoundariesDescription(contact=lambda x: x[1] == 0, dirichlet=lambda x: False)
 

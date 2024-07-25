@@ -7,7 +7,9 @@ import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
-from tests.test_conmech.regression.std_boundary import extract_boundary_paths_from_elements
+from tests.test_conmech.regression.std_boundary import (
+    extract_boundary_paths_from_elements,
+)
 
 
 def test_identify_surfaces():
@@ -215,7 +217,9 @@ def test_condition_boundaries(_test_name_, params):
         elements,
         boundaries_data,
     ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
-        unordered_nodes, unordered_elements, boundaries_description=boundaries_description
+        unordered_nodes,
+        unordered_elements,
+        boundaries_description=boundaries_description,
     )
 
     # Assert

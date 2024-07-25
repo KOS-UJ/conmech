@@ -53,7 +53,11 @@ def main(config: Config):
     drawer.cmap = "plasma"
     drawer.field_name = "temperature"
     drawer.draw(
-        show=config.show, save=config.save, foundation=False, field_max=max_, field_min=min_
+        show=config.show,
+        save=config.save,
+        foundation=False,
+        field_max=max_,
+        field_min=min_,
     )
 
 

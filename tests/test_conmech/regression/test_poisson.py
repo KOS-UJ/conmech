@@ -101,7 +101,9 @@ def generate_test_suits():
         )
 
     mesh_descr = CrossMeshDescription(
-        initial_position=None, max_element_perimeter=1.37 / 3, scale=[1.37 * 5 / 3, 1.37]
+        initial_position=None,
+        max_element_perimeter=1.37 / 3,
+        scale=[1.37 * 5 / 3, 1.37],
     )
     setup_2 = StaticSetup(mesh_descr)
     expected_temperature_vector_2 = [

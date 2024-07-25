@@ -44,10 +44,20 @@ def compare(ref: TemperatureState, sol: TemperatureState):
         u2dx, u2dy = calculate_dx_dy(x0, u2_0, x1, u2_1, x2, u2_2)
         # tdx, tdy = calculate_dx_dy(x0, t0, x1, t1, x2, t2)
         u1hdx, u1hdy = calculate_dx_dy(
-            x0, u1hi(*x0).compressed(), x1, u1hi(*x1).compressed(), x2, u1hi(*x2).compressed()
+            x0,
+            u1hi(*x0).compressed(),
+            x1,
+            u1hi(*x1).compressed(),
+            x2,
+            u1hi(*x2).compressed(),
         )
         u2hdx, u2hdy = calculate_dx_dy(
-            x0, u2hi(*x0).compressed(), x1, u2hi(*x1).compressed(), x2, u2hi(*x2).compressed()
+            x0,
+            u2hi(*x0).compressed(),
+            x1,
+            u2hi(*x1).compressed(),
+            x2,
+            u2hi(*x2).compressed(),
         )
         # thdx, thdy = calculate_dx_dy(x0, thi(*x0), x1, thi(*x1), x2, thi(*x2))
 

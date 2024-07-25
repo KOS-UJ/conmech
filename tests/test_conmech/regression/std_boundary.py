@@ -1,6 +1,9 @@
 import numpy as np
 
-from conmech.mesh.boundaries_factory import get_boundary_surfaces, extract_unique_indices
+from conmech.mesh.boundaries_factory import (
+    get_boundary_surfaces,
+    extract_unique_indices,
+)
 
 
 def standard_boundary_nodes(nodes, elements):

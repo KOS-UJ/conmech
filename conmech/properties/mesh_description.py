@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import meshio
@@ -11,7 +11,7 @@ from conmech.mesh.zoo.raw_mesh import RawMesh
 
 @dataclass
 class MeshDescription(ABC):
-    initial_position: np.ndarray
+    initial_position: Optional[np.ndarray]
 
     def build(self):
         raise NotImplementedError()

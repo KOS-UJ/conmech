@@ -15,7 +15,7 @@ class GlobalOptimization(Optimization):
 
     @property
     def lhs(self) -> np.ndarray:
-        return self.statement.left_hand_side
+        return self.statement.left_hand_side.data
 
     @property
     def rhs(self) -> np.ndarray:
