@@ -41,7 +41,7 @@ def generate_test_suits():
     class MembraneSetup(InteriorContactWaveProblem):
         time_step: ... = 0.1
         propagation: ... = 1.0
-        contact_law: ... =  make_damped_norm_compl(
+        contact_law: ... = make_damped_norm_compl(
             obstacle_level=0.01, kappa=1.0, beta=0.5, interior=True
         )()
 
