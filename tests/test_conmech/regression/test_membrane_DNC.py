@@ -22,11 +22,11 @@ from typing import Optional
 import numpy as np
 import pytest
 
+from conmech.dynamics.contact.damped_normal_compliance import make_damped_norm_compl
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import InteriorContactWaveProblem
 from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.BOSK_2024_example_2 import make_DNC
 
 
 @pytest.fixture(params=["global"])
@@ -41,7 +41,9 @@ def generate_test_suits():
     class MembraneSetup(InteriorContactWaveProblem):
         time_step: ... = 0.1
         propagation: ... = 1.0
-        contact_law: ... = make_DNC(0.01, kappa=1.0, beta=0.5)()
+        contact_law: ... =  make_damped_norm_compl(
+            obstacle_level=0.01, kappa=1.0, beta=0.5, interior=True
+        )()
 
         @staticmethod
         def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
@@ -114,7 +116,9 @@ def generate_test_suits():
     class MembraneSetup(InteriorContactWaveProblem):
         time_step: ... = 0.1
         propagation: ... = 1.0
-        contact_law: ... = make_DNC(0.01, kappa=10.0, beta=0.5)()
+        contact_law: ... = make_damped_norm_compl(
+            obstacle_level=0.01, kappa=1.0, beta=0.5, interior=True
+        )()
 
         @staticmethod
         def inner_forces(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:

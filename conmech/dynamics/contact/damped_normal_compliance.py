@@ -24,6 +24,18 @@ def make_damped_norm_compl(obstacle_level: float, kappa: float, beta: float, int
     superclass = InteriorContactLaw if interior else PotentialOfContactLaw
 
     class DampedNormalCompliance(superclass):
+        @property
+        def kappa(self):
+            return kappa
+
+        @property
+        def beta(self):
+            return beta
+
+        @property
+        def obstacle_level(self):
+            return obstacle_level
+
         @staticmethod
         def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
             """

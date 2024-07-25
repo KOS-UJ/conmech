@@ -18,6 +18,7 @@ from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
 from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
 from examples.BOST_2024 import main as BOST_2024
+from examples.BOSK_2024 import main as BOSK_2024
 from examples.example_Tarzia_problem import main as Tarzia_problem
 from examples.example_poisson import main as poisson
 from examples.example_nonhomogenous_density import main as nonhomogenous_density
@@ -44,6 +45,7 @@ test_suits = {
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
     "BOST_2024": lambda: BOST_2024(Config(outputs_path="./output/BOST2024", **default_args).init()),
+    "BOSK_2024": lambda: BOSK_2024(Config(outputs_path="./output/BOSK2024", **default_args).init()),
     "Tarzia_problem": lambda: Tarzia_problem(
         Config(outputs_path="./output/BOST2024", **default_args).init()
     ),
