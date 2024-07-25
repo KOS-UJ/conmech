@@ -65,7 +65,6 @@ class Solver:
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
-
         solution = self._solve_impl(
             initial_guess,
             variable_old=self.v_vector,

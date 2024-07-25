@@ -205,7 +205,6 @@ class RelaxationQuasistaticProblem(QuasistaticDisplacementProblem, ABC):
 
 
 class TemperatureDynamicProblem(DynamicProblem, TemperatureTimeDependentProblem, ABC):
-
     @classmethod
     def statement(cls, body) -> Statement:
         return DynamicVelocityWithTemperatureStatement(body)

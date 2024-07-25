@@ -37,7 +37,6 @@ kappa = 0.42
 
 
 class BOST23(PotentialOfContactLaw):
-
     @staticmethod
     def potential_tangential_direction(
         var_tau: float, static_displacement_tau: float, dt: float
