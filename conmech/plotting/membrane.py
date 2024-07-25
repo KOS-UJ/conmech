@@ -33,7 +33,8 @@ def plot_in_columns(states: List[State], *args, **kwargs):
         # ax = fig.add_subplot(rows, cols, i, projection='3d')
         # do_plot(fig, states[r-1], *args, ax=ax, elev=90, azim=90, **kwargs)
         # i += 1
-    plt.show()
+    if kwargs["finish"]:
+        plt.show()
 
 
 def plot_limit_points(
@@ -86,6 +87,7 @@ def do_plot(
     azim=-0,
     in3d=False,
     x=0.0,
+    **_kwargs,
 ):
     assert state.body.mesh.dimension == 2  # membrane have to be 2D
     mesh_node_x = state.body.mesh.nodes[:, 0]

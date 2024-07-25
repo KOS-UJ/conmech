@@ -208,10 +208,10 @@ def main(
     # Y = -np.asarray(Y)
     print(f"{X=}")
     print(f"{Y=}")
-    plot_errors(X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
+    plot_errors(config, X, Y, highlighted_id=None, save=f"{config.outputs_path}/convergence.pdf")
 
 
-def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
+def plot_errors(config, X, Y, highlighted_id, save: Optional[str] = None):
     plt.plot(X[:], Y[:], marker="o", color="gray")
     if highlighted_id is not None:
         plt.plot(X[highlighted_id], Y[highlighted_id], "ro", color="black")
@@ -219,9 +219,9 @@ def plot_errors(X, Y, highlighted_id, save: Optional[str] = None):
     plt.grid(True, which="major", linestyle="--", linewidth=0.5)
     plt.xlabel(r"$\lambda^{-1}_{\,\, n}$")
     plt.ylabel(r"$||\mathbf{u}^h_n - \mathbf{u}||$")
-    if save is None:
+    if save is None and config.show:
         plt.show()
-    else:
+    elif config.save:
         plt.savefig(save, format="pdf")
 
 

@@ -123,6 +123,7 @@ def runner(config: Config, setup, name, steps, intersect, continuing, solving_me
     plot_limit_points(
         states[-1].products[f"limit points at {intersect:.2f}"],
         title=rf"$\kappa={setup.contact_law.kappa}$, $\beta={setup.contact_law.beta}$",
+        finish=config.show,
     )
 
     states_ids = list(range(len(states)))
@@ -157,6 +158,7 @@ def runner(config: Config, setup, name, steps, intersect, continuing, solving_me
         zmax=zmax,
         x=intersect,
         title=f"intersection at {intersect:.2f}",
+        finish=config.show,
     )
     plot_in_columns(
         states_,
@@ -167,6 +169,7 @@ def runner(config: Config, setup, name, steps, intersect, continuing, solving_me
         zmax=zmax,
         in3d=True,
         title=f"velocity",
+        finish=config.show,
     )
 
 
@@ -205,9 +208,9 @@ def boundary_contact(config: Config):
 
     for name in to_simulate:
         runner(
-            Config(output_dir="BOSK_case_2_bdry", force=True).init(),
+            config,
             setups[name],
-            name=name,
+            name="case_2_bdry_" + name,
             steps=int(T / setups[name].time_step) + 1,
             intersect=1.00,
             continuing=None,
@@ -253,9 +256,9 @@ def interior_contact(config: Config):
 
     for name in to_simulate:
         runner(
-            Config(output_dir="BOSK_case_1_int").init(),
+            config,
             setups[name],
-            name=name,
+            name="case_1_int_" + name,
             steps=int(T / setups[name].time_step) + 1,
             intersect=0.50,
             continuing=None,
