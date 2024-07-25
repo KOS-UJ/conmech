@@ -77,4 +77,4 @@ def main(config: Config, dimension=2):
 
 
 if __name__ == "__main__":
-    main(Config().init(), 3)
+    main(Config().init(), 2)

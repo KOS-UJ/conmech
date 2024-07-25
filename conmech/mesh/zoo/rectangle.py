@@ -32,8 +32,8 @@ class Rectangle(RawMesh):
 
         # pylint: disable=no-member
         nodes, elements = meshzoo.rectangle_tri(
-            (0.0, scale_x),
-            (0.0, scale_y),
+            (0.0, 0.0),
+            (scale_x, scale_y),
             n=(int(mesh_density[0]) + 1, int(mesh_density[1]) + 1),
             variant="zigzag",
         )
