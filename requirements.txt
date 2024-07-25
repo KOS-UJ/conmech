@@ -2,7 +2,7 @@ numpy==2.0.1
 numba==0.60.0
 jupyter==1.0.0
 matplotlib==3.9.1
-scipy==1.14.0
+scipy==1.13.1
 pytest==8.3.2
 pygmsh==7.1.17
 gmsh==4.13.1
