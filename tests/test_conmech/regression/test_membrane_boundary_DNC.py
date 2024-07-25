@@ -246,6 +246,4 @@ def test_boundary_DNC(solving_method, setup, expected_displacement_vector):
     print(repr(displacement))
 
     precision = 2 if solving_method != "global optimization" else 3
-    np.testing.assert_array_almost_equal(
-        displacement, expected_displacement_vector, decimal=2
-    )
+    np.testing.assert_array_almost_equal(displacement, expected_displacement_vector, decimal=2)

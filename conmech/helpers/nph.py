@@ -39,6 +39,5 @@ def get_node_index_numba(node, nodes):
 @numba.njit(inline="always")
 def length(edge, nodes):
     return np.sqrt(
-        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2
-        + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
+        (nodes[edge[0]][0] - nodes[edge[1]][0]) ** 2 + (nodes[edge[0]][1] - nodes[edge[1]][1]) ** 2
     )

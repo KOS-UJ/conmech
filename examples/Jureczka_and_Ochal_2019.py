@@ -46,9 +46,7 @@ class JureczkaOchal2019(PotentialOfContactLaw):
         return np.log(np.sum(var_tau * var_tau) ** 0.5 + 1)
 
     @staticmethod
-    def tangential_bound(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         if static_displacement_nu < 0:
             return 0
         if static_displacement_nu < 0.1:

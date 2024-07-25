@@ -99,11 +99,7 @@ class WaveStatement(Statement):
 
         A = -1 * self.body.dynamics.poisson_operator @ var.displacement[:ind]
 
-        A += (
-            (1 / var.time_step)
-            * self.body.dynamics.acceleration_operator.SM1
-            @ var.velocity[:ind]
-        )
+        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator.SM1 @ var.velocity[:ind]
 
         self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
 
@@ -183,11 +179,7 @@ class DynamicVelocityStatement(Statement):
 
         A = -1 * self.body.dynamics.elasticity @ var.displacement
 
-        A += (
-            (1 / var.time_step)
-            * self.body.dynamics.acceleration_operator
-            @ var.velocity
-        )
+        A += (1 / var.time_step) * self.body.dynamics.acceleration_operator @ var.velocity
 
         self.right_hand_side = self.body.dynamics.force.integrate(time=var.time) + A
 

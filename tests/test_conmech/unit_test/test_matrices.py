@@ -91,15 +91,10 @@ def test_local_stiff_mats_assembly():
             scale=[scale_x, scale_y],
         )
     )
-    edges_features_matrix, _, local_stiff_mats = sut_2d(
-        elements=elements, nodes=initial_nodes
-    )
+    edges_features_matrix, _, local_stiff_mats = sut_2d(elements=elements, nodes=initial_nodes)
     expected_w_matrix = np.asarray(
         [
-            [
-                edges_features_matrix[2 + dimension * (k + 1) + j]
-                for j in range(dimension)
-            ]
+            [edges_features_matrix[2 + dimension * (k + 1) + j] for j in range(dimension)]
             for k in range(dimension)
         ]
     )

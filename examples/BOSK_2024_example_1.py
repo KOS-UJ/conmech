@@ -72,9 +72,7 @@ def main(config: Config, setup, name, steps):
             n_steps=steps,
             output_step=output_step,
             products=[
-                VerticalIntersectionContactLimitPoints(
-                    obstacle_level=OBSTACLE_LEVEL, x=1.0
-                ),
+                VerticalIntersectionContactLimitPoints(obstacle_level=OBSTACLE_LEVEL, x=1.0),
                 VerticalIntersection(x=1.0),
             ],
             initial_displacement=setup.initial_displacement,

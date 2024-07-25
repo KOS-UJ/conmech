@@ -168,9 +168,7 @@ def generate_test_suits():
 
         @staticmethod
         def outer_forces(x, t=None):
-            return (
-                np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
-            )
+            return np.array([0, 0.1]) if x[1] < 0.2 and x[0] >= 2.0 else np.array([0, 0])
 
         boundaries: ... = BoundariesDescription(
             contact=lambda x: x[1] == 0 and x[0] <= 1.0, dirichlet=lambda x: x[0] == 0
@@ -238,12 +236,8 @@ def generate_test_suits():
     return test_suites
 
 
-@pytest.mark.parametrize(
-    "setup, density_func, expected_displacement_vector", generate_test_suits()
-)
-def test_nonhomogenous_solver(
-    solving_method, setup, density_func, expected_displacement_vector
-):
+@pytest.mark.parametrize("setup, density_func, expected_displacement_vector", generate_test_suits())
+def test_nonhomogenous_solver(solving_method, setup, density_func, expected_displacement_vector):
     runner = NonHomogenousSolver(setup, solving_method)
     elem_centers = get_elem_centers(runner)
     elements_density = np.asarray([density_func(x) for x in elem_centers])

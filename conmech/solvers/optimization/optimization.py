@@ -54,9 +54,7 @@ class Optimization(Solver):
         if isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
                 normal_condition=(
-                    contact_law.potential_normal_direction
-                    if contact_law is not None
-                    else None
+                    contact_law.potential_normal_direction if contact_law is not None else None
                 ),
                 variable_dimension=statement.dimension_out,
                 problem_dimension=statement.dimension_in,
@@ -118,9 +116,7 @@ class Optimization(Solver):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import qsmlm
 
-                solution = qsmlm.minimize(
-                    self.loss, solution, args=args, maxiter=maxiter
-                )
+                solution = qsmlm.minimize(self.loss, solution, args=args, maxiter=maxiter)
                 sols.append(solution.copy())
             elif method.lower() == "constrained":
                 contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count

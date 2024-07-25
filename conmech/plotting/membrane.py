@@ -56,9 +56,7 @@ def plot_limit_points(
             label = None
             buff_size = 0
     if buff_size > 0:
-        plt.scatter(
-            buff[0, :buff_size], buff[1, :buff_size], s=1, color=color, label=label
-        )
+        plt.scatter(buff[0, :buff_size], buff[1, :buff_size], s=1, color=color, label=label)
     plt.title(title)
     plt.ylim(*ylim)
 
@@ -93,9 +91,7 @@ def do_plot(
     mesh_node_x = state.body.mesh.nodes[:, 0]
     mesh_node_y = state.body.mesh.nodes[:, 1]
 
-    soltri = tri.Triangulation(
-        mesh_node_x, mesh_node_y, triangles=state.body.mesh.elements
-    )
+    soltri = tri.Triangulation(mesh_node_x, mesh_node_y, triangles=state.body.mesh.elements)
     interpol = tri.LinearTriInterpolator  # if in3d else tri.CubicTriInterpolator
     v = interpol(soltri, getattr(state, field)[:, 0])
     u = interpol(soltri, state.displacement[:, 0])

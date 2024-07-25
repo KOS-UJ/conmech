@@ -43,9 +43,7 @@ class MembraneSetup(WaveProblem):
     ) -> np.ndarray:
         return np.array([0.0])
 
-    boundaries: ... = BoundariesDescription(
-        dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1)
-    )
+    boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1))
 
 
 def main(config: Config):

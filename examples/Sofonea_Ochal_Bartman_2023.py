@@ -150,15 +150,11 @@ def main(config: Config):
             with open(f"{config.outputs_path}/{name}_h_{h}_global", "rb") as output:
                 _ = pickle.load(output)
 
-            with open(
-                f"{config.outputs_path}/{name}_h_{h}_penetration", "rb"
-            ) as output:
+            with open(f"{config.outputs_path}/{name}_h_{h}_penetration", "rb") as output:
                 _ = pickle.load(output)
 
             for time_step in steps:
-                with open(
-                    f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb"
-                ) as output:
+                with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                     _ = pickle.load(output)
     except IOError:
         simulate = True
@@ -223,9 +219,7 @@ def main(config: Config):
             f_limits = pickle.load(output)
 
         for time_step in steps:
-            with open(
-                f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb"
-            ) as output:
+            with open(f"{config.outputs_path}/{name}_t_{time_step}_h_{h}", "rb") as output:
                 state = pickle.load(output)
                 # Workaround
                 state.body.dynamics.force.outer.source = examples[name]["outer_forces"]
@@ -266,9 +260,7 @@ def main(config: Config):
                     )
                     drawer.ylabel = "y"
                     axes[1].axis("on")
-                    axes[1].tick_params(
-                        left=True, bottom=True, labelleft=True, labelbottom=True
-                    )
+                    axes[1].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
                     axes[1].set_aspect("equal", adjustable="box")
                     zoom_outside(axes[0], [3, -1.5, 6, 2], axes[1], color="gray")
 
@@ -285,27 +277,15 @@ def main(config: Config):
                     save=False,
                 )
                 if time_step == 0:
-                    axes[0].annotate(
-                        "$\Gamma_1$", xy=(0, 0), xytext=(0.33, -0.50), fontsize=18
-                    )
+                    axes[0].annotate("$\Gamma_1$", xy=(0, 0), xytext=(0.33, -0.50), fontsize=18)
                     position = (3.66, 4.5)
-                    axes[0].annotate(
-                        "$\Gamma_2$", xy=(0, 0), xytext=position, fontsize=18
-                    )
+                    axes[0].annotate("$\Gamma_2$", xy=(0, 0), xytext=position, fontsize=18)
                     axes[0].add_patch(Rectangle(position, 0.3, 0.3, color="white"))
-                    axes[0].annotate(
-                        "$\Gamma_2$", xy=(0, 0), xytext=(2.33, 3.0), fontsize=18
-                    )
-                    axes[0].annotate(
-                        "$\mathbf{f}_2$", xy=(0, 0), xytext=(2.5, 5.00), fontsize=15
-                    )
-                    axes[0].annotate(
-                        "$\Gamma_3$", xy=(0, 0), xytext=(4.33, -0.50), fontsize=18
-                    )
+                    axes[0].annotate("$\Gamma_2$", xy=(0, 0), xytext=(2.33, 3.0), fontsize=18)
+                    axes[0].annotate("$\mathbf{f}_2$", xy=(0, 0), xytext=(2.5, 5.00), fontsize=15)
+                    axes[0].annotate("$\Gamma_3$", xy=(0, 0), xytext=(4.33, -0.50), fontsize=18)
                 axes[0].axis("on")
-                axes[0].tick_params(
-                    left=True, bottom=True, labelleft=True, labelbottom=True
-                )
+                axes[0].tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
                 axes[0].set_aspect("equal", adjustable="box")
 
                 fig.tight_layout(rect=[0, 0, 1, 1.2])
@@ -352,9 +332,7 @@ def plots(setup, h, examples, config):
             old_p = p
 
         plot_outer_force(axes[0, col], frc, t, vertical_line=pnt_sig_change)
-        plot_displacement_normal_direction(
-            axes[1, col], pnt, t, vertical_line=pnt_sig_change
-        )
+        plot_displacement_normal_direction(axes[1, col], pnt, t, vertical_line=pnt_sig_change)
 
     format_ = "pdf"
     path = Drawer.get_output_path(config, format_, name="force_penetration")
@@ -426,9 +404,7 @@ def zoom_outside(
         + list(arrow_kwargs.items())
     )
     # draw a rectangle on original chart
-    src_ax.add_patch(
-        Rectangle([roi[0], roi[1]], roi[2] - roi[0], roi[3] - roi[1], **roi_kwargs)
-    )
+    src_ax.add_patch(Rectangle([roi[0], roi[1]], roi[2] - roi[0], roi[3] - roi[1], **roi_kwargs))
 
     if not draw_lines:
         return

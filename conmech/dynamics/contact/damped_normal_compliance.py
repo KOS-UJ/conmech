@@ -20,16 +20,12 @@ from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 
 
-def make_damped_norm_compl(
-    obstacle_level: float, kappa: float, beta: float, interior=False
-):
+def make_damped_norm_compl(obstacle_level: float, kappa: float, beta: float, interior=False):
     superclass = InteriorContactLaw if interior else PotentialOfContactLaw
 
     class DampedNormalCompliance(superclass):
         @staticmethod
-        def normal_bound(
-            var_nu: float, static_displacement_nu: float, dt: float
-        ) -> float:
+        def normal_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
             """
             Since multiply by var_nu
             """

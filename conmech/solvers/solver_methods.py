@@ -55,8 +55,7 @@ def make_equation(
             res = (
                 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind])
                 - np.dot(rhs, var[:ind])
-                + 0.5
-                * np.dot(np.dot(volume_multiplier, response), np.ones_like(var[:ind]))
+                + 0.5 * np.dot(np.dot(volume_multiplier, response), np.ones_like(var[:ind]))
                 + np.dot(var[ind:], var[ind:].T)
             )
 
@@ -77,9 +76,7 @@ def make_equation(
                 normal_vector = contact_normals[ei]
 
                 # ASSUMING `u_vector` and `nodes` have the same order!
-                um = interpolate_node_between(
-                    edge, u_vector, u_vector, dimension=problem_dimension
-                )
+                um = interpolate_node_between(edge, u_vector, u_vector, dimension=problem_dimension)
                 um_normal = (um * normal_vector).sum()
 
                 edge_len = nph.length(edge, nodes)
@@ -158,9 +155,7 @@ def make_cost_functional(
             edge = contact_boundary[ei]
             normal_vector = contact_normals[ei]
             # ASSUMING `u_vector` and `nodes` have the same order!
-            vm = interpolate_node_between(
-                edge, var, var_old, dimension=variable_dimension
-            )
+            vm = interpolate_node_between(edge, var, var_old, dimension=variable_dimension)
             if variable_dimension == 1:
                 vm_normal = vm[0]
                 vm_tangential = np.empty(0)
@@ -174,9 +169,7 @@ def make_cost_functional(
                 static_displacement,
                 dimension=problem_dimension,
             )
-            static_displacement_normal = (
-                static_displacement_mean * normal_vector
-            ).sum()
+            static_displacement_normal = (static_displacement_mean * normal_vector).sum()
             static_displacement_tangential = (
                 static_displacement_mean - static_displacement_normal * normal_vector
             )
@@ -212,11 +205,7 @@ def make_cost_functional(
             var, var_old, u_vector, nodes, contact_boundary, contact_normals, dt
         )
         ind = lhs.shape[0]
-        result = (
-            0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind])
-            - np.dot(rhs, var[:ind])
-            + ju
-        )
+        result = 0.5 * np.dot(np.dot(lhs, var[:ind]), var[:ind]) - np.dot(rhs, var[:ind]) + ju
         result = np.asarray(result).ravel()
         return result
 

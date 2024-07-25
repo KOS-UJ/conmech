@@ -61,9 +61,7 @@ def get_boundary_surfaces_normals(nodes, boundary_surfaces, boundary_internal_in
 
     internal_nodes = nodes[boundary_internal_indices]
     external_orientation = (-1) * np.sign(
-        nph.elementwise_dot(
-            internal_nodes - tail_nodes, unoriented_normals, keepdims=True
-        )
+        nph.elementwise_dot(internal_nodes - tail_nodes, unoriented_normals, keepdims=True)
     )
     return unoriented_normals * external_orientation
 
@@ -86,19 +84,13 @@ class Boundaries:
     @property
     def boundary_surfaces(self):
         return np.unique(
-            np.vstack(
-                (self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)
-            ),
+            np.vstack((self.contact_boundary, self.neumann_boundary, self.dirichlet_boundary)),
             axis=1,
         )
 
     @property
     def boundary_nodes_count(self):
-        return (
-            self.contact_nodes_count
-            + self.neumann_nodes_count
-            + self.dirichlet_nodes_count
-        )
+        return self.contact_nodes_count + self.neumann_nodes_count + self.dirichlet_nodes_count
 
     @property
     def boundary_indices(self):
@@ -139,16 +131,12 @@ class Boundaries:
                 condition_start = 0
                 condition_stop = condition_start + i.stop - i.start
                 yield (
-                    slice(
-                        i.start + d * total_node_count, i.stop + d * total_node_count
-                    ),
+                    slice(i.start + d * total_node_count, i.stop + d * total_node_count),
                     slice(condition_start, condition_stop),
                 )
         else:
             # assuming node_indices are sorted
-            discontinuities = np.concatenate(
-                ([0], np.nonzero(np.diff(i) - 1)[0] + 1, [len(i)])
-            )
+            discontinuities = np.concatenate(([0], np.nonzero(np.diff(i) - 1)[0] + 1, [len(i)]))
             starts = i[discontinuities[:-1]]
             stops = i[(discontinuities - 1)[1:]] + 1
             for d in range(dimension):
@@ -156,9 +144,7 @@ class Boundaries:
                 for start, stop in zip(starts, stops):
                     condition_stop = condition_start + stop - start
                     yield (
-                        slice(
-                            start + d * total_node_count, stop + d * total_node_count
-                        ),
+                        slice(start + d * total_node_count, stop + d * total_node_count),
                         slice(condition_start, condition_stop),
                     )
                     condition_start = condition_stop

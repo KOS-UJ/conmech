@@ -19,9 +19,7 @@ from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_l
 # TODO # 48
 class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
-    def tangential_bound(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         return -1.0
 
     @staticmethod
@@ -61,9 +59,7 @@ class PDynamicSetup(PiezoelectricDynamicProblem):
         )
     )
     permittivity: ... = field(
-        default_factory=lambda: np.array(
-            [[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]]
-        )
+        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
     )
 
     @staticmethod

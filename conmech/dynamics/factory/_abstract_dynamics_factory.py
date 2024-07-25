@@ -23,14 +23,10 @@ class AbstractDynamicsFactory:
     def calculate_acceleration(self, U: np.ndarray, density: float) -> np.ndarray:
         raise NotImplementedError()
 
-    def calculate_thermal_expansion(
-        self, V: np.ndarray, coeff: np.ndarray
-    ) -> np.ndarray:
+    def calculate_thermal_expansion(self, V: np.ndarray, coeff: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
-    def calculate_thermal_conductivity(
-        self, W: np.ndarray, coeff: np.ndarray
-    ) -> np.ndarray:
+    def calculate_thermal_conductivity(self, W: np.ndarray, coeff: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
 
     def get_piezoelectric_tensor(self, W: np.ndarray, coeff: np.ndarray) -> np.ndarray:

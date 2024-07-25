@@ -60,9 +60,7 @@ def extract_boundary_paths_from_elements(elements):
         visited_path = extract_boundary_path(boundary_surfaces, start_node=start_node)
         visited_path = np.append(visited_path, visited_path[0])
         boundary_paths.append(visited_path)
-        boundary_indices_to_visit = list(
-            set(boundary_indices_to_visit) - set(visited_path)
-        )
+        boundary_indices_to_visit = list(set(boundary_indices_to_visit) - set(visited_path))
 
     return boundary_paths
 

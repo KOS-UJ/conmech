@@ -71,9 +71,7 @@ def test_remove_unconnected_nodes():
     elements = np.array([[4, 2], [2, 5], [4, 5]])
 
     # Act
-    cleaned_nodes, cleaned_elements = mesh.remove_unconnected_nodes_numba(
-        nodes, elements
-    )
+    cleaned_nodes, cleaned_elements = mesh.remove_unconnected_nodes_numba(nodes, elements)
 
     # Assert
     expected_nodes = np.array([[2.1, 1.2], [4.1, 1.2], [5.1, 1.2]])

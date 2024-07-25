@@ -196,6 +196,4 @@ def test_membrane_DNC(solving_method, setup, expected_displacement_vector):
     np.set_printoptions(precision=7, suppress=True)
     print(repr(displacement))
 
-    np.testing.assert_array_almost_equal(
-        displacement, expected_displacement_vector, decimal=2
-    )
+    np.testing.assert_array_almost_equal(displacement, expected_displacement_vector, decimal=2)

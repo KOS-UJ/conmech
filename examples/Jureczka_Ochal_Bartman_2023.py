@@ -24,9 +24,7 @@ from examples.utils import viscoelastic_constitutive_law
 def make_contact_law(limit_value, limit, friction_bound):
     class JureczkaOchalBartman2023(PotentialOfContactLaw):
         @staticmethod
-        def tangential_bound(
-            var_nu: float, static_displacement_nu: float, dt: float
-        ) -> float:
+        def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
             n = friction_bound
             b = 0.1
             if var_nu <= 0:
@@ -138,9 +136,7 @@ def main(config: Config):
     else:
         simulate = True
 
-    mesh_descr = JOB2023MeshDescription(
-        initial_position=None, max_element_perimeter=1 / h
-    )
+    mesh_descr = JOB2023MeshDescription(initial_position=None, max_element_perimeter=1 / h)
 
     if simulate:
         for name in names:
@@ -198,9 +194,7 @@ def main(config: Config):
                 drawer.node_size = 1
                 drawer.original_mesh_color = "k"
                 drawer.deformed_mesh_color = None
-                drawer.draw(
-                    show=config.show, field_min=0, field_max=40, save=config.save
-                )
+                drawer.draw(show=config.show, field_min=0, field_max=40, save=config.save)
             state.setup = setup
             state.constitutive_law = viscoelastic_constitutive_law
             drawer = Drawer(state=state, config=config)

@@ -37,9 +37,7 @@ class ContactLaw:
         return 1.0
 
     @staticmethod
-    def tangential_bound(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         """
         Friction bound
 

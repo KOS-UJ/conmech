@@ -25,9 +25,7 @@ def solving_method(request):
 
 class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
-    def tangential_bound(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         return -1.0
 
     @staticmethod
@@ -72,9 +70,7 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array(
-                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-            )
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
         )
 
         @staticmethod
@@ -203,12 +199,8 @@ def generate_test_suits():
         return np.array([0, -0.2])
 
     setup_0_m02_p_0.inner_forces = inner_forces
-    expected_displacement_vector_0_m02_p_0 = [
-        -v for v in expected_displacement_vector_0_02_p_0
-    ]
-    expected_temperature_vector_0_m02_p_0 = [
-        -v for v in expected_temperature_vector_0_02_p_0
-    ]
+    expected_displacement_vector_0_m02_p_0 = [-v for v in expected_displacement_vector_0_02_p_0]
+    expected_temperature_vector_0_m02_p_0 = [-v for v in expected_temperature_vector_0_02_p_0]
     test_suites.append(
         (
             setup_0_m02_p_0,
@@ -237,9 +229,7 @@ def generate_test_suits():
             )
         )
         permittivity: ... = field(
-            default_factory=lambda: np.array(
-                [[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]]
-            )
+            default_factory=lambda: np.array([[0.1, 0.0, 0.0], [0.0, 0.1, 0.0], [0.0, 0.0, 0.1]])
         )
 
         @staticmethod
@@ -324,9 +314,7 @@ def test_piezoelectric_time_dependent_solver(
     std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
     displacement = results[-1].body.mesh.nodes[:] - results[-1].displaced_nodes[:]
     electric_potential = np.zeros(len(results[-1].body.mesh.nodes))
-    electric_potential[: len(results[-1].electric_potential)] = results[
-        -1
-    ].electric_potential
+    electric_potential[: len(results[-1].electric_potential)] = results[-1].electric_potential
 
     # print result
     np.set_printoptions(precision=8, suppress=True)

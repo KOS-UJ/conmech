@@ -152,9 +152,7 @@ class TimeDependentDisplacementProblem(DisplacementProblem, ABC):
         return np.zeros_like(x)
 
 
-class QuasistaticDisplacementProblem(
-    QuasistaticProblem, TimeDependentDisplacementProblem, ABC
-):
+class QuasistaticDisplacementProblem(QuasistaticProblem, TimeDependentDisplacementProblem, ABC):
     @classmethod
     def statement(cls, body) -> Statement:
         return QuasistaticVelocityStatement(body)

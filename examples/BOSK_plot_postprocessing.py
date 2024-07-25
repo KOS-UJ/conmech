@@ -38,9 +38,7 @@ def case1():
         (100.0, 0.5),
     )[:]:
         print((kappa, beta))
-        states[kappa, beta] = State.load(
-            f"output/BOSK.pub/c1_kappa={kappa:.2f};beta={beta:.2f}"
-        )
+        states[kappa, beta] = State.load(f"output/BOSK.pub/c1_kappa={kappa:.2f};beta={beta:.2f}")
 
     c1_reference(states, output_path="output/BOSK.pub")
     c1_steady_state(states, output_path="output/BOSK.pub")
@@ -48,12 +46,8 @@ def case1():
 
 
 def show(output_path, name):
-    plt.gca().yaxis.set_major_formatter(
-        StrMethodFormatter("{x:,.2f}")
-    )  # 2 decimal places
-    plt.gca().xaxis.set_major_formatter(
-        StrMethodFormatter("{x:,.2f}")
-    )  # 2 decimal places
+    plt.gca().yaxis.set_major_formatter(StrMethodFormatter("{x:,.2f}"))  # 2 decimal places
+    plt.gca().xaxis.set_major_formatter(StrMethodFormatter("{x:,.2f}"))  # 2 decimal places
     if output_path is None:
         plt.show()
     else:

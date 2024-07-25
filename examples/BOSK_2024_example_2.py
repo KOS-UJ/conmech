@@ -58,9 +58,7 @@ class MembraneSetup(InteriorContactWaveProblem):
     ) -> np.ndarray:
         return np.array([0.0])
 
-    boundaries: ... = BoundariesDescription(
-        dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1)
-    )
+    boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1))
 
 
 def main(config: Config, setup, name, steps):
@@ -96,9 +94,7 @@ def main(config: Config, setup, name, steps):
             n_steps=steps,
             output_step=output_step,
             products=[
-                VerticalIntersectionContactLimitPoints(
-                    obstacle_level=OBSTACLE_LEVEL, x=0.50
-                ),
+                VerticalIntersectionContactLimitPoints(obstacle_level=OBSTACLE_LEVEL, x=0.50),
                 VerticalIntersection(x=0.50),
             ],
             initial_displacement=setup.initial_displacement,
@@ -122,14 +118,12 @@ def main(config: Config, setup, name, steps):
         state = State.load(path)
         plot_limit_points(
             state.products["limit points at 0.50"],
-            title=rf"$\kappa={setup.contact_law.KAPPA}$ "
-            rf"$\beta={setup.contact_law.BETA}$",
+            title=rf"$\kappa={setup.contact_law.KAPPA}$ " rf"$\beta={setup.contact_law.BETA}$",
             finish=False,
         )
     plot_limit_points(
         states[-1].products["limit points at 0.50"],
-        title=rf"$\kappa={setup.contact_law.KAPPA}$ "
-        rf"$\beta={setup.contact_law.BETA}$",
+        title=rf"$\kappa={setup.contact_law.KAPPA}$ " rf"$\beta={setup.contact_law.BETA}$",
         finish=False,
     )
     print(time.time() - start)
@@ -152,9 +146,7 @@ def main(config: Config, setup, name, steps):
         return
 
     states_ids = list(range(len(states)))
-    to_plot = states_ids[
-        :64:4
-    ]  # [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
+    to_plot = states_ids[:64:4]  # [2, 4, 8, 11, 13, 15, 17, 20] #states_ids[1:4] + states_ids[-1:]
     vmin = np.inf
     vmax = -np.inf
     field = "velocity"

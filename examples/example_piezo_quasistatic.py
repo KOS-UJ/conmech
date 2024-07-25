@@ -19,9 +19,7 @@ from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_l
 
 class PPSlopeContactLaw(PotentialOfContactLaw):
     @staticmethod
-    def tangential_bound(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
+    def tangential_bound(var_nu: float, static_displacement_nu: float, dt: float) -> float:
         return -1.0
 
     @staticmethod
@@ -61,9 +59,7 @@ class PQuasistaticSetup(PiezoelectricQuasistaticProblem):
         )
     )
     permittivity: ... = field(
-        default_factory=lambda: np.array(
-            [[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]]
-        )
+        default_factory=lambda: np.array([[8.3, 0.0, 0.0], [0.0, 8.8, 0.0], [0.0, 0.0, -8]])
     )
 
     @staticmethod
@@ -98,9 +94,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    mesh_descr = Barboteu2008MeshDescription(
-        initial_position=None, max_element_perimeter=0.5
-    )
+    mesh_descr = Barboteu2008MeshDescription(initial_position=None, max_element_perimeter=0.5)
     setup = PQuasistaticSetup(mesh_descr)
     runner = PiezoelectricTimeDependentSolver(setup, solving_method="global")
     steps = 100 if not config.test else 2
