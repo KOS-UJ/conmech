@@ -78,7 +78,7 @@ class StaticSetup(StaticDisplacementProblem):
     elements_number: ... = (mesh_density, 8 * mesh_density)
     mu_coef: ... = (E * surface) / (2 * (1 + kappa))
     la_coef: ... = ((E * surface) * kappa) / ((1 + kappa) * (1 - 2 * kappa))
-    contact_law: ... = MMLV99
+    contact_law: ... = MMLV99()
 
     @staticmethod
     def inner_forces(x, t=None):
@@ -187,62 +187,62 @@ def main(config: Config, methods, forces):
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
-    X = np.linspace(0, -3 * mm, 1000)
-    Y = np.empty(1000)
-    for i in range(1000):
-        Y[i] = MMLV99.potential_normal_direction(X[i])
-    plt.plot(X, Y)
-    plt.show()
-    for i in range(1000):
-        Y[i] = MMLV99.normal_direction(X[i])
-    plt.plot(X, Y)
-    plt.show()
-    results = {
-        "BFGS": [-0.061546678021737036,
-                 -0.06782602334922566,
-                 -0.07441012406759984,
-                 -0.08129875924227234,
-                 -0.0959892642846613,
-                 -0.10379118250601398,
-                 -0.10538811134540409,
-                 -0.8584224789292736,
-                 -0.14133884664811114, ],
-        "CG": [-0.07225702623584927,
-               -0.07966800277816762,
-               -0.08744039267159345,
-               -0.09557428287965247,
-               -0.12191044159984168,
-               -0.1358025353476277,
-               -0.13865495481609302,
-               -0.15028696247286885,
-               -1.265832916470563, ],
-        "Powell": [-0.0723012449592487,
-                   -0.07971212256709342,
-                   -0.0874845064006726,
-                   -0.0978621160055679,
-                   -0.12214289905071576,
-                   -0.13588717513833654,
-                   -0.7582249892835198,
-                   -0.8589012526317955,
-                   -1.2688709207679356, ],
-        "subgradient": [-0.05079652409797247,
-                        -0.046161334145372934,
-                        -0.04120648554585715,
-                        -0.3859157295854724,
-                        -0.6104716467978587,
-                        -0.7302821710666211,
-                        -0.7554950402698594,
-                        -0.8555741662642888,
-                        -1.2663638426265278, ],
-    }
+    # X = np.linspace(0, -3 * mm, 1000)
+    # Y = np.empty(1000)
+    # for i in range(1000):
+    #     Y[i] = MMLV99.potential_normal_direction(X[i])
+    # plt.plot(X, Y)
+    # plt.show()
+    # for i in range(1000):
+    #     Y[i] = MMLV99.normal_direction(X[i])
+    # plt.plot(X, Y)
+    # plt.show()
+    # results = {
+    #     "BFGS": [-0.061546678021737036,
+    #              -0.06782602334922566,
+    #              -0.07441012406759984,
+    #              -0.08129875924227234,
+    #              -0.0959892642846613,
+    #              -0.10379118250601398,
+    #              -0.10538811134540409,
+    #              -0.8584224789292736,
+    #              -0.14133884664811114, ],
+    #     "CG": [-0.07225702623584927,
+    #            -0.07966800277816762,
+    #            -0.08744039267159345,
+    #            -0.09557428287965247,
+    #            -0.12191044159984168,
+    #            -0.1358025353476277,
+    #            -0.13865495481609302,
+    #            -0.15028696247286885,
+    #            -1.265832916470563, ],
+    #     "Powell": [-0.0723012449592487,
+    #                -0.07971212256709342,
+    #                -0.0874845064006726,
+    #                -0.0978621160055679,
+    #                -0.12214289905071576,
+    #                -0.13588717513833654,
+    #                -0.7582249892835198,
+    #                -0.8589012526317955,
+    #                -1.2688709207679356, ],
+    #     "subgradient": [-0.05079652409797247,
+    #                     -0.046161334145372934,
+    #                     -0.04120648554585715,
+    #                     -0.3859157295854724,
+    #                     -0.6104716467978587,
+    #                     -0.7302821710666211,
+    #                     -0.7554950402698594,
+    #                     -0.8555741662642888,
+    #                     -1.2663638426265278, ],
+    # }
     forces = np.asarray((20e3 * kN, 21e3 * kN, 21e3 * kN, 23e3 * kN,
               25e3 * kN, 26e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN))[::2]
-    # for m, losses in results.items():
-    #     plt.plot(forces/1e3, -1 * np.asarray(losses[:]), "-o", label=m)
-    plt.legend()
-    plt.ylabel("$-\mathcal{L}(u)$")
-    plt.xlabel(r"Load [kN/m$^2$]")
-    plt.grid()
-    plt.show()
-    methods = ("BFGS", "CG", "Powell", "subgradient")[-1:]
-    main(Config(save=True, show=False, force=False).init(), methods, forces)
+    # # for m, losses in results.items():
+    # #     plt.plot(forces/1e3, -1 * np.asarray(losses[:]), "-o", label=m)
+    # plt.legend()
+    # plt.ylabel("$-\mathcal{L}(u)$")
+    # plt.xlabel(r"Load [kN/m$^2$]")
+    # plt.grid()
+    # plt.show()
+    methods = ("BFGS", "CG", "Powell", "subgradient")[-2:]
+    main(Config(save=False, show=True, force=True).init(), methods, forces)
