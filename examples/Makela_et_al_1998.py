@@ -1,6 +1,21 @@
-"""
-Created at 21.08.2019
-"""
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2023-2024  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 import pickle
 from dataclasses import dataclass
 
@@ -30,17 +45,19 @@ k21 = 5e3 * kN * surface
 
 class MMLV99(PotentialOfContactLaw, DirectContactLaw):
     @staticmethod
-    def potential_normal_direction(var_nu: float, static_displacement_nu: float, dt: float) -> float:
+    def potential_normal_direction(
+        var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
         u_nu = -var_nu
-        coef = 1.
+        coef = 1.0
         if u_nu <= 0:
             return 0.0
         if u_nu < 0.5 * mm:
-            return k0 * u_nu ** 2 * coef
+            return k0 * u_nu**2 * coef
         if u_nu < 1 * mm:
-            return (k10 * u_nu ** 2 + k11 * u_nu) * coef
+            return (k10 * u_nu**2 + k11 * u_nu) * coef
         if u_nu < 2 * mm:
-            return (k20 * u_nu ** 2 + k21 * u_nu + 4) * coef
+            return (k20 * u_nu**2 + k21 * u_nu + 4) * coef
         return 16 * coef
 
     @staticmethod
@@ -62,7 +79,7 @@ class MMLV99(PotentialOfContactLaw, DirectContactLaw):
     def potential_tangential_direction(
         var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
-        return np.log(np.sum(var_tau ** 2) ** 0.5 + 1)
+        return np.log(np.sum(var_tau**2) ** 0.5 + 1)
 
 
 @dataclass()
@@ -164,10 +181,9 @@ def main(config: Config, methods, forces):
                 # title=f"{m}: {f}, "
                 # f"time: {runner.step_solver.last_timing}"
             )
-            x = state.body.mesh.nodes[:state.body.mesh.contact_nodes_count - 1,
-                0]
-            u = state.displacement[:state.body.mesh.contact_nodes_count - 1, 1]
-            y1 = [MMLV99().normal_direction(-u_) for u_ in u]
+            x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
+            u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
+            y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
             plt.plot(x, y1, label=f"{f:.2e}")
         plt.ylabel("Interlaminar binding force [kN/m$^2$]")
         plt.xlabel(r"Contact interface [mm]")
@@ -228,8 +244,19 @@ if __name__ == "__main__":
     #                     -0.8555741662642888,
     #                     -1.2663638426265278, ],
     # }
-    forces = np.asarray((20e3 * kN, 21e3 * kN, 21e3 * kN, 23e3 * kN,
-              25e3 * kN, 26e3 * kN, 26.2e3 * kN, 27e3 * kN, 30e3 * kN))[::2]
+    forces = np.asarray(
+        (
+            20e3 * kN,
+            21e3 * kN,
+            21e3 * kN,
+            23e3 * kN,
+            25e3 * kN,
+            26e3 * kN,
+            26.2e3 * kN,
+            27e3 * kN,
+            30e3 * kN,
+        )
+    )[::2]
     # # for m, losses in results.items():
     # #     plt.plot(forces/1e3, -1 * np.asarray(losses[:]), "-o", label=m)
     # plt.legend()

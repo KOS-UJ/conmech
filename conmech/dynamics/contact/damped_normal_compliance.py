@@ -52,4 +52,13 @@ def make_damped_norm_compl(obstacle_level: float, kappa: float, beta: float, int
                 return 0
             return kappa * (displacement - obstacle_level) + beta * var_nu
 
+        @staticmethod
+        def subderivative_normal_direction(
+            var_nu: float, static_displacement_nu: float, dt: float
+        ) -> float:
+            displacement = static_displacement_nu + var_nu * dt
+            if displacement < obstacle_level:
+                return 0
+            return kappa * dt + beta
+
     return DampedNormalCompliance
