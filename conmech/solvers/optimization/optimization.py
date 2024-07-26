@@ -44,11 +44,12 @@ class Optimization(Solver):
             variable_dimension=statement.dimension_out,
             problem_dimension=statement.dimension_in,
         )
-        self.subgradient = make_cost_functional_subgradient(
-            djn=contact_law.subderivative_normal_direction,  # TODO
-            djt=None,
-            dh_functional=None,
-        )
+        if hasattr(contact_law, "subderivative_normal_direction"):
+            self.subgradient = make_cost_functional_subgradient(
+                djn=contact_law.subderivative_normal_direction,  # TODO
+                djt=None,
+                dh_functional=None,
+            )
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!

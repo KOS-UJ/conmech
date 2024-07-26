@@ -217,6 +217,7 @@ def make_cost_functional_subgradient(
     djn = njit(djn)
     djt = njit(djt)
     dh_functional = njit(dh_functional)
+    DIMENSION = 2
 
     @numba.njit()
     def contact_subgradient(u_vector, u_vector_old, nodes, contact_boundary,
@@ -231,24 +232,32 @@ def make_cost_functional_subgradient(
             n_1 = nodes[n_id_1]
             if n_id_0 < offset:
                 um_normal_0 = -n_0[0]  # TODO
-                cost[n_id_0] = djn(um_normal_0)
+                cost[n_id_0] = djn(um_normal_0, 0., 0.)
                 cost[n_id_0 + offset] = cost[n_id_0]
             if n_id_1 < offset:
                 um_normal_1 = -n_1[0]  # TODO
-                cost[n_id_1] = djn(um_normal_1)
+                cost[n_id_1] = djn(um_normal_1, 0., 0.)
                 cost[n_id_1 + offset] = cost[n_id_1]
         return cost
 
     # pylint: disable=unused-argument # 'dt'
     @numba.njit()
     def subgradient(
-            u_vector, nodes, contact_boundary, contact_normals, lhs, rhs,
-            u_vector_old, dt
+        var,
+        var_old,
+        nodes,
+        contact_boundary,
+        contact_normals,
+        lhs,
+        rhs,
+        u_vector,
+        base_integrals,
+        dt,
     ):
         dj = contact_subgradient(
-            u_vector, u_vector_old, nodes, contact_boundary, contact_normals
+            var, var_old, nodes, contact_boundary, contact_normals
         )
-        result = np.dot(lhs, u_vector) - rhs + dj
+        result = np.dot(lhs, var) - rhs + dj
         result = result.ravel()
         return result
 

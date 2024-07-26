@@ -5,11 +5,13 @@ import pickle
 from dataclasses import dataclass
 
 import numpy as np
+
+from conmech.dynamics.contact.contact_law import PotentialOfContactLaw, DirectContactLaw
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.properties.mesh_description import RectangleMeshDescription
-from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
+from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
 from conmech.solvers.optimization.optimization import Optimization
 
@@ -26,10 +28,10 @@ k20 = 5e6 * kN * surface
 k21 = 5e3 * kN * surface
 
 
-class MMLV99(ContactLaw):
+class MMLV99(PotentialOfContactLaw, DirectContactLaw):
     @staticmethod
-    def potential_normal_direction(u_nu: float) -> float:
-        u_nu = -u_nu
+    def potential_normal_direction(var_nu: float, static_displacement_nu: float, dt: float) -> float:
+        u_nu = -var_nu
         coef = 1.
         if u_nu <= 0:
             return 0.0
@@ -42,8 +44,10 @@ class MMLV99(ContactLaw):
         return 16 * coef
 
     @staticmethod
-    def normal_direction(u_nu: float) -> float:
-        u_nu = -u_nu
+    def subderivative_normal_direction(
+        var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        u_nu = -var_nu
         if u_nu <= 0:
             return 0.0
         if u_nu < 0.5 * mm:
@@ -55,21 +59,10 @@ class MMLV99(ContactLaw):
         return 0
 
     @staticmethod
-    def potential_tangential_direction(u_tau: np.ndarray) -> float:
-        return np.log(np.sum(u_tau * u_tau) ** 0.5 + 1)
-
-    @staticmethod
-    def subderivative_normal_direction(u_nu: float, v_nu: float) -> float:
-        return 0
-
-    @staticmethod
-    def regularized_subderivative_tangential_direction(
-            u_tau: np.ndarray, v_tau: np.ndarray, rho=1e-7
+    def potential_tangential_direction(
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
-        """
-        Coulomb regularization
-        """
-        return 0
+        return np.log(np.sum(var_tau ** 2) ** 0.5 + 1)
 
 
 @dataclass()
