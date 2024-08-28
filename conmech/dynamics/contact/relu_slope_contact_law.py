@@ -27,6 +27,6 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
         ) -> float:
             if var_nu <= 0:
                 return 0.0
-            return slope * var_nu * static_displacement_nu
+            return slope * var_nu
 
     return ReLuContactLaw

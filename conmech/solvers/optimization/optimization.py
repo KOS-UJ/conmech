@@ -65,7 +65,7 @@ class Optimization(Solver):
         )
         if hasattr(contact_law, "subderivative_normal_direction"):  # TODO
             self.subgradient = make_subgradient(
-                djn=contact_law.subderivative_normal_direction,
+                normal_condition=contact_law.subderivative_normal_direction,
             )
         else:
             self.subgradient = None
@@ -157,7 +157,8 @@ class Optimization(Solver):
                 from kosopt import subgradient
 
                 solution = subgradient.minimize(
-                    self.minimizer, self.loss, solution, args, maxiter=maxiter
+                    self.minimizer, self.loss, solution, args,
+                    maxiter=maxiter, subgradient=self.subgradient
                 )
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
@@ -212,6 +213,7 @@ class Optimization(Solver):
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
+        print(method, np.min(loss))   # TODO
         solution = sols[min_index]
 
         return solution

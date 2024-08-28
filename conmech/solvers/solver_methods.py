@@ -32,10 +32,10 @@ def interpolate_node_between(edge, vector, full_vector, dimension):
     for node in edge:
         for i in range(dimension):
             if node < offset:  # exclude dirichlet nodes (and inner nodes in schur)
-                result[i] += 0.5 * vector[i * offset + node]
+                result[i] += vector[i * offset + node] / len(edge)
             else:
                 # old values
-                result[i] += 0.5 * full_vector[i * offset_full + node]
+                result[i] += full_vector[i * offset_full + node] / len(edge)
     return result
 
 
@@ -94,8 +94,8 @@ def make_equation(
                 um_normal = (um * normal_vector).sum()
 
                 edge_len = nph.length(edge, nodes)
-                j_x = edge_len * 0.5 * (jn(um_normal, normal_vector[0], 0.0))
-                j_y = edge_len * 0.5 * (jn(um_normal, normal_vector[1], 0.0))
+                j_x = edge_len * 0.5 * (jn(um_normal, 0.0, 0.0) * normal_vector[0])
+                j_y = edge_len * 0.5 * (jn(um_normal, 0.0, 0.0) * normal_vector[1])
 
                 if n_id_0 < offset:
                     contact_vector[n_id_0] += j_x
@@ -222,34 +222,72 @@ def make_cost_functional(
 
 
 def make_subgradient(
-    djn: Callable,
+    normal_condition: Callable,
+    normal_condition_bound: Optional[Callable] = None,
+    tangential_condition: Optional[Callable] = None,
+    tangential_condition_bound: Optional[Callable] = None,
     problem_dimension=2,
+    variable_dimension=2,
 ):
-    djn = njit(djn)
+    normal_condition = njit(normal_condition)
+    normal_condition_bound = njit(normal_condition_bound, value=1)
+    tangential_condition = njit(tangential_condition)
+    tangential_condition_bound = njit(tangential_condition_bound, value=1)
 
     @numba.njit()
-    def contact_subgradient(u_vector, nodes, contact_boundary):
-        cost = np.zeros_like(u_vector)
-        offset = len(u_vector) // problem_dimension
+    def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
+        return length * (normal_bound * normal + tangential_bound * tangential)
 
-        for edge in contact_boundary:
-            n_id_0 = edge[0]
-            n_id_1 = edge[1]
-            n_0 = nodes[n_id_0]
-            n_1 = nodes[n_id_1]
-            if n_id_0 < offset:
-                um_normal_0 = -n_0[0]  # TODO
-                cost[n_id_0] = djn(um_normal_0, 0.0, 0.0)
-                cost[n_id_0 + offset] = cost[n_id_0]
-            if n_id_1 < offset:
-                um_normal_1 = -n_1[0]  # TODO
-                cost[n_id_1] = djn(um_normal_1, 0.0, 0.0)
-                cost[n_id_1 + offset] = cost[n_id_1]
+    @numba.njit()
+    def contact_subgradient(
+        var, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
+    ):
+        cost = np.zeros_like(var)
+        offset = len(var) // variable_dimension
+
+        # pylint: disable=not-an-iterable
+        for ei in numba.prange(len(contact_boundary)):
+            edge = contact_boundary[ei]
+            normal_vector = contact_normals[ei]
+            # ASSUMING `u_vector` and `nodes` have the same order!
+            vm = interpolate_node_between(edge, var, var_old, dimension=variable_dimension)
+            if variable_dimension == 1:
+                raise NotImplementedError()
+                vm_normal = vm[0]
+                vm_tangential = np.empty(0)
+            else:
+                vm_normal = (vm * normal_vector).sum()
+                vm_tangential = vm - vm_normal * normal_vector
+
+            static_displacement_mean = interpolate_node_between(
+                edge,
+                static_displacement,
+                static_displacement,
+                dimension=problem_dimension,
+            )
+            static_displacement_normal = (static_displacement_mean * normal_vector).sum()
+            static_displacement_tangential = (
+                static_displacement_mean - static_displacement_normal * normal_vector
+            )
+
+            subgrad = contact_cost(
+                nph.length(edge, nodes),
+                normal_condition(vm_normal, static_displacement_normal, dt),
+                normal_condition_bound(vm_normal, static_displacement_normal, dt),
+                tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                tangential_condition_bound(vm_normal, static_displacement_normal, dt),
+            )
+
+            for node in edge:
+                for i in range(variable_dimension):
+                    if node < offset:
+                        cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
+
         return cost
 
-    # pylint: disable=unused-argument # takes the same args as cost_functional
+    # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
     @numba.njit()
-    def subgradient(
+    def cost_functional(
         var,
         var_old,
         nodes,
@@ -262,10 +300,12 @@ def make_subgradient(
         dt,
     ):
         result = np.zeros_like(var)
+        dj = contact_subgradient(
+            var, var_old, u_vector, nodes, contact_boundary, contact_normals, dt
+        )
         ind = lhs.shape[0]
-        dj = contact_subgradient(var[:ind], nodes, contact_boundary)
         result_ = np.dot(lhs, var[:ind]) - rhs + dj
         result[:ind] = result_.ravel()
         return result
 
-    return subgradient
+    return cost_functional
