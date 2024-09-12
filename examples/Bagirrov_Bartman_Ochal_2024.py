@@ -228,7 +228,7 @@ if __name__ == "__main__":
     # plt.legend()
     # # plt.loglog()
     # plt.show()
-    methods = ("BFGS", "CG", "qsm", "Powell", "subgradient")
+    methods = ("BFGS", "CG", "qsm", "Powell", "globqsm")
     forces = (
         23e3 * kN,
         25e3 * kN,

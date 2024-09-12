@@ -20,7 +20,7 @@ def solving_method(request):
     return request.param
 
 
-@pytest.fixture(params=["BFGS", "qsm", "subgradient"])
+@pytest.fixture(params=["BFGS", "qsm", "globqsm"])
 def opt_method(request):
     return request.param
 

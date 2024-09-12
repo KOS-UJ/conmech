@@ -120,7 +120,7 @@ def generate_test_suits():
     ]
     test_suites.append((optimization_mtd_pow, expected_displacement_vector_pow))
 
-    optimization_mtd_subg = "subgradient"
+    optimization_mtd_subg = "globqsm"
     expected_displacement_vector_subg = [
         [0.0, 0.0],
         [-0.00006594, -0.00004315],

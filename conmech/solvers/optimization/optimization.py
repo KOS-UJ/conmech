@@ -39,6 +39,22 @@ from conmech.solvers.solver_methods import (
 from kosopt.qsmlm import make_minimizer
 
 
+QSMLM_NAMES = {
+    "quasi secant method",
+    "limited memory quasi secant method",
+    "quasi secant method limited memory",
+    "qsm",
+    "qsmlm",
+}
+GLOBAL_QSMLM_NAMES = {
+    "global quasi secant method",
+    "global limited memory quasi secant method",
+    "global quasi secant method limited memory",
+    "globqsm",
+    "globqsmlm",
+}
+
+
 class Optimization(Solver):
     def __init__(
         self,
@@ -131,34 +147,25 @@ class Optimization(Solver):
         sols.append(solution)
         loss.append(self.loss(solution, *args)[0])
 
-        if self.minimizer is None and method.lower() in (
-            "quasi secant method",
-            "limited memory quasi secant method",
-            "quasi secant method limited memory",
-            "qsm",
-            "qsmlm",
-            "subgradient",
-        ):
+        if self.minimizer is None and method.lower() in QSMLM_NAMES.union(GLOBAL_QSMLM_NAMES):
             self.minimizer = make_minimizer(self.loss, self.subgradient)
 
         while norm >= fixed_point_abs_tol:
-            if method.lower() in (
-                "quasi secant method",
-                "limited memory quasi secant method",
-                "quasi secant method limited memory",
-                "qsm",
-                "qsmlm",
-            ):
+            if method.lower() in QSMLM_NAMES:
                 solution = self.minimizer(solution, args, maxiter=maxiter)
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-            elif method.lower() in ("subgradient",):
+            elif method.lower() in GLOBAL_QSMLM_NAMES:
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import subgradient
 
                 solution = subgradient.minimize(
-                    self.minimizer, self.loss, solution, args,
-                    maxiter=maxiter, subgradient=self.subgradient
+                    self.minimizer,
+                    self.loss,
+                    solution,
+                    args,
+                    maxiter=maxiter,
+                    subgradient=self.subgradient,
                 )
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
@@ -195,7 +202,6 @@ class Optimization(Solver):
                 solution = result.x
                 sols.append(solution)
                 loss.append(self.loss(solution, *args)[0])
-                break
             else:
                 result = scipy.optimize.minimize(
                     self.loss,
@@ -208,12 +214,11 @@ class Optimization(Solver):
                 solution = result.x
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-                break
 
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
-        print(method, np.min(loss))   # TODO
+        print(method, np.min(loss))  # TODO
         solution = sols[min_index]
 
         return solution

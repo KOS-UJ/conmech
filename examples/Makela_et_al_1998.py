@@ -82,10 +82,10 @@ class MMLV99(PotentialOfContactLaw, DirectContactLaw):
 
     @staticmethod
     def subderivative_tangential_direction(
-            var_tau: float, static_displacement_tau: float, dt: float
+        var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
-        quadsum = np.sum(var_tau ** 2)
-        norm = quadsum ** 0.5
+        quadsum = np.sum(var_tau**2)
+        norm = quadsum**0.5
         denom = norm + quadsum
         coef = 1 / denom if denom != 0.0 else 0.0
         return var_tau * coef
@@ -273,5 +273,5 @@ if __name__ == "__main__":
     # plt.xlabel(r"Load [kN/m$^2$]")
     # plt.grid()
     # plt.show()
-    methods = ("BFGS", "CG", "Powell", "subgradient")[-2:]
+    methods = ("BFGS", "CG", "Powell", "globqsm")[-2:]
     main(Config(save=False, show=True, force=True).init(), methods, forces)

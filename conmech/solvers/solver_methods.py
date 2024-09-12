@@ -252,12 +252,12 @@ def make_subgradient(
             # ASSUMING `u_vector` and `nodes` have the same order!
             vm = interpolate_node_between(edge, var, var_old, dimension=variable_dimension)
             if variable_dimension == 1:
-                raise NotImplementedError()
-                vm_normal = vm[0]
-                vm_tangential = np.empty(0)
-            else:
-                vm_normal = (vm * normal_vector).sum()
-                vm_tangential = vm - vm_normal * normal_vector
+                raise NotImplementedError()  # TODO
+                # vm_normal = vm[0]
+                # vm_tangential = np.empty(0)
+            # else:
+            vm_normal = (vm * normal_vector).sum()
+            vm_tangential = vm - vm_normal * normal_vector
 
             static_displacement_mean = interpolate_node_between(
                 edge,
