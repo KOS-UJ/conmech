@@ -36,7 +36,6 @@ from conmech.solvers.solver_methods import (
     make_equation,
     make_subgradient,
 )
-from kosopt.qsmlm import make_minimizer
 
 
 QSMLM_NAMES = {
@@ -148,6 +147,9 @@ class Optimization(Solver):
         loss.append(self.loss(solution, *args)[0])
 
         if self.minimizer is None and method.lower() in QSMLM_NAMES.union(GLOBAL_QSMLM_NAMES):
+            # pylint: disable=import-outside-toplevel,import-error)
+            from kosopt.qsmlm import make_minimizer
+
             self.minimizer = make_minimizer(self.loss, self.subgradient)
 
         while norm >= fixed_point_abs_tol:

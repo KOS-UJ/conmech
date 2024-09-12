@@ -14,13 +14,20 @@ from conmech.properties.mesh_description import CrossMeshDescription
 from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
+try:
+    import kosopt
+
+    available_opt_mtds = ["BFGS", "qsm", "globqsm"]
+except ImportError:
+    available_opt_mtds = ["BFGS"]
+
 
 @pytest.fixture(params=["direct", "global optimization", "schur"])
 def solving_method(request):
     return request.param
 
 
-@pytest.fixture(params=["BFGS", "qsm", "globqsm"])
+@pytest.fixture(params=available_opt_mtds)
 def opt_method(request):
     return request.param
 
