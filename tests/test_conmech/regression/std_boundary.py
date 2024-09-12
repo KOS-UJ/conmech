@@ -7,7 +7,7 @@ from conmech.mesh.boundaries_factory import (
 
 
 def standard_boundary_nodes(nodes, elements):
-    """
+    r"""
     Return nodes indices counter-clockwise for standard body (rectangle) with first node in (0, 0).
 
     For body:

@@ -24,10 +24,16 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.properties.mesh_description import CrossMeshDescription, RectangleMeshDescription
-from conmech.solvers.optimization.optimization import Optimization
+from conmech.properties.mesh_description import RectangleMeshDescription
 from examples.Makela_et_al_1998 import MMLV99
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
+
+try:
+    import kosopt
+
+    available_opt_mtds = ["Powell", "qsm", "globqsm"]
+except ImportError:
+    available_opt_mtds = ["Powell"]
 
 
 @pytest.fixture(params=["schur"])
@@ -118,7 +124,8 @@ def generate_test_suits():
         [0.0, 0.0],
         [0.0, 0.0],
     ]
-    test_suites.append((optimization_mtd_pow, expected_displacement_vector_pow))
+    if optimization_mtd_pow in available_opt_mtds:
+        test_suites.append((optimization_mtd_pow, expected_displacement_vector_pow))
 
     optimization_mtd_subg = "globqsm"
     expected_displacement_vector_subg = [
@@ -200,8 +207,10 @@ def generate_test_suits():
         [0.0, 0.0],
     ]
 
-    test_suites.append((optimization_mtd_subg, expected_displacement_vector_subg))
-    test_suites.append(("qsmlm", expected_displacement_vector_subg))
+    if optimization_mtd_subg in available_opt_mtds:
+        test_suites.append((optimization_mtd_subg, expected_displacement_vector_subg))
+    if "qsmlm" in available_opt_mtds:
+        test_suites.append(("qsmlm", expected_displacement_vector_subg))
 
     return test_suites
 
