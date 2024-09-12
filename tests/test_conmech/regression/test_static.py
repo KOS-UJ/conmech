@@ -15,8 +15,13 @@ from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_l
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
-@pytest.fixture(params=["direct", "global optimization", "schur"][-1:])
+@pytest.fixture(params=["direct", "global optimization", "schur"])
 def solving_method(request):
+    return request.param
+
+
+@pytest.fixture(params=["BFGS", "qsm", "subgradient"])
+def opt_method(request):
     return request.param
 
 
@@ -159,9 +164,9 @@ def generate_test_suits():
 
 
 @pytest.mark.parametrize("setup, expected_displacement_vector", generate_test_suits())
-def test_static_solver(solving_method, setup, expected_displacement_vector):
+def test_static_solver(solving_method, opt_method, setup, expected_displacement_vector):
     runner = StaticSolver(setup, solving_method)
-    result = runner.solve(initial_displacement=setup.initial_displacement, method="qsm")
+    result = runner.solve(initial_displacement=setup.initial_displacement, method=opt_method)
 
     displacement = result.body.mesh.nodes[:] - result.displaced_nodes[:]
     std_ids = standard_boundary_nodes(runner.body.mesh.nodes, runner.body.mesh.elements)
