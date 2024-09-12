@@ -49,37 +49,46 @@ class MMLV99(PotentialOfContactLaw, DirectContactLaw):
         var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         u_nu = -var_nu
-        coef = 1.0
-        if u_nu <= 0:
+        if u_nu <= 0.0:
             return 0.0
         if u_nu < 0.5 * mm:
-            return k0 * u_nu**2 * coef
-        if u_nu < 1 * mm:
-            return (k10 * u_nu**2 + k11 * u_nu) * coef
-        if u_nu < 2 * mm:
-            return (k20 * u_nu**2 + k21 * u_nu + 4) * coef
-        return 16 * coef
+            return k0 * u_nu**2
+        if u_nu < 1.0 * mm:
+            return k10 * u_nu**2 + k11 * u_nu
+        if u_nu < 2.0 * mm:
+            return k20 * u_nu**2 + k21 * u_nu + 4
+        return 16.0
 
     @staticmethod
     def subderivative_normal_direction(
         var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         u_nu = -var_nu
-        if u_nu <= 0:
+        if u_nu <= 0.0:
             return 0.0
         if u_nu < 0.5 * mm:
             return k0 * u_nu * 2
-        if u_nu < 1 * mm:
+        if u_nu < 1.0 * mm:
             return k10 * (u_nu * 2) + k11
-        if u_nu < 2 * mm:
+        if u_nu < 2.0 * mm:
             return k20 * (u_nu * 2) + k21
-        return 0
+        return 0.0
 
     @staticmethod
     def potential_tangential_direction(
         var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
         return np.log(np.sum(var_tau**2) ** 0.5 + 1)
+
+    @staticmethod
+    def subderivative_tangential_direction(
+            var_tau: float, static_displacement_tau: float, dt: float
+    ) -> float:
+        quadsum = np.sum(var_tau ** 2)
+        norm = quadsum ** 0.5
+        denom = norm + quadsum
+        coef = 1 / denom if denom != 0.0 else 0.0
+        return var_tau * coef
 
 
 @dataclass()
