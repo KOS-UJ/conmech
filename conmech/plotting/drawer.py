@@ -56,6 +56,22 @@ class Drawer:
         title=None,
         foundation=True,
     ):
+        if show:
+            fig, _axes = self.do_draw(fig_axes, field_max, field_min, title, foundation)
+            fig.tight_layout()
+            plt.show()
+        if save:
+            _fig, _axes = self.do_draw(fig_axes, field_max, field_min, title, foundation)
+            self.save_plot(save_format, name=save)
+
+    def do_draw(
+        self,
+        fig_axes=None,
+        field_max=None,
+        field_min=None,
+        title=None,
+        foundation=True,
+    ):
         fig, axes = fig_axes or plt.subplots()
 
         self.set_axes_limits(axes, foundation)
@@ -81,12 +97,7 @@ class Drawer:
         axes.set_aspect("equal", adjustable="box")
         if title is not None:
             plt.title(title)
-
-        if show:
-            fig.tight_layout()
-            plt.show()
-        if save:
-            self.save_plot(save_format, name=save)
+        return fig, axes
 
     def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max

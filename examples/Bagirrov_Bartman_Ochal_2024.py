@@ -3,6 +3,7 @@ Created at 21.08.2019
 """
 
 import pickle
+import time
 from dataclasses import dataclass
 from matplotlib import pyplot as plt
 
@@ -13,7 +14,7 @@ from conmech.plotting.drawer import Drawer
 from conmech.properties.mesh_description import RectangleMeshDescription
 from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.solvers.optimization.optimization import Optimization
+from examples.Makela_et_al_1998 import loss_value, plot_losses
 
 mesh_density = 4
 kN = 1000
@@ -121,8 +122,11 @@ def main(config: Config, methods, forces):
         print("Simulating...")
         setup = StaticSetup(mesh_descr=mesh_descr)
 
+        losses = {}
         for method, force in to_simulate:
             print(method, force)
+            m_loss = losses.get(method, {})
+            losses[method] = m_loss
 
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
@@ -132,7 +136,9 @@ def main(config: Config, methods, forces):
             setup.outer_forces = outer_forces
 
             runner = StaticSolver(setup, "schur")
+            validator = StaticSolver(setup, "global")
 
+            start = time.time()
             state = runner.solve(
                 verbose=True,
                 fixed_point_abs_tol=0.001,
@@ -140,6 +146,7 @@ def main(config: Config, methods, forces):
                 method=method,
                 maxiter=100,
             )
+            m_loss[force] = loss_value(state, validator), time.time() - start
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
             with open(path, "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -148,7 +155,15 @@ def main(config: Config, methods, forces):
                 state.setup = None
                 state.constitutive_law = None
                 pickle.dump(state, output)
-        print(Optimization.RESULTS)
+        path = f"{config.outputs_path}/{PREFIX}_losses"
+        with open(path, "wb+") as output:
+            pickle.dump(losses, output)
+
+    print("Plotting...")
+
+    path = f"{config.outputs_path}/{PREFIX}_losses"
+    if config.show:
+        plot_losses(path)
 
     for m in methods:
         for f in forces:
@@ -185,50 +200,8 @@ if __name__ == "__main__":
         Y[i] = MMLV99().subderivative_normal_direction(X[i], 0.0, 0.0)
     plt.plot(X, Y)
     plt.show()
-    # results = {
-    #     "Powell": [-0.09786211600599237,
-    #                -0.12214289905239312,
-    #                -0.13027212877878766,
-    #                -0.13447218948364842,
-    #                -0.13588717514960513,
-    #                -0.1373096435316275,
-    #                -0.7582249893948801,
-    #                -0.8589012530191608,
-    #                -1.2688709210981735, ],
-    #     "BFGS": [-0.09487765162385353,
-    #              -0.12207326519092926,
-    #              -0.11772218280878324,
-    #              -0.1198269497911567,
-    #              -0.12061095335641955,
-    #              -0.1219350781729528,
-    #              -0.12279409585312624,
-    #              -0.8584230093357013,
-    #              -1.2687124265093166, ],
-    #     "CG": [-0.0955742828809952,
-    #            -0.12191044159984168,
-    #            -0.13009806547436803,
-    #            -0.1341887930175023,
-    #            -0.1358025353476277,
-    #            -0.136904521914724,
-    #            -0.13865495481609302,
-    #            -0.8584104766729636,
-    #            -1.2658836730355307, ],
-    #     "subgradient2": [-0.09786204500205781,
-    #                      -0.12214281874382482,
-    #                      -0.13027204041320914,
-    #                      -0.15450061948841598,
-    #                      -0.1571765749815719,
-    #                      -0.15986547858657962,
-    #                      -0.7582249071621823,
-    #                      -0.8589012119331098,
-    #                      -1.2688708874747643, ],
-    # }
-    # for m, losses in results.items():
-    #     plt.plot(-1 * np.asarray(losses), label=m)
-    # plt.legend()
-    # # plt.loglog()
-    # plt.show()
-    methods = ("BFGS", "CG", "qsm", "Powell", "globqsm")
+
+    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "qsm", "Powell", "globqsm")[:]
     forces = (
         23e3 * kN,
         25e3 * kN,
@@ -239,5 +212,5 @@ if __name__ == "__main__":
         26.2e3 * kN,
         27e3 * kN,
         30e3 * kN,
-    )[-1::4]
-    main(Config(save=False, show=True, force=False).init(), methods, forces)
+    )[:]
+    main(Config(save=False, show=False, force=False).init(), methods, forces)

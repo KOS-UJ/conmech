@@ -17,9 +17,11 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
 import pickle
+import time
 from dataclasses import dataclass
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from conmech.dynamics.contact.contact_law import PotentialOfContactLaw, DirectContactLaw
 from conmech.helpers.config import Config
@@ -147,8 +149,11 @@ def main(config: Config, methods, forces):
         print("Simulating...")
         setup = StaticSetup(mesh_descr=mesh_descr)
 
+        losses = {}
         for method, force in to_simulate:
             print(method, force)
+            m_loss = losses.get(method, {})
+            losses[method] = m_loss
 
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
@@ -157,14 +162,17 @@ def main(config: Config, methods, forces):
 
             setup.outer_forces = outer_forces
 
-            runner = StaticSolver(setup, "schur")
+            runner = StaticSolver(setup, "global")
+            validator = StaticSolver(setup, "global")
 
+            start = time.time()
             state = runner.solve(
                 verbose=True,
                 fixed_point_abs_tol=0.001,
                 initial_displacement=setup.initial_displacement,
                 method=method,
             )
+            m_loss[force] = loss_value(state, validator), time.time() - start
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
             with open(path, "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -173,7 +181,15 @@ def main(config: Config, methods, forces):
                 state.setup = None
                 state.constitutive_law = None
                 pickle.dump(state, output)
-        print(Optimization.RESULTS)
+        path = f"{config.outputs_path}/{PREFIX}_losses"
+        with open(path, "wb+") as output:
+            pickle.dump(losses, output)
+
+    print("Plotting...")\
+
+    path = f"{config.outputs_path}/{PREFIX}_losses"
+    if config.show:
+        plot_losses(path)
 
     for m in methods:
         for f in forces:
@@ -181,7 +197,6 @@ def main(config: Config, methods, forces):
             with open(path, "rb") as output:
                 state = pickle.load(output)
 
-            print("drawing")
             drawer = Drawer(state=state, config=config)
             drawer.colorful = True
             drawer.draw(
@@ -190,6 +205,7 @@ def main(config: Config, methods, forces):
                 # title=f"{m}: {f}, "
                 # f"time: {runner.step_solver.last_timing}"
             )
+
             x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
             u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
             y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
@@ -202,9 +218,53 @@ def main(config: Config, methods, forces):
         plt.show()
 
 
-if __name__ == "__main__":
-    from matplotlib import pyplot as plt
+def plot_losses(path):
+    print("Plotting...")
+    with open(path, "rb") as output:
+        losses = pickle.load(output)
 
+    for mtd, values in losses.items():
+        forces_ = np.asarray(list(values.keys()))
+        values_ = np.asarray(list(values.values()))[:, 0]
+        times_ = np.asarray(list(values.values()))[:, 1]
+        plt.plot(forces_ / 1e3, -1 * values_, "-o", label=mtd)
+    plt.legend()
+    plt.ylabel("$-\mathcal{L}(u)$")
+    plt.xlabel(r"Load [kN/m$^2$]")
+    plt.grid()
+    plt.show()
+    for mtd, values in losses.items():
+        forces_ = np.asarray(list(values.keys()))
+        values_ = np.asarray(list(values.values()))[:, 0]
+        times_ = np.asarray(list(values.values()))[:, 1]
+        plt.plot(forces_ / 1e3, times_, "-o", label=mtd)
+    plt.legend()
+    plt.ylabel("$time$")
+    plt.xlabel(r"Load [kN/m$^2$]")
+    plt.grid()
+    plt.show()
+
+def loss_value(state, runner) -> float:
+    initial_guess = state["displacement"].T.ravel().reshape(state.body.mesh.dimension, -1)
+    solution = np.squeeze(initial_guess.copy().reshape(1, -1))
+    self: Optimization = runner.step_solver
+    args = (
+        np.zeros_like(solution),  # variable_old
+        self.body.mesh.nodes,
+        self.body.mesh.contact_boundary,
+        self.body.mesh.boundaries.contact_normals,
+        self.lhs,
+        self.rhs,
+        np.zeros_like(solution),  # displacement
+        np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
+        self.time_step,
+    )
+    result = self.loss(solution, *args)[0]
+    print(result)
+    return result
+
+
+if __name__ == "__main__":
     # X = np.linspace(0, -3 * mm, 1000)
     # Y = np.empty(1000)
     # for i in range(1000):
@@ -215,44 +275,7 @@ if __name__ == "__main__":
     #     Y[i] = MMLV99.normal_direction(X[i])
     # plt.plot(X, Y)
     # plt.show()
-    # results = {
-    #     "BFGS": [-0.061546678021737036,
-    #              -0.06782602334922566,
-    #              -0.07441012406759984,
-    #              -0.08129875924227234,
-    #              -0.0959892642846613,
-    #              -0.10379118250601398,
-    #              -0.10538811134540409,
-    #              -0.8584224789292736,
-    #              -0.14133884664811114, ],
-    #     "CG": [-0.07225702623584927,
-    #            -0.07966800277816762,
-    #            -0.08744039267159345,
-    #            -0.09557428287965247,
-    #            -0.12191044159984168,
-    #            -0.1358025353476277,
-    #            -0.13865495481609302,
-    #            -0.15028696247286885,
-    #            -1.265832916470563, ],
-    #     "Powell": [-0.0723012449592487,
-    #                -0.07971212256709342,
-    #                -0.0874845064006726,
-    #                -0.0978621160055679,
-    #                -0.12214289905071576,
-    #                -0.13588717513833654,
-    #                -0.7582249892835198,
-    #                -0.8589012526317955,
-    #                -1.2688709207679356, ],
-    #     "subgradient": [-0.05079652409797247,
-    #                     -0.046161334145372934,
-    #                     -0.04120648554585715,
-    #                     -0.3859157295854724,
-    #                     -0.6104716467978587,
-    #                     -0.7302821710666211,
-    #                     -0.7554950402698594,
-    #                     -0.8555741662642888,
-    #                     -1.2663638426265278, ],
-    # }
+
     forces = np.asarray(
         (
             20e3 * kN,
@@ -263,15 +286,9 @@ if __name__ == "__main__":
             26e3 * kN,
             26.2e3 * kN,
             27e3 * kN,
-            30e3 * kN,
+            # 30e3 * kN,
         )
-    )[::2]
-    # # for m, losses in results.items():
-    # #     plt.plot(forces/1e3, -1 * np.asarray(losses[:]), "-o", label=m)
-    # plt.legend()
-    # plt.ylabel("$-\mathcal{L}(u)$")
-    # plt.xlabel(r"Load [kN/m$^2$]")
-    # plt.grid()
-    # plt.show()
-    methods = ("BFGS", "CG", "Powell", "globqsm")[-2:]
-    main(Config(save=False, show=True, force=True).init(), methods, forces)
+    )[:]
+
+    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm")[:]
+    main(Config(save=False, show=False, force=True).init(), methods, forces)

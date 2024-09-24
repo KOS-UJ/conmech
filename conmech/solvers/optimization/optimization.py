@@ -205,11 +205,16 @@ class Optimization(Solver):
                 sols.append(solution)
                 loss.append(self.loss(solution, *args)[0])
             else:
+                subgrad = None
+                if method.startswith("gradiented "):
+                    subgrad = self.subgradient
+                    method = method[len("gradiented "):]
                 result = scipy.optimize.minimize(
                     self.loss,
                     solution,
                     args=args,
                     method=method,
+                    jac=subgrad,
                     options={"disp": disp, "maxiter": maxiter},
                     tol=tol,
                 )
@@ -220,7 +225,6 @@ class Optimization(Solver):
             norm = np.linalg.norm(np.subtract(solution, old_solution))
             old_solution = solution.copy()
         min_index = loss.index(np.min(loss))
-        print(method, np.min(loss))  # TODO
         solution = sols[min_index]
 
         return solution
