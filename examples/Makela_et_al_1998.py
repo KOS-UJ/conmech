@@ -77,6 +77,30 @@ class MMLV99(PotentialOfContactLaw, DirectContactLaw):
         return 0.0
 
     @staticmethod
+    def sub2derivative_normal_direction(
+            var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        u_nu = -var_nu
+
+        acc = 0.0
+        p1 = 0.5 * mm
+        if u_nu <= p1:
+            return acc
+
+        acc += (k0 * p1 * 2) - (k10 * (p1 * 2) + k11)
+        p2 = 1.0 * mm
+        if u_nu < p2:
+            return acc
+
+        acc += (k10 * (p2 * 2) + k11) - (k20 * (p2 * 2) + k21)
+        p3 = 2.0 * mm
+        if u_nu < p3:
+            return acc
+
+        acc += (k20 * (p3 * 2) + k21) - 0.0
+        return acc
+
+    @staticmethod
     def potential_tangential_direction(
         var_tau: float, static_displacement_tau: float, dt: float
     ) -> float:
@@ -188,8 +212,8 @@ def main(config: Config, methods, forces):
     print("Plotting...")\
 
     path = f"{config.outputs_path}/{PREFIX}_losses"
-    if config.show:
-        plot_losses(path)
+    # if config.show:
+    plot_losses(path)
 
     for m in methods:
         for f in forces:
@@ -265,14 +289,22 @@ def loss_value(state, runner) -> float:
 
 
 if __name__ == "__main__":
-    # X = np.linspace(0, -3 * mm, 1000)
-    # Y = np.empty(1000)
+    X = np.linspace(0, -3 * mm, 1000)
+    Y = np.empty(1000)
+    for i in range(1000):
+        Y[i] = MMLV99.potential_normal_direction(X[i], 0, 0)
+    plt.plot(X, Y)
+    plt.show()
+    for i in range(1000):
+        Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0)
+    plt.plot(X, Y)
+    plt.show()
     # for i in range(1000):
-    #     Y[i] = MMLV99.potential_normal_direction(X[i])
+    #     Y[i] = MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
     # plt.plot(X, Y)
     # plt.show()
     # for i in range(1000):
-    #     Y[i] = MMLV99.normal_direction(X[i])
+    #     Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0) + MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
     # plt.plot(X, Y)
     # plt.show()
 
@@ -290,5 +322,5 @@ if __name__ == "__main__":
         )
     )[:]
 
-    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm")[:]
+    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm")[-1:]
     main(Config(save=False, show=False, force=True).init(), methods, forces)

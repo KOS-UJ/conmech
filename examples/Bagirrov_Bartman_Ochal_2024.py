@@ -65,6 +65,27 @@ class MMLV99(ContactLaw):
             return k20 * (var_nu * 2) + k21
         return var_nu**3 * 4 * k30
 
+    @staticmethod
+    def sub2derivative_normal_direction(
+            var_nu: float, static_displacement_nu: float, dt: float
+    ) -> float:
+        acc = 0.0
+        p1 = 0.5 * mm
+        if var_nu <= p1:
+            return acc
+
+        acc += (k0 * p1 * 2) - (k10 * (p1 * 2) + k11)
+        p2 = 1 * mm
+        if var_nu < p2:
+            return acc
+
+        acc += (k10 * (p2 * 2) + k11) - (k20 * (p2 * 2) + k21)
+        p3 = 2 * mm
+        if var_nu < p3:
+            return acc
+
+        return acc
+
 
 @dataclass()
 class StaticSetup(StaticDisplacementProblem):
@@ -198,6 +219,10 @@ if __name__ == "__main__":
     plt.show()
     for i in range(1000):
         Y[i] = MMLV99().subderivative_normal_direction(X[i], 0.0, 0.0)
+    plt.plot(X, Y)
+    plt.show()
+    for i in range(1000):
+        Y[i] = MMLV99().sub2derivative_normal_direction(X[i], 0.0, 0.0)
     plt.plot(X, Y)
     plt.show()
 

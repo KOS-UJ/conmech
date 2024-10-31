@@ -84,6 +84,13 @@ class Optimization(Solver):
             )
         else:
             self.subgradient = None
+        if hasattr(contact_law, "sub2derivative_normal_direction"):  # TODO
+            self.sub2gradient = make_subgradient(
+                normal_condition=contact_law.sub2derivative_normal_direction,
+                only_boundary=True,
+            )
+        else:
+            self.sub2gradient = None
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
@@ -150,7 +157,7 @@ class Optimization(Solver):
             # pylint: disable=import-outside-toplevel,import-error)
             from kosopt.qsmlm import make_minimizer
 
-            self.minimizer = make_minimizer(self.loss, self.subgradient)
+            self.minimizer = make_minimizer(self.loss, self.subgradient, self.sub2gradient)
 
         while norm >= fixed_point_abs_tol:
             if method.lower() in QSMLM_NAMES:

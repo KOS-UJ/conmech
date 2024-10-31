@@ -228,6 +228,7 @@ def make_subgradient(
     tangential_condition_bound: Optional[Callable] = None,
     problem_dimension=2,
     variable_dimension=2,
+    only_boundary=False,
 ):
     normal_condition = njit(normal_condition)
     normal_condition_bound = njit(normal_condition_bound, value=1)
@@ -304,7 +305,10 @@ def make_subgradient(
             var, var_old, u_vector, nodes, contact_boundary, contact_normals, dt
         )
         ind = lhs.shape[0]
-        result_ = np.dot(lhs, var[:ind]) - rhs + dj
+        if only_boundary:
+            result_ = dj
+        else:
+            result_ = np.dot(lhs, var[:ind]) - rhs + dj
         result[:ind] = result_.ravel()
         return result
 
