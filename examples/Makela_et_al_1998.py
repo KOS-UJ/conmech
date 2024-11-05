@@ -247,11 +247,15 @@ def plot_losses(path):
     with open(path, "rb") as output:
         losses = pickle.load(output)
 
-    for mtd, values in losses.items():
+    for i, (mtd, values) in enumerate(losses.items()):
         forces_ = np.asarray(list(values.keys()))
         values_ = np.asarray(list(values.values()))[:, 0]
         times_ = np.asarray(list(values.values()))[:, 1]
-        plt.plot(forces_ / 1e3, -1 * values_, "-o", label=mtd)
+        # plt.plot(forces_ / 1e3, -1 * values_, "-o", label=mtd, linewidth=3*(len(losses.items()) - i))
+        total_width = 300
+        width = total_width / len(losses.items())
+        shift = total_width / 2 + i * width + width / 2
+        plt.bar(forces_ / 1e3 + shift, -1 * values_, label=mtd, width=width)
     plt.legend()
     plt.ylabel("$-\mathcal{L}(u)$")
     plt.xlabel(r"Load [kN/m$^2$]")
@@ -299,14 +303,14 @@ if __name__ == "__main__":
         Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0)
     plt.plot(X, Y)
     plt.show()
-    # for i in range(1000):
-    #     Y[i] = MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
-    # plt.plot(X, Y)
-    # plt.show()
-    # for i in range(1000):
-    #     Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0) + MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
-    # plt.plot(X, Y)
-    # plt.show()
+    for i in range(1000):
+        Y[i] = MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
+    plt.plot(X, Y)
+    plt.show()
+    for i in range(1000):
+        Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0) + MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
+    plt.plot(X, Y)
+    plt.show()
 
     forces = np.asarray(
         (

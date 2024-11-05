@@ -45,6 +45,7 @@ QSMLM_NAMES = {
     "qsm",
     "qsmlm",
 }
+QSMLM_NAMES = {"dc " + name for name in QSMLM_NAMES}.union(QSMLM_NAMES)
 GLOBAL_QSMLM_NAMES = {
     "global quasi secant method",
     "global limited memory quasi secant method",
@@ -52,6 +53,7 @@ GLOBAL_QSMLM_NAMES = {
     "globqsm",
     "globqsmlm",
 }
+GLOBAL_QSMLM_NAMES = {"dc " + name for name in GLOBAL_QSMLM_NAMES}.union(GLOBAL_QSMLM_NAMES)
 
 
 class Optimization(Solver):
@@ -157,7 +159,11 @@ class Optimization(Solver):
             # pylint: disable=import-outside-toplevel,import-error)
             from kosopt.qsmlm import make_minimizer
 
-            self.minimizer = make_minimizer(self.loss, self.subgradient, self.sub2gradient)
+            self.minimizer = make_minimizer(
+                self.loss,
+                self.subgradient,
+                self.sub2gradient if method.lower().startswith("dc") else None
+            )
 
         while norm >= fixed_point_abs_tol:
             if method.lower() in QSMLM_NAMES:
