@@ -16,75 +16,13 @@ from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
 from examples.Makela_et_al_1998 import loss_value, plot_losses
 
-mesh_density = 4
+cc = 1.5
+mesh_density = 8
 kN = 1000
 mm = 0.001
-E = 1.378e8 * kN
-kappa = 0.3
-surface = 5 * mm * 80 * mm
-k0 = 30e6 * kN * surface
-k10 = 10e6 * kN * surface
-k11 = 10e3 * kN * surface
-k20 = 5e6 * kN * surface
-k21 = 5e3 * kN * surface
-k30 = 2.5e12 * kN * surface
-
-
-class MMLV99(ContactLaw):
-    @staticmethod
-    def potential_normal_direction(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
-        if var_nu <= 0:
-            return 0.0
-        if var_nu < 0.5 * mm:
-            return k0 * var_nu**2
-        if var_nu < 1 * mm:
-            return k10 * var_nu**2 + k11 * var_nu
-        if var_nu < 2 * mm:
-            return k20 * var_nu**2 + k21 * var_nu + 4
-        return var_nu**4 * k30
-
-    @staticmethod
-    def potential_tangential_direction(
-        var_tau: float, static_displacement_tau: float, dt: float
-    ) -> float:
-        return np.log(np.sum(var_tau**2) ** 0.5 + 1)
-
-    @staticmethod
-    def subderivative_normal_direction(
-        var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
-        if var_nu <= 0:
-            return 0.0
-        if var_nu < 0.5 * mm:
-            return k0 * var_nu * 2
-        if var_nu < 1 * mm:
-            return k10 * (var_nu * 2) + k11
-        if var_nu < 2 * mm:
-            return k20 * (var_nu * 2) + k21
-        return var_nu**3 * 4 * k30
-
-    @staticmethod
-    def sub2derivative_normal_direction(
-            var_nu: float, static_displacement_nu: float, dt: float
-    ) -> float:
-        acc = 0.0
-        p1 = 0.5 * mm
-        if var_nu <= p1:
-            return acc
-
-        acc += (k0 * p1 * 2) - (k10 * (p1 * 2) + k11)
-        p2 = 1 * mm
-        if var_nu < p2:
-            return acc
-
-        acc += (k10 * (p2 * 2) + k11) - (k20 * (p2 * 2) + k21)
-        p3 = 2 * mm
-        if var_nu < p3:
-            return acc
-
-        return acc
+E = cc * 1.378e8 * kN
+kappa = 0.4
+surface = 10 * mm * 100 * mm
 
 
 def make_composite_contact_law(layers, alpha, beta):
@@ -157,10 +95,10 @@ def make_composite_contact_law(layers, alpha, beta):
 @dataclass()
 class StaticSetup(StaticDisplacementProblem):
     grid_height: ... = 10 * mm
-    elements_number: ... = (mesh_density, 8 * mesh_density)
+    elements_number: ... = (mesh_density, 6 * mesh_density)
     mu_coef: ... = (E * surface) / (2 * (1 + kappa))
     la_coef: ... = ((E * surface) * kappa) / ((1 + kappa) * (1 - 2 * kappa))
-    contact_law: ... = MMLV99
+    contact_law: ... = None
 
     @staticmethod
     def inner_forces(x, t=None):
@@ -203,7 +141,7 @@ def main(config: Config, methods, forces, contact, prefix=""):
     mesh_descr = RectangleMeshDescription(
         initial_position=None,
         max_element_perimeter=0.25 * 10 * mm,
-        scale=[8 * 10 * mm, 10 * mm],
+        scale=[4 * 10 * mm, 10 * mm],
     )
 
     if to_simulate:
@@ -234,7 +172,7 @@ def main(config: Config, methods, forces, contact, prefix=""):
                 method=method,
                 maxiter=100,
             )
-            m_loss[force] = loss_value(state, validator), time.time() - start
+            m_loss[force] = loss_value(state, validator), runner.step_solver.computation_time
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
             with open(path, "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -253,28 +191,28 @@ def main(config: Config, methods, forces, contact, prefix=""):
     # if config.show:
     plot_losses(path)
 
-    # for m in methods:
-    #     for f in forces:
-    #         path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
-    #         with open(path, "rb") as output:
-    #             state = pickle.load(output)
-    #
-    #         drawer = Drawer(state=state, config=config)
-    #         drawer.colorful = True
-    #         drawer.draw(
-    #             show=config.show,
-    #             save=config.save,
-    #             title=f"{m}: {f}, ",
-    #             # f"time: {runner.step_solver.last_timing}"
-    #         )
-    #         x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
-    #         u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
-    #         y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
-    #         print(f)
-    #         plt.plot(x, y1, label=f"{f:.2e}")
-    #     plt.title(m)
-    #     plt.legend()
-    #     plt.show()
+    for m in methods[:]:
+        for f in forces[3:4]:
+            path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
+            with open(path, "rb") as output:
+                state = pickle.load(output)
+
+            drawer = Drawer(state=state, config=config)
+            drawer.colorful = True
+            drawer.draw(
+                show=config.show,
+                save=config.save,
+                title=f"{m}: {f}, ",
+                # f"time: {runner.step_solver.last_timing}"
+            )
+            # x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
+            # u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
+            # y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
+            # print(f)
+            # plt.plot(x, u, label=f"{f:.2e}")
+        # plt.title(m)
+        # plt.legend()
+        # plt.show()
 
 
 def composite_problem(config, layers_limits, thickness, methods, forces):
@@ -286,24 +224,24 @@ def composite_problem(config, layers_limits, thickness, methods, forces):
     def top(x):
         # if x >= thickness:
         #     return 0.0
-        return 15.0 / mm + (x / mm) / mm
+        return (15.0 / mm + (x / mm) / mm) * surface / 400 / mm**2 * cc
 
     contact = make_composite_contact_law(layers_limits, alpha=bottom, beta=top)
 
-    X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000)
-    Y = np.empty(1000)
-    for i in range(1000):
-        Y[i] = contact.potential_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
-    plt.show()
-    for i in range(1000):
-        Y[i] = contact.subderivative_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
+    # X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000)
+    # Y = np.empty(1000)
+    # for i in range(1000):
+    #     Y[i] = contact.potential_normal_direction(X[i], 0.0, 0.0)
+    # plt.plot(X, Y)
     # plt.show()
-    for i in range(1000):
-        Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
-    plt.show()
+    # for i in range(1000):
+    #     Y[i] = contact.subderivative_normal_direction(X[i], 0.0, 0.0)
+    # plt.plot(X, Y)
+    # # plt.show()
+    # for i in range(1000):
+    #     Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
+    # plt.plot(X, Y)
+    # plt.show()
     main(config, methods, forces, contact, prefix=str(len(layers_limits)))
 
 
@@ -315,21 +253,23 @@ def survey(config):
         # "CG",
         "Powell",
         "qsm",
-        "dc qsm",
-        "globqsm",
+        # "globqsm",
+        # "dc qsm",
         "dc globqsm"
     )[:]
-    forces = (
-        23e3 * kN,
-        25e3 * kN,
-        25.5e3 * kN,
+    forces = np.asarray((
+        # 23e3 * kN,
+        24e3 * kN,
+        # 25e3 * kN,
+        # 25.5e3 * kN,
         26e3 * kN,
-        26.5e3 * kN,
-        27e3 * kN,
+        # 26.5e3 * kN,
+        # 27e3 * kN,
         28e3 * kN,
+        # 29e3 * kN,
         30e3 * kN,
-    )[:]
-    for i in [0, 1, 2, 3, 4, 5, 6, 7, 8]: #range(1, 10 + 1, 2):
+    )) * cc
+    for i in [0, 1, 2, 3, 4, 5, 6, 7, 8][4::2]: #range(1, 10 + 1, 2):
         thickness = 3 * mm
         layers_num = i
         # layers_limits = np.logspace(0, thickness, layers_num + 1)
@@ -355,5 +295,5 @@ def partition(start, stop, num, p=1.0):
 
 
 if __name__ == "__main__":
-    config_ = Config(save=False, show=False, force=True).init()
+    config_ = Config(save=False, show=True, force=True).init()
     survey(config_)

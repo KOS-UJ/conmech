@@ -62,7 +62,7 @@ class StaticProblem(Problem, ABC):
 
 
 class TimeDependentProblem(Problem, ABC):
-    time_step = 0
+    time_step = 0.0
 
 
 class QuasistaticProblem(TimeDependentProblem, ABC):

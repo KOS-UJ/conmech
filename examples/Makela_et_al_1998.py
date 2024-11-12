@@ -316,7 +316,7 @@ if __name__ == "__main__":
         (
             20e3 * kN,
             21e3 * kN,
-            21e3 * kN,
+            22e3 * kN,
             23e3 * kN,
             25e3 * kN,
             26e3 * kN,
@@ -326,5 +326,5 @@ if __name__ == "__main__":
         )
     )[:]
 
-    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm")[-1:]
+    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm", "dc globqsm", "dc qsm")[-4:]
     main(Config(save=False, show=False, force=True).init(), methods, forces)

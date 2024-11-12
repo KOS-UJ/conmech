@@ -63,7 +63,7 @@ class Solver:
             )
         )
 
-        self.last_timing = None
+        self.computation_time = 0.0
 
     def __str__(self) -> str:
         raise NotImplementedError()
@@ -82,7 +82,6 @@ class Solver:
         raise NotImplementedError()
 
     def solve(self, initial_guess: np.ndarray, **kwargs) -> np.ndarray:
-        start = time.time()
         solution = self._solve_impl(
             initial_guess,
             variable_old=self.v_vector,
@@ -97,7 +96,5 @@ class Solver:
                 dirichlet_cond, node_count, self.statement.dimension_in
             ):
                 solution[i] = c[j]
-
-        self.last_timing = time.time() - start
 
         return solution

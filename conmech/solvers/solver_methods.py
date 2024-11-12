@@ -21,7 +21,9 @@ from typing import Callable, Optional, Any
 import numba
 import numpy as np
 
+from conmech.struct.types import *
 from conmech.helpers import nph
+
 
 
 @numba.njit(inline="always")
@@ -153,11 +155,11 @@ def make_cost_functional(
     tangential_condition = njit(tangential_condition)
     tangential_condition_bound = njit(tangential_condition_bound, value=1)
 
-    @numba.njit()
+    @numba.njit(f64(f64, f64, f64, f64, f64))
     def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
         return length * (normal_bound * normal + tangential_bound * tangential)
 
-    @numba.njit()
+    @numba.njit(f64(f64[:], const_f64_vec, const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, f64))
     def contact_cost_functional(
         var, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
     ):
@@ -197,7 +199,9 @@ def make_cost_functional(
         return cost
 
     # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
-    @numba.njit()
+    # @numba.njit(f64[:](f64[:], f64[:], f64[:,:], i64[:,:], f64[:,:], f64[:,:], f64[:], f64[:], f64[:,:], i64))
+    @numba.njit(f64[:](f64[:], const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, const_f64_mat, const_f64_vec, const_f64_vec, const_f64_mat, i64))
+    # @numba.njit()
     def cost_functional(
         var,
         var_old,
@@ -309,6 +313,115 @@ def make_subgradient(
             result_ = dj
         else:
             result_ = np.dot(lhs, var[:ind]) - rhs + dj
+        result[:ind] = result_.ravel()
+        return result
+
+    return cost_functional
+
+
+def make_subgradient_dc(
+    normal_condition: Callable,
+    normal_condition_sub2: Callable,
+    normal_condition_bound: Optional[Callable] = None,
+    tangential_condition: Optional[Callable] = None,
+    tangential_condition_bound: Optional[Callable] = None,
+    problem_dimension=2,
+    variable_dimension=2,
+    only_boundary=False,
+):
+    normal_condition = njit(normal_condition)
+    normal_condition_sub2 = njit(normal_condition_sub2)
+    normal_condition_bound = njit(normal_condition_bound, value=1)
+    tangential_condition = njit(tangential_condition)
+    tangential_condition_bound = njit(tangential_condition_bound, value=1)
+
+    @numba.njit()
+    def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
+        return length * (normal_bound * normal + tangential_bound * tangential)
+
+    @numba.njit()
+    def contact_subgradient(
+        var, var1, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
+    ):
+        cost = np.zeros_like(var)
+        offset = len(var) // variable_dimension
+
+        # pylint: disable=not-an-iterable
+        for ei in numba.prange(len(contact_boundary)):
+            edge = contact_boundary[ei]
+            normal_vector = contact_normals[ei]
+            # ASSUMING `u_vector` and `nodes` have the same order!
+            vm = interpolate_node_between(edge, var, var_old, dimension=variable_dimension)
+            vm1 = interpolate_node_between(edge, var1, var_old, dimension=variable_dimension)
+            if variable_dimension == 1:
+                raise NotImplementedError()  # TODO
+                # vm_normal = vm[0]
+                # vm_tangential = np.empty(0)
+            # else:
+            vm_normal = (vm * normal_vector).sum()
+            vm_tangential = vm - vm_normal * normal_vector
+            vm_normal1 = (vm1 * normal_vector).sum()
+            vm_tangential1 = vm1 - vm_normal1 * normal_vector
+
+            static_displacement_mean = interpolate_node_between(
+                edge,
+                static_displacement,
+                static_displacement,
+                dimension=problem_dimension,
+            )
+            static_displacement_normal = (static_displacement_mean * normal_vector).sum()
+            static_displacement_tangential = (
+                static_displacement_mean - static_displacement_normal * normal_vector
+            )
+
+            subgrad = contact_cost(
+                nph.length(edge, nodes),
+                normal_condition(vm_normal1, static_displacement_normal, dt),
+                normal_condition_bound(vm_normal1, static_displacement_normal, dt),
+                tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
+            ) + contact_cost(
+                nph.length(edge, nodes),
+                normal_condition_sub2(vm_normal1, static_displacement_normal, dt),
+                normal_condition_bound(vm_normal1, static_displacement_normal, dt),
+                tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
+            ) - contact_cost(
+                nph.length(edge, nodes),
+                normal_condition_sub2(vm_normal, static_displacement_normal, dt),
+                normal_condition_bound(vm_normal, static_displacement_normal, dt),
+                tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                tangential_condition_bound(vm_normal, static_displacement_normal, dt),
+            )
+
+            for node in edge:
+                for i in range(variable_dimension):
+                    if node < offset:
+                        cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
+
+        return cost
+
+    # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
+    @numba.njit()
+    def cost_functional(
+        var,
+        var1,
+        var_old,
+        nodes,
+        contact_boundary,
+        contact_normals,
+        lhs,
+        rhs,
+        u_vector,
+        base_integrals,
+        dt,
+    ):
+        result = np.zeros_like(var)
+        dj = contact_subgradient(
+            var, var1, var_old, u_vector, nodes, contact_boundary, contact_normals, dt
+        )
+        ind = lhs.shape[0]
+        result_ = np.dot(lhs, var1[:ind]) - rhs + dj
         result[:ind] = result_.ravel()
         return result
 

@@ -84,6 +84,8 @@ class ProblemSolver:
         self.done = 0
         self.to_do = 1
 
+        self.computation_time = None
+
     @property
     def solving_method(self) -> str:
         return str(self.step_solver)
