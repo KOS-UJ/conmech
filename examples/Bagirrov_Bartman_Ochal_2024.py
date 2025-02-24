@@ -5,24 +5,27 @@ Created at 21.08.2019
 import pickle
 import time
 from dataclasses import dataclass
-from matplotlib import pyplot as plt
 
 import numpy as np
+from matplotlib import pyplot as plt
+
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.plotting.drawer import Drawer
 from conmech.properties.mesh_description import RectangleMeshDescription
 from conmech.scenarios.problems import ContactLaw, StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
+from conmech.state.state import State
 from examples.Makela_et_al_1998 import loss_value, plot_losses
 
-cc = 1.5
-mesh_density = 8
+cc = 0.7
+mesh_density = 20
 kN = 1000
 mm = 0.001
 E = cc * 1.378e8 * kN
 kappa = 0.4
 surface = 10 * mm * 100 * mm
+LENGTH = 210 * mm
 
 
 def make_composite_contact_law(layers, alpha, beta):
@@ -113,11 +116,66 @@ class StaticSetup(StaticDisplacementProblem):
         return 0.0
 
     boundaries: ... = BoundariesDescription(
-        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0
+        contact=lambda x: x[1] == 0, dirichlet=lambda x: x[0] == 0 or x[0] >= LENGTH - 1 * mm
     )
 
 
-def main(config: Config, methods, forces, contact, prefix=""):
+def plot_setup(config: Config, mesh_descr, contact):
+    setup = StaticSetup(mesh_descr=mesh_descr, contact_law=contact)
+    runner = StaticSolver(setup, "global")
+    state = State(runner.body)
+    drawer = Drawer(state=state, config=config)
+    drawer.node_size = 0
+    drawer.colorful = False
+    drawer.original_mesh_color = None
+    drawer.deformed_mesh_color = "white"
+    # drawer.normal_stress_scale = 10
+    drawer.field_name = None
+    drawer.xlabel = "x"
+    drawer.ylabel = "y"
+
+    fig, axes = plt.subplots(1, 1)
+    axes = (axes,)
+    drawer.outer_forces_scale = 0.35
+    drawer.outer_forces_size = 5
+    # plt.title("Reference configuration")
+    # to have nonzero force interface on Neumann boundary.
+    # state.time = 4
+    drawer.x_min = 0
+    drawer.x_max = 0.2
+    drawer.y_min = -0.025
+    drawer.y_max = 0.05
+    # f_limits = [-1, 2]
+    drawer.colorful = False
+    x_min = min(state.displaced_nodes[:, 0])
+    x_max = max(state.displaced_nodes[:, 0])
+    y_min = min(state.displaced_nodes[:, 1])
+    y_max = max(state.displaced_nodes[:, 1])
+    dirichlet_arrows = np.asarray([
+        (x_min, y_min, 1.0, 0.0),
+        (x_max, y_min, -1.0, 0.0),
+        (x_max, y_max, -1.0, 0.0),
+        (x_min, y_max, 1.0, 0.0)])
+    drawer.dirichlet_scale = 200
+    drawer.dirichlet_size = 4
+    drawer.dirichlet_arrows = dirichlet_arrows
+    f_x = np.linspace(x_min, x_max, num=40)
+    coef = lambda x: 1 - ((x - LENGTH / 2) ** 2) / ((LENGTH / 2) ** 2)
+    d_y = np.asarray([-0.01 * coef(x) for x in f_x])
+    # f_y_ort = np.asarray([y_max, 0.0, -0.01])
+    f_y = np.full_like(f_x, y_max)
+    d_x = np.zeros_like(f_x)
+    drawer.outer_forces_arrows = np.column_stack((f_x, f_y, d_x, d_y))
+    drawer.draw(
+        fig_axes=(fig, axes[0]),
+        show=False,
+        # field_min=f_limits[0],
+        # field_max=f_limits[1],
+        save="reference.pdf",
+    )
+
+
+def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
     """
     Entrypoint to example.
 
@@ -133,6 +191,7 @@ def main(config: Config, methods, forces, contact, prefix=""):
                 try:
                     path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
                     with open(path, "rb") as output:
+                        print(path)
                         _ = pickle.load(output)
                 except IOError as ioe:
                     print(ioe)
@@ -141,22 +200,31 @@ def main(config: Config, methods, forces, contact, prefix=""):
     mesh_descr = RectangleMeshDescription(
         initial_position=None,
         max_element_perimeter=0.25 * 10 * mm,
-        scale=[4 * 10 * mm, 10 * mm],
+        scale=[LENGTH, 10 * mm],
     )
+
+    plot_setup(config, mesh_descr, contact)
+    # return
 
     if to_simulate:
         print("Simulating...")
         setup = StaticSetup(mesh_descr=mesh_descr, contact_law=contact)
 
         losses = {}
+        initial_displacement = None
+        mtd = None
         for method, force in to_simulate:
             print(method, force)
+            if "qsm" not in method or mtd != method:
+                initial_displacement = None
+                mtd = method
             m_loss = losses.get(method, {})
             losses[method] = m_loss
 
             def outer_forces(x, t=None):
                 if x[1] >= 0.0099:
-                    return np.array([0, -1 * force * surface])
+                    coef = 1 - ((x[0] - LENGTH / 2) ** 2) / ((LENGTH / 2) ** 2)
+                    return coef * np.array([0, -1 * force * surface])
                 return np.array([0, 0])
 
             setup.outer_forces = outer_forces
@@ -168,10 +236,13 @@ def main(config: Config, methods, forces, contact, prefix=""):
             state = runner.solve(
                 verbose=True,
                 fixed_point_abs_tol=0.001,
-                initial_displacement=setup.initial_displacement,
+                initial_displacement=setup.initial_displacement if initial_displacement is None else initial_displacement,
                 method=method,
                 maxiter=100,
             )
+            initial_guess = state["displacement"] #.T.ravel().reshape(state.body.mesh.dimension, -1)
+            initial_displacement = initial_guess.copy() #np.squeeze(initial_guess.copy().reshape(1, -1))
+
             m_loss[force] = loss_value(state, validator), runner.step_solver.computation_time
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
             with open(path, "wb+") as output:
@@ -189,22 +260,22 @@ def main(config: Config, methods, forces, contact, prefix=""):
 
     path = f"{config.outputs_path}/{PREFIX}_losses"
     # if config.show:
-    plot_losses(path)
+    plot_losses(path, slopes=layers_num)
 
-    for m in methods[:]:
-        for f in forces[3:4]:
-            path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
-            with open(path, "rb") as output:
-                state = pickle.load(output)
-
-            drawer = Drawer(state=state, config=config)
-            drawer.colorful = True
-            drawer.draw(
-                show=config.show,
-                save=config.save,
-                title=f"{m}: {f}, ",
-                # f"time: {runner.step_solver.last_timing}"
-            )
+    # for m in methods[:]:
+    #     for f in forces[3:4]:
+    #         path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
+    #         with open(path, "rb") as output:
+    #             state = pickle.load(output)
+    #
+    #         drawer = Drawer(state=state, config=config)
+    #         drawer.colorful = True
+    #         drawer.draw(
+    #             show=config.show,
+    #             save=config.save,
+    #             title=f"{m}: {f}, ",
+    #             # f"time: {runner.step_solver.last_timing}"
+    #         )
             # x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
             # u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
             # y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
@@ -215,7 +286,7 @@ def main(config: Config, methods, forces, contact, prefix=""):
         # plt.show()
 
 
-def composite_problem(config, layers_limits, thickness, methods, forces):
+def composite_problem(config, layers_limits, thickness, methods, forces, layers_num):
     def bottom(x):
         if x >= thickness:
             return 0.0
@@ -228,53 +299,54 @@ def composite_problem(config, layers_limits, thickness, methods, forces):
 
     contact = make_composite_contact_law(layers_limits, alpha=bottom, beta=top)
 
-    # X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000)
-    # Y = np.empty(1000)
-    # for i in range(1000):
-    #     Y[i] = contact.potential_normal_direction(X[i], 0.0, 0.0)
-    # plt.plot(X, Y)
+    X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000)
+    Y = np.empty(1000)
+    for i in range(1000):
+        Y[i] = contact.potential_normal_direction(X[i], 0.0, 0.0)
+    plt.plot(X, Y)
+    plt.show()
+    for i in range(1000):
+        Y[i] = contact.subderivative_normal_direction(X[i], 0.0, 0.0)
+    plt.plot(X, Y)
     # plt.show()
-    # for i in range(1000):
-    #     Y[i] = contact.subderivative_normal_direction(X[i], 0.0, 0.0)
-    # plt.plot(X, Y)
-    # # plt.show()
-    # for i in range(1000):
-    #     Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
-    # plt.plot(X, Y)
-    # plt.show()
-    main(config, methods, forces, contact, prefix=str(len(layers_limits)))
+    for i in range(1000):
+        Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
+    plt.plot(X, Y)
+    plt.show()
+    main(config, methods, forces, contact, prefix=str(len(layers_limits)), layers_num=layers_num)
 
 
 def survey(config):
     methods = (
         "gradiented BFGS",
-        # "gradiented CG",
+        "gradiented CG",
         "BFGS",
-        # "CG",
+        "CG",
         "Powell",
         "qsm",
-        # "globqsm",
-        # "dc qsm",
-        "dc globqsm"
+        "globqsm",
     )[:]
     forces = np.asarray((
+        # 15e3 * kN,
+        16e3 * kN,
+        17e3 * kN,
+        18e3 * kN,
+        19e3 * kN,
+        20e3 * kN,
+        # 21e3 * kN,
+        22.5e3 * kN,
         # 23e3 * kN,
-        24e3 * kN,
-        # 25e3 * kN,
-        # 25.5e3 * kN,
-        26e3 * kN,
-        # 26.5e3 * kN,
-        # 27e3 * kN,
-        28e3 * kN,
-        # 29e3 * kN,
+        25e3 * kN,
         30e3 * kN,
-    )) * cc
-    for i in [0, 1, 2, 3, 4, 5, 6, 7, 8][4::2]: #range(1, 10 + 1, 2):
+        35e3 * kN,
+        40e3 * kN,
+    ))
+    for i in [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12][:]: #range(1, 10 + 1, 2):
         thickness = 3 * mm
         layers_num = i
         # layers_limits = np.logspace(0, thickness, layers_num + 1)
         layers_limits = partition(0, thickness, layers_num + 1, p=1.25)
-        composite_problem(config, layers_limits, thickness, methods, forces)
+        composite_problem(config, layers_limits, thickness, methods, forces, layers_num)
 
 
 def partition(start, stop, num, p=1.0):
@@ -295,5 +367,5 @@ def partition(start, stop, num, p=1.0):
 
 
 if __name__ == "__main__":
-    config_ = Config(save=False, show=True, force=True).init()
+    config_ = Config(save=False, show=True, force=False).init()
     survey(config_)

@@ -92,7 +92,6 @@ class Optimization(Solver):
             self.sub2gradient = make_subgradient_dc(
                 normal_condition=contact_law.subderivative_normal_direction,
                 normal_condition_sub2=contact_law.sub2derivative_normal_direction,
-                # only_boundary=True,
             )
         else:
             self.sub2gradient = None
@@ -160,7 +159,9 @@ class Optimization(Solver):
         loss.append(self.loss(solution, *args)[0])
         self.computation_time += time.time() - start
 
-        if self.minimizer is None and method.lower() in QSMLM_NAMES.union(GLOBAL_QSMLM_NAMES):
+        if self.minimizer is None and (method.lower() in QSMLM_NAMES
+                                       or any(method.lower().startswith(pref)
+                                              for pref in GLOBAL_QSMLM_NAMES)):
             # pylint: disable=import-outside-toplevel,import-error)
             from kosopt.qsmlm import make_minimizer
 
@@ -177,9 +178,16 @@ class Optimization(Solver):
                 self.computation_time += time.time() - start
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])
-            elif method.lower() in GLOBAL_QSMLM_NAMES:
+            elif any(method.lower().startswith(pref) for pref in GLOBAL_QSMLM_NAMES):
                 # pylint: disable=import-outside-toplevel,import-error)
                 from kosopt import subgradient
+
+                # _, nstep = method.rsplit(" ", 1)
+                nstep = 5
+                try:
+                    nstep = int(nstep)
+                except ValueError:
+                    nstep = 8
 
                 solution, comp_time = subgradient.minimize(
                     self.minimizer,
@@ -189,6 +197,7 @@ class Optimization(Solver):
                     maxiter=maxiter,
                     subgradient=self.subgradient,
                     sub2gradient=self.sub2gradient,
+                    nstep=nstep,
                 )
                 sols.append(solution.copy())
                 loss.append(self.loss(solution, *args)[0])

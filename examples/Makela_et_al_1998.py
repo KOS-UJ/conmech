@@ -242,11 +242,75 @@ def main(config: Config, methods, forces):
         plt.show()
 
 
-def plot_losses(path):
+def plot_losses(path, slopes=None):
     print("Plotting...")
     with open(path, "rb") as output:
         losses = pickle.load(output)
+    data = {
+        "BFGS": (losses["BFGS"], "0.7"),
+        "BFGS (subgrad)": (losses["gradiented BFGS"], "0.6"),
+        "CG": (losses["CG"], "0.4"),
+        "CG (subgrad)": (losses["gradiented CG"], "0.3"),
+        "Powell": (losses["Powell"], "blue"),
+        "subgradient": (losses["qsm"], "pink"),
+        "global subgradient": (losses["globqsm"], "red"),
+    }
 
+    # Grid of plots
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharex=True)
+    styles = ['-', '--', '-.', ':', '-.', '--', '-',]
+
+    # loss
+    for i, (method, (results, color)) in enumerate(data.items()):
+        forces = np.array(list(results.keys())) / 1e6  # N/m2 to MPa
+        losses = -np.array([val[0] for val in results.values()])
+        axes[0].plot(forces, losses, linestyle=styles[i % len(styles)], marker='o', label=method,
+                     linewidth=2, color=color)
+
+    axes[0].set_ylabel("$-\mathcal{L}(u)$", fontsize=14)
+    axes[0].set_xlabel("Load [MPa]", fontsize=14)
+    axes[0].grid(True, linestyle='--', alpha=0.6)
+    axes[0].legend(fontsize=10, loc="lower right")
+    # axes[0].set_xscale("log")
+    axes[0].set_yscale("log")
+    if slopes is not None:
+        fig.suptitle(f"Num. of layers: {slopes + 2}")
+
+    for i, (method, (results, color)) in enumerate(data.items()):
+        forces = np.array(list(results.keys())) / 1e6
+        times = np.array([val[1] for val in results.values()])
+
+        best_losses = {force: min(data[m][0][force][0] for m in data if force in data[m][0]) for force in
+                       results.keys()}
+
+        markers = []
+        for force, (loss, _) in results.items():
+            best_loss = best_losses[force]
+            if loss == best_loss:  # best solution
+                marker = 's'
+            elif loss <= best_loss * 0.9 + 0.01:  # near to solution
+                marker = 'o'
+            else:  # fail
+                marker = 'x'
+            markers.append(marker)
+
+        line, = axes[1].plot(forces, times, linestyle=styles[i % len(styles)], linewidth=2,
+                             label=method, alpha=0.7, color=color)
+        color = line.get_color()  # line color
+        for j, force in enumerate(forces):
+            axes[1].scatter(force, times[j], marker=markers[j], color=color, s=70)
+
+    axes[1].set_ylabel("Computation Time [s]", fontsize=14)
+    axes[1].set_xlabel("Load [MPa]", fontsize=14)
+    axes[1].grid(True, linestyle='--', alpha=0.6)
+    axes[1].set_yscale("log")
+    # axes[1].legend(fontsize=10, loc="upper left")
+
+    plt.tight_layout()
+    plt.savefig(path + ".pdf")
+    plt.show()
+
+    return
     for i, (mtd, values) in enumerate(losses.items()):
         forces_ = np.asarray(list(values.keys()))
         values_ = np.asarray(list(values.values()))[:, 0]

@@ -31,11 +31,16 @@ class Drawer:
         self.deformed_mesh_color = "k"
         self.original_mesh_color = "0.7"
         self.outer_forces_scale = 0
+        self.outer_forces_size = 0
+        self.outer_forces_arrows = None
         self.normal_stress_scale = 0
         self.field_name = None
         self.field_label = None
         self.field = None
         self.colorful = True
+        self.dirichlet_arrows = None
+        self.dirichlet_scale = 10
+        self.dirichlet_size = 8
         self.cmap = None
         self.x_min = None
         self.x_max = None
@@ -189,25 +194,31 @@ class Drawer:
                 edges=self.mesh.neumann_boundary, nodes=nodes, axes=axes, edge_color="g"
             )
         else:
+            nodes = self.state.displaced_nodes
+            self.draw_boundary(
+                edges=self.mesh.boundary_surfaces, nodes=nodes, axes=axes, edge_color="black"
+            )
             self.draw_dirichlet(axes)
 
     def draw_dirichlet(self, axes):
         dirichlet_nodes = self.state.body.mesh.dirichlet_boundary
         dirichlet_nodes = list(set(dirichlet_nodes.flatten()))
-        x = self.state.displaced_nodes[dirichlet_nodes][[0, 1]]
-        v = np.zeros_like(x) + np.asarray([1, 0])
-        if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
+        if self.dirichlet_arrows is None:
+            x = self.state.displaced_nodes[dirichlet_nodes][[0, 1]]
+            v = np.zeros_like(x) + np.asarray([1, 0])
+            self.dirichlet_arrows = np.hstack((x, v))
+        if len(self.dirichlet_arrows) > 0:  # to avoid warning
             axes.quiver(
-                x[:, 0],
-                x[:, 1],
-                v[:, 0],
-                v[:, 1],
+                self.dirichlet_arrows[:, 0],
+                self.dirichlet_arrows[:, 1],
+                self.dirichlet_arrows[:, 2],
+                self.dirichlet_arrows[:, 3],
                 angles="xy",
                 scale_units="xy",
-                scale=8.0,
-                headlength=10,
-                headaxislength=10,
-                headwidth=10,
+                scale=self.dirichlet_scale,
+                headlength=self.dirichlet_size,
+                headaxislength=self.dirichlet_size,
+                headwidth=self.dirichlet_size,
                 pivot="tip",
                 edgecolor="k",
                 facecolor="None",
@@ -218,27 +229,33 @@ class Drawer:
         if self.outer_forces_scale:
             neumann_nodes = self.state.body.mesh.neumann_boundary
             neumann_nodes = list(set(neumann_nodes.flatten()))
-            x = self.state.displaced_nodes[neumann_nodes]
-            v = self.state.body.dynamics.force.outer.node_source(
-                self.state.body.mesh.nodes, self.state.time
-            )[neumann_nodes]
+            if self.outer_forces_arrows is None:
+                x = self.state.displaced_nodes[neumann_nodes]
+                v = self.state.body.dynamics.force.outer.node_source(
+                    self.state.body.mesh.nodes, self.state.time
+                )[neumann_nodes]
+                self.outer_forces_arrows = np.hstack((x, v))
 
             scale = self.outer_forces_scale
 
-            if self.outer_forces_scale < 0:
-                v = normalize(v)
-                v *= -self.outer_forces_scale
-                scale = 1
+            # if self.outer_forces_scale < 0:
+            #     v = normalize(v)
+            #     v *= -self.outer_forces_scale
+            #     scale = 1
 
-            pivot = "tip" if any(v[:, 1] < 0) else "tail"  # TODO
-            if any(v[:, 0]) or any(v[:, 1]):  # to avoid warning
+            pivot = "tip" #if any(v[:, 1] < 0) else "tail"  # TODO
+            if len(self.outer_forces_arrows) > 0:  # to avoid warning
                 axes.quiver(
-                    x[:, 0],
-                    x[:, 1],
-                    v[:, 0],
-                    v[:, 1],
+                    self.outer_forces_arrows[:, 0],
+                    self.outer_forces_arrows[:, 1],
+                    self.outer_forces_arrows[:, 2],
+                    self.outer_forces_arrows[:, 3],
                     angles="xy",
                     scale_units="xy",
+                    headlength=self.outer_forces_size,
+                    headaxislength=self.outer_forces_size,
+                    headwidth=self.outer_forces_size,
+                    width=0.002,
                     scale=scale,
                     pivot=pivot,
                 )
