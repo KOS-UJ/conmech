@@ -286,33 +286,36 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
         # plt.show()
 
 
-def composite_problem(config, layers_limits, thickness, methods, forces, layers_num):
+def composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes=None):
     def bottom(x):
         if x >= thickness:
             return 0.0
-        return 0.0 #(x / mm) ** 2 / mm
+        return 0.0
 
     def top(x):
-        # if x >= thickness:
-        #     return 0.0
         return (15.0 / mm + (x / mm) / mm) * surface / 400 / mm**2 * cc
 
     contact = make_composite_contact_law(layers_limits, alpha=bottom, beta=top)
+    if axes is not None:
+        X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000) * 1000  # m to mm
+        Y = np.empty(1000)
+        T = np.empty(1000)
+        for i in range(1000):
+            Y[i] = contact.potential_normal_direction(X[i] / 1e3, 0.0, 0.0)
+        axes[1].plot(X, Y, color=f"{layers_num * 2 / 20}")
+        # plt.show()
+        for i in range(1000):
+            Y[i] = contact.subderivative_normal_direction(X[i] / 1e3, 0.0, 0.0)
+            Y[i] /= 1000  # kPa to
+            T[i] = top(X[i]) / 1e6 + 26.2
+        axes[0].plot(X, Y, color=f"{layers_num * 2 / 20}")
+        axes[0].plot(X, T, linestyle="--", color="skyblue")
+        # plt.show()
+        # for i in range(1000):
+        #     Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
+        # plt.plot(X, Y)
+        # plt.show()
 
-    X = np.linspace(-thickness / 4, 5 / 4 * thickness, 1000)
-    Y = np.empty(1000)
-    for i in range(1000):
-        Y[i] = contact.potential_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
-    plt.show()
-    for i in range(1000):
-        Y[i] = contact.subderivative_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
-    # plt.show()
-    for i in range(1000):
-        Y[i] = contact.sub2derivative_normal_direction(X[i], 0.0, 0.0)
-    plt.plot(X, Y)
-    plt.show()
     main(config, methods, forces, contact, prefix=str(len(layers_limits)), layers_num=layers_num)
 
 
@@ -341,12 +344,25 @@ def survey(config):
         35e3 * kN,
         40e3 * kN,
     ))
-    for i in [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12][:]: #range(1, 10 + 1, 2):
+
+    # fig, axes = plt.subplots(1, 2, figsize=(15, 5), sharex=True)
+    axes = None
+    for i in reversed([0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12]):
+        if axes is not None and i not in (0, 5):
+            continue
         thickness = 3 * mm
         layers_num = i
         # layers_limits = np.logspace(0, thickness, layers_num + 1)
         layers_limits = partition(0, thickness, layers_num + 1, p=1.25)
-        composite_problem(config, layers_limits, thickness, methods, forces, layers_num)
+        composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes)
+    if axes is not None:
+        axes[0].set_ylabel("Force ($\partial j(u)$) [MPa]", fontsize=14)
+        axes[0].set_xlabel("Penetration ($u$) [mm]", fontsize=14)
+        axes[0].grid()
+        axes[1].set_ylabel("$j(u)$", fontsize=14)
+        axes[1].set_xlabel("Penetration ($u$) [mm]", fontsize=14)
+        axes[1].grid()
+        plt.savefig(config.outputs_path + "/functional.pdf")
 
 
 def partition(start, stop, num, p=1.0):
