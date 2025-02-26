@@ -39,6 +39,7 @@ def make_composite_contact_law(layers, alpha, beta):
     const = np.asarray([alphas[n] - layers[n] * slope[n] for n in range(len(layers) - 1)])
 
     class Composite(ContactLaw):
+        LAYERS = layers
 
         @staticmethod
         def potential_tangential_direction(
@@ -262,28 +263,36 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
     # if config.show:
     plot_losses(path, slopes=layers_num)
 
-    # for m in methods[:]:
-    #     for f in forces[3:4]:
-    #         path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
-    #         with open(path, "rb") as output:
-    #             state = pickle.load(output)
-    #
-    #         drawer = Drawer(state=state, config=config)
-    #         drawer.colorful = True
-    #         drawer.draw(
-    #             show=config.show,
-    #             save=config.save,
-    #             title=f"{m}: {f}, ",
-    #             # f"time: {runner.step_solver.last_timing}"
-    #         )
-            # x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
-            # u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
-            # y1 = [MMLV99().subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
+    colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red")
+    for i, m in enumerate(methods[:]):
+        n_ = 5
+        for f in forces[n_:n_+1]:
+            path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
+            with open(path, "rb") as output:
+                state = pickle.load(output)
+
+            drawer = Drawer(state=state, config=config)
+            # drawer.deformed_mesh_color = "white"
+            # drawer.colorful = True
+            # drawer.draw(
+            #     show=config.show,
+            #     save=config.save,
+            #     title=f"{m}: {f}, ",
+            #     # f"time: {runner.step_solver.last_timing}"
+            # )
+            # print(state.displaced_nodes[drawer.mesh.contact_indices][:, 1])
+            x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
+            if m == methods[0]:
+                for layer in contact.LAYERS:
+                    plt.plot(x * 1000, np.full_like(x, -layer) * 1000, color="skyblue")
+            u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
+            y1 = [contact.subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u]
             # print(f)
-            # plt.plot(x, u, label=f"{f:.2e}")
-        # plt.title(m)
-        # plt.legend()
-        # plt.show()
+            if m == "qsm":
+                m = "subgradient"
+            if m == "globqsm":
+                m = "global subgradient"
+            plt.plot(x * 1000, u * 1000, label=f"{m}", color=colors[i])
 
 
 def composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes=None):
@@ -347,14 +356,25 @@ def survey(config):
 
     # fig, axes = plt.subplots(1, 2, figsize=(15, 5), sharex=True)
     axes = None
-    for i in reversed([0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12]):
+    draw_boundary = True
+    for i in reversed([0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12][:-2]):
         if axes is not None and i not in (0, 5):
+            continue
+        if draw_boundary and i not in (0, 5):
             continue
         thickness = 3 * mm
         layers_num = i
         # layers_limits = np.logspace(0, thickness, layers_num + 1)
         layers_limits = partition(0, thickness, layers_num + 1, p=1.25)
         composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes)
+        if draw_boundary:
+            plt.title(f"Num. of layers: {layers_num + 2}; Load: {forces[5] / 1e6} MPa")
+            plt.ylim(- 4, 1)
+            plt.xlabel(r"Contact Boundary [mm]")
+            plt.ylabel(r"Penetration [mm]")
+            if i == 5:
+                plt.legend()
+            plt.savefig(config.outputs_path + f"/boundary{layers_num + 2}.pdf")
     if axes is not None:
         axes[0].set_ylabel("Force ($\partial j(u)$) [MPa]", fontsize=14)
         axes[0].set_xlabel("Penetration ($u$) [mm]", fontsize=14)
