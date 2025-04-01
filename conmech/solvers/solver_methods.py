@@ -25,7 +25,6 @@ from conmech.struct.types import *
 from conmech.helpers import nph
 
 
-
 @numba.njit(inline="always")
 def interpolate_node_between(edge, vector, full_vector, dimension):
     result = np.zeros(dimension)
@@ -159,7 +158,9 @@ def make_cost_functional(
     def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
         return length * (normal_bound * normal + tangential_bound * tangential)
 
-    @numba.njit(f64(f64[:], const_f64_vec, const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, f64))
+    @numba.njit(
+        f64(f64[:], const_f64_vec, const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, f64)
+    )
     def contact_cost_functional(
         var, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
     ):
@@ -199,9 +200,20 @@ def make_cost_functional(
         return cost
 
     # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
-    # @numba.njit(f64[:](f64[:], f64[:], f64[:,:], i64[:,:], f64[:,:], f64[:,:], f64[:], f64[:], f64[:,:], i64))
-    @numba.njit(f64[:](f64[:], const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, const_f64_mat, const_f64_vec, const_f64_vec, const_f64_mat, f64))
-    # @numba.njit()
+    @numba.njit(
+        f64[:](
+            f64[:],
+            const_f64_vec,
+            const_f64_mat,
+            const_i64_mat,
+            const_f64_mat,
+            const_f64_mat,
+            const_f64_vec,
+            const_f64_vec,
+            const_f64_mat,
+            f64,
+        )
+    )
     def cost_functional(
         var,
         var_old,
@@ -374,24 +386,28 @@ def make_subgradient_dc(
                 static_displacement_mean - static_displacement_normal * normal_vector
             )
 
-            subgrad = contact_cost(
-                nph.length(edge, nodes),
-                normal_condition(vm_normal1, static_displacement_normal, dt),
-                normal_condition_bound(vm_normal1, static_displacement_normal, dt),
-                tangential_condition(vm_tangential, static_displacement_tangential, dt),
-                tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
-            ) + contact_cost(
-                nph.length(edge, nodes),
-                normal_condition_sub2(vm_normal1, static_displacement_normal, dt),
-                normal_condition_bound(vm_normal1, static_displacement_normal, dt),
-                tangential_condition(vm_tangential, static_displacement_tangential, dt),
-                tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
-            ) - contact_cost(
-                nph.length(edge, nodes),
-                normal_condition_sub2(vm_normal, static_displacement_normal, dt),
-                normal_condition_bound(vm_normal, static_displacement_normal, dt),
-                tangential_condition(vm_tangential, static_displacement_tangential, dt),
-                tangential_condition_bound(vm_normal, static_displacement_normal, dt),
+            subgrad = (
+                contact_cost(
+                    nph.length(edge, nodes),
+                    normal_condition(vm_normal1, static_displacement_normal, dt),
+                    normal_condition_bound(vm_normal1, static_displacement_normal, dt),
+                    tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                    tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
+                )
+                + contact_cost(
+                    nph.length(edge, nodes),
+                    normal_condition_sub2(vm_normal1, static_displacement_normal, dt),
+                    normal_condition_bound(vm_normal1, static_displacement_normal, dt),
+                    tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                    tangential_condition_bound(vm_normal1, static_displacement_normal, dt),
+                )
+                - contact_cost(
+                    nph.length(edge, nodes),
+                    normal_condition_sub2(vm_normal, static_displacement_normal, dt),
+                    normal_condition_bound(vm_normal, static_displacement_normal, dt),
+                    tangential_condition(vm_tangential, static_displacement_tangential, dt),
+                    tangential_condition_bound(vm_normal, static_displacement_normal, dt),
+                )
             )
 
             for node in edge:

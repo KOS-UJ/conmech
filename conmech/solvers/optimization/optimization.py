@@ -16,7 +16,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-import math
 import time
 from typing import Optional
 
@@ -24,7 +23,6 @@ import numba
 import numpy as np
 import scipy.optimize
 
-from conmech.struct.types import *
 from conmech.dynamics.statement import (
     Statement,
     StaticPoissonStatement,
@@ -36,7 +34,8 @@ from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_equation,
-    make_subgradient, make_subgradient_dc,
+    make_subgradient,
+    make_subgradient_dc,
 )
 
 
@@ -130,14 +129,11 @@ class Optimization(Solver):
         variable_old: np.ndarray,
         displacement: np.ndarray,
         method="BFGS",
-        fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
         start = time.time()
-        norm = math.inf
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
-        old_solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
         maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
         tol = kwargs.get("tol", 1e-12)
@@ -153,112 +149,91 @@ class Optimization(Solver):
             self.time_step,
         )
 
-        loss = []
-        sols = []
-        sols.append(solution)
-        loss.append(self.loss(solution, *args)[0])
         self.computation_time += time.time() - start
 
-        if self.minimizer is None and (method.lower() in QSMLM_NAMES
-                                       or any(method.lower().startswith(pref)
-                                              for pref in GLOBAL_QSMLM_NAMES)):
+        if self.minimizer is None and (
+            method.lower() in QSMLM_NAMES
+            or any(method.lower().startswith(pref) for pref in GLOBAL_QSMLM_NAMES)
+        ):
             # pylint: disable=import-outside-toplevel,import-error)
             from kosopt.qsmlm import make_minimizer
 
             self.minimizer = make_minimizer(
                 self.loss,
                 self.subgradient,
-                self.sub2gradient if method.lower().startswith("dc") else None
+                self.sub2gradient if method.lower().startswith("dc") else None,
             )
 
-        while norm >= fixed_point_abs_tol:
-            if method.lower() in QSMLM_NAMES:
-                start = time.time()
-                solution = self.minimizer(solution, args, 0, 1, maxiter)
-                self.computation_time += time.time() - start
-                sols.append(solution.copy())
-                loss.append(self.loss(solution, *args)[0])
-            elif any(method.lower().startswith(pref) for pref in GLOBAL_QSMLM_NAMES):
-                # pylint: disable=import-outside-toplevel,import-error)
-                from kosopt import subgradient
+        if method.lower() in QSMLM_NAMES:
+            start = time.time()
+            solution = self.minimizer(solution, args, 0, 1, maxiter)
+            self.computation_time += time.time() - start
+        elif any(method.lower().startswith(pref) for pref in GLOBAL_QSMLM_NAMES):
+            # pylint: disable=import-outside-toplevel,import-error)
+            from kosopt import subgradient
 
-                # _, nstep = method.rsplit(" ", 1)
-                nstep = 5
-                try:
-                    nstep = int(nstep)
-                except ValueError:
-                    nstep = 8
+            nstep = 5
+            try:
+                nstep = int(nstep)
+            except ValueError:
+                nstep = 8
 
-                solution, comp_time = subgradient.minimize(
-                    self.minimizer,
-                    self.loss,
-                    solution,
-                    args,
-                    maxiter=maxiter,
-                    subgradient=self.subgradient,
-                    sub2gradient=self.sub2gradient,
-                    nstep=nstep,
-                )
-                sols.append(solution.copy())
-                loss.append(self.loss(solution, *args)[0])
-                self.computation_time += comp_time
-            elif method.lower() in (  # TODO
-                "discontinuous gradient",
-                "discontinuous gradient method",
-                "dg",
-            ):
-                # pylint: disable=import-outside-toplevel,import-error)
-                from kosopt import qsmlmi
+            solution, comp_time = subgradient.minimize(
+                self.minimizer,
+                self.loss,
+                solution,
+                args,
+                maxiter=maxiter,
+                subgradient=self.subgradient,
+                sub2gradient=self.sub2gradient,
+                nstep=nstep,
+            )
+            self.computation_time += comp_time
+        elif method.lower() in (  # TODO
+            "discontinuous gradient",
+            "discontinuous gradient method",
+            "dg",
+        ):
+            # pylint: disable=import-outside-toplevel,import-error)
+            from kosopt import qsmlmi
 
-                solution = qsmlmi.minimize(self.loss, solution, args, 0, 1, 10000)
-                sols.append(solution.copy())
-                loss.append(self.loss(solution, *args)[0])
-            elif method.lower() == "constrained":
-                contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
+            solution = qsmlmi.minimize(self.loss, solution, args, 0, 1, 10000)
+        elif method.lower() == "constrained":
+            contact_nodes_count = self.body.mesh.boundaries.contact_nodes_count
 
-                @numba.njit()
-                def constr(x):
-                    offset = len(x) // 2
-                    t = x[offset : offset + contact_nodes_count]
-                    return np.min(t)
+            @numba.njit()
+            def constr(x):
+                offset = len(x) // 2
+                t = x[offset : offset + contact_nodes_count]
+                return np.min(t)
 
-                maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
-                tol = kwargs.get("tol", 1e-12)
-                result = scipy.optimize.minimize(
-                    self.loss,
-                    solution,
-                    args=args,
-                    options={"disp": disp, "maxiter": maxiter},
-                    tol=tol,
-                    constraints=({"type": "ineq", "fun": constr}),
-                )
-                solution = result.x
-                sols.append(solution)
-                loss.append(self.loss(solution, *args)[0])
-            else:
-                subgrad = None
-                if method.startswith("gradiented "):
-                    subgrad = self.subgradient
-                    method = method[len("gradiented "):]
-                start = time.time()
-                result = scipy.optimize.minimize(
-                    self.loss,
-                    solution,
-                    args=args,
-                    method=method,
-                    jac=subgrad,
-                    options={"disp": disp, "maxiter": maxiter},
-                    tol=tol,
-                )
-                self.computation_time += time.time() - start
-                solution = result.x
-                sols.append(solution.copy())
-                loss.append(self.loss(solution, *args)[0])
-
-            norm = np.linalg.norm(np.subtract(solution, old_solution))
-            old_solution = solution.copy()
-            break
-        min_index = loss.index(np.min(loss))
-        solution = sols[min_index]
+            maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+            tol = kwargs.get("tol", 1e-12)
+            result = scipy.optimize.minimize(
+                self.loss,
+                solution,
+                args=args,
+                options={"disp": disp, "maxiter": maxiter},
+                tol=tol,
+                constraints=({"type": "ineq", "fun": constr}),
+            )
+            solution = result.x
+        else:
+            subgrad = None
+            if method.startswith("gradiented "):
+                subgrad = self.subgradient
+                method = method[len("gradiented ") :]
+            start = time.time()
+            result = scipy.optimize.minimize(
+                self.loss,
+                solution,
+                args=args,
+                method=method,
+                jac=subgrad,
+                options={"disp": disp, "maxiter": maxiter},
+                tol=tol,
+            )
+            self.computation_time += time.time() - start
+            solution = result.x
 
         return solution

@@ -22,9 +22,17 @@ from numba import float64 as f64
 from numba import int64 as i64
 from numba.types import Tuple
 
-const_i64_vec = types.Array(types.int64, 1, 'A', readonly=True)
-const_i64_mat = types.Array(types.int64, 2, 'A', readonly=True)
-const_f64_vec = types.Array(types.float64, 1, 'A', readonly=True)
-const_f64_mat = types.Array(types.float64, 2, 'A', readonly=True)
+const_i64_vec = types.Array(types.int64, 1, "A", readonly=True)
+const_i64_mat = types.Array(types.int64, 2, "A", readonly=True)
+const_f64_vec = types.Array(types.float64, 1, "A", readonly=True)
+const_f64_mat = types.Array(types.float64, 2, "A", readonly=True)
 
-__all__ = ['const_i64_vec', 'const_i64_mat', 'const_f64_vec', 'const_f64_mat', 'i64', 'f64', 'Tuple']
+__all__ = [
+    "const_i64_vec",
+    "const_i64_mat",
+    "const_f64_vec",
+    "const_f64_mat",
+    "i64",
+    "f64",
+    "Tuple",
+]

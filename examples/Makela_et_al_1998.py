@@ -78,7 +78,7 @@ class MMLV99(PotentialOfContactLaw, DirectContactLaw):
 
     @staticmethod
     def sub2derivative_normal_direction(
-            var_nu: float, static_displacement_nu: float, dt: float
+        var_nu: float, static_displacement_nu: float, dt: float
     ) -> float:
         u_nu = -var_nu
 
@@ -209,8 +209,7 @@ def main(config: Config, methods, forces):
         with open(path, "wb+") as output:
             pickle.dump(losses, output)
 
-    print("Plotting...")\
-
+    print("Plotting...")
     path = f"{config.outputs_path}/{PREFIX}_losses"
     # if config.show:
     plot_losses(path)
@@ -258,18 +257,33 @@ def plot_losses(path, slopes=None):
 
     # Grid of plots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharex=True)
-    styles = ['-', '--', '-.', ':', '-.', '--', '-',]
+    styles = [
+        "-",
+        "--",
+        "-.",
+        ":",
+        "-.",
+        "--",
+        "-",
+    ]
 
     # loss
     for i, (method, (results, color)) in enumerate(data.items()):
         forces = np.array(list(results.keys())) / 1e6  # N/m2 to MPa
         losses = -np.array([val[0] for val in results.values()])
-        axes[0].plot(forces, losses, linestyle=styles[i % len(styles)], marker='o', label=method,
-                     linewidth=2, color=color)
+        axes[0].plot(
+            forces,
+            losses,
+            linestyle=styles[i % len(styles)],
+            marker="o",
+            label=method,
+            linewidth=2,
+            color=color,
+        )
 
     axes[0].set_ylabel("$-\mathcal{L}(u)$", fontsize=14)
     axes[0].set_xlabel("Load [MPa]", fontsize=14)
-    axes[0].grid(True, linestyle='--', alpha=0.6)
+    axes[0].grid(True, linestyle="--", alpha=0.6)
     axes[0].legend(fontsize=10, loc="lower right")
     # axes[0].set_xscale("log")
     axes[0].set_yscale("log")
@@ -280,29 +294,38 @@ def plot_losses(path, slopes=None):
         forces = np.array(list(results.keys())) / 1e6
         times = np.array([val[1] for val in results.values()])
 
-        best_losses = {force: min(data[m][0][force][0] for m in data if force in data[m][0]) for force in
-                       results.keys()}
+        best_losses = {
+            force: min(data[m][0][force][0] for m in data if force in data[m][0])
+            for force in results.keys()
+        }
 
         markers = []
         for force, (loss, _) in results.items():
             best_loss = best_losses[force]
             if loss == best_loss:  # best solution
-                marker = 's'
+                marker = "s"
             elif loss <= best_loss * 0.9 + 0.01:  # near to solution
-                marker = 'o'
+                marker = "o"
             else:  # fail
-                marker = 'x'
+                marker = "x"
             markers.append(marker)
 
-        line, = axes[1].plot(forces, times, linestyle=styles[i % len(styles)], linewidth=2,
-                             label=method, alpha=0.7, color=color)
+        (line,) = axes[1].plot(
+            forces,
+            times,
+            linestyle=styles[i % len(styles)],
+            linewidth=2,
+            label=method,
+            alpha=0.7,
+            color=color,
+        )
         color = line.get_color()  # line color
         for j, force in enumerate(forces):
             axes[1].scatter(force, times[j], marker=markers[j], color=color, s=70)
 
     axes[1].set_ylabel("Computation Time [s]", fontsize=14)
     axes[1].set_xlabel("Load [MPa]", fontsize=14)
-    axes[1].grid(True, linestyle='--', alpha=0.6)
+    axes[1].grid(True, linestyle="--", alpha=0.6)
     axes[1].set_yscale("log")
     # axes[1].legend(fontsize=10, loc="upper left")
 
@@ -335,6 +358,7 @@ def plot_losses(path, slopes=None):
     plt.xlabel(r"Load [kN/m$^2$]")
     plt.grid()
     plt.show()
+
 
 def loss_value(state, runner) -> float:
     initial_guess = state["displacement"].T.ravel().reshape(state.body.mesh.dimension, -1)
@@ -372,7 +396,9 @@ if __name__ == "__main__":
     plt.plot(X, Y)
     plt.show()
     for i in range(1000):
-        Y[i] = MMLV99.subderivative_normal_direction(X[i], 0, 0) + MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
+        Y[i] = MMLV99.subderivative_normal_direction(
+            X[i], 0, 0
+        ) + MMLV99.sub2derivative_normal_direction(X[i], 0, 0)
     plt.plot(X, Y)
     plt.show()
 
@@ -390,5 +416,15 @@ if __name__ == "__main__":
         )
     )[:]
 
-    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm", "dc globqsm", "dc qsm")[-4:]
+    methods = (
+        "gradiented BFGS",
+        "gradiented CG",
+        "BFGS",
+        "CG",
+        "Powell",
+        "globqsm",
+        "qsm",
+        "dc globqsm",
+        "dc qsm",
+    )[-4:]
     main(Config(save=False, show=False, force=True).init(), methods, forces)

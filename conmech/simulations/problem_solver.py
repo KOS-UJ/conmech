@@ -315,7 +315,9 @@ class StaticSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, initial_displacement: Callable | Iterable, verbose: bool = False, **kwargs) -> State:
+    def solve(
+        self, *, initial_displacement: Callable | Iterable, verbose: bool = False, **kwargs
+    ) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints

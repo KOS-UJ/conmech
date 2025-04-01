@@ -10,7 +10,6 @@ import time
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from sklearn.preprocessing import normalize
 
 from conmech.helpers.config import Config
 
@@ -243,7 +242,7 @@ class Drawer:
             #     v *= -self.outer_forces_scale
             #     scale = 1
 
-            pivot = "tip" #if any(v[:, 1] < 0) else "tail"  # TODO
+            pivot = "tip"  # if any(v[:, 1] < 0) else "tail"  # TODO
             if len(self.outer_forces_arrows) > 0:  # to avoid warning
                 axes.quiver(
                     self.outer_forces_arrows[:, 0],

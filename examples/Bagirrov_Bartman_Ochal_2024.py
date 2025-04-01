@@ -32,10 +32,16 @@ def make_composite_contact_law(layers, alpha, beta):
     alphas = np.asarray([alpha(lay) for lay in layers])
     betas = np.asarray([beta(lay) for lay in layers])
     betas[0] = 0
-    integ = np.asarray([0.5 * (layers[n+1] - layers[n]) * (betas[n+1] + alphas[n])
-                        for n in range(len(layers) - 1)])
+    integ = np.asarray(
+        [
+            0.5 * (layers[n + 1] - layers[n]) * (betas[n + 1] + alphas[n])
+            for n in range(len(layers) - 1)
+        ]
+    )
     cumm = np.cumsum(integ)
-    slope = np.asarray([(betas[n + 1] - alphas[n]) / (layers[n + 1] - layers[n]) for n in range(len(layers) - 1)])
+    slope = np.asarray(
+        [(betas[n + 1] - alphas[n]) / (layers[n + 1] - layers[n]) for n in range(len(layers) - 1)]
+    )
     const = np.asarray([alphas[n] - layers[n] * slope[n] for n in range(len(layers) - 1)])
 
     class Composite(ContactLaw):
@@ -43,13 +49,13 @@ def make_composite_contact_law(layers, alpha, beta):
 
         @staticmethod
         def potential_tangential_direction(
-                var_tau: float, static_displacement_tau: float, dt: float
+            var_tau: float, static_displacement_tau: float, dt: float
         ) -> float:
-            return np.log(np.sum(var_tau ** 2) ** 0.5 + 1)
+            return np.log(np.sum(var_tau**2) ** 0.5 + 1)
 
         @staticmethod
         def potential_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             val = 0.0
             if var_nu <= layers[0]:
@@ -58,8 +64,12 @@ def make_composite_contact_law(layers, alpha, beta):
                 if var_nu > layers[n]:
                     continue
                 if n > 1:
-                    val += cumm[n-2]
-                val += 0.5 * (var_nu - layers[n-1]) * (var_nu * slope[n-1] + const[n-1] + alphas[n-1])
+                    val += cumm[n - 2]
+                val += (
+                    0.5
+                    * (var_nu - layers[n - 1])
+                    * (var_nu * slope[n - 1] + const[n - 1] + alphas[n - 1])
+                )
                 break
             else:
                 val = cumm[-1] + alphas[-1] * (var_nu - layers[-1])
@@ -67,19 +77,19 @@ def make_composite_contact_law(layers, alpha, beta):
 
         @staticmethod
         def subderivative_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             if var_nu <= layers[0]:
                 return 0.0
             if layers[-1] < var_nu:
                 return alphas[-1]
             for n in range(len(layers) - 1):
-                if var_nu <= layers[n+1]:
+                if var_nu <= layers[n + 1]:
                     return var_nu * slope[n] + const[n]
 
         @staticmethod
         def sub2derivative_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             acc = 0.0
             if var_nu <= layers[0]:
@@ -88,13 +98,14 @@ def make_composite_contact_law(layers, alpha, beta):
                 if var_nu >= layers[n]:
                     acc += max(0, betas[n] - alphas[n])
                     if n > 0:
-                        acc += max(0, alphas[n-1] - betas[n])
+                        acc += max(0, alphas[n - 1] - betas[n])
                 else:
-                    acc += max(0, - slope[n-1]) * (var_nu - layers[n-1])
+                    acc += max(0, -slope[n - 1]) * (var_nu - layers[n - 1])
                     break
             return acc
 
     return Composite
+
 
 @dataclass()
 class StaticSetup(StaticDisplacementProblem):
@@ -152,11 +163,14 @@ def plot_setup(config: Config, mesh_descr, contact):
     x_max = max(state.displaced_nodes[:, 0])
     y_min = min(state.displaced_nodes[:, 1])
     y_max = max(state.displaced_nodes[:, 1])
-    dirichlet_arrows = np.asarray([
-        (x_min, y_min, 1.0, 0.0),
-        (x_max, y_min, -1.0, 0.0),
-        (x_max, y_max, -1.0, 0.0),
-        (x_min, y_max, 1.0, 0.0)])
+    dirichlet_arrows = np.asarray(
+        [
+            (x_min, y_min, 1.0, 0.0),
+            (x_max, y_min, -1.0, 0.0),
+            (x_max, y_max, -1.0, 0.0),
+            (x_min, y_max, 1.0, 0.0),
+        ]
+    )
     drawer.dirichlet_scale = 200
     drawer.dirichlet_size = 4
     drawer.dirichlet_arrows = dirichlet_arrows
@@ -237,12 +251,20 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
             state = runner.solve(
                 verbose=True,
                 fixed_point_abs_tol=0.001,
-                initial_displacement=setup.initial_displacement if initial_displacement is None else initial_displacement,
+                initial_displacement=(
+                    setup.initial_displacement
+                    if initial_displacement is None
+                    else initial_displacement
+                ),
                 method=method,
                 maxiter=100,
             )
-            initial_guess = state["displacement"] #.T.ravel().reshape(state.body.mesh.dimension, -1)
-            initial_displacement = initial_guess.copy() #np.squeeze(initial_guess.copy().reshape(1, -1))
+            initial_guess = state[
+                "displacement"
+            ]  # .T.ravel().reshape(state.body.mesh.dimension, -1)
+            initial_displacement = (
+                initial_guess.copy()
+            )  # np.squeeze(initial_guess.copy().reshape(1, -1))
 
             m_loss[force] = loss_value(state, validator), runner.step_solver.computation_time
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
@@ -266,7 +288,7 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
     colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red")
     for i, m in enumerate(methods[:]):
         n_ = 5
-        for f in forces[n_:n_+1]:
+        for f in forces[n_ : n_ + 1]:
             path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
             with open(path, "rb") as output:
                 state = pickle.load(output)
@@ -338,21 +360,23 @@ def survey(config):
         "qsm",
         "globqsm",
     )[:]
-    forces = np.asarray((
-        # 15e3 * kN,
-        16e3 * kN,
-        17e3 * kN,
-        18e3 * kN,
-        19e3 * kN,
-        20e3 * kN,
-        # 21e3 * kN,
-        22.5e3 * kN,
-        # 23e3 * kN,
-        25e3 * kN,
-        30e3 * kN,
-        35e3 * kN,
-        40e3 * kN,
-    ))
+    forces = np.asarray(
+        (
+            # 15e3 * kN,
+            16e3 * kN,
+            17e3 * kN,
+            18e3 * kN,
+            19e3 * kN,
+            20e3 * kN,
+            # 21e3 * kN,
+            22.5e3 * kN,
+            # 23e3 * kN,
+            25e3 * kN,
+            30e3 * kN,
+            35e3 * kN,
+            40e3 * kN,
+        )
+    )
 
     # fig, axes = plt.subplots(1, 2, figsize=(15, 5), sharex=True)
     axes = None
@@ -369,7 +393,7 @@ def survey(config):
         composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes)
         if draw_boundary:
             plt.title(f"Num. of layers: {layers_num + 2}; Load: {forces[5] / 1e6} MPa")
-            plt.ylim(- 4, 1)
+            plt.ylim(-4, 1)
             plt.xlabel(r"Contact Boundary [mm]")
             plt.ylabel(r"Penetration [mm]")
             if i == 5:
@@ -396,7 +420,7 @@ def partition(start, stop, num, p=1.0):
     points = [start]
     curr = start
     for i in range(num):
-        curr += first_part * (p ** i)
+        curr += first_part * (p**i)
         points.append(curr)
 
     return np.asarray(points)
