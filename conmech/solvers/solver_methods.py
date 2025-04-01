@@ -21,7 +21,7 @@ from typing import Callable, Optional, Any
 import numba
 import numpy as np
 
-from conmech.struct.types import *
+from conmech.struct.types import f64, cf64, ci64
 from conmech.helpers import nph
 
 
@@ -158,9 +158,7 @@ def make_cost_functional(
     def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
         return length * (normal_bound * normal + tangential_bound * tangential)
 
-    @numba.njit(
-        f64(f64[:], const_f64_vec, const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, f64)
-    )
+    @numba.njit(f64(f64[:], cf64[:], cf64[:], cf64[:, :], ci64[:, :], cf64[:, :], f64))
     def contact_cost_functional(
         var, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
     ):
@@ -203,14 +201,14 @@ def make_cost_functional(
     @numba.njit(
         f64[:](
             f64[:],
-            const_f64_vec,
-            const_f64_mat,
-            const_i64_mat,
-            const_f64_mat,
-            const_f64_mat,
-            const_f64_vec,
-            const_f64_vec,
-            const_f64_mat,
+            cf64[:],
+            cf64[:, :],
+            ci64[:, :],
+            cf64[:, :],
+            cf64[:, :],
+            cf64[:],
+            cf64[:],
+            cf64[:, :],
             f64,
         )
     )
@@ -341,6 +339,8 @@ def make_subgradient_dc(
     variable_dimension=2,
     only_boundary=False,
 ):
+    if only_boundary:
+        pass  # TODO
     normal_condition = njit(normal_condition)
     normal_condition_sub2 = njit(normal_condition_sub2)
     normal_condition_bound = njit(normal_condition_bound, value=1)
@@ -373,7 +373,6 @@ def make_subgradient_dc(
             vm_normal = (vm * normal_vector).sum()
             vm_tangential = vm - vm_normal * normal_vector
             vm_normal1 = (vm1 * normal_vector).sum()
-            vm_tangential1 = vm1 - vm_normal1 * normal_vector
 
             static_displacement_mean = interpolate_node_between(
                 edge,

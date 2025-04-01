@@ -22,16 +22,36 @@ from numba import float64 as f64
 from numba import int64 as i64
 from numba.types import Tuple
 
-const_i64_vec = types.Array(types.int64, 1, "A", readonly=True)
-const_i64_mat = types.Array(types.int64, 2, "A", readonly=True)
-const_f64_vec = types.Array(types.float64, 1, "A", readonly=True)
-const_f64_mat = types.Array(types.float64, 2, "A", readonly=True)
+ci64_vec = types.Array(types.int64, 1, "A", readonly=True)
+ci64_mat = types.Array(types.int64, 2, "A", readonly=True)
+cf64_vec = types.Array(types.float64, 1, "A", readonly=True)
+cf64_mat = types.Array(types.float64, 2, "A", readonly=True)
+
+
+class Tci64:
+    def __getitem__(self, item):
+        if item == slice(None, None, None):
+            return ci64_vec
+        if item == (slice(None, None, None), slice(None, None, None)):
+            return ci64_mat
+        raise TypeError()
+
+
+class Tcf64:
+    def __getitem__(self, item):
+        if item == slice(None, None, None):
+            return cf64_vec
+        if item == (slice(None, None, None), slice(None, None, None)):
+            return cf64_mat
+        raise TypeError()
+
+
+ci64 = Tci64()
+cf64 = Tcf64()
 
 __all__ = [
-    "const_i64_vec",
-    "const_i64_mat",
-    "const_f64_vec",
-    "const_f64_mat",
+    "ci64",
+    "cf64",
     "i64",
     "f64",
     "Tuple",
