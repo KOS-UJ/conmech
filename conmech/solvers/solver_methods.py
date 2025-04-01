@@ -200,7 +200,7 @@ def make_cost_functional(
 
     # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
     # @numba.njit(f64[:](f64[:], f64[:], f64[:,:], i64[:,:], f64[:,:], f64[:,:], f64[:], f64[:], f64[:,:], i64))
-    @numba.njit(f64[:](f64[:], const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, const_f64_mat, const_f64_vec, const_f64_vec, const_f64_mat, i64))
+    @numba.njit(f64[:](f64[:], const_f64_vec, const_f64_mat, const_i64_mat, const_f64_mat, const_f64_mat, const_f64_vec, const_f64_vec, const_f64_mat, f64))
     # @numba.njit()
     def cost_functional(
         var,
