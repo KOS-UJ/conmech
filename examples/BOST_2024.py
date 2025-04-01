@@ -214,6 +214,7 @@ def main(
 def plot_errors(config, X, Y, highlighted_id, save: Optional[str] = None):
     plt.plot(X[:], Y[:], marker="o", color="gray")
     if highlighted_id is not None:
+        highlighted_id = list(highlighted_id)
         plt.plot(X[highlighted_id], Y[highlighted_id], "ro", color="black")
     plt.loglog()
     plt.grid(True, which="major", linestyle="--", linewidth=0.5)

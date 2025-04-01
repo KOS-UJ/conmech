@@ -2,7 +2,7 @@
 General solver for Contact Mechanics problem.
 """
 
-from typing import Callable, List, Optional, Tuple, Type
+from typing import Callable, List, Optional, Tuple, Type, Iterable
 
 import numpy as np
 
@@ -83,6 +83,8 @@ class ProblemSolver:
 
         self.done = 0
         self.to_do = 1
+
+        self.computation_time = None
 
     @property
     def solving_method(self) -> str:
@@ -313,16 +315,21 @@ class StaticSolver(ProblemSolver):
 
     # super class method takes **kwargs, so signatures are consistent
     # pylint: disable=arguments-differ
-    def solve(self, *, initial_displacement: Callable, verbose: bool = False, **kwargs) -> State:
+    def solve(
+        self, *, initial_displacement: Callable | Iterable, verbose: bool = False, **kwargs
+    ) -> State:
         """
         :param initial_displacement: for the solver
         :param verbose: show prints
         :return: state
         """
         state = State(self.body)
-        state.displacement = initial_displacement(
-            self.body.mesh.nodes[: self.body.mesh.nodes_count]
-        )
+        if hasattr(initial_displacement, "__iter__"):
+            state.displacement[:] = initial_displacement
+        else:
+            state.displacement = initial_displacement(
+                self.body.mesh.nodes[: self.body.mesh.nodes_count]
+            )
 
         self.step_solver.u_vector[:] = state.displacement.T.ravel().copy()
         self.step_solver.iterate()

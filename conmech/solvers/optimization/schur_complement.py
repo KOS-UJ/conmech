@@ -2,7 +2,6 @@
 Created at 22.02.2021
 """
 
-import math
 from typing import Tuple
 
 import numpy as np
@@ -77,8 +76,6 @@ class SchurComplementOptimization(Optimization):
     def _solve_impl(
         self,
         initial_guess: np.ndarray,
-        *,
-        fixed_point_abs_tol: float = math.inf,
         **kwargs,
     ) -> np.ndarray:
         # initial_guess: [[xc, xf, xd] [yc, yf, yd]]

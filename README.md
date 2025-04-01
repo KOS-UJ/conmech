@@ -1,28 +1,60 @@
 # conmech
 
-conmech is a simulating package written in Python that allows to numerically solve contact mechanics problems. 
-
-### Description
-
-Contact mechanics describes behaviour of the physical body in contact with the obstacle. Majority of such problems cannot be solved analitically and require numerical procedure. This package implements the Finite Element Method for 2D and 3D bodies and works with static, quasistatic and dynamic problems. It can simulate various physical phenomena, such as friction and obstacle resistance. Additional variables besides displacement, such as the temperature of the body, can be calculated. The project is almost entirely self contained, requires basic Python libraries, [pygmsh](https://github.com/meshpro/pygmsh) along with [Gmsh](https://gmsh.info/) for mesh construction and [Scipy](https://scipy.org/) for solving reformulated problem. The code is modular and can be further extended to include new physical models.
-
-### Sample results
-
-| 2D with temperature | 3D |
-:-------------------------:|:-------------------------:
-<img src="/samples/circle_roll_temperature.gif" width="100%" /> |  <img src="samples/ball_roll_3d.gif" width="100%" />
+**conmech** is a Python package designed for the numerical simulation of contact mechanics problems. 
+It facilitates the analysis of interactions between physical bodies and obstacles, employing the Finite Element Method (FEM) for both 2D and 3D models. The package supports static, quasistatic, and dynamic analyses, enabling the simulation of phenomena such as friction and obstacle resistance. Additionally, conmech can compute variables like body temperature, providing a comprehensive tool for contact mechanics simulations. 
 
 
-### Installation
+## Features
 
-Install Gmsh used for mesh construction and dependencies from "requirements.txt"
+- **Finite Element Analysis**: Implements FEM for accurate modeling of contact mechanics in 2D and 3D structures.
+- **Versatile Problem Solving**: Capable of handling static, quasistatic, and dynamic scenarios.
+- **Friction and Resistance Simulation**: Models complex interactions including frictional forces and obstacle resistance.
+- **Multi-Effects Analysis**: Computes temperature, electric etc. distributions within the analyzed bodies.
 
-    apt-get install python3-gmsh
-    pip install -r requirements.txt
+## Installation
 
-### Usage
+To install conmech, clone the repository and install the required dependencies:
 
-To run sample simulations, start any file from examples folder
+```bash
+git clone https://github.com/KOS-UJ/conmech.git
+cd conmech
+pip install -r requirements.txt
+```
 
-    PYTHONPATH=. python examples/examples_2d.py
+## Usage
 
+After installation, you can utilize conmech in your Python scripts as follows:
+
+```python
+import conmech
+
+# Example usage
+# Initialize your model, define materials, apply boundary conditions, and solve
+```
+
+For detailed examples and tutorials, please refer to the [examples directory](https://github.com/KOS-UJ/conmech/tree/master/examples).
+
+## Contributing
+
+Contributions to conmech are welcome and appreciated. To contribute:
+
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Implement your changes.
+4. Submit a pull request detailing your modifications.
+
+Please ensure adherence to the project's coding standards and include relevant tests for new features.
+
+## License
+
+This project is licensed under the [GPL-3.0 License](https://github.com/KOS-UJ/conmech/blob/master/LICENSE).
+
+## Acknowledgements
+
+This project has received funding from 
+ - the European Union’s Horizon 2020 Research and Innovation Programme under the Marie Sklodowska-Curie Grant Agreement No 823731
+CONMECH,
+ -  National Science Center, Poland, under project OPUS no. 2021/41/B/ST1/01636,
+ - the program Excellence Initiative - Research University at the Jagiellonian University in Kraków. 
+
+For any questions or support, please open an issue on GitHub or contact the maintainers directly. 

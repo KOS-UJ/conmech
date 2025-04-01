@@ -45,7 +45,7 @@ def plot_limit_points(
     finish=True,
     ylim=(0, 1),
 ):
-    buff = np.zeros((2, 1000))
+    buff = np.zeros((2, 1100))  # some extra space for multiple zeros
     buff_size = 0
     for time, zeros in prod.data.items():
         for zero in zeros:  # significant performance improvement
