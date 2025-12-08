@@ -303,7 +303,7 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
             x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
             u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
             y1 = np.asarray([contact.subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u])
-            plt.plot(x, y1/1e3, label=f"{f:.2e}", color=f"{1-(f/4e7)**2}", linewidth=1.0)
+            plt.plot(x, y1 / 1e3, label=f"{f:.2e}", color=f"{1-(f/4e7)**2}", linewidth=1.0)
         plt.ylabel("Mechanical Stress [MN/m$^2$]")
         plt.xlabel(r"Contact interface [mm]")
         plt.grid()
