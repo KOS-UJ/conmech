@@ -1,4 +1,3 @@
-import sys
 import time
 from dataclasses import dataclass
 import pathlib
@@ -15,7 +14,7 @@ class Config:
     save: bool = False
     force: bool = True
     test: bool = False
-    outputs_path: str = "./output" if sys.platform != "darwin" else "output"
+    outputs_path: str = "./output"
     output_dir: Optional[str] = None
     shell: bool = False
     timestamp: int = time.time_ns()
