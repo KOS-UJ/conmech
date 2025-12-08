@@ -283,7 +283,37 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
 
     path = f"{config.outputs_path}/{PREFIX}_losses"
     # if config.show:
-    plot_losses(path, slopes=layers_num)
+    # plot_losses(path, slopes=layers_num)
+
+    for m in methods:
+        for f in forces:
+            path = f"{config.outputs_path}/{PREFIX}_mtd_{m}_frc_{f:.2e}"
+            with open(path, "rb") as output:
+                state = pickle.load(output)
+
+            drawer = Drawer(state=state, config=config)
+            drawer.colorful = True
+            drawer.draw(
+                show=config.show,
+                save=config.save,
+                # title=f"{m}: {f}, "
+                # f"time: {runner.step_solver.last_timing}"
+            )
+
+            x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
+            u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
+            y1 = np.asarray([contact.subderivative_normal_direction(-u_, 0.0, 0.0) for u_ in u])
+            plt.plot(x, y1/1e3, label=f"{f:.2e}", color=f"{1-(f/4e7)**2}", linewidth=1.0)
+        plt.ylabel("Mechanical Stress [MN/m$^2$]")
+        plt.xlabel(r"Contact interface [mm]")
+        plt.grid()
+        if m == "qsm":
+            m = "subgradient"
+        if m == "globqsm":
+            m = "global subgradient"
+        plt.title(m + f" ({layers_num + 2} layers)")
+        # plt.legend()
+        plt.show()
 
     colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red")
     for i, m in enumerate(methods[:]):
@@ -398,6 +428,7 @@ def survey(config):
             plt.ylabel(r"Penetration [mm]")
             if i == 5:
                 plt.legend()
+            # plt.show()
             plt.savefig(config.outputs_path + f"/boundary{layers_num + 2}.pdf")
     if axes is not None:
         axes[0].set_ylabel("Force ($\partial j(u)$) [MPa]", fontsize=14)
@@ -406,6 +437,7 @@ def survey(config):
         axes[1].set_ylabel("$j(u)$", fontsize=14)
         axes[1].set_xlabel("Penetration ($u$) [mm]", fontsize=14)
         axes[1].grid()
+        # plt.show()
         plt.savefig(config.outputs_path + "/functional.pdf")
 
 
