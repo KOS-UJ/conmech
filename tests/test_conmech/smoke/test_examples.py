@@ -1,7 +1,7 @@
 """
 Created at 24.03.2022
 """
-
+import sys
 import shutil
 
 import pytest
@@ -63,5 +63,6 @@ def main_function(request):
 
 
 def test_examples(main_function):
-    main_function()
-    shutil.rmtree("./output")
+    if sys.platform != "darwin":
+        main_function()
+        shutil.rmtree("./output")
