@@ -1,9 +1,23 @@
-"""
-Created at 21.08.2019
-"""
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2024-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 
 import pickle
-import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -247,7 +261,6 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
             runner = StaticSolver(setup, "schur")
             validator = StaticSolver(setup, "global")
 
-            start = time.time()
             state = runner.solve(
                 verbose=True,
                 fixed_point_abs_tol=0.001,
@@ -267,6 +280,7 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
             )  # np.squeeze(initial_guess.copy().reshape(1, -1))
 
             m_loss[force] = loss_value(state, validator), runner.step_solver.computation_time
+            print(method, force, m_loss[force])
             path = f"{config.outputs_path}/{PREFIX}_mtd_{method}_frc_{force:.2e}"
             with open(path, "wb+") as output:
                 state.body.dynamics.force.outer.source = None
@@ -282,8 +296,8 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
     print("Plotting...")
 
     path = f"{config.outputs_path}/{PREFIX}_losses"
-    # if config.show:
-    # plot_losses(path, slopes=layers_num)
+    if config.show:
+        plot_losses(path, slopes=layers_num)
 
     for m in methods:
         for f in forces:
@@ -291,14 +305,14 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
             with open(path, "rb") as output:
                 state = pickle.load(output)
 
-            drawer = Drawer(state=state, config=config)
-            drawer.colorful = True
-            drawer.draw(
-                show=config.show,
-                save=config.save,
-                # title=f"{m}: {f}, "
-                # f"time: {runner.step_solver.last_timing}"
-            )
+            # drawer = Drawer(state=state, config=config)
+            # drawer.colorful = True
+            # drawer.draw(
+            #     show=config.show,
+            #     save=config.save,
+            #     # title=f"{m}: {f}, "
+            #     # f"time: {runner.step_solver.last_timing}"
+            # )
 
             x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
             u = state.displacement[: state.body.mesh.contact_nodes_count - 1, 1]
@@ -315,7 +329,7 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
         # plt.legend()
         plt.show()
 
-    colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red")
+    colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red", "green")[-len(methods):]
     for i, m in enumerate(methods[:]):
         n_ = 5
         for f in forces[n_ : n_ + 1]:
@@ -324,14 +338,14 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
                 state = pickle.load(output)
 
             drawer = Drawer(state=state, config=config)
-            # drawer.deformed_mesh_color = "white"
-            # drawer.colorful = True
-            # drawer.draw(
-            #     show=config.show,
-            #     save=config.save,
-            #     title=f"{m}: {f}, ",
-            #     # f"time: {runner.step_solver.last_timing}"
-            # )
+            drawer.deformed_mesh_color = "white"
+            drawer.colorful = True
+            drawer.draw(
+                show=config.show,
+                save=config.save,
+                title=f"{m}: {f}, ",
+                # f"time: {runner.step_solver.computation_time}"
+            )
             # print(state.displaced_nodes[drawer.mesh.contact_indices][:, 1])
             x = state.body.mesh.nodes[: state.body.mesh.contact_nodes_count - 1, 0]
             if m == methods[0]:
@@ -389,6 +403,7 @@ def survey(config):
         "Powell",
         "qsm",
         "globqsm",
+        #"adam",
     )[:]
     forces = np.asarray(
         (
