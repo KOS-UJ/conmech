@@ -1,6 +1,6 @@
 # CONMECH @ Jagiellonian University in Kraków
 #
-# Copyright (C) 2021-2024  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2021-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -55,6 +55,8 @@ GLOBAL_QSMLM_NAMES = {
     "globqsmlm",
 }
 GLOBAL_QSMLM_NAMES = {"dc " + name for name in GLOBAL_QSMLM_NAMES}.union(GLOBAL_QSMLM_NAMES)
+
+ADAM_NAMES = {"adam", "torch_adam"}
 
 
 class Optimization(Solver):
@@ -164,7 +166,20 @@ class Optimization(Solver):
                 self.sub2gradient if method.lower().startswith("dc") else None,
             )
 
-        if method.lower() in QSMLM_NAMES:
+        if method.lower() in ADAM_NAMES:
+            # pylint: disable=import-outside-toplevel,import-error)
+            from adam import minimize as adam_minimize
+
+            solution, comp_time = adam_minimize(
+                self.loss,
+                solution,
+                args,
+                maxiter=maxiter * 100,
+                subgradient=self.subgradient,
+                lr=1e-5,
+            )
+            self.computation_time += comp_time
+        elif method.lower() in QSMLM_NAMES:
             start = time.time()
             solution = self.minimizer(solution, args, 0, 1, maxiter)
             self.computation_time += time.time() - start

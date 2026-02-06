@@ -253,6 +253,7 @@ def plot_losses(path, slopes=None):
         "Powell": (losses["Powell"], "blue"),
         "subgradient": (losses["qsm"], "pink"),
         "global subgradient": (losses["globqsm"], "red"),
+        "Adam": (losses["adam"], "green"),
     }
 
     # Grid of plots
@@ -265,6 +266,7 @@ def plot_losses(path, slopes=None):
         "-.",
         "--",
         "-",
+        ":",
     ]
 
     # loss

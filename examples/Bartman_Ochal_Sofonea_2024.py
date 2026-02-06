@@ -1,6 +1,6 @@
 # CONMECH @ Jagiellonian University in Kraków
 #
-# Copyright (C) 2023  Piotr Bartman <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2023-2026  Piotr Bartman <piotr.bartman@uj.edu.pl>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
