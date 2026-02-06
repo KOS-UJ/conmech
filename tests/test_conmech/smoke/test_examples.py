@@ -16,8 +16,8 @@ from examples.example_temperature_dynamic import main as dynamic_temp
 from examples.example_dynamic_membrane import main as dynamic_membrane
 from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
-from examples.Sofonea_Ochal_Bartman_2023 import main as Sofonea_Ochal_Bartman_2023
-from examples.BOST_2024 import main as BOST_2024
+from examples.Bartman_Ochal_Sofonea_2024 import main as Bartman_Ochal_Sofonea_2024
+from examples.BartmanSzwarc_Ochal_Sofonea_Tarzia_2025 import main as BOST_2024
 from examples.BOSK_2024 import main as BOSK_2024
 from examples.example_Tarzia_problem import main as Tarzia_problem
 from examples.example_poisson import main as poisson
@@ -41,7 +41,7 @@ test_suits = {
     "Jureczka_Ochal_Bartman_2023": lambda: Jureczka_Ochal_Bartman_2023(
         Config(outputs_path="./output/JOB2023", **default_args).init()
     ),
-    "Sofonea_Ochal_Bartman_2023": lambda: Sofonea_Ochal_Bartman_2023(
+    "Bartman_Ochal_Sofonea_2024": lambda: Bartman_Ochal_Sofonea_2024(
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
     "BOST_2024": lambda: BOST_2024(Config(outputs_path="./output/BOST2024", **default_args).init()),
