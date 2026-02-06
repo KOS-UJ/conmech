@@ -10,10 +10,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.simulations.problem_solver import StaticSolver
-from conmech.properties.mesh_description import (
-    CrossMeshDescription,
-    CubeMeshDescription,
-)
+from conmech.properties.mesh_description import CubeMeshDescription
 from conmech.dynamics.contact.relu_slope_contact_law import make_slope_contact_law
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
@@ -63,13 +60,13 @@ def generate_test_suits():
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [-0.0062681, 0.01092748, 0.0123151],
-        [-0.00694282, 0.01796747, 0.021246],
-        [-0.00016377, 0.01769789, 0.02100172],
         [-0.00086678, 0.0100699, 0.0117306],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
         [0.00494897, 0.00864805, 0.0115685],
         [0.00615472, 0.0164003, 0.02059693],
+        [-0.00016377, 0.01769789, 0.02100172],
+        [-0.00694282, 0.01796747, 0.021246],
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.01361542, 0.01025, 0.01362368],
@@ -106,13 +103,13 @@ def generate_test_suits():
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.01132733, -0.01349373, -0.01349373],
-        [0.01346888, -0.02202116, -0.02202116],
-        [0.0075367, -0.02218005, -0.02140411],
         [0.00563059, -0.01291526, -0.01197369],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
         [0.00016529, -0.01172428, -0.01087314],
         [0.00039165, -0.02130339, -0.02055906],
+        [0.0075367, -0.02218005, -0.02140411],
+        [0.01346888, -0.02202116, -0.02202116],
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [-0.01099676, -0.01264259, -0.01264259],

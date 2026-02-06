@@ -1,6 +1,21 @@
-"""
-Created at 16.02.2022
-"""
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 
 from typing import Callable, Tuple, Union
 
@@ -64,17 +79,31 @@ def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     D - dirichlet node
     Dirichlet override other
     """
-    # move boundary nodes to the top
+    # C | N | I | D
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
-    # then move contact nodes to the top
-    nodes, elements, contact_nodes_count = reorder(
+    # C | N | D
+    # I
+    nodes, elements, neumann_nodes_count = reorder(
         nodes,
         elements,
-        lambda *args: is_contact(*args) and not is_dirichlet(*args),
-        to_top=True,
+        # lambda *args: is_contact(*args) and not is_dirichlet(*args),
+        lambda *args: not is_contact(*args) and not is_dirichlet(*args),
+        to_top=False,
     )
-    # finally move dirichlet nodes to the bottom
+    # C | D
+    # I
+    # N
+    nodes, elements, contact_nodes_count = reorder(nodes, elements, is_contact, to_top=True)
+    # C
+    # N
+    # I
+    # D
+    # if node is both contact and dirichlet we treat it as dirichlet
     nodes, elements, dirichlet_nodes_count = reorder(nodes, elements, is_dirichlet, to_top=False)
+    # C
+    # N
+    # I
+    # D
     return (
         nodes,
         elements,
