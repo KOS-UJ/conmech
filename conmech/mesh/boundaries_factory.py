@@ -83,7 +83,7 @@ def reorder_boundary_nodes(nodes, elements, is_contact, is_dirichlet):
     nodes, elements, boundary_nodes_count = reorder(nodes, elements, lambda _: True, to_top=True)
     # C | N | D
     # I
-    nodes, elements, neumann_nodes_count = reorder(
+    nodes, elements, _neumann_nodes_count = reorder(
         nodes,
         elements,
         # lambda *args: is_contact(*args) and not is_dirichlet(*args),
