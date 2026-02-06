@@ -29,9 +29,7 @@ from examples.example_poisson import StaticPoissonSetup
 def run_simulation(element_size, label):
     print(f"{label}: (element size ~{element_size})...")
     mesh_descr = CrossMeshDescription(
-        initial_position=None,
-        max_element_perimeter=element_size,
-        scale=[1, 1]
+        initial_position=None, max_element_perimeter=element_size, scale=[1, 1]
     )
     setup = StaticPoissonSetup(mesh_descr)
     runner = PoissonSolver(setup, "direct")
@@ -53,7 +51,7 @@ def main():
     nodes_f = state_fine.body.mesh.nodes
     vals_f = state_fine.temperature.flatten()
 
-    vals_c_interp = griddata(nodes_c, vals_c, nodes_f, method='linear')
+    vals_c_interp = griddata(nodes_c, vals_c, nodes_f, method="linear")
 
     mask = ~np.isnan(vals_c_interp)
 
@@ -66,29 +64,36 @@ def main():
     triang_c = tri.Triangulation(nodes_c[:, 0], nodes_c[:, 1], state_coarse.body.mesh.elements)
     triang_f = tri.Triangulation(nodes_f[:, 0], nodes_f[:, 1], state_fine.body.mesh.elements)
 
-    tc1 = axes[0].tripcolor(triang_c, vals_c, cmap='viridis', shading='gouraud')
-    axes[0].triplot(triang_c, 'k-', alpha=0.3, linewidth=0.5)
+    tc1 = axes[0].tripcolor(triang_c, vals_c, cmap="viridis", shading="gouraud")
+    axes[0].triplot(triang_c, "k-", alpha=0.3, linewidth=0.5)
     axes[0].set_title(f"Coarse mesh, h={coarse_size}")
     plt.colorbar(tc1, ax=axes[0])
-    axes[0].set_aspect('equal')
+    axes[0].set_aspect("equal")
 
-    tc2 = axes[1].tripcolor(triang_f, vals_f, cmap='viridis', shading='gouraud')
+    tc2 = axes[1].tripcolor(triang_f, vals_f, cmap="viridis", shading="gouraud")
     axes[1].set_title(f"Fine mesh, h={fine_size}")
     plt.colorbar(tc2, ax=axes[1])
-    axes[1].set_aspect('equal')
+    axes[1].set_aspect("equal")
 
-    tc3 = axes[2].tripcolor(triang_f, local_error, cmap='inferno', shading='gouraud')
+    tc3 = axes[2].tripcolor(triang_f, local_error, cmap="inferno", shading="gouraud")
     axes[2].set_title("\n$|u_{ref} - u_{h}|$")
     cb3 = plt.colorbar(tc3, ax=axes[2])
-    cb3.set_label('Error magnitude')
-    axes[2].set_aspect('equal')
+    cb3.set_label("Error magnitude")
+    axes[2].set_aspect("equal")
 
     threshold = 0.3 * np.max(local_error)
-    axes[2].tricontour(triang_f, local_error, levels=[threshold], colors='white',
-                       linestyles='dashed', linewidths=2)
-    axes[2].text(0.5, -0.15,
-                 "In white dashed line h-adaptive refinement needed",
-                 ha='center', transform=axes[2].transAxes, fontsize=10, style='italic')
+    axes[2].tricontour(
+        triang_f, local_error, levels=[threshold], colors="white", linestyles="dashed", linewidths=2
+    )
+    axes[2].text(
+        0.5,
+        -0.15,
+        "In white dashed line h-adaptive refinement needed",
+        ha="center",
+        transform=axes[2].transAxes,
+        fontsize=10,
+        style="italic",
+    )
 
     plt.suptitle("Mesh refinement potential zones", fontsize=16)
     plt.tight_layout()

@@ -59,8 +59,8 @@ def solution(x):
     X_c = x[:, 0]
     Y_c = x[:, 1]
 
-    res[:, 0] = ALPHA * (2 * X_c * Y_c + X_c * Y_c ** 2)
-    res[:, 1] = -ALPHA * X_c ** 2 * (1 + Y_c)
+    res[:, 0] = ALPHA * (2 * X_c * Y_c + X_c * Y_c**2)
+    res[:, 1] = -ALPHA * X_c**2 * (1 + Y_c)
     return res
 
 
@@ -70,11 +70,11 @@ def make_linear_contact_law(stiffness: float) -> Type[ContactLaw]:
     class LinearPenaltyLaw(DirectContactLaw, PotentialOfContactLaw):
         @staticmethod
         def potential_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             if var_nu <= 0:
                 return 0.0
-            return 0.5 * stiffness * var_nu ** 2
+            return 0.5 * stiffness * var_nu**2
 
         @staticmethod
         def potential_tangential_direction(var_tau, static_disp, dt) -> float:
@@ -82,7 +82,7 @@ def make_linear_contact_law(stiffness: float) -> Type[ContactLaw]:
 
         @staticmethod
         def subderivative_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             if var_nu <= 0:
                 return 0.0
@@ -125,8 +125,8 @@ class MMS_SelfBalancing(StaticDisplacementProblem):
         # 1. Right edge (x=W), n=[1, 0]
         # t_x = sigma_xx, t_y = sigma_xy = 0
         if X_c > W - 0.001:
-            eps_xx = ALPHA * (2 * Y_c + Y_c ** 2)
-            eps_yy = -ALPHA * X_c ** 2
+            eps_xx = ALPHA * (2 * Y_c + Y_c**2)
+            eps_yy = -ALPHA * X_c**2
 
             sig_xx = (LAMBDA + 2 * MU) * eps_xx + LAMBDA * eps_yy
             result += np.array([sig_xx, 0.0])
@@ -134,8 +134,8 @@ class MMS_SelfBalancing(StaticDisplacementProblem):
         # 2. Upper edge (y=H), n=[0, 1]
         # t_x = sigma_xy = 0, t_y = sigma_yy
         if Y_c > H - 0.001:
-            eps_xx = ALPHA * (2 * Y_c + Y_c ** 2)
-            eps_yy = -ALPHA * X_c ** 2
+            eps_xx = ALPHA * (2 * Y_c + Y_c**2)
+            eps_yy = -ALPHA * X_c**2
 
             sig_yy = LAMBDA * eps_xx + (LAMBDA + 2 * MU) * eps_yy
             result += np.array([0.0, sig_yy])
@@ -183,10 +183,7 @@ def calculate_l2_errors(elements, nodes, exact_vals, approx_vals):
     dot31 = np.sum(d3 * d1, axis=1)
 
     # element_integrals[i] = integral over ||e||^2
-    element_integrals = (areas / 6.0) * (
-            dot11 + dot22 + dot33 +
-            dot12 + dot23 + dot31
-    )
+    element_integrals = (areas / 6.0) * (dot11 + dot22 + dot33 + dot12 + dot23 + dot31)
 
     total_l2_norm = np.sqrt(np.sum(element_integrals))
 
@@ -216,8 +213,9 @@ def main(config: Config):
     setup = MMS_SelfBalancing(mesh_descr=mesh_descr)
     runner = StaticSolver(setup, solving_method)
 
-    state = runner.solve(verbose=True, initial_displacement=setup.initial_displacement,
-                         method="qsm")
+    state = runner.solve(
+        verbose=True, initial_displacement=setup.initial_displacement, method="qsm"
+    )
 
     drawer = Drawer(state=state, config=config)
 
@@ -226,8 +224,9 @@ def main(config: Config):
     drawer.initial_nodes = state.body.mesh.nodes + displacement
 
     # errors = drawer.initial_nodes - state.displaced_nodes
-    errors, total = calculate_l2_errors(state.body.mesh.elements, state.body.mesh.nodes,
-                                        drawer.initial_nodes, state.displaced_nodes)
+    errors, total = calculate_l2_errors(
+        state.body.mesh.elements, state.body.mesh.nodes, drawer.initial_nodes, state.displaced_nodes
+    )
     print(f"Total L2 error: {total}")
     # errors = np.linalg.norm(errors, axis=1)
 
@@ -236,11 +235,18 @@ def main(config: Config):
     drawer.original_mesh_color = None
     drawer.deformed_mesh_color = None
 
-    drawer.draw(show=config.show, save=config.save, field_max=np.max(drawer.field),
-                field_min=np.min(drawer.field))
+    drawer.draw(
+        show=config.show,
+        save=config.save,
+        field_max=np.max(drawer.field),
+        field_min=np.min(drawer.field),
+    )
 
 
 if __name__ == "__main__":
     show = True
-    main(Config(save="output" if not show else False, show=show, force=False,
-                output_dir="mms").init())
+    main(
+        Config(
+            save="output" if not show else False, show=show, force=False, output_dir="mms"
+        ).init()
+    )

@@ -329,7 +329,7 @@ def main(config: Config, methods, forces, contact, prefix="", layers_num=None):
         # plt.legend()
         plt.show()
 
-    colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red", "green")[-len(methods):]
+    colors = ("0.7", "0.6", "0.4", "0.3", "blue", "pink", "red", "green")[-len(methods) :]
     for i, m in enumerate(methods[:]):
         n_ = 5
         for f in forces[n_ : n_ + 1]:
@@ -403,7 +403,7 @@ def survey(config):
         "Powell",
         "qsm",
         "globqsm",
-        #"adam",
+        # "adam",
     )[:]
     forces = np.asarray(
         (

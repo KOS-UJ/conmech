@@ -58,6 +58,7 @@ GLOBAL_QSMLM_NAMES = {"dc " + name for name in GLOBAL_QSMLM_NAMES}.union(GLOBAL_
 
 ADAM_NAMES = {"adam", "torch_adam"}
 
+
 class Optimization(Solver):
     def __init__(
         self,
@@ -168,11 +169,12 @@ class Optimization(Solver):
         if method.lower() in ADAM_NAMES:
             # pylint: disable=import-outside-toplevel,import-error)
             from adam import minimize as adam_minimize
+
             solution, comp_time = adam_minimize(
                 self.loss,
                 solution,
                 args,
-                maxiter=maxiter*100,
+                maxiter=maxiter * 100,
                 subgradient=self.subgradient,
                 lr=1e-5,
             )
