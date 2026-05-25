@@ -18,7 +18,7 @@ from conmech.simulations.problem_solver import PoissonSolver
 from conmech.properties.mesh_description import RectangleMeshDescription
 from conmech.state.state import TemperatureState
 
-ALPHAS = [0, 0.01, 0.1, 1, 10, 100, 1000, 10_000, 100_000, 1_000_000, np.inf]
+ALPHAS = [0.01, 0.1, 1, 10, 100, 1000, 10_000, 100_000, 1_000_000, np.inf]
 IHS = [4, 8, 16, 32, 48, 72]
 B_COEF = 5
 MAXD = 72
@@ -26,11 +26,11 @@ TEMPERATURE_GRID = (
     ((np.inf, 4), (np.inf, MAXD)),
     ((10, MAXD), (100, MAXD)),
     ((0.1, MAXD), (1, MAXD)),
-    ((0, 4), (0, MAXD)),
+    ((0.01, 4), (0.01, MAXD)),
 )
 CONVERGENCE_SEQUENCES = (
     (
-        tuple((0, h) for h in IHS),
+        tuple((0.01, h) for h in IHS),
         tuple((np.inf, h) for h in IHS),
     ),
     (
@@ -38,7 +38,7 @@ CONVERGENCE_SEQUENCES = (
         tuple((a, 72) for a in ALPHAS),
     ),
     (
-        ((0, 4), (0.01, 4), (0.1, 8), (1, 8), (10, 16), (100, 16), (1000, 32), (10_000, 32),
+        ((0.01, 4), (0.1, 8), (1, 8), (10, 16), (100, 16), (1000, 32), (10_000, 32),
          (100_000, 48), (1_000_000, 72), (np.inf, 72)),
         None,
     ),
