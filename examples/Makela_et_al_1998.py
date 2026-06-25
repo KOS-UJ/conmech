@@ -426,7 +426,6 @@ if __name__ == "__main__":
         "Powell",
         "globqsm",
         "qsm",
-        "dc globqsm",
-        "dc qsm",
-    )[-4:]
+        "adam"
+    )
     main(Config(save=False, show=False, force=True).init(), methods, forces)

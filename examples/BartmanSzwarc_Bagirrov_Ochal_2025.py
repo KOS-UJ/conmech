@@ -403,7 +403,7 @@ def survey(config):
         "Powell",
         "qsm",
         "globqsm",
-        # "adam",
+        "adam",
     )[:]
     forces = np.asarray(
         (
