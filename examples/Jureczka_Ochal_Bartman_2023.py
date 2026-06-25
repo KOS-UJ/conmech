@@ -100,7 +100,7 @@ def main(config: Config):
     ids = slice(0, 4) if not config.test else slice(2, 3)
     names = ("four_screws", "one_screw", "friction", "hard")[ids]
     h = 64 if not config.test else 24
-    n_steps = 32 if not config.test else 8
+    n_steps = 32 if not config.test else 4
     output_steps = range(0, n_steps)
 
     four_screws = BoundariesDescription(

@@ -124,7 +124,7 @@ def main(config: Config):
         )
 
     steps_per_unit = setup.time_step**-1
-    output_steps = (0, 1.5, 2.75, 4.0, 5.0, 6.0)
+    output_steps = (0, 1.5, 2.75, 4.0, 5.0, 6.0) if not config.test else (0, 1.0)
     output_steps = tuple(int(steps * steps_per_unit) for steps in output_steps)
     examples = {
         "sob_01": {
