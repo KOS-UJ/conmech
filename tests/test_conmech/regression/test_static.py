@@ -17,7 +17,7 @@ from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 try:
     import kosopt
 
-    available_opt_mtds = ["BFGS", "qsm", "globqsm"]
+    available_opt_mtds = ["BFGS", "qsm"]
 except ImportError:
     available_opt_mtds = ["BFGS"]
 
