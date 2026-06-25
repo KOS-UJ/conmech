@@ -137,7 +137,7 @@ class Optimization(Solver):
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
-        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e3))
         tol = kwargs.get("tol", 1e-12)
         args = (
             variable_old,
