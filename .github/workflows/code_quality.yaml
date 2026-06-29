@@ -13,12 +13,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v3
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v3
       - name: Installing dependencies
-        run: uv sync --group dev
+        run: uv sync --group dev --python 3.11
       - name: Checking code quality
         run: |
           uv run black -l 100 -t py39 --diff --check $(git ls-files '*.py')
