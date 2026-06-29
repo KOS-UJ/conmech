@@ -53,7 +53,7 @@ def generate_test_suits():
 
     # setup0
     expected_displacement_vector_m02_m02 = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.03110494, 0.02605975],
         [0.0480314, 0.04222483],
         [0.05652026, 0.05498411],
@@ -65,8 +65,8 @@ def generate_test_suits():
         [0.02988933, 0.0563158],
         [0.01813132, 0.03828731],
         [0.00648342, 0.01652978],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -145,7 +145,7 @@ def generate_test_suits():
     setup_var = QuasistaticSetup(mesh_descr)
     # setup3
     expected_displacement_vector_var = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.01884863, 0.0504626],
         [0.02148185, 0.15327319],
         [0.01145928, 0.28855596],
@@ -157,8 +157,8 @@ def generate_test_suits():
         [-0.31087128, 0.32140352],
         [-0.23950126, 0.18562144],
         [-0.14140114, 0.08064638],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))

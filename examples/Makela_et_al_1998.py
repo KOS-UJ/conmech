@@ -255,8 +255,10 @@ def plot_losses(path, slopes=None):
         "globqsm": ("global subgradient", "red", "-"),
         "Adam": ("adam", "green", ":"),
     }
-    data = {plot_data[key][0] : (loss, plot_data[key][1], plot_data[key][2])
-            for key, loss in losses.items()}
+    data = {
+        plot_data[key][0]: (loss, plot_data[key][1], plot_data[key][2])
+        for key, loss in losses.items()
+    }
 
     # Grid of plots
     fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharex=True)
@@ -284,7 +286,7 @@ def plot_losses(path, slopes=None):
     if slopes is not None:
         fig.suptitle(f"Num. of layers: {slopes + 2}")
 
-    for i, (method, (results, color, style))in enumerate(data.items()):
+    for i, (method, (results, color, style)) in enumerate(data.items()):
         forces = np.array(list(results.keys())) / 1e6
         times = np.array([val[1] for val in results.values()])
 
@@ -410,14 +412,5 @@ if __name__ == "__main__":
         )
     )[:]
 
-    methods = (
-        "gradiented BFGS",
-        "gradiented CG",
-        "BFGS",
-        "CG",
-        "Powell",
-        "globqsm",
-        "qsm",
-        "adam"
-    )
+    methods = ("gradiented BFGS", "gradiented CG", "BFGS", "CG", "Powell", "globqsm", "qsm", "adam")
     main(Config(save=False, show=False, force=True).init(), methods, forces)

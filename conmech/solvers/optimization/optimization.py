@@ -37,7 +37,6 @@ from conmech.solvers.solver_methods import (
     make_subgradient,
 )
 
-
 QSMLM_NAMES = {
     "quasi secant method",
     "limited memory quasi secant method",

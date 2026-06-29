@@ -194,7 +194,7 @@ class BoundariesFactory:
 
         neumann_nodes_count = boundary_nodes_count - contact_nodes_count - dirichlet_nodes_count
 
-        (boundary_surfaces, boundary_internal_indices, *_) = get_boundary_surfaces(elements)
+        boundary_surfaces, boundary_internal_indices, *_ = get_boundary_surfaces(elements)
 
         contact_boundary = apply_predicate_to_surfaces(boundary_surfaces, initial_nodes, is_contact)
         dirichlet_boundary = apply_predicate_to_surfaces(

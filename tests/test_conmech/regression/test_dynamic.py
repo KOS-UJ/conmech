@@ -53,7 +53,7 @@ def generate_test_suits():
 
     # setup0
     expected_displacement_vector_m02_m02 = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.03127204, 0.02591702],
         [0.04839339, 0.04161261],
         [0.0570826, 0.05377358],
@@ -65,8 +65,8 @@ def generate_test_suits():
         [0.03157841, 0.05496801],
         [0.01940413, 0.03747345],
         [0.0071853, 0.01612678],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_m02_m02, expected_displacement_vector_m02_m02))
@@ -147,7 +147,7 @@ def generate_test_suits():
     setup_var = DynamicSetup(mesh_descr)
     # setup3
     expected_displacement_vector_var = [
-        [0., 0.],
+        [0.0, 0.0],
         [0.00732752, 0.04298897],
         [0.00124105, 0.13447536],
         [-0.01488452, 0.25501265],
@@ -159,8 +159,8 @@ def generate_test_suits():
         [-0.3087482, 0.28981781],
         [-0.23668844, 0.1688259],
         [-0.13923577, 0.07509707],
-        [0., 0.],
-        [0., 0.],
+        [0.0, 0.0],
+        [0.0, 0.0],
     ]
 
     test_suites.append((setup_var, expected_displacement_vector_var))

@@ -25,7 +25,6 @@ from examples.example_poisson import main as poisson
 from examples.example_nonhomogenous_density import main as nonhomogenous_density
 from examples.example_imported_mesh_static import main as imported_mesh
 
-
 default_args = dict(show=False, save=False, force=True, test=True)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
 

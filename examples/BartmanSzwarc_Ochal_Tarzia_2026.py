@@ -38,8 +38,18 @@ CONVERGENCE_SEQUENCES = (
         tuple((a, 72) for a in ALPHAS),
     ),
     (
-        ((0.01, 4), (0.1, 8), (1, 8), (10, 16), (100, 16), (1000, 32), (10_000, 32),
-         (100_000, 48), (1_000_000, 72), (np.inf, 72)),
+        (
+            (0.01, 4),
+            (0.1, 8),
+            (1, 8),
+            (10, 16),
+            (100, 16),
+            (1000, 32),
+            (10_000, 32),
+            (100_000, 48),
+            (1_000_000, 72),
+            (np.inf, 72),
+        ),
         None,
     ),
 )
@@ -49,7 +59,7 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
     class TarziaContactLaw(PotentialOfContactLaw):
         @staticmethod
         def potential_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             b = B_COEF
             r = var_nu
@@ -63,7 +73,7 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
 
         @staticmethod
         def subderivative_normal_direction(
-                var_nu: float, static_displacement_nu: float, dt: float
+            var_nu: float, static_displacement_nu: float, dt: float
         ) -> float:
             b = B_COEF
             r = var_nu
@@ -118,7 +128,7 @@ def load_or_simulate(config, alpha, ih, only_ensure=False) -> Optional[Temperatu
 def _pair_label(alpha, ih) -> str:
     result = "("
     if alpha == np.inf:
-        result += '∞'
+        result += "∞"
     else:
         result += f"{alpha:.2E}"
     result += ", "
@@ -126,8 +136,9 @@ def _pair_label(alpha, ih) -> str:
     return result
 
 
-def _relative_temperature_error(reference_state: TemperatureState,
-                                state: TemperatureState) -> float:
+def _relative_temperature_error(
+    reference_state: TemperatureState, state: TemperatureState
+) -> float:
     # Project `state` temperature onto reference mesh nodes and compute
     # the (absolute) L2 norm of the difference using element mass matrices
     ref_nodes = np.asarray(reference_state.body.mesh.nodes, dtype=float)
@@ -165,9 +176,7 @@ def _relative_temperature_error(reference_state: TemperatureState,
         xj = coords[j]
         xk = coords[k]
         # triangle area
-        area = 0.5 * abs(
-            (xj[0] - xi[0]) * (xk[1] - xi[1]) - (xk[0] - xi[0]) * (xj[1] - xi[1])
-        )
+        area = 0.5 * abs((xj[0] - xi[0]) * (xk[1] - xi[1]) - (xk[0] - xi[0]) * (xj[1] - xi[1]))
         # local mass matrix for linear triangle: (area/12) * [[2,1,1],[1,2,1],[1,1,2]]
         uloc = np.array([diff_at_nodes[i], diff_at_nodes[j], diff_at_nodes[k]], dtype=float)
         # compute uloc^T M uloc
@@ -240,9 +249,11 @@ def draw_temperature_grid(config, to_plot):
             ax.triplot(triang, "k-", alpha=0.15, linewidth=0.3)
 
             inf_symbol = r"$\infty$"
-            ax.set_title(string.ascii_lowercase[
-                             seq_num - 1] + ") "
-                             + fr"$\alpha$={alpha if alpha != np.inf else inf_symbol}, h=1/{ih}")
+            ax.set_title(
+                string.ascii_lowercase[seq_num - 1]
+                + ") "
+                + rf"$\alpha$={alpha if alpha != np.inf else inf_symbol}, h=1/{ih}"
+            )
             ax.set_aspect("equal", adjustable="box")
             # set axis limits to nodes extents
             x_min, x_max = float(nodes[:, 0].min()), float(nodes[:, 0].max())
@@ -286,12 +297,13 @@ def draw_convergence_plots(config, sequences, ihs, alphas):
     cols = len(sequences[0]) if sequences else 1
 
     # Check if last row has a single plot (needs centering)
-    last_row_has_single = (len(sequences) > 0 and
-                           len(sequences[-1]) == 2 and
-                           sequences[-1][1] is None)
+    last_row_has_single = (
+        len(sequences) > 0 and len(sequences[-1]) == 2 and sequences[-1][1] is None
+    )
 
     # Create GridSpec with centering for single plot in last row
     import matplotlib.gridspec as gridspec
+
     fig = plt.figure(figsize=(7 * cols, 4.5 * rows))
     gs = gridspec.GridSpec(rows, cols, figure=fig)
 
@@ -342,7 +354,8 @@ def draw_convergence_plots(config, sequences, ihs, alphas):
                 ax.grid(True, which="both", alpha=0.3)
                 ax.set_title(
                     f"{string.ascii_lowercase[seq_num - 1]}) "
-                    f"{_pair_label(*sequence[0])} → {_pair_label(*sequence[-1])}")
+                    f"{_pair_label(*sequence[0])} → {_pair_label(*sequence[-1])}"
+                )
                 ax.set_xlabel(r"$(\alpha, h)$")
             finally:
                 del reference_state
@@ -365,9 +378,17 @@ def draw_convergence_plots(config, sequences, ihs, alphas):
             s_inf = load_or_simulate(config, np.inf, ih)
             s_alpha = load_or_simulate(config, alpha_comp, ih)
             try:
-                err_inf = _relative_temperature_error(ref_inf_state, s_inf) if s_inf is not None else float('nan')
+                err_inf = (
+                    _relative_temperature_error(ref_inf_state, s_inf)
+                    if s_inf is not None
+                    else float("nan")
+                )
                 # second column compares u_alpha^h to u_inf^{h_ref}
-                err_alpha = _relative_temperature_error(ref_inf_state, s_alpha) if s_alpha is not None else float('nan')
+                err_alpha = (
+                    _relative_temperature_error(ref_inf_state, s_alpha)
+                    if s_alpha is not None
+                    else float("nan")
+                )
             finally:
                 if s_inf is not None:
                     del s_inf
@@ -404,7 +425,9 @@ def draw_convergence_plots(config, sequences, ihs, alphas):
         )
         print(header)
         print("\\hline")
-        for ih, err_i, r_i, err_a, r_a in zip(ihs, errors_inf, rates_inf, errors_alpha, rates_alpha):
+        for ih, err_i, r_i, err_a, r_a in zip(
+            ihs, errors_inf, rates_inf, errors_alpha, rates_alpha
+        ):
             h_str = f"$1/{ih}$"
             err_i_str = f"{err_i:.3e}" if not np.isnan(err_i) else "nan"
             err_a_str = f"{err_a:.3e}" if not np.isnan(err_a) else "nan"
@@ -457,8 +480,8 @@ def simulate(config, alpha, ih):
 
     if config.outputs_path:
         with open(
-                f"{config.outputs_path}/alpha_{alpha}_ih_{ih}",
-                "wb+",
+            f"{config.outputs_path}/alpha_{alpha}_ih_{ih}",
+            "wb+",
         ) as output:
             # Workaround
             state.body.dynamics.force.outer.source = None
@@ -478,8 +501,16 @@ def main(config: Config):
     alphas = ALPHAS if not config.test else ALPHAS[:1]
     ihs = IHS if not config.test else IHS[:1]
     temperature_grid = TEMPERATURE_GRID if not config.test else (((alphas[0], ihs[0]),),)
-    convergence_sequences = CONVERGENCE_SEQUENCES if not config.test\
-        else ((((alphas[0], ihs[0]),), None,),)
+    convergence_sequences = (
+        CONVERGENCE_SEQUENCES
+        if not config.test
+        else (
+            (
+                ((alphas[0], ihs[0]),),
+                None,
+            ),
+        )
+    )
 
     for alpha in alphas:
         for ih in ihs:
