@@ -15,7 +15,7 @@ from examples.example_dynamic import main as dynamic
 from examples.example_piezoelectric_dynamic import main as dynamic_piezo
 from examples.example_temperature_dynamic import main as dynamic_temp
 from examples.example_dynamic_membrane import main as dynamic_membrane
-from examples.Jureczka_and_Ochal_2019 import main as JO_2019
+from examples.Jureczka_Ochal_2019 import main as JO_2019
 from examples.Jureczka_Ochal_Bartman_2023 import main as JOB_2023
 from examples.Bartman_Ochal_Sofonea_2024 import main as BOS_2024
 from examples.BartmanSzwarc_Ochal_Sofonea_Tarzia_2025 import main as BOST_2024

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from conmech.simulations.problem_solver import StaticSolver as StaticProblem
 from conmech.properties.mesh_description import CrossMeshDescription
-from examples.Jureczka_and_Ochal_2019 import StaticSetup
+from examples.Jureczka_Ochal_2019 import StaticSetup
 from tests.test_conmech.regression.std_boundary import standard_boundary_nodes
 
 
