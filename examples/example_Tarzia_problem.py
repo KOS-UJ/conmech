@@ -281,7 +281,7 @@ def draw_temperature_grid(config, to_plot):
     plt.close(fig)
 
 
-def draw_convergence_plots(config, sequences):
+def draw_convergence_plots(config, sequences, ihs, alphas):
     rows = len(sequences)
     cols = len(sequences[0]) if sequences else 1
 
@@ -350,21 +350,18 @@ def draw_convergence_plots(config, sequences):
 
     fig.tight_layout()
 
-    # --- LaTeX table output: errors w.r.t. reference finest mesh (alpha=inf)
+    # LaTeX table output: errors w.r.t. reference finest mesh (alpha=inf)
     try:
-        # reference is u_inf at finest mesh (largest ih)
-        ref_ih = max(IHS)
+        ref_ih = max(ihs)
         ref_inf_state = load_or_simulate(config, np.inf, ref_ih)
         assert ref_inf_state is not None
 
-        alpha_comp = 1_000_000
-        # compute errors for each mesh size
+        alpha_comp = 1_000_000 if not config.test else alphas[0]
         errors_inf = []
         errors_alpha = []
         hs = []
-        for ih in IHS:
+        for ih in ihs:
             hs.append(1.0 / ih)
-            # load states (will be deleted after use)
             s_inf = load_or_simulate(config, np.inf, ih)
             s_alpha = load_or_simulate(config, alpha_comp, ih)
             try:
@@ -407,7 +404,7 @@ def draw_convergence_plots(config, sequences):
         )
         print(header)
         print("\\hline")
-        for ih, err_i, r_i, err_a, r_a in zip(IHS, errors_inf, rates_inf, errors_alpha, rates_alpha):
+        for ih, err_i, r_i, err_a, r_a in zip(ihs, errors_inf, rates_inf, errors_alpha, rates_alpha):
             h_str = f"$1/{ih}$"
             err_i_str = f"{err_i:.3e}" if not np.isnan(err_i) else "nan"
             err_a_str = f"{err_a:.3e}" if not np.isnan(err_a) else "nan"
@@ -478,26 +475,23 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
-    alphas = ALPHAS
-    ihs = IHS
-    # alphas = [1000_000]
-    # ihs = [4]
-    alphas = alphas if not config.test else alphas[:1]
-    ihs = ihs if not config.test else ihs[:1]
+    alphas = ALPHAS if not config.test else ALPHAS[:1]
+    ihs = IHS if not config.test else IHS[:1]
+    temperature_grid = TEMPERATURE_GRID if not config.test else (((alphas[0], ihs[0]),),)
+    convergence_sequences = CONVERGENCE_SEQUENCES if not config.test\
+        else ((((alphas[0], ihs[0]),), None,),)
 
     for alpha in alphas:
         for ih in ihs:
             print(f"Configuration: {alpha=}, {ih=}")
-            # simulate(config, alpha, ih)
             load_or_simulate(config, alpha, ih, only_ensure=True)
 
     Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
-    # Ensure all states are simulated
     all_params = set()
-    for item in TEMPERATURE_GRID:
+    for item in temperature_grid:
         for alpha, ih in item:
             all_params.add((alpha, ih))
-    for row in CONVERGENCE_SEQUENCES:
+    for row in convergence_sequences:
         for seq in row:
             if seq is None:
                 continue
@@ -507,11 +501,8 @@ def main(config: Config):
         print(f"Ensuring state: {alpha=}, {ih=}")
         load_or_simulate(config, alpha, ih, only_ensure=True)
 
-    to_plot = TEMPERATURE_GRID if not config.test else TEMPERATURE_GRID[:1]
-    draw_temperature_grid(config, to_plot)
-
-    sequences = CONVERGENCE_SEQUENCES if not config.test else CONVERGENCE_SEQUENCES[:1]
-    draw_convergence_plots(config, sequences)
+    draw_temperature_grid(config, temperature_grid)
+    draw_convergence_plots(config, convergence_sequences, ihs, alphas)
 
 
 if __name__ == "__main__":
