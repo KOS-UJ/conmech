@@ -3,7 +3,7 @@ name = "conmech"
 version = "0.1.0"
 description = "Numerical library for contact mechanics simulations"
 readme = "README.md"
-license = "MIT"
+license = "GPL-3.0"
 requires-python = ">=3.10"
 dependencies = [
     "numpy==2.0.1",
