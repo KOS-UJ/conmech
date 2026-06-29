@@ -1,4 +1,4 @@
-FROM python:3.9.12-slim-buster
+FROM python:3.11-slim-buster
 
 WORKDIR /usr/src/app
 
@@ -7,9 +7,10 @@ RUN apt-get upgrade -y
 RUN apt-get install -y git
 
 RUN apt-get install -y python3-gmsh
-COPY requirements.txt ./
-RUN pip install pytest
-RUN pip install -r requirements.txt
-RUN rm requirements.txt
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --group dev
 
 ENV PYTHONPATH "${PYTHONPATH}:."
+ENV PATH="/usr/src/app/.venv/bin:${PATH}"

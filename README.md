@@ -13,12 +13,12 @@ It facilitates the analysis of interactions between physical bodies and obstacle
 
 ## Installation
 
-To install conmech, clone the repository and install the required dependencies:
+To install conmech, clone the repository and install the required dependencies using [uv](https://docs.astral.sh/uv/):
 
 ```bash
 git clone https://github.com/KOS-UJ/conmech.git
 cd conmech
-pip install -r requirements.txt
+uv sync
 ```
 
 ## Usage
