@@ -111,7 +111,6 @@ def make_equation(
                 for node_ in range(len(ums[0])):
                     um = ums[:, node_]
                     # ASSUMING `u_vector` and `nodes` have the same order!
-                    # um = interpolate_node_between(edge, u_vector, u_vector, dimension=problem_dimension)
                     um_normal = (um * normal_vector).sum()
 
                     edge_len = nph.length(edge, nodes) / len(ums[0])

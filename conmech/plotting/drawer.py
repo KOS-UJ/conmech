@@ -113,23 +113,23 @@ class Drawer:
     def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max
         if self.x_min is None:
-            x_min_body = float(np.min(self.state.body.mesh.nodes[:, 0]))  # type: ignore[arg-type]
-            x_min_displaced = float(np.min(self.state.displaced_nodes[:, 0]))  # type: ignore[arg-type]
+            x_min_body = float(np.min(self.state.body.mesh.nodes[:, 0]))
+            x_min_displaced = float(np.min(self.state.displaced_nodes[:, 0]))
             self.x_min = min(x_min_body, x_min_displaced)
         if self.x_max is None:
-            x_max_body = float(np.max(self.state.body.mesh.nodes[:, 0]))  # type: ignore[arg-type]
-            x_max_displaced = float(np.max(self.state.displaced_nodes[:, 0]))  # type: ignore[arg-type]
+            x_max_body = float(np.max(self.state.body.mesh.nodes[:, 0]))
+            x_max_displaced = float(np.max(self.state.displaced_nodes[:, 0]))
             self.x_max = max(x_max_body, x_max_displaced)
         dx = self.x_max - self.x_min
         x_margin = dx * 0.2
         xlim = (self.x_min - x_margin, self.x_max + x_margin)
         if self.y_min is None:
-            y_min_body = float(np.min(self.state.body.mesh.nodes[:, 1]))  # type: ignore[arg-type]
-            y_min_displaced = float(np.min(self.state.displaced_nodes[:, 1]))  # type: ignore[arg-type]
+            y_min_body = float(np.min(self.state.body.mesh.nodes[:, 1]))
+            y_min_displaced = float(np.min(self.state.displaced_nodes[:, 1]))
             self.y_min = min(y_min_body, y_min_displaced)
         if self.y_max is None:
-            y_max_body = float(np.max(self.state.body.mesh.nodes[:, 1]))  # type: ignore[arg-type]
-            y_max_displaced = float(np.max(self.state.displaced_nodes[:, 1]))  # type: ignore[arg-type]
+            y_max_body = float(np.max(self.state.body.mesh.nodes[:, 1]))
+            y_max_displaced = float(np.max(self.state.displaced_nodes[:, 1]))
             self.y_max = max(y_max_body, y_max_displaced)
         dy = self.y_max - self.y_min
         y_margin = dy * 0.2
