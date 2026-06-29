@@ -396,37 +396,37 @@ def composite_problem(config, layers_limits, thickness, methods, forces, layers_
 
 def survey(config):
     methods = (
-        "gradiented BFGS",
-        "gradiented CG",
+        # "gradiented BFGS",
+        # "gradiented CG",
         "BFGS",
         "CG",
-        "Powell",
+        # "Powell",
         "qsm",
-        "globqsm",
-        "adam",
+        # "globqsm",
+        # "adam", need torch
     )[:]
     forces = np.asarray(
         (
             # 15e3 * kN,
-            16e3 * kN,
-            17e3 * kN,
-            18e3 * kN,
-            19e3 * kN,
+            # 16e3 * kN,
+            # 17e3 * kN,
+            # 18e3 * kN,
+            # 19e3 * kN,
             20e3 * kN,
             # 21e3 * kN,
             22.5e3 * kN,
             # 23e3 * kN,
             25e3 * kN,
-            30e3 * kN,
-            35e3 * kN,
-            40e3 * kN,
+            # 30e3 * kN,
+            # 35e3 * kN,
+            # 40e3 * kN,
         )
     )
 
     # fig, axes = plt.subplots(1, 2, figsize=(15, 5), sharex=True)
     axes = None
     draw_boundary = True
-    for i in reversed([0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12][:-2]):
+    for i in reversed([0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12][:-1]):
         if axes is not None and i not in (0, 5):
             continue
         if draw_boundary and i not in (0, 5):
@@ -437,7 +437,8 @@ def survey(config):
         layers_limits = partition(0, thickness, layers_num + 1, p=1.25)
         composite_problem(config, layers_limits, thickness, methods, forces, layers_num, axes)
         if draw_boundary:
-            plt.title(f"Num. of layers: {layers_num + 2}; Load: {forces[5] / 1e6} MPa")
+            lf = len(forces)
+            plt.title(f"Num. of layers: {layers_num + 2}; Load: {forces[lf // 2] / 1e6} MPa")
             plt.ylim(-4, 1)
             plt.xlabel(r"Contact Boundary [mm]")
             plt.ylabel(r"Penetration [mm]")
@@ -474,5 +475,5 @@ def partition(start, stop, num, p=1.0):
 
 
 if __name__ == "__main__":
-    config_ = Config(save=False, show=True, force=False).init()
+    config_ = Config(save=False, show=True, force=True).init()
     survey(config_)
