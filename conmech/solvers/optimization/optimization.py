@@ -35,9 +35,7 @@ from conmech.solvers.solver_methods import (
     make_cost_functional,
     make_equation,
     make_subgradient,
-    make_subgradient_dc,
 )
-
 
 QSMLM_NAMES = {
     "quasi secant method",
@@ -46,7 +44,6 @@ QSMLM_NAMES = {
     "qsm",
     "qsmlm",
 }
-QSMLM_NAMES = {"dc " + name for name in QSMLM_NAMES}.union(QSMLM_NAMES)
 GLOBAL_QSMLM_NAMES = {
     "global quasi secant method",
     "global limited memory quasi secant method",
@@ -54,7 +51,6 @@ GLOBAL_QSMLM_NAMES = {
     "globqsm",
     "globqsmlm",
 }
-GLOBAL_QSMLM_NAMES = {"dc " + name for name in GLOBAL_QSMLM_NAMES}.union(GLOBAL_QSMLM_NAMES)
 
 ADAM_NAMES = {"adam", "torch_adam"}
 
@@ -89,13 +85,6 @@ class Optimization(Solver):
             )
         else:
             self.subgradient = None
-        if hasattr(contact_law, "sub2derivative_normal_direction"):  # TODO
-            self.sub2gradient = make_subgradient_dc(
-                normal_condition=contact_law.subderivative_normal_direction,
-                normal_condition_sub2=contact_law.sub2derivative_normal_direction,
-            )
-        else:
-            self.sub2gradient = None
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
@@ -137,7 +126,7 @@ class Optimization(Solver):
         solution = np.squeeze(initial_guess.copy().reshape(1, -1))
         displacement = np.squeeze(displacement.copy().reshape(1, -1))
         disp = kwargs.get("disp", False)
-        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e9))
+        maxiter = kwargs.get("maxiter", int(len(initial_guess) * 1e3))
         tol = kwargs.get("tol", 1e-12)
         args = (
             variable_old,
@@ -163,7 +152,6 @@ class Optimization(Solver):
             self.minimizer = make_minimizer(
                 self.loss,
                 self.subgradient,
-                self.sub2gradient if method.lower().startswith("dc") else None,
             )
 
         if method.lower() in ADAM_NAMES:
@@ -200,7 +188,6 @@ class Optimization(Solver):
                 args,
                 maxiter=maxiter,
                 subgradient=self.subgradient,
-                sub2gradient=self.sub2gradient,
                 nstep=nstep,
             )
             self.computation_time += comp_time

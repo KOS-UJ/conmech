@@ -15,16 +15,15 @@ from examples.example_dynamic import main as dynamic
 from examples.example_piezoelectric_dynamic import main as dynamic_piezo
 from examples.example_temperature_dynamic import main as dynamic_temp
 from examples.example_dynamic_membrane import main as dynamic_membrane
-from examples.Jureczka_and_Ochal_2019 import main as Jureczka_and_Ochal_2019
-from examples.Jureczka_Ochal_Bartman_2023 import main as Jureczka_Ochal_Bartman_2023
-from examples.Bartman_Ochal_Sofonea_2024 import main as Bartman_Ochal_Sofonea_2024
+from examples.Jureczka_Ochal_2019 import main as JO_2019
+from examples.Jureczka_Ochal_Bartman_2023 import main as JOB_2023
+from examples.Bartman_Ochal_Sofonea_2024 import main as BOS_2024
 from examples.BartmanSzwarc_Ochal_Sofonea_Tarzia_2025 import main as BOST_2024
 from examples.BOSK_2024 import main as BOSK_2024
-from examples.example_Tarzia_problem import main as Tarzia_problem
+from examples.BartmanSzwarc_Ochal_Tarzia_2026 import main as BOT_2026
 from examples.example_poisson import main as poisson
 from examples.example_nonhomogenous_density import main as nonhomogenous_density
 from examples.example_imported_mesh_static import main as imported_mesh
-
 
 default_args = dict(show=False, save=False, force=True, test=True)
 default_args_deep = dict(mesh_density=4, final_time=0.05, plot_animation=False)
@@ -38,16 +37,16 @@ test_suits = {
     "dynamic": lambda: dynamic(Config(**default_args).init()),
     "dynamic_piezo": lambda: dynamic_piezo(Config(**default_args).init()),
     "dynamic_temp": lambda: dynamic_temp(Config(**default_args).init()),
-    "Jureczka_and_Ochal_2019": lambda: Jureczka_and_Ochal_2019(Config(**default_args).init()),
-    "Jureczka_Ochal_Bartman_2023": lambda: Jureczka_Ochal_Bartman_2023(
+    "Jureczka_and_Ochal_2019": lambda: JO_2019(Config(**default_args).init()),
+    "Jureczka_Ochal_Bartman_2023": lambda: JOB_2023(
         Config(outputs_path="./output/JOB2023", **default_args).init()
     ),
-    "Bartman_Ochal_Sofonea_2024": lambda: Bartman_Ochal_Sofonea_2024(
+    "Bartman_Ochal_Sofonea_2024": lambda: BOS_2024(
         Config(outputs_path="./output/SOB2023", **default_args).init()
     ),
     "BOST_2024": lambda: BOST_2024(Config(outputs_path="./output/BOST2024", **default_args).init()),
     "BOSK_2024": lambda: BOSK_2024(Config(outputs_path="./output/BOSK2024", **default_args).init()),
-    "Tarzia_problem": lambda: Tarzia_problem(
+    "Tarzia_problem": lambda: BOT_2026(
         Config(outputs_path="./output/BOST2024", **default_args).init()
     ),
     "nonhomogenous_density": lambda: nonhomogenous_density(Config(**default_args).init()),

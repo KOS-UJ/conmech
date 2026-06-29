@@ -60,13 +60,18 @@ class Drawer:
         save_format="png",
         title=None,
         foundation=True,
+        colorbar=True,
     ):
         if show:
-            fig, _axes = self.do_draw(fig_axes, field_max, field_min, title, foundation)
+            fig, _axes = self.do_draw(
+                fig_axes, field_max, field_min, title, foundation, colorbar=colorbar
+            )
             fig.tight_layout()
             plt.show()
         if save:
-            _fig, _axes = self.do_draw(fig_axes, field_max, field_min, title, foundation)
+            _fig, _axes = self.do_draw(
+                fig_axes, field_max, field_min, title, foundation, colorbar=colorbar
+            )
             self.save_plot(save_format, name=save)
 
     def do_draw(
@@ -76,6 +81,7 @@ class Drawer:
         field_min=None,
         title=None,
         foundation=True,
+        colorbar=True,
     ):
         fig, axes = fig_axes or plt.subplots()
 
@@ -86,7 +92,7 @@ class Drawer:
             if self.field_label is None:
                 self.field_label = self.field_name
         if self.field is not None:
-            self.draw_field(self.field, field_min, field_max, axes, fig)
+            self.draw_field(self.field, field_min, field_max, axes, fig, colorbar=colorbar)
 
         self.draw_meshes(axes)
 
@@ -107,28 +113,24 @@ class Drawer:
     def set_axes_limits(self, axes, foundation):
         # pylint: disable=nested-min-max
         if self.x_min is None:
-            self.x_min = min(
-                min(self.state.body.mesh.nodes[:, 0]),
-                min(self.state.displaced_nodes[:, 0]),
-            )
+            x_min_body = float(np.min(self.state.body.mesh.nodes[:, 0]))
+            x_min_displaced = float(np.min(self.state.displaced_nodes[:, 0]))
+            self.x_min = min(x_min_body, x_min_displaced)
         if self.x_max is None:
-            self.x_max = max(
-                max(self.state.body.mesh.nodes[:, 0]),
-                max(self.state.displaced_nodes[:, 0]),
-            )
+            x_max_body = float(np.max(self.state.body.mesh.nodes[:, 0]))
+            x_max_displaced = float(np.max(self.state.displaced_nodes[:, 0]))
+            self.x_max = max(x_max_body, x_max_displaced)
         dx = self.x_max - self.x_min
         x_margin = dx * 0.2
         xlim = (self.x_min - x_margin, self.x_max + x_margin)
         if self.y_min is None:
-            self.y_min = min(
-                min(self.state.body.mesh.nodes[:, 1]),
-                min(self.state.displaced_nodes[:, 1]),
-            )
+            y_min_body = float(np.min(self.state.body.mesh.nodes[:, 1]))
+            y_min_displaced = float(np.min(self.state.displaced_nodes[:, 1]))
+            self.y_min = min(y_min_body, y_min_displaced)
         if self.y_max is None:
-            self.y_max = max(
-                max(self.state.body.mesh.nodes[:, 1]),
-                max(self.state.displaced_nodes[:, 1]),
-            )
+            y_max_body = float(np.max(self.state.body.mesh.nodes[:, 1]))
+            y_max_displaced = float(np.max(self.state.displaced_nodes[:, 1]))
+            self.y_max = max(y_max_body, y_max_displaced)
         dy = self.y_max - self.y_min
         y_margin = dy * 0.2
         ylim = (self.y_min - y_margin, self.y_max + y_margin)
@@ -168,7 +170,7 @@ class Drawer:
             graph.add_edge(i, k)
             graph.add_edge(j, k)
 
-        nx.draw(
+        nx.draw(  # type: ignore[call-arg]
             graph,
             pos=nodes,
             label=label,
@@ -303,7 +305,7 @@ class Drawer:
         for edge in edges:
             graph.add_edge(edge[0], edge[1])
 
-        nx.draw(
+        nx.draw(  # type: ignore[call-arg]
             graph,
             pos=nodes,
             label=label,
@@ -314,7 +316,7 @@ class Drawer:
             width=self.line_width,
         )
 
-    def draw_field(self, field, v_min, v_max, axes, fig):
+    def draw_field(self, field, v_min, v_max, axes, fig, colorbar=True):
         x = self.state.displaced_nodes[:, 0]
         y = self.state.displaced_nodes[:, 1]
 
@@ -340,6 +342,7 @@ class Drawer:
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
         # divider = make_axes_locatable(axes)
         # cax = divider.append_axes("bottom", size="5%", pad=0.15)
-        sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
-        sm.set_array([])
-        fig.colorbar(sm, orientation="horizontal", label=self.field_label, ax=axes)
+        if colorbar:
+            sm = plt.cm.ScalarMappable(cmap=self.cmap, norm=plt.Normalize(vmin=v_min, vmax=v_max))
+            sm.set_array([])
+            fig.colorbar(sm, orientation="horizontal", label=self.field_label, ax=axes)
