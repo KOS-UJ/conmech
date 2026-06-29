@@ -20,11 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - run: uv sync --group dev
+      - uses: astral-sh/setup-uv@v3
+
+      - run: uv sync --group dev --python ${{ matrix.python-version }}
 
       - if: matrix.platform == 'ubuntu-latest'
         run: sudo apt-get install -y python3-gmsh
