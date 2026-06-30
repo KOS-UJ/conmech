@@ -1,0 +1,46 @@
+[project]
+name = "conmech"
+version = "0.1.0"
+description = "Numerical library for contact mechanics simulations"
+readme = "README.md"
+license = "GPL-3.0"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy==2.0.1",
+    "numba==0.60.0",
+    "jupyter==1.0.0",
+    "matplotlib==3.9.2",
+    "scipy==1.13.1",
+    "pygmsh==7.1.17",
+    "gmsh==4.13.1",
+    "tqdm==4.66.4",
+    "networkx==3.2.1",
+    "scikit-learn==1.5.1",
+    "seaborn==0.13.2",
+    "dmsh @ git+https://github.com/KOS-UJ/dmsh@main",
+    "meshzoo @ git+https://github.com/KOS-UJ/meshzoo@main",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.2",
+    "black==23.3.0",
+    "pylint==2.17.4",
+]
+
+[tool.uv]
+environments = [
+    "python_version >= '3.10' and python_version < '3.13' and sys_platform == 'linux'",
+    "python_version >= '3.10' and python_version < '3.13' and sys_platform == 'darwin'",
+    "python_version >= '3.10' and python_version < '3.13' and sys_platform == 'win32'",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["conmech"]
