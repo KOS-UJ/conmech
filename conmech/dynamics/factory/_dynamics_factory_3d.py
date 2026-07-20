@@ -1,7 +1,27 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2022  Michał Jureczka <michal.jureczka@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 import numba
 import numpy as np
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.helpers.assembly import block, hstack_blocks, coo_features_to_csr
 from conmech.struct.stiffness_matrix import SM3, SM1, SM1to3
 
 DIMENSION = 3
@@ -14,16 +34,24 @@ VOLUME_DIVIDER = 6
 
 
 @numba.njit
-def get_edges_features_matrix_numba(elements, nodes):
-    # integral of phi over the element (in 2D: 1/3, in 3D: 1/4)
-    nodes_count = len(nodes)
-    elements_count, element_size = elements.shape
+def get_edges_features_matrix_coo_numba(elements, nodes):
+    """Assemble node features in COO form.
 
-    edges_features_matrix = np.zeros(
-        (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
-    )
+    Contains integral of phi over the element (in 2D: 1/3, in 3D: 1/4).
+    Returns the COO triplets ``(rows, cols, data)`` with ``data`` of shape
+    ``(FEATURE_MATRIX_COUNT, nnz)`` where ``nnz = elements_count * element_size**2``.
+    Duplicate ``(row, col)`` entries are *not* summed here - that is left to
+    ``scipy.sparse`` (which sums duplicates on construction).
+    """
+    elements_count, element_size = elements.shape
+    nnz = elements_count * element_size * element_size
+
+    rows = np.empty(nnz, dtype=np.int64)
+    cols = np.empty(nnz, dtype=np.int64)
+    data = np.zeros((FEATURE_MATRIX_COUNT, nnz), dtype=np.double)
     element_initial_volume = np.zeros(elements_count)
 
+    entry = 0
     for element_index in range(elements_count):  # TODO: #65 prange?
         element = elements[element_index]
         element_nodes = nodes[element]
@@ -50,7 +78,9 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 w = [[i_d_phi * j_d_phi for j_d_phi in j_d_phi_vec] for i_d_phi in i_d_phi_vec]
 
-                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
+                rows[entry] = element[i]
+                cols[entry] = element[j]
+                data[:, entry] = element_volume * np.array(
                     [
                         volume_at_nodes,
                         u,
@@ -68,9 +98,10 @@ def get_edges_features_matrix_numba(elements, nodes):
                         w[2][2],
                     ]
                 )
+                entry += 1
 
     # TODO: #115 compute local_stifness_matrices which should be returned as 3rd value
-    return edges_features_matrix, element_initial_volume, None
+    return rows, cols, data, element_initial_volume, None
 
 
 @numba.njit
@@ -145,7 +176,11 @@ def denominator_numba(x_i, x_j1, x_j2, x_j3):
 
 class DynamicsFactory3D(AbstractDynamicsFactory):
     def get_edges_features_matrix(self, elements, nodes):
-        return get_edges_features_matrix_numba(elements, nodes)
+        rows, cols, data, element_initial_volume, local_stifness_matrices = (
+            get_edges_features_matrix_coo_numba(elements, nodes)
+        )
+        features = coo_features_to_csr(rows, cols, data, len(nodes))
+        return features, element_initial_volume, local_stifness_matrices
 
     @property
     def dimension(self) -> int:
@@ -165,7 +200,7 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         A_23 = lambda_ * W[2, 1] + mu * W[1, 2]
 
         return SM3(
-            np.block(
+            block(
                 [
                     [A_11, A_12, A_13],
                     [A_21, A_22, A_23],
@@ -175,14 +210,13 @@ class DynamicsFactory3D(AbstractDynamicsFactory):
         )
 
     def calculate_acceleration(self, U, density):
-        Z = np.zeros_like(U)
-        return SM3(density * np.block([[U, Z, Z], [Z, U, Z], [Z, Z, U]]))
+        return SM3(density * block([[U, None, None], [None, U, None], [None, None, U]]))
 
     def calculate_thermal_expansion(self, V, coeff):
         A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1] + coeff[0][2] * V[2]
         A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1] + coeff[1][2] * V[2]
         A_33 = coeff[2][0] * V[0] + coeff[2][1] * V[1] + coeff[2][2] * V[2]
-        return SM1to3(np.block([A_11, A_22, A_33]))
+        return SM1to3(hstack_blocks([A_11, A_22, A_33]))
 
     def calculate_thermal_conductivity(self, W, coeff):
         return SM1(

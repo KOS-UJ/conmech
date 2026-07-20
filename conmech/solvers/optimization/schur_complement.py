@@ -1,15 +1,49 @@
-"""
-Created at 22.02.2021
-"""
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2021-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 
 from typing import Tuple
 
 import numpy as np
+import scipy.sparse
+import scipy.sparse.linalg
 
 from conmech.dynamics.statement import Variables
 from conmech.helpers import nph
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.optimization.optimization import Optimization
+
+
+class FactorizedInverse:
+    """Replacement for an explicit inverse of ``free_x_free``.
+
+    Instead of ``inv(free_x_free)`` (dense) a sparse LU factorization is stored.
+    The ``@`` operator mirrors ``inverse @ rhs`` so no other code has to know
+    whether the inverse is dense sparse.
+    """
+
+    def __init__(self, matrix):
+        # ``splu`` needs CSC
+        self._solver = scipy.sparse.linalg.splu(scipy.sparse.csc_matrix(matrix))
+
+    def __matmul__(self, other):
+        dense = other.toarray() if scipy.sparse.issparse(other) else np.asarray(other)
+        return self._solver.solve(dense)
 
 
 class SchurComplementOptimization(Optimization):
@@ -205,23 +239,33 @@ def calculate_schur_complement_vector(
     return vector_boundary, vector_free
 
 
+def _component_dofs(node_slice: slice, nodes_count: int, dimension: int) -> np.ndarray:
+    nodes = np.arange(nodes_count)[node_slice]
+    return np.concatenate([k * nodes_count + nodes for k in range(dimension)])
+
+
 def calculate_schur_complement_matrices(
-    matrix: np.ndarray, dimension: int, contact_indices: slice, free_indices: slice
+    matrix, dimension: int, contact_indices: slice, free_indices: slice
 ):
-    def get_sliced(matrix_split, indices_height, indices_width):
-        matrix = np.moveaxis(matrix_split[..., indices_height, indices_width], 1, 2)
-        dim, height, _, width = matrix.shape
-        return matrix.reshape(dim * height, dim * width)
+    nodes_count = matrix.shape[0] // dimension
+    matrix = matrix.tocsr()
 
-    matrix_split = np.array(
-        np.split(np.array(np.split(matrix, dimension, axis=-1)), dimension, axis=1)
+    free_dofs = _component_dofs(free_indices, nodes_count, dimension)
+    contact_dofs = _component_dofs(contact_indices, nodes_count, dimension)
+
+    def get_sliced(height_dofs, width_dofs):
+        return matrix[height_dofs][:, width_dofs]
+
+    free_x_free = get_sliced(free_dofs, free_dofs)
+    free_x_contact = get_sliced(free_dofs, contact_dofs)
+    contact_x_free = get_sliced(contact_dofs, free_dofs)
+    contact_x_contact = get_sliced(contact_dofs, contact_dofs)
+
+    free_x_free_inverted = FactorizedInverse(free_x_free)
+    # The reduced (contact-sized) boundary matrix is dense on purpose.
+    # It's small and goes into the optimization functional.
+    matrix_boundary = np.asarray(
+        contact_x_contact.toarray() - contact_x_free @ (free_x_free_inverted @ free_x_contact)
     )
-    free_x_free = get_sliced(matrix_split, free_indices, free_indices)
-    free_x_contact = get_sliced(matrix_split, free_indices, contact_indices)
-    contact_x_free = get_sliced(matrix_split, contact_indices, free_indices)
-    contact_x_contact = get_sliced(matrix_split, contact_indices, contact_indices)
-
-    free_x_free_inverted = np.linalg.inv(free_x_free)
-    matrix_boundary = contact_x_contact - contact_x_free @ (free_x_free_inverted @ free_x_contact)
 
     return matrix_boundary, free_x_contact, contact_x_free, free_x_free_inverted

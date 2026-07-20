@@ -1,8 +1,52 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2024-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
+"""
+Thin wrappers around assembled operator matrices.
+
+The operator matrices are stored as :mod:`scipy.sparse` matrices (assembled in
+COO in numba, composed as CSR outside).  The wrapper keeps the *semantics* of
+the operator explicit outside of ``numba``. The class encodes which field
+the operator acts on (its :attr:`DIMENSION`, e.g. ``(2, 2)`` for a
+2D->2D elasticity operator, ``(1, 2)`` for a scalar-to-2D thermal coupling).
+
+Sparse storage is the only representation kept.  When the bare dense values are
+needed (e.g., a ``numba`` kernel, a dense solver reduced to the contact block)
+they are extracted explicitly via :attr:`bare`, so the compute kernels never
+have to know about the sparse layout.
+"""
+
+import numpy as np
+
+
 class StiffnessMatrix:
     DIMENSION = None
 
     def __init__(self, data):
         self.data = data
+
+    @property
+    def bare(self) -> np.ndarray:
+        """Bare, contiguous dense values.
+
+        ``toarray`` yields a single C-contiguous ndarray (no second copy).
+        """
+        return self.data.toarray(order="C")
 
     def __iadd__(self, other):
         if isinstance(other, StiffnessMatrix):
@@ -10,6 +54,7 @@ class StiffnessMatrix:
             self.data += other.data
         else:
             self.data += other
+        return self
 
     def __add__(self, other):
         if isinstance(other, StiffnessMatrix):
@@ -22,6 +67,7 @@ class StiffnessMatrix:
 
     def __imul__(self, other):
         self.data *= other
+        return self
 
     def __mul__(self, other):
         return type(self)(self.data * other)
@@ -45,6 +91,7 @@ class StiffnessMatrix:
             self.data @= other.data
         else:
             self.data @= other
+        return self
 
     def __rmatmul__(self, other):
         return other @ self.data

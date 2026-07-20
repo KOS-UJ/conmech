@@ -1,4 +1,23 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 import numpy as np
+from conmech.helpers.assembly import split_features
 from conmech.dynamics.factory._dynamics_factory_2d import DynamicsFactory2D
 from conmech.dynamics.factory._dynamics_factory_3d import DynamicsFactory3D
 from conmech.properties.body_properties import (
@@ -32,19 +51,7 @@ def get_basic_matrices(elements: np.ndarray, nodes: np.ndarray):
         local_stifness_matrices,
     ) = factory.get_edges_features_matrix(elements, nodes)
 
-    volume_at_nodes = edges_features_matrix[0]
-    U = edges_features_matrix[1]
-
-    V = np.asarray([edges_features_matrix[2 + j] for j in range(factory.dimension)])
-    W = np.asarray(
-        [
-            [
-                edges_features_matrix[2 + factory.dimension * (k + 1) + j]
-                for j in range(factory.dimension)
-            ]
-            for k in range(factory.dimension)
-        ]
-    )
+    volume_at_nodes, U, V, W = split_features(edges_features_matrix, factory.dimension)
     return element_initial_volume, volume_at_nodes, U, V, W, local_stifness_matrices
 
 

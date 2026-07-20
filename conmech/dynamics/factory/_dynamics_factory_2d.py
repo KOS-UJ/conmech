@@ -1,8 +1,28 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2022  Michał Jureczka <michal.jureczka@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 # pylint: disable=R0914
 import numba
 import numpy as np
 
 from conmech.dynamics.factory._abstract_dynamics_factory import AbstractDynamicsFactory
+from conmech.helpers.assembly import block, hstack_blocks, coo_features_to_csr
 from conmech.struct.stiffness_matrix import SM2, SM1, SM1to2
 
 DIMENSION = 2
@@ -15,14 +35,22 @@ VOLUME_DIVIDER = 2
 
 
 @numba.njit
-def get_edges_features_matrix_numba(elements, nodes):
-    # integral of phi over the element (in 2D: 1/3, in 3D: 1/4)
-    nodes_count = len(nodes)
-    elements_count, element_size = elements.shape
+def get_edges_features_matrix_coo_numba(elements, nodes):
+    """Assemble node features in COO form.
 
-    edges_features_matrix = np.zeros(
-        (FEATURE_MATRIX_COUNT, nodes_count, nodes_count), dtype=np.double
-    )
+    Contains integral of phi over the element (in 2D: 1/3, in 3D: 1/4).
+    Returns the COO triplets ``(rows, cols, data)`` with ``data`` of shape
+    ``(FEATURE_MATRIX_COUNT, nnz)`` where ``nnz = elements_count * element_size**2``.
+    Duplicate ``(row, col)`` entries are *not* summed here - that is left to
+    ``scipy.sparse`` (which sums duplicates on construction).
+    """
+    elements_count, element_size = elements.shape
+    nnz = elements_count * element_size * element_size
+
+    rows = np.empty(nnz, dtype=np.int64)
+    cols = np.empty(nnz, dtype=np.int64)
+    data = np.zeros((FEATURE_MATRIX_COUNT, nnz), dtype=np.double)
+
     element_initial_volume = np.zeros(elements_count)
     # Local stifness matrices (w[0, 0], w[0, 1], w[1, 0], w[1, 1]) per mesh element
     # Detailed description can be found in [LSM] Local stifness matrix
@@ -32,7 +60,8 @@ def get_edges_features_matrix_numba(elements, nodes):
 
     en0 = np.empty(ELEMENT_NODES_COUNT)
     en1 = np.empty(ELEMENT_NODES_COUNT)
-    for element_index in range(elements_count):  # TODO: #65 prange?
+    entry = 0
+    for element_index in range(elements_count):
         element = elements[element_index]
         element_nodes = nodes[element]
 
@@ -105,7 +134,9 @@ def get_edges_features_matrix_numba(elements, nodes):
 
                 local_stifness_matrices[:, :, element_index, i, j] = element_volume * np.asarray(w)
 
-                edges_features_matrix[:, element[i], element[j]] += element_volume * np.array(
+                rows[entry] = element[i]
+                cols[entry] = element[j]
+                data[:, entry] = element_volume * np.array(
                     [
                         volume_at_nodes,
                         u,
@@ -118,9 +149,9 @@ def get_edges_features_matrix_numba(elements, nodes):
                         q / element_volume,
                     ]
                 )
+                entry += 1
 
-    # Performance TIP: we need only sparse, triangular matrix (?)
-    return edges_features_matrix, element_initial_volume, local_stifness_matrices
+    return rows, cols, data, element_initial_volume, local_stifness_matrices
 
 
 @numba.njit
@@ -154,7 +185,11 @@ def denominator_numba(x_i, x_j1, x_j2):
 
 class DynamicsFactory2D(AbstractDynamicsFactory):
     def get_edges_features_matrix(self, elements, nodes):
-        return get_edges_features_matrix_numba(elements, nodes)
+        rows, cols, data, element_initial_volume, local_stifness_matrices = (
+            get_edges_features_matrix_coo_numba(elements, nodes)
+        )
+        features = coo_features_to_csr(rows, cols, data, len(nodes))
+        return features, element_initial_volume, local_stifness_matrices
 
     @property
     def dimension(self) -> int:
@@ -165,23 +200,22 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         A_12 = mu * W[1, 0] + lambda_ * W[0, 1]
         A_21 = lambda_ * W[1, 0] + mu * W[0, 1]
         A_22 = mu * W[0, 0] + (2 * mu + lambda_) * W[1, 1]
-        return SM2(np.block([[A_11, A_12], [A_21, A_22]]))
+        return SM2(block([[A_11, A_12], [A_21, A_22]]))
 
     def get_relaxation_tensor(self, W, coeff):
         A_11 = coeff[0][0][0] * W[0, 0] + coeff[0][1][1] * W[1, 1]
         A_12 = coeff[0][1][0] * W[1, 0] + coeff[0][0][1] * W[0, 1]
         A_21 = coeff[1][1][0] * W[1, 0] + coeff[1][0][1] * W[0, 1]
         A_22 = coeff[1][0][0] * W[0, 0] + coeff[1][1][1] * W[1, 1]
-        return SM2(np.block([[A_11, A_12], [A_21, A_22]]))
+        return SM2(block([[A_11, A_12], [A_21, A_22]]))
 
     def calculate_acceleration(self, U, density):
-        Z = np.zeros_like(U)
-        return SM2(density * np.block([[U, Z], [Z, U]]))
+        return SM2(density * block([[U, None], [None, U]]))
 
     def calculate_thermal_expansion(self, V, coeff):
         A_11 = coeff[0][0] * V[0] + coeff[0][1] * V[1]
         A_22 = coeff[1][0] * V[0] + coeff[1][1] * V[1]
-        return SM1to2(np.block([A_11, A_22]))
+        return SM1to2(hstack_blocks([A_11, A_22]))
 
     def calculate_thermal_conductivity(self, W, coeff):
         return SM1(
@@ -196,7 +230,7 @@ class DynamicsFactory2D(AbstractDynamicsFactory):
         A_12 = coeff[0][1][0] * W[1, 0] + coeff[0][0][1] * W[0, 1]
         A_21 = coeff[1][1][0] * W[1, 0] + coeff[1][0][1] * W[0, 1]
         A_22 = coeff[1][0][0] * W[0, 0] + coeff[1][1][1] * W[1, 1]
-        return SM2(np.block([[A_11 + A_12, A_22 + A_21]]))
+        return SM2(hstack_blocks([A_11 + A_12, A_22 + A_21]))
 
     def get_permittivity_tensor(self, W, coeff):
         return SM1(
