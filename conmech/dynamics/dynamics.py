@@ -21,7 +21,9 @@
 from typing import Optional
 
 import numpy as np
+import scipy.sparse
 
+from conmech.struct.types import FeatureMatrix
 from conmech.dynamics.factory.dynamics_factory_method import (
     get_dynamics,
     get_basic_matrices,
@@ -99,11 +101,6 @@ class Dynamics:
     def asembly_w_matrix_with_density(self, elements_density: np.ndarray):
         # COO accumulation: one (row, col) entry per (element, i, j); scipy sums
         # duplicates on CSR construction.
-        # pylint: disable=import-outside-toplevel
-        import scipy.sparse
-
-        from conmech.struct.types import FeatureMatrix
-
         elements = self.body.mesh.elements
         nodes_count = self.body.mesh.nodes_count
         dim, _, elements_count, element_size, _ = self._local_stifness_matrices.shape
