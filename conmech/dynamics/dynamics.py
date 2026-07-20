@@ -1,3 +1,23 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2022  Michał Jureczka <michal.jureczka@uj.edu.pl>
+# Copyright (C) 2023 Wiktor Prządka
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 from typing import Optional
 
 import numpy as np
@@ -52,7 +72,8 @@ class Dynamics:
             self._w_matrix,
             self._local_stifness_matrices,
         ) = get_basic_matrices(
-            elements=self.body.mesh.elements, nodes=self.body.mesh.nodes
+            elements=self.body.mesh.elements,
+            nodes=self.body.mesh.nodes,
         )  # + self.displacement_old)
 
         if elements_density is not None:
@@ -76,15 +97,46 @@ class Dynamics:
         )
 
     def asembly_w_matrix_with_density(self, elements_density: np.ndarray):
-        w_matrix = np.zeros_like(self._w_matrix)
-        for element_index, element in enumerate(self.body.mesh.elements):
-            for i, global_i in enumerate(element):
-                for j, global_j in enumerate(element):
-                    w_matrix[:, :, global_i, global_j] += (
-                        elements_density[element_index]
-                        * self._local_stifness_matrices[:, :, element_index, i, j]
-                    )
-        return w_matrix
+        # COO accumulation: one (row, col) entry per (element, i, j); scipy sums
+        # duplicates on CSR construction.
+        # pylint: disable=import-outside-toplevel
+        import scipy.sparse
+
+        from conmech.struct.types import FeatureMatrix
+
+        elements = self.body.mesh.elements
+        nodes_count = self.body.mesh.nodes_count
+        dim, _, elements_count, element_size, _ = self._local_stifness_matrices.shape
+
+        nnz = elements_count * element_size * element_size
+        rows = np.empty(nnz, dtype=np.int64)
+        cols = np.empty(nnz, dtype=np.int64)
+        entry = 0
+        for element in elements:
+            for global_i in element:
+                for global_j in element:
+                    rows[entry] = global_i
+                    cols[entry] = global_j
+                    entry += 1
+
+        blocks = []
+        for k in range(dim):
+            row_blocks = []
+            for m in range(dim):
+                data = np.empty(nnz, dtype=np.double)
+                entry = 0
+                for element_index in range(elements_count):
+                    scale = elements_density[element_index]
+                    lsm = self._local_stifness_matrices[k, m, element_index]
+                    for i in range(element_size):
+                        for j in range(element_size):
+                            data[entry] = scale * lsm[i, j]
+                            entry += 1
+                row_blocks.append(
+                    scipy.sparse.csr_matrix((data, (rows, cols)), shape=(nodes_count, nodes_count))
+                )
+            blocks.append(row_blocks)
+        return FeatureMatrix(blocks)
 
     def relaxation(self, time: float = 0):
         # TODO handle others

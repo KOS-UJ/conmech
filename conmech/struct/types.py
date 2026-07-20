@@ -1,6 +1,6 @@
 # CONMECH @ Jagiellonian University in Kraków
 #
-# Copyright (C) 2024  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2024-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -49,10 +49,61 @@ class Tcf64:
 ci64 = Tci64()
 cf64 = Tcf64()
 
+
+# Backend-aware wrappers for assembled node-feature arrays.
+#
+# The FEM assembly (see ``dynamics/factory``) produces, per mesh feature, an
+# ``N x N`` node-to-node matrix.  Grouped together these form the building
+# blocks of every operator:
+#   * ``U``  -- a single ``(N, N)`` mass-like matrix,
+#   * ``V``  -- a ``dim``-vector of ``(N, N)`` matrices (1D field, e.g. thermal
+#               expansion coupling),
+#   * ``W``  -- a ``dim x dim`` matrix of ``(N, N)`` matrices (gradient/gradient
+#               products, the core of every stiffness operator).
+class FeatureVector:
+    """A ``dim``-long vector of assembled ``(N, N)`` blocks."""
+
+    FIELD = 1
+
+    def __init__(self, blocks):
+        self.blocks = list(blocks)
+
+    def __len__(self):
+        return len(self.blocks)
+
+    def __getitem__(self, item):
+        return self.blocks[item]
+
+
+class FeatureMatrix:
+    """A ``dim x dim`` grid of assembled ``(N, N)`` blocks."""
+
+    FIELD = 2
+
+    def __init__(self, blocks):
+        # ``blocks`` is a list of lists (``dim x dim``) of (N, N) matrices.
+        self.blocks = [list(row) for row in blocks]
+        self.dim = len(self.blocks)
+
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            i, j = item
+            return self.blocks[i][j]
+        return self.blocks[item]
+
+    def diagonal_sum(self):
+        result = self.blocks[0][0]
+        for i in range(1, self.dim):
+            result = result + self.blocks[i][i]
+        return result
+
+
 __all__ = [
     "ci64",
     "cf64",
     "i64",
     "f64",
     "Tuple",
+    "FeatureVector",
+    "FeatureMatrix",
 ]

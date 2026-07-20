@@ -136,7 +136,7 @@ class Optimization(Solver):
             self.lhs,
             self.rhs if len(self.rhs.shape) == 1 else self.rhs[0],  # TODO
             displacement,
-            np.ascontiguousarray(self.body.dynamics.acceleration_operator.SM1.data),
+            self.body.dynamics.acceleration_operator.SM1.bare,
             self.time_step,
         )
 

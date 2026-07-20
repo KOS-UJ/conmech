@@ -1,3 +1,21 @@
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2022-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 from dataclasses import dataclass
 from typing import Optional
 
@@ -38,18 +56,21 @@ class Statement:
         self.apply_dirichlet_condition()
 
     def apply_dirichlet_condition(self):
+        # LIL supports in-place block assignment (CSR does not) and the column
+        # matvec is a sparse @ dense product.
+        data = self.left_hand_side.data.tolil()
         for dirichlet_cond in self.find_dirichlet_conditions():
             c = self.body.mesh.boundaries.boundaries[dirichlet_cond].node_condition
             node_count = self.body.mesh.nodes_count
             for i, j in self.body.mesh.boundaries.get_all_boundary_indices(
                 dirichlet_cond, node_count, self.dimension_in
             ):
-                self.right_hand_side[:] -= self.left_hand_side[:, i] @ c[j]
-                self.left_hand_side.data[:, i] = 0
-                self.left_hand_side.data[i, :] = 0
-                # have to be "[i][:, i]" instead of just a "[i, i]" because the i may be ndarray
-                self.left_hand_side.data[i][:, i] = np.eye(j.stop - j.start)
+                self.right_hand_side[:] -= data[:, i] @ c[j]
+                data[:, i] = 0
+                data[i, :] = 0
+                data[i, i] = np.eye(j.stop - j.start)
                 self.right_hand_side[i] = c[j]
+        self.left_hand_side.data = data.tocsr()
 
     def find_dirichlet_conditions(self):
         boundaries = self.body.mesh.boundaries.boundaries
