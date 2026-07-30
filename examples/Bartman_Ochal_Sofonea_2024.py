@@ -33,7 +33,7 @@ from conmech.properties.mesh_description import SOB2023MeshDescription
 from conmech.state.products.penetration import Penetration
 
 from conmech.dynamics.contact.constant_constact_law import make_const_contact_law
-from examples.utils import elastic_relaxation_constitutive_law
+from examples.common.constitutive_laws import elastic_relaxation_constitutive_law
 
 eps = 1e-18
 ox = 2.5
