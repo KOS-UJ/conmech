@@ -132,7 +132,7 @@ def norms_of_nodal_field(nodes: np.ndarray, elements: np.ndarray, values: np.nda
     l2_sq = float(np.dot(weights, p1_at_quadrature(elements, values) ** 2))
 
     gradients = p1_gradients(nodes, elements, values)
-    h1_sq = float(np.dot(element_areas(nodes, elements), (gradients ** 2).sum(axis=1)))
+    h1_sq = float(np.dot(element_areas(nodes, elements), (gradients**2).sum(axis=1)))
 
     return {
         "L2": np.sqrt(max(l2_sq, 0.0)),
@@ -283,9 +283,7 @@ def interpolation_consistency_error(
     u_coarse, grad_coarse = evaluate_p1(coarse_nodes, coarse_elements, coarse_values, points)
     finite = np.isfinite(u_coarse) & np.isfinite(grad_coarse).all(axis=1)
 
-    grad_fine = np.repeat(
-        p1_gradients(fine_nodes, fine_elements, fine_values), len(_TRI_W), axis=0
-    )
+    grad_fine = np.repeat(p1_gradients(fine_nodes, fine_elements, fine_values), len(_TRI_W), axis=0)
     l2_sq = float(np.dot(weights[finite], (u_fine - u_coarse)[finite] ** 2))
     h1_sq = float(np.dot(weights[finite], ((grad_fine - grad_coarse)[finite] ** 2).sum(axis=1)))
     return {

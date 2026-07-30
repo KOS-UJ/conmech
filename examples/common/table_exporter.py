@@ -70,13 +70,15 @@ def export_table(
     for row in rows:
         tex_lines.append(" & ".join(str(cell) for cell in row) + " \\\\")
 
-    tex_lines.extend([
-        "\\hline",
-        "\\end{tabular}",
-        f"\\caption{{{caption}}}",
-        f"\\label{{{label}}}",
-        "\\end{table}",
-    ])
+    tex_lines.extend(
+        [
+            "\\hline",
+            "\\end{tabular}",
+            f"\\caption{{{caption}}}",
+            f"\\label{{{label}}}",
+            "\\end{table}",
+        ]
+    )
 
     base_dir = Path(outputs_path) if outputs_path else Path(".")
     base_dir.mkdir(parents=True, exist_ok=True)

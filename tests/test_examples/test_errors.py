@@ -145,9 +145,7 @@ def test_no_error_for_a_linear_function():
         out[:, 0], out[:, 1] = 3.0, -2.0
         return out
 
-    for key, value in err.errors_vs_exact(
-        nodes, elements, exact(nodes), exact, grad_exact
-    ).items():
+    for key, value in err.errors_vs_exact(nodes, elements, exact(nodes), exact, grad_exact).items():
         assert value < 1e-13, (key, value)
 
 
