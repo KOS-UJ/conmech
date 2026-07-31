@@ -16,13 +16,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
 # USA.
-from typing import List
 
 import numba
 import numpy as np
 import scipy
-
-from conmech.properties.body_properties import BodyProperties
 
 
 def get_interpolated(u, vertices):

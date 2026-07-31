@@ -1,15 +1,19 @@
-import numba
-import numpy as np
-from scipy import interpolate
-import pickle
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
-import seaborn as sns
-import matplotlib.tri as tri
-import matplotlib.pylab as pl
-from conmech.state.state import TemperatureState
+"""
+Error functionals of already published examples, kept verbatim.
 
-# TODO #99
+They are superseded by `examples.common.errors`, which integrates over the mesh
+connectivity instead of a Delaunay re-triangulation of the nodes. These are retained for
+the reproducibility of [Bartman-Szwarc, Ochal Sofonea, Tarzia 2025].
+
+Deprecated: Do not use these for new work.
+"""
+
+import pickle
+
+import matplotlib.tri as tri
+import numba
+
+from conmech.state.state import TemperatureState
 
 
 def compare(ref: TemperatureState, sol: TemperatureState):
@@ -93,95 +97,16 @@ def calculate_dx_dy(x0, u0, x1, u1, x2, u2):
 
 
 def error_estimates(ref, *args):
-    reference_k_h = (9, 6)
-    denominator = 1  # TODO 2 ** reference_k_h[0] * 2 ** reference_k_h[1] * 4
-
-    # T = 1
-    # kn = 10
-    # hn = 6
-    # ks = range(kn)
-    # hs = range(hn)
-
+    """Element-averaged `compare` value of each solution against a reference pickle."""
     with open(ref, "rb") as output:
         reference = pickle.load(output)
         denominator = len(reference.body.mesh.elements)
         print(f"{denominator=}")
 
     ue = {}
-    # te = np.empty((kn, hn))
     for arg in args:
         with open(arg, "rb") as output:
             solution = pickle.load(output)
-            u, t = compare(reference, solution)
+            u, _ = compare(reference, solution)
             ue[arg] = u / denominator
-            # te[k, h] = t / denominator
-            # print(k, h, u, t)
     return ue
-    # print(repr(ue))
-
-    # print(repr(te))
-
-    # h_ticks = [1 / 2 ** h for h in hs]
-    # plt.style.use("seaborn")
-    # sns.set(rc={"axes.facecolor": "#E6EDF4"})
-    #
-    # plt.xscale("log")
-    # plt.yscale("log")
-    # plt.title("Velocity error")
-    # plt.xlabel("spatial step: h")
-    # plt.ylabel("error: $||u-u^h||_V$")
-    # optimal = 2 * ue[ks[-1], 1] * np.asarray(h_ticks) ** 1
-    # plt.plot(h_ticks, optimal, color="silver", linewidth=4.0, label=None)
-    # colors = pl.cm.jet(np.linspace(0, 1, len(ks)))
-    # for i, k in enumerate(ks):
-    #     plt.plot(
-    #         h_ticks, ue[k, hs[0]: hs[-1] + 1], "s-", label="$2^{-" + str(k) + "}$", color=colors[i]
-    #     )
-    # plt.xticks(h_ticks, h_ticks)
-    # plt.legend(title="time step: k")
-    # margin = 0.15
-    # plt.xlim(max(h_ticks) * (1 + margin), min(h_ticks) * (1 - margin))
-    # plt.savefig(
-    #     "output/error/displacement.pdf",
-    #     transparent=False,
-    #     bbox_inches="tight",
-    #     format="pdf",
-    #     pad_inches=0.1,
-    #     dpi=800,
-    # )
-    # plt.show()
-
-    # plt.xscale("log")
-    # plt.yscale("log")
-    # plt.title("Temperature error")
-    # plt.xlabel("spatial step: h")
-    # plt.ylabel(r"error: $||\theta-\theta^h||_E$")
-    # plt.plot(
-    #     h_ticks,
-    #     (2 * te[ks[-1], 1] * np.asarray(h_ticks) ** 1),
-    #     color="silver",
-    #     linewidth=4.0,
-    #     label=None,
-    # )
-    # colors = pl.cm.jet(np.linspace(0, 1, len(ks)))
-    # for i, k in enumerate(ks):
-    #     plt.plot(
-    #         h_ticks, te[k, hs[0]: hs[-1] + 1], "s-", label="$2^{-" + str(k) + "}$", color=colors[i]
-    #     )
-    # plt.xticks(h_ticks, h_ticks)
-    # plt.legend(title="time step: k")
-    # margin = 0.15
-    # plt.xlim(max(h_ticks) * (1 + margin), min(h_ticks) * (1 - margin))
-    # plt.savefig(
-    #     "output/error/temperature.pdf",
-    #     transparent=False,
-    #     bbox_inches="tight",
-    #     format="pdf",
-    #     pad_inches=0.1,
-    #     dpi=800,
-    # )
-    # plt.show()
-
-
-if __name__ == "__main__":
-    pass

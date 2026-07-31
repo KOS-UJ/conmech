@@ -18,7 +18,7 @@ from conmech.simulations.problem_solver import (
     TimeDependentSolver as QuasistaticProblemSolver,
 )
 from conmech.properties.mesh_description import JOB2023MeshDescription
-from examples.utils import viscoelastic_constitutive_law
+from examples.common.constitutive_laws import viscoelastic_constitutive_law
 
 
 def make_contact_law(limit_value, limit, friction_bound):

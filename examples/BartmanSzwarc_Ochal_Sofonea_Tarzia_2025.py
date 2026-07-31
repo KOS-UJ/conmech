@@ -29,7 +29,7 @@ from conmech.scenarios.problems import StaticDisplacementProblem
 from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.simulations.problem_solver import StaticSolver as StaticProblemSolver
 from conmech.properties.mesh_description import BOST2023MeshDescription
-from examples.error_estimates import error_estimates
+from examples.common.legacy_errors import error_estimates
 
 GAP = 0.0
 E = 12000
