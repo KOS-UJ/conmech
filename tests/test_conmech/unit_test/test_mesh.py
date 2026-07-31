@@ -7,6 +7,8 @@ import pytest
 
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
+from conmech.properties.mesh_description import NestedRectangleMeshDescription
+from conmech.mesh.mesh import Mesh
 from tests.test_conmech.regression.std_boundary import (
     extract_boundary_paths_from_elements,
 )
@@ -234,3 +236,99 @@ def test_condition_boundaries(_test_name_, params):
     assert compare_surfaces(boundaries_data.contact_boundary, expected_contact_boundary)
     assert compare_surfaces(boundaries_data.neumann_boundary, expected_neumann_boundary)
     assert compare_surfaces(boundaries_data.dirichlet_boundary, expected_dirichlet_boundary)
+
+
+def test_nested_rectangle_mesh_size_and_counts():
+    for cells_per_unit in (1, 2, 4, 8):
+        descr = NestedRectangleMeshDescription(
+            initial_position=None, cells_per_unit=cells_per_unit, scale=[2, 1]
+        )
+        mesh = descr.build()
+        assert descr.mesh_size == 1.0 / cells_per_unit
+        assert len(mesh.nodes) == (2 * cells_per_unit + 1) * (cells_per_unit + 1)
+        assert len(mesh.elements) == 4 * cells_per_unit**2
+
+        for axis, extent in enumerate((2.0, 1.0)):
+            coordinates = np.unique(mesh.nodes[:, axis])
+            np.testing.assert_allclose(
+                coordinates, np.linspace(0.0, extent, int(extent * cells_per_unit) + 1), atol=1e-15
+            )
+
+
+def test_nested_rectangle_refinements_are_nested():
+    def build(cells_per_unit):
+        mesh = NestedRectangleMeshDescription(
+            initial_position=None, cells_per_unit=cells_per_unit, scale=[2, 1]
+        ).build()
+        return np.asarray(mesh.nodes), np.asarray(mesh.elements)
+
+    coarse_nodes, coarse_elements = build(4)
+    fine_nodes, fine_elements = build(8)
+
+    # every coarse vertex is a fine vertex
+    for node in coarse_nodes:
+        assert np.any(np.all(np.isclose(fine_nodes, node, atol=1e-15), axis=1)), node
+
+    # every fine element lies inside exactly one coarse element: its centroid is
+    # in that coarse element, and it never straddles a coarse edge
+    coarse_centroids = coarse_nodes[coarse_elements].mean(axis=1)
+    fine_centroids = fine_nodes[fine_elements].mean(axis=1)
+    coarse_area = 0.5 * np.abs(
+        np.cross(
+            coarse_nodes[coarse_elements[:, 1]] - coarse_nodes[coarse_elements[:, 0]],
+            coarse_nodes[coarse_elements[:, 2]] - coarse_nodes[coarse_elements[:, 0]],
+        )
+    )
+    fine_area = 0.5 * np.abs(
+        np.cross(
+            fine_nodes[fine_elements[:, 1]] - fine_nodes[fine_elements[:, 0]],
+            fine_nodes[fine_elements[:, 2]] - fine_nodes[fine_elements[:, 0]],
+        )
+    )
+    np.testing.assert_allclose(coarse_area.sum(), fine_area.sum(), rtol=1e-14)
+    assert len(fine_elements) == 4 * len(coarse_elements)
+
+    for centroid in fine_centroids:
+        owners = [
+            index
+            for index, element in enumerate(coarse_elements)
+            if _point_in_triangle(centroid, coarse_nodes[element])
+        ]
+        assert len(owners) == 1, (centroid, owners)
+
+    # each coarse element owns exactly four fine elements
+    assert len(coarse_centroids) * 4 == len(fine_centroids)
+
+
+def _point_in_triangle(point, triangle, tol=1e-12):
+    p_0, p_1, p_2 = triangle
+    denominator = (p_1[0] - p_0[0]) * (p_2[1] - p_0[1]) - (p_2[0] - p_0[0]) * (p_1[1] - p_0[1])
+    lambda_1 = (
+        (point[0] - p_0[0]) * (p_2[1] - p_0[1]) - (p_2[0] - p_0[0]) * (point[1] - p_0[1])
+    ) / denominator
+    lambda_2 = (
+        (p_1[0] - p_0[0]) * (point[1] - p_0[1]) - (point[0] - p_0[0]) * (p_1[1] - p_0[1])
+    ) / denominator
+    return lambda_1 > tol and lambda_2 > tol and lambda_1 + lambda_2 < 1.0 - tol
+
+
+def test_nested_rectangle_survives_boundary_renumbering():
+    description = BoundariesDescription(
+        dirichlet=(lambda x: np.isclose(x[1], 0.0), lambda x: np.zeros(x.shape[0])),
+        contact=lambda x: np.isclose(x[1], 1.0),
+    )
+
+    built = {}
+    for cells_per_unit in (4, 8):
+        mesh = Mesh(
+            mesh_descr=NestedRectangleMeshDescription(
+                initial_position=None, cells_per_unit=cells_per_unit, scale=[2, 1]
+            ),
+            boundaries_description=description,
+        )
+        built[cells_per_unit] = np.asarray(mesh.nodes)
+        assert len(mesh.nodes) == (2 * cells_per_unit + 1) * (cells_per_unit + 1)
+        assert len(mesh.elements) == 4 * cells_per_unit**2
+
+    for node in built[4]:
+        assert np.any(np.all(np.isclose(built[8], node, atol=1e-15), axis=1)), node

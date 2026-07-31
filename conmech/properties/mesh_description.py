@@ -56,6 +56,29 @@ class RectangleMeshDescription(GeneratedMeshDescription):
 
 
 @dataclass
+class NestedRectangleMeshDescription(MeshDescription):
+    """
+    Rectangle whose refinements are nested, for convergence studies.
+
+    Unlike `RectangleMeshDescription`, the mesh size is stated directly:
+    `cells_per_unit = n` gives cells of size `1 / n`, so `n -> 2 n` halves `h`
+    exactly.
+    """
+
+    cells_per_unit: int
+    scale: List[float]
+
+    def build(self):
+        from conmech.mesh.zoo.nested_rectangle import NestedRectangle
+
+        return NestedRectangle(self)
+
+    @property
+    def mesh_size(self) -> float:
+        return 1.0 / self.cells_per_unit
+
+
+@dataclass
 class CrossMeshDescription(GeneratedMeshDescription):
     scale: List[float]
 
