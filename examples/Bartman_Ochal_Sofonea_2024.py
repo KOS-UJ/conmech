@@ -19,6 +19,8 @@
 import pickle
 from dataclasses import dataclass
 
+from pathlib import Path
+
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
@@ -83,6 +85,7 @@ def main(config: Config):
 
     To see result you need to call from python `main(Config().init())`.
     """
+    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
     if not config.test:
         elements_number = (20, 20)
         mesh_descr = SOB2023MeshDescription(
@@ -336,6 +339,8 @@ def plots(setup, h, examples, config):
 
     format_ = "pdf"
     path = Drawer.get_output_path(config, format_, name="force_penetration")
+    # written whatever config.save says, so it ensures its own directory
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(
         path,
         transparent=False,

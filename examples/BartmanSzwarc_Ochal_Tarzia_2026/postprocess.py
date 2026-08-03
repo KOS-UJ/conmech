@@ -1,128 +1,34 @@
-import string
+# CONMECH @ Jagiellonian University in Kraków
+#
+# Copyright (C) 2025-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 3
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+# USA.
 
-import matplotlib.tri as mtri
 import gc
-import pickle
-from dataclasses import dataclass
+import string
 from pathlib import Path
-from typing import Optional, Type
 
 import matplotlib.pyplot as plt
+import matplotlib.tri as mtri
 import numpy as np
 from scipy.interpolate import griddata
-from conmech.helpers.config import Config
-from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.scenarios.problems import PoissonProblem
-from conmech.dynamics.contact.contact_law import ContactLaw, PotentialOfContactLaw
-from conmech.simulations.problem_solver import PoissonSolver
-from conmech.properties.mesh_description import RectangleMeshDescription
+
 from conmech.state.state import TemperatureState
 
-ALPHAS = [0.01, 0.1, 1, 10, 100, 1000, 10_000, 100_000, 1_000_000, np.inf]
-IHS = [4, 8, 16, 32, 48, 72]
-B_COEF = 5
-MAXD = 72
-TEMPERATURE_GRID = (
-    ((np.inf, 4), (np.inf, MAXD)),
-    ((10, MAXD), (100, MAXD)),
-    ((0.1, MAXD), (1, MAXD)),
-    ((0.01, 4), (0.01, MAXD)),
-)
-CONVERGENCE_SEQUENCES = (
-    (
-        tuple((0.01, h) for h in IHS),
-        tuple((np.inf, h) for h in IHS),
-    ),
-    (
-        tuple((a, 4) for a in ALPHAS),
-        tuple((a, 72) for a in ALPHAS),
-    ),
-    (
-        (
-            (0.01, 4),
-            (0.1, 8),
-            (1, 8),
-            (10, 16),
-            (100, 16),
-            (1000, 32),
-            (10_000, 32),
-            (100_000, 48),
-            (1_000_000, 72),
-            (np.inf, 72),
-        ),
-        None,
-    ),
-)
-
-
-def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
-    class TarziaContactLaw(PotentialOfContactLaw):
-        @staticmethod
-        def potential_normal_direction(
-            var_nu: float, static_displacement_nu: float, dt: float
-        ) -> float:
-            b = B_COEF
-            r = var_nu
-            # EXAMPLE 11
-            if r < b:
-                result = (r - b) ** 2
-            else:
-                result = 2 * np.log((r - b) + 1)
-            result *= slope
-            return result
-
-        @staticmethod
-        def subderivative_normal_direction(
-            var_nu: float, static_displacement_nu: float, dt: float
-        ) -> float:
-            b = B_COEF
-            r = var_nu
-            # EXAMPLE 11
-            if r < b:
-                result = r - b
-            else:
-                result = 1 / (r - b + 1)
-            result *= slope
-            return result
-
-    return TarziaContactLaw
-
-
-@dataclass()
-class StaticPoissonSetup(PoissonProblem):
-    contact_law_2: Type[ContactLaw] = make_slope_contact_law(slope=1000)
-
-    @staticmethod
-    def internal_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        return np.array([-4])
-
-    @staticmethod
-    def outer_temperature(x: np.ndarray, t: Optional[float] = None) -> np.ndarray:
-        _y = x[1]
-        return np.array([_y * (_y - 1) * 32])
-
-    boundaries: BoundariesDescription = BoundariesDescription(
-        dirichlet=(
-            lambda x: x[1] == 0.0,  # or x[1] == 1.0,
-            lambda x: np.full(x.shape[0], 5),
-        ),
-        contact=lambda x: x[1] == 1.0,
-    )
-
-
-def state_path(config, alpha, ih) -> Path:
-    return Path(config.outputs_path) / f"alpha_{alpha}_ih_{ih}"
-
-
-def load_or_simulate(config, alpha, ih, only_ensure=False) -> Optional[TemperatureState]:
-    path = state_path(config, alpha, ih)
-    if config.force or not path.exists():
-        print(f"{config.force=}, {path.exists()=}")
-        simulate(config, alpha, ih)
-    if only_ensure:
-        return None
-    with open(path, "rb") as output:
-        return pickle.load(output)
+from examples.BartmanSzwarc_Ochal_Tarzia_2026.run import load_or_simulate
 
 
 def _pair_label(alpha, ih) -> str:
@@ -456,85 +362,3 @@ def draw_convergence_plots(config, sequences, ihs, alphas):
     if config.show:
         plt.show()
     plt.close(fig)
-
-
-def simulate(config, alpha, ih):
-    print(f"Simulate {alpha=}, {ih=}")
-    mesh_descr = RectangleMeshDescription(
-        initial_position=None, max_element_perimeter=1 / ih, scale=[2, 1]
-    )
-    setup = StaticPoissonSetup(mesh_descr)
-    setup.contact_law_2 = make_slope_contact_law(slope=alpha)
-
-    solving_method = "schur" if alpha != np.inf else "direct"
-    if alpha == np.inf:
-        setup.boundaries = BoundariesDescription(
-            dirichlet=(
-                lambda x: x[1] == 0.0 or x[1] == 1.0,
-                lambda x: np.full(x.shape[0], 5),
-            )
-        )
-    runner = PoissonSolver(setup, solving_method)
-
-    state = runner.solve(verbose=True, method="Powell")
-
-    if config.outputs_path:
-        with open(
-            f"{config.outputs_path}/alpha_{alpha}_ih_{ih}",
-            "wb+",
-        ) as output:
-            # Workaround
-            state.body.dynamics.force.outer.source = None
-            state.body.dynamics.force.inner.source = None
-            state.body.properties.relaxation = None
-            state.setup = None
-            state.constitutive_law = None
-            pickle.dump(state, output)
-
-
-def main(config: Config):
-    """
-    Entrypoint to example.
-
-    To see result of simulation you need to call from python `main(Config().init())`.
-    """
-    alphas = ALPHAS if not config.test else ALPHAS[:1]
-    ihs = IHS if not config.test else IHS[:1]
-    temperature_grid = TEMPERATURE_GRID if not config.test else (((alphas[0], ihs[0]),),)
-    convergence_sequences = (
-        CONVERGENCE_SEQUENCES
-        if not config.test
-        else (
-            (
-                ((alphas[0], ihs[0]),),
-                None,
-            ),
-        )
-    )
-
-    for alpha in alphas:
-        for ih in ihs:
-            print(f"Configuration: {alpha=}, {ih=}")
-            load_or_simulate(config, alpha, ih, only_ensure=True)
-
-    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
-    all_params = set()
-    for item in temperature_grid:
-        for alpha, ih in item:
-            all_params.add((alpha, ih))
-    for row in convergence_sequences:
-        for seq in row:
-            if seq is None:
-                continue
-            for alpha, ih in seq:
-                all_params.add((alpha, ih))
-    for alpha, ih in all_params:
-        print(f"Ensuring state: {alpha=}, {ih=}")
-        load_or_simulate(config, alpha, ih, only_ensure=True)
-
-    draw_temperature_grid(config, temperature_grid)
-    draw_convergence_plots(config, convergence_sequences, ihs, alphas)
-
-
-if __name__ == "__main__":
-    main(Config(outputs_path="./output/BOT2023", force=False, save=True, show=False).init())

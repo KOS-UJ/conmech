@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
 import matplotlib.pyplot as plt
+from pathlib import Path
+
 import numpy as np
 from conmech.helpers.config import Config
 from conmech.mesh.boundaries_description import BoundariesDescription
@@ -109,6 +111,7 @@ def main(
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
     PREFIX = "BOST"
     to_simulate = []
     igs = igs or [1024, "inf"]

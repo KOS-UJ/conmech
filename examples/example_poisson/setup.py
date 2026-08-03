@@ -20,12 +20,16 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from conmech.helpers.config import Config
+
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import PoissonProblem
-from conmech.simulations.problem_solver import PoissonSolver
 from conmech.properties.mesh_description import CrossMeshDescription
+from conmech.scenarios.problems import PoissonProblem
+
+OUTPUTS_PATH = "./output/poisson"
+
+MESH_PERIMETER = 0.125
+MESH_SCALE = [1, 1]
+SOLVING_METHOD = "direct"
 
 
 @dataclass()
@@ -52,32 +56,7 @@ class StaticPoissonSetup(PoissonProblem):
     )
 
 
-def main(config: Config):
-    """
-    Entrypoint to example.
-
-    To see result of simulation you need to call from python `main(Config().init())`.
-    """
-    mesh_descr = CrossMeshDescription(
-        initial_position=None, max_element_perimeter=0.125, scale=[1, 1]
+def mesh_description():
+    return CrossMeshDescription(
+        initial_position=None, max_element_perimeter=MESH_PERIMETER, scale=MESH_SCALE
     )
-    setup = StaticPoissonSetup(mesh_descr)
-    runner = PoissonSolver(setup, "direct")
-
-    state = runner.solve(verbose=True)
-    max_ = max(max(state.temperature), 1)
-    min_ = min(min(state.temperature), 0)
-    drawer = Drawer(state=state, config=config)
-    drawer.cmap = "plasma"
-    drawer.field_name = "temperature"
-    drawer.draw(
-        show=config.show,
-        save=config.save,
-        foundation=False,
-        field_max=max_,
-        field_min=min_,
-    )
-
-
-if __name__ == "__main__":
-    main(Config().init())

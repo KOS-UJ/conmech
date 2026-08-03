@@ -2,6 +2,7 @@
 Created at 18.02.2021
 """
 
+import pathlib
 import pickle
 
 import numpy as np
@@ -119,6 +120,7 @@ class State:
         cl = self.constitutive_law
         self.constitutive_law = None
 
+        pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
         with open(path, "wb+") as file:
             pickle.dump(self, file)
 

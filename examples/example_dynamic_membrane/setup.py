@@ -1,6 +1,6 @@
 # CONMECH @ Jagiellonian University in Kraków
 #
-# Copyright (C) 2023  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
+# Copyright (C) 2023-2026  Piotr Bartman-Szwarc <piotr.bartman@uj.edu.pl>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -20,12 +20,19 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from conmech.helpers.config import Config
+
 from conmech.mesh.boundaries_description import BoundariesDescription
-from conmech.plotting.drawer import Drawer
-from conmech.scenarios.problems import WaveProblem
-from conmech.simulations.problem_solver import WaveSolver
 from conmech.properties.mesh_description import CrossMeshDescription
+from conmech.scenarios.problems import WaveProblem
+
+OUTPUTS_PATH = "./output/dynamic_membrane"
+
+MESH_PERIMETER = 1 / 8
+MESH_PERIMETER_TEST = 1 / 3
+MESH_SCALE = [1, 1]
+SOLVING_METHOD = "direct"
+N_STEPS = 32
+N_STEPS_TEST = 3
 
 
 @dataclass()
@@ -46,36 +53,9 @@ class MembraneSetup(WaveProblem):
     boundaries: ... = BoundariesDescription(dirichlet=lambda x: x[0] in (0, 1) or x[1] in (0, 1))
 
 
-def main(config: Config):
-    """
-    Entrypoint to example.
-
-    To see result of simulation you need to call from python `main(Config().init())`.
-    """
-    max_element_perimeter = 1 / 8 if not config.test else 1 / 3
-    mesh_descr = CrossMeshDescription(
+def mesh_description(test: bool = False):
+    return CrossMeshDescription(
         initial_position=None,
-        max_element_perimeter=max_element_perimeter,
-        scale=[1, 1],
+        max_element_perimeter=MESH_PERIMETER_TEST if test else MESH_PERIMETER,
+        scale=MESH_SCALE,
     )
-    setup = MembraneSetup(mesh_descr)
-    runner = WaveSolver(setup, "direct")
-    n_steps = 32 if not config.test else 3
-
-    states = runner.solve(
-        n_steps=n_steps,
-        output_step=(0, n_steps),
-        initial_displacement=setup.initial_displacement,
-        initial_velocity=setup.initial_velocity,
-        verbose=True,
-    )
-    drawer = Drawer(state=states[-1], config=config)
-    drawer.draw(
-        show=config.show,
-        save=config.save,
-        foundation=False,
-    )
-
-
-if __name__ == "__main__":
-    main(Config().init())
