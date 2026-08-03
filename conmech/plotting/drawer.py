@@ -5,6 +5,7 @@ Created at 21.08.2019
 @author: Piotr Bartman
 """
 
+import pathlib
 import time
 
 import matplotlib.pyplot as plt
@@ -62,17 +63,18 @@ class Drawer:
         foundation=True,
         colorbar=True,
     ):
+        if not show and not save:
+            return
+
+        fig, _axes = self.do_draw(
+            fig_axes, field_max, field_min, title, foundation, colorbar=colorbar
+        )
+        if save:
+            self.save_plot(save_format, name=save, fig=fig)
         if show:
-            fig, _axes = self.do_draw(
-                fig_axes, field_max, field_min, title, foundation, colorbar=colorbar
-            )
             fig.tight_layout()
             plt.show()
-        if save:
-            _fig, _axes = self.do_draw(
-                fig_axes, field_max, field_min, title, foundation, colorbar=colorbar
-            )
-            self.save_plot(save_format, name=save)
+        plt.close(fig)
 
     def do_draw(
         self,
@@ -288,9 +290,10 @@ class Drawer:
         path = f"{directory}/{name}.{format_}"
         return path
 
-    def save_plot(self, format_, name=None):
+    def save_plot(self, format_, name=None, fig=None):
         path = self.get_output_path(self.config, format_, name)
-        plt.savefig(
+        pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+        (fig or plt).savefig(
             path,
             transparent=False,
             bbox_inches="tight",
@@ -298,7 +301,8 @@ class Drawer:
             pad_inches=0.1,
             dpi=800,
         )
-        plt.close()
+        if fig is None:
+            plt.close()
 
     def draw_boundary(self, edges, nodes, axes, label="", node_color="k", edge_color="k"):
         graph = nx.Graph()

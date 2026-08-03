@@ -18,6 +18,13 @@
 # USA.
 """
 Command line entry shared by the examples.
+
+    python -m examples.<name>.run                 write figures to the output directory
+    python -m examples.<name>.run --show          display them, writing nothing
+    python -m examples.<name>.run --show --save   both
+    python -m examples.<name>.run --cleanup       remove this example's output
+
+`python -m examples.cleanup` removes the output of every example at once.
 """
 
 import argparse
@@ -47,8 +54,12 @@ def build_parser(default_outputs_path: str) -> argparse.ArgumentParser:
     parser.add_argument(
         "--outputs-path", default=default_outputs_path, help="where results and figures go"
     )
-    parser.add_argument("--show", action="store_true", help="display figures instead of saving")
-    parser.add_argument("--no-save", action="store_true", help="do not write figures to disk")
+    parser.add_argument("--show", action="store_true", help="display figures")
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="write figures to the output directory (the default when --show is absent)",
+    )
     parser.add_argument(
         "--force", action="store_true", help="recompute even when a stored result is current"
     )
@@ -79,7 +90,7 @@ def run_example(
     config = Config(
         outputs_path=arguments.outputs_path,
         show=arguments.show,
-        save=not arguments.show and not arguments.no_save,
+        save=arguments.save or not arguments.show,
         force=arguments.force,
         test=arguments.test,
     ).init()

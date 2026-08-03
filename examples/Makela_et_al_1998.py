@@ -20,6 +20,8 @@ import pickle
 import time
 from dataclasses import dataclass
 
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -148,6 +150,7 @@ def main(config: Config, methods, forces):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
     PREFIX = "BBO"
     if config.force:
         to_simulate = [(m, f) for m in methods for f in forces]

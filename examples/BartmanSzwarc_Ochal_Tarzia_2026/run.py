@@ -95,6 +95,8 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
+
     alphas = ALPHAS if not config.test else ALPHAS[:1]
     ihs = IHS if not config.test else IHS[:1]
     temperature_grid = TEMPERATURE_GRID if not config.test else (((alphas[0], ihs[0]),),)
@@ -114,7 +116,6 @@ def main(config: Config):
             print(f"Configuration: {alpha=}, {ih=}")
             load_or_simulate(config, alpha, ih, only_ensure=True)
 
-    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
     all_params = set()
     for item in temperature_grid:
         for alpha, ih in item:

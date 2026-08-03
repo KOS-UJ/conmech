@@ -6,6 +6,8 @@ import _pickle
 import pickle
 from dataclasses import dataclass
 
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -97,6 +99,7 @@ def main(config: Config):
 
     To see result of simulation you need to call from python `main(Config().init())`.
     """
+    Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
     ids = slice(0, 4) if not config.test else slice(2, 3)
     names = ("four_screws", "one_screw", "friction", "hard")[ids]
     h = 64 if not config.test else 24

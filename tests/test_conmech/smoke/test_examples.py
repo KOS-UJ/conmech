@@ -65,4 +65,6 @@ def main_function(request):
 def test_examples(main_function):
     if sys.platform != "darwin":
         main_function()
-        shutil.rmtree("./output")
+        # an example that only displays results writes nothing, so there may be
+        # no directory to remove
+        shutil.rmtree("./output", ignore_errors=True)

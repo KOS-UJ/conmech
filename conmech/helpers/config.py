@@ -25,9 +25,8 @@ class Config:
 
         Returns self so can be used as `main(Config().init())`
         """
-        if self.show and self.save:
-            raise ValueError("Cannot show and save at once!")
-        self.path.mkdir(parents=True, exist_ok=True)
+        if self.save:
+            self.path.mkdir(parents=True, exist_ok=True)
         return self
 
     @property
