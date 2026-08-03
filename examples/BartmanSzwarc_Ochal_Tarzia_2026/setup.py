@@ -32,6 +32,8 @@ OUTPUTS_PATH = "./output/BOT2023"
 ALPHAS = [0.01, 0.1, 1, 10, 100, 1000, 10_000, 100_000, 1_000_000, np.inf]
 IHS = [4, 8, 16, 32, 48, 72]
 B_COEF = 5
+GAMMA1_VALUE = 0.0
+GEOM_TOL = 1e-12
 MAXD = 72
 TEMPERATURE_GRID = (
     ((np.inf, 4), (np.inf, MAXD)),
@@ -66,6 +68,33 @@ CONVERGENCE_SEQUENCES = (
 )
 
 
+def on_gamma1(x: np.ndarray) -> bool:
+    return bool(np.isclose(x[1], 0.0, atol=GEOM_TOL))
+
+
+def on_gamma3(x: np.ndarray) -> bool:
+    return bool(np.isclose(x[1], 1.0, atol=GEOM_TOL))
+
+
+def limit_boundaries() -> BoundariesDescription:
+    """
+    Boundary description of the limit problem, where `Gamma_3` is Dirichlet too.
+    """
+
+    def is_dirichlet(x: np.ndarray) -> bool:
+        return on_gamma1(x) or on_gamma3(x)
+
+    def dirichlet_value(x: np.ndarray) -> np.ndarray:
+        x = np.asarray(x, dtype=float)
+        if x.ndim != 2:
+            raise ValueError(
+                "expected the (n_nodes, 2) block of Dirichlet nodes, got shape " f"{x.shape}"
+            )
+        return np.where(np.isclose(x[:, 1], 1.0, atol=GEOM_TOL), B_COEF, GAMMA1_VALUE)
+
+    return BoundariesDescription(dirichlet=(is_dirichlet, dirichlet_value))
+
+
 def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
     class TarziaContactLaw(PotentialOfContactLaw):
         @staticmethod
@@ -90,9 +119,9 @@ def make_slope_contact_law(slope: float) -> Type[ContactLaw]:
             r = var_nu
             # EXAMPLE 11
             if r < b:
-                result = r - b
+                result = 2 * (r - b)
             else:
-                result = 1 / (r - b + 1)
+                result = 2 / (r - b + 1)
             result *= slope
             return result
 
@@ -113,11 +142,8 @@ class StaticPoissonSetup(PoissonProblem):
         return np.array([_y * (_y - 1) * 32])
 
     boundaries: BoundariesDescription = BoundariesDescription(
-        dirichlet=(
-            lambda x: x[1] == 0.0,  # or x[1] == 1.0,
-            lambda x: np.full(x.shape[0], 5),
-        ),
-        contact=lambda x: x[1] == 1.0,
+        dirichlet=(on_gamma1, lambda x: np.full(x.shape[0], GAMMA1_VALUE)),
+        contact=on_gamma3,
     )
 
 
