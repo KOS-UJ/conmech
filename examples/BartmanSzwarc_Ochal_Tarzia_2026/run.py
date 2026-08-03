@@ -27,7 +27,6 @@ from typing import Optional
 import numpy as np
 
 from conmech.helpers.config import Config
-from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.simulations.problem_solver import PoissonSolver
 from conmech.state.state import TemperatureState
 
@@ -61,16 +60,15 @@ def load_or_simulate(config, alpha, ih, only_ensure=False) -> Optional[Temperatu
 def simulate(config, alpha, ih):
     print(f"Simulate {alpha=}, {ih=}")
     setup = StaticPoissonSetup(setup_module.mesh_description(ih))
-    setup.contact_law_2 = make_slope_contact_law(slope=alpha)
-
     solving_method = setup_module.solving_method(alpha)
     if alpha == np.inf:
-        setup.boundaries = BoundariesDescription(
-            dirichlet=(
-                lambda x: x[1] == 0.0 or x[1] == 1.0,
-                lambda x: np.full(x.shape[0], 5),
-            )
-        )
+        # the limit problem has no contact boundary, so it must not keep the
+        # contact law the dataclass defaults to: with one present, Direct solves
+        # the system with fsolve on a densified matrix instead of one sparse solve
+        setup.boundaries = setup_module.limit_boundaries()
+        setup.contact_law_2 = None
+    else:
+        setup.contact_law_2 = make_slope_contact_law(slope=alpha)
     runner = PoissonSolver(setup, solving_method)
 
     state = runner.solve(verbose=True, method="Powell")
