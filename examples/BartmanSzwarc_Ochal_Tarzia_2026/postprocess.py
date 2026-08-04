@@ -19,346 +19,415 @@
 
 import gc
 import string
-from pathlib import Path
+from typing import Dict, List, Sequence
 
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 import numpy as np
-from scipy.interpolate import griddata
-
-from conmech.state.state import TemperatureState
 
 from examples.BartmanSzwarc_Ochal_Tarzia_2026.run import load_or_simulate
+from examples.BartmanSzwarc_Ochal_Tarzia_2026.setup import (
+    ExampleSpec,
+    alpha_tag,
+    analytic_gap_l2,
+    analytic_gap_v,
+    mesh_size,
+)
+from examples.common import error_norms as err
+from examples.common.table_exporter import export_table, format_error, format_rate
 
 
-def _pair_label(alpha, ih) -> str:
-    result = "("
-    if alpha == np.inf:
-        result += "∞"
-    else:
-        result += f"{alpha:.2E}"
-    result += ", "
-    result += f"1/{ih})"
-    return result
+def _alpha_math(alpha: float) -> str:
+    if alpha_tag(alpha) == "inf":
+        return r"\infty"
+    exponent = int(round(np.log10(alpha)))
+    if np.isclose(alpha, 10.0**exponent):
+        return f"10^{{{exponent}}}"
+    return f"{alpha:g}"
 
 
-def _relative_temperature_error(
-    reference_state: TemperatureState, state: TemperatureState
-) -> float:
-    # Project `state` temperature onto reference mesh nodes and compute
-    # the (absolute) L2 norm of the difference using element mass matrices
-    ref_nodes = np.asarray(reference_state.body.mesh.nodes, dtype=float)
-    ref_values = np.asarray(reference_state.temperature, dtype=float).ravel()
-    nodes = np.asarray(state.body.mesh.nodes, dtype=float)
-    values = np.asarray(state.temperature, dtype=float).ravel()
+def _errors_of(state, u_exact, grad_exact) -> Dict:
+    return err.errors_vs_exact(
+        state.body.mesh.nodes, state.body.mesh.elements, state.temperature, u_exact, grad_exact
+    )
 
-    # interpolate values from `state` nodes to `reference_state` nodes
-    interpolated = np.asarray(
-        griddata(nodes, values, ref_nodes, method="linear"), dtype=float
-    )  # type: ignore[arg-type]
-    if np.isnan(interpolated).any():
-        nearest = np.asarray(
-            griddata(nodes, values, ref_nodes, method="nearest"), dtype=float
-        )  # type: ignore[arg-type]
-        interpolated = np.where(np.isnan(interpolated), nearest, interpolated)
 
-    diff_at_nodes = ref_values - interpolated
+def table_vs_exact(config, spec: ExampleSpec, alpha, ihs: Sequence[int], table_id: str) -> Dict:
+    """
+    Errors of `u^h` against the closed-form solution, with the rates in `h`.
 
-    # If mesh has elements, compute element-wise integral using P1 mass matrix
+    `L^2` should approach 2 and the `H^1` seminorm 1 for a smooth solution.
+    """
+    u_exact, grad_exact = spec.exact_for(alpha)
+    if u_exact is None:
+        raise ValueError(f"{spec.name} has no closed-form solution for alpha={alpha}")
+
+    hs, l2s, h1s, vs, linfs = [], [], [], [], []
+    for ih in ihs:
+        state = load_or_simulate(config, spec, alpha, ih)
+        try:
+            measured = _errors_of(state, u_exact, grad_exact)
+        finally:
+            del state
+            gc.collect()
+        hs.append(mesh_size(ih))
+        l2s.append(measured["L2"])
+        h1s.append(measured["H1_semi"])
+        vs.append(measured["V"])
+        linfs.append(measured["Linf_nodal"])
+
+    rates_l2, rates_h1, rates_v = err.rates_h(l2s, hs), err.rates_h(h1s, hs), err.rates_h(vs, hs)
+    rows = [
+        [
+            f"$1/{ih}$",
+            format_error(l2s[i]),
+            format_rate(rates_l2[i]),
+            format_error(h1s[i]),
+            format_rate(rates_h1[i]),
+            format_error(vs[i]),
+            format_rate(rates_v[i]),
+            format_error(linfs[i]),
+        ]
+        for i, ih in enumerate(ihs)
+    ]
+    export_table(
+        table_id,
+        [
+            "$h$",
+            r"$\|u^h-u\|_{L^2}$",
+            "rate",
+            r"$\|\nabla(u^h-u)\|_{L^2}$",
+            "rate",
+            r"$\|u^h-u\|_{V}$",
+            "rate",
+            r"$\|u^h-u\|_{\infty,\rm nodal}$",
+        ],
+        rows,
+        caption=(
+            f"Example {spec.name}: errors of the discrete solution against the closed-form "
+            f"solution for $\\alpha={_alpha_math(alpha)}$, and the estimated rates in $h$."
+        ),
+        label=f"tab:{spec.name}_alpha_{alpha_tag(alpha)}",
+        outputs_path=config.outputs_path,
+        table_name=f"table_{table_id}_{spec.name}",
+    )
+    return {"hs": hs, "L2": l2s, "H1_semi": h1s, "V": vs, "Linf_nodal": linfs}
+
+
+def table_alpha_gap(config, spec: ExampleSpec, ih: int, alphas: Sequence[float]) -> Dict:
+    state_inf = load_or_simulate(config, spec, np.inf, ih)
+    l2s, vs, analytic, relative = [], [], [], []
     try:
-        tris = np.asarray(reference_state.body.mesh.elements, dtype=int)
-    except Exception:
-        tris = np.asarray([], dtype=int)
-
-    if tris.size == 0:
-        # Fallback: simple discrete L2 on nodes (not weighted by area)
-        return float(np.sqrt(np.sum(diff_at_nodes * diff_at_nodes)))
-
-    l2_sq = 0.0
-    coords = ref_nodes
-    for tri in tris:
-        i, j, k = tri[0], tri[1], tri[2]
-        xi = coords[i]
-        xj = coords[j]
-        xk = coords[k]
-        # triangle area
-        area = 0.5 * abs((xj[0] - xi[0]) * (xk[1] - xi[1]) - (xk[0] - xi[0]) * (xj[1] - xi[1]))
-        # local mass matrix for linear triangle: (area/12) * [[2,1,1],[1,2,1],[1,1,2]]
-        uloc = np.array([diff_at_nodes[i], diff_at_nodes[j], diff_at_nodes[k]], dtype=float)
-        # compute uloc^T M uloc
-        mloc_factor = area / 12.0
-        # exact computation: 2*u0^2 + 2*u1^2 + 2*u2^2 + 2*(u0*u1 + u0*u2 + u1*u2)
-        a0, a1, a2 = uloc[0], uloc[1], uloc[2]
-        contrib = mloc_factor * (
-            2.0 * (a0 * a0 + a1 * a1 + a2 * a2) + 2.0 * (a0 * a1 + a0 * a2 + a1 * a2)
-        )
-        l2_sq += contrib
-
-    return float(np.sqrt(max(l2_sq, 0.0)))
-
-
-def draw_temperature_grid(config, to_plot):
-    rows = len(to_plot)
-    cols = len(to_plot[0])
-    fig, axes = plt.subplots(rows, cols, figsize=(7 * cols, 4.5 * rows), squeeze=False)
-
-    # Do a single-pass scan to compute global field min/max without keeping states in memory.
-    field_min = float("inf")
-    field_max = float("-inf")
-    for row in to_plot:
-        for alpha, ih in row:
-            print(f"Scanning {alpha=}, {ih=} for field range")
-            state = load_or_simulate(config, alpha, ih)
-            assert state is not None
+        for alpha in alphas:
+            state = load_or_simulate(config, spec, alpha, ih)
             try:
-                temperature = np.asarray(state.temperature, dtype=float).ravel()
-                field_min = min(field_min, float(temperature.min().item()))
-                field_max = max(field_max, float(temperature.max().item()))
+                measured = err.errors_between_states(
+                    state, state_inf, context=f"{spec.name} alpha={alpha} ih={ih}"
+                )
             finally:
-                # release heavy object before next iteration
+                del state
+                gc.collect()
+            l2s.append(measured["L2"])
+            vs.append(measured["V"])
+            expected = analytic_gap_l2(alpha)
+            analytic.append(expected)
+            relative.append(abs(measured["L2"] - expected) / expected if expected else np.nan)
+    finally:
+        del state_inf
+        gc.collect()
+
+    rates = err.rates_alpha(l2s, alphas)
+    rows = [
+        [
+            f"${_alpha_math(alphas[i])}$",
+            format_error(l2s[i]),
+            format_error(vs[i]),
+            format_rate(rates[i]),
+            format_error(analytic[i]),
+            f"{100 * relative[i]:.2f}\\%",
+        ]
+        for i in range(len(alphas))
+    ]
+    export_table(
+        "C",
+        [
+            r"$\alpha$",
+            r"$\|u^h_\alpha-u^h_\infty\|_{L^2}$",
+            r"$\|u^h_\alpha-u^h_\infty\|_{V}$",
+            "rate",
+            r"$\frac{7}{1+\alpha}\sqrt{2/3}$",
+            "rel. dev.",
+        ],
+        rows,
+        caption=(
+            f"Example {spec.name}, $h=1/{ih}$: distance between the penalised and the limit "
+            "discrete solutions, its order in $\\alpha$, and the analytic value."
+        ),
+        label=f"tab:{spec.name}_alpha_order",
+        outputs_path=config.outputs_path,
+        table_name=f"table_C_{spec.name}",
+    )
+    return {"alphas": list(alphas), "L2": l2s, "V": vs, "analytic": analytic, "rel": relative}
+
+
+def table_double_limit(
+    config, spec: ExampleSpec, ihs: Sequence[int], alphas: Sequence[float]
+) -> np.ndarray:
+    u_exact, grad_exact = spec.exact_for(np.inf)
+    matrix = np.full((len(ihs), len(alphas)), np.nan)
+    for row, ih in enumerate(ihs):
+        for col, alpha in enumerate(alphas):
+            state = load_or_simulate(config, spec, alpha, ih)
+            try:
+                matrix[row, col] = _errors_of(state, u_exact, grad_exact)["V"]
+            finally:
                 del state
                 gc.collect()
 
-    # Now render each subplot, loading and discarding state one-by-one to limit RAM usage
+    rows = [
+        [f"$1/{ih}$"] + [format_error(matrix[row, col]) for col in range(len(alphas))]
+        for row, ih in enumerate(ihs)
+    ]
+    export_table(
+        "D",
+        ["$h$"] + [f"${_alpha_math(a)}$" for a in alphas],
+        rows,
+        caption=(
+            f"Example {spec.name}: $\\|u^h_\\alpha-u_\\infty\\|_{{V}}$ against the mesh size and "
+            "the penalty parameter."
+        ),
+        label=f"tab:{spec.name}_double_limit",
+        outputs_path=config.outputs_path,
+        table_name=f"table_D_{spec.name}",
+    )
+    return matrix
+
+
+ALPHA_PATHS = (
+    (r"$\alpha = 1/h$", lambda ih: float(ih)),
+    (r"$\alpha = 1/h^2$", lambda ih: float(ih) ** 2),
+    (r"$\alpha = 100$ (fixed)", lambda ih: 100.0),
+)
+
+
+def figure_alpha_paths(config, spec: ExampleSpec, ihs: Sequence[int]) -> Dict:
+    u_exact, grad_exact = spec.exact_for(np.inf)
+    hs = np.array([mesh_size(ih) for ih in ihs])
+
+    curves: Dict[str, List[float]] = {}
+    for label, alpha_of in ALPHA_PATHS:
+        values = []
+        for ih in ihs:
+            state = load_or_simulate(config, spec, alpha_of(ih), ih)
+            try:
+                values.append(_errors_of(state, u_exact, grad_exact)["V"])
+            finally:
+                del state
+                gc.collect()
+        curves[label] = values
+
+    figure, axis = plt.subplots(figsize=(6.5, 5.0))
+    for (label, _), marker in zip(ALPHA_PATHS, ["o", "s", "^"]):
+        axis.loglog(hs, curves[label], marker=marker, linewidth=1.8, label=label)
+    reference = np.asarray(curves[ALPHA_PATHS[1][0]], dtype=float)
+    axis.loglog(hs, reference[0] * (hs / hs[0]), "k--", linewidth=1.0, label=r"$O(h)$")
+    axis.loglog(hs, reference[0] * (hs / hs[0]) ** 2, "k:", linewidth=1.0, label=r"$O(h^2)$")
+    axis.set_xlabel("$h$")
+    axis.set_ylabel(r"$\|u^h_\alpha-u_\infty\|_{V}$")
+    axis.grid(True, which="both", alpha=0.3)
+    axis.legend()
+    axis.set_title(f"Example {spec.name}: paths in the $(h,\\alpha)$ plane")
+    figure.tight_layout()
+    _finish_figure(config, figure, f"figure_E_{spec.name}.png")
+
+    _report_stagnation(curves[ALPHA_PATHS[2][0]], hs, alpha_fixed=100.0)
+    return {"hs": hs.tolist(), "curves": curves}
+
+
+def _report_stagnation(values: Sequence[float], hs: Sequence[float], alpha_fixed: float) -> None:
+    """
+    Only the tail can show it: on the coarsest meshes the discretisation error
+    dominates. What must hold is that the last rate collapses towards zero and
+    that the curve never drops below the floor.
+    """
+    floor = analytic_gap_v(alpha_fixed)
+    last_rate = err.rate_h(values[-2], values[-1], hs[-2], hs[-1]) if len(values) > 1 else np.nan
+    print(
+        f"% figure E: fixed alpha={alpha_fixed:g} ends at {values[-1]:.3e} "
+        f"(last rate in h: {last_rate:.2f}); analytic floor {floor:.3e}"
+    )
+    if values[-1] < 0.8 * floor:
+        print(
+            f"% WARNING: the fixed-alpha path fell below its floor {floor:.3e}; either the penalty "
+            f"is not scaled by alpha, or the limit solution is wrong."
+        )
+    elif np.isfinite(last_rate) and last_rate > 0.7:
+        print(
+            f"% WARNING: the fixed-alpha path still falls at rate {last_rate:.2f} and has not "
+            "stagnated. Either the mesh range is too coarse for the penalty error to dominate, "
+            "or alpha is not held fixed."
+        )
+
+
+def figure_gamma3_trace(config, spec: ExampleSpec, ih: int, alphas: Sequence[float]) -> None:
+    figure, axis = plt.subplots(figsize=(7.0, 5.0))
+    for alpha in alphas:
+        state = load_or_simulate(config, spec, alpha, ih)
+        try:
+            nodes = np.asarray(state.body.mesh.nodes, dtype=float)
+            values = np.asarray(state.temperature, dtype=float).ravel()
+            on_top = np.nonzero(np.isclose(nodes[:, 1], 1.0, atol=1e-9))[0]
+            order = on_top[np.argsort(nodes[on_top, 0])]
+            axis.plot(
+                nodes[order, 0],
+                values[order],
+                marker=".",
+                linewidth=1.4,
+                label=rf"$\alpha={_alpha_math(alpha)}$",
+            )
+        finally:
+            del state
+            gc.collect()
+    axis.axhline(spec.b, color="k", linestyle="--", linewidth=1.2, label=f"$u=b={spec.b:g}$")
+    axis.set_xlabel("$x$")
+    axis.set_ylabel(r"$u^h_\alpha(x,1)$")
+    axis.grid(True, alpha=0.3)
+    axis.legend(fontsize="small")
+    axis.set_title(rf"Example {spec.name}: trace on $\Gamma_3$, $h=1/{ih}$")
+    figure.tight_layout()
+    _finish_figure(config, figure, f"figure_F_{spec.name}.png")
+
+
+def _finish_figure(config, figure, name: str) -> None:
+    if config.save and config.outputs_path:
+        from pathlib import Path
+
+        Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
+        figure.savefig(Path(config.outputs_path) / name, bbox_inches="tight", dpi=300)
+    if config.show:
+        plt.show()
+    plt.close(figure)
+
+
+def draw_temperature_grid(config, spec: ExampleSpec, to_plot) -> None:
+    rows, cols = len(to_plot), len(to_plot[0])
+    figure, axes = plt.subplots(rows, cols, figsize=(7 * cols, 4.5 * rows), squeeze=False)
+
+    field_min, field_max = float("inf"), float("-inf")
+    for row in to_plot:
+        for alpha, ih in row:
+            state = load_or_simulate(config, spec, alpha, ih)
+            try:
+                temperature = np.asarray(state.temperature, dtype=float).ravel()
+                field_min = min(field_min, float(temperature.min()))
+                field_max = max(field_max, float(temperature.max()))
+            finally:
+                del state
+                gc.collect()
+
     seq_num = 0
     for row_idx, row in enumerate(to_plot):
         for col_idx, (alpha, ih) in enumerate(row):
-            print(f"Rendering {alpha=}, {ih=}")
-            state = load_or_simulate(config, alpha, ih)
-            assert state is not None
-            ax = axes[row_idx, col_idx]
+            state = load_or_simulate(config, spec, alpha, ih)
+            try:
+                axis = axes[row_idx, col_idx]
+                seq_num += 1
+                nodes = np.asarray(state.body.mesh.nodes, dtype=float)
+                tris = np.asarray(state.body.mesh.elements, dtype=np.int64)
+                values = np.asarray(state.temperature, dtype=float).ravel()
+                triangulation = mtri.Triangulation(nodes[:, 0], nodes[:, 1], tris)
+                axis.tricontour(triangulation, values, 15, colors="k", linewidths=0.2)
+                axis.tricontourf(
+                    triangulation, values, 100, cmap="plasma", vmin=field_min, vmax=field_max
+                )
+                axis.triplot(triangulation, "k-", alpha=0.15, linewidth=0.3)
+                axis.set_title(
+                    string.ascii_lowercase[seq_num - 1]
+                    + ") "
+                    + rf"$\alpha$={_alpha_math(alpha)}, h=1/{ih}"
+                )
+                axis.set_aspect("equal", adjustable="box")
+                axis.set_xlabel("$x$")
+                axis.set_ylabel("$y$")
+            finally:
+                del state
+                gc.collect()
 
-            seq_num += 1
-
-            # build triangulation and plot field directly to avoid Drawer autoscaling issues
-            nodes = state.body.mesh.nodes
-            tris = state.body.mesh.elements
-            vals = np.asarray(state.temperature).ravel()
-
-            triang = mtri.Triangulation(nodes[:, 0], nodes[:, 1], tris)
-
-            # contour lines and filled contour
-            ax.tricontour(nodes[:, 0], nodes[:, 1], tris, vals, 15, colors="k", linewidths=0.2)
-            n_layers = 100
-            cf = ax.tricontourf(
-                nodes[:, 0],
-                nodes[:, 1],
-                tris,
-                vals,
-                n_layers,
-                cmap="plasma",
-                vmin=field_min,
-                vmax=field_max,
-            )
-
-            # mesh outline
-            ax.triplot(triang, "k-", alpha=0.15, linewidth=0.3)
-
-            inf_symbol = r"$\infty$"
-            ax.set_title(
-                string.ascii_lowercase[seq_num - 1]
-                + ") "
-                + rf"$\alpha$={alpha if alpha != np.inf else inf_symbol}, h=1/{ih}"
-            )
-            ax.set_aspect("equal", adjustable="box")
-            # set axis limits to nodes extents
-            x_min, x_max = float(nodes[:, 0].min()), float(nodes[:, 0].max())
-            y_min, y_max = float(nodes[:, 1].min()), float(nodes[:, 1].max())
-            dx, dy = x_max - x_min, y_max - y_min
-            ax.set_xlim(x_min - 0.05 * dx, x_max + 0.05 * dx)
-            ax.set_ylim(y_min - 0.05 * dy, y_max + 0.05 * dy)
-            ax.set_xlabel(r"$x$")
-            ax.set_ylabel(r"$y$")
-
-            # release heavy state object before moving to next subplot
-            del state
-            gc.collect()
-
-    sm = plt.cm.ScalarMappable(cmap="plasma", norm=plt.Normalize(vmin=field_min, vmax=field_max))
-    sm.set_array([])
-    # leave space at the bottom for a horizontal colorbar
-    fig.subplots_adjust(bottom=0.15, hspace=0.3, wspace=0.25)
-    fig.colorbar(
-        sm,
+    scalar_map = plt.cm.ScalarMappable(
+        cmap="plasma", norm=plt.Normalize(vmin=field_min, vmax=field_max)
+    )
+    scalar_map.set_array([])
+    figure.subplots_adjust(bottom=0.15, hspace=0.3, wspace=0.25)
+    figure.colorbar(
+        scalar_map,
         ax=axes.ravel().tolist(),
         orientation="horizontal",
         label="temperature",
         fraction=0.04,
         pad=0.08,
     )
-
-    if config.save:
-        fig.savefig(
-            Path(config.outputs_path) / "tarzia_problem_grid.png",
-            bbox_inches="tight",
-            dpi=300,
-        )
-    if config.show:
-        plt.show()
-    plt.close(fig)
+    _finish_figure(config, figure, f"temperature_grid_{spec.name}.png")
 
 
-def draw_convergence_plots(config, sequences, ihs, alphas):
-    rows = len(sequences)
-    cols = len(sequences[0]) if sequences else 1
-
-    # Check if last row has a single plot (needs centering)
-    last_row_has_single = (
-        len(sequences) > 0 and len(sequences[-1]) == 2 and sequences[-1][1] is None
-    )
-
-    # Create GridSpec with centering for single plot in last row
-    import matplotlib.gridspec as gridspec
-
-    fig = plt.figure(figsize=(7 * cols, 4.5 * rows))
-    gs = gridspec.GridSpec(rows, cols, figure=fig)
-
-    axes = np.empty((rows, cols), dtype=object)
-    for r in range(rows):
-        for c in range(cols):
-            if r == rows - 1 and c == 0 and last_row_has_single:
-                # Center last plot by using middle columns
-                ax = fig.add_subplot(gs[r, :])
-            else:
-                ax = fig.add_subplot(gs[r, c])
-            axes[r, c] = ax
-
-    seq_num = 0
-    for row_idx, row in enumerate(sequences):
-        for col_idx, sequence in enumerate(row):
-            if sequence is None:
-                axes[row_idx, col_idx].axis("off")
-                continue
-
-            seq_num += 1
-            ax = axes[row_idx, col_idx]
-            print(f"Convergence sequence {seq_num}")
-
-            reference_alpha, reference_ih = sequence[-1]
-            reference_state = load_or_simulate(config, reference_alpha, reference_ih)
-            assert reference_state is not None
-
-            try:
-                errors = []
-                labels = []
-                for alpha, ih in sequence[:-1]:
-                    print(f"  loading {alpha=}, {ih=}")
-                    state = load_or_simulate(config, alpha, ih)
-                    assert state is not None
-                    try:
-                        errors.append(_relative_temperature_error(reference_state, state))
-                        labels.append(_pair_label(alpha, ih))
-                    finally:
-                        del state
-                        gc.collect()
-
-                x = np.arange(len(sequence) - 1)
-                y = np.maximum(np.asarray(errors, dtype=float), 1e-16)
-                ax.semilogy(x, y, marker="o", linewidth=1.8, markersize=5, color="black")
-                ax.set_xticks(x, labels, rotation=25, ha="right")
-                ax.set_ylabel("$L_2$ norm between solutions")
-                ax.grid(True, which="both", alpha=0.3)
-                ax.set_title(
-                    f"{string.ascii_lowercase[seq_num - 1]}) "
-                    f"{_pair_label(*sequence[0])} → {_pair_label(*sequence[-1])}"
-                )
-                ax.set_xlabel(r"$(\alpha, h)$")
-            finally:
-                del reference_state
-                gc.collect()
-
-    fig.tight_layout()
-
-    # LaTeX table output: errors w.r.t. reference finest mesh (alpha=inf)
+def table_vs_reference(
+    config,
+    spec: ExampleSpec,
+    alpha,
+    ihs: Sequence[int],
+    ih_ref: int,
+    table_id: str = "H",
+) -> Dict:
+    reference = load_or_simulate(config, spec, alpha, ih_ref)
+    hs, l2s, h1s, vs = [], [], [], []
     try:
-        ref_ih = max(ihs)
-        ref_inf_state = load_or_simulate(config, np.inf, ref_ih)
-        assert ref_inf_state is not None
-
-        alpha_comp = 1_000_000 if not config.test else alphas[0]
-        errors_inf = []
-        errors_alpha = []
-        hs = []
         for ih in ihs:
-            hs.append(1.0 / ih)
-            s_inf = load_or_simulate(config, np.inf, ih)
-            s_alpha = load_or_simulate(config, alpha_comp, ih)
+            state = load_or_simulate(config, spec, alpha, ih)
             try:
-                err_inf = (
-                    _relative_temperature_error(ref_inf_state, s_inf)
-                    if s_inf is not None
-                    else float("nan")
-                )
-                # second column compares u_alpha^h to u_inf^{h_ref}
-                err_alpha = (
-                    _relative_temperature_error(ref_inf_state, s_alpha)
-                    if s_alpha is not None
-                    else float("nan")
+                measured = err.errors_between_states(
+                    state, reference, context=f"{spec.name} alpha={alpha} ih={ih} vs {ih_ref}"
                 )
             finally:
-                if s_inf is not None:
-                    del s_inf
-                if s_alpha is not None:
-                    del s_alpha
+                del state
                 gc.collect()
-            errors_inf.append(err_inf)
-            errors_alpha.append(err_alpha)
+            hs.append(mesh_size(ih))
+            l2s.append(measured["L2"])
+            h1s.append(measured["H1_semi"])
+            vs.append(measured["V"])
+    finally:
+        del reference
+        gc.collect()
 
-        # compute rates (log-log) between consecutive h values
-        def compute_rates(errs, hs):
-            rates = ["--"]
-            for i in range(1, len(errs)):
-                e_prev, e_curr = errs[i - 1], errs[i]
-                h_prev, h_curr = hs[i - 1], hs[i]
-                if e_prev > 0 and e_curr > 0:
-                    rate = np.log(e_prev / e_curr) / np.log(h_prev / h_curr)
-                    rates.append(f"{rate:.2f}")
-                else:
-                    rates.append("--")
-            return rates
-
-        rates_inf = compute_rates(errors_inf, hs)
-        rates_alpha = compute_rates(errors_alpha, hs)
-
-        # print LaTeX table
-        print("\\begin{table}[ht]")
-        print("\\centering")
-        print("\\begin{tabular}{|c|c|c|c|c|}")
-        print("\\hline")
-        header = (
-            "$h$ & $\\|u_{\\infty}^h - u_{\\infty}^{h_{\\rm ref}}\\|_{L^2}$"
-            " & Rate & $\\|u_{\\alpha}^h - u_{\\infty}^{h_{\\rm ref}}\\|_{L^2}$ ($\\alpha=10^6$) & Rate \\\\"
-        )
-        print(header)
-        print("\\hline")
-        for ih, err_i, r_i, err_a, r_a in zip(
-            ihs, errors_inf, rates_inf, errors_alpha, rates_alpha
-        ):
-            h_str = f"$1/{ih}$"
-            err_i_str = f"{err_i:.3e}" if not np.isnan(err_i) else "nan"
-            err_a_str = f"{err_a:.3e}" if not np.isnan(err_a) else "nan"
-            # each printed row must end with two backslashes for LaTeX linebreak
-            # build row and append literal '\\' for LaTeX linebreak
-            row = f"{h_str}  & {err_i_str} & {r_i}  & {err_a_str} & {r_a}  " + "\\\\"
-            print(row)
-        print("\\hline")
-        print("\\end{tabular}")
-        print(
-            "\\caption{Relative $L^2$ errors and estimated convergence rates with respect to mesh size $h$ "
-            "(reference solution: finest mesh at corresponding $\\alpha$).}"
-        )
-        print("\\label{tab:error_h}")
-        print("\\end{table}")
-
-    except Exception as e:
-        print(f"Failed to produce LaTeX table: {e}")
-
-    if config.save:
-        fig.savefig(
-            Path(config.outputs_path) / "tarzia_convergence_plots.png",
-            bbox_inches="tight",
-            dpi=300,
-        )
-    if config.show:
-        plt.show()
-    plt.close(fig)
+    rates_l2, rates_h1, rates_v = err.rates_h(l2s, hs), err.rates_h(h1s, hs), err.rates_h(vs, hs)
+    rows = [
+        [
+            f"$1/{ih}$",
+            format_error(l2s[i]),
+            format_rate(rates_l2[i]),
+            format_error(h1s[i]),
+            format_rate(rates_h1[i]),
+            format_error(vs[i]),
+            format_rate(rates_v[i]),
+        ]
+        for i, ih in enumerate(ihs)
+    ]
+    export_table(
+        table_id,
+        [
+            "$h$",
+            r"$\|u^h-u^{h_{\rm ref}}\|_{L^2}$",
+            "rate",
+            r"$\|\nabla(u^h-u^{h_{\rm ref}})\|_{L^2}$",
+            "rate",
+            r"$\|u^h-u^{h_{\rm ref}}\|_{V}$",
+            "rate",
+        ],
+        rows,
+        caption=(
+            f"Example {spec.name}, $\\alpha={_alpha_math(alpha)}$: errors against the reference "
+            f"solution on $h_{{\\rm ref}}=1/{ih_ref}$, and the estimated rates in $h$."
+        ),
+        label=f"tab:{spec.name}_ref_{alpha_tag(alpha)}",
+        outputs_path=config.outputs_path,
+        table_name=f"table_{table_id}_{spec.name}_alpha_{alpha_tag(alpha)}",
+    )
+    return {"hs": hs, "L2": l2s, "H1_semi": h1s, "V": vs}

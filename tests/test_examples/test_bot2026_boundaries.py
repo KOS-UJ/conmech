@@ -23,14 +23,9 @@ from conmech.simulations.problem_solver import PoissonSolver
 from examples.BartmanSzwarc_Ochal_Tarzia_2026 import setup as bot
 
 
-def solve(alpha, ih):
-    problem = bot.StaticPoissonSetup(bot.mesh_description(ih))
-    if alpha == np.inf:
-        problem.boundaries = bot.limit_boundaries()
-        problem.contact_law_2 = None
-    else:
-        problem.contact_law_2 = bot.make_slope_contact_law(slope=alpha)
-    runner = PoissonSolver(problem, bot.solving_method(alpha))
+def solve(alpha, ih, spec=None):
+    problem, method = bot.build_setup(spec or bot.EXAMPLE_2, alpha, bot.mesh_description(ih))
+    runner = PoissonSolver(problem, method)
     return runner.solve(verbose=False, method="Powell"), runner
 
 
@@ -49,6 +44,16 @@ def test_limit_problem_uses_a_position_dependent_dirichlet_value():
     assert gamma1.size and gamma3.size
     assert np.allclose(gamma1, bot.GAMMA1_VALUE, atol=1e-10)
     assert np.allclose(gamma3, bot.B_COEF, atol=1e-10)
+
+
+def test_gamma1_value_is_a_parameter():
+    import dataclasses
+
+    shifted = dataclasses.replace(bot.EXAMPLE_2, gamma1_value=-1.25)
+    state, _ = solve(np.inf, 4, shifted)
+    gamma1, gamma3 = traces(state)
+    assert np.allclose(gamma1, -1.25, atol=1e-10)
+    assert np.allclose(gamma3, shifted.b, atol=1e-10)
 
 
 def test_finite_alpha_constrains_gamma1_only():

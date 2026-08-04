@@ -20,7 +20,6 @@
 Simulations for the steady-state heat conduction example.
 """
 
-import pickle
 from pathlib import Path
 from typing import Optional
 
@@ -32,59 +31,63 @@ from conmech.state.state import TemperatureState
 
 from examples.BartmanSzwarc_Ochal_Tarzia_2026 import setup as setup_module
 from examples.BartmanSzwarc_Ochal_Tarzia_2026.setup import (
-    ALPHAS,
-    CONVERGENCE_SEQUENCES,
+    ALPHAS_FINITE,
+    ALPHAS_MATRIX,
+    ALPHAS_TRACE,
+    EXAMPLE_1_1D,
+    EXAMPLE_1_2D,
+    EXAMPLE_2,
+    IH_REF,
     IHS,
+    IHS_EXACT,
     TEMPERATURE_GRID,
-    StaticPoissonSetup,
-    make_slope_contact_law,
+    ExampleSpec,
+    alpha_tag,
+    build_setup,
+    mesh_description,
 )
 from examples.common.runner import run_example
+from examples.common.simulation_cache import SimulationCache
 
 
-def state_path(config, alpha, ih) -> Path:
-    return Path(config.outputs_path) / f"alpha_{alpha}_ih_{ih}"
+def cache(config, spec: ExampleSpec) -> SimulationCache:
+    return SimulationCache(setup_module, Path(config.outputs_path) / spec.name)
 
 
-def load_or_simulate(config, alpha, ih, only_ensure=False) -> Optional[TemperatureState]:
-    path = state_path(config, alpha, ih)
-    if config.force or not path.exists():
-        print(f"{config.force=}, {path.exists()=}")
-        simulate(config, alpha, ih)
-    if only_ensure:
-        return None
-    with open(path, "rb") as output:
-        return pickle.load(output)
+def state_path(config, spec: ExampleSpec, alpha: float, ih: int) -> Path:
+    return cache(config, spec).path(alpha=alpha_tag(alpha), ih=ih)
 
 
-def simulate(config, alpha, ih):
-    print(f"Simulate {alpha=}, {ih=}")
-    setup = StaticPoissonSetup(setup_module.mesh_description(ih))
-    solving_method = setup_module.solving_method(alpha)
-    if alpha == np.inf:
-        # the limit problem has no contact boundary, so it must not keep the
-        # contact law the dataclass defaults to: with one present, Direct solves
-        # the system with fsolve on a densified matrix instead of one sparse solve
-        setup.boundaries = setup_module.limit_boundaries()
-        setup.contact_law_2 = None
-    else:
-        setup.contact_law_2 = make_slope_contact_law(slope=alpha)
+def simulate(config, spec: ExampleSpec, alpha: float, ih: int) -> TemperatureState:
+    print(f"Simulate {spec.name}: alpha={alpha}, ih={ih}")
+    setup, solving_method = build_setup(spec, alpha, mesh_description(ih))
     runner = PoissonSolver(setup, solving_method)
+    state = runner.solve(verbose=False, method="Powell")
 
-    state = runner.solve(verbose=True, method="Powell")
+    # these carry unpicklable closures
+    state.body.dynamics.force.outer.source = None
+    state.body.dynamics.force.inner.source = None
+    state.body.dynamics.temperature.outer.source = None
+    state.body.dynamics.temperature.inner.source = None
+    state.body.properties.relaxation = None
+    state.setup = None
+    state.constitutive_law = None
 
     if config.outputs_path:
-        with open(
-            f"{config.outputs_path}/alpha_{alpha}_ih_{ih}",
-            "wb+",
-        ) as output:
-            # Workaround
-            state.body.dynamics.force.outer.source = None
-            state.body.dynamics.force.inner.source = None
-            state.body.properties.relaxation = None
-            state.setup = None
-            state.constitutive_law = None
-            pickle.dump(state, output)
+        cache(config, spec).save(state, alpha=alpha_tag(alpha), ih=ih)
+    return state
+
+
+def load_or_simulate(
+    config, spec: ExampleSpec, alpha: float, ih: int, only_ensure: bool = False
+) -> Optional[TemperatureState]:
+    stored = cache(config, spec)
+    if config.force or not stored.is_current(alpha=alpha_tag(alpha), ih=ih):
+        state = simulate(config, spec, alpha, ih)
+        return None if only_ensure else state
+    if only_ensure:
+        return None
+    return stored.load(alpha=alpha_tag(alpha), ih=ih)
 
 
 def main(config: Config):
@@ -95,45 +98,36 @@ def main(config: Config):
     """
     Path(config.outputs_path).mkdir(parents=True, exist_ok=True)
 
-    alphas = ALPHAS if not config.test else ALPHAS[:1]
-    ihs = IHS if not config.test else IHS[:1]
-    temperature_grid = TEMPERATURE_GRID if not config.test else (((alphas[0], ihs[0]),),)
-    convergence_sequences = (
-        CONVERGENCE_SEQUENCES
-        if not config.test
-        else (
-            (
-                ((alphas[0], ihs[0]),),
-                None,
-            ),
-        )
-    )
-
-    for alpha in alphas:
-        for ih in ihs:
-            print(f"Configuration: {alpha=}, {ih=}")
-            load_or_simulate(config, alpha, ih, only_ensure=True)
-
-    all_params = set()
-    for item in temperature_grid:
-        for alpha, ih in item:
-            all_params.add((alpha, ih))
-    for row in convergence_sequences:
-        for seq in row:
-            if seq is None:
-                continue
-            for alpha, ih in seq:
-                all_params.add((alpha, ih))
-    for alpha, ih in all_params:
-        print(f"Ensuring state: {alpha=}, {ih=}")
-        load_or_simulate(config, alpha, ih, only_ensure=True)
-
-    # imported here, not at module level: postprocess use load_or_simulate
+    # imported here, not at module level: postprocess reads load_or_simulate
     # from this module, TODO: move common parts in one place
     from examples.BartmanSzwarc_Ochal_Tarzia_2026 import postprocess
 
-    postprocess.draw_temperature_grid(config, temperature_grid)
-    postprocess.draw_convergence_plots(config, convergence_sequences, ihs, alphas)
+    if config.test:
+        ihs_exact, ihs = [4, 8], [4, 8]
+        alphas_c, alphas_matrix, alphas_trace = [1, 10], [1, 10], [1, 10]
+        ih_gap, alpha_b, ih_ref = 8, 10, 16
+    else:
+        ihs_exact, ihs = IHS_EXACT, IHS
+        alphas_c, alphas_matrix, alphas_trace = ALPHAS_FINITE, ALPHAS_MATRIX, ALPHAS_TRACE
+        ih_gap, alpha_b, ih_ref = 64, 10_000, IH_REF
+
+    # A: the limit problem against the 2D closed-form solution
+    postprocess.table_vs_exact(config, EXAMPLE_1_2D, np.inf, ihs_exact, table_id="A")
+    # B: a fixed finite alpha against the exact u_alpha
+    postprocess.table_vs_exact(config, EXAMPLE_1_1D, alpha_b, ihs_exact, table_id="B")
+    # C: the order in alpha at fixed h
+    postprocess.table_alpha_gap(config, EXAMPLE_1_1D, ih_gap, alphas_c)
+    # D: the double limit
+    postprocess.table_double_limit(config, EXAMPLE_1_1D, ihs, alphas_matrix)
+    # B2: the 2D example at a finite alpha. It has a closed form for the limit
+    # problem only, so its rates there can only be seen against a reference.
+    postprocess.table_vs_reference(config, EXAMPLE_1_2D, alpha_b, ihs, ih_ref, table_id="B2")
+    # E, F
+    postprocess.figure_alpha_paths(config, EXAMPLE_1_1D, ihs)
+    postprocess.figure_gamma3_trace(config, EXAMPLE_1_1D, ih_gap, alphas_trace)
+
+    grid = TEMPERATURE_GRID if not config.test else (((alphas_c[0], ihs[0]),),)
+    postprocess.draw_temperature_grid(config, EXAMPLE_2, grid)
 
 
 if __name__ == "__main__":
