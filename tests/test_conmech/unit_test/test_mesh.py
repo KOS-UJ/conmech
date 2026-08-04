@@ -8,7 +8,7 @@ import pytest
 from conmech.mesh.boundaries_description import BoundariesDescription
 from conmech.mesh.boundaries_factory import BoundariesFactory
 from conmech.properties.mesh_description import NestedRectangleMeshDescription
-from conmech.mesh.mesh import Mesh
+from conmech.mesh.mesh import Mesh, get_edges_list
 from tests.test_conmech.regression.std_boundary import (
     extract_boundary_paths_from_elements,
 )
@@ -332,3 +332,35 @@ def test_nested_rectangle_survives_boundary_renumbering():
 
     for node in built[4]:
         assert np.any(np.all(np.isclose(built[8], node, atol=1e-15), axis=1)), node
+
+
+def test_edge_list_matches_the_adjacency_matrix_it_replaced():
+    def by_adjacency_matrix(nodes_count, elements):
+        matrix = np.zeros((nodes_count, nodes_count), dtype=np.int32)
+        vertices = len(elements[0])
+        for element in elements:
+            for i in range(vertices):
+                for j in range(vertices):
+                    if i != j:
+                        matrix[element[i], element[j]] += 1
+        return np.array(
+            [
+                (i, j)
+                for i, j in np.ndindex((nodes_count, nodes_count))
+                if j > i and matrix[i, j] > 0
+            ],
+            dtype=np.int64,
+        )
+
+    for cells_per_unit in (2, 4, 8):
+        mesh = Mesh(
+            mesh_descr=NestedRectangleMeshDescription(
+                initial_position=None, cells_per_unit=cells_per_unit, scale=[2, 1]
+            ),
+            boundaries_description=BoundariesDescription(dirichlet=lambda x: True),
+        )
+        expected = by_adjacency_matrix(len(mesh.nodes), mesh.elements)
+        computed = get_edges_list(mesh.elements)
+        assert computed.dtype == expected.dtype
+        assert np.array_equal(computed, expected), cells_per_unit
+        assert np.array_equal(computed, mesh.edges)

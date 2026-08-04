@@ -57,6 +57,10 @@ def get_nodes(edge, vector, full_vector, dimension):
     return result
 
 
+#: Stand-in for the `volume_multiplier` of the objectives that ignore it.
+NO_VOLUME_MULTIPLIER = np.zeros((0, 0), dtype=np.float64)
+
+
 # pylint: disable=too-many-arguments
 def make_equation(
     jn: Optional[Callable],
@@ -138,7 +142,7 @@ def make_equation(
             lhs: np.ndarray,
             rhs: np.ndarray,
             displacement: np.ndarray,
-            base_integrals,
+            volume_multiplier,
             time_step,
         ) -> np.ndarray:
             c_part = contact_part(var, nodes, contact_boundary, contact_normals)
@@ -218,7 +222,7 @@ def make_cost_functional(
                 )
         return cost
 
-    # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
+    # pylint: disable=too-many-arguments,unused-argument # 'volume_multiplier'
     @numba.njit(
         f64[:](
             f64[:],
@@ -242,7 +246,7 @@ def make_cost_functional(
         lhs,
         rhs,
         u_vector,
-        base_integrals,
+        volume_multiplier,
         dt,
     ):
         ju = contact_cost_functional(
@@ -322,7 +326,7 @@ def make_subgradient(
 
         return cost
 
-    # pylint: disable=too-many-arguments,unused-argument # 'base_integrals'
+    # pylint: disable=too-many-arguments,unused-argument # 'volume_multiplier'
     @numba.njit()
     def cost_functional(
         var,
@@ -333,7 +337,7 @@ def make_subgradient(
         lhs,
         rhs,
         u_vector,
-        base_integrals,
+        volume_multiplier,
         dt,
     ):
         result = np.zeros_like(var)

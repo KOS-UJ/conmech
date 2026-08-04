@@ -10,30 +10,17 @@ from conmech.properties.mesh_description import MeshDescription
 from conmech.mesh.zoo.raw_mesh import RawMesh
 
 
-@numba.njit
-def get_edges_matrix(nodes_count: int, elements: np.ndarray):
-    edges_matrix = np.zeros((nodes_count, nodes_count), dtype=np.int32)
-    element_vertices_number = len(elements[0])
-    for element in elements:  # TODO: #65 prange?
-        for i in range(element_vertices_number):
-            for j in range(element_vertices_number):
-                if i != j:
-                    edges_matrix[element[i], element[j]] += 1.0
-    return edges_matrix
-
-
-@numba.njit
-def get_edges_list_numba(edges_matrix):
-    nodes_count = edges_matrix.shape[0]
-    edges = np.array(
-        [
-            (i, j)
-            for i, j in np.ndindex((nodes_count, nodes_count))
-            if j > i and edges_matrix[i, j] > 0
-        ],
-        dtype=np.int64,
+def get_edges_list(elements: np.ndarray) -> np.ndarray:
+    """
+    Pairs `(i, j)`, `i < j`, of vertices sharing an element, sorted.
+    """
+    elements = np.asarray(elements, dtype=np.int64)
+    vertices = elements.shape[1]
+    pairs = np.concatenate(
+        [elements[:, (i, j)] for i in range(vertices) for j in range(i + 1, vertices)]
     )
-    return edges
+    pairs = np.sort(pairs, axis=1)
+    return np.unique(pairs, axis=0)
 
 
 @numba.njit
@@ -105,8 +92,7 @@ class Mesh(RawMesh):
         ) = BoundariesFactory.identify_boundaries_and_reorder_nodes(
             unordered_nodes, unordered_elements, boundaries_description
         )
-        edges_matrix = get_edges_matrix(nodes_count=len(self.nodes), elements=self.elements)
-        self.edges = get_edges_list_numba(edges_matrix)
+        self.edges = get_edges_list(self.elements)
 
     @property
     def dimension(self):
