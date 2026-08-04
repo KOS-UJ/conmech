@@ -32,6 +32,7 @@ from conmech.dynamics.contact.contact_law import PotentialOfContactLaw
 from conmech.dynamics.contact.interior_contact_law import InteriorContactLaw
 from conmech.solvers.solver import Solver
 from conmech.solvers.solver_methods import (
+    NO_VOLUME_MULTIPLIER,
     make_cost_functional,
     make_equation,
     make_subgradient,
@@ -85,12 +86,14 @@ class Optimization(Solver):
             )
         else:
             self.subgradient = None
+        self.uses_volume_multiplier = False
         if isinstance(statement, WaveStatement):
             if isinstance(contact_law, InteriorContactLaw):
                 self.loss = make_equation(  # TODO!
                     jn=None,
                     contact=contact_law.potential_normal_direction,
                 )
+                self.uses_volume_multiplier = True
 
         if isinstance(statement, StaticPoissonStatement):
             self.loss = make_cost_functional(
@@ -136,7 +139,11 @@ class Optimization(Solver):
             self.lhs,
             self.rhs if len(self.rhs.shape) == 1 else self.rhs[0],  # TODO
             displacement,
-            self.body.dynamics.acceleration_operator.SM1.bare,
+            (
+                self.body.dynamics.acceleration_operator.SM1.bare
+                if self.uses_volume_multiplier
+                else NO_VOLUME_MULTIPLIER
+            ),
             self.time_step,
         )
 

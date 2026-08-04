@@ -28,7 +28,7 @@ from conmech.dynamics.contact.contact_law import DirectContactLaw
 from conmech.scene.body_forces import BodyForces
 from conmech.solvers._solvers import SolversRegistry
 from conmech.solvers.solver import Solver
-from conmech.solvers.solver_methods import make_equation
+from conmech.solvers.solver_methods import NO_VOLUME_MULTIPLIER, make_equation
 
 
 @SolversRegistry.register("dynamic", "direct")
@@ -51,15 +51,14 @@ class Direct(Solver):
         )
         self.equation: Optional[Callable] = None
 
+        self.uses_volume_multiplier = False
         if contact_law is not None:
+            general_contact_condition = getattr(contact_law, "general_contact_condition", None)
             self.equation = make_equation(
                 jn=contact_law.subderivative_normal_direction,
-                contact=(
-                    contact_law.general_contact_condition
-                    if hasattr(contact_law, "general_contact_condition")
-                    else None
-                ),
+                contact=general_contact_condition,
             )
+            self.uses_volume_multiplier = general_contact_condition is not None
 
     def __str__(self) -> str:
         return "direct"
@@ -93,7 +92,11 @@ class Direct(Solver):
                     np.ascontiguousarray(self.node_relations.todense()),
                     self.node_forces,
                     displacement,
-                    self.body.dynamics.acceleration_operator.SM1.bare,
+                    (
+                        self.body.dynamics.acceleration_operator.SM1.bare
+                        if self.uses_volume_multiplier
+                        else NO_VOLUME_MULTIPLIER
+                    ),
                     self.time_step,
                 ),
             )
