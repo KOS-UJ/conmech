@@ -25,19 +25,32 @@ def get_edges_list(elements: np.ndarray) -> np.ndarray:
 
 @numba.njit
 def remove_unconnected_nodes_numba(nodes, elements):
+    """
+    Drop the nodes no element refers to, keeping the order of the rest.
+    """
     nodes_count = len(nodes)
-    index = 0
-    while index < nodes_count:
-        if index in elements:
-            index += 1
-        else:
-            nodes = np.vstack((nodes[:index], nodes[index + 1 :]))
-            for i in range(elements.shape[0]):
-                for j in range(elements.shape[1]):
-                    if elements[i, j] > index:
-                        elements[i, j] -= 1
-            nodes_count -= 1
-    return nodes, elements
+    used = np.zeros(nodes_count, dtype=np.bool_)
+    for i in range(elements.shape[0]):
+        for j in range(elements.shape[1]):
+            used[elements[i, j]] = True
+
+    old_to_new = np.zeros(nodes_count, dtype=elements.dtype)
+    kept = 0
+    for index in range(nodes_count):
+        if used[index]:
+            old_to_new[index] = kept
+            kept += 1
+
+    remaining_nodes = np.empty((kept, nodes.shape[1]), dtype=nodes.dtype)
+    for index in range(nodes_count):
+        if used[index]:
+            remaining_nodes[old_to_new[index]] = nodes[index]
+
+    for i in range(elements.shape[0]):
+        for j in range(elements.shape[1]):
+            elements[i, j] = old_to_new[elements[i, j]]
+
+    return remaining_nodes, elements
 
 
 @numba.njit
