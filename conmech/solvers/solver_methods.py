@@ -282,6 +282,7 @@ def make_subgradient(
 
         @numba.njit()
         def accumulate(cost, edge, offset, normal_vector, sample, subgrad):
+            # pylint: disable=unused-argument)
             if sample == 0:
                 for node in edge:
                     if node < offset:
@@ -295,6 +296,7 @@ def make_subgradient(
 
         @numba.njit()
         def accumulate(cost, edge, offset, normal_vector, sample, subgrad):
+            # pylint: disable=unused-argument)
             for node in edge:
                 for i in range(variable_dimension):
                     if node < offset:
