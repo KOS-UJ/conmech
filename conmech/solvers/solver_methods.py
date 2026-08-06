@@ -319,10 +319,21 @@ def make_subgradient(
                     tangential_condition_bound(vm_normal, static_displacement_normal, dt),
                 )
 
-                for node in edge:
-                    for i in range(variable_dimension):
+                if variable_dimension == 1:
+                    # a scalar unknown has no direction to project onto
+                    if node_ == 0:
+                        for node in edge:
+                            if node < offset:
+                                cost[node] += subgrad / len(edge)
+                    else:
+                        node = edge[node_ - 1]
                         if node < offset:
-                            cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
+                            cost[node] += subgrad
+                else:
+                    for node in edge:
+                        for i in range(variable_dimension):
+                            if node < offset:
+                                cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
 
         return cost
 

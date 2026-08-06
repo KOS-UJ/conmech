@@ -83,6 +83,8 @@ class Optimization(Solver):
         if hasattr(contact_law, "subderivative_normal_direction"):  # TODO
             self.subgradient = make_subgradient(
                 normal_condition=contact_law.subderivative_normal_direction,
+                variable_dimension=statement.dimension_out,
+                problem_dimension=statement.dimension_in,
             )
         else:
             self.subgradient = None
