@@ -278,6 +278,30 @@ def make_subgradient(
     def contact_cost(length, normal, normal_bound, tangential, tangential_bound):
         return length * (normal_bound * normal + tangential_bound * tangential)
 
+    if variable_dimension == 1:
+
+        @numba.njit()
+        def accumulate(cost, edge, offset, normal_vector, sample, subgrad):
+            # pylint: disable=unused-argument)
+            if sample == 0:
+                for node in edge:
+                    if node < offset:
+                        cost[node] += subgrad / len(edge)
+                return
+            node = edge[sample - 1]
+            if node < offset:
+                cost[node] += subgrad
+
+    else:
+
+        @numba.njit()
+        def accumulate(cost, edge, offset, normal_vector, sample, subgrad):
+            # pylint: disable=unused-argument)
+            for node in edge:
+                for i in range(variable_dimension):
+                    if node < offset:
+                        cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
+
     @numba.njit()
     def contact_subgradient(
         var, var_old, static_displacement, nodes, contact_boundary, contact_normals, dt
@@ -319,10 +343,7 @@ def make_subgradient(
                     tangential_condition_bound(vm_normal, static_displacement_normal, dt),
                 )
 
-                for node in edge:
-                    for i in range(variable_dimension):
-                        if node < offset:
-                            cost[i * offset + node] += normal_vector[i] / len(edge) * subgrad
+                accumulate(cost, edge, offset, normal_vector, node_, subgrad)
 
         return cost
 
