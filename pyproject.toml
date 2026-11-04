@@ -25,7 +25,7 @@ dependencies = [
 dev = [
     "pytest==9.0.3",
     "black==26.10.1",
-    "pylint==2.17.4",
+    "pylint==4.0.9",
     "sympy==1.14.0",
 ]
 
